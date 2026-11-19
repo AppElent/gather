@@ -302,6 +302,44 @@ export const tasks = {
     },
   },
 
+  /**
+   * The smart lists on the Tasks index (APP-301): views across every list,
+   * by the rules in `@gather/core/smart-lists`. Keyed by `SmartListId`.
+   */
+  smart: {
+    section: 'Smart lists',
+    /** The index's ⋯ menu, which shows or hides each one on this phone. */
+    menu: 'Show or hide smart lists',
+    lists: {
+      today: { title: 'Today', subtitle: 'Due today or overdue' },
+      mine: { title: 'My tasks', subtitle: 'Assigned to you' },
+      upcoming: { title: 'Upcoming', subtitle: 'Next 7 days' },
+      unassigned: {
+        title: 'Unassigned',
+        subtitle: 'Nobody has picked these up',
+      },
+    },
+    /** A smart list's summary: how many, from where. */
+    count: { one: '{count} task', other: '{count} tasks' },
+    /** What an empty smart list says. Today's is `todayEmpty`. */
+    empty: {
+      today: 'Nothing due today.',
+      mine: 'Nothing is assigned to you.',
+      upcoming: 'Nothing due in the next 7 days.',
+      unassigned: 'Every task has someone.',
+    },
+    /** The Today section's aside when any task is late. */
+    overdueCount: '{count} overdue',
+    overdue: 'Overdue',
+    yesterday: 'yesterday',
+    /** Upcoming's day headings; `{date}` is the weekday and date. */
+    days: {
+      overdue: 'Overdue',
+      today: 'Today · {date}',
+      tomorrow: 'Tomorrow · {date}',
+    },
+  },
+
   /** The ⋯ menu's appearance entry and its sheet. */
   appearance: {
     title: 'Colour and icon',

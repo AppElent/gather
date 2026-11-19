@@ -1,3 +1,4 @@
+import { isIsoDate } from '@gather/core/civil-date'
 import {
   type GroceryUnit,
   groceryAddFields,
@@ -5,6 +6,7 @@ import {
   isGroceryQuantity,
   roundGroceryQuantity,
 } from '@gather/core/groceries'
+import { inAnySmartList } from '@gather/core/smart-lists'
 import { normalizeTaskUrl } from '@gather/core/task-lists'
 import { clockMoment } from '@gather/core/task-reminders'
 import { reanchorRepeat, type TaskRepeat } from '@gather/core/task-repeat'
@@ -91,6 +93,49 @@ export const listByList = query({
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
       .collect()
     return rows.sort(byOpenThenOrder)
+  },
+})
+
+/**
+ * The open tasks the Tasks index's smart lists show (APP-301): due within
+ * Upcoming's week or before, the caller's own, or nobody's on a list of jobs.
+ * The rules are `@gather/core/smart-lists`; the phone sorts these rows into
+ * Today, Mine, Upcoming and Unassigned and adds its linked lists' rows.
+ *
+ * Bounded by indexes: per local list of the Group, only rows with no
+ * `doneAt`, which are the open ones and the few checked before APP-310
+ * stamped it. Never every task of the Group, so a grocery list's years of
+ * checked items are not read. `today` is the caller's own day, so a phone
+ * west of UTC sees its own Today.
+ */
+export const smartLists = query({
+  args: { groupSlug: v.string(), today: v.string() },
+  handler: async (ctx, args) => {
+    const { user, group } = await requireGroupBySlug(ctx, args.groupSlug)
+    if (!isIsoDate(args.today)) throw new ConvexError('Invalid date')
+    const lists = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const scope = { today: args.today, me: user._id as string }
+    const perList = await Promise.all(
+      lists
+        .filter((list) => list.provider === 'local')
+        .map(async (list) => {
+          const of = {
+            kind: list.kind ?? 'plain',
+            grocery: isGroceryList(group, list),
+          }
+          const open = await ctx.db
+            .query('tasks')
+            .withIndex('by_list_and_done_at', (q) =>
+              q.eq('listId', list._id).eq('doneAt', undefined),
+            )
+            .collect()
+          return open.filter((task) => inAnySmartList(task, of, scope))
+        }),
+    )
+    return { me: user._id, tasks: perList.flat() }
   },
 })
 
