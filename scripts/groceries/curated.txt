@@ -45,3 +45,14 @@ frozen: ijs, ijsjes, roomijs, ice cream, ijsblokjes, ice cubes, waterijsjes, rak
 # Produce: fresh vegetables, fruit and herbs.
 produce: ui, uien, rode ui, sjalot, sjalotten, knoflook, garlic, onion, spring onions, lente-ui, bosui, prei, wortel, wortelen, worteltjes, peentjes, winterpeen, aardappel, aardappelen, krieltjes, zoete aardappel, tomaat, tomaten, cherrytomaten, komkommer, paprika, bell pepper, courgette, aubergine, broccoli, bloemkool, spinazie, andijvie, boerenkool, kale, spruitjes, sperziebonen, green beans, snijbonen, sugarsnaps, peultjes, champignons, bleekselderij, celery, sla, ijsbergsla, little gem, rucola, veldsla, salade melange, maaltijdsalade, soepgroente, groenten voor soep, wokgroente, mais kolven, gember, citroengras, rode peper, spaanse peper, jalapeño, koriander, peterselie, parsley, basilicum, verse basilicum, fresh basil, munt, bieslook, dille, tijm, rozemarijn, appel, appels, peer, banaan, bananen, sinaasappel, mandarijn, citroen, limoen, druiven, aardbeien, blauwe bessen, frambozen, kiwi, mango, ananas, meloen, avocado
 drinks: cola, coke, diet coke, cola zero, pepsi, 7up, seven up, sprite, fanta, ice tea, spa, spa rood, bronwater, water, sap, jus d'orange, appelsap, sinaasappelsap, limonade, ranja, siroop, squash, karvan cevitam, roosvicee, jillz, bier, wijn, rode wijn, witte wijn, rosé, prosecco, cava, heineken, grolsch, hertog jan, la chouffe, energiedrank, red bull, tonic, ginger ale
+
+# APP-368, from training-row misses only (eval.ts --split train).
+tins_sauces: kruiden, gedroogde kruiden, italiaanse kruiden, provençaalse kruiden, paprika powder, zongedroogde tomaten, erwten en wortelen, baked beans
+produce: verse kruiden, paddenstoel, paddenstoelen
+breakfast: senseo, senseo pads, ontbijtkoek repen
+pasta_world: babi pangang, babi pangang saus, kipsatésaus, kipsaté saus
+snacks: tuc, cereal bars, cereal repen, mueslirepen
+
+# Stray words and brand fragments the open data turned into terms, found in
+# training-row misses: "kapper bellen" is not cheese.
+drop: bel, mur, rebel, pick up

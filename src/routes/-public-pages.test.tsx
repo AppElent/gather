@@ -77,6 +77,22 @@ test('about page says store names and logos are their owners’ trademarks', () 
   ).toBeDefined()
 })
 
+test('about page credits the grocery data sources their licences require', () => {
+  renderWithI18n(<AboutPage />)
+  expect(screen.getByRole('heading', { name: 'Data sources' })).toBeDefined()
+  expect(screen.getByText(/Open Food Facts.*\(ODbL\) 1\.0/)).toBeDefined()
+  expect(
+    screen
+      .getByRole('link', { name: 'Open Database License 1.0' })
+      .getAttribute('href'),
+  ).toBe('https://opendatacommons.org/licenses/odbl/1-0/')
+  expect(screen.getByText(/NEVO online version 2025\/9\.0, RIVM, Bilthoven/)).toBeDefined()
+
+  cleanup()
+  renderWithI18n(<AboutPage />, { locale: 'nl' })
+  expect(screen.getByRole('heading', { name: 'Gegevensbronnen' })).toBeDefined()
+})
+
 test('not found page is styled and gives a recovery path', () => {
   renderWithI18n(<NotFoundPage />)
 

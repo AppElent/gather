@@ -28,13 +28,20 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   there by hand. Queued push notifications have their scheduled jobs
   cancelled with them (`deletePushData` in `convex/lib/notifications.ts`). [Data export](data-export.md)
   reads the same tables, and its registry fails `pnpm typecheck` for a new one.
-- The shared grocery aisle cache (`groceryCategoryCache`) and its daily
-  counter carry no Group or person id, so neither a Group's nor an account's
-  deletion touches them. The cache does keep the normalised item name a Member
+- The shared grocery aisle cache (`groceryCategoryCache`) and its global
+  daily counter (`groceryAiUsage`) carry no Group or person id, so neither a
+  Group's nor an account's deletion touches them. While a question is out the
+  cache row lists the waiting items' task ids (`waitingTaskIds`); a deleted
+  Group's ids stay there, pointing at nothing, until the answer or the
+  give-up clears the list. The per-Group daily counter
+  (`groceryAiGroupUsage`) is Group content and goes with the Group. The cache does keep the normalised item name a Member
   typed (for an unknown item that was sent to the model, or that three Groups
-  put in the same aisle), and so do the
-  function logs that record the answer; that name stays after the Group or
-  account that typed it is deleted, because nothing records who typed it.
+  put in the same aisle), with nothing to say who typed it, so deletion cannot
+  find it. A daily prune bounds it instead
+  ([ADR-0049](../adr/0049-the-shared-aisle-cache-keeps-only-what-groups-still-back.md)):
+  a model answer goes after 30 days, and a consensus within a day of its
+  Groups no longer backing it. The function logs carry the aisle, not the
+  name.
   Names that look like more than a product (an email address, a URL, a run of
   four or more digits, more than six words) are never sent or cached. A
   Group's aisle corrections (`groceryCategoryOverrides`) are in the cascade

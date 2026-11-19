@@ -21,7 +21,7 @@ Design studies: [designs/](../designs/).
 
 ## Decisions
 
-A new ADR takes the number after the highest (0049 next).
+A new ADR takes the number after the highest (0050 next).
 
 | ID | Decision | Status | Domain | Key implementation references |
 | --- | --- | --- | --- | --- |
@@ -73,3 +73,4 @@ A new ADR takes the number after the highest (0049 next).
 | [0046](adr/0046-agents-connect-through-clerk-oauth-and-name-the-group.md) | Agents connect through Clerk OAuth and name the Group | accepted | identity | `src/lib/mcp/`, `convex/lib/connectedApps.ts`, `convex/lib/idempotency.ts` |
 | [0047](adr/0047-six-modules-ship-on-the-web-and-the-phone-still-leads.md) | Six Modules ship on the web too, and the phone still leads | accepted | platforms | `packages/core/src/features.ts`, ADR-0042 |
 | [0048](adr/0048-shared-costs-are-expense-pots-with-balances.md) | Shared costs are expense pots with balances | accepted | money modules | [GLOSSARY.md](../GLOSSARY.md), ADR-0025, `convex/lib/finance.ts` |
+| [0049](adr/0049-the-shared-aisle-cache-keeps-only-what-groups-still-back.md) | The shared aisle cache keeps only what Groups still back | accepted | groceries | `convex/lib/groceryCategories.ts`, `convex/crons.ts`, [account deletion](contracts/account-deletion.md) |

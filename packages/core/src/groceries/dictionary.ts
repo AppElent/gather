@@ -66,8 +66,16 @@ const FROZEN_WORDS = new Set(['bevroren', 'frozen', 'diepgevroren', 'diepvries']
 /** Prepositions after which a name stops being about the product. */
 const PREPOSITIONS = new Set(['in', 'met', 'with', 'uit', 'zonder', 'voor', 'op'])
 
-/** Two-letter words that are whole products and may end a compound. */
-const SHORT_HEADS = new Set(['ui', 'ei'])
+/**
+ * Words under four letters that are whole products. Any other word needs
+ * four letters to end a compound or stand for a whole name: shorter pieces
+ * are mostly accidents ("tandpasat" is not "saté", "runderlappen" is not
+ * "peen", "wit" in "druiven wit" is not a beer).
+ */
+const SHORT_WORDS = new Set([
+  'ui', 'ei', 'sap', 'jam', 'ham', 'ijs', 'mie', 'vis', 'kip', 'bes', 'rum',
+  'gin', 'ale', 'tea', 'oat', 'sla', 'cod', 'fig', 'yam', 'deo',
+])
 
 export function createGroceryDictionary(
   data: DictionaryData,
@@ -109,16 +117,14 @@ export function createGroceryDictionary(
   }
 
   function compound(raw: string): string | undefined {
-    const word = raw
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[̀-ͯ']/g, '')
+    const word = plain(raw)
     // The head of a Dutch compound is its last part: "appelsap" is juice.
     for (let start = 1; start <= word.length - 2; start++) {
       const part = word.slice(start)
-      if (part.length < 3 && !SHORT_HEADS.has(part)) continue
+      if (part.length < 4 && !SHORT_WORDS.has(part)) continue
       const key = stemGroceryWord(part)
-      if (start >= 2 && terms.has(key)) return key
+      if (key.length < 3 && !SHORT_WORDS.has(key)) continue
+      if (start >= 3 && terms.has(key)) return key
     }
     // Then its first part: "kipdij" in "kipdijfilet" if "filet" is unknown.
     // Four letters at least: shorter first parts are mostly accidents.
@@ -129,13 +135,16 @@ export function createGroceryDictionary(
     return undefined
   }
 
-  function typo(stem: string): string | undefined {
-    const allowed = stem.length >= 8 ? 2 : stem.length >= 5 ? 1 : 0
+  function typo(stem: string, most = 2): string | undefined {
+    const allowed = Math.min(most, stem.length >= 8 ? 2 : stem.length >= 5 ? 1 : 0)
     if (allowed === 0) return undefined
     let best: string | undefined
     let bestDistance = allowed + 1
     for (let length = stem.length - allowed; length <= stem.length + allowed; length++) {
       for (const candidate of byLength.get(length) ?? []) {
+        // A slip rarely hits the first letter, and a different first letter
+        // is most often a different word ("Fairy" is not "dairy").
+        if (candidate[0] !== stem[0] || candidate.length < 5) continue
         const distance = editDistance(stem, candidate, bestDistance)
         if (distance < bestDistance) {
           best = candidate
@@ -151,7 +160,25 @@ export function createGroceryDictionary(
     return aisle && term !== undefined ? { aisle, match, term } : null
   }
 
+  // Part of a longer name only counts when it is a real word on its own:
+  // "wit" in "druiven wit" is not a beer. Measured on the typed words, since
+  // stems drop letters ("kaas" → "kas").
+  function partHit(stems: string[], raw: string[], from: number, to: number) {
+    if (to - from === 1 && raw[from].length < 4 && !SHORT_WORDS.has(raw[from]))
+      return null
+    return hit(phrase(stems.slice(from, to)), 'phrase')
+  }
+
   function lookup(name: string): DictionaryHit | null {
+    const found = find(name)
+    // Ground, powdered or flaked produce is a spice: "paprika powder",
+    // "laurierblaadjes" and "chilivlokken" sit with the jars, not the fresh.
+    if (found?.aisle === 'produce' && groceryNameParts(name).some(isDryWord))
+      return { ...found, aisle: 'tins_sauces' }
+    return found
+  }
+
+  function find(name: string): DictionaryHit | null {
     const rawWords = groceryNameParts(name)
     const stems = rawWords.map(stemGroceryWord)
     if (stems.length === 0) return null
@@ -165,41 +192,76 @@ export function createGroceryDictionary(
       )
     )
       return { aisle: 'frozen', match: 'frozen', term: 'diepvries' }
+    // A name that starts with a frozen brand or product is sold frozen:
+    // "Iglo spinazie", "ijs aardbei".
+    if (stems.length > 1 && exact(stems[0]) === 'frozen')
+      return { aisle: 'frozen', match: 'frozen', term: stems[0] }
 
     // The product is named before "in", "met" and the like.
     const cut = stems.findIndex(
       (stem, index) => index > 0 && PREPOSITIONS.has(stem),
     )
-    const heads = cut > 0 ? [stems.slice(0, cut), stems] : [stems]
-    for (const words of heads) {
-      if (words !== stems) {
-        const found = hit(phrase(words), 'phrase')
+    const ends = cut > 0 ? [cut, stems.length] : [stems.length]
+    for (const length of ends) {
+      if (length !== stems.length) {
+        const found = partHit(stems, rawWords, 0, length)
         if (found) return found
       }
       // A modifier comes first in Dutch and English: try dropping from the
       // left ("halfvolle melk"), then from the right ("melk halfvol").
-      for (let start = 1; start < words.length; start++) {
-        const found = hit(phrase(words.slice(start)), 'phrase')
+      for (let start = 1; start < length; start++) {
+        const found = partHit(stems, rawWords, start, length)
         if (found) return found
       }
-      for (let end = words.length - 1; end >= 1; end--) {
-        const found = hit(phrase(words.slice(0, end)), 'phrase')
+      // Dutch puts the product last, so a compound there names it better
+      // than the words before it ("Knorr wereldpasta" is pasta).
+      if (length > 1) {
+        const last = hit(compound(rawWords[length - 1]), 'compound')
+        if (last) return last
+      }
+      for (let end = length - 1; end >= 1; end--) {
+        const found = partHit(stems, rawWords, 0, end)
         if (found) return found
       }
     }
 
     for (let index = rawWords.length - 1; index >= 0; index--) {
-      const found = hit(compound(rawWords[index]), 'compound')
+      // A word one slip from a whole term is that term, before any piece of
+      // it is: "chocola" is chocolate, not cola.
+      const near = typo(stems[index], 1)
+      const found =
+        (near && near.length >= stems[index].length ? hit(near, 'typo') : null) ??
+        hit(compound(rawWords[index]), 'compound')
       if (found) return found
     }
     for (let index = stems.length - 1; index >= 0; index--) {
-      const found = hit(typo(stems[index]), 'typo')
+      // The stem of a misspelt word can lose more than the slip ("koffe" →
+      // "kof"), so the word as typed gets a try against the terms too.
+      const found =
+        hit(typo(stems[index]), 'typo') ?? hit(typo(plain(rawWords[index])), 'typo')
       if (found) return found
     }
     return null
   }
 
   return { size: terms.size, exact, lookup }
+}
+
+/** Words that say a herb or vegetable is sold dry, as a spice. */
+const DRY_WORDS = new Set(['poeder', 'powder', 'gemalen', 'ground', 'vlokken', 'flakes'])
+const DRY_ENDINGS = ['poeder', 'vlokken', 'blaadjes']
+
+function isDryWord(raw: string): boolean {
+  const word = plain(raw)
+  return DRY_WORDS.has(word) || DRY_ENDINGS.some((ending) => word.endsWith(ending))
+}
+
+/** A typed word in lower case without accents or apostrophes. */
+function plain(word: string): string {
+  return word
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ']/g, '')
 }
 
 /**

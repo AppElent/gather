@@ -26,15 +26,35 @@ describe('grocery recognition eval', () => {
     expect(rows.length).toBeGreaterThanOrEqual(600)
   })
 
-  it('places at least 85% in the exact aisle from the bundled dictionary alone', () => {
-    expect(local.accuracy).toBeGreaterThanOrEqual(0.85)
+  // Floors at the measured score (APP-368), so a change that loses ground
+  // fails here instead of slipping through.
+  it('places at least 95% in the exact aisle from the bundled dictionary alone', () => {
+    expect(local.accuracy).toBeGreaterThanOrEqual(0.95)
   })
 
   // Curated terms were chosen from misses on the other four fifths only, so
   // this split shows what the dictionary does on lines nobody tuned for.
-  it('places at least 85% in the exact aisle on the holdout fifth', () => {
+  it('places at least 91% in the exact aisle on the holdout fifth', () => {
     const holdout = rows.filter((_, index) => index % 5 === 4)
-    expect(runGroceryEval(holdout, groceryDictionary()).accuracy).toBeGreaterThanOrEqual(0.85)
+    expect(runGroceryEval(holdout, groceryDictionary()).accuracy).toBeGreaterThanOrEqual(0.91)
+  })
+
+  // APP-368: the rules of that change were drawn partly from misses in the
+  // holdout fifth, so it is no longer unseen. `freshLines.txt` is: written by
+  // a separate agent that saw only the aisle guide and the unit list, scored
+  // once (96.0% before APP-368, 98.5% after) and never tuned on.
+  it('places at least 95% of the unseen fresh lines in the exact aisle', () => {
+    const fresh = parseEvalSet(fs.readFileSync(path.join(here, 'freshLines.txt'), 'utf8'))
+    expect(fresh.length).toBeGreaterThanOrEqual(200)
+    expect(runGroceryEval(fresh, groceryDictionary()).accuracy).toBeGreaterThanOrEqual(0.95)
+  })
+
+  // Errands typed on the list ("kapper bellen") belong in Overig: a
+  // dictionary that matches every stray piece of a word fails here.
+  it('leaves at least 70% of the non-grocery lines in Overig', () => {
+    const { total, correct } = local.perAisle.other
+    expect(total).toBeGreaterThanOrEqual(40)
+    expect(correct / total).toBeGreaterThanOrEqual(0.7)
   })
 
   // The cache snapshot is recorded with `scripts/groceries/ask-ai.ts`, which

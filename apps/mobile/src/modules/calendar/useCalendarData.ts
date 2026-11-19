@@ -10,6 +10,7 @@ import { api } from '../../convex/api'
 import { usePaginatedQuery, useQuery } from '../../convex/queries'
 
 import type { CalendarScreenData } from './CalendarScreen'
+import { mergeSourceEvents } from './calendarSources'
 
 export interface CalendarConnectedData extends CalendarScreenData {
   view: CalendarView
@@ -79,19 +80,14 @@ export function useCalendarData(
       ),
     [months, pages],
   )
-  const allEvents = useMemo(
-    () => Object.values(sourceEvents).flat(),
-    [sourceEvents],
+  const deduped = useMemo(
+    () =>
+      mergeSourceEvents(
+        sourceEvents,
+        pages.map((calendar) => calendar._id),
+      ),
+    [pages, sourceEvents],
   )
-  const deduped = useMemo(() => {
-    const byId = new Map<string, CalendarEvent>()
-    for (const event of allEvents) {
-      const previous = byId.get(event.id)
-      if (!previous || event.revision >= previous.revision)
-        byId.set(event.id, event)
-    }
-    return [...byId.values()]
-  }, [allEvents])
   const people = useMemo(
     () =>
       (members ?? []).map((member) => ({

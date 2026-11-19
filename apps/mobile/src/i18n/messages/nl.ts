@@ -284,6 +284,7 @@ export const nl = {
 
     /** Opens the web's statement in a browser; the words are the web's own. */
     privacy: coreNl.privacy.title,
+    dataSources: coreNl.shell.about.dataSources.title,
 
     search: {
       placeholder: 'Instellingen zoeken',

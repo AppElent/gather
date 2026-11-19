@@ -421,6 +421,8 @@ export const en = {
 
     /** Opens the web's statement in a browser; the words are the web's own. */
     privacy: coreEn.privacy.title,
+    /** Opens the web's About page, where the data sources are credited. */
+    dataSources: coreEn.shell.about.dataSources.title,
 
     /**
      * The field above the list. It is the way through for somebody who knows

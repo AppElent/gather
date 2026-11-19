@@ -1,0 +1,203 @@
+# Fresh eval lines (APP-368), written by a separate agent that saw only the
+# aisle guide and the unit list, never the dictionary or the other eval lines.
+# Scored on their own as an unseen check. Never tune the matcher on them.
+1 kilo appels|produce|1|kg|appels
+bananen|produce|||
+500 gr champignons|produce|500|g|champignons
+3x paprika|produce|3||paprika
+komkommer|produce|||
+1 krop ijsbergsla|produce|1|krop|ijsbergsla
+bos basilicum|produce|1|bos|basilicum
+2 kilo aardappelen|produce|2|kg|aardappelen
+tomaatn|produce|||
+biologische wortels|produce|||
+bloemkool|produce|||
+2 citroenen|produce|2||citroenen
+bosui|produce|||
+1 net mandarijnen|produce|1|net|mandarijnen
+broccoli 2|produce|2||broccoli
+avocado's|produce|||
+uien 1 kilo|produce|1|kg|uien
+2 tros tomaten|produce|2|tros|tomaten
+prei|produce|||
+aardbeien 500 g|produce|500|g|aardbeien
+volkoren brood|bakery|||
+2 croissants|bakery|2||croissants
+6 pistoletjes|bakery|6||pistoletjes
+tijgerbrood|bakery|||
+1 stokbrood|bakery|1||stokbrood
+appelflap|bakery|||
+3 broodjes|bakery|3||broodjes
+2 stuks tompouce|bakery|2|stuks|tompouce
+ciabatta|bakery|||
+krentenbollen 4|bakery|4||krentenbollen
+2 pakken halfvolle melk|dairy|2|pak|halfvolle melk
+10 eieren|dairy|10||eieren
+1 pak boter|dairy|1|pak|boter
+yoghrt|dairy|||
+3x Optimel drinkyoghurt|dairy|3||Optimel drinkyoghurt
+1 bak kwark|dairy|1|bak|kwark
+slagroom|dairy|||
+1 liter karnemelk|dairy|1|l|karnemelk
+havermelk|dairy|||
+Campina vla|dairy|||
+Alpro sojadrink|dairy|||
+AH biologische eieren|dairy|||
+margerine|dairy|||
+Griekse yoghurt 500 g|dairy|500|g|Griekse yoghurt
+milk 2 liters|dairy|2|l|milk
+500 g geraspte kaas|cheese_deli|500|g|geraspte kaas
+jonge kaas|cheese_deli|||
+10 plakjes ham|cheese_deli|10|plak|ham
+Old Amsterdam|cheese_deli|||
+hummus|cheese_deli|||
+salami|cheese_deli|||
+1 pak achterham|cheese_deli|1|pak|achterham
+Boursin|cheese_deli|||
+rookvlees|cheese_deli|||
+feta|cheese_deli|||
+filet americain|cheese_deli|||
+brie 1|cheese_deli|1||brie
+500 g gehkat|meat_fish|500|g|gehkat
+kipfilet|meat_fish|||
+1 kilo kipdijfilet|meat_fish|1|kg|kipdijfilet
+zalmfilet 2|meat_fish|2||zalmfilet
+rookworst|meat_fish|||
+spekjes|meat_fish|||
+tofu|meat_fish|||
+garnalen 300 gram|meat_fish|300|g|garnalen
+kabeljauw|meat_fish|||
+vegaburgers 4|meat_fish|4||vegaburgers
+braadworst 4|meat_fish|4||braadworst
+schnitzels|meat_fish|||
+Jumbo rundergehakt|meat_fish|||
+chicken breast 500g|meat_fish|500|g|chicken breast
+kipvleugels|meat_fish|||
+spaghetti|pasta_world|||
+1 pak penne|pasta_world|1|pak|penne
+2 pakken rijst|pasta_world|2|pak|rijst
+wraps|pasta_world|||
+500 g basmatirijst|pasta_world|500|g|basmatirijst
+noedels|pasta_world|||
+sojasaus|pasta_world|||
+ketjap|pasta_world|||
+pesto|pasta_world|||
+1 pot pastasaus|pasta_world|1|pot|pastasaus
+taco shells|pasta_world|||
+lasagnebladen|pasta_world|||
+2 bags of rice|pasta_world|2|zak|rice
+ramen noodles|pasta_world|||
+macaroni 2 pakken|pasta_world|2|pak|macaroni
+1 blik tomaten|tins_sauces|1|blik|tomaten
+gepelde tomaten 2 blikken|tins_sauces|2|blik|gepelde tomaten
+olijfolie|tins_sauces|||
+zout|tins_sauces|||
+paprikapoeder|tins_sauces|||
+1 pot mayonaise|tins_sauces|1|pot|mayonaise
+ketchup|tins_sauces|||
+mosterd|tins_sauces|||
+bloem|tins_sauces|||
+1 kg suiker|tins_sauces|1|kg|suiker
+bakpoeder|tins_sauces|||
+bouillonblokjes|tins_sauces|||
+tomatensoep|tins_sauces|||
+2 blikken kikkererwten|tins_sauces|2|blik|kikkererwten
+1 blikje mais|tins_sauces|1|blik|mais
+witte azijn|tins_sauces|||
+3 el olijfolie|tins_sauces|3|el|olijfolie
+1 tl kerrie|tins_sauces|1|tl|kerrie
+Heinz ketchup|tins_sauces|||
+2 cans of tomatoes|tins_sauces|2|blik|tomatoes
+cornflakes|breakfast|||
+havermout|breakfast|||
+pindakaas|breakfast|||
+hagelslag|breakfast|||
+1 pot jam|breakfast|1|pot|jam
+honing|breakfast|||
+koffie|breakfast|||
+thee 20 zakjes|breakfast|20|zak|thee
+Douwe Egberts koffiebonen|breakfast|||
+beschuit|breakfast|||
+Nutella|breakfast|||
+muesli|breakfast|||
+2 zakken chips|snacks|2|zak|chips
+Tonys Chocolonely|snacks|||
+koekjes|snacks|||
+stroopwafels|snacks|||
+drop|snacks|||
+walnoten|snacks|||
+cashewnoten 200 g|snacks|200|g|cashewnoten
+rozijnen|snacks|||
+2 repen chocola|snacks|2|reep|chocola
+Haribo|snacks|||
+pinda's|snacks|||
+chocolde|snacks|||
+Oreo|snacks|||
+gedroogde abrikozen|snacks|||
+speculaas|snacks|||
+diepvries spinazie|frozen|||
+2 zakken diepvriesfriet|frozen|2|zak|diepvriesfriet
+ijs|frozen|||
+Ben & Jerrys|frozen|||
+3x pizza margherita|frozen|3||pizza margherita
+Dr. Oetker pizza|frozen|||
+vissticks|frozen|||
+bevroren frambozen|frozen|||
+1 pak diepvriesgroenten|frozen|1|pak|diepvriesgroenten
+Magnum 6|frozen|6||Magnum
+frozen peas|frozen|||
+kipnuggets|frozen|||
+2 kratten bier|drinks|2|krat|bier
+cola|drinks|||
+1 fles rode wijn|drinks|1|fles|rode wijn
+6 flesjes water|drinks|6|fles|water
+sinaasappelsap|drinks|||
+Fanta|drinks|||
+1,5 l Spa rood|drinks|1.5|l|Spa rood
+Hertog Jan|drinks|||
+ranja|drinks|||
+gin|drinks|||
+tonic|drinks|||
+orange juice 1 bottle|drinks|1|fles|orange juice
+tandpasta|care_baby|||
+Pampers maat 4|care_baby|||
+shampo|care_baby|||
+deodorant|care_baby|||
+paracetamol|care_baby|||
+vitamine D|care_baby|||
+luiers|care_baby|||
+babyvoeding|care_baby|||
+zonnebrand factor 30|care_baby|||
+wattenstaafjes|care_baby|||
+scheerschuim|care_baby|||
+3 tubes tandpasta|care_baby|3|tube|tandpasta
+wc papier|household|||
+2 rollen keukenrol|household|2|rol|keukenrol
+afwasmidel|household|||
+vuilniszakken|household|||
+wasmiddel|household|||
+aluminiumfolie|household|||
+Glorix|household|||
+spons|household|||
+1 pak wasverzachter|household|1|pak|wasverzachter
+kattenbrokken|household|||
+hondenvoer|household|||
+kaarsen|household|||
+1 doos afwastabletten|household|1|doos|afwastabletten
+Page toiletpapier|household|||
+paper towels|household|||
+fiets ophalen|other|||
+verjaardagskado Sanne|other|||
+tandarts bellen|other|||
+pakketje ophalen bij buren|other|||
+auto naar de garage|other|||
+huur overmaken|other|||
+bibliotheekboeken terugbrengen|other|||
+kapper afspraak maken|other|||
+kleren naar de stomerij|other|||
+belastingaangifte doen|other|||
+oma bellen|other|||
+loodgieter bellen|other|||
+sleutel bijmaken|other|||
+verzekering opzeggen|other|||
+fotoboek bestellen|other|||

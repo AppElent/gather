@@ -1430,3 +1430,110 @@ pitta bread|bakery|||
 wraps volkoren|pasta_world|||
 spaghetti 500g|pasta_world|500|g|spaghetti
 penne 2 pakken|pasta_world|2|pak|penne
+
+# APP-368: lines from another source. Ingredients of the Sample household's
+# recipes and its grocery list (convex/lib/seed/sampleHousehold.ts), written
+# for the seed and not for this set, as someone adds them from a recipe; the
+# preparation notes ("sliced") are left off.
+2 tbsp olive oil|tins_sauces|2|el|olive oil
+1 onion|produce|1||onion
+1 red bell pepper|produce|1||red bell pepper
+3 cloves garlic|produce|3|teentje|garlic
+1 tsp ground cumin|tins_sauces|1|tl|ground cumin
+1 tsp sweet paprika|tins_sauces|1|tl|sweet paprika
+1 tin chopped tomatoes|tins_sauces|1|blik|chopped tomatoes
+4 eggs|dairy|4||eggs
+60 g feta|cheese_deli|60|g|feta
+Flat-leaf parsley|produce|||
+500 g beef mince|meat_fish|500|g|beef mince
+2 carrots|produce|2||carrots
+celery|produce|||
+250 ml whole milk|dairy|250|ml|whole milk
+300 g lasagne sheets|pasta_world|300|g|lasagne sheets
+50 g butter|dairy|50|g|butter
+50 g plain flour|tins_sauces|50|g|plain flour
+80 g parmesan|cheese_deli|80|g|parmesan
+250 g red lentils|tins_sauces|250|g|red lentils
+1 tsp ground turmeric|tins_sauces|1|tl|ground turmeric
+1 tsp cumin seeds|tins_sauces|1|tl|cumin seeds
+2 dried red chillies|tins_sauces|2||dried red chillies
+1 tomato|produce|1||tomato
+Coriander|produce|||
+4 chicken thighs|meat_fish|4||chicken thighs
+800 g potatoes|produce|800|g|potatoes
+2 tsp dried oregano|tins_sauces|2|tl|dried oregano
+1 lemon|produce|1||lemon
+400 g spaghetti|pasta_world|400|g|spaghetti
+4 anchovy fillets|tins_sauces|4||anchovy fillets
+chilli flakes|tins_sauces|||
+100 g black olives|tins_sauces|100|g|black olives
+2 tbsp capers|tins_sauces|2|el|capers
+fresh ginger|produce|||
+2 tbsp curry powder|tins_sauces|2|el|curry powder
+2 tins chickpeas|tins_sauces|2|blik|chickpeas
+200 ml coconut milk|pasta_world|200|ml|coconut milk
+200 g spinach|produce|200|g|spinach
+1 cucumber|produce|1||cucumber
+2 ripe bananas|produce|2||ripe bananas
+100 g rolled oats|breakfast|100|g|rolled oats
+1 tsp baking powder|tins_sauces|1|tl|baking powder
+1 tin cannellini beans|tins_sauces|1|blik|cannellini beans
+1.2 l vegetable stock|tins_sauces|1.2|l|vegetable stock
+2 salmon fillets|meat_fish|2||salmon fillets
+2 tbsp soy sauce|pasta_world|2|el|soy sauce
+1 tbsp honey|breakfast|1|el|honey
+1 tsp sesame oil|pasta_world|1|tl|sesame oil
+2 spring onions|produce|2||spring onions
+Grated nutmeg|tins_sauces|||
+120 ml semi-skimmed milk|dairy|120|ml|semi-skimmed milk
+80 g Greek yoghurt|dairy|80|g|Greek yoghurt
+1 tsp peanut butter|breakfast|1|tl|peanut butter
+Olive oil|tins_sauces|||
+Rolled oats|breakfast|||
+Nappies|care_baby|||
+Tinned tomatoes|tins_sauces|||
+Coffee beans|breakfast|||
+
+# APP-368: errands people put on the shared list that no supermarket sells.
+# They belong in `other`, so a dictionary that matches too eagerly loses
+# points here.
+pakketje ophalen|other|||
+kapper bellen|other|||
+auto naar de garage|other|||
+cadeau voor mama|other|||
+lege flessen terugbrengen|other|||
+recept ophalen bij de apotheek|other|||
+tandarts bellen|other|||
+nieuwe schoenen|other|||
+printerinkt|other|||
+muurverf|other|||
+schroeven en pluggen|other|||
+boeken terugbrengen|other|||
+stomerij|other|||
+sleutel bijmaken|other|||
+fietsband plakken|other|||
+huur overmaken|other|||
+oppas regelen|other|||
+schoolfoto's betalen|other|||
+bioscoopkaartjes|other|||
+zwemles opzeggen|other|||
+verzekering bellen|other|||
+paspoort verlengen|other|||
+ramen lappen|other|||
+gras maaien|other|||
+winterbanden|other|||
+pick up dry cleaning|other|||
+call the plumber|other|||
+return library books|other|||
+haircut|other|||
+pay rent|other|||
+book dentist|other|||
+renew passport|other|||
+paint brushes|other|||
+birthday present for Noor|other|||
+car wash|other|||
+parcel at the post office|other|||
+gym membership|other|||
+new running shoes|other|||
+fix the bike|other|||
+concert tickets|other|||

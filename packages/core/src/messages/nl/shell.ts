@@ -166,6 +166,13 @@ export const shell = {
     pins: 'Elke module is in elke Groep beschikbaar. Je zet de modules die je gebruikt vast in je eigen navigatie, de rest blijft één klik weg — je keuzes zijn alleen van jou en verplaatsen die van niemand anders.',
     trademarks:
       'Winkelnamen en logo’s in Klantkaarten zijn handelsmerken van hun eigenaars en worden alleen gebruikt om te laten zien bij welke winkel een kaart hoort.',
+    dataSources: {
+      title: 'Gegevensbronnen',
+      openFoodFacts:
+        'Boodschappen worden in hun schap herkend met productnamen uit Open Food Facts, Open Beauty Facts en Open Products Facts, beschikbaar onder de Open Database License (ODbL) 1.0. De afgeleide lijst is onder dezelfde licentie beschikbaar.',
+      nevo: 'Namen van voedingsmiddelen zijn daarnaast gebaseerd op gegevens uit NEVO-online versie 2025/9.0, RIVM, Bilthoven.',
+      licence: 'Open Database License 1.0',
+    },
   },
 
   publicFrame: {

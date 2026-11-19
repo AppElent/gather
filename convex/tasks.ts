@@ -13,6 +13,7 @@ import { internalQuery, mutation, query } from './_generated/server'
 import {
   askAiOnce,
   isGroceryList,
+  recentListItems,
   recogniseGroceryTitle,
   recordGroceryCorrection,
 } from './lib/groceryCategories'
@@ -26,7 +27,6 @@ import {
   requireInGroup,
 } from './lib/groupAccess'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
-import { nextOrder } from './lib/order'
 import { taskPriorityValidator } from './lib/taskFields'
 
 const byOpenThenOrder = (a: Doc<'tasks'>, b: Doc<'tasks'>) =>
@@ -116,11 +116,14 @@ async function requireLocalList(
   return found
 }
 
-async function tasksOfList(ctx: MutationCtx, listId: Id<'taskLists'>) {
-  return await ctx.db
+/** The order that puts a new row last on a list, read from its last row. */
+async function endOfList(ctx: MutationCtx, listId: Id<'taskLists'>) {
+  const last = await ctx.db
     .query('tasks')
-    .withIndex('by_list', (q) => q.eq('listId', listId))
-    .collect()
+    .withIndex('by_list_and_order', (q) => q.eq('listId', listId))
+    .order('desc')
+    .first()
+  return last ? last.order + 1 : 0
 }
 
 
@@ -155,7 +158,6 @@ export const add = mutation({
       ? args.title
       : groceryLineText(args.title, quantity, args.unit)
     return await createOnce(ctx, user._id, 'tasks', args.idempotencyKey, async () => {
-      const existing = await tasksOfList(ctx, args.listId)
       // An item on a grocery list gets its aisle here, so every client —
       // installed apps that know nothing of aisles too — has it. It is
       // recognised as the whole line: "2 blik tomaten" is in tins, not with
@@ -165,7 +167,7 @@ export const add = mutation({
             ctx,
             group._id,
             groceryLineText(title, quantity, args.unit),
-            existing,
+            await recentListItems(ctx, args.listId),
           )
         : null
       const taskId = await ctx.db.insert('tasks', {
@@ -176,12 +178,12 @@ export const add = mutation({
         priority: args.priority,
         labels: args.labels,
         createdBy: user._id,
-        order: nextOrder(existing),
+        order: await endOfList(ctx, args.listId),
         ...(grocery ? { category: grocery.aisle } : {}),
         ...(onGroceryList && quantity !== undefined ? { quantity } : {}),
         ...(onGroceryList && args.unit !== undefined ? { unit: args.unit } : {}),
       })
-      if (grocery) await askAiOnce(ctx, grocery, taskId)
+      if (grocery) await askAiOnce(ctx, group._id, grocery, taskId)
       return taskId
     })
   },
@@ -257,7 +259,7 @@ export const update = mutation({
           (quantity === undefined ? task.quantity : quantity) ?? undefined,
           (unit === undefined ? task.unit : unit) ?? undefined,
         ),
-        await tasksOfList(ctx, task.listId),
+        await recentListItems(ctx, task.listId),
         task._id,
       )
       category = askAi.aisle
@@ -277,7 +279,7 @@ export const update = mutation({
       ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
       ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
     })
-    if (askAi) await askAiOnce(ctx, askAi, taskId)
+    if (askAi) await askAiOnce(ctx, group._id, askAi, taskId)
   },
 })
 
@@ -489,7 +491,6 @@ export const moveToList = mutation({
       args.groupSlug,
       args.listId,
     )
-    const existing = await tasksOfList(ctx, args.listId)
     const onGroceryList = isGroceryList(group, list)
     // Off a grocery list the amount goes back into the title ("2 pak melk"),
     // so it stays readable; onto one, an amount in the title is read out of
@@ -501,17 +502,22 @@ export const moveToList = mutation({
         : groceryAddFields(task.title)
       : { title: line, quantity: undefined, unit: undefined }
     const grocery = onGroceryList
-      ? await recogniseGroceryTitle(ctx, group._id, line, existing)
+      ? await recogniseGroceryTitle(
+          ctx,
+          group._id,
+          line,
+          await recentListItems(ctx, args.listId),
+        )
       : null
     await ctx.db.patch(task._id, {
       listId: args.listId,
-      order: nextOrder(existing),
+      order: await endOfList(ctx, args.listId),
       category: grocery?.aisle,
       title: fields.title,
       quantity: fields.quantity,
       unit: fields.unit satisfies GroceryUnit | undefined,
     })
-    if (grocery) await askAiOnce(ctx, grocery, task._id)
+    if (grocery) await askAiOnce(ctx, group._id, grocery, task._id)
     return null
   },
 })

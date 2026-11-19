@@ -205,7 +205,10 @@ export default defineSchema({
      */
     quantity: v.optional(v.number()),
     unit: v.optional(groceryUnitValidator),
-  }).index('by_list', ['listId']),
+  })
+    .index('by_list', ['listId'])
+    // The end of a list without reading all of it (APP-368).
+    .index('by_list_and_order', ['listId', 'order']),
 
   /**
    * A Group's own aisle for a grocery name: written when a Member moves an
@@ -226,7 +229,8 @@ export default defineSchema({
    * The shared answer for a grocery name the bundled dictionary does not
    * know: asked of a small model once, or agreed by at least three Groups'
    * corrections (APP-353). Holds no Group or person data: the key is the
-   * normalised name only. `aisle` is absent while the question is out.
+   * normalised name only. `aisle` is absent while the question is out. Rows
+   * nothing backs any more are pruned daily (ADR-0049).
    */
   groceryCategoryCache: defineTable({
     name: v.string(),
@@ -234,6 +238,11 @@ export default defineSchema({
     source: groceryCacheSourceValidator,
     askedAt: v.number(),
     answeredAt: v.optional(v.number()),
+    /**
+     * Items added while the question was out, moved when the answer comes
+     * in, however late (APP-368). Cleared with the answer.
+     */
+    waitingTaskIds: v.optional(v.array(v.id('tasks'))),
   }).index('by_name', ['name']),
 
   /**
@@ -246,6 +255,17 @@ export default defineSchema({
     day: v.string(),
     count: v.number(),
   }).index('by_day', ['day']),
+
+  /**
+   * The same questions counted per Group (APP-368), so one Group cannot spend
+   * the whole day's global budget. Goes with the Group.
+   */
+  groceryAiGroupUsage: defineTable({
+    groupId: v.id('groups'),
+    /** `YYYY-MM-DD`, UTC. */
+    day: v.string(),
+    count: v.number(),
+  }).index('by_group_and_day', ['groupId', 'day']),
 
   notes: defineTable({
     groupId: v.id('groups'),
