@@ -20,6 +20,7 @@ const state = vi.hoisted(() => ({
   order: [] as string[],
   purgeArgs: [] as unknown[],
   signedOut: 0,
+  told: 0,
 }))
 
 vi.mock('@clerk/expo', () => ({ useUser: () => ({ user: state.user }) }))
@@ -48,6 +49,7 @@ vi.mock('./apple-revocation', () => ({
 vi.mock('../../../auth/useSignOut', () => ({
   useSignOut: () => () => {
     state.signedOut += 1
+    state.order.push('signOut')
   },
 }))
 
@@ -86,6 +88,10 @@ function DeleteScreen() {
 function render() {
   return mount(
     <AccountDeleteProvider
+      onGatherDataDeleted={() => {
+        state.told += 1
+        state.order.push('told')
+      }}
       underway={(value) => {
         deletion = value
         return <p>underway: {value.state.step}</p>
@@ -100,6 +106,7 @@ let view: ReturnType<typeof mount> | undefined
 
 beforeEach(() => {
   state.signedOut = 0
+  state.told = 0
   state.purge = () => Promise.resolve()
   state.apple = () => Promise.resolve('continue')
   state.order = []
@@ -120,7 +127,7 @@ describe('deleting the account', () => {
     state.user = { deleteSelfEnabled: true, delete: () => clerk.promise }
     view = render()
 
-    act(() => deletion.start())
+    act(() => deletion.start('wholeAccount'))
     await settle()
     expect(view.container.textContent).toBe('delete screen: purging')
 
@@ -157,7 +164,7 @@ describe('deleting the account', () => {
     }
     view = render()
 
-    act(() => deletion.start())
+    act(() => deletion.start('wholeAccount'))
     await settle()
     expect(view.container.textContent).toBe('underway: stranded')
 
@@ -181,7 +188,7 @@ describe('deleting the account', () => {
       },
     }
     view = render()
-    act(() => deletion.start())
+    act(() => deletion.start('wholeAccount'))
     await settle()
 
     const { retryLogin } = deletion
@@ -197,7 +204,7 @@ describe('deleting the account', () => {
 
   test('Clerk agreeing signs out', async () => {
     view = render()
-    act(() => deletion.start())
+    act(() => deletion.start('wholeAccount'))
     await settle()
     expect(state.signedOut).toBe(1)
   })
@@ -214,7 +221,7 @@ describe('deleting the account', () => {
     }
     view = render()
 
-    act(() => deletion.start())
+    act(() => deletion.start('wholeAccount'))
     await settle()
     expect(view.container.textContent).toBe('delete screen: refused')
     expect(attempts).toBe(0)
@@ -230,7 +237,7 @@ describe('deleting the account', () => {
     state.user = { deleteSelfEnabled: false, delete: () => Promise.resolve() }
     view = render()
 
-    act(() => deletion.start())
+    act(() => deletion.start('wholeAccount'))
     await settle()
     expect(purges).toBe(0)
     expect(view.container.textContent).toBe('delete screen: idle')
@@ -247,8 +254,8 @@ describe('deleting the account', () => {
 
     const { start } = deletion
     act(() => {
-      start()
-      start()
+      start('wholeAccount')
+      start('wholeAccount')
     })
     purge.resolve()
     await settle()
@@ -259,9 +266,9 @@ describe('deleting the account', () => {
 describe('an account that signs in with Apple (APP-213)', () => {
   test('the Apple grant is revoked before anything is deleted', async () => {
     view = render()
-    act(() => deletion.start())
+    act(() => deletion.start('wholeAccount'))
     await settle()
-    expect(state.order).toEqual(['apple', 'purge'])
+    expect(state.order).toEqual(['apple', 'purge', 'signOut'])
     expect(state.signedOut).toBe(1)
   })
 
@@ -272,8 +279,8 @@ describe('an account that signs in with Apple (APP-213)', () => {
 
     const { start } = deletion
     act(() => {
-      start()
-      start()
+      start('wholeAccount')
+      start('wholeAccount')
     })
     await settle()
     expect(view.container.textContent).toBe('delete screen: revokingApple')
@@ -281,7 +288,7 @@ describe('an account that signs in with Apple (APP-213)', () => {
 
     apple.resolve()
     await settle()
-    expect(state.order).toEqual(['apple', 'purge'])
+    expect(state.order).toEqual(['apple', 'purge', 'signOut'])
   })
 
   test('dismissing the Apple sheet deletes nothing and can be tried again', async () => {
@@ -296,16 +303,16 @@ describe('an account that signs in with Apple (APP-213)', () => {
     }
     view = render()
 
-    act(() => deletion.start())
+    act(() => deletion.start('wholeAccount'))
     await settle()
     expect(view.container.textContent).toBe('delete screen: idle')
     expect(state.order).toEqual(['apple'])
     expect(attempts).toBe(0)
 
     state.apple = () => Promise.resolve('continue')
-    act(() => deletion.start())
+    act(() => deletion.start('wholeAccount'))
     await settle()
-    expect(state.order).toEqual(['apple', 'apple', 'purge'])
+    expect(state.order).toEqual(['apple', 'apple', 'purge', 'signOut'])
     expect(attempts).toBe(1)
   })
 
@@ -313,7 +320,7 @@ describe('an account that signs in with Apple (APP-213)', () => {
     const apple = deferred()
     state.apple = () => apple.promise.then(() => 'continue' as const)
     view = render()
-    act(() => deletion.start())
+    act(() => deletion.start('wholeAccount'))
     await settle()
 
     view.unmount()
@@ -331,8 +338,76 @@ describe('an account that signs in with Apple (APP-213)', () => {
       delete: () => Promise.resolve(),
     }
     view = render()
-    act(() => deletion.start())
+    act(() => deletion.start('wholeAccount'))
     await settle()
     expect(state.purgeArgs).toEqual([{ expectedSubject: 'user_alex' }])
+  })
+})
+
+describe('deleting Gather data only (APP-397)', () => {
+  test('purges with the login kept, then signs out and says so: no Apple, no Clerk deletion', async () => {
+    let attempts = 0
+    state.user = {
+      id: 'user_alex',
+      deleteSelfEnabled: true,
+      delete: () => {
+        attempts += 1
+        return Promise.resolve()
+      },
+    }
+    view = render()
+
+    act(() => deletion.start('gatherData'))
+    await settle()
+
+    expect(state.order).toEqual(['purge', 'signOut', 'told'])
+    expect(state.purgeArgs).toEqual([
+      { expectedSubject: 'user_alex', keepLogin: true },
+    ])
+    expect(attempts).toBe(0)
+    expect(view.container.textContent).toBe('underway: signingOut')
+  })
+
+  test('needs no permission from Clerk to delete the login', async () => {
+    state.user = { deleteSelfEnabled: false, delete: () => Promise.resolve() }
+    view = render()
+
+    act(() => deletion.start('gatherData'))
+    await settle()
+
+    expect(state.order).toEqual(['purge', 'signOut', 'told'])
+  })
+
+  test('a purge refusal stays on the delete screen and signs nothing out', async () => {
+    state.purge = () => Promise.reject(new Error('refused'))
+    view = render()
+
+    act(() => deletion.start('gatherData'))
+    await settle()
+
+    expect(view.container.textContent).toBe('delete screen: refused')
+    expect(deletion.state).toMatchObject({ step: 'refused', choice: 'gatherData' })
+    expect(state.signedOut).toBe(0)
+    expect(state.told).toBe(0)
+  })
+
+  test('a second tap before the first has rendered purges once', async () => {
+    const purge = deferred()
+    let purges = 0
+    state.purge = () => {
+      purges += 1
+      return purge.promise
+    }
+    view = render()
+
+    const { start } = deletion
+    act(() => {
+      start('gatherData')
+      start('wholeAccount')
+    })
+    purge.resolve()
+    await settle()
+    expect(purges).toBe(1)
+    expect(state.order).not.toContain('apple')
   })
 })

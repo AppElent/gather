@@ -55,17 +55,36 @@ export const settings = {
     title: 'Account verwijderen',
     dangerZone: 'Gevarenzone',
     lead: 'Dit kan niet ongedaan worden gemaakt.',
-    goesHeading: 'Verdwijnt met je account',
+    goesHeading: 'Verwijderd',
     goesBody:
       'Je bent het enige lid van deze Groepen, dus die verdwijnen, en alles erin verdwijnt mee.',
     keptHeading: 'Verlaten, niet verwijderd',
     keptBody:
       'Deze Groepen hebben andere leden. Jij ziet ze niet meer, en wat jij hebt toegevoegd blijft bij het huishouden.',
     noGroups: 'Je zit in geen enkele Groep.',
-    submit: 'Verwijder mijn account',
-    confirmTitle: '{email} verwijderen?',
-    confirmBody:
-      'Je account en alles wat alleen jij kon zien wordt definitief verwijderd.',
+    choiceIntro:
+      'Je logt in bij Gather met je AppElent-login, die Foundry, Fairway en Arcade Club ook gebruiken. Kies wat je verwijdert.',
+    dataOnly: {
+      title: 'Alleen Gather-gegevens verwijderen',
+      body: 'Je Groepen worden verwijderd of verlaten zoals hierboven staat. Je AppElent-login blijft, dus Foundry, Fairway en Arcade Club blijven werken. Log je later opnieuw in bij Gather, dan begin je met een nieuw, leeg account.',
+      submit: 'Gather-gegevens verwijderen',
+      confirmTitle: 'Gather-gegevens van {email} verwijderen?',
+      confirmBody:
+        'Alles wat alleen jij in Gather kon zien wordt definitief verwijderd. Je AppElent-login blijft.',
+      doneTitle: 'Je Gather-gegevens zijn verwijderd',
+      doneBody:
+        'Je bent op dit apparaat uitgelogd bij Gather. Je AppElent-login werkt nog steeds in Foundry, Fairway en Arcade Club.',
+      failed:
+        'Je Gather-gegevens konden niet worden verwijderd. Er is niets verwijderd.',
+    },
+    wholeAccount: {
+      title: 'Mijn hele AppElent-account verwijderen',
+      body: 'Verwijdert ook je AppElent-login, en daarmee je gegevens in Gather, Foundry, Fairway en Arcade Club. Je kunt bij geen van die apps meer inloggen.',
+      submit: 'Mijn AppElent-account verwijderen',
+      confirmTitle: 'AppElent-account {email} verwijderen?',
+      confirmBody:
+        'Je login en je gegevens in Gather, Foundry, Fairway en Arcade Club worden definitief verwijderd.',
+    },
     confirmPhrase: 'VERWIJDER',
     confirmPhraseLabel: 'Typ {phrase} om te bevestigen',
     partlyFailed:

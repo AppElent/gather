@@ -54,7 +54,11 @@ export function AccountDeleteUnderwayScreen({
             accessibilityLiveRegion="polite"
             style={[styles.text, { color: tokens.muted }]}
           >
-            {t.account.deleteAccount.underway}
+            {state.step === 'signingOut'
+              ? // Gather's data only: on screen for the moment it takes to
+                // sign out, under the alert that says the rest.
+                t.account.deleteAccount.dataOnly.doneTitle
+              : t.account.deleteAccount.underway}
           </Text>
         </>
       )}

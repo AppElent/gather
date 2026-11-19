@@ -82,6 +82,14 @@ the manifest and `.env.example`, not here.
   a deploy never fails on them, but production needs them before Gather ships
   Sign in with Apple to the App Store: without them the revoke answers "not
   configured", Sentry gets the report, and the deletion goes ahead unrevoked.
+- `CLERK_WEBHOOK_SECRET` (Infisical `clerk-webhook-secret`) is the signing
+  secret of the Clerk webhook endpoint pointed at `POST /clerk/webhook` on that
+  Convex deployment's `.convex.site` origin, subscribed to `user.deleted`
+  ([ADR-0050](../adr/0050-deleting-gather-data-keeps-the-appelent-login.md)).
+  Each Clerk instance has its own endpoint and secret: the development one for
+  `local`, the production one for `production`, which waits for Eric's go
+  (APP-392). Per-PR preview backends get none. Optional: without it the route refuses every request
+  (503) and a login deleted in another app leaves Gather's data behind.
 
 ## Verify
 

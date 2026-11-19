@@ -8,6 +8,7 @@ import { useConfirmAction } from '../app/ConfirmAction'
 import {
   AccountChanged,
   type AccountDeleteState,
+  type DeleteChoice,
   SignInNotConfirmed,
   useAccountDelete,
 } from './AccountDeleteProvider'
@@ -20,6 +21,10 @@ import {
  * *before* the confirmation, because "everything in them" means nothing until
  * you can see which households it is talking about. The confirmation names the
  * account and asks for a word to be typed, since nothing undoes it.
+ *
+ * Then the choice (APP-397), Gather's data first: Gather shares its login
+ * with the other AppElent apps, and only the second choice takes it, which it
+ * says by naming them. Both confirm the same way.
  *
  * The run is not this section's. Once the purge starts the whole signed-in
  * tree is replaced (`AccountDeleteProvider`), so this only starts it and shows
@@ -35,30 +40,77 @@ export function AccountDeleteSettings() {
 
   // Clerk refuses self-deletion unless the instance allows it, and a button
   // that purges the household and then fails is the worst outcome available.
+  // Only the whole account asks Clerk to delete anything.
   const deletion = accountDeletion(user)
-  const busy = state.step === 'confirmingSignIn' || state.step === 'purging'
-  const error =
-    state.step === 'refused'
-      ? refusal(state, words)
-      : deletion === 'withheld'
-        ? words.unavailable
-        : null
+  const running = state.step === 'confirmingSignIn' || state.step === 'purging'
+  const busyWith = running ? state.choice : null
+  const refusedFor = state.step === 'refused' ? state.choice : null
+  const email =
+    // Clerk first: the Convex mirror of the address is refreshed from the JWT
+    // on mount, so it can be a token older than a change made here.
+    user?.primaryEmailAddress?.emailAddress ?? preview?.email ?? ''
 
-  function ask() {
+  function ask(choice: DeleteChoice) {
+    const option = choice === 'gatherData' ? words.dataOnly : words.wholeAccount
     confirm({
-      title: fmt(words.confirmTitle, {
-        // Clerk first: the Convex mirror of the address is refreshed from the
-        // JWT on mount, so it can be a token older than a change made here.
-        email: user?.primaryEmailAddress?.emailAddress ?? preview?.email ?? '',
-      }),
-      body: words.confirmBody,
+      title: fmt(option.confirmTitle, { email }),
+      body: option.confirmBody,
       confirmLabel: messages.common.actions.delete,
       confirmPhrase: {
         phrase: words.confirmPhrase,
         label: words.confirmPhraseLabel,
       },
-      run: start,
+      run: () => start(choice),
     })
+  }
+
+  function option(choice: DeleteChoice) {
+    const text = choice === 'gatherData' ? words.dataOnly : words.wholeAccount
+    const error =
+      state.step === 'refused' && refusedFor === choice
+        ? refusal(state, words)
+        : choice === 'wholeAccount' && deletion === 'withheld'
+          ? words.unavailable
+          : null
+    const disabled =
+      preview === undefined ||
+      running ||
+      (choice === 'wholeAccount' && deletion !== 'allowed') ||
+      (choice === 'gatherData' && deletion === 'unknown')
+    const id = `account-delete-${choice}`
+    return (
+      <div
+        className="grid gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] p-3"
+        aria-labelledby={`${id}-title`}
+        role="group"
+      >
+        <h3 id={`${id}-title`} className="m-0 text-sm font-semibold">
+          {text.title}
+        </h3>
+        <p className="m-0 text-sm text-[var(--app-muted)]">{text.body}</p>
+        {error ? (
+          <p
+            role="alert"
+            className="m-0 rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 py-2 text-sm text-[var(--app-danger)]"
+          >
+            {error}
+          </p>
+        ) : null}
+        <div>
+          <button
+            type="button"
+            data-testid={`${id}-submit`}
+            disabled={disabled}
+            onClick={() => ask(choice)}
+            className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 text-sm font-semibold text-[var(--app-danger)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span aria-live="polite">
+              {busyWith === choice ? messages.common.actions.working : text.submit}
+            </span>
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -97,26 +149,11 @@ export function AccountDeleteSettings() {
           </div>
         )}
 
-        {error ? (
-          <p
-            role="alert"
-            className="m-0 mb-3 rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 py-2 text-sm text-[var(--app-danger)]"
-          >
-            {error}
-          </p>
-        ) : null}
-
-        <button
-          type="button"
-          data-testid="account-delete-submit"
-          disabled={deletion !== 'allowed' || preview === undefined || busy}
-          onClick={ask}
-          className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 text-sm font-semibold text-[var(--app-danger)] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <span aria-live="polite">
-            {busy ? messages.common.actions.working : words.submit}
-          </span>
-        </button>
+        <p className="m-0 mb-3 text-sm">{words.choiceIntro}</p>
+        <div className="grid gap-3">
+          {option('gatherData')}
+          {option('wholeAccount')}
+        </div>
       </section>
       {/* Outside the panel: its backdrop-filter would make it the containing
           block of the dialog's fixed overlay, trapping it inside the card. */}
@@ -132,7 +169,10 @@ function refusal(
 ) {
   if (state.cause instanceof SignInNotConfirmed) return words.signInCheckFailed
   if (state.cause instanceof AccountChanged) return words.accountChanged
-  return errorMessage(state.cause, words.failed)
+  return errorMessage(
+    state.cause,
+    state.choice === 'gatherData' ? words.dataOnly.failed : words.failed,
+  )
 }
 
 /** One half of the answer: these Groups, and what happens to them. */

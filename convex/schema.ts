@@ -71,6 +71,9 @@ export default defineSchema({
     // scheduled steps, so for a few seconds this row still exists while
     // nothing it owns does — and `ensureUser` runs on every app mount and
     // would otherwise hand the account straight back. This is what stops it.
+    // Deleting Gather's data only, and the Clerk webhook, also release the
+    // row's `clerkId` (`released:<id>`), so the tombstone never blocks the
+    // login from starting again (ADR-0050).
     deletedAt: v.optional(v.number()),
     // Retired with the Nutrition Module (ADR-0041): read and written by
     // nothing. It stays declared only so a deployment whose users still carry

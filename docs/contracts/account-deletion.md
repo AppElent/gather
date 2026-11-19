@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.2.0
+version: 2.3.0
 status: current
 ---
 
@@ -63,9 +63,30 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   them out of it the same way whether they left or deleted their account: a cost
   split naming them is cleared, and a saved split scenario keeps their name
   without their id.
-- **`users.deletedAt` stops `ensureUser` re-provisioning the account mid-purge**;
-  the `users` row is deleted last for that reason.
-- **`deleteSelfEnabled` is checked before anything is called.** Purging a
+- **Two choices, Gather's data first** ([ADR-0050](../adr/0050-deleting-gather-data-keeps-the-appelent-login.md)).
+  Gather shares its Clerk login with Foundry, Fairway and Arcade Club. "Delete
+  Gather data only" runs the purge with `keepLogin`, never calls
+  `user.delete()` or revokes Sign in with Apple, signs out on this device and
+  says the login still works elsewhere (the web's sign-in page at
+  `?deleted=gather`, an alert on the phone). "Delete my whole AppElent
+  account" is the run below and names the apps it takes with it.
+- **One purge behind every way in.** `purgeSubject` (`convex/accounts.ts`)
+  starts the purge for every `users` row of a Clerk subject, duplicates
+  included, and never twice for a row already being purged. `deleteAccount`
+  (either choice) and Clerk's `user.deleted` webhook both call it.
+- **`users.deletedAt` stops `ensureUser` re-provisioning the account mid-purge**
+  on the whole-account choice; the `users` row is deleted last for that reason.
+  Gather's data only, and the webhook, release the subject instead: the row's
+  `clerkId` becomes `released:<id>` in the first transaction, so the next
+  sign-in gets a fresh, empty account at once while the old row is purged by
+  id.
+- **`POST /clerk/webhook` (`convex/http.ts`) does nothing it cannot verify.**
+  It checks the Svix signature and timestamp against `CLERK_WEBHOOK_SECRET`
+  before reading the body: no secret is 503, a missing signature 400, a bad or
+  stale one 401. A verified `user.deleted` purges `data.id`; any other event,
+  a second delivery or a subject Gather never had answers 200 and does
+  nothing.
+- **`deleteSelfEnabled` is checked before the whole account is deleted.** Purging a
   household for an account Clerk then refuses to delete is the worst outcome
   available, so the button is withheld rather than allowed to fail. The flag is
   the Clerk Dashboard setting "Delete self"; the app cannot turn it on.
@@ -91,8 +112,9 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
 - **Another signed-in tab or device can bring the account back.** It still
   runs `ensureUser`; once the purge has deleted the `users` row, a reload
   there while the login is stranded provisions a new, empty account.
-- **Only the iOS app revokes Sign in with Apple** (APP-213). Android and the
-  web delete an Apple-linked account without revoking the grant.
+- **Only the iOS app revokes Sign in with Apple** (APP-213), and only for the
+  whole account. Android and the web delete an Apple-linked account without
+  revoking the grant.
 
 ## Acceptance
 
@@ -102,3 +124,7 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
 - On the phone and the web, a Clerk refusal after the purge has started stays
   on screen, with Try again and Sign out, until one of them succeeds.
 - On the web, nothing is deleted until Clerk has confirmed a recent sign-in.
+- Deleting Gather's data leaves the Clerk user untouched, signs out on this
+  device, and a later sign-in gets a new, empty account.
+- A signed `user.deleted` purges exactly what deleting Gather's data does; an
+  unsigned or badly signed request changes nothing.
