@@ -21,6 +21,7 @@ import {
   type TaskListKind,
   taskListFace,
 } from '@gather/core/task-lists'
+import type { ReminderClock } from '@gather/core/task-reminders'
 import type { OptimisticLocalStore } from 'convex/browser'
 import { useAction, useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
@@ -182,6 +183,7 @@ export function mergeTasks(
             quantity: row.quantity,
             unit: row.unit,
             category: row.category,
+            reminder: row.reminder,
             order: row.order,
           })
         }
@@ -343,6 +345,7 @@ export function useTaskActions() {
   const createList = useMutation(api.taskLists.create)
   const setAppearance = useMutation(api.taskLists.setAppearance)
   const setDoneInList = useMutation(api.tasks.setDoneInList)
+  const setReminder = useMutation(api.tasks.setReminder)
 
   const patch = (
     id: string,
@@ -429,6 +432,9 @@ export function useTaskActions() {
       quantity: number | null,
       unit: GroceryUnit | null,
     ) => patch(id, { quantity, unit }),
+    /** A reminder for the caller at this wall clock, or none (APP-305). */
+    setReminder: (id: string, clock: ReminderClock | null) =>
+      setReminder({ taskId: id as Id<'tasks'>, groupSlug, reminder: clock }),
     /** The aisle a Member chose; the Group keeps it for the name. */
     setAisle: (id: string, category: GroceryAisle) => patch(id, { category }),
   }

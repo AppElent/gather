@@ -772,6 +772,18 @@ export const nl = {
       previousMonth: 'Vorige maand',
       nextMonth: 'Volgende maand',
       overdue: 'Te laat',
+      reminder: 'Herinnering',
+      reminderAt: '{day} {time}',
+      reminderSheet: {
+        dueDay: 'Op de dag om 9:00',
+        eveningBefore: 'De avond ervoor om 19:00',
+        remove: 'Geen herinnering',
+        footnote: 'De herinnering gaat naar jou, als melding op je telefoon.',
+        someoneElse:
+          'Een ander lid zette deze herinnering, en die gaat naar hen. Zet je er hier een, dan wordt hij van jou.',
+        passed: 'Dat tijdstip is al voorbij. Kies een later moment.',
+        failed: 'De herinnering kon niet worden gezet. Probeer het opnieuw.',
+      },
     },
   },
 
@@ -827,6 +839,7 @@ export const nl = {
       notNow: 'Niet nu',
       continue: 'Doorgaan',
     },
+    actions: { done: 'Afvinken' },
     failed: 'Dat kon niet worden bewaard. Probeer het opnieuw.',
   },
 

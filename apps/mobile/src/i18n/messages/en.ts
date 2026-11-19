@@ -1043,6 +1043,24 @@ export const en = {
       previousMonth: 'Previous month',
       nextMonth: 'Next month',
       overdue: 'Overdue',
+      /**
+       * The Reminder row and its sheet (APP-305). A due date alone sets no
+       * reminder; one is chosen, and it goes to the person who chose it.
+       */
+      reminder: 'Reminder',
+      /** The row's value: `{day}` is Today, Tomorrow, a weekday or a date. */
+      reminderAt: '{day} {time}',
+      reminderSheet: {
+        dueDay: 'On the day at 9:00',
+        eveningBefore: 'The evening before at 19:00',
+        remove: 'No reminder',
+        footnote: 'The reminder goes to you, as a notification on your phone.',
+        /** On a reminder another Member set, which setting one takes over. */
+        someoneElse:
+          'Another member set this reminder, and it goes to them. Setting one here makes it yours.',
+        passed: 'That time has passed. Pick a later one.',
+        failed: 'The reminder could not be set. Try again.',
+      },
     },
   },
 
@@ -1113,6 +1131,8 @@ export const en = {
       notNow: 'Not now',
       continue: 'Continue',
     },
+    /** The button on a task reminder's notification that completes it. */
+    actions: { done: 'Done' },
     failed: 'Could not save that. Try again.',
   },
 
