@@ -101,11 +101,13 @@ export default function Home() {
           label: list
             ? fmt(words.overdue.openList, { list: list.name })
             : words.overdue.openTasks,
+          // With the All index beneath it, so it has a back button (APP-458).
           onPress: () =>
             router.push(
               list
                 ? { pathname: '/all/tasks/[listId]', params: { listId: list.id } }
                 : moduleDestination('tasks'),
+              { withAnchor: true },
             ),
         }}
       />
@@ -203,10 +205,13 @@ export default function Home() {
                       ) : null
                     }
                     onOpen={() =>
-                      router.push({
-                        pathname: '/all/tasks/task/[taskId]',
-                        params: { taskId: task.id },
-                      })
+                      router.push(
+                        {
+                          pathname: '/all/tasks/task/[taskId]',
+                          params: { taskId: task.id },
+                        },
+                        { withAnchor: true },
+                      )
                     }
                     menu={{
                       reorder: false,
