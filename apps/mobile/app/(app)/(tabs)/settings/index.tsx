@@ -188,7 +188,8 @@ function BuildInfoLine() {
     isEmbeddedLaunch: Updates.isEmbeddedLaunch,
     createdAt: Updates.createdAt,
     sha: process.env.EXPO_PUBLIC_GIT_SHA,
-    channel: Updates.channel ?? environmentFromChannel(null, __DEV__),
+    // A development build reports an empty channel, not null.
+    channel: Updates.channel || environmentFromChannel(null, __DEV__),
   })
   return (
     <Text selectable style={[styles.buildInfo, { color: tokens.muted }]}>
