@@ -6,8 +6,10 @@
  * composer's parser with the cook's notes taken off). What it cannot read
  * comes from this phone's cache of earlier AI readings of the same
  * ingredients, and only what is still left goes to the AI, in one call for
- * all the recipes together that counts against the person's daily cap. Over
- * the cap, offline, or without an answer, those lines are added as plain text.
+ * all the recipes together (in batches when there are more than one call
+ * carries, `readInBatches`) that counts against the person's daily cap. Over
+ * the cap, offline, or without an answer, the lines not yet read are added as
+ * plain text.
  */
 import { readIngredientLine } from '@gather/core/groceries'
 import { useAction } from 'convex/react'
@@ -20,11 +22,7 @@ import {
   readCachedLines,
 } from './line-cache'
 import { ingredientsDigest, type LineRead, type SourceLine } from './pick'
-
-export interface AiCount {
-  used: number
-  limit: number
-}
+import { type AiCount, readInBatches } from './read-batches'
 
 export interface IngredientSource {
   id: string
@@ -32,12 +30,25 @@ export interface IngredientSource {
   servings?: number
 }
 
-/** The lines one call may carry (`convex/lib/groceryLinesAi.ts`). */
-const AI_LINES_MAX = 40
+export type { AiCount }
 
-type AiAnswer =
-  | { state: 'reading' }
-  | { state: 'done'; reads: Record<string, CachedRead>; count: AiCount | null }
+/**
+ * What the AI has answered so far, line text by line text. `done` once it
+ * has answered all it will: what it did not answer is plain text.
+ */
+interface AiAnswer {
+  reads: Record<string, CachedRead>
+  answered: ReadonlySet<string>
+  done: boolean
+  count: AiCount | null
+}
+
+const READING: AiAnswer = {
+  reads: {},
+  answered: new Set(),
+  done: false,
+  count: null,
+}
 
 type OwnRead =
   | { kind: 'local'; read: CachedRead }
@@ -98,29 +109,25 @@ export function useIngredientLines(recipes: readonly IngredientSource[]): {
               .filter(Boolean),
           ),
         ),
-      ).slice(0, AI_LINES_MAX),
+      ),
     [local],
   )
   const unreadKey = unread.join('\n')
 
-  const [ai, setAi] = useState<AiAnswer>({ state: 'reading' })
+  const unreadSet = useMemo(() => new Set(unread), [unread])
+
+  const [ai, setAi] = useState<AiAnswer>(READING)
   useEffect(() => {
     if (!unreadKey) return
     let live = true
-    const texts = unreadKey.split('\n')
-    setAi({ state: 'reading' })
-    readLines({ lines: texts })
-      .then((answer) => {
-        if (!live) return
-        if (answer.status !== 'read') {
-          setAi({ state: 'done', reads: {}, count: null })
-          return
-        }
-        const reads: Record<string, CachedRead> = {}
+    setAi(READING)
+    readInBatches(
+      unreadKey.split('\n'),
+      (lines) => readLines({ lines }),
+      ({ texts, lines, count }) => {
         const seen: Record<string, CachedLine> = {}
-        answer.lines.forEach((read, index) => {
-          if (read) reads[texts[index]] = read
-          seen[texts[index]] = read ?? null
+        texts.forEach((text, index) => {
+          seen[text] = lines[index]
         })
         // Plain-text answers are kept too, so the line is not asked again.
         for (const { recipe, digest } of local) {
@@ -129,15 +136,28 @@ export function useIngredientLines(recipes: readonly IngredientSource[]): {
             if (text.trim() in seen) own[text.trim()] = seen[text.trim()]
           if (Object.keys(own).length > 0) cacheLines(recipe.id, digest, own)
         }
-        setAi({
-          state: 'done',
-          reads,
-          count: { used: answer.used, limit: answer.limit },
-        })
-      })
-      .catch(() => {
-        if (live) setAi({ state: 'done', reads: {}, count: null })
-      })
+        setAi((current) => ({
+          reads: {
+            ...current.reads,
+            ...Object.fromEntries(
+              texts.flatMap((text, index) => {
+                const read = lines[index]
+                return read ? [[text, read] as const] : []
+              }),
+            ),
+          },
+          answered: new Set([...current.answered, ...texts]),
+          done: false,
+          count,
+        }))
+      },
+      () => live,
+    )
+      .catch(() => undefined)
+      .then(() => {
+      // Whatever is still unanswered (over the cap, offline) is plain text.
+      if (live) setAi((current) => ({ ...current, done: true }))
+    })
     return () => {
       live = false
     }
@@ -152,11 +172,12 @@ export function useIngredientLines(recipes: readonly IngredientSource[]): {
       else if (mine.kind === 'earlier')
         read = { kind: 'read', via: 'ai-earlier', ...mine.read }
       else if (mine.kind === 'text' || !text.trim()) read = { kind: 'text' }
-      else if (!unread.includes(text.trim())) read = { kind: 'text' }
-      else if (ai.state === 'reading') read = { kind: 'reading' }
+      else if (!unreadSet.has(text.trim())) read = { kind: 'text' }
       else {
         const answer = ai.reads[text.trim()]
-        read = answer ? { kind: 'read', via: 'ai', ...answer } : { kind: 'text' }
+        if (answer) read = { kind: 'read', via: 'ai', ...answer }
+        else if (ai.done || ai.answered.has(text.trim())) read = { kind: 'text' }
+        else read = { kind: 'reading' }
       }
       return {
         key: String(index),
@@ -172,6 +193,6 @@ export function useIngredientLines(recipes: readonly IngredientSource[]): {
   }
   return {
     lines,
-    aiCount: ai.state === 'done' ? ai.count : null,
+    aiCount: ai.done ? ai.count : null,
   }
 }

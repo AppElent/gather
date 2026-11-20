@@ -11,7 +11,9 @@
  */
 import {
   capitalise,
+  GROCERY_AISLES,
   type GroceryAddLine,
+  type GroceryAisle,
   type GroceryAmount,
   type GroceryListItem,
   groceryAddFields,
@@ -50,6 +52,13 @@ export interface SourceLine {
    * a recipe's lines share the sheet's source instead.
    */
   detail?: string
+  /**
+   * Keys this line had before it became this one (the week menu, APP-423): a
+   * line still being read is its own row, and once read it merges into an
+   * item's row. A tick or a retype made on the earlier row carries over
+   * (`byLineKey`).
+   */
+  was?: readonly string[]
   /**
    * Bring the list up to this amount rather than add it (the week menu,
    * APP-321): an item the list already has enough of starts unticked.
@@ -113,6 +122,53 @@ export function editedRead(typed: string): LineRead {
   }
 }
 
+/**
+ * What the person did to a line, by key: under its own key, else under the
+ * first earlier key (`SourceLine.was`) they did something to.
+ */
+export function byLineKey<T>(
+  byKey: Readonly<Record<string, T>>,
+  line: Pick<SourceLine, 'key' | 'was'>,
+): T | undefined {
+  if (byKey[line.key] !== undefined) return byKey[line.key]
+  for (const key of line.was ?? []) if (byKey[key] !== undefined) return byKey[key]
+  return undefined
+}
+
+/** The lines with the person's retypes in place of what was read. */
+export function withEdits(
+  lines: readonly SourceLine[],
+  edits: Readonly<Record<string, LineRead>>,
+): SourceLine[] {
+  return lines.map((line) => {
+    const edit = byLineKey(edits, line)
+    return edit ? { ...line, read: edit } : line
+  })
+}
+
+/**
+ * Rows in sections, one per aisle in walking order. A row still being read,
+ * or only readable as text, waits under Other; `aisleOf` answers for the
+ * rest (the Group's own aisles, `groceryLines.aisles`).
+ */
+export function sectionsByAisle(
+  rows: readonly PickRow[],
+  aisleOf: (title: string) => GroceryAisle,
+): Array<{ id: GroceryAisle; rows: PickRow[] }> {
+  const byId = new Map<GroceryAisle, PickRow[]>()
+  for (const row of rows) {
+    const aisle =
+      row.meta?.kind === 'reading' || row.meta?.kind === 'text'
+        ? 'other'
+        : aisleOf(row.title)
+    byId.set(aisle, [...(byId.get(aisle) ?? []), row])
+  }
+  return GROCERY_AISLES.filter((aisle) => byId.has(aisle)).map((aisle) => ({
+    id: aisle,
+    rows: byId.get(aisle) ?? [],
+  }))
+}
+
 function scaled(line: SourceLine, servings: number | undefined): GroceryAmount {
   const { read } = line
   if (read.kind !== 'read') return {}
@@ -165,7 +221,7 @@ export function pickRows(input: PickInput): {
   )
 
   const withTicks = base.map((row) => {
-    const own = input.ticks[row.line.key]
+    const own = byLineKey(input.ticks, row.line)
     const on = own ?? !(row.stocked || covered.has(row.line.key))
     // Only a covered row ticked by hand stops topping up.
     const topUp = row.line.topUp === true && !(own && covered.has(row.line.key))
