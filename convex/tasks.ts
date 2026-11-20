@@ -1078,7 +1078,7 @@ export const RECENT_GROCERIES_LIMIT = 100
  * the limit, so a name checked as two separate items still leaves room for
  * a hundred different ones.
  */
-const RECENT_GROCERIES_WINDOW = 2 * RECENT_GROCERIES_LIMIT
+export const RECENT_GROCERIES_WINDOW = 2 * RECENT_GROCERIES_LIMIT
 
 /**
  * A Group's Recent (APP-310): the checked items of its grocery lists, newest
@@ -1164,9 +1164,10 @@ export const recentGroceries = query({
 
 /**
  * How many of each grocery list's newest checked items the habits read
- * (APP-311): enough for a year of weekly shopping of a full list.
+ * (APP-311): enough for a year of weekly shopping of a full list. The daily
+ * prune keeps more than this per list (`groceryPrune.ts`, APP-404).
  */
-const GROCERY_HABITS_WINDOW = 1000
+export const GROCERY_HABITS_WINDOW = 1000
 
 /** How many names the composer's history completes from. */
 const GROCERY_HABITS_LIMIT = 300

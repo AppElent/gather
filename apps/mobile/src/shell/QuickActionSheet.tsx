@@ -143,10 +143,14 @@ function SheetBody({
   const columns = quickGridColumns(fontScale)
   const tileWidth = quickTileWidth(gridWidth, columns, SPACE[3])
 
-  /** Leave the sheet for a screen: a card, the list, the scanner, a form. */
+  /**
+   * Leave the sheet for a screen: a card, the list, the scanner, a form. With
+   * the All index beneath it, so a screen opened before All has loaded still
+   * has a back button (APP-458).
+   */
   const go = (href: Href) => {
     onClose()
-    router.push(href)
+    router.push(href, { withAnchor: true })
   }
 
   const choose = (action: QuickAction) => {
@@ -212,6 +216,7 @@ function SheetBody({
                       : {}),
                   }),
             }),
+            { withAnchor: true },
           )
         }}
         leading={backButton}
