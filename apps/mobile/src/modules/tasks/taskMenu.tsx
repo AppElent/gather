@@ -17,6 +17,7 @@ import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, type Messages, useI18n } from '../../i18n'
 import { useUndoToast } from '../../ui/undo-toast'
+import { useCompleteTask } from './completeTask'
 import { ReminderSheet } from './ReminderSheet'
 import { RepeatSheet } from './RepeatSheet'
 import { MoveToSectionSheet } from './sections'
@@ -91,6 +92,15 @@ export function taskMenuActions(
   ]
 }
 
+/** The delete confirm's body: a parent's subtasks go with it (APP-304). */
+export function deleteMessage(task: Pick<Task, 'subtasks'>, t: Messages) {
+  const count = task.subtasks?.total ?? 0
+  if (count === 0) return t.tasks.list.deleteBody
+  return count === 1
+    ? t.tasks.subtasks.deleteBodyOne
+    : fmt(t.tasks.subtasks.deleteBody, { count })
+}
+
 type TaskSheet =
   | 'due'
   | 'repeat'
@@ -120,34 +130,38 @@ export function useTaskSheets({
    */
   tasks: readonly Task[]
   onReorder?: () => void
-  /** For a screen that is about the task, and so has to leave with it. */
-  onDeleted?: () => void
+  /**
+   * For a screen that is about a task, and so has to leave with it. It hears
+   * which task went: the detail screen's subtask rows are deleted from here
+   * too, and the screen leaves only when its own task goes.
+   */
+  onDeleted?: (task: Task) => void
 }) {
   const { t } = useI18n()
   const actions = useTaskActions()
   const [open, setOpen] = useState<{ kind: TaskSheet; taskId: string } | null>(
     null,
   )
+  const completeTask = useCompleteTask()
   const close = () => setOpen(null)
   const task = open && tasks.find((each) => each.id === open.taskId)
 
   const confirmDelete = (task: Task) =>
     confirmDestructive({
       title: fmt(t.tasks.list.deleteTitle, { title: task.title }),
-      message: t.tasks.list.deleteBody,
+      message: deleteMessage(task, t),
       confirm: t.common.actions.delete,
       cancel: t.common.actions.cancel,
       onConfirm: () => {
         actions.deleteTask(task.id)
-        onDeleted?.()
+        onDeleted?.(task)
       },
     })
 
   const onAction = (task: Task, action: string) => {
     switch (action) {
       case 'complete':
-        if (!task.done) haptics.itemCompleted()
-        actions.toggleTask(task).catch(() => haptics.actionFailed())
+        completeTask(task)
         break
       case 'rename':
       case 'due':

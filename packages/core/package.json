@@ -40,6 +40,7 @@
     "./task-reminders": "./src/taskReminders.ts",
     "./week-plan": "./src/weekPlan.ts",
     "./task-repeat": "./src/taskRepeat.ts",
+    "./subtasks": "./src/subtasks.ts",
     "./tastings": "./src/tastings.ts"
   },
   "dependencies": {},

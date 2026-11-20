@@ -48,6 +48,8 @@ export interface DragItem {
   icon?: React.ComponentType<GlyphProps>
   /** The group whose `fill` the glyph tile takes. */
   group?: ModuleGroup
+  /** A second line under the label, such as whose loyalty card it is. */
+  detail?: string
 }
 
 interface DragHandlers {
@@ -63,7 +65,9 @@ export function DragList({
   onCommit,
   dragLabel,
   trailing,
+  leading,
   testID,
+  rowTestID = 'all',
 }: {
   items: DragItem[]
   scrollRef: React.RefObject<GestureScrollView | null>
@@ -73,7 +77,11 @@ export function DragList({
   dragLabel: (label: string) => string
   /** The row's one button: take away, or put back. */
   trailing?: (item: DragItem) => React.ReactNode
+  /** Drawn before the label instead of the Module tile, such as a store tile. */
+  leading?: (item: DragItem) => React.ReactNode
   testID?: string
+  /** Rows are `<rowTestID>-edit-<id>`, grips `<rowTestID>-grip-<id>`. */
+  rowTestID?: string
 }) {
   const tokens = useTokens()
 
@@ -166,7 +174,7 @@ export function DragList({
         return (
           <Animated.View
             key={item.id}
-            testID={`all-edit-${item.id}`}
+            testID={`${rowTestID}-edit-${item.id}`}
             onLayout={(event) => {
               heights.current.set(item.id, event.nativeEvent.layout.height)
             }}
@@ -193,14 +201,27 @@ export function DragList({
               scrollRef={scrollRef}
               color={dragging ? tokens.ink : tokens.muted}
               label={dragLabel(item.label)}
-              testID={`all-grip-${item.id}`}
+              testID={`${rowTestID}-grip-${item.id}`}
             />
-            {Icon && item.group ? (
+            {leading ? (
+              leading(item)
+            ) : Icon && item.group ? (
               <ModuleTile group={item.group} glyph={Icon} size="s" />
             ) : null}
-            <Text style={[styles.label, { color: tokens.ink }]}>
-              {item.label}
-            </Text>
+            {item.detail ? (
+              <View style={styles.text}>
+                <Text style={[styles.label, { color: tokens.ink }]}>
+                  {item.label}
+                </Text>
+                <Text style={[styles.detail, { color: tokens.muted }]}>
+                  {item.detail}
+                </Text>
+              </View>
+            ) : (
+              <Text style={[styles.label, { color: tokens.ink }]}>
+                {item.label}
+              </Text>
+            )}
             {trailing?.(item)}
           </Animated.View>
         )
@@ -272,4 +293,6 @@ const styles = StyleSheet.create({
   },
   grip: { paddingVertical: 12, paddingRight: 2 },
   label: { ...TYPE.subhead, flex: 1 },
+  text: { flex: 1, gap: 2 },
+  detail: { ...TYPE.footnote },
 })

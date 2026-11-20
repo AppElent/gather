@@ -118,6 +118,31 @@ export const tasks = {
     failed: 'That list could not be made. Try again.',
   },
 
+  /**
+   * Subtasks, one level deep (APP-304; `designs/tasks` §4 item 3): the task
+   * screen's section, a parent's progress in lists, and the question when a
+   * task with open subtasks is completed.
+   */
+  subtasks: {
+    title: 'Subtasks',
+    /** A parent's progress, on its row and beside the section heading. */
+    progress: '{done} of {total}',
+    add: 'Add subtask',
+    footnote:
+      'When the task repeats, its subtasks reopen. Completing the task with open subtasks asks whether to complete them too.',
+    askTitle: 'Complete the subtasks too?',
+    askBody: '{count} subtasks of “{title}” are still open.',
+    askBodyOne: 'One subtask of “{title}” is still open.',
+    completeAll: 'Complete all',
+    onlyThis: 'Only this',
+    /** Read out on a smart list's subtask row: what it is a step of. */
+    stepOf: 'Step of {title}',
+    failed: 'That subtask could not be added. Try again.',
+    /** Under the delete confirm of a task with subtasks. */
+    deleteBody: 'Its {count} subtasks are deleted too. This cannot be undone.',
+    deleteBodyOne: 'Its subtask is deleted too. This cannot be undone.',
+  },
+
   /** A packing list: checked items stay in place, and can all be reset. */
   packing: {
     progress: '{done} of {total}',
@@ -537,7 +562,7 @@ export const tasks = {
     nextNever: 'Does not come back',
     pickDay: 'Pick at least one day',
     footnote:
-      'One occurrence is open at a time. Miss it and it stays overdue; no copies pile up.',
+      'One occurrence is open at a time. Miss it and it stays overdue; no copies pile up. Subtasks reopen.',
     footnoteNever: 'A date alone sets no reminder and no repeat.',
     /** A linked list's task: its repeat lives in the other app. */
     linked:

@@ -103,3 +103,15 @@ describe('todoistAdapter', () => {
     )
   })
 })
+
+describe('Todoist subtasks (APP-304)', () => {
+  test('reads parent_id as the parent', () => {
+    const base = { id: '8', content: 'Sweep', priority: 1 as const }
+    expect(mapTodoistTask({ ...base, parent_id: '7' }).parentExternalId).toBe(
+      '7',
+    )
+    expect(
+      mapTodoistTask({ ...base, parent_id: null }).parentExternalId,
+    ).toBeUndefined()
+  })
+})

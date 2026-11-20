@@ -28,6 +28,8 @@ export interface TodoistApiTask {
   priority: 1 | 2 | 3 | 4 // API: 4 = most urgent (UI "p1")
   labels?: string[]
   url?: string
+  /** The task this one is a subtask of; null or absent at the top. */
+  parent_id?: string | null
 }
 
 export function mapTodoistTask(t: TodoistApiTask): UnifiedTask {
@@ -41,6 +43,7 @@ export function mapTodoistTask(t: TodoistApiTask): UnifiedTask {
     labels: t.labels?.length ? t.labels : undefined,
     url: t.url,
     repeatText: t.due?.is_recurring && t.due.string ? t.due.string : undefined,
+    parentExternalId: t.parent_id ?? undefined,
   }
 }
 

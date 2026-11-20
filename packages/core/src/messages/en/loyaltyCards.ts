@@ -26,6 +26,17 @@ export const loyaltyCards = {
     emptyBody:
       'Add the store cards your household uses, and anyone in {group} can show them at the till.',
     emptyAction: 'Add your first card',
+    /** Rearranging the Group's cards (APP-440). One order for the household. */
+    reorder: 'Reorder',
+    reorderDone: 'Done',
+    /** The phone's banner in reorder mode, before `reorderShared`. */
+    reorderHint: 'Drag a card by its handle.',
+    reorderShared:
+      'Everyone in {group} sees this order. A card added later goes on top.',
+    /** A grip's name for a screen reader. `{store}` is the store's name. */
+    reorderDrag: 'Reorder {store}',
+    moveUp: 'Move {store} up',
+    moveDown: 'Move {store} down',
   },
   picker: {
     title: 'Add a card',

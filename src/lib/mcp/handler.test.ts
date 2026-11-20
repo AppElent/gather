@@ -634,6 +634,62 @@ describe('Gather MCP endpoint', () => {
     })
   })
 
+  it('carries a subtask’s parent through create, list and update (APP-304)', async () => {
+    const backend = fakeBackend({
+      'tasks:add': () => 'task_2',
+      'tasks:update': () => null,
+      'tasks:listByList': () => [
+        { _id: 'task_1', title: 'Attic', done: false, labels: [] },
+        {
+          _id: 'task_2',
+          title: 'Sweep',
+          done: false,
+          labels: [],
+          parentTaskId: 'task_1',
+        },
+      ],
+    })
+    await callTool(backend, 'create_task', {
+      groupId: 'group_home',
+      listId: 'list_1',
+      idempotencyKey: KEY,
+      title: 'Sweep',
+      parentTaskId: 'task_1',
+    })
+    expect(backend.calls.at(-1)?.args).toMatchObject({
+      parentTaskId: 'task_1',
+    })
+    const listed = await callTool(backend, 'list_tasks', {
+      groupId: 'group_home',
+      listId: 'list_1',
+    })
+    expect(listed.structuredContent).toMatchObject({
+      tasks: [{ id: 'task_1' }, { id: 'task_2', parentTaskId: 'task_1' }],
+    })
+    await callTool(backend, 'update_task', {
+      groupId: 'group_home',
+      taskId: 'task_1',
+      done: true,
+      withSubtasks: true,
+    })
+    expect(backend.calls.at(-1)?.args).toEqual({
+      groupSlug: 'home',
+      taskId: 'task_1',
+      done: true,
+      withSubtasks: true,
+    })
+    await callTool(backend, 'update_task', {
+      groupId: 'group_home',
+      taskId: 'task_2',
+      parentTaskId: null,
+    })
+    expect(backend.calls.at(-1)?.args).toEqual({
+      groupSlug: 'home',
+      taskId: 'task_2',
+      parentTaskId: null,
+    })
+  })
+
   it('assigns a task to a Member by name, and clears it with null', async () => {
     const members = () => [
       { userId: 'user_ada', name: 'Ada' },
