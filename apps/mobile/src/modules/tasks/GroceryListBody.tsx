@@ -1,15 +1,15 @@
 /**
  * A grocery list's body (APP-310; `designs/groceries/README.md`, "1. List"):
- * the action row, the open items in aisle sections in the default walking
- * order, the composer, and the Checked row with Put back.
+ * the action row, the open items in aisle sections in the list's own aisle
+ * order (APP-313), the composer, and the Checked row with Put back.
  *
  * A checked item stays where it is for a moment, so a mistaken tap can be
  * tapped back, and then leaves its aisle for Checked. Checked holds what was
  * checked since the last "Clear checked"; everything checked stays in Recent.
  *
- * The action row opens Recent and In stock (APP-314). Shopping mode and the
- * suggestion strip (APP-315, 311) have no slot here yet: they arrive with
- * their own issues.
+ * The action row opens Recent (on a list Gather can write to) and In stock
+ * (APP-314); under it, the "Maybe needed" strip (APP-311). Shopping mode
+ * (APP-315) has no slot here yet: it arrives with its own issue.
  */
 import { useRouter } from 'expo-router'
 import { type ReactNode, useState } from 'react'
@@ -23,10 +23,14 @@ import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/token
 import { CompletedSection } from '../../ui/completed-section'
 import { InsetList } from '../../ui/inset-list'
 import { moduleHref } from '../moduleDestination'
-import { aisleSections, inCheckedSection } from './groceryList'
+import { SuggestionStrip } from './GrocerySuggestions'
+import {
+  aisleSections,
+  checkedOncePerName,
+  inCheckedSection,
+} from './groceryList'
 import { useTaskActions } from './store'
 import type { Task, TaskList } from './types'
-import { useLingering } from './useLingering'
 
 export function GroceryListBody({
   list,
@@ -34,10 +38,16 @@ export function GroceryListBody({
   row,
   composer,
   empty,
+  lingering,
   onUndoable,
 }: {
   list: TaskList
   tasks: readonly Task[]
+  /**
+   * Items just checked that still stand in their aisle (`useLingering`); the
+   * screen owns them, so its summary and Clear checked count agree.
+   */
+  lingering: ReadonlySet<string>
   /** One item as a row, the same row every list draws. */
   row: (task: Task) => ReactNode
   /** The add row, or nothing on a list Gather cannot write to. */
@@ -51,19 +61,19 @@ export function GroceryListBody({
   const { t, locale } = useI18n()
   const router = useRouter()
   const actions = useTaskActions()
-  const lingering = useLingering(
-    tasks,
-    list.sync === 'live' || list.sync === 'synced',
-  )
   const [busy, setBusy] = useState(false)
   const g = t.tasks.grocery
 
   const open = tasks.filter((task) => !task.done || lingering.has(task.id))
-  const checked = tasks.filter(
-    (task) =>
-      !lingering.has(task.id) && inCheckedSection(task, list.checkedClearedAt),
+  const checked = checkedOncePerName(
+    tasks,
+    tasks.filter(
+      (task) =>
+        !lingering.has(task.id) &&
+        inCheckedSection(task, list.checkedClearedAt),
+    ),
   )
-  const sections = aisleSections(open)
+  const sections = aisleSections(open, list.aisleOrder)
 
   const putBackAll = () => {
     const ids = checked.map((task) => task.id)
@@ -85,16 +95,20 @@ export function GroceryListBody({
   return (
     <>
       <View style={styles.actions}>
-        <ActionPill
-          testID="grocery-recent"
-          glyph={UI_ICONS.Clock}
-          label={g.recent.title}
-          onPress={() =>
-            router.push(
-              moduleHref('/all/groceries/recent', { listId: list.id }),
-            )
-          }
-        />
+        {/* Recent puts items back onto this list, so a list Gather cannot
+            write to (a linked one) has no Recent, as it has no composer. */}
+        {list.writable ? (
+          <ActionPill
+            testID="grocery-recent"
+            glyph={UI_ICONS.Clock}
+            label={g.recent.title}
+            onPress={() =>
+              router.push(
+                moduleHref('/all/groceries/recent', { listId: list.id }),
+              )
+            }
+          />
+        ) : null}
         <ActionPill
           testID="grocery-in-stock"
           glyph={UI_ICONS.House}
@@ -102,6 +116,8 @@ export function GroceryListBody({
           onPress={() => router.push(moduleHref('/all/groceries/in-stock'))}
         />
       </View>
+
+      <SuggestionStrip list={list} onUndoable={onUndoable} />
 
       {sections.map(({ aisle, tasks: rows }) => (
         <View key={aisle} style={styles.section} testID={`aisle-${aisle}`}>

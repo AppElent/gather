@@ -34,6 +34,7 @@ import {
   formatConfidenceValidator,
   retailerCategoryValidator,
 } from './lib/loyaltyCards'
+import { mealPreferencesFields } from './lib/mealPreferences'
 import {
   notificationPayloadValidator,
   notificationSwitchesValidator,
@@ -122,6 +123,14 @@ export default defineSchema({
     isPersonal: v.optional(v.boolean()),
     icon: v.optional(v.string()),
     imageId: v.optional(v.id('_storage')),
+    // The list the Groceries Module opened before a Group could have several
+    // grocery lists (APP-313). Installed phones still read it through
+    // `kitchen.groceries` and write it through `kitchen.setGroceryList`; a
+    // newer phone never reads it: it opens the grocery list last used on it,
+    // else the first, and tells `taskLists.create` to keep this pointer
+    // (`keepGroceryList`). Contract: drop once the OTA that reads
+    // `taskLists.list` alone has reached every installed build and `backfillGroceryListKind` ran
+    // everywhere (docs/migrations/README.md).
     groceryListId: v.optional(v.id('taskLists')),
   })
     .index('by_inviteCode', ['inviteCode'])
@@ -202,6 +211,23 @@ export default defineSchema({
      * Recent. Absent until the first clear.
      */
     checkedClearedAt: v.optional(v.number()),
+    /**
+     * A grocery list's aisle order, the way its store is walked (APP-313).
+     * Absent is the default walking order (`GROCERY_AISLES`); a reader goes
+     * through `aisleOrder` in `@gather/core/groceries`, which also places an
+     * aisle added after the order was saved.
+     */
+    aisleOrder: v.optional(v.array(groceryAisleValidator)),
+    /**
+     * A Member switched the "Maybe needed" suggestions off for this grocery
+     * list (APP-311). Absent is on.
+     */
+    suggestionsOff: v.optional(v.boolean()),
+    /**
+     * Names a Member hid from this list's suggestions for good (APP-311), as
+     * `groceryTitleKey`s, at most `HIDDEN_SUGGESTIONS_LIMIT`. Absent is none.
+     */
+    hiddenSuggestions: v.optional(v.array(v.string())),
     // APP-357. The list's sections in the order they are drawn; absent on
     // every list made before them, which reads as no sections.
     sections: v.optional(v.array(taskSectionValidator)),
@@ -276,6 +302,15 @@ export default defineSchema({
      * never read it and draw the task as before.
      */
     sectionId: v.optional(v.string()),
+    /**
+     * The task this one is a step of (APP-304): a task on the same list that
+     * has no parent itself, so subtasks are one level deep. Absent on every
+     * other task, and on every task from before subtasks. A subtask is a
+     * whole task (own check, assignee, due date) but never repeats on its own;
+     * it reopens when its parent's next occurrence comes. An installed app
+     * from before subtasks draws one as an ordinary row of the list.
+     */
+    parentTaskId: v.optional(v.id('tasks')),
   })
     .index('by_list', ['listId'])
     // The end of a list without reading all of it (APP-368).
@@ -286,7 +321,9 @@ export default defineSchema({
     .index('by_list_and_done_at', ['listId', 'doneAt'])
     // A person's tasks across lists: the leave-Group clean-up, the in-app
     // notice, and later the "Mine" smart list (APP-301).
-    .index('by_assignee', ['assigneeId']),
+    .index('by_assignee', ['assigneeId'])
+    // A task's subtasks without reading the rest of its list (APP-304).
+    .index('by_parent', ['parentTaskId']),
 
   /**
    * One completion of a repeating task (APP-303): who, when, and the due
@@ -303,6 +340,12 @@ export default defineSchema({
     completedOn: v.string(),
     previousDueDate: v.optional(v.string()),
     nextDueDate: v.string(),
+    /**
+     * The subtasks that were checked when this completion reopened them
+     * (APP-304), so undoing it checks those again. Absent when none were,
+     * and on every completion from before subtasks.
+     */
+    reopenedSubtaskIds: v.optional(v.array(v.id('tasks'))),
   })
     .index('by_task', ['taskId'])
     .index('by_group', ['groupId']),
@@ -405,6 +448,47 @@ export default defineSchema({
   })
     .index('by_group', ['groupId'])
     .index('by_group_date', ['groupId', 'date']),
+
+  // How one Group eats ("Eetvoorkeuren", APP-318): one row per Group, made on
+  // its first change. Every preference is optional and absent means the
+  // default, which `resolveMealPreferences` (@gather/core/meal-preferences)
+  // fills, so a Group without a row reads the defaults. Group content: every
+  // Member may read and change it.
+  mealPreferences: defineTable({
+    groupId: v.id('groups'),
+    ...mealPreferencesFields,
+    updatedBy: v.id('users'),
+    updatedAt: v.number(),
+  }).index('by_group', ['groupId']),
+
+  // A proposal from Plan mijn week (APP-319): one row per proposed meal, per
+  // Group and week, until a Member accepts it (it becomes a `plannedDinners`
+  // row), discards the week's proposal, or it expires after 24 hours. Its own
+  // table, not a flag on Planned meals, so phones from before APP-319 never
+  // draw a proposal as a real meal. Group content: every Member sees and acts
+  // on it. `createdBy` is attribution only. Exactly one of `recipeId` and
+  // `quickMeal` is set; `mealEntryId` when the quick meal is one the Group
+  // has. `reason` is the model's line; `source` says which planner chose it:
+  // the model (`ai`), the rules for a slot the model left open (`rules`), or
+  // the rules because the model was not reachable (`fallback`).
+  mealPlanDrafts: defineTable({
+    groupId: v.id('groups'),
+    /** Monday of the week, `YYYY-MM-DD`. */
+    weekStart: v.string(),
+    date: v.string(),
+    slot: mealSlotValidator,
+    recipeId: v.optional(v.id('recipes')),
+    quickMeal: v.optional(v.string()),
+    mealEntryId: v.optional(v.id('mealEntries')),
+    prepMinutes: v.optional(v.number()),
+    reason: v.optional(v.string()),
+    source: v.union(v.literal('ai'), v.literal('rules'), v.literal('fallback')),
+    createdBy: v.id('users'),
+    expiresAt: v.number(),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_group_week', ['groupId', 'weekStart'])
+    .index('by_expires', ['expiresAt']),
 
   // The Pantry before it folded into Groceries as In stock (APP-314). Kept,
   // unread by current phones, while installed apps still call `kitchen.*`
@@ -918,6 +1002,12 @@ export default defineSchema({
     backPhotoId: v.optional(v.id('_storage')),
     /** Set by `markUsed` when the card is shown; absent until then. */
     lastUsedAt: v.optional(v.number()),
+    /**
+     * The Group's own arrangement (APP-440): one order per Group, written
+     * only by `reorder`. Absent until someone reorders, and on a card added
+     * since, which `compareLoyaltyCards` puts on top.
+     */
+    order: v.optional(v.number()),
     /** Attribution only. Confers no ownership and no access (GLOSSARY.md). */
     createdByUserId: v.id('users'),
   }).index('by_group', ['groupId']),

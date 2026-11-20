@@ -98,6 +98,24 @@ export const tasks = {
     failed: 'Die lijst kon niet worden gemaakt. Probeer het opnieuw.',
   },
 
+  subtasks: {
+    title: 'Subtaken',
+    progress: '{done} van {total}',
+    add: 'Subtaak toevoegen',
+    footnote:
+      'Bij herhalen gaan de subtaken weer open. Vink je de taak af met open subtaken, dan vragen we of die ook af mogen.',
+    askTitle: 'Subtaken ook afvinken?',
+    askBody: 'Van “{title}” staan nog {count} subtaken open.',
+    askBodyOne: 'Van “{title}” staat nog één subtaak open.',
+    completeAll: 'Alles afvinken',
+    onlyThis: 'Alleen deze',
+    stepOf: 'Stap van {title}',
+    failed: 'Die subtaak kon niet worden toegevoegd. Probeer het opnieuw.',
+    deleteBody:
+      'De {count} subtaken worden ook verwijderd. Dit kan niet ongedaan worden gemaakt.',
+    deleteBodyOne:
+      'De subtaak wordt ook verwijderd. Dit kan niet ongedaan worden gemaakt.',
+  },
   packing: {
     progress: '{done} van {total}',
     packed: 'ingepakt',
@@ -141,6 +159,64 @@ export const tasks = {
       other: '{count} afgevinkte items gewist. Ze blijven in Recent.',
     },
     undo: 'Ongedaan maken',
+    lists: {
+      title: 'Boodschappenlijsten',
+      switchLabel: 'Lijst: {list}, wisselen',
+      customOrder: 'Schapvolgorde aangepast',
+      defaultOrder: 'Standaardvolgorde',
+      count: { one: '{count} item', other: '{count} items' },
+      aisleOrderOf: 'Schapvolgorde van {list}',
+      newList: 'Nieuwe boodschappenlijst',
+      footnote:
+        'Elke lijst heeft zijn eigen schapvolgorde. Een item verplaatsen houdt hoeveelheid en afdeling.',
+      none: 'Nog geen boodschappenlijst. Maak er een, of gebruik een van je lijsten.',
+    },
+    aisleOrder: {
+      title: 'Schapvolgorde',
+      menu: 'Schapvolgorde',
+      section: '{list} · zo loop je door de winkel',
+      up: '{aisle} omhoog',
+      down: '{aisle} omlaag',
+      footnote:
+        'Sleep een afdeling, of gebruik de pijlen. Afdelingen zonder items zijn in de lijst verborgen.',
+      save: 'Bewaar',
+      restore: 'Standaardvolgorde herstellen',
+      failed: 'De schapvolgorde kon niet worden bewaard. Probeer het opnieuw.',
+    },
+    suggestions: {
+      title: 'Misschien nodig',
+      hint: 'Houd ingedrukt om te verbergen',
+      add: 'Zet {name} op de lijst. {why}',
+      added: '{name} staat op de lijst.',
+      hide: 'Verbergen',
+      hidden: '{name} wordt niet meer voorgesteld.',
+      turnOff: 'Suggesties uit',
+      turnOn: 'Suggesties aan',
+      off: 'Suggesties staan uit voor deze lijst.',
+      on: 'Suggesties staan aan voor deze lijst.',
+      cadence: {
+        day: 'elke dag',
+        days: 'elke {count} dagen',
+        week: 'elke week',
+        weeks: 'elke {count} weken',
+        month: 'elke maand',
+        months: 'elke {count} maanden',
+      },
+      ago: {
+        today: 'vandaag',
+        yesterday: 'gisteren',
+        days: { one: '{count} dag geleden', other: '{count} dagen geleden' },
+      },
+      why: '{cadence} · {ago}',
+      often: 'Vaak gekocht · {cadence}',
+      history: 'Jullie historie',
+      dictionary: 'Woordenboek',
+      onList: 'staat al op de lijst',
+      onListAmount: 'staat al op de lijst ({amount})',
+      pick: 'Zet {name} erbij',
+    },
+    undoSuperseded:
+      'De lijst is sindsdien opnieuw gewist. Er is niets ongedaan gemaakt.',
     recent: {
       title: 'Recent',
       count: { one: '{count} item', other: '{count} items' },
@@ -156,6 +232,8 @@ export const tasks = {
     addLines: {
       title: 'Op de boodschappenlijst',
       fromRecipe: 'Uit recept of weekmenu',
+      /** The week menu row in that entry's chooser (APP-421). */
+      weekMenu: 'Weekmenu',
       recipe: 'Recept',
       recipeServes: {
         one: 'Recept · voor {count} persoon',
@@ -252,6 +330,36 @@ export const tasks = {
     },
     refusals: {
       'assignee-not-member': 'Die persoon zit niet meer in deze groep.',
+    },
+  },
+
+  smart: {
+    section: 'Slimme lijsten',
+    menu: 'Slimme lijsten tonen of verbergen',
+    lists: {
+      today: { title: 'Vandaag', subtitle: 'Vandaag of te laat' },
+      mine: { title: 'Mijn taken', subtitle: 'Aan jou toegewezen' },
+      upcoming: { title: 'Gepland', subtitle: 'Komende 7 dagen' },
+      unassigned: {
+        title: 'Niet toegewezen',
+        subtitle: 'Nog niemand pakt ze op',
+      },
+    },
+    count: { one: '{count} taak', other: '{count} taken' },
+    empty: {
+      today: 'Niets voor vandaag.',
+      mine: 'Er staat niets op jouw naam.',
+      upcoming: 'Niets gepland voor de komende 7 dagen.',
+      unassigned: 'Elke taak heeft iemand.',
+    },
+    fromAll: 'Uit alle lijsten',
+    overdueCount: '{count} te laat',
+    overdue: 'Te laat',
+    yesterday: 'gisteren',
+    days: {
+      overdue: 'Te laat',
+      today: 'Vandaag · {date}',
+      tomorrow: 'Morgen · {date}',
     },
   },
 
@@ -360,7 +468,7 @@ export const tasks = {
     nextNever: 'Komt niet terug',
     pickDay: 'Kies minstens één dag',
     footnote:
-      'Er staat steeds één keer open. Mis je hem, dan blijft hij als te laat staan; er komen geen kopieën bij.',
+      'Er staat steeds één keer open. Mis je hem, dan blijft hij als te laat staan; er komen geen kopieën bij. Subtaken gaan weer open.',
     footnoteNever: 'Een datum alleen geeft geen herinnering en geen herhaling.',
     linked:
       'Deze lijst staat in {provider}. Gather leest hem, maar kan er niet in schrijven: stel het herhalen in {provider} in.',

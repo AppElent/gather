@@ -29,7 +29,9 @@ export function GroupLinkHandoff() {
     }
     openInGroup(target.groupId, () => {
       clearPendingGroupLink()
-      router.replace(target.href)
+      // With its stack's anchor beneath it (the All index), so a record
+      // opened by a link or a push tap has a back button (APP-454).
+      router.replace(target.href, { withAnchor: true })
     })
   }, [target, openInGroup])
 

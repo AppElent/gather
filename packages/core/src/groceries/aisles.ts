@@ -31,6 +31,32 @@ export function isGroceryAisle(value: unknown): value is GroceryAisle {
 }
 
 /**
+ * A grocery list's aisle order (APP-313): the order its store saved, read
+ * defensively. Ids this build does not know and repeats are dropped, and an
+ * aisle the saved order does not name (one added after it was saved) comes
+ * last, in the default order. No saved order is the default walking order.
+ */
+export function aisleOrder(
+  saved: readonly string[] | null | undefined,
+): GroceryAisle[] {
+  const order: GroceryAisle[] = []
+  for (const id of saved ?? []) {
+    if (isGroceryAisle(id) && !order.includes(id)) order.push(id)
+  }
+  for (const aisle of GROCERY_AISLES) {
+    if (!order.includes(aisle)) order.push(aisle)
+  }
+  return order
+}
+
+/** Whether an order is the default walking order, whatever it was saved as. */
+export function isDefaultAisleOrder(
+  saved: readonly string[] | null | undefined,
+): boolean {
+  return aisleOrder(saved).every((aisle, index) => aisle === GROCERY_AISLES[index])
+}
+
+/**
  * What belongs where, in English, for the cases shops split differently. The
  * eval set's header (`eval/groceryLines.txt`) labels by the same rules and the
  * AI fallback is given this text, so a person, the dictionary and the model

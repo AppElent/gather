@@ -64,6 +64,7 @@ export type DropPick =
   | 'none'
   | 'note'
   | 'task-list'
+  | 'grocery-list'
   | 'recipe'
   | 'tasting-subject'
 
@@ -171,16 +172,26 @@ const TASKS: DropTarget[] = [
 
 const GROCERIES: DropTarget[] = [
   {
-    // The shortest path in the flow, and the reason is in the schema: a Group
-    // designates its grocery list, so the Group already names the destination
-    // and there is nothing left to ask.
+    // Still the shortest path when the Group has one grocery list: it is the
+    // destination and nothing is asked. With several, one per store
+    // (APP-313), stage two asks which, and only then.
     id: 'grocery-line',
     module: 'groceries',
     icon: 'ShoppingCart',
-    picks: 'none',
-    route: () => moduleHref('/all/groceries'),
+    picks: 'grocery-list',
+    route: ({ id }) => moduleHref('/all/groceries', { listId: id }),
   },
 ]
+
+/**
+ * Whether confirming stage one opens stage two before anything is written.
+ *
+ * A grocery line does not: the commit itself finds out whether the Group has
+ * more than one grocery list, and only then is stage two the next screen.
+ */
+export function asksBeforeCommit(target: DropTarget): boolean {
+  return target.picks !== 'none' && target.picks !== 'grocery-list'
+}
 
 const BABY_LOG: DropTarget[] = [
   {

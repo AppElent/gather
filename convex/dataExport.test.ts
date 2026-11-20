@@ -235,6 +235,15 @@ async function household(t: Harness): Promise<Household> {
       dueDate: '2026-11-28',
       repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [6] },
     })
+    // A step of the bins, one level deep (APP-304).
+    await ctx.db.insert('tasks', {
+      listId: chores,
+      title: 'Rinse the bins',
+      done: false,
+      createdBy: alice,
+      order: PAGE_SIZE + 11,
+      parentTaskId: bins,
+    })
     await ctx.db.insert('taskCompletions', {
       groupId: household,
       taskId: bins,
@@ -310,6 +319,7 @@ async function household(t: Harness): Promise<Household> {
       cardNumber: '2620187342052',
       barcodeFormat: 'EAN_13',
       holder: 'Bob',
+      order: 0,
       frontPhotoId: await ctx.storage.store(new Blob(['front'])),
       backPhotoId: await ctx.storage.store(new Blob(['back'])),
       createdByUserId: bob,
@@ -412,6 +422,24 @@ async function household(t: Harness): Promise<Household> {
     await ctx.db.insert('financeSettings', {
       groupId: household,
       homeCurrency: 'EUR',
+    })
+    await ctx.db.insert('mealPreferences', {
+      groupId: household,
+      memberDefaults: [{ userId: bob, eatsByDefault: false }],
+      allergens: ['peanuts'],
+      weeklyBudgetCents: 8500,
+      updatedBy: alice,
+      updatedAt: 0,
+    })
+    await ctx.db.insert('mealPlanDrafts', {
+      groupId: household,
+      weekStart: '2026-11-23',
+      date: '2026-11-24',
+      slot: 'dinner',
+      quickMeal: 'Tosti',
+      source: 'fallback',
+      createdBy: alice,
+      expiresAt: 0,
     })
     await ctx.db.insert('netWorthEntries', {
       groupId: household,
@@ -551,8 +579,12 @@ describe('what the file contains', () => {
     for (const [table, rows] of Object.entries(household)) {
       expect(rows.length, table).toBeGreaterThan(0)
     }
-    // The page of tasks, five more, and the repeating one (APP-303).
-    expect(household.tasks).toHaveLength(PAGE_SIZE + 6)
+    // The page of tasks, five more, the repeating one (APP-303) and its
+    // subtask (APP-304), which names its parent by the id the file gives it.
+    expect(household.tasks).toHaveLength(PAGE_SIZE + 7)
+    const bins = household.tasks.find((task) => task.title === 'Bins')
+    const rinse = household.tasks.find((task) => task.title === 'Rinse the bins')
+    expect(rinse?.parentTaskId).toBe(bins?.id)
     // Who completed it, by name.
     expect(household.taskCompletions).toEqual([
       expect.objectContaining({ completedBy: 'Bob', completedOn: '2026-11-19' }),
@@ -564,6 +596,19 @@ describe('what the file contains', () => {
     expect(household.groceryStaples.map((r) => r.name)).toEqual(['Rice'])
     expect(groupOf(data, 'allotment').notes.map((n) => n.title)).toEqual([
       'Seeds',
+    ])
+  })
+
+  test('meal preferences, with people by name', async () => {
+    const t = testConvex()
+    const { data } = await exported(t)
+    expect(groupOf(data, 'household').mealPreferences).toEqual([
+      expect.objectContaining({
+        memberDefaults: [{ userId: 'Bob', eatsByDefault: false }],
+        allergens: ['peanuts'],
+        weeklyBudgetCents: 8500,
+        updatedBy: 'Alice',
+      }),
     ])
   })
 
@@ -596,6 +641,8 @@ describe('what the file contains', () => {
       expect.stringContaining('http'),
     )
     const [card] = household.loyaltyCards
+    // The Group's arrangement travels with the card (APP-440).
+    expect(card.order).toBe(0)
     expect(card).not.toHaveProperty('frontPhotoId')
     expect(card).not.toHaveProperty('backPhotoId')
     expect(card.frontPhotoUrl).toEqual(expect.stringContaining('http'))

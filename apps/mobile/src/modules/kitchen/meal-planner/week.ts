@@ -18,7 +18,7 @@ import {
 import {
   enabledSlots,
   type ResolvedMealPreferences,
-} from '@gather/core/meal-preferences-stand-in'
+} from '@gather/core/meal-preferences'
 import type { FunctionReturnType } from 'convex/server'
 
 import type { api } from '../../../convex/api'
@@ -59,6 +59,15 @@ export function weekdayName(date: string, locale: string) {
   return sentenceCase(
     localMidnight(date).toLocaleDateString(locale, { weekday: 'long' }),
   )
+}
+
+/**
+ * The weekday inside a sentence: "voor donderdag", "for Thursday". Dutch
+ * writes weekdays in lower case; `weekdayName` is for the start of a line.
+ */
+export function weekdayInText(date: string, locale: string) {
+  const name = localMidnight(date).toLocaleDateString(locale, { weekday: 'long' })
+  return locale === 'nl' ? name.toLocaleLowerCase(locale) : sentenceCase(name)
 }
 
 /** "26 Nov". */

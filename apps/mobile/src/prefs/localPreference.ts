@@ -36,9 +36,13 @@ export const PREFERENCE_KEYS = {
   locale: 'gather:locale',
   recentRecords: 'gather:search:recent-records',
   allView: 'gather:all:view',
+  /** The smart lists hidden from the Tasks index on this phone (APP-301). */
+  hiddenSmartLists: 'gather:tasks:hidden-smart-lists',
   pushRegistration: 'gather:push:registration',
   pushRelease: 'gather:push:release',
   pushExplained: 'gather:push:explained',
+  /** The Loyalty card on screen when Gather was left (APP-443). */
+  openLoyaltyCard: 'gather:loyalty-cards:open-card',
 } as const
 
 /**
@@ -71,8 +75,9 @@ export function allArrangementKey(groupSlug: string) {
 }
 
 /**
- * The grocery list a recipe last went to, in one Group: the add-to-groceries
- * sheet opens on it (APP-312, "the last used grocery list").
+ * The grocery list last used on this phone, in one Group: the one last opened
+ * in Groceries or picked in its store pill (APP-313), or the one a recipe last
+ * went to (APP-312). Groceries and the add-to-groceries sheet both open on it.
  */
 export function lastGroceryListKey(groupSlug: string) {
   return `gather:groceries:last-list:${groupSlug}` as const

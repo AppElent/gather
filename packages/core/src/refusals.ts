@@ -10,6 +10,7 @@
  */
 import type { BarcodeProblem } from './barcodes'
 import { CALENDAR_VALIDATION_KEYS } from './calendar'
+import type { MealPreferencesField } from './mealPreferences'
 import type { TastingAttributeError, TastingAttributeProblem } from './tastings'
 
 export const TASTING_REFUSALS = [
@@ -74,6 +75,16 @@ export function calendarRefusal(code: CalendarRefusalCode): { kind: string } {
   return { kind: `calendar:${code}` }
 }
 
+/**
+ * A meal preference the server would not store, and which one. The screen
+ * never sends one; an older or foreign client might.
+ */
+export function mealPreferencesRefusal(
+  field: MealPreferencesField,
+): { kind: string; field: string } {
+  return { kind: 'mealPreferences:invalid', field }
+}
+
 function errorData(error: unknown): unknown {
   return typeof error === 'object' && error !== null && 'data' in error
     ? error.data
@@ -116,10 +127,38 @@ export function readLoyaltyCardRefusal(
 }
 
 /**
- * Why a task write was refused (APP-302): `assignee-not-member` is a person
- * who is not a current Member of the task's Group.
+ * Why a task write was refused.
+ *
+ * - `assignee-not-member` (APP-302): a person who is not a current Member of
+ *   the task's Group.
+ * - `not-found`: no such task or list, or one in another Group (ADR-0009).
+ * - `read-only`: a list linked to an outside service; Gather cannot write it.
+ * - `not-grocery-list`: Recent, put back and Clear checked work on grocery
+ *   lists only (APP-310).
+ * - `invalid-undo`: an undo of Clear checked that names a moment it cannot
+ *   have come from, such as one in the future (APP-403).
+ * - `clear-superseded`: the list was cleared again, or already put back,
+ *   since the clear being undone; nothing changed (APP-403).
+ * - `subtask-depth` (APP-304): a subtask cannot have subtasks, and a task
+ *   with subtasks cannot become one.
+ * - `subtask-list`: a subtask sits on its parent's list, in its parent's
+ *   section.
+ * - `subtask-grocery`: a grocery list holds items, not subtasks.
+ * - `subtask-repeat`: a subtask does not repeat on its own; it reopens with
+ *   its parent.
  */
-export const TASK_REFUSAL_CODES = ['assignee-not-member'] as const
+export const TASK_REFUSAL_CODES = [
+  'assignee-not-member',
+  'not-found',
+  'read-only',
+  'not-grocery-list',
+  'invalid-undo',
+  'clear-superseded',
+  'subtask-depth',
+  'subtask-list',
+  'subtask-repeat',
+  'subtask-grocery',
+] as const
 export type TaskRefusalCode = (typeof TASK_REFUSAL_CODES)[number]
 
 /** Namespaced on the wire, like the calendar's, so kinds cannot collide. */

@@ -15,6 +15,13 @@ import {
   groceryAddFields,
 } from '@gather/core/groceries'
 import {
+  bySmartOrder,
+  inSmartList,
+  SMART_LISTS,
+  type SmartListId,
+} from '@gather/core/smart-lists'
+import { subtaskProgress } from '@gather/core/subtasks'
+import {
   asTaskListKind,
   type TaskListColor,
   type TaskListIcon,
@@ -86,6 +93,8 @@ export function externalEntry(
       labels: task.labels ?? [],
       repeatText: task.repeatText,
       order,
+      // Todoist's and Notion's subtasks (APP-304), read only.
+      ...(task.parentExternalId ? { parentTaskId: task.parentExternalId } : {}),
     })),
   }
 }
@@ -152,6 +161,65 @@ export function localTaskQueries(
   )
 }
 
+/** A Convex task row as the screens draw it. */
+export function taskFromRow(row: Doc<'tasks'>): Task {
+  return {
+    id: row._id,
+    listId: row.listId,
+    title: row.title,
+    done: row.done,
+    dueDate: row.dueDate,
+    priority: row.priority,
+    labels: row.labels ?? [],
+    notes: row.notes,
+    url: row.url,
+    priceCents: row.priceCents,
+    quantity: row.quantity,
+    unit: row.unit,
+    category: row.category,
+    repeat: row.repeat,
+    doneAt: row.doneAt,
+    assigneeId: row.assigneeId,
+    assignmentNotice: row.assignmentNotice,
+    reminder: row.reminder,
+    sectionId: row.sectionId,
+    order: row.order,
+    parentTaskId: row.parentTaskId,
+  }
+}
+
+/**
+ * Every task with its subtasks' progress (APP-304), worked out from the rows
+ * themselves: a list holds a parent's subtasks with it.
+ */
+export function withProgress(tasks: readonly Task[]): Task[] {
+  const progress = subtaskProgress(tasks)
+  if (progress.size === 0) return [...tasks]
+  return tasks.map((task) => {
+    const own = progress.get(task.id)
+    return own ? { ...task, subtasks: own } : task
+  })
+}
+
+/** A list row as the screens draw it, with where its tasks stand. */
+function listView(list: ListRow, sync: ListSync): TaskList {
+  return {
+    id: list._id,
+    name: list.name,
+    provider: list.provider,
+    writable: list.writable,
+    display: list.display,
+    order: list.order,
+    sync,
+    grocery: list.grocery ?? false,
+    checkedClearedAt: list.checkedClearedAt ?? null,
+    aisleOrder: list.aisleOrder ?? null,
+    suggestionsOff: list.suggestionsOff ?? false,
+    sections: list.sections ?? [],
+    ...listFace(list),
+  }
+}
+
 /** Local rows and linked rows as one model: the only place the two meet. */
 export function mergeTasks(
   lists: readonly ListRow[],
@@ -170,51 +238,16 @@ export function mergeTasks(
           ? 'failed'
           : 'loading'
       if (Array.isArray(rows)) {
-        for (const row of rows as Doc<'tasks'>[]) {
-          tasks.push({
-            id: row._id,
-            listId: row.listId,
-            title: row.title,
-            done: row.done,
-            dueDate: row.dueDate,
-            priority: row.priority,
-            labels: row.labels ?? [],
-            notes: row.notes,
-            url: row.url,
-            priceCents: row.priceCents,
-            quantity: row.quantity,
-            unit: row.unit,
-            category: row.category,
-            repeat: row.repeat,
-            doneAt: row.doneAt,
-            assigneeId: row.assigneeId,
-            assignmentNotice: row.assignmentNotice,
-            reminder: row.reminder,
-            sectionId: row.sectionId,
-            order: row.order,
-          })
-        }
+        for (const row of rows as Doc<'tasks'>[]) tasks.push(taskFromRow(row))
       }
     } else {
       const entry = linked.get(list._id)
       sync = entry?.sync ?? 'loading'
       tasks.push(...(entry?.tasks ?? []))
     }
-    return {
-      id: list._id,
-      name: list.name,
-      provider: list.provider,
-      writable: list.writable,
-      display: list.display,
-      order: list.order,
-      sync,
-      grocery: list.grocery ?? false,
-      checkedClearedAt: list.checkedClearedAt ?? null,
-      sections: list.sections ?? [],
-      ...listFace(list),
-    }
+    return listView(list, sync)
   })
-  return { lists: views, tasks }
+  return { lists: views, tasks: withProgress(tasks) }
 }
 
 /**
@@ -244,30 +277,64 @@ export function taskSections<T extends { done: boolean }>(tasks: readonly T[]) {
  */
 export function toggleInPlace(
   store: OptimisticLocalStore,
-  { taskId, today }: { taskId: Id<'tasks'>; today?: string },
+  {
+    taskId,
+    today,
+    withSubtasks,
+  }: { taskId: Id<'tasks'>; today?: string; withSubtasks?: boolean },
 ) {
   for (const { args, value } of store.getAllQueries(api.tasks.listByList)) {
-    if (!value?.some((task) => task._id === taskId)) continue
+    const target = value?.find((task) => task._id === taskId)
+    if (!value || !target) continue
+    // "Complete all" (APP-304) checks the open subtasks with it; a repeating
+    // parent's next occurrence opens them all again.
+    const repeats = Boolean(target.repeat && !target.done && today)
+    const closing = !target.done && !repeats
     store.setQuery(
       api.tasks.listByList,
       args,
       value.map((task) => {
-        if (task._id !== taskId) return task
-        if (task.repeat && !task.done && today) {
-          return {
-            ...task,
-            dueDate: nextDueDate(task.repeat, { dueDate: task.dueDate, today }),
-          }
-        }
-        return {
-          ...task,
-          done: !task.done,
-          // As the server stamps it, so a fresh check is not taken for
-          // one from before the last "Clear checked" (APP-310).
-          doneAt: task.done ? undefined : Date.now(),
-        }
+        if (task._id === taskId) return toggled(task, today)
+        if (task.parentTaskId !== taskId) return task
+        if (repeats && task.done) return { ...task, done: false, doneAt: undefined }
+        if (closing && withSubtasks && !task.done) return toggled(task, today)
+        return task
       }),
     )
+  }
+  // A smart list holds open tasks only: a checked one leaves it at once, and
+  // a repeating one stays with its next date (APP-301).
+  for (const { args, value } of store.getAllQueries(api.tasks.smartLists)) {
+    const target = value?.tasks.find((task) => task._id === taskId)
+    if (!value || !target) continue
+    // "Complete all" takes the parent's open subtasks off with it (APP-304).
+    const closing = withSubtasks && !target.done && !target.repeat
+    store.setQuery(api.tasks.smartLists, args, {
+      ...value,
+      tasks: value.tasks.flatMap((task) => {
+        if (closing && task.parentTaskId === taskId) return []
+        if (task._id !== taskId) return [task]
+        const next = toggled(task, today)
+        return next.done ? [] : [next]
+      }),
+    })
+  }
+}
+
+/** A task as the server will leave it after a tick. */
+function toggled(task: Doc<'tasks'>, today: string | undefined): Doc<'tasks'> {
+  if (task.repeat && !task.done && today) {
+    return {
+      ...task,
+      dueDate: nextDueDate(task.repeat, { dueDate: task.dueDate, today }),
+    }
+  }
+  return {
+    ...task,
+    done: !task.done,
+    // As the server stamps it, so a fresh check is not taken for one from
+    // before the last "Clear checked" (APP-310).
+    doneAt: task.done ? undefined : Date.now(),
   }
 }
 
@@ -378,6 +445,128 @@ export function useTaskList(listId: string) {
   }
 }
 
+/**
+ * The tasks of the given lists only (APP-313: the Grocery lists sheet's
+ * counts). `lists` must be memoised by the caller, as `useQueries` needs.
+ */
+export function useTasksOf(lists: readonly ListRow[]) {
+  return useListsOf(lists)
+}
+
+type SmartAnswerRow = FunctionReturnType<typeof api.tasks.smartLists>
+/** The answer; `subtasks` and `parents` are absent from a server before APP-304. */
+type SmartAnswer = Omit<SmartAnswerRow, 'subtasks' | 'parents'> &
+  Partial<Pick<SmartAnswerRow, 'subtasks' | 'parents'>>
+
+/** The four smart lists (APP-301), and what their rows need to be drawn. */
+export interface SmartLists {
+  /** Whether Convex has answered for the lists and the smart rows. */
+  loaded: boolean
+  today: string
+  /** The caller, as Convex knows them; null until it answers. */
+  me: string | null
+  lists: TaskList[]
+  /** Every row any smart list shows, for the hold menu's sheets. */
+  tasks: Task[]
+  byList: Record<SmartListId, Task[]>
+}
+
+/**
+ * Convex's smart rows and each linked list's last fetched rows (ADR-0021: a
+ * smart list never fetches one), sorted into the four smart lists by the
+ * rules in `@gather/core/smart-lists`.
+ */
+export function smartModel(
+  lists: readonly ListRow[] | undefined,
+  answer: SmartAnswer | undefined,
+  linked: ReadonlyMap<string, ExternalEntry>,
+  today: string,
+): SmartLists {
+  const views = (lists ?? NO_LISTS).map((list) =>
+    listView(
+      list,
+      list.provider === 'local'
+        ? answer
+          ? 'live'
+          : 'loading'
+        : (linked.get(list._id)?.sync ?? 'loading'),
+    ),
+  )
+  const byId = new Map(views.map((view) => [view.id, view]))
+  // A smart list draws a subtask as a row of its own, naming its parent, and
+  // a parent with how far along its subtasks are (APP-304). Convex sends both
+  // for local rows; a linked list's last rows hold their own subtasks.
+  const progress = new Map(
+    (answer?.subtasks ?? []).map(({ taskId, done, total }) => [
+      taskId as string,
+      { done, total },
+    ]),
+  )
+  const titles = new Map(
+    (answer?.parents ?? []).map(({ taskId, title }) => [taskId as string, title]),
+  )
+  const linkedRows = withProgress(
+    views
+      .filter((view) => view.provider !== 'local')
+      .flatMap((view) => linked.get(view.id)?.tasks ?? []),
+  )
+  for (const task of linkedRows) titles.set(task.id, task.title)
+  const tasks = [
+    ...(answer?.tasks ?? []).map((row) => {
+      const task = taskFromRow(row)
+      const own = progress.get(task.id)
+      return own ? { ...task, subtasks: own } : task
+    }),
+    ...linkedRows,
+  ]
+    .filter((task) => byId.has(task.listId))
+    .map((task) => {
+      const parentTitle = task.parentTaskId
+        ? titles.get(task.parentTaskId)
+        : undefined
+      return parentTitle ? { ...task, parentTitle } : task
+    })
+  const scope = { today, me: answer?.me ?? null }
+  const byList = Object.fromEntries(
+    SMART_LISTS.map((id) => [
+      id,
+      tasks
+        .filter((task) => {
+          const list = byId.get(task.listId)
+          return list ? inSmartList(id, task, list, scope) : false
+        })
+        .sort(bySmartOrder),
+    ]),
+  ) as Record<SmartListId, Task[]>
+  return {
+    loaded: lists !== undefined && answer !== undefined,
+    today,
+    me: scope.me,
+    lists: views,
+    tasks,
+    byList,
+  }
+}
+
+/**
+ * The Current Group's smart lists: one Convex subscription for every local
+ * list's open rows, plus whatever the linked lists last answered.
+ */
+export function useSmartLists(): SmartLists {
+  const { group } = useGroup()
+  const today = localIsoDate()
+  const lists = useTaskLists()
+  const answer = useQuery(api.tasks.smartLists, {
+    groupSlug: group.slug,
+    today,
+  })
+  const linked = useSyncExternalStore(subscribe, externalSnapshot)
+  return useMemo(
+    () => smartModel(lists, answer, linked, today),
+    [lists, answer, linked, today],
+  )
+}
+
 /** Every write Tasks makes, in the Current Group. */
 export function useTaskActions() {
   const { group } = useGroup()
@@ -399,10 +588,15 @@ export function useTaskActions() {
   const setAppearance = useMutation(api.taskLists.setAppearance)
   const setDoneInList = useMutation(api.tasks.setDoneInList)
   const undoCompletion = useMutation(api.tasks.undoCompletion)
-  const clearChecked = useMutation(api.taskLists.clearChecked)
+  const clearChecked = useMutation(api.taskLists.clearCheckedUndoable)
   const restoreCheckedCleared = useMutation(api.taskLists.restoreCheckedCleared)
+  const setAisleOrder = useMutation(api.taskLists.setAisleOrder)
   const putBack = useMutation(api.tasks.putBack)
+  const setSuggestions = useMutation(api.taskLists.setSuggestions)
+  const hideSuggestion = useMutation(api.taskLists.hideSuggestion)
+  const unhideSuggestion = useMutation(api.taskLists.unhideSuggestion)
   const markSeen = useMutation(api.tasks.markAssignmentSeen)
+  const reorderSubtasks = useMutation(api.tasks.reorderSubtasks)
   const setReminder = useMutation(api.tasks.setReminder)
   const setSection = useMutation(api.tasks.setSection)
   const addSection = useMutation(api.taskSections.add)
@@ -438,11 +632,16 @@ export function useTaskActions() {
      * Ticks a task, or completes a repeating one's open occurrence. The
      * phone's own day goes along, so "after done" counts from it.
      */
-    toggleTask: async (task: Pick<Task, 'id' | 'title'>) => {
+    toggleTask: async (
+      task: Pick<Task, 'id' | 'title'>,
+      options: { withSubtasks?: boolean } = {},
+    ) => {
       const completion = await toggle({
         taskId: task.id as Id<'tasks'>,
         groupSlug,
         today: localIsoDate(),
+        // Only "Complete all" sends it (APP-304).
+        ...(options.withSubtasks ? { withSubtasks: true } : {}),
       })
       if (completion) {
         announceCompletion({ taskId: task.id, title: task.title, ...completion })
@@ -533,7 +732,15 @@ export function useTaskActions() {
       /** The template's items in their sections, in the Group's words. */
       starterSections: { name: string; tasks: string[] }[]
       idempotencyKey: string
-    }) => createList({ groupSlug, provider: 'local', ...fields }),
+    }) =>
+      // This build opens a grocery list by id (APP-313), so a new one leaves
+      // the list installed phones open where it is.
+      createList({
+        groupSlug,
+        provider: 'local',
+        keepGroceryList: true,
+        ...fields,
+      }),
     setListAppearance: (
       id: string,
       face: { icon?: TaskListIcon; color?: TaskListColor },
@@ -563,15 +770,30 @@ export function useTaskActions() {
     setAisle: (id: string, category: GroceryAisle) => patch(id, { category }),
     /**
      * "Clear checked" on a grocery list (APP-310). Answers the moment it
-     * replaced, which is what `restoreCheckedCleared` puts back on undo.
+     * cleared and the one it replaced; the undo passes both back, so it puts
+     * back only this clear, never one another Member made since (APP-403).
      */
     clearChecked: (listId: string) =>
       clearChecked({ listId: listId as Id<'taskLists'>, groupSlug }),
-    restoreCheckedCleared: (listId: string, checkedClearedAt: number | null) =>
+    restoreCheckedCleared: (
+      listId: string,
+      cleared: { clearedAt: number; previous: number | null },
+    ) =>
       restoreCheckedCleared({
         listId: listId as Id<'taskLists'>,
         groupSlug,
-        checkedClearedAt,
+        checkedClearedAt: cleared.previous,
+        clearedAt: cleared.clearedAt,
+      }),
+    /**
+     * A grocery list's aisle order, the way its store is walked (APP-313);
+     * null restores the default walking order.
+     */
+    setAisleOrder: (listId: string, order: readonly GroceryAisle[] | null) =>
+      setAisleOrder({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        order: order ? [...order] : null,
       }),
     /** A Recent item back onto a grocery list, with its amount and aisle. */
     putBack: (taskId: string, listId: string) =>
@@ -579,6 +801,45 @@ export function useTaskActions() {
         taskId: taskId as Id<'tasks'>,
         listId: listId as Id<'taskLists'>,
         groupSlug,
+      }),
+    /**
+     * A grocery item with a known amount onto a grocery list: a suggestion or
+     * an autocomplete row (APP-311). The server picks its aisle as for any
+     * typed line.
+     */
+    addGrocery: (
+      listId: string,
+      item: { title: string; quantity?: number; unit?: GroceryUnit },
+    ) =>
+      add({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        title: item.title,
+        ...(item.quantity !== undefined ? { quantity: item.quantity } : {}),
+        ...(item.unit !== undefined ? { unit: item.unit } : {}),
+      }),
+    /** A grocery list's "Maybe needed" strip on or off (APP-311). */
+    setSuggestions: (listId: string, on: boolean) =>
+      setSuggestions({ listId: listId as Id<'taskLists'>, groupSlug, on }),
+    /** A name off a grocery list's suggestions for good, and its undo. */
+    hideSuggestion: (listId: string, title: string) =>
+      hideSuggestion({ listId: listId as Id<'taskLists'>, groupSlug, title }),
+    unhideSuggestion: (listId: string, title: string) =>
+      unhideSuggestion({ listId: listId as Id<'taskLists'>, groupSlug, title }),
+    /** A step of a task, on its list and in its section (APP-304). */
+    addSubtask: (parent: Pick<Task, 'id' | 'listId'>, title: string) =>
+      add({
+        listId: parent.listId as Id<'taskLists'>,
+        groupSlug,
+        title,
+        parentTaskId: parent.id as Id<'tasks'>,
+      }),
+    /** A task's subtasks in their new order; every one, once. */
+    reorderSubtasks: (parentId: string, ids: string[]) =>
+      reorderSubtasks({
+        taskId: parentId as Id<'tasks'>,
+        groupSlug,
+        ids: ids as Id<'tasks'>[],
       }),
     /** The Member responsible, or nobody (APP-302). */
     setAssignee: (id: string, userId: string | null) =>
@@ -596,4 +857,17 @@ export function useTaskActions() {
 export function useRecentGroceries() {
   const { group } = useGroup()
   return useQuery(api.tasks.recentGroceries, { groupSlug: group.slug })
+}
+
+/**
+ * What the Current Group usually buys, for one grocery list (APP-311): its
+ * habits, most bought first, for the composer, and the "Maybe needed"
+ * suggestions, computed on the server. `undefined` until Convex answers.
+ */
+export function useGroceryHabits(listId: string) {
+  const { group } = useGroup()
+  return useQuery(api.tasks.groceryHabits, {
+    groupSlug: group.slug,
+    listId: listId as Id<'taskLists'>,
+  })
 }

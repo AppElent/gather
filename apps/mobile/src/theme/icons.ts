@@ -20,6 +20,7 @@
  */
 
 import type { ModuleIconName } from '@gather/core/modules'
+import ArrowDownUp from 'lucide-react-native/icons/arrow-down-up'
 import ArrowUp from 'lucide-react-native/icons/arrow-up'
 import Baby from 'lucide-react-native/icons/baby'
 import Beer from 'lucide-react-native/icons/beer'
@@ -61,12 +62,15 @@ import Pencil from 'lucide-react-native/icons/pencil'
 import Pin from 'lucide-react-native/icons/pin'
 import Plus from 'lucide-react-native/icons/plus'
 import Repeat from 'lucide-react-native/icons/repeat'
+import RotateCw from 'lucide-react-native/icons/rotate-cw'
 import Search from 'lucide-react-native/icons/search'
 import Settings from 'lucide-react-native/icons/settings'
 import Share from 'lucide-react-native/icons/share'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
 import Smartphone from 'lucide-react-native/icons/smartphone'
+import Sparkles from 'lucide-react-native/icons/sparkles'
+import Store from 'lucide-react-native/icons/store'
 import Target from 'lucide-react-native/icons/target'
 import Trash2 from 'lucide-react-native/icons/trash-2'
 import TriangleAlert from 'lucide-react-native/icons/triangle-alert'
@@ -110,6 +114,10 @@ export const MODULE_ICONS = {
 export const UI_ICONS = {
   /** Committing a composer, where the control is a button and not a word. */
   ArrowUp: glyph(ArrowUp, 'arrow.up'),
+  /** A grocery list's aisle order (APP-313). */
+  ArrowDownUp: glyph(ArrowDownUp, 'arrow.up.arrow.down'),
+  /** The store a grocery list is for: the list's pill (APP-313). */
+  Store: glyph(Store, 'storefront'),
   /** The shared photo row's two answers: take one, or pick one. */
   Camera: glyph(Camera, 'camera'),
   ImagePlus: glyph(ImagePlus, 'photo.badge.plus'),
@@ -153,6 +161,8 @@ export const UI_ICONS = {
   FlaskConical: glyph(FlaskConical, 'flask'),
   /** A place on a form. */
   MapPin: glyph(MapPin, 'mappin'),
+  /** A screen of preferences that tune a Module, like the meal planner's. */
+  SlidersHorizontal: glyph(SlidersHorizontal, 'slider.horizontal.3'),
   /** Adding one of something, where the row is not itself the add. */
   Plus: glyph(Plus, 'plus'),
   /** More than one member — never one, which is `User`. */
@@ -207,4 +217,8 @@ export const UI_ICONS = {
   Share: glyph(Share, 'square.and.arrow.up'),
   /** Preferences that filter a list: Meal preferences. */
   Sliders: glyph(SlidersHorizontal, 'slider.horizontal.3'),
+  /** A slimme actie: Plan mijn week and its proposals (APP-319). */
+  Spark: glyph(Sparkles, 'sparkles'),
+  /** Ask again for one thing: a new proposal for one day (APP-319). */
+  Regenerate: glyph(RotateCw, 'arrow.clockwise'),
 } satisfies Record<string, Glyph>

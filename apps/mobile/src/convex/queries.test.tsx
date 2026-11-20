@@ -98,6 +98,18 @@ describe('useQuery', () => {
     view.unmount()
   })
 
+  test('keeps the server’s order, so an arranged list stays arranged offline (APP-440)', () => {
+    const first = { ...card, _id: 'k2', storeName: 'Action' }
+    harness.live.set('loyaltyCards:list', [first, card])
+    const { view } = render(() => useQuery(list, { groupSlug: 'home' }))
+    expect(
+      (JSON.parse(map.get(listKey) as string) as { _id: string }[]).map(
+        (row) => row._id,
+      ),
+    ).toEqual(['k2', 'k1'])
+    view.unmount()
+  })
+
   test('shows the copy while authenticated and connected, until live arrives', () => {
     map.set(listKey, JSON.stringify([{ _id: 'k1' }]))
     const { seen, view } = render(() => useQuery(list, { groupSlug: 'home' }))

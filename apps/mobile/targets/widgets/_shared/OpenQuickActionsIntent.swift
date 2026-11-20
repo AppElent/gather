@@ -46,4 +46,13 @@ enum GatherApp {
     Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
       ?? "Gather"
   }
+
+  /// "Preview" or "Dev" on those builds, from the name `app.config.ts` gives
+  /// them ("Gather Preview", "Gather Dev"); nil on the production build.
+  static var variant: String? {
+    let prefix = "Gather "
+    guard name.hasPrefix(prefix) else { return nil }
+    let variant = name.dropFirst(prefix.count)
+    return variant.isEmpty ? nil : String(variant)
+  }
 }

@@ -12,6 +12,7 @@ import { useRecipeLines } from './use-recipe-lines'
 
 export function RecipeToGroceriesSheet({
   recipe,
+  startServings,
   onClose,
 }: {
   recipe: {
@@ -20,6 +21,8 @@ export function RecipeToGroceriesSheet({
     ingredients: readonly string[]
     servings?: number
   }
+  /** The servings the stepper starts at, when not the recipe's own (a meal's). */
+  startServings?: number
   onClose: () => void
 }) {
   const { t, locale } = useI18n()
@@ -29,7 +32,7 @@ export function RecipeToGroceriesSheet({
     ingredients: recipe.ingredients,
     servings: recipe.servings,
   })
-  const [servings, setServings] = useState(recipe.servings ?? 0)
+  const [servings, setServings] = useState(startServings ?? recipe.servings ?? 0)
 
   return (
     <AddToGroceriesSheet

@@ -112,6 +112,7 @@ export const recipes = {
     },
     ingredientCount: { one: '{count} ingrediënt', other: '{count} ingrediënten' },
     importedFrom: 'Geïmporteerd van',
+    madeByAi: 'Bedacht door Gather (AI). Controleer zelf op allergieën.',
     staleNutrition:
       'De ingrediënten zijn gewijzigd sinds de voedingswaarde is berekend — opnieuw schatten?',
     reEstimate: 'Opnieuw schatten met AI',

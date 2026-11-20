@@ -16,7 +16,7 @@ import { NativeSheet } from '../../../components/NativeSheet'
 import { api, type Id } from '../../../convex/api'
 import { haptics } from '../../../feedback/haptics'
 import { useGroup } from '../../../group/GroupProvider'
-import { fmt, plural, useI18n } from '../../../i18n'
+import { fmt, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../../theme/tokens'
 import { InsetList, InsetRow } from '../../../ui/inset-list'
@@ -33,6 +33,7 @@ import {
   type PlannedMeal,
   servingsOf,
   type WeekData,
+  weekdayInText,
   weekdayName,
 } from './week'
 
@@ -53,6 +54,7 @@ export function MealSheet({
   weekStart,
   onClose,
   onSomethingElse,
+  onGroceries,
   showToast,
 }: {
   id: Id<'plannedDinners'>
@@ -60,6 +62,7 @@ export function MealSheet({
   weekStart: string
   onClose: () => void
   onSomethingElse: (meal: PlannedMeal) => void
+  onGroceries: (meal: PlannedMeal, servings: number) => void
   showToast: Toast
 }) {
   const meal = data.meals.find((each) => each._id === id)
@@ -72,6 +75,7 @@ export function MealSheet({
       weekStart={weekStart}
       onClose={onClose}
       onSomethingElse={onSomethingElse}
+      onGroceries={onGroceries}
       showToast={showToast}
     />
   )
@@ -83,6 +87,7 @@ function MealSheetBody({
   weekStart,
   onClose,
   onSomethingElse,
+  onGroceries,
   showToast,
 }: {
   meal: PlannedMeal
@@ -90,6 +95,7 @@ function MealSheetBody({
   weekStart: string
   onClose: () => void
   onSomethingElse: (meal: PlannedMeal) => void
+  onGroceries: (meal: PlannedMeal, servings: number) => void
   showToast: Toast
 }) {
   const { group } = useGroup()
@@ -103,7 +109,6 @@ function MealSheetBody({
   const move = useMutation(api.mealPlan.move)
   const remove = useMutation(api.mealPlan.remove)
   const restore = useMutation(api.mealPlan.restore)
-  const addToGroceries = useMutation(api.mealPlan.addToGroceries)
 
   // The meal as the sheet opened on it: closing saves only what changed here,
   // so an edit made meanwhile on another phone is never written back over.
@@ -112,7 +117,6 @@ function MealSheetBody({
   const [servings, setServings] = useState<number | undefined>(meal.servings)
   const [note, setNote] = useState(meal.note ?? '')
   const [moveTo, setMoveTo] = useState(meal.date)
-  const [groceries, setGroceries] = useState<string | null>(null)
   const finished = useRef(false)
 
   // Who eats follows the day the meal will be on, so a day picked in the grid
@@ -229,26 +233,10 @@ function MealSheetBody({
       })
   }
 
+  /** The APP-312 sheet takes over, for this meal's servings. */
   const listGroceries = () => {
-    addToGroceries({ groupSlug: group.slug, id: meal._id })
-      .then((result) => {
-        if (result.status === 'no-list') {
-          setGroceries(mealWords.groceriesNoList)
-          return
-        }
-        haptics.itemSaved()
-        setGroceries(
-          result.added > 0
-            ? fmt(plural(locale, result.added, mealWords.groceriesAdded), {
-                list: result.listName,
-              })
-            : fmt(mealWords.groceriesNothing, { list: result.listName }),
-        )
-      })
-      .catch(() => {
-        haptics.actionFailed()
-        setGroceries(words.failed)
-      })
+    finish(true)
+    onGroceries(meal, shownServings)
   }
 
   const meta = [
@@ -499,7 +487,7 @@ function MealSheetBody({
           <InsetRow
             title={mealWords.somethingElse}
             subtitle={fmt(mealWords.somethingElseSub, {
-              weekday: weekdayName(meal.date, locale),
+              weekday: weekdayInText(meal.date, locale),
             })}
             testID="meal-something-else"
             chevron
@@ -511,8 +499,8 @@ function MealSheetBody({
           {meal.recipeId ? (
             <InsetRow
               title={mealWords.groceries}
-              subtitle={groceries ?? undefined}
               testID="meal-groceries"
+              chevron
               onPress={listGroceries}
             />
           ) : null}

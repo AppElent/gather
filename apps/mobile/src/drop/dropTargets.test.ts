@@ -17,6 +17,7 @@ import { MODULES } from '@gather/core/modules'
 import { describe, expect, test } from 'vitest'
 
 import {
+  asksBeforeCommit,
   DROP_TARGETS,
   type DropTarget,
   dropTargetById,
@@ -167,10 +168,19 @@ describe('the registry itself', () => {
   })
 
   /**
-   * The Group already names its grocery list, so a grocery Drop is the one
-   * append that asks nothing — the shortest path in the whole flow.
+   * A grocery line asks nothing before it is written: with one grocery list
+   * that list is the destination, and only several (APP-313) ask which.
    */
-  test('a grocery line asks nothing extra', () => {
-    expect(dropTargetById('grocery-line').picks).toBe('none')
+  test('a grocery line asks which list only after confirming', () => {
+    const grocery = dropTargetById('grocery-line')
+    expect(grocery.picks).toBe('grocery-list')
+    expect(asksBeforeCommit(grocery)).toBe(false)
+    expect(asksBeforeCommit(dropTargetById('task-new'))).toBe(true)
+    expect(asksBeforeCommit(dropTargetById('note-new'))).toBe(false)
+    if (grocery.id !== 'grocery-line') throw new Error('not the grocery line')
+    expect(grocery.route({ id: 'list-1' })).toEqual({
+      pathname: '/all/groceries',
+      params: { listId: 'list-1' },
+    })
   })
 })

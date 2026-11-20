@@ -1,5 +1,6 @@
 import type { TaskProviderId } from '@gather/core/domain'
 import type { GroceryAisle, GroceryUnit } from '@gather/core/groceries'
+import type { SubtaskProgress } from '@gather/core/subtasks'
 import type {
   TaskListColor,
   TaskListIcon,
@@ -49,6 +50,16 @@ export interface TaskList {
    */
   checkedClearedAt: number | null
   /**
+   * A grocery list's own aisle order (APP-313), read through `aisleOrder`.
+   * Null is the default walking order, and what an older server sends.
+   */
+  aisleOrder: readonly GroceryAisle[] | null
+  /**
+   * Whether a Member switched its "Maybe needed" suggestions off (APP-311).
+   * False from an older server.
+   */
+  suggestionsOff: boolean
+  /**
    * Its sections in order (APP-357). Empty for a list without any, for a
    * linked list, and from a server older than sections.
    */
@@ -89,6 +100,18 @@ export interface Task {
   /** The section it sits in; none, or one that is gone, is "No section". */
   sectionId?: string
   order: number
+  /**
+   * The task it is a step of (APP-304); absent on a task of its own. A list
+   * draws a subtask under its parent only, never as a row.
+   */
+  parentTaskId?: string
+  /** How far along its subtasks are; absent when it has none. */
+  subtasks?: SubtaskProgress
+  /**
+   * Its parent's title, for a subtask drawn outside its parent: a smart
+   * list's row names what it is a step of.
+   */
+  parentTitle?: string
 }
 
 export interface TaskReminder {

@@ -80,6 +80,7 @@ export type ModulePath =
   | `/all/baby-log${'' | '/new' | '/settings' | '/timeline' | '/trends' | '/lists' | '/entry'}`
   | `/all/recipes${'' | '/recipe' | '/import' | '/new' | '/edit'}`
   | `/all/tasting/${TastingKind}${'' | '/subject' | '/compose'}`
+  | `/all/meal-planner${'' | '/preferences'}`
   | `/all/groceries${'' | '/in-stock' | '/recent'}`
   | `/all/recurring-costs${'' | '/cost'}`
   | `/all/savings-goals${'' | '/goal'}`

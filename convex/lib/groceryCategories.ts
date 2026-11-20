@@ -14,6 +14,8 @@ import {
   parseGroceryLine,
   recogniseGroceryLine,
 } from '@gather/core/groceries'
+import { taskRefusal } from '@gather/core/refusals'
+import { ConvexError } from 'convex/values'
 import { internal } from '../_generated/api'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
@@ -75,6 +77,46 @@ export function isGroceryList(
   list: Pick<Doc<'taskLists'>, '_id' | 'kind'>,
 ): boolean {
   return group.groceryListId === list._id || list.kind === 'groceries'
+}
+
+/**
+ * A grocery list Gather can write to, or a keyed refusal (APP-403): a list
+ * linked to an outside service is read-only, any other list is no grocery
+ * list. For Recent, put back and Clear checked.
+ */
+export function requireWritableGroceryList(
+  group: Doc<'groups'>,
+  list: Pick<Doc<'taskLists'>, '_id' | 'kind' | 'provider'>,
+): void {
+  if (!isGroceryList(group, list))
+    throw new ConvexError(taskRefusal('not-grocery-list'))
+  if (list.provider !== 'local') throw new ConvexError(taskRefusal('read-only'))
+}
+
+/**
+ * How many open items `openItemNamed` reads before it gives up. Far beyond
+ * any real shopping list; it bounds the read (`docs/standards/convex.md`).
+ */
+export const OPEN_ITEMS_SCAN_LIMIT = 1000
+
+/**
+ * The open item on a list with the same grocery name, or null (APP-403).
+ * Reads only the list's open items, through `by_list_and_done`, however old
+ * they are, so a put back never adds a name that is already waiting.
+ */
+export async function openItemNamed(
+  ctx: QueryCtx,
+  listId: Id<'taskLists'>,
+  title: string,
+): Promise<Doc<'tasks'> | null> {
+  const key = groceryTitleKey(title)
+  const open = await ctx.db
+    .query('tasks')
+    .withIndex('by_list_and_done', (q) =>
+      q.eq('listId', listId).eq('done', false),
+    )
+    .take(OPEN_ITEMS_SCAN_LIMIT)
+  return open.find((row) => groceryTitleKey(row.title) === key) ?? null
 }
 
 /** A list's newest items, newest first: its history for recognition. */

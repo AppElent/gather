@@ -329,17 +329,26 @@ export const updatePantryEntry = mutation({
   },
 })
 
+/**
+ * Which list the Groceries Module opens on an installed phone from before a
+ * Group could have several grocery lists (APP-313), and the "use this list"
+ * of a Group with none. A list picked here becomes a grocery list in its own
+ * right (kind `groceries`), so it stays one once `groups.groceryListId` is
+ * gone; unlinking leaves the list as it is.
+ */
 export const setGroceryList = mutation({
   args: { groupSlug: v.string(), listId: v.union(v.id('taskLists'), v.null()) },
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     if (args.listId) {
-      await requireInGroup(
+      const { doc: list } = await requireInGroup(
         ctx,
         args.groupSlug,
         args.listId,
         'Task list not found',
       )
+      if (list.kind !== 'groceries')
+        await ctx.db.patch(list._id, { kind: 'groceries' })
     }
     await ctx.db.patch(group._id, { groceryListId: args.listId ?? undefined })
   },

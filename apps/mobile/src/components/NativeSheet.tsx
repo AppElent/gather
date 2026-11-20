@@ -35,6 +35,11 @@ export interface NativeSheetProps {
    * confirming action is its own button at the bottom (Add to groceries).
    */
   cancelBar?: boolean
+  /**
+   * The form sheet's bar with the title and Done only, for a sheet whose
+   * choices take effect as they are made (Grocery lists, APP-313).
+   */
+  doneBar?: boolean
 }
 
 export interface SheetConfirm {
@@ -64,6 +69,7 @@ export function NativeSheet({
   background = 'surface',
   confirm,
   cancelBar = false,
+  doneBar = false,
 }: NativeSheetProps) {
   const ref = useRef<BottomSheetModal>(null)
   const closed = useRef(false)
@@ -100,7 +106,9 @@ export function NativeSheet({
           { paddingTop: Platform.OS === 'ios' ? 8 : 0 },
         ]}
       >
-        {confirm || cancelBar ? (
+        {doneBar ? (
+          <DoneBar title={title} onDone={dismiss} />
+        ) : confirm || cancelBar ? (
           <FormBar title={title} confirm={confirm} onCancel={dismiss} />
         ) : (
         <View style={styles.heading}>
@@ -137,6 +145,41 @@ export function NativeSheet({
         {footer ? <View style={styles.footer}>{footer}</View> : null}
       </BottomSheetView>
     </BottomSheetModal>
+  )
+}
+
+function DoneBar({ title, onDone }: { title: string; onDone: () => void }) {
+  const tokens = useTokens()
+  const { t } = useI18n()
+  return (
+    <View style={styles.bar}>
+      {/* Room opposite Done, so the title sits in the middle. */}
+      <View style={styles.barDoneSpacer} />
+      <Text
+        accessibilityRole="header"
+        numberOfLines={1}
+        style={[styles.barTitle, styles.barTitleOpen, { color: tokens.ink }]}
+      >
+        {title}
+      </Text>
+      <Pressable
+        testID="sheet-done"
+        accessibilityRole="button"
+        accessibilityLabel={t.actions.done}
+        onPress={onDone}
+        hitSlop={8}
+        style={({ pressed }) => [
+          styles.barButton,
+          styles.barDone,
+          { backgroundColor: tokens.surface2 },
+          pressed && styles.pressed,
+        ]}
+      >
+        <Text style={[styles.barConfirm, { color: tokens.ink }]}>
+          {t.actions.done}
+        </Text>
+      </Pressable>
+    </View>
   )
 }
 
@@ -254,4 +297,6 @@ const styles = StyleSheet.create({
   // Its own width first, so the spacer shrinks before the title does.
   barTitleOpen: { flexGrow: 1, flexShrink: 1 },
   barSpacer: { width: 96, flexShrink: 1000 },
+  barDone: { minWidth: 64 },
+  barDoneSpacer: { width: 64, flexShrink: 1000 },
 })

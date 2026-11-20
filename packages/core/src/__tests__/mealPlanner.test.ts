@@ -14,7 +14,7 @@ import {
   fitsPreferences,
   recipeClashes,
   resolveMealPreferences,
-} from '../mealPreferencesStandIn'
+} from '../mealPreferences'
 
 const event = (startMinutes?: number, endMinutes?: number, extra = {}) => ({
   date: '2026-11-25',
@@ -106,9 +106,9 @@ test('weekdays are Monday first', () => {
   expect(weekdayIndex('2026-11-29')).toBe(6)
 })
 
-describe('meal preferences stand-in', () => {
+describe('meal preferences as the planner reads them', () => {
   const members = [{ userId: 'sanne' }, { userId: 'daan' }]
-  test('fills in APP-318’s defaults without a row', () => {
+  test('fills in the defaults without a row', () => {
     const prefs = resolveMealPreferences(null, members)
     expect(prefs.memberDefaults).toEqual([
       { userId: 'sanne', eatsByDefault: true },
@@ -125,7 +125,11 @@ describe('meal preferences stand-in', () => {
     const prefs = resolveMealPreferences(
       {
         memberDefaults: [{ userId: 'daan', eatsByDefault: false }],
-        slots: { breakfast: { enabled: true, days: [6] } },
+        slots: {
+          breakfast: { enabled: true, days: [6] },
+          lunch: { enabled: true, days: [5, 6] },
+          dinner: { enabled: true, days: [0, 1, 2, 3, 4, 5, 6] },
+        },
         dislikes: ['koriander'],
       },
       members,
@@ -136,15 +140,22 @@ describe('meal preferences stand-in', () => {
     expect(enabledSlots(prefs, 6)).toEqual(['breakfast', 'lunch', 'dinner'])
     expect(
       recipeClashes(
-        { title: 'Curry', ingredients: ['Verse Koriander'], prepMinutes: 45 },
+        {
+          title: 'Curry',
+          ingredients: ['Verse Koriander'],
+          tags: [],
+          prepMinutes: 45,
+        },
         prefs,
         0,
       ),
-    ).toEqual([
-      { kind: 'time', minutes: 45, limit: 30 },
+    ).toMatchObject([
       { kind: 'dislike', label: 'koriander' },
+      { kind: 'time', minutes: 45, limit: 30 },
     ])
-    expect(recipeClashes({ title: 'Soup' }, prefs, 0)).toEqual([])
+    expect(
+      recipeClashes({ title: 'Soup', ingredients: [], tags: [] }, prefs, 0),
+    ).toEqual([])
   })
   test('hides a recipe only on a certain clash', () => {
     expect(fitsPreferences([])).toBe(true)

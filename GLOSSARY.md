@@ -336,6 +336,20 @@ Something a Group needs done, with at most one responsible current Member and
 an explicit completion state. It may be unassigned or repeat on a fixed schedule
 or after an interval measured from completion.
 
+**Subtask**:
+A Task that is a step of another Task on the same Task list, one level deep: a
+Subtask has no Subtasks of its own and does not repeat on its own. It keeps its
+own completion, assignee and due date. When its parent repeats, its Subtasks
+reopen with the next occurrence; deleting the parent deletes them.
+_Avoid_: Child task, Checklist item (that belongs to a Note), Step
+
+**Smart list**:
+A view of open Tasks across every Task list of a Group, chosen by a rule rather
+than stored: Today (due today or overdue), My tasks (assigned to the person
+looking), Upcoming (due in the next seven days) and Unassigned (nobody's, on
+lists of jobs rather than items). Each Member may hide one on their own phone.
+_Avoid_: Filter, Saved search, Virtual list
+
 **Note**:
 A Group-owned document of information its Members want to keep. Checkboxes in
 its contents belong to the document; they are not Tasks with assignments,

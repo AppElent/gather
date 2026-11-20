@@ -176,6 +176,60 @@ export const backfillMealSlots = internalMutation({
 })
 
 /**
+ * Makes every Group's grocery list a list of kind `groceries` (APP-313). A
+ * Group used to name its one grocery list in `groups.groceryListId`, whatever
+ * the list's kind; now every list of kind `groceries` is a grocery list, one
+ * per store. Reads still count the named list as a grocery list
+ * (`isGroceryList`), so the app is right before and after this runs; it exists
+ * so `groups.groceryListId` can later be dropped. The field itself is left as
+ * it is: installed phones still read it.
+ *
+ * Pages through `groups` by `cursor`. Dry unless `{ apply: true }`; run it
+ * until `more` is false, then run the dry pass again from the start and
+ * confirm every page reports `missing` zero.
+ */
+const GROCERY_LIST_KIND_BATCH = 200
+
+export const backfillGroceryListKind = internalMutation({
+  args: {
+    apply: v.optional(v.boolean()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+    // Groups per call, at most the default; tests use a small one to page.
+    batch: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const numItems = Math.max(
+      1,
+      Math.min(
+        GROCERY_LIST_KIND_BATCH,
+        Math.floor(args.batch ?? GROCERY_LIST_KIND_BATCH),
+      ),
+    )
+    const page = await ctx.db
+      .query('groups')
+      .paginate({ numItems, cursor: args.cursor ?? null })
+    let missing = 0
+    for (const group of page.page) {
+      if (!group.groceryListId) continue
+      const list = await ctx.db.get(group.groceryListId)
+      // A pointer at another Group's list was never readable as one.
+      if (!list || list.groupId !== group._id || list.kind === 'groceries')
+        continue
+      missing += 1
+      if (apply) await ctx.db.patch(list._id, { kind: 'groceries' })
+    }
+    return {
+      apply,
+      scanned: page.page.length,
+      missing,
+      more: !page.isDone,
+      cursor: page.continueCursor,
+    }
+  },
+})
+
+/**
  * Copies the Pantry into Groceries' staples (APP-314, In stock). Each
  * `pantryEntries` row becomes a staple in stock with the same name, its free
  * quantity kept as the staple's note, in the aisle the Group's grocery list
@@ -679,6 +733,8 @@ const USER_REFERENCES: {
   mealEntries: { createdBy: 'repoint' },
   plannedDinners: { eaterIds: 'repoint' },
   pantryEntries: { createdBy: 'repoint' },
+  mealPreferences: { memberDefaults: 'repoint', updatedBy: 'repoint' },
+  mealPlanDrafts: { createdBy: 'repoint' },
   groceryStaples: { createdBy: 'repoint' },
   calendars: { createdBy: 'repoint' },
   calendarEvents: { createdBy: 'repoint', assigneeIds: 'repoint' },
@@ -770,6 +826,16 @@ const FOLD_DUPLICATES: {
     [K in UserColumn<T>]?: (value: Doc<T>[K]) => Doc<T>[K]
   }
 } = {
+  // Two defaults for one person: the first stands.
+  mealPreferences: {
+    memberDefaults: (defaults) =>
+      defaults &&
+      foldBy(
+        defaults,
+        (entry) => entry.userId,
+        (into) => into,
+      ),
+  },
   recurringCosts: {
     split: (shares) =>
       shares &&

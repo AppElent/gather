@@ -35,6 +35,25 @@ async function notionRequest(
 // biome-ignore lint/suspicious/noExplicitAny: dynamic Notion property shapes
 type NotionPage = { id: string; url?: string; properties: Record<string, any> }
 
+/**
+ * The names Notion gives the relation its sub-items feature adds to a database
+ * (APP-304): the page a sub-item belongs to. Read only, like the rest of a
+ * Notion list; nothing needs mapping, since Notion names it itself.
+ */
+const PARENT_RELATION_NAMES = ['parent item', 'parent task', 'parent']
+
+/** The page this one is a sub-item of, when the database has sub-items. */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic Notion property shapes
+function parentOf(props: Record<string, any>): string | undefined {
+  for (const [name, prop] of Object.entries(props)) {
+    if (prop?.type !== 'relation') continue
+    if (!PARENT_RELATION_NAMES.includes(name.trim().toLowerCase())) continue
+    const first = prop.relation?.[0]?.id
+    if (typeof first === 'string') return first
+  }
+  return undefined
+}
+
 export function mapNotionPage(
   page: NotionPage,
   mapping: PropertyMapping,
@@ -69,6 +88,8 @@ export function mapNotionPage(
     ? labelsProp.multi_select.map((o: { name: string }) => o.name)
     : undefined
 
+  const parent = parentOf(props)
+
   return {
     externalId: page.id,
     title: title || '(untitled)',
@@ -77,6 +98,7 @@ export function mapNotionPage(
     priority,
     labels,
     url: page.url,
+    ...(parent ? { parentExternalId: parent } : {}),
   }
 }
 

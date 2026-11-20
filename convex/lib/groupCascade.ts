@@ -76,10 +76,10 @@ export async function purgeTasksOfList(
 
 /**
  * Delete one list, its tasks, and every pointer at it: the Group's grocery
- * list and a child's to-do and questions cards. Both are set through
- * `requireInGroup`, so they live in the list's own Group. A card that lost its
- * list also loses `…Chosen`, so the list `babies.ensureAuxLists` gives it next
- * dies with the child.
+ * list (moved to its next grocery list, if any) and a child's to-do and
+ * questions cards. Both are set through `requireInGroup`, so they live in the
+ * list's own Group. A card that lost its list also loses `…Chosen`, so the
+ * list `babies.ensureAuxLists` gives it next dies with the child.
  */
 export async function deleteTaskList(
   ctx: MutationCtx,
@@ -92,7 +92,17 @@ export async function deleteTaskList(
 
   const group = await ctx.db.get(list.groupId)
   if (group?.groceryListId === listId) {
-    await ctx.db.patch(group._id, { groceryListId: undefined })
+    // A Group with several grocery lists (APP-313) points installed phones at
+    // the next one, so they open a list rather than the picker.
+    const next = (
+      await ctx.db
+        .query('taskLists')
+        .withIndex('by_group', (q) => q.eq('groupId', group._id))
+        .collect()
+    )
+      .filter((other) => other.kind === 'groceries' && other.provider === 'local')
+      .sort((a, b) => a.order - b.order)[0]
+    await ctx.db.patch(group._id, { groceryListId: next?._id })
   }
   const babies = await ctx.db
     .query('babies')
@@ -278,6 +288,26 @@ const GROUP_CONTENT: {
       'plannedDinners',
       await ctx.db
         .query('plannedDinners')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  mealPreferences: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'mealPreferences',
+      await ctx.db
+        .query('mealPreferences')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  mealPlanDrafts: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'mealPlanDrafts',
+      await ctx.db
+        .query('mealPlanDrafts')
         .withIndex('by_group', (q) => q.eq('groupId', groupId))
         .collect(),
     ),
@@ -521,7 +551,7 @@ export async function destroyGroup(
 }
 
 /**
- * Take a departing member out of the two places a Group stores them as more
+ * Take a departing member out of the places a Group stores them as more
  * than a byline.
  *
  * A **cost split** is refused on save unless it adds to a hundred and names
@@ -529,6 +559,8 @@ export async function destroyGroup(
  * party missing is not a split the household could ever have agreed to, and it
  * is not this function's business to invent a new one. It is cleared, and the
  * cost goes back to being undivided until somebody says how it should be.
+ *
+ * A **meal-preference default** for them is dropped: it was about a Member.
  *
  * A **saved split scenario** is the opposite: it is immutable on purpose and
  * already stores each party's name beside their id precisely so it keeps
@@ -540,6 +572,11 @@ export async function destroyGroup(
  * any notice they had not opened.
  *
  * A **task reminder** for them goes, with its queued send (APP-305).
+ *
+ * A **calendar event** on one of the Group's calendars drops them from its
+ * assignees; the event stays, and its `revision` moves so an open editor
+ * still holding the old list gets a conflict rather than writing it back
+ * (APP-407).
  */
 export async function detachFromGroup(
   ctx: MutationCtx,
@@ -599,5 +636,36 @@ export async function detachFromGroup(
     })
   }
 
+  // A meal-preference default speaks of a Member; somebody who left has none.
+  const preferences = await ctx.db
+    .query('mealPreferences')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .unique()
+  if (preferences?.memberDefaults?.some((entry) => entry.userId === userId)) {
+    await ctx.db.patch(preferences._id, {
+      memberDefaults: preferences.memberDefaults.filter(
+        (entry) => entry.userId !== userId,
+      ),
+    })
+  }
   await unassignFromGroup(ctx, userId, groupId)
+
+  // Events hang off a calendar, so the Group's calendars are the way in.
+  const calendars = await ctx.db
+    .query('calendars')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .collect()
+  for (const calendar of calendars) {
+    const events = await ctx.db
+      .query('calendarEvents')
+      .withIndex('by_calendar', (q) => q.eq('calendarId', calendar._id))
+      .collect()
+    for (const event of events) {
+      if (!event.assigneeIds?.includes(userId)) continue
+      await ctx.db.patch(event._id, {
+        assigneeIds: event.assigneeIds.filter((id) => id !== userId),
+        revision: (event.revision ?? 0) + 1,
+      })
+    }
+  }
 }

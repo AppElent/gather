@@ -9,6 +9,10 @@
  * Opening it counts as using it, once (`useMarkUsedOnce`), except the open
  * that follows adding the card (`justAdded`).
  *
+ * While it is focused it is the open card (`open-card.ts`, APP-443), which the
+ * Control Center control opens again. A card the control opened that turns out
+ * to be gone gives way to the quick-actions sheet the control otherwise opens.
+ *
  * Until Convex answers, it draws the barcode from this Group's saved copy
  * when there is one (`offlineGroupCard`, APP-206), so a card opened from the
  * quick-actions sheet or the list while the connection is lost still works at
@@ -27,6 +31,7 @@ import { useQuery } from '../../../convex/queries'
 import { useGroup } from '../../../group/GroupProvider'
 import { fmt, useI18n } from '../../../i18n'
 import { moduleHref } from '../../../modules/moduleDestination'
+import { requestQuickSheet } from '../../../shell/quickSheetRequest'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../../theme/tokens'
 import { HeaderIconButton } from '../../../ui/header-icon-button'
@@ -35,6 +40,8 @@ import { StoreTile } from '../components/store-tile'
 import { LOYALTY_CARD_ICONS } from '../loyalty-card-icons'
 import { offlineGroupCard } from '../offline/offline-cards'
 import { useDeleteLoyaltyCard } from '../use-delete-loyalty-card'
+import { useRecordOpenCard } from './open-card-store'
+import { useGiveWayWhenGone } from './use-give-way-when-gone'
 import { useKeepAwakeWhile } from './use-keep-awake-while'
 import { useMarkUsedOnce } from './use-mark-used-once'
 import { useTillBrightness } from './use-till-brightness'
@@ -42,9 +49,12 @@ import { useTillBrightness } from './use-till-brightness'
 export function LoyaltyCardViewScreen({
   cardId,
   justAdded = false,
+  openedByControl = false,
 }: {
   cardId: Id<'loyaltyCards'>
   justAdded?: boolean
+  /** Opened by the Control Center control as the open card (APP-443). */
+  openedByControl?: boolean
 }) {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
@@ -66,10 +76,23 @@ export function LoyaltyCardViewScreen({
   const deleteCard = useDeleteLoyaltyCard(group.slug)
   const [problem, setProblem] = useState<string | null>(null)
 
-  const shown = useIsFocused() && Boolean(face)
+  const focused = useIsFocused()
+  const shown = focused && Boolean(face)
   useKeepAwakeWhile(shown)
   useTillBrightness(shown)
   useMarkUsedOnce(group.slug, cardId, justAdded)
+  useRecordOpenCard(
+    { cardId, groupId: group._id, groupSlug: group.slug },
+    focused,
+    face === null,
+  )
+
+  // The control asked for the card or else the sheet: a card that is gone
+  // gives way to the sheet, over the screen the member was on before.
+  useGiveWayWhenGone(openedByControl, face, () => {
+    router.back()
+    requestQuickSheet()
+  })
 
   const moduleTitle = t.modules.byId['loyalty-cards'].label
 

@@ -118,6 +118,31 @@ export const tasks = {
     failed: 'That list could not be made. Try again.',
   },
 
+  /**
+   * Subtasks, one level deep (APP-304; `designs/tasks` §4 item 3): the task
+   * screen's section, a parent's progress in lists, and the question when a
+   * task with open subtasks is completed.
+   */
+  subtasks: {
+    title: 'Subtasks',
+    /** A parent's progress, on its row and beside the section heading. */
+    progress: '{done} of {total}',
+    add: 'Add subtask',
+    footnote:
+      'When the task repeats, its subtasks reopen. Completing the task with open subtasks asks whether to complete them too.',
+    askTitle: 'Complete the subtasks too?',
+    askBody: '{count} subtasks of “{title}” are still open.',
+    askBodyOne: 'One subtask of “{title}” is still open.',
+    completeAll: 'Complete all',
+    onlyThis: 'Only this',
+    /** Read out on a smart list's subtask row: what it is a step of. */
+    stepOf: 'Step of {title}',
+    failed: 'That subtask could not be added. Try again.',
+    /** Under the delete confirm of a task with subtasks. */
+    deleteBody: 'Its {count} subtasks are deleted too. This cannot be undone.',
+    deleteBodyOne: 'Its subtask is deleted too. This cannot be undone.',
+  },
+
   /** A packing list: checked items stay in place, and can all be reset. */
   packing: {
     progress: '{done} of {total}',
@@ -174,6 +199,84 @@ export const tasks = {
       other: '{count} checked items cleared. They stay in Recent.',
     },
     undo: 'Undo',
+    /**
+     * Several grocery lists, one per store, each with its own aisle order
+     * (APP-313; `designs/groceries/README.md` section 6).
+     */
+    lists: {
+      title: 'Grocery lists',
+      /** The store pill under the list's summary, read out. */
+      switchLabel: 'List: {list}, switch',
+      customOrder: 'Custom aisle order',
+      defaultOrder: 'Default order',
+      count: { one: '{count} item', other: '{count} items' },
+      aisleOrderOf: 'Aisle order of {list}',
+      newList: 'New grocery list',
+      footnote:
+        'Each list has its own aisle order. Moving an item keeps its amount and aisle.',
+      /** The Groceries Module with no grocery list yet. */
+      none: 'No grocery list yet. Make one, or use one of your lists.',
+    },
+    aisleOrder: {
+      title: 'Aisle order',
+      /** The list's ⋯ menu entry. */
+      menu: 'Aisle order',
+      section: '{list} · the way you walk the store',
+      up: 'Move {aisle} up',
+      down: 'Move {aisle} down',
+      footnote:
+        'Drag an aisle, or use the arrows. Aisles without items are hidden in the list.',
+      save: 'Save',
+      restore: 'Restore default order',
+      failed: 'The aisle order could not be saved. Try again.',
+    },
+    /**
+     * "Maybe needed" and the composer's autocomplete (APP-311;
+     * `designs/groceries/README.md`, section 1 item 2 and section 2).
+     */
+    suggestions: {
+      title: 'Maybe needed',
+      /** The strip's aside: the only visible hint of press and hold. */
+      hint: 'Press and hold to hide',
+      /** Read out for a card: the name and why. */
+      add: 'Add {name} to the list. {why}',
+      added: '{name} is on the list.',
+      hide: 'Hide',
+      hidden: '{name} will not be suggested again.',
+      /** The list's menu. */
+      turnOff: 'Turn off suggestions',
+      turnOn: 'Turn on suggestions',
+      off: 'Suggestions are off for this list.',
+      on: 'Suggestions are on for this list.',
+      /** How often it is bought, mid-sentence. */
+      cadence: {
+        day: 'every day',
+        days: 'every {count} days',
+        week: 'every week',
+        weeks: 'every {count} weeks',
+        month: 'every month',
+        months: 'every {count} months',
+      },
+      /** When it was last bought. */
+      ago: {
+        today: 'today',
+        yesterday: 'yesterday',
+        days: { one: '{count} day ago', other: '{count} days ago' },
+      },
+      /** A card's footnote: "Every week · 8 days ago". */
+      why: '{cadence} · {ago}',
+      /** Autocomplete rows' footnotes. */
+      often: 'Often bought · {cadence}',
+      history: 'Your history',
+      dictionary: 'Dictionary',
+      /** Appended to a row's footnote when the name is already open. */
+      onList: 'already on the list',
+      onListAmount: 'already on the list ({amount})',
+      /** Read out for an autocomplete row. */
+      pick: 'Add {name}',
+    },
+    /** The undo of Clear checked, refused: the list was cleared since (APP-403). */
+    undoSuperseded: 'The list was cleared again since. Nothing was undone.',
     recent: {
       title: 'Recent',
       count: { one: '{count} item', other: '{count} items' },
@@ -195,6 +298,8 @@ export const tasks = {
       title: 'Add to groceries',
       /** The grocery list's menu entry. */
       fromRecipe: 'From recipe or week menu',
+      /** The week menu row in that entry's chooser (APP-421). */
+      weekMenu: 'Week menu',
       recipe: 'Recipe',
       recipeServes: {
         one: 'Recipe · serves {count}',
@@ -299,6 +404,46 @@ export const tasks = {
     },
     refusals: {
       'assignee-not-member': 'That person is not in this group any more.',
+    },
+  },
+
+  /**
+   * The smart lists on the Tasks index (APP-301): views across every list,
+   * by the rules in `@gather/core/smart-lists`. Keyed by `SmartListId`.
+   */
+  smart: {
+    section: 'Smart lists',
+    /** The index's ⋯ menu, which shows or hides each one on this phone. */
+    menu: 'Show or hide smart lists',
+    lists: {
+      today: { title: 'Today', subtitle: 'Due today or overdue' },
+      mine: { title: 'My tasks', subtitle: 'Assigned to you' },
+      upcoming: { title: 'Upcoming', subtitle: 'Next 7 days' },
+      unassigned: {
+        title: 'Unassigned',
+        subtitle: 'Nobody has picked these up',
+      },
+    },
+    /** A smart list's summary: how many, from where. */
+    count: { one: '{count} task', other: '{count} tasks' },
+    /** What an empty smart list says. Today's is `todayEmpty`. */
+    empty: {
+      today: 'Nothing due today.',
+      mine: 'Nothing is assigned to you.',
+      upcoming: 'Nothing due in the next 7 days.',
+      unassigned: 'Every task has someone.',
+    },
+    /** Under a smart list's count: its rows come from every list. */
+    fromAll: 'From all lists',
+    /** The Today section's aside when any task is late. */
+    overdueCount: '{count} overdue',
+    overdue: 'Overdue',
+    yesterday: 'yesterday',
+    /** Upcoming's day headings; `{date}` is the weekday and date. */
+    days: {
+      overdue: 'Overdue',
+      today: 'Today · {date}',
+      tomorrow: 'Tomorrow · {date}',
     },
   },
 
@@ -417,7 +562,7 @@ export const tasks = {
     nextNever: 'Does not come back',
     pickDay: 'Pick at least one day',
     footnote:
-      'One occurrence is open at a time. Miss it and it stays overdue; no copies pile up.',
+      'One occurrence is open at a time. Miss it and it stays overdue; no copies pile up. Subtasks reopen.',
     footnoteNever: 'A date alone sets no reminder and no repeat.',
     /** A linked list's task: its repeat lives in the other app. */
     linked:

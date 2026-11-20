@@ -39,9 +39,10 @@ export function RecentGroceries({ listId }: { listId: string }) {
   const recent = useRecentGroceries()
   const { tasks } = useTaskList(listId)
   const actions = useTaskActions()
-  // Rows put back from here: one put back onto its own list leaves Recent
-  // with its check, and would vanish under the finger. It stays, marked as
-  // on the list, until the screen closes.
+  // Rows put back from here stay, marked as on the list, until the screen
+  // closes. The server keeps the checked row in Recent since APP-311 (a
+  // put-back adds a copy); this hold covers a row that leaves Recent anyway,
+  // such as one put back by a phone on an older build.
   const [kept, setKept] = useState<ReadonlyMap<string, RecentRow>>(new Map())
 
   const onList = new Set(

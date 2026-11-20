@@ -1,8 +1,12 @@
 /**
- * Tasks, level one: every list in the Group, with what is due today above them.
+ * Tasks, level one (direction B, Today-first, APP-301): what is due today,
+ * then the other smart lists, then every list in the Group.
  *
- * Two decisions from the canvas are drawn here rather than argued:
+ * Three decisions from the canvas are drawn here rather than argued:
  *
+ * - **Smart lists are rows, Today is a section.** My tasks, Upcoming and
+ *   Unassigned open their own screen; Today is not repeated among them. A
+ *   Member hides any of the four from the ⋯ menu, on this phone only.
  * - **Today is a strip, not a list.** Tasks due today come from every list at
  *   once and are tickable where they stand, because "what do I have to do
  *   today" is the question this screen is opened with, and answering it by
@@ -19,6 +23,9 @@
  *   differs is what you may do to it — and that difference belongs on the list
  *   itself (ADR-0021), which is where the next screen puts it.
  */
+import { MenuView } from '@expo/ui/community/menu'
+import { SMART_LISTS, type SmartListId } from '@gather/core/smart-lists'
+import { topLevelTasks } from '@gather/core/subtasks'
 import { keepsCheckedInPlace } from '@gather/core/task-lists'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
@@ -28,19 +35,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt, type Messages, plural, useI18n } from '../../i18n'
+import { useHiddenSmartLists } from '../../prefs/hiddenSmartLists'
+import { UI_ICONS } from '../../theme/icons'
 import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetAddRow, InsetList, InsetRow } from '../../ui/inset-list'
-import { moduleTile } from '../../ui/module-tile'
+import { ModuleTile, moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
 import { WashHeader } from '../../ui/wash-header'
 import { moduleShown } from '../buildModules'
 import { AssigneeCoin, useTaskPeople } from './assignee'
-import { TASK_ICONS } from './icons'
+import { SMART_LIST_GLYPHS, TASK_ICONS } from './icons'
 import { ListTile } from './listFace'
 import { NewListSheet } from './NewListSheet'
-import { useTaskState } from './store'
-import { TaskRow } from './TaskRow'
+import { SmartEmpty, SmartHeading, SmartTaskRow } from './smart'
+import { useSmartLists, useTaskState } from './store'
 import { useTaskSheets } from './taskMenu'
 import type { Task, TaskList } from './types'
 
@@ -55,16 +64,25 @@ export function TaskLists() {
   const [creating, setCreating] = useState(false)
 
   const lists = [...state.lists].sort((a, b) => a.order - b.order)
-  const listOf = (id: string) => lists.find((list) => list.id === id)
 
-  // Overdue counts as today: a date that has been and gone is not a reason to
-  // stop showing it, and a second "Overdue" strip would split one answer in
-  // two.
-  const due = state.tasks
-    .filter((task) => !task.done && task.dueDate && task.dueDate <= state.today)
-    .sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''))
+  // The smart lists (APP-301): one subscription for every local list's open
+  // rows, plus what the linked lists last answered. Today is the first
+  // section rather than a row, because it is what this screen is opened for.
+  const smart = useSmartLists()
+  const { hidden, toggle: toggleHidden } = useHiddenSmartLists()
+  const shown = (id: SmartListId) => !hidden.includes(id)
+  const due = smart.byList.today
+  const late = due.filter(
+    (task) => task.dueDate !== undefined && task.dueDate < smart.today,
+  ).length
+  const smartRows = SMART_LISTS.filter((id) => id !== 'today' && shown(id))
+  const smartListOf = (id: string) =>
+    smart.lists.find((list) => list.id === id)
 
-  const openTotal = state.tasks.filter((task) => !task.done).length
+  // Counted as each list counts itself: subtasks are steps of their parent's
+  // row there, not rows of their own (APP-304).
+  const openTotal = topLevelTasks(state.tasks).filter((task) => !task.done)
+    .length
 
   // Tasks someone else gave you that you have not opened yet (APP-302): the
   // in-app half of the assignment notice, while push cannot reach the phone.
@@ -89,7 +107,47 @@ export function TaskLists() {
 
   return (
     <>
-      <Stack.Screen options={washScreenOptions(t.tasks.title)} />
+      <Stack.Screen
+        options={{
+          ...washScreenOptions(t.tasks.title),
+          headerRight: () => (
+            <MenuView
+              testID="tasks-menu"
+              actions={[
+                {
+                  id: 'smart',
+                  title: t.tasks.smart.menu,
+                  displayInline: true,
+                  subactions: SMART_LISTS.map((id) => ({
+                    id,
+                    title: t.tasks.smart.lists[id].title,
+                    state: shown(id) ? ('on' as const) : ('off' as const),
+                  })),
+                },
+              ]}
+              onPressAction={(event) => {
+                const id = event.nativeEvent.event
+                if (SMART_LISTS.some((each) => each === id)) {
+                  toggleHidden(id as SmartListId)
+                }
+              }}
+            >
+              <View
+                style={styles.headerButton}
+                accessible
+                accessibilityRole="button"
+                accessibilityLabel={t.tasks.smart.menu}
+              >
+                <UI_ICONS.Ellipsis
+                  size={22}
+                  color={tokens.ink}
+                  strokeWidth={2.2}
+                />
+              </View>
+            </MenuView>
+          ),
+        }}
+      />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
@@ -133,50 +191,77 @@ export function TaskLists() {
               </InsetList>
             </View>
           ) : null}
-          <View style={styles.group}>
-            <SectionLabel>{t.tasks.today}</SectionLabel>
-            <InsetList>
-              {due.length === 0 ? (
-                <View style={styles.emptyRow}>
-                  <Text style={[styles.empty, { color: tokens.muted }]}>
-                    {t.tasks.todayEmpty}
-                  </Text>
-                </View>
-              ) : (
-                due.map((task) => {
-                  const overdue = (task.dueDate ?? '') < state.today
-                  const inList = fmt(t.tasks.inList, {
-                    list: listOf(task.listId)?.name ?? '',
-                  })
-                  return (
-                    <TaskRow
+          {shown('today') ? (
+            <View style={styles.group} testID="smart-today">
+              <SmartHeading
+                label={t.tasks.smart.lists.today.title}
+                aside={
+                  late > 0
+                    ? fmt(t.tasks.smart.overdueCount, { count: late })
+                    : undefined
+                }
+                danger
+              />
+              <InsetList>
+                {!smart.loaded ? null : due.length === 0 ? (
+                  <SmartEmpty text={t.tasks.todayEmpty} />
+                ) : (
+                  due.map((task) => (
+                    <SmartTaskRow
                       key={task.id}
                       task={task}
-                      writable={listOf(task.listId)?.writable ?? false}
-                      chevron
-                      meta={
-                        <Text
-                          style={[
-                            styles.meta,
-                            { color: overdue ? tokens.danger : tokens.muted },
-                          ]}
-                        >
-                          {overdue
-                            ? `${t.tasks.task.overdue} \u00b7 ${inList}`
-                            : inList}
+                      list={smartListOf(task.listId)}
+                      today={smart.today}
+                      date="late"
+                      onAction={taskSheets.onAction}
+                    />
+                  ))
+                )}
+              </InsetList>
+            </View>
+          ) : null}
+
+          {smartRows.length > 0 ? (
+            <View style={styles.group}>
+              <SectionLabel>{t.tasks.smart.section}</SectionLabel>
+              <InsetList>
+                {smartRows.map((id) => {
+                  const words = t.tasks.smart.lists[id]
+                  const count = smart.loaded
+                    ? String(smart.byList[id].length)
+                    : ''
+                  return (
+                    <InsetRow
+                      key={id}
+                      testID={`smart-${id}`}
+                      accessibilityLabel={`${words.title}, ${words.subtitle}, ${plural(locale, smart.byList[id].length, t.tasks.smart.count)}`}
+                      title={words.title}
+                      subtitle={words.subtitle}
+                      leading={
+                        <ModuleTile
+                          group="home"
+                          glyph={SMART_LIST_GLYPHS[id]}
+                          size="s"
+                        />
+                      }
+                      trailing={
+                        <Text style={[styles.count, { color: tokens.muted }]}>
+                          {count}
                         </Text>
                       }
-                      onOpen={() => openTask(task.id)}
-                      menu={{
-                        reorder: false,
-                        onAction: (action) => taskSheets.onAction(task, action),
-                      }}
+                      chevron
+                      onPress={() =>
+                        router.push({
+                          pathname: '/all/tasks/smart/[smartList]',
+                          params: { smartList: id },
+                        })
+                      }
                     />
                   )
-                })
-              )}
-            </InsetList>
-          </View>
+                })}
+              </InsetList>
+            </View>
+          ) : null}
 
           <View style={styles.group}>
             <SectionLabel>{t.tasks.lists}</SectionLabel>
@@ -249,8 +334,12 @@ export function TaskLists() {
           onClose={() => setCreating(false)}
           onCreated={(list) =>
             // A store build that hides Groceries opens the new list itself.
+            // Groceries opens the new grocery list, not the last used one.
             list.kind === 'groceries' && moduleShown('groceries')
-              ? router.push('/all/groceries')
+              ? router.push({
+                  pathname: '/all/groceries',
+                  params: { listId: list.id },
+                })
               : router.push({
                   pathname: '/all/tasks/[listId]',
                   params: { listId: list.id },
@@ -273,16 +362,16 @@ function openCount(
   }
   // A packing list counts what is packed: its items are ticked off and reset,
   // so "3 left" would read as a list nearly done when it is nearly packed.
+  // Its rows, as the list screen counts them: a subtask is a step of its
+  // parent's row, not a row of its own (APP-304).
+  const items = topLevelTasks(tasks.filter((task) => task.listId === list.id))
   if (keepsCheckedInPlace(list.kind)) {
-    const items = tasks.filter((task) => task.listId === list.id)
     return fmt(t.tasks.packing.progress, {
       done: items.filter((task) => task.done).length,
       total: items.length,
     })
   }
-  const open = tasks.filter(
-    (task) => task.listId === list.id && !task.done,
-  ).length
+  const open = items.filter((task) => !task.done).length
   if (open === 0) return t.tasks.allDone
   if (open === 1) return t.tasks.openOne
   return fmt(t.tasks.open, { count: open })
@@ -291,13 +380,7 @@ function openCount(
 const styles = StyleSheet.create({
   content: { paddingHorizontal: SPACE[4], gap: SPACE[5] },
   group: { gap: SPACE[2] },
-  emptyRow: {
-    minHeight: 52,
-    justifyContent: 'center',
-    paddingHorizontal: SPACE[4],
-  },
-  empty: { ...TYPE.subhead },
-  meta: { ...TYPE.footnoteStrong },
+  headerButton: { paddingHorizontal: 6, paddingVertical: 6 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   badgeText: { ...TYPE.footnoteStrong },
   count: { ...TYPE.footnote, ...TABULAR },

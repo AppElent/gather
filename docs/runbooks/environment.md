@@ -74,7 +74,8 @@ the manifest and `.env.example`, not here.
   in dev). Without their client id/secret, connecting fails with a clear
   "not configured" error and local task lists still work.
 - `ANTHROPIC_API_KEY` is optional: without it, recipe import works only for
-  pages with JSON-LD.
+  pages with JSON-LD, and Plan mijn week (APP-319) always makes its rules-only
+  "Eenvoudig voorstel", which costs no slimme actie.
 - `APPLE_TEAM_ID`, `APPLE_SIGN_IN_KEY_ID` and `APPLE_SIGN_IN_PRIVATE_KEY`
   (Infisical `apple-team-id`, `apple-sso-key-id`, `apple-sso-key-value`, the
   same Apple team and key as Foundry) let account deletion revoke a person's

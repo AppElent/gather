@@ -1,10 +1,17 @@
+import { isIsoDate } from '@gather/core/civil-date'
 import {
+  type GroceryPurchase,
   type GroceryUnit,
   groceryAddFields,
+  groceryHabits as groceryHabitsOf,
   groceryLineText,
+  grocerySuggestions,
   isGroceryQuantity,
   roundGroceryQuantity,
 } from '@gather/core/groceries'
+import { taskRefusal } from '@gather/core/refusals'
+import { inAnySmartList } from '@gather/core/smart-lists'
+import { reorderedSubtasks, subtaskProgress } from '@gather/core/subtasks'
 import { normalizeTaskUrl } from '@gather/core/task-lists'
 import { clockMoment } from '@gather/core/task-reminders'
 import { reanchorRepeat, type TaskRepeat } from '@gather/core/task-repeat'
@@ -16,9 +23,11 @@ import {
   askAiOnce,
   groceryTitleKey,
   isGroceryList,
+  openItemNamed,
   recentListItems,
   recogniseGroceryTitle,
   recordGroceryCorrection,
+  requireWritableGroceryList,
 } from './lib/groceryCategories'
 import {
   groceryAisleValidator,
@@ -31,6 +40,13 @@ import {
   requireInGroup,
 } from './lib/groupAccess'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
+import {
+  completeSubtasks,
+  deleteSubtasks,
+  recheckSubtasks,
+  requireParentFor,
+  subtasksOfTask,
+} from './lib/subtasks'
 import { assigneeChange, notifyAssignee } from './lib/taskAssignee'
 import { taskPriorityValidator, taskRepeatValidator } from './lib/taskFields'
 import {
@@ -91,6 +107,72 @@ export const listByList = query({
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
       .collect()
     return rows.sort(byOpenThenOrder)
+  },
+})
+
+/**
+ * The open tasks the Tasks index's smart lists show (APP-301): due within
+ * Upcoming's week or before, the caller's own, or nobody's on a list of jobs.
+ * The rules are `@gather/core/smart-lists`; the phone sorts these rows into
+ * Today, Mine, Upcoming and Unassigned and adds its linked lists' rows.
+ *
+ * Bounded by indexes: per local list of the Group, only its open rows
+ * (`by_list_and_done`, APP-314). Never every task of the Group, so a grocery
+ * list's years of checked items are not read. `today` is the caller's own
+ * day, so a phone west of UTC sees its own Today.
+ */
+export const smartLists = query({
+  args: { groupSlug: v.string(), today: v.string() },
+  handler: async (ctx, args) => {
+    const { user, group } = await requireGroupBySlug(ctx, args.groupSlug)
+    if (!isIsoDate(args.today)) throw new ConvexError('Invalid date')
+    const lists = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const scope = { today: args.today, me: user._id as string }
+    const perList = await Promise.all(
+      lists
+        .filter((list) => list.provider === 'local')
+        .map(async (list) => {
+          const of = {
+            kind: list.kind ?? 'plain',
+            grocery: isGroceryList(group, list),
+          }
+          const open = await ctx.db
+            .query('tasks')
+            .withIndex('by_list_and_done', (q) =>
+              q.eq('listId', list._id).eq('done', false),
+            )
+            .collect()
+          return open.filter((task) => inAnySmartList(task, of, scope))
+        }),
+    )
+    const tasks = perList.flat()
+    // APP-304: how far each row's subtasks are, and the title of the task a
+    // subtask row belongs to. Installed apps from before subtasks read
+    // neither and draw every row as before.
+    const subtasks: { taskId: Id<'tasks'>; done: number; total: number }[] = []
+    const parents: { taskId: Id<'tasks'>; title: string }[] = []
+    const seenParents = new Set<Id<'tasks'>>()
+    for (const task of tasks) {
+      if (task.parentTaskId) {
+        if (seenParents.has(task.parentTaskId)) continue
+        seenParents.add(task.parentTaskId)
+        const parent = await ctx.db.get(task.parentTaskId)
+        if (parent) parents.push({ taskId: parent._id, title: parent.title })
+        continue
+      }
+      const children = await ctx.db
+        .query('tasks')
+        .withIndex('by_parent', (q) => q.eq('parentTaskId', task._id))
+        .collect()
+      const progress = subtaskProgress(
+        children.map((child) => ({ ...child, id: child._id })),
+      ).get(task._id)
+      if (progress) subtasks.push({ taskId: task._id, ...progress })
+    }
+    return { me: user._id, tasks, subtasks, parents }
   },
 })
 
@@ -200,6 +282,10 @@ export const add = mutation({
     // The section it is added to (APP-357). One the list does not have, and
     // none at all from an app older than sections, is "No section".
     sectionId: v.optional(v.string()),
+    // The task it is a step of (APP-304): one on the same list that is not a
+    // subtask itself. A subtask does not repeat and sits in its parent's
+    // section.
+    parentTaskId: v.optional(v.id('tasks')),
     idempotencyKey: idempotencyKeyValidator,
   },
   handler: async (ctx, args) => {
@@ -208,10 +294,18 @@ export const add = mutation({
       args.groupSlug,
       args.listId,
     )
+    const parent = args.parentTaskId
+      ? await requireParentFor(ctx, list, args.parentTaskId)
+      : null
+    if (parent && args.repeat) {
+      throw new ConvexError(taskRefusal('subtask-repeat'))
+    }
     const quantity =
       args.quantity === undefined ? undefined : checkedQuantity(args.quantity)
     const onGroceryList = isGroceryList(group, list)
-    const sectionId = knownSectionId(list, args.sectionId)
+    const sectionId = parent
+      ? parent.sectionId
+      : knownSectionId(list, args.sectionId)
     // A list without amounts keeps an amount it was sent in the title, so
     // nothing a connected app wrote is dropped.
     const title = onGroceryList
@@ -261,6 +355,7 @@ export const add = mutation({
         ...(repeat ? { repeat } : {}),
         ...(assignee ?? {}),
         ...(sectionId ? { sectionId } : {}),
+        ...(parent ? { parentTaskId: parent._id } : {}),
       })
       if (grocery) await askAiOnce(ctx, group._id, grocery, taskId)
       await notifyAssignee(ctx, group._id, taskId, assignee)
@@ -277,7 +372,15 @@ export const add = mutation({
  * come back with the new date.
  */
 export const toggleDone = mutation({
-  args: { taskId: v.id('tasks'), groupSlug: v.string(), today: todayArg },
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    today: todayArg,
+    // "Complete all" (APP-304): checking a task checks its open subtasks
+    // too. Absent — "Only this", and every app from before subtasks —
+    // leaves them as they are.
+    withSubtasks: v.optional(v.boolean()),
+  },
   returns: completionResult,
   handler: async (ctx, args) => {
     const {
@@ -300,6 +403,8 @@ export const toggleDone = mutation({
     await ctx.db.patch(args.taskId, doneFields(!task.done))
     if (task.reminder)
       await syncSend(ctx, { ...task, done: !task.done }, group._id, task.reminder)
+    if (!task.done && args.withSubtasks)
+      await completeSubtasks(ctx, task._id, group._id)
     return null
   },
 })
@@ -370,6 +475,13 @@ export const undoCompletion = mutation({
       done: false,
     })
     await moveReminder(ctx, task, group._id, completion.previousDueDate)
+    if (completion.reopenedSubtaskIds)
+      await recheckSubtasks(
+        ctx,
+        task._id,
+        group._id,
+        completion.reopenedSubtaskIds,
+      )
     await ctx.db.delete(completion._id)
     return null
   },
@@ -442,6 +554,11 @@ export const update = mutation({
     // The Member responsible (APP-302); null is nobody. Absent leaves it as
     // it is, which is what every client from before assignees sends.
     assigneeId: v.optional(v.union(v.id('users'), v.null())),
+    // The task it is a step of (APP-304); null makes it a task of its own.
+    // The same rules as `add`: same list, one level deep, no repeat.
+    parentTaskId: v.optional(v.union(v.id('tasks'), v.null())),
+    // With done true: check its open subtasks too ("Complete all").
+    withSubtasks: v.optional(v.boolean()),
   },
   returns: completionResult,
   handler: async (ctx, args) => {
@@ -452,6 +569,13 @@ export const update = mutation({
       doc: list,
     } = await requireEditableTaskInGroup(ctx, args.groupSlug, args.taskId)
     const { taskId, title, dueDate, priority, labels, notes, done } = args
+    const parent = await parentChange(ctx, task, list, args.parentTaskId)
+    const isSubtask =
+      args.parentTaskId === undefined
+        ? task.parentTaskId !== undefined
+        : args.parentTaskId !== null
+    if (isSubtask && (args.repeat || (args.repeat === undefined && task.repeat)))
+      throw new ConvexError(taskRefusal('subtask-repeat'))
     const url = args.url === undefined ? undefined : checkedUrl(args.url)
     const priceCents =
       args.priceCents === undefined ? undefined : checkedPrice(args.priceCents)
@@ -525,6 +649,7 @@ export const update = mutation({
       ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
       ...(assignee ?? {}),
       ...(reminder !== task.reminder ? { reminder } : {}),
+      ...(parent ?? {}),
     })
     if (task.reminder && (reminder !== task.reminder || done !== undefined))
       await syncSend(
@@ -538,6 +663,8 @@ export const update = mutation({
       await restockCheckedStaples(ctx, group, list, [
         { title: title ?? task.title },
       ])
+    if (done === true && !task.done && args.withSubtasks && !completes)
+      await completeSubtasks(ctx, taskId, group._id)
     await notifyAssignee(ctx, group._id, taskId, assignee)
 
     const today = completionDay(args.today)
@@ -580,6 +707,31 @@ export const markAssignmentSeen = mutation({
     return null
   },
 })
+
+/**
+ * The parent fields an update writes (APP-304), or null when it changes no
+ * parent. Becoming a subtask: the parent is on the same list and not a
+ * subtask, the task has no subtasks of its own, and it takes the parent's
+ * section. Null makes it a task of its own again, where it is.
+ */
+async function parentChange(
+  ctx: MutationCtx,
+  task: Doc<'tasks'>,
+  list: Doc<'taskLists'>,
+  parentTaskId: Id<'tasks'> | null | undefined,
+): Promise<Pick<Doc<'tasks'>, 'parentTaskId' | 'sectionId'> | null> {
+  if (parentTaskId === undefined) return null
+  if (parentTaskId === null) {
+    return task.parentTaskId ? { parentTaskId: undefined } : null
+  }
+  if (parentTaskId === task.parentTaskId) return null
+  if (parentTaskId === task._id)
+    throw new ConvexError(taskRefusal('subtask-depth'))
+  const parent = await requireParentFor(ctx, list, parentTaskId)
+  if ((await subtasksOfTask(ctx, task._id)).length > 0)
+    throw new ConvexError(taskRefusal('subtask-depth'))
+  return { parentTaskId: parent._id, sectionId: parent.sectionId }
+}
 
 /** Whether the task repeats once this update's repeat change is applied. */
 function willRepeat(task: Doc<'tasks'>, repeat: TaskRepeat | null | undefined) {
@@ -692,6 +844,8 @@ export const remove = mutation({
   args: { taskId: v.id('tasks'), groupSlug: v.string() },
   handler: async (ctx, args) => {
     const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    // A parent's subtasks go with it (APP-304), after the same confirm.
+    await deleteSubtasks(ctx, task._id)
     await cancelSend(ctx, task)
     await purgeCompletionsOfTask(ctx, args.taskId)
     await ctx.db.delete(args.taskId)
@@ -863,25 +1017,55 @@ export const moveToList = mutation({
         ? { title: task.title, quantity: task.quantity, unit: task.unit }
         : groceryAddFields(task.title)
       : { title: line, quantity: undefined, unit: undefined }
-    const grocery = onGroceryList
-      ? await recogniseGroceryTitle(
-          ctx,
-          group._id,
-          line,
-          await recentListItems(ctx, args.listId),
-        )
-      : null
+    // From one grocery list to another (one per store, APP-313) the item
+    // keeps the aisle it has: the aisle is the item's, the order the store's.
+    const from = await ctx.db.get(task.listId)
+    const keptAisle =
+      onGroceryList && from && isGroceryList(group, from)
+        ? task.category
+        : undefined
+    const grocery =
+      onGroceryList && !keptAisle
+        ? await recogniseGroceryTitle(
+            ctx,
+            group._id,
+            line,
+            await recentListItems(ctx, args.listId),
+          )
+        : null
     await ctx.db.patch(task._id, {
       listId: args.listId,
       order: await endOfList(ctx, args.listId),
-      category: grocery?.aisle,
+      category: keptAisle ?? grocery?.aisle,
       title: fields.title,
       quantity: fields.quantity,
       unit: fields.unit satisfies GroceryUnit | undefined,
       // A section belongs to its list; on another list the task has none.
       sectionId: undefined,
+      // A subtask moved on its own leaves its parent behind (APP-304).
+      parentTaskId: undefined,
     })
     if (grocery) await askAiOnce(ctx, group._id, grocery, task._id)
+    // A parent takes its subtasks along, in their order, behind it. Onto a
+    // grocery list, which has no subtasks, they stay behind as tasks of
+    // their own.
+    const subtasks = (await subtasksOfTask(ctx, task._id)).sort(
+      (a, b) => a.order - b.order,
+    )
+    if (onGroceryList) {
+      for (const subtask of subtasks) {
+        await ctx.db.patch(subtask._id, { parentTaskId: undefined })
+      }
+      return null
+    }
+    for (const subtask of subtasks) {
+      await ctx.db.patch(subtask._id, {
+        listId: args.listId,
+        order: await endOfList(ctx, args.listId),
+        sectionId: undefined,
+        category: undefined,
+      })
+    }
     return null
   },
 })
@@ -979,12 +1163,118 @@ export const recentGroceries = query({
 })
 
 /**
+ * How many of each grocery list's newest checked items the habits read
+ * (APP-311): enough for a year of weekly shopping of a full list.
+ */
+const GROCERY_HABITS_WINDOW = 1000
+
+/** How many names the composer's history completes from. */
+const GROCERY_HABITS_LIMIT = 300
+
+const groceryHabitValidator = v.object({
+  key: v.string(),
+  title: v.string(),
+  count: v.number(),
+  intervalDays: v.union(v.number(), v.null()),
+  lastAt: v.number(),
+  quantity: v.optional(v.number()),
+  unit: v.optional(groceryUnitValidator),
+  category: v.optional(groceryAisleValidator),
+})
+
+/**
+ * What the Group usually buys, for one of its grocery lists (APP-311;
+ * `designs/groceries/README.md`, section 1 item 2 and section 2):
+ *
+ * - `habits`: every name its grocery lists had checked, most bought first,
+ *   with the usual interval and amount: the composer completes from them.
+ * - `suggestions`: the "Maybe needed" strip, computed here by the plain rule
+ *   in `@gather/core/groceries` (`grocerySuggestions`), no AI: bought at least
+ *   three times, the usual interval has passed, not open on this list, not
+ *   hidden from it, at most eight. Empty when the list has them switched off.
+ *
+ * History is the checked items of the Group's grocery lists, as Recent reads
+ * it (`by_list_and_done_at`, no table of its own), bounded per list. Items
+ * checked before `doneAt` existed count at the moment they were added. The
+ * "now" a query sees is when it last ran: the strip moves on with the next
+ * change to the Group's grocery lists or the next time it is opened.
+ */
+export const groceryHabits = query({
+  args: { groupSlug: v.string(), listId: v.id('taskLists') },
+  returns: v.object({
+    habits: v.array(groceryHabitValidator),
+    suggestions: v.array(groceryHabitValidator),
+  }),
+  handler: async (ctx, args) => {
+    const { group, doc: target } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.listId,
+      'List not found',
+    )
+    if (target.provider !== 'local' || !isGroceryList(group, target)) {
+      return { habits: [], suggestions: [] }
+    }
+    const lists = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const grocery = lists.filter(
+      (list) => list.provider === 'local' && isGroceryList(group, list),
+    )
+    const window = (list: Doc<'taskLists'>, stamped: boolean) =>
+      ctx.db
+        .query('tasks')
+        .withIndex('by_list_and_done_at', (q) =>
+          stamped
+            ? q.eq('listId', list._id).gt('doneAt', 0)
+            : q.eq('listId', list._id).eq('doneAt', undefined),
+        )
+        .order('desc')
+        .take(GROCERY_HABITS_WINDOW)
+    const [stamped, unstamped] = await Promise.all([
+      Promise.all(grocery.map((list) => window(list, true))),
+      Promise.all(grocery.map((list) => window(list, false))),
+    ])
+    const purchases: GroceryPurchase[] = [
+      ...stamped.flat().filter((task) => task.done),
+      ...unstamped.flat().filter((task) => task.done),
+    ].map((task) => ({
+      key: groceryTitleKey(task.title),
+      title: task.title,
+      at: task.doneAt ?? task._creationTime,
+      ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
+      ...(task.unit !== undefined ? { unit: task.unit } : {}),
+      ...(task.category !== undefined ? { category: task.category } : {}),
+    }))
+    const habits = groceryHabitsOf(purchases)
+    if (target.suggestionsOff) {
+      return { habits: habits.slice(0, GROCERY_HABITS_LIMIT), suggestions: [] }
+    }
+    // What is open on the list now: the open rows sit in the no-stamp range.
+    const onList = unstamped[grocery.findIndex((list) => list._id === target._id)]
+      .filter((task) => !task.done)
+      .map((task) => groceryTitleKey(task.title))
+    const exclude = new Set([...onList, ...(target.hiddenSuggestions ?? [])])
+    return {
+      habits: habits.slice(0, GROCERY_HABITS_LIMIT),
+      suggestions: grocerySuggestions(habits, { now: Date.now(), exclude }),
+    }
+  },
+})
+
+/**
  * A checked grocery item back onto a grocery list from Recent (APP-310), with
- * its amount, unit and aisle. On its own list the item itself is unchecked
- * and goes to the end; from another grocery list a copy is added, so that
- * list keeps its history. When an open item of the same name is already on
- * the list, nothing is added and that item is the answer: a second tap, or a
- * second Member, never makes a duplicate.
+ * its amount, unit and aisle. A copy is added and the checked item stays as
+ * it was, so the Group's history keeps that purchase (APP-311 reads it), on
+ * its own list too. When an open item of the same name is already on the
+ * list, however old, nothing is added and that item is the answer: a second
+ * tap, or a second Member, never makes a duplicate (APP-403).
+ *
+ * Both lists must be grocery lists of the Group that Gather can write to.
+ * Refusals are keyed (`@gather/core/refusals`, `tasks:*`); installed phones
+ * only play the failure haptic on any error, so the keys change nothing they
+ * show.
  */
 export const putBack = mutation({
   args: {
@@ -994,29 +1284,19 @@ export const putBack = mutation({
   },
   returns: v.id('tasks'),
   handler: async (ctx, args) => {
-    const { task, group, user } = await requireEditableTaskInGroup(
-      ctx,
-      args.groupSlug,
-      args.taskId,
-    )
-    const { doc: list } = await requireLocalList(
-      ctx,
-      args.groupSlug,
-      args.listId,
-    )
-    if (!isGroceryList(group, list)) {
-      throw new ConvexError('That is not a grocery list')
-    }
-    const key = groceryTitleKey(task.title)
-    const open = (await recentListItems(ctx, args.listId)).find(
-      (row) => !row.done && groceryTitleKey(row.title) === key,
-    )
+    const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
+    const task = await ctx.db.get(args.taskId)
+    const source = task ? await ctx.db.get(task.listId) : null
+    if (!task || !source || source.groupId !== group._id)
+      throw new ConvexError(taskRefusal('not-found'))
+    requireWritableGroceryList(group, source)
+    const list = await ctx.db.get(args.listId)
+    if (!list || list.groupId !== group._id)
+      throw new ConvexError(taskRefusal('not-found'))
+    requireWritableGroceryList(group, list)
+    const open = await openItemNamed(ctx, args.listId, task.title)
     if (open) return open._id
     const order = await endOfList(ctx, args.listId)
-    if (task.listId === args.listId) {
-      await ctx.db.patch(task._id, { ...doneFields(false), order })
-      return task._id
-    }
     return await ctx.db.insert('tasks', {
       listId: args.listId,
       title: task.title,
@@ -1047,6 +1327,8 @@ export const setSection = mutation({
       args.groupSlug,
       args.taskId,
     )
+    // A subtask sits in its parent's section and moves with it (APP-304).
+    if (task.parentTaskId) throw new ConvexError(taskRefusal('subtask-list'))
     const sectionId = knownSectionId(list, args.sectionId)
     if (args.sectionId !== null && sectionId === undefined) {
       throw new ConvexError('Section not found')
@@ -1056,6 +1338,42 @@ export const setSection = mutation({
       sectionId,
       order: await endOfList(ctx, task.listId),
     })
+    // Its subtasks go along, so an app from before subtasks, which draws
+    // them as rows, still finds them in the parent's section (APP-304).
+    for (const subtask of await subtasksOfTask(ctx, task._id)) {
+      await ctx.db.patch(subtask._id, { sectionId })
+    }
+    return null
+  },
+})
+
+/**
+ * One task's subtasks in a new order (APP-304), from its detail screen. They
+ * swap the order values they already hold, so nothing else on the list moves.
+ * `ids` must be every subtask of the task, once each.
+ */
+export const reorderSubtasks = mutation({
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    ids: v.array(v.id('tasks')),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { task } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
+    const siblings = await subtasksOfTask(ctx, task._id)
+    const next = reorderedSubtasks(
+      siblings.map((subtask) => ({ ...subtask, id: subtask._id })),
+      args.ids,
+    )
+    if (!next) throw new ConvexError('Reorder must contain every subtask once')
+    for (const { id, order } of next) {
+      await ctx.db.patch(id as Id<'tasks'>, { order })
+    }
     return null
   },
 })

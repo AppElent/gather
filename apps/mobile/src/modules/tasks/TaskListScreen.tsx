@@ -15,6 +15,8 @@
  */
 
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
+import { readTaskRefusal } from '@gather/core/refusals'
+import { reorderWithSubtasks, topLevelTasks } from '@gather/core/subtasks'
 import {
   groupBySection,
   hasLinkAndPrice,
@@ -23,7 +25,7 @@ import {
 } from '@gather/core/task-lists'
 import { describeRepeat } from '@gather/core/task-repeat'
 import { Stack, useRouter } from 'expo-router'
-import { useRef, useState } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 // Gesture Handler's own ScrollView, not React Native's: reorder's drag names
 // this view in `blocksExternalGesture`, and only a scroll view the library
@@ -48,7 +50,7 @@ import { WashHeader } from '../../ui/wash-header'
 import { Chip, priorityColor } from './components'
 import { GroceryAmount, useGroceryAmountText } from './GroceryFields'
 import { GroceryListBody } from './GroceryListBody'
-import { inCheckedSection } from './groceryList'
+import { checkedOncePerName, inCheckedSection } from './groceryList'
 import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
 import { AppearanceSheet } from './listFace'
 import { PackingProgress, UncheckAll } from './packing'
@@ -60,6 +62,7 @@ import { TaskComposer, TaskRow } from './TaskRow'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
 import type { ListDisplay, Task, TaskList as TaskListModel } from './types'
+import { useLingering } from './useLingering'
 import { formatPrice } from './wishlist'
 
 /** A menu entry an owning module adds to the list's ⋯ menu. */
@@ -75,6 +78,7 @@ export function TaskList({
   moduleId = 'tasks',
   menuExtras = [],
   addPlaceholder,
+  washAccessory,
 }: {
   listId: string
   /** The Module whose tile heads the list: Tasks, or the one that owns it. */
@@ -86,6 +90,8 @@ export function TaskList({
   menuExtras?: readonly ListMenuExtra[]
   /** The composer's words, when the list is not a list of tasks. */
   addPlaceholder?: string
+  /** Under the wash's summary: the grocery list's store pill (APP-313). */
+  washAccessory?: ReactNode
 }) {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
@@ -110,7 +116,16 @@ export function TaskList({
   const [refreshing, setRefreshing] = useState(false)
   const [refreshed, setRefreshed] = useState(false)
 
-  const { active, completed } = taskSections(tasks)
+  // A subtask is drawn under its parent on the detail screen, not as a row
+  // here; the parent's row says how far along they are (APP-304).
+  const rows = topLevelTasks(tasks)
+  const { active, completed } = taskSections(rows)
+  // A grocery item just checked stays in its aisle for a moment (APP-310);
+  // until it moves it is still open, in the summary and for Clear checked.
+  const lingering = useLingering(
+    tasks,
+    list?.grocery === true && (list.sync === 'live' || list.sync === 'synced'),
+  )
 
   if (!list) {
     // The only way here is deleting the list from its own screen, which pops.
@@ -120,17 +135,27 @@ export function TaskList({
   // A packing list keeps its checked items where they are: it is reset for
   // the next trip rather than worked through (APP-306).
   const inPlace = keepsCheckedInPlace(list.kind)
-  const listed = inPlace ? tasks : active
+  const listed = inPlace ? rows : active
   const finished = inPlace ? [] : completed
-  const doneCount = tasks.filter((task) => task.done).length
+  const doneCount = rows.filter((task) => task.done).length
   const wishlist = hasLinkAndPrice(list.kind)
   // A grocery row carries its amount at the end (APP-309), and the list is in
   // aisle sections with Checked and Recent (APP-310).
   const grocery = list.grocery
+  // As the Checked section counts them: one row per name (APP-311).
   const clearable = grocery
-    ? tasks.filter((task) => inCheckedSection(task, list.checkedClearedAt))
-        .length
+    ? checkedOncePerName(
+        tasks,
+        tasks.filter(
+          (task) =>
+            !lingering.has(task.id) &&
+            inCheckedSection(task, list.checkedClearedAt),
+        ),
+      ).length
     : 0
+  const openCount = grocery
+    ? tasks.filter((task) => !task.done || lingering.has(task.id)).length
+    : active.length
   // Each section is its own labelled inset list (APP-357), "No section"
   // first; a list without sections is one unlabelled list, as before. A
   // grocery list is in aisle sections instead (APP-310), so it has none.
@@ -168,7 +193,31 @@ export function TaskList({
     if (action === 'sections') setEditingSections(true)
     if (action === 'delete') confirmDeleteList()
     if (action === 'clear-checked') clearChecked()
+    if (action === 'suggestions') toggleSuggestions()
     menuExtras.find((extra) => extra.id === action)?.onPress()
+  }
+
+  /** The "Maybe needed" strip on or off for every Member (APP-311). */
+  const toggleSuggestions = () => {
+    const on = list.suggestionsOff
+    actions
+      .setSuggestions(list.id, on)
+      .then(() => {
+        haptics.selectionChanged()
+        const s = t.tasks.grocery.suggestions
+        undoToast.show({
+          message: on ? s.on : s.off,
+          undo: {
+            label: t.tasks.grocery.undo,
+            onPress: () => {
+              void actions
+                .setSuggestions(list.id, !on)
+                .catch(() => haptics.actionFailed())
+            },
+          },
+        })
+      })
+      .catch(() => haptics.actionFailed())
   }
 
   /** Checked items leave the Checked row, stay in Recent, and can come back. */
@@ -176,7 +225,7 @@ export function TaskList({
     const count = clearable
     actions
       .clearChecked(list.id)
-      .then((previous) => {
+      .then((cleared) => {
         haptics.itemSaved()
         undoToast.show({
           message: plural(locale, count, t.tasks.grocery.cleared),
@@ -184,8 +233,14 @@ export function TaskList({
             label: t.tasks.grocery.undo,
             onPress: () => {
               void actions
-                .restoreCheckedCleared(list.id, previous)
-                .catch(() => haptics.actionFailed())
+                .restoreCheckedCleared(list.id, cleared)
+                .catch((error: unknown) => {
+                  haptics.actionFailed()
+                  // Another clear came after this one (APP-403): say why
+                  // the Checked row did not come back.
+                  if (readTaskRefusal(error) === 'clear-superseded')
+                    undoToast.show({ message: t.tasks.grocery.undoSuperseded })
+                })
             },
           },
         })
@@ -334,6 +389,15 @@ export function TaskList({
                           image: 'checkmark.circle.badge.xmark' as const,
                           attributes: { disabled: clearable === 0 },
                         },
+                        {
+                          id: 'suggestions',
+                          title: list.suggestionsOff
+                            ? t.tasks.grocery.suggestions.turnOn
+                            : t.tasks.grocery.suggestions.turnOff,
+                          image: list.suggestionsOff
+                            ? ('lightbulb' as const)
+                            : ('lightbulb.slash' as const),
+                        },
                       ]
                     : []),
                   ...menuExtras.map(({ id, title, image }) => ({
@@ -389,9 +453,10 @@ export function TaskList({
             group={tile.group}
             glyph={tile.glyph}
             summary={{
-              count: plural(locale, active.length, t.tasks.count.open),
+              count: plural(locale, openCount, t.tasks.count.open),
               scope: group.name,
             }}
+            accessory={washAccessory}
           />
         ) : null}
         <View style={styles.content}>
@@ -404,9 +469,14 @@ export function TaskList({
               scrollRef={scrollRef}
               onDragging={setDragging}
               onCommit={(ids, sectionIds) =>
+              {
+                // The server wants every task once, subtasks included: each
+                // parent's go right behind it (APP-304).
+                const all = reorderWithSubtasks(ids, sectionIds, tasks, inPlace)
                 actions
-                  .reorderTasks(list.id, ids, sectionIds)
+                  .reorderTasks(list.id, all.ids, all.sectionIds)
                   .catch(() => haptics.actionFailed())
+              }
               }
             />
           ) : (
@@ -444,8 +514,8 @@ export function TaskList({
                 </View>
               )}
 
-              {inPlace && tasks.length > 0 ? (
-                <PackingProgress done={doneCount} total={tasks.length} />
+              {inPlace && rows.length > 0 ? (
+                <PackingProgress done={doneCount} total={rows.length} />
               ) : null}
 
               {grocery && !inPlace ? (
@@ -453,6 +523,7 @@ export function TaskList({
                   list={list}
                   tasks={tasks}
                   row={row}
+                  lingering={lingering}
                   empty={
                     <View style={styles.emptyRow}>
                       <Text style={[styles.empty, { color: tokens.muted }]}>
@@ -466,6 +537,7 @@ export function TaskList({
                         listId={list.id}
                         placeholder={addPlaceholder ?? t.kitchen.addGroceryItem}
                         grocery
+                        tasks={tasks}
                       />
                     ) : null
                   }
@@ -625,7 +697,8 @@ function TaskMeta({
     (display.due && task.dueDate) ||
     (display.priority && task.priority) ||
     (display.labels && task.labels.length > 0) ||
-    repeat
+    repeat ||
+    task.subtasks
   if (!shown) return null
 
   const overdue = Boolean(task.dueDate && isOverdue(task.dueDate, today))
@@ -670,6 +743,20 @@ function TaskMeta({
             importantForAccessibility="no"
           />
           <Text style={[styles.meta, { color: tokens.muted }]}>{repeat}</Text>
+        </View>
+      ) : null}
+      {task.subtasks ? (
+        <View testID={`subtasks-${task.id}`} style={styles.metaItem}>
+          <TASK_ICONS.CircleCheck
+            size={12}
+            color={tokens.muted}
+            strokeWidth={2.2}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+          <Text style={[styles.meta, { color: tokens.muted }]}>
+            {fmt(t.tasks.subtasks.progress, { ...task.subtasks })}
+          </Text>
         </View>
       ) : null}
       {display.priority && task.priority ? (
