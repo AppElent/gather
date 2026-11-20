@@ -14,13 +14,14 @@ import type { TaskProviderId } from '@gather/core/domain'
 import { readTaskRefusal } from '@gather/core/refusals'
 import { assigneeUnavailable } from '@gather/core/task-lists'
 import { useMemo } from 'react'
-import { Alert, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 
 import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import { SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { useTaskActions } from './store'
@@ -179,7 +180,7 @@ export function AssigneeRow({ task, list }: { task: Task; list?: TaskList }) {
           // that did not land, which the unchanged row already shows.
           const refused = readTaskRefusal(error)
           if (refused === 'assignee-not-member')
-            Alert.alert(words.refusals[refused])
+            showAlert(words.refusals[refused])
         })
       }}
     >

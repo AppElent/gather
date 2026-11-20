@@ -3,7 +3,7 @@
  * describes: it names what is destroyed, Cancel is the safe answer, and the
  * destructive answer is the only one that acts.
  */
-import { Alert } from 'react-native'
+import { showAlert } from '../observability/native-presentation'
 
 export function confirmDestructive({
   title,
@@ -19,7 +19,7 @@ export function confirmDestructive({
   cancel: string
   onConfirm: () => void
 }) {
-  Alert.alert(title, message, [
+  showAlert(title, message, [
     { text: cancel, style: 'cancel' },
     { text: confirm, style: 'destructive', onPress: onConfirm },
   ])

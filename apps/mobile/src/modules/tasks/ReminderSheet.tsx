@@ -13,13 +13,14 @@
 import { DateTimePicker } from '@expo/ui/community/datetime-picker'
 import { presetClock, type ReminderPreset } from '@gather/core/task-reminders'
 import { useState } from 'react'
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { NativeSheet } from '../../components/NativeSheet'
 import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { usePushPermission } from '../../features/notifications/use-push-permission'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import {
   availablePresets,
@@ -65,13 +66,13 @@ export function ReminderSheet({
       })
       .catch(() => {
         haptics.actionFailed()
-        Alert.alert(words.failed)
+        showAlert(words.failed)
       })
   }
 
   const savePicked = () => {
     if (picked.getTime() < Date.now() - 60_000) {
-      Alert.alert(words.passed)
+      showAlert(words.passed)
       return
     }
     save(clockOfDate(picked))

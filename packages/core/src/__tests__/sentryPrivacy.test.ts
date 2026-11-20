@@ -4,6 +4,7 @@ import {
   type ScrubbableEvent,
   sanitizeBreadcrumb,
   sanitizeEvent,
+  sanitizeFeedbackEvent,
   sanitizeText,
   stripUrl,
 } from '../sentryPrivacy'
@@ -250,5 +251,37 @@ describe('a Loyalty card number', () => {
       },
     }
     expect(JSON.stringify(sanitizeEvent(event))).not.toContain(NUMBER)
+  })
+})
+
+describe('sanitizeFeedbackEvent', () => {
+  const feedback = () => ({
+    type: 'feedback',
+    user: { id: 'user_1', email: 'jane@example.nl' },
+    request: { url: 'https://gather.app/x?code=1' },
+    contexts: {
+      feedback: {
+        message: `Broken for jane@example.nl with ${JWT}`,
+        url: 'gather://g/abc/notes?token=secret#frag',
+        contact_email: 'jane@example.nl',
+        name: 'Jane',
+      },
+    },
+  })
+
+  it('drops the contact fields and redacts the typed text and the URL', () => {
+    const event = sanitizeFeedbackEvent(feedback())
+    expect(event.contexts?.feedback).toEqual({
+      message: 'Broken for [Filtered] with [Filtered]',
+      url: 'gather://g/abc/notes',
+    })
+    expect(event.user).toEqual({ id: 'user_1' })
+    expect(JSON.stringify(event)).not.toContain('jane@example.nl')
+    expect(JSON.stringify(event)).not.toContain('code=1')
+  })
+
+  it('leaves every other event to beforeSend', () => {
+    const event = { message: 'jane@example.nl' }
+    expect(sanitizeFeedbackEvent(event).message).toBe('jane@example.nl')
   })
 })

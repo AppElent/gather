@@ -59,7 +59,8 @@
 import { type PhotoPresetName, photoPreset } from '@gather/core/photo-presets'
 import { File, UploadType } from 'expo-file-system'
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
-import * as ImagePicker from 'expo-image-picker'
+
+import * as ImagePicker from '../observability/native-presentation'
 
 export type PhotoSource = 'camera' | 'library'
 

@@ -23,7 +23,6 @@ import {
 import { useMutation } from 'convex/react'
 import { type ReactNode, useMemo, useState } from 'react'
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -37,6 +36,7 @@ import { api, type Id } from '../../../convex/api'
 import { haptics } from '../../../feedback/haptics'
 import { useGroup } from '../../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../../i18n'
+import { showPrompt } from '../../../observability/native-presentation'
 import {
   lastGroceryListKey,
   readPreference,
@@ -231,7 +231,7 @@ export function AddToGroceriesSheet({
 
   const edit = (row: PickRow) => {
     const typed = [amountText(row.amount), row.title].filter(Boolean).join(' ')
-    Alert.prompt(
+    showPrompt(
       words.editTitle,
       undefined,
       [

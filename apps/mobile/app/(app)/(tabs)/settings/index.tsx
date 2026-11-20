@@ -16,7 +16,6 @@
  */
 import { useUser } from '@clerk/expo'
 import { router } from 'expo-router'
-import { openBrowserAsync } from 'expo-web-browser'
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -24,6 +23,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { SearchField } from '../../../../src/components/SearchField'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
+import { openProblemReport } from '../../../../src/observability/init'
+import {
+  openBrowserAsync,
+  showAlert,
+} from '../../../../src/observability/native-presentation'
 import { identityInitial } from '../../../../src/settings/identity'
 import {
   type SettingsEntry,
@@ -246,8 +250,14 @@ function Row({
   within?: string
 }) {
   const tokens = useTokens()
-  // A row that leaves for a web page says so instead of promising a screen.
-  const Trailing = entry.url ? UI_ICONS.ExternalLink : UI_ICONS.ChevronRight
+  const { t } = useI18n()
+  // A row that leaves for a web page says so instead of promising a screen;
+  // an action row (Report a problem) promises neither.
+  const Trailing = entry.url
+    ? UI_ICONS.ExternalLink
+    : entry.href
+      ? UI_ICONS.ChevronRight
+      : null
 
   return (
     <Pressable
@@ -257,7 +267,10 @@ function Row({
         .join(', ')}
       onPress={() => {
         if (entry.href) router.push(entry.href)
-        else openBrowserAsync(entry.url).catch(() => {})
+        else if (entry.url) openBrowserAsync(entry.url).catch(() => {})
+        // Report a problem (APP-439): Sentry's form, or a word on why not.
+        else if (!openProblemReport())
+          showAlert(t.feedback.report, t.feedback.unavailable)
       }}
       style={({ pressed }) => [
         styles.row,
@@ -289,13 +302,15 @@ function Row({
           {entry.value}
         </Text>
       ) : null}
-      <Trailing
-        size={18}
-        color={tokens.muted}
-        strokeWidth={1.8}
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-      />
+      {Trailing ? (
+        <Trailing
+          size={18}
+          color={tokens.muted}
+          strokeWidth={1.8}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        />
+      ) : null}
     </Pressable>
   )
 }
