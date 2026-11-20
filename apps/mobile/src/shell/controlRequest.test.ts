@@ -66,6 +66,13 @@ describe('controlTarget', () => {
     ).toEqual({ kind: 'stay' })
   })
 
+  it('leaves a card on screen as it is however long it has been up', () => {
+    const old = { ...card, at: now - OPEN_CARD_MAX_AGE_MS - 1 }
+    expect(
+      controlTarget(old, { ...here, isOnScreen: (id) => id === 'c1' }),
+    ).toEqual({ kind: 'stay' })
+  })
+
   it('opens the sheet when no card is open', () => {
     expect(controlTarget(null, here)).toEqual({ kind: 'sheet' })
   })

@@ -68,6 +68,9 @@ export function controlTarget(
     isOnScreen: (cardId: string) => boolean
   },
 ): { kind: 'card'; cardId: string } | { kind: 'stay' } | { kind: 'sheet' } {
+  // Up on screen, it is open whatever its age: the time is stamped only on
+  // leaving the app, and the Action Button can be pressed without leaving it.
+  if (card && isOnScreen(card.cardId)) return { kind: 'stay' }
   if (
     !card ||
     !isFreshOpenCard(card, now) ||
@@ -75,6 +78,5 @@ export function controlTarget(
     (savedCardIds !== undefined && !savedCardIds.includes(card.cardId))
   )
     return { kind: 'sheet' }
-  if (isOnScreen(card.cardId)) return { kind: 'stay' }
   return { kind: 'card', cardId: card.cardId }
 }

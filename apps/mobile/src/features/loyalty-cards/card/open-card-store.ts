@@ -31,6 +31,11 @@ export function clearOpenCard(cardId: string) {
   clearPreference(PREFERENCE_KEYS.openLoyaltyCard)
 }
 
+/** Forget whichever card is open: at sign-out, with the retained Group. */
+export function forgetOpenCard() {
+  clearPreference(PREFERENCE_KEYS.openLoyaltyCard)
+}
+
 /**
  * The card whose screen is focused in this process, if any: the control then
  * leaves it where it is instead of pushing a second copy. Memory only; after a

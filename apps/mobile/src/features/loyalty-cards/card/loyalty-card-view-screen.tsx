@@ -21,7 +21,7 @@
 import { useAuth } from '@clerk/expo'
 import { Image } from 'expo-image'
 import { Stack, useIsFocused, useRouter } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -41,6 +41,7 @@ import { LOYALTY_CARD_ICONS } from '../loyalty-card-icons'
 import { offlineGroupCard } from '../offline/offline-cards'
 import { useDeleteLoyaltyCard } from '../use-delete-loyalty-card'
 import { useRecordOpenCard } from './open-card-store'
+import { useGiveWayWhenGone } from './use-give-way-when-gone'
 import { useKeepAwakeWhile } from './use-keep-awake-while'
 import { useMarkUsedOnce } from './use-mark-used-once'
 import { useTillBrightness } from './use-till-brightness'
@@ -88,12 +89,10 @@ export function LoyaltyCardViewScreen({
 
   // The control asked for the card or else the sheet: a card that is gone
   // gives way to the sheet, over the screen the member was on before.
-  const goneFromControl = openedByControl && face === null
-  useEffect(() => {
-    if (!goneFromControl) return
+  useGiveWayWhenGone(openedByControl, face, () => {
     router.back()
     requestQuickSheet()
-  }, [goneFromControl, router])
+  })
 
   const moduleTitle = t.modules.byId['loyalty-cards'].label
 
