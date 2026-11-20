@@ -646,12 +646,6 @@ export const en = {
       somethingElse: 'Something else',
       somethingElseSub: 'Pick another recipe for {weekday}',
       groceries: 'Groceries for this recipe',
-      groceriesAdded: {
-        one: 'Added {count} item to {list}',
-        other: 'Added {count} items to {list}',
-      },
-      groceriesNothing: 'Everything is already on {list}',
-      groceriesNoList: 'Choose a grocery list in Groceries first',
       remove: 'Remove from week menu',
     },
     pick: {

@@ -29,6 +29,7 @@ import { groceryListsOf, openGroceryList } from '../tasks/groceryList'
 import { NewListSheet } from '../tasks/NewListSheet'
 import { useTaskLists } from '../tasks/store'
 import { TaskList } from '../tasks/TaskListScreen'
+import { GroceriesSourceSheet } from './add-to-groceries/source-sheet'
 
 function KitchenShell({
   title,
@@ -94,7 +95,7 @@ export function GroceriesScreen() {
   const words = t.tasks.grocery.lists
   const lastKey = lastGroceryListKey(group.slug)
   const [remembered, setRemembered] = useState(() => readPreference(lastKey))
-  const [sheet, setSheet] = useState<'lists' | 'new' | null>(null)
+  const [sheet, setSheet] = useState<'lists' | 'new' | 'source' | null>(null)
   const groceryLists = useMemo(() => groceryListsOf(lists ?? []), [lists])
   const selected = openGroceryList(groceryLists, remembered)
 
@@ -139,12 +140,12 @@ export function GroceriesScreen() {
           }
           menuExtras={[
             {
-              // A recipe's ingredients are added from the recipe (APP-312):
-              // the list leads there; the week menu joins with APP-321.
+              // A recipe's ingredients are added from the recipe (APP-312), the
+              // week's from the week menu (APP-321): the list asks which.
               id: 'groceries-from-recipe',
               title: t.tasks.grocery.addLines.fromRecipe,
               image: 'book',
-              onPress: () => router.push(moduleHref('/all/recipes')),
+              onPress: () => setSheet('source'),
             },
             {
               // What the house keeps (APP-314); also the action row's pill.
@@ -176,6 +177,13 @@ export function GroceriesScreen() {
             }}
             onNewList={() => setSheet('new')}
             onClose={() => setSheet((open) => (open === 'lists' ? null : open))}
+          />
+        ) : null}
+        {sheet === 'source' ? (
+          <GroceriesSourceSheet
+            listId={selected._id}
+            onRecipes={() => router.push(moduleHref('/all/recipes'))}
+            onClose={() => setSheet(null)}
           />
         ) : null}
         {newListSheet}

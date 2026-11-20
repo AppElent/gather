@@ -54,6 +54,7 @@ import { isAccessibilityTextSize } from '../../../ui/text-scale'
 import { useUndoToast } from '../../../ui/undo-toast'
 import { WashHeader } from '../../../ui/wash-header'
 import { type ModulePath, moduleHref } from '../../moduleDestination'
+import { MealGroceriesSheet } from './meal-groceries-sheet'
 import { MealSheet } from './meal-sheet'
 import { EmptyThumb, MealThumb, MemberCoins } from './parts'
 import { PickSheet } from './pick-sheet'
@@ -96,6 +97,8 @@ type Sheet =
     }
   /** The week's ingredients onto the grocery list (APP-321). */
   | { kind: 'groceries' }
+  /** One meal's Recipe onto the grocery list, at its servings (APP-421). */
+  | { kind: 'meal-groceries'; recipeId: string; servings: number }
 
 interface Drag {
   meal: PlannedMeal
@@ -479,7 +482,24 @@ export function MealPlannerScreen() {
               replacing: meal._id,
             })
           }
+          onGroceries={(meal, servings) =>
+            meal.recipeId &&
+            setSheet({
+              kind: 'meal-groceries',
+              recipeId: meal.recipeId,
+              servings,
+            })
+          }
           showToast={showToast}
+        />
+      ) : null}
+      {sheet?.kind === 'meal-groceries' ? (
+        <MealGroceriesSheet
+          key={sheet.recipeId}
+          recipeId={sheet.recipeId}
+          weekStart={weekStart}
+          servings={sheet.servings}
+          onClose={() => setSheet(null)}
         />
       ) : null}
       {data && sheet?.kind === 'pick' ? (

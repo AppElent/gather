@@ -41,10 +41,13 @@ import {
 export function WeekGroceriesSheet({
   data,
   weekStart,
+  listId: openedFrom,
   onClose,
 }: {
   data: WeekData
   weekStart: string
+  /** The grocery list the sheet was opened from, when not the planner's. */
+  listId?: string
   onClose: () => void
 }) {
   const { group } = useGroup()
@@ -144,7 +147,7 @@ export function WeekGroceriesSheet({
       }}
       lines={recipes === undefined ? [] : week.lines}
       aiCount={aiCount}
-      preferredListId={data.groceryListId ?? undefined}
+      preferredListId={openedFrom ?? data.groceryListId ?? undefined}
       byAisle
       footnote={words.footnote}
       days={
