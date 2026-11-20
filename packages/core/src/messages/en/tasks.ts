@@ -175,6 +175,37 @@ export const tasks = {
     },
     undo: 'Undo',
     /**
+     * Several grocery lists, one per store, each with its own aisle order
+     * (APP-313; `designs/groceries/README.md` section 6).
+     */
+    lists: {
+      title: 'Grocery lists',
+      /** The store pill under the list's summary, read out. */
+      switchLabel: 'List: {list}, switch',
+      customOrder: 'Custom aisle order',
+      defaultOrder: 'Default order',
+      count: { one: '{count} item', other: '{count} items' },
+      aisleOrderOf: 'Aisle order of {list}',
+      newList: 'New grocery list',
+      footnote:
+        'Each list has its own aisle order. Moving an item keeps its amount and aisle.',
+      /** The Groceries Module with no grocery list yet. */
+      none: 'No grocery list yet. Make one, or use one of your lists.',
+    },
+    aisleOrder: {
+      title: 'Aisle order',
+      /** The list's ⋯ menu entry. */
+      menu: 'Aisle order',
+      section: '{list} · the way you walk the store',
+      up: 'Move {aisle} up',
+      down: 'Move {aisle} down',
+      footnote:
+        'Drag an aisle, or use the arrows. Aisles without items are hidden in the list.',
+      save: 'Save',
+      restore: 'Restore default order',
+      failed: 'The aisle order could not be saved. Try again.',
+    },
+    /**
      * "Maybe needed" and the composer's autocomplete (APP-311;
      * `designs/groceries/README.md`, section 1 item 2 and section 2).
      */

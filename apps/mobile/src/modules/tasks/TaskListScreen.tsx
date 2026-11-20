@@ -24,7 +24,7 @@ import {
 } from '@gather/core/task-lists'
 import { describeRepeat } from '@gather/core/task-repeat'
 import { Stack, useRouter } from 'expo-router'
-import { useRef, useState } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 // Gesture Handler's own ScrollView, not React Native's: reorder's drag names
 // this view in `blocksExternalGesture`, and only a scroll view the library
@@ -77,6 +77,7 @@ export function TaskList({
   moduleId = 'tasks',
   menuExtras = [],
   addPlaceholder,
+  washAccessory,
 }: {
   listId: string
   /** The Module whose tile heads the list: Tasks, or the one that owns it. */
@@ -88,6 +89,8 @@ export function TaskList({
   menuExtras?: readonly ListMenuExtra[]
   /** The composer's words, when the list is not a list of tasks. */
   addPlaceholder?: string
+  /** Under the wash's summary: the grocery list's store pill (APP-313). */
+  washAccessory?: ReactNode
 }) {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
@@ -449,6 +452,7 @@ export function TaskList({
               count: plural(locale, openCount, t.tasks.count.open),
               scope: group.name,
             }}
+            accessory={washAccessory}
           />
         ) : null}
         <View style={styles.content}>

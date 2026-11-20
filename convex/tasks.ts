@@ -913,18 +913,26 @@ export const moveToList = mutation({
         ? { title: task.title, quantity: task.quantity, unit: task.unit }
         : groceryAddFields(task.title)
       : { title: line, quantity: undefined, unit: undefined }
-    const grocery = onGroceryList
-      ? await recogniseGroceryTitle(
-          ctx,
-          group._id,
-          line,
-          await recentListItems(ctx, args.listId),
-        )
-      : null
+    // From one grocery list to another (one per store, APP-313) the item
+    // keeps the aisle it has: the aisle is the item's, the order the store's.
+    const from = await ctx.db.get(task.listId)
+    const keptAisle =
+      onGroceryList && from && isGroceryList(group, from)
+        ? task.category
+        : undefined
+    const grocery =
+      onGroceryList && !keptAisle
+        ? await recogniseGroceryTitle(
+            ctx,
+            group._id,
+            line,
+            await recentListItems(ctx, args.listId),
+          )
+        : null
     await ctx.db.patch(task._id, {
       listId: args.listId,
       order: await endOfList(ctx, args.listId),
-      category: grocery?.aisle,
+      category: keptAisle ?? grocery?.aisle,
       title: fields.title,
       quantity: fields.quantity,
       unit: fields.unit satisfies GroceryUnit | undefined,

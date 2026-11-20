@@ -19,9 +19,12 @@ import { ModuleTile, moduleTile } from '../../../ui/module-tile'
 import { WeekGroceriesSheet } from '../meal-planner/week-groceries-sheet'
 
 export function GroceriesSourceSheet({
+  listId,
   onRecipes,
   onClose,
 }: {
+  /** The grocery list it was opened from: the sheets open on it. */
+  listId: string
   onRecipes: () => void
   onClose: () => void
 }) {
@@ -44,7 +47,12 @@ export function GroceriesSourceSheet({
     // The week is loading: nothing to show for a moment.
     if (!data) return null
     return (
-      <WeekGroceriesSheet data={data} weekStart={weekStart} onClose={onClose} />
+      <WeekGroceriesSheet
+        data={data}
+        weekStart={weekStart}
+        listId={listId}
+        onClose={onClose}
+      />
     )
   }
 

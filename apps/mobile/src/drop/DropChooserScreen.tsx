@@ -61,7 +61,11 @@ import {
   dropDisplayTitle,
   dropFromLink,
 } from './drop'
-import { type RankedDropTarget, targetsForDrop } from './dropTargets'
+import {
+  asksBeforeCommit,
+  type RankedDropTarget,
+  targetsForDrop,
+} from './dropTargets'
 import { dropPickHref } from './paths'
 import { type DropProblem, useDropCommit } from './useDropCommit'
 
@@ -120,7 +124,7 @@ export function DropChooserScreen() {
 
     // Stage two is a screen, not a write. Nothing has been uploaded or created
     // at this point, so backing out of it costs the household nothing.
-    if (chosen.picks !== 'none') {
+    if (asksBeforeCommit(chosen)) {
       router.push(dropPickHref(chosen.id, named._id))
       return
     }
@@ -133,6 +137,10 @@ export function DropChooserScreen() {
         drop,
         group: named,
       })
+      if (result.ok === 'ask') {
+        router.push(dropPickHref(chosen.id, named._id))
+        return
+      }
       if (!result.ok) {
         haptics.actionFailed()
         setProblem(result.problem)
@@ -234,7 +242,7 @@ export function DropChooserScreen() {
               <ActivityIndicator color={tokens.onAccent} />
             ) : (
               <Text style={[styles.confirmLabel, { color: tokens.onAccent }]}>
-                {chosen && chosen.picks !== 'none'
+                {chosen && asksBeforeCommit(chosen)
                   ? text.continue
                   : t.common.actions.save}
               </Text>

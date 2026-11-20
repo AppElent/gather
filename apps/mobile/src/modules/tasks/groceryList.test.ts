@@ -1,10 +1,13 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  aisleCounts,
   aisleOf,
   aisleSections,
   checkedOncePerName,
+  groceryListsOf,
   inCheckedSection,
+  openGroceryList,
   recentDays,
   recentWeeks,
 } from './groceryList'
@@ -66,6 +69,57 @@ describe('Recent in days', () => {
     expect(recentWeeks([], now)).toBe(1)
     expect(recentWeeks([{ doneAt: now - 3 * 86_400_000 }], now)).toBe(1)
     expect(recentWeeks([{ doneAt: now - 10 * 86_400_000 }], now)).toBe(2)
+  })
+})
+
+describe('a list of its own aisle order (APP-313)', () => {
+  const tasks = [
+    { id: 'cola', category: 'drinks' },
+    { id: 'appels', category: 'produce' },
+    { id: 'brood', category: 'bakery' },
+  ]
+
+  test('sections follow the saved order, and aisles it leaves out follow', () => {
+    const sections = aisleSections(tasks, ['drinks', 'bakery'])
+    expect(sections.map((s) => s.aisle)).toEqual(['drinks', 'bakery', 'produce'])
+  })
+
+  test('two lists with different orders walk the same items differently', () => {
+    const market = aisleSections(tasks, ['produce', 'bakery', 'drinks'])
+    const ah = aisleSections(tasks, ['drinks', 'produce', 'bakery'])
+    expect(market.map((s) => s.aisle)).not.toEqual(ah.map((s) => s.aisle))
+  })
+
+  test('counts only what is still to get, per aisle', () => {
+    expect(
+      aisleCounts([
+        { category: 'produce', done: false },
+        { category: 'produce', done: false },
+        { category: 'produce', done: true },
+        { category: 'drinks', done: false },
+      ]),
+    ).toEqual({ produce: 2, drinks: 1 })
+  })
+})
+
+describe('which grocery list opens', () => {
+  const lists = [
+    { _id: 'chores', order: 0, grocery: false, writable: true },
+    { _id: 'market', order: 2, grocery: true, writable: true },
+    { _id: 'ah', order: 1, grocery: true, writable: true },
+  ]
+
+  test('grocery lists only, in list order', () => {
+    expect(groceryListsOf(lists).map((l) => l._id)).toEqual(['ah', 'market'])
+  })
+
+  test('the last used one, else the first', () => {
+    const grocery = groceryListsOf(lists)
+    expect(openGroceryList(grocery, 'market')?._id).toBe('market')
+    expect(openGroceryList(grocery, null)?._id).toBe('ah')
+    // Deleted, or no longer a grocery list: the first one opens instead.
+    expect(openGroceryList(grocery, 'chores')?._id).toBe('ah')
+    expect(openGroceryList([], 'ah')).toBeUndefined()
   })
 })
 
