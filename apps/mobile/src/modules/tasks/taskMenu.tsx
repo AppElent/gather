@@ -132,7 +132,8 @@ export function useTaskSheets({
   onReorder?: () => void
   /**
    * For a screen that is about a task, and so has to leave with it. It hears
-   * which task went: the detail screen also deletes its subtasks from here.
+   * which task went: the detail screen's subtask rows are deleted from here
+   * too, and the screen leaves only when its own task goes.
    */
   onDeleted?: (task: Task) => void
 }) {

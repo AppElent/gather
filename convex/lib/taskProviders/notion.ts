@@ -88,6 +88,8 @@ export function mapNotionPage(
     ? labelsProp.multi_select.map((o: { name: string }) => o.name)
     : undefined
 
+  const parent = parentOf(props)
+
   return {
     externalId: page.id,
     title: title || '(untitled)',
@@ -96,7 +98,7 @@ export function mapNotionPage(
     priority,
     labels,
     url: page.url,
-    ...(parentOf(props) ? { parentExternalId: parentOf(props) } : {}),
+    ...(parent ? { parentExternalId: parent } : {}),
   }
 }
 
