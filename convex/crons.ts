@@ -11,4 +11,12 @@ crons.daily(
   {},
 )
 
+// Checked grocery items beyond what Recent and the habits read (APP-404).
+crons.daily(
+  'prune checked groceries',
+  { hourUTC: 3, minuteUTC: 47 },
+  internal.groceryPrune.pruneCheckedGroceries,
+  {},
+)
+
 export default crons

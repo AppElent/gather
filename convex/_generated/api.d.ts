@@ -19,6 +19,7 @@ import type * as crons from "../crons.js";
 import type * as dataExport from "../dataExport.js";
 import type * as groceryCategories from "../groceryCategories.js";
 import type * as groceryLines from "../groceryLines.js";
+import type * as groceryPrune from "../groceryPrune.js";
 import type * as groceryStaples from "../groceryStaples.js";
 import type * as groups from "../groups.js";
 import type * as holdings from "../holdings.js";
@@ -118,6 +119,7 @@ declare const fullApi: ApiFromModules<{
   dataExport: typeof dataExport;
   groceryCategories: typeof groceryCategories;
   groceryLines: typeof groceryLines;
+  groceryPrune: typeof groceryPrune;
   groceryStaples: typeof groceryStaples;
   groups: typeof groups;
   holdings: typeof holdings;
