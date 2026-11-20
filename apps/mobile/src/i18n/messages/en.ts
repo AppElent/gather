@@ -55,6 +55,9 @@ export const en = {
    */
   recipes: coreEn.recipes,
 
+  /** Meal preferences (APP-318): the screen and the planner's filter words. */
+  mealPreferences: coreEn.mealPreferences,
+
   /** Recipes' nutrition panel. */
   nutrients: coreEn.nutrients,
 
@@ -658,10 +661,6 @@ export const en = {
         other:
           '{count} recipes hidden by your preferences ({reasons}). Tap Matches preferences to see them.',
       },
-      reasonTime: 'too long for {weekday}',
-      reasonDislike: '{item}',
-      clashTime: 'Takes {minutes} min, longer than {weekday} allows',
-      clashDislike: 'Contains {item}, on your rather-not list',
       stars: '{rating} stars',
       alreadyOn: 'Already on {day}',
       noMatches: 'No recipe matches.',

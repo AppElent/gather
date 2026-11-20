@@ -10,6 +10,7 @@
  */
 import type { BarcodeProblem } from './barcodes'
 import { CALENDAR_VALIDATION_KEYS } from './calendar'
+import type { MealPreferencesField } from './mealPreferences'
 import type { TastingAttributeError, TastingAttributeProblem } from './tastings'
 
 export const TASTING_REFUSALS = [
@@ -72,6 +73,16 @@ export function readTastingAttributeProblem(
  */
 export function calendarRefusal(code: CalendarRefusalCode): { kind: string } {
   return { kind: `calendar:${code}` }
+}
+
+/**
+ * A meal preference the server would not store, and which one. The screen
+ * never sends one; an older or foreign client might.
+ */
+export function mealPreferencesRefusal(
+  field: MealPreferencesField,
+): { kind: string; field: string } {
+  return { kind: 'mealPreferences:invalid', field }
 }
 
 function errorData(error: unknown): unknown {

@@ -34,6 +34,7 @@ import {
   formatConfidenceValidator,
   retailerCategoryValidator,
 } from './lib/loyaltyCards'
+import { mealPreferencesFields } from './lib/mealPreferences'
 import {
   notificationPayloadValidator,
   notificationSwitchesValidator,
@@ -447,6 +448,18 @@ export default defineSchema({
   })
     .index('by_group', ['groupId'])
     .index('by_group_date', ['groupId', 'date']),
+
+  // How one Group eats ("Eetvoorkeuren", APP-318): one row per Group, made on
+  // its first change. Every preference is optional and absent means the
+  // default, which `resolveMealPreferences` (@gather/core/meal-preferences)
+  // fills, so a Group without a row reads the defaults. Group content: every
+  // Member may read and change it.
+  mealPreferences: defineTable({
+    groupId: v.id('groups'),
+    ...mealPreferencesFields,
+    updatedBy: v.id('users'),
+    updatedAt: v.number(),
+  }).index('by_group', ['groupId']),
 
   // The Pantry before it folded into Groceries as In stock (APP-314). Kept,
   // unread by current phones, while installed apps still call `kitchen.*`
