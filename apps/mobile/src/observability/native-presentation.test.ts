@@ -5,8 +5,10 @@
  */
 import * as Sentry from '@sentry/react-native'
 import {
+  requestCameraPermissionsAsync as nativeCameraPermission,
   launchCameraAsync as nativeLaunchCamera,
   launchImageLibraryAsync as nativeLaunchLibrary,
+  requestMediaLibraryPermissionsAsync as nativeLibraryPermission,
 } from 'expo-image-picker'
 import { openBrowserAsync as nativeOpenBrowser } from 'expo-web-browser'
 import { ActionSheetIOS, Alert, type AlertButton } from 'react-native'
@@ -16,6 +18,8 @@ import {
   launchCameraAsync,
   launchImageLibraryAsync,
   openBrowserAsync,
+  requestCameraPermissionsAsync,
+  requestMediaLibraryPermissionsAsync,
   showActionSheet,
   showAlert,
   showPrompt,
@@ -160,6 +164,16 @@ describe.each([
     (options?: object) => openBrowserAsync('https://example.com', options),
     nativeOpenBrowser,
   ],
+  [
+    'requestMediaLibraryPermissionsAsync',
+    () => requestMediaLibraryPermissionsAsync(),
+    nativeLibraryPermission,
+  ],
+  [
+    'requestCameraPermissionsAsync',
+    () => requestCameraPermissionsAsync(),
+    nativeCameraPermission,
+  ],
 ] as const)('%s', (name, launch, native) => {
   it('pauses shake while the picker is open and resumes after it settles', async () => {
     let finish: (result: unknown) => void = () => {}
@@ -170,7 +184,9 @@ describe.each([
     )
     const pending = launch({ quality: 1 })
     expect(paused()).toHaveBeenCalledTimes(1)
-    if (name === 'openBrowserAsync') {
+    if (name.startsWith('request')) {
+      expect(native).toHaveBeenCalledTimes(1)
+    } else if (name === 'openBrowserAsync') {
       expect(native).toHaveBeenCalledWith('https://example.com', { quality: 1 })
     } else {
       expect(native).toHaveBeenCalledWith({ quality: 1 })

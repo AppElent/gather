@@ -1,7 +1,7 @@
 // biome-ignore-all lint/correctness/useReactNativePlatformComponents: the action sheet wrapper is iOS-only, like ActionSheetIOS itself.
 /**
- * The only place the app presents an OS alert, prompt, action sheet or image
- * picker, or an in-app browser.
+ * The only place the app presents an OS alert, prompt, action sheet, image
+ * picker or its permission prompt, or an in-app browser.
  *
  * Each is presented from the root view controller, the same one Sentry's
  * feedback form needs, so a shake while one is open strands the form's
@@ -28,10 +28,6 @@ export type {
   ImagePickerAsset,
   ImagePickerOptions,
   ImagePickerResult,
-} from 'expo-image-picker'
-export {
-  requestCameraPermissionsAsync,
-  requestMediaLibraryPermissionsAsync,
 } from 'expo-image-picker'
 
 /** Each button releases the hold before doing what it did. */
@@ -120,6 +116,20 @@ export function launchImageLibraryAsync(
 
 export function launchCameraAsync(options?: ImagePicker.ImagePickerOptions) {
   return whilePickerOpen(() => ImagePicker.launchCameraAsync(options))
+}
+
+/**
+ * The OS permission prompts before a picker: a system alert over the app, so
+ * held like one (a shake there opened the form under it on the simulator).
+ */
+export function requestMediaLibraryPermissionsAsync(writeOnly?: boolean) {
+  return whilePickerOpen(() =>
+    ImagePicker.requestMediaLibraryPermissionsAsync(writeOnly),
+  )
+}
+
+export function requestCameraPermissionsAsync() {
+  return whilePickerOpen(() => ImagePicker.requestCameraPermissionsAsync())
 }
 
 /** The in-app browser (SFSafariViewController), held until it closes. */
