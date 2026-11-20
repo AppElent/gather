@@ -87,7 +87,8 @@ function followControl() {
     cardId: target.cardId,
     via: 'control',
   })
-  setTimeout(() => router.navigate(href))
+  // With the All index beneath the card, so it has a back button (APP-454).
+  setTimeout(() => router.navigate(href, { withAnchor: true }))
 }
 
 export function HomeScreenActionLinks() {
