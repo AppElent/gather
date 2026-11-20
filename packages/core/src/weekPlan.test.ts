@@ -5,6 +5,8 @@ import {
   BUSY_EVENING_MINUTES,
   completePlan,
   fitsSlot,
+  inventedQuickMealFits,
+  plannableQuickMeals,
   plannableRecipes,
   REASON_MAX,
   rulesPlan,
@@ -46,6 +48,7 @@ function input(overrides: Partial<WeekPlanInput> = {}): WeekPlanInput {
     stock: { inStock: [], low: [] },
     prefs: { ...prefs, fishDays: [], leftoverDays: [] },
     wishes: [],
+    skipQuickMeals: [],
     leftoversName: 'Restjes',
     ...overrides,
   }
@@ -149,6 +152,58 @@ describe('fitsSlot', () => {
         input({ recipes: [oats, ...RECIPES] }),
       ),
     ).toEqual([])
+  })
+})
+
+describe('quick meals and preferences', () => {
+  const none = { allergens: [], diets: [], dislikes: [] }
+  test('a made-up name is dropped on any allergy it cannot rule out', () => {
+    expect(inventedQuickMealFits('Pasta met garnalen', { ...none, allergens: ['crustaceans'] })).toBe(false)
+    expect(inventedQuickMealFits('Shrimp tacos', { ...none, allergens: ['crustaceans'] })).toBe(false)
+    // Nothing in the name, but a name can't say "free of": dropped too.
+    expect(inventedQuickMealFits('Wraps met hummus', { ...none, allergens: ['crustaceans'] })).toBe(false)
+    expect(inventedQuickMealFits('Wraps met hummus', none)).toBe(true)
+  })
+
+  test('a certain diet or dislike clash drops it; an unsure diet does not', () => {
+    expect(inventedQuickMealFits('Pasta met garnalen', { ...none, diets: ['vegetarian'] })).toBe(false)
+    expect(inventedQuickMealFits('Tosti met champignons', { ...none, dislikes: ['champignons'] })).toBe(false)
+    expect(inventedQuickMealFits('Wraps met hummus', { ...none, diets: ['vegetarian'] })).toBe(true)
+  })
+
+  test('the Group\'s own quick meals go only on a certain clash', () => {
+    const own = [
+      { id: 'q1', title: 'Tosti' },
+      { id: 'q2', title: 'Garnalen uit de pan' },
+    ]
+    expect(plannableQuickMeals(own, { ...none, allergens: ['crustaceans'] }).map((q) => q.id)).toEqual(['q1'])
+  })
+
+  test('the model\'s quick meals: allergens, skipped names and repeats dropped', () => {
+    const shellfish = { ...input().prefs, allergens: ['crustaceans' as const] }
+    const picks = acceptAiPicks(
+      [
+        { date: '2026-11-24', slot: 'dinner', quickMeal: 'Pasta met garnalen', reason: 'x' },
+        { date: '2026-11-25', slot: 'dinner', quickMeal: 'TOSTI', reason: 'x' },
+        { date: '2026-11-26', slot: 'dinner', quickMeal: 'tosti', reason: 'twice' },
+      ],
+      input({ prefs: shellfish }),
+    )
+    expect(picks.map((p) => [p.date, p.quickMeal])).toEqual([['2026-11-25', 'Tosti']])
+
+    const clean = acceptAiPicks(
+      [
+        { date: '2026-11-24', slot: 'dinner', quickMeal: 'Wraps met hummus', reason: 'x' },
+        { date: '2026-11-25', slot: 'dinner', quickMeal: 'Pannenkoeken!', reason: 'turned down' },
+      ],
+      input({ skipQuickMeals: ['pannenkoeken'] }),
+    )
+    expect(clean.map((p) => p.quickMeal)).toEqual(['Wraps met hummus'])
+  })
+
+  test('the rules skip a quick meal whose name is turned down', () => {
+    const picks = rulesPlan(input({ recipes: [], skipQuickMeals: ['Tosti'] }))
+    expect(picks).toEqual([])
   })
 })
 

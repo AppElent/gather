@@ -30,6 +30,7 @@ import {
   AI_RECIPES_MAX,
   completePlan,
   DRAFT_LIFETIME_MS,
+  plannableQuickMeals,
   plannableRecipes,
   rulesPlan,
   WEEK_PLAN_WISHES,
@@ -71,6 +72,8 @@ const NOT_FOUND = 'Proposal not found'
 const HISTORY_DAYS = 180
 /** Stock names the model and the rules see at most. */
 const STOCK_MAX = 60
+/** A week holds at most 21 drafts (7 days, 3 slots). */
+const SKIP_MAX = 21
 /** Expired drafts one sweep deletes; the cron runs again within the hour. */
 const SWEEP_BATCH = 500
 
@@ -176,9 +179,10 @@ async function planContext(
     locale: 'nl' | 'en'
     wishes: WeekPlanInput['wishes']
     wish?: string
-    /** Regenerate: keep these recipes and this quick meal out. */
+    /** Regenerate: keep these recipes and quick meals out. */
     avoidRecipeIds?: string[]
     avoidMealEntryId?: string
+    avoidQuickMeals?: string[]
   },
 ) {
   const { group } = await requireGroupBySlug(ctx, args.groupSlug)
@@ -266,18 +270,26 @@ async function planContext(
   const input: WeekPlanPromptInput = {
     targets,
     recipes: plannable,
-    // A quick meal already in the week is not proposed again.
-    quickMeals: quickMeals
-      .filter(
-        (entry) =>
-          entry._id !== args.avoidMealEntryId &&
-          !week.meals.some((meal) => meal.mealEntryId === entry._id),
-      )
-      .map((entry) => ({
-        id: entry._id as string,
-        title: entry.title,
-        prepMinutes: entry.prepMinutes,
-      })),
+    // A quick meal already in the week is not proposed again, nor one whose
+    // name certainly clashes with the Group's allergens, diets or dislikes.
+    quickMeals: plannableQuickMeals(
+      quickMeals
+        .filter(
+          (entry) =>
+            entry._id !== args.avoidMealEntryId &&
+            !week.meals.some((meal) => meal.mealEntryId === entry._id),
+        )
+        .map((entry) => ({
+          id: entry._id as string,
+          title: entry.title,
+          prepMinutes: entry.prepMinutes,
+        })),
+      prefs,
+    ),
+    skipQuickMeals: [
+      ...week.meals.map((meal) => meal.title),
+      ...(args.avoidQuickMeals ?? []).slice(0, SKIP_MAX),
+    ],
     plannedRecipeIds: [
       ...week.meals.flatMap((meal) => (meal.recipeId ? [meal.recipeId as string] : [])),
       ...avoid,
@@ -313,6 +325,7 @@ const planArgs = {
   wish: v.optional(v.string()),
   avoidRecipeIds: v.optional(v.array(v.string())),
   avoidMealEntryId: v.optional(v.string()),
+  avoidQuickMeals: v.optional(v.array(v.string())),
 }
 
 /** The planners' input for one plan, read as the calling Member. */
@@ -546,6 +559,8 @@ export const draftFor = internalQuery({
       recipeIds: others.flatMap((draft) =>
         draft.recipeId ? [draft.recipeId as string] : [],
       ),
+      // This draft's quick meal and the other days'.
+      quickMeals: others.flatMap((draft) => (draft.quickMeal ? [draft.quickMeal] : [])),
     }
   },
 })
@@ -570,6 +585,7 @@ export const regenerate = action({
       slot: MealSlot
       mealEntryId?: string
       recipeIds: string[]
+      quickMeals: string[]
     } = await ctx.runQuery(internal.mealPlanDrafts.draftFor, {
       groupSlug: args.groupSlug,
       id: args.id,
@@ -585,6 +601,7 @@ export const regenerate = action({
         wishes: [],
         avoidRecipeIds: draft.recipeIds,
         avoidMealEntryId: draft.mealEntryId,
+        avoidQuickMeals: draft.quickMeals,
       },
       { kind: 'draft', id: args.id },
     )

@@ -118,7 +118,7 @@ export function weekPlanPrompt(input: WeekPlanPromptInput): string {
   const rules = [
     input.diets.length > 0 && `Diets: ${input.diets.join(', ')}.`,
     input.allergens.length > 0 &&
-      `Allergies (already filtered out of the list; never suggest a quick meal with them): ${input.allergens.join(', ')}.`,
+      `Allergies (already filtered out of the list; never suggest a quick meal with them; a quick meal you name yourself is dropped, so use a recipe or one of the household's own quick meals): ${input.allergens.join(', ')}.`,
     input.dislikes.length > 0 &&
       `Disliked (never in a quick meal): ${input.dislikes.slice(0, 20).join(', ')}.`,
     input.prefs.noRepeatDays > 0 &&
@@ -131,6 +131,8 @@ export function weekPlanPrompt(input: WeekPlanPromptInput): string {
       input.stock.inStock.length + input.stock.low.length > 0 &&
       'Prefer recipes that use what is in stock, especially what is running low.',
   ].filter(Boolean)
+  const planned = new Set(input.plannedTitles)
+  const turnedDown = input.skipQuickMeals.filter((title) => !planned.has(title))
   const wishes = [
     ...input.wishes.map((wish) => WISH_WORDS[wish]),
     input.wish ? JSON.stringify(input.wish) : null,
@@ -146,6 +148,9 @@ export function weekPlanPrompt(input: WeekPlanPromptInput): string {
     rules.length > 0 ? `Rules:\n${rules.join('\n')}` : 'Rules: none.',
     input.plannedTitles.length > 0
       ? `Already planned this week: ${input.plannedTitles.slice(0, 21).map((t) => JSON.stringify(t.slice(0, 60))).join(', ')}.`
+      : '',
+    turnedDown.length > 0
+      ? `Not again (just turned down or proposed for another day): ${turnedDown.slice(0, 21).map((t) => JSON.stringify(t.slice(0, 60))).join(', ')}.`
       : '',
     input.stock.low.length > 0
       ? `Running low: ${input.stock.low.slice(0, 20).join(', ')}.`

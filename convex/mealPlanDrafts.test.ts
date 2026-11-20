@@ -237,6 +237,60 @@ describe('mealPlanDrafts.propose', () => {
     expect(drafts.every((d) => d.source === 'rules')).toBe(true)
   })
 
+  test('a quick meal the model names that may hold an allergen is dropped; the rules fill', async () => {
+    const { t, as, aliceId, home } = await seed()
+    await t.run((ctx) =>
+      ctx.db.insert('mealPreferences', {
+        groupId: home,
+        allergens: ['crustaceans'],
+        updatedBy: aliceId,
+        updatedAt: Date.now(),
+      }),
+    )
+    vi.stubEnv('ANTHROPIC_API_KEY', 'test-key')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        aiReply([
+          // Certainly shellfish: dropped.
+          { date: '2026-11-24', slot: 'dinner', quickMeal: 'Pasta met garnalen', minutes: 15, reason: 'Snel' },
+          // The Group's own quick meal: kept.
+          { date: '2026-11-25', slot: 'dinner', quickMeal: 'Tosti', reason: 'Snel' },
+          // Made up, and a name can't rule shellfish out: dropped.
+          { date: '2026-11-26', slot: 'dinner', quickMeal: 'Wraps met hummus', minutes: 15, reason: 'Snel' },
+        ]),
+      ),
+    )
+    const result = await as.action(api.mealPlanDrafts.propose, PLAN)
+    expect(result).toMatchObject({ status: 'ai', count: 4 })
+    const drafts = await as.query(api.mealPlanDrafts.list, WEEK)
+    const byDate = new Map(drafts.map((d) => [d.date, d]))
+    expect(byDate.get('2026-11-24')).toMatchObject({ source: 'rules' })
+    expect(byDate.get('2026-11-24')?.recipeId).toBeDefined()
+    expect(byDate.get('2026-11-25')).toMatchObject({ source: 'ai', title: 'Tosti' })
+    expect(byDate.get('2026-11-26')).toMatchObject({ source: 'rules' })
+    const titles = drafts.map((d) => d.title)
+    expect(titles).not.toContain('Pasta met garnalen')
+    expect(titles).not.toContain('Wraps met hummus')
+  })
+
+  test('a clean quick meal the model names is kept', async () => {
+    const { as } = await seed()
+    vi.stubEnv('ANTHROPIC_API_KEY', 'test-key')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        aiReply([{ date: '2026-11-24', slot: 'dinner', quickMeal: 'Wraps met hummus', minutes: 15, reason: 'Snel' }]),
+      ),
+    )
+    await as.action(api.mealPlanDrafts.propose, PLAN)
+    const drafts = await as.query(api.mealPlanDrafts.list, WEEK)
+    expect(drafts.find((d) => d.date === '2026-11-24')).toMatchObject({
+      source: 'ai',
+      title: 'Wraps met hummus',
+    })
+  })
+
   test('without a key the plan is the rules plan, and costs nothing', async () => {
     const { t, as } = await seed()
     vi.stubEnv('ANTHROPIC_API_KEY', '')
@@ -406,6 +460,24 @@ describe('mealPlanDrafts accept, discard and expiry', () => {
     const after = await as.query(api.mealPlanDrafts.list, WEEK)
     expect(after.map((d) => d._id)).toEqual(drafts.map((d) => d._id))
     expect(after[0].title).toBe('Tacos met kip')
+  })
+
+  test('regenerate never brings back the quick meal it replaces', async () => {
+    const { as, drafts } = await proposed()
+    // Wednesday's draft is the made-up "Wraps met hummus"; the model names it again.
+    const wed = drafts.find((d) => d.date === '2026-11-25')
+    if (!wed) throw new Error('no Wednesday draft')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        aiReply([{ date: '2026-11-25', slot: 'dinner', quickMeal: 'wraps met  Hummus', reason: 'Snel' }]),
+      ),
+    )
+    await as.action(api.mealPlanDrafts.regenerate, { groupSlug: 'home', id: wed._id, locale: 'nl' })
+    const after = await as.query(api.mealPlanDrafts.list, WEEK)
+    const next = after.find((d) => d.date === '2026-11-25')
+    expect(next?.title).not.toBe('Wraps met hummus')
+    expect(next?.source).toBe('rules')
   })
 
   test('another Group cannot accept or discard', async () => {

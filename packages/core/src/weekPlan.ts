@@ -84,6 +84,9 @@ export interface WeekPlanInput {
   stock: { inStock: readonly string[]; low: readonly string[] }
   prefs: Pick<
     ResolvedMealPreferences,
+    | 'allergens'
+    | 'diets'
+    | 'dislikes'
     | 'cookingMinutes'
     | 'noRepeatDays'
     | 'meatFreeNights'
@@ -92,6 +95,11 @@ export interface WeekPlanInput {
     | 'smart'
   >
   wishes: readonly WeekPlanWish[]
+  /**
+   * Quick meals by name that must not be proposed: those already in the
+   * week, and on regenerate the one being replaced and the other drafts'.
+   */
+  skipQuickMeals: readonly string[]
   /** The quick meal a leftover evening gets, in the reader's language. */
   leftoversName: string
 }
@@ -124,6 +132,52 @@ export function plannableRecipes<T extends WeekPlanRecipe>(
       (clash) => clash.uncertain === true,
     ),
   )
+}
+
+/**
+ * The Group's own quick meals a plan may draw from: like `plannableRecipes`,
+ * those whose name has no certain clash. A quick meal has no ingredients, so
+ * only its name is read.
+ */
+export function plannableQuickMeals<T extends WeekPlanQuickMeal>(
+  quickMeals: readonly T[],
+  prefs: Pick<ResolvedMealPreferences, 'allergens' | 'diets' | 'dislikes'>,
+): T[] {
+  return quickMeals.filter((meal) =>
+    nameClashes(meal.title, prefs).every((clash) => clash.uncertain === true),
+  )
+}
+
+/**
+ * Whether the model may propose a quick meal it made up. Stricter than for a
+ * recipe or the Group's own quick meal: a name says too little to clear an
+ * allergy, so any allergy the matcher can't rule out ("controleer zelf")
+ * drops it, as does any certain diet or dislike clash. The rules then fill the
+ * slot. With any allergy set, that is every made-up name.
+ */
+export function inventedQuickMealFits(
+  name: string,
+  prefs: Pick<ResolvedMealPreferences, 'allergens' | 'diets' | 'dislikes'>,
+): boolean {
+  return nameClashes(name, prefs).every(
+    (clash) => clash.uncertain === true && clash.kind !== 'allergen',
+  )
+}
+
+function nameClashes(
+  name: string,
+  prefs: Pick<ResolvedMealPreferences, 'allergens' | 'diets' | 'dislikes'>,
+) {
+  return recipeClashes(
+    { title: name, ingredients: [], tags: [] },
+    { ...prefs, cookingMinutes: NO_TIME },
+    0,
+  )
+}
+
+/** A quick meal's name as compared: lower case, accents and punctuation gone. */
+export function quickMealKey(name: string): string {
+  return normalizeText(name).replace(/\s+/g, ' ').trim()
 }
 
 /** The longest a target's meal may take: its weekday, or less when busy. */
@@ -269,6 +323,7 @@ function isLeftoverEvening(
 export function rulesPlan(input: WeekPlanInput): WeekPlanPick[] {
   const used = new Set(input.plannedRecipeIds)
   const usedQuick = new Set<string>()
+  const skipQuick = new Set(input.skipQuickMeals.map(quickMealKey))
   const dinners = new Set(input.plannedDinnerDates)
   const picks: WeekPlanPick[] = []
   let meatFreeLeft = input.prefs.meatFreeNights
@@ -313,7 +368,12 @@ export function rulesPlan(input: WeekPlanInput): WeekPlanPick[] {
       continue
     }
     const quick = input.quickMeals
-      .filter((meal) => !usedQuick.has(meal.id) && fitsTime(meal.prepMinutes, limit))
+      .filter(
+        (meal) =>
+          !usedQuick.has(meal.id) &&
+          !skipQuick.has(quickMealKey(meal.title)) &&
+          fitsTime(meal.prepMinutes, limit),
+      )
       .sort((a, b) => (a.prepMinutes ?? 99) - (b.prepMinutes ?? 99) || a.title.localeCompare(b.title))[0]
     if (quick) {
       usedQuick.add(quick.id)
@@ -349,19 +409,24 @@ function cleanText(value: unknown, max: number): string | undefined {
  * The model's answer, kept to what it may say. A pick survives only when its
  * slot was asked for and not picked before, and it names either a recipe id
  * from `recipes` (the list it was given) that is not already in the week and
- * fits the evening's time, or a quick meal by name. Anything else, an
- * invented id above all, is dropped; `rulesPlan` fills what is left.
+ * fits the evening's time, or a quick meal by name. A quick meal by name is
+ * dropped when it is in `skipQuickMeals` or named twice, and, unless it is
+ * one of the Group's own, when `inventedQuickMealFits` says no. Anything
+ * else, an invented id above all, is dropped; `rulesPlan` fills what is left.
  */
 export function acceptAiPicks(
   raw: unknown,
-  input: Pick<WeekPlanInput, 'targets' | 'recipes' | 'quickMeals' | 'plannedRecipeIds'>,
+  input: Pick<
+    WeekPlanInput,
+    'targets' | 'recipes' | 'quickMeals' | 'plannedRecipeIds' | 'prefs' | 'skipQuickMeals'
+  >,
 ): WeekPlanPick[] {
   if (!Array.isArray(raw)) return []
   const targets = new Map(input.targets.map((t) => [`${t.date}|${t.slot}`, t]))
   const recipes = new Map(input.recipes.map((r) => [r.id, r]))
-  const quickByName = new Map(
-    input.quickMeals.map((q) => [q.title.trim().toLocaleLowerCase(), q]),
-  )
+  const quickByName = new Map(input.quickMeals.map((q) => [quickMealKey(q.title), q]))
+  // Names already in the week or turned down, then each name once.
+  const namedQuick = new Set(input.skipQuickMeals.map(quickMealKey))
   const used = new Set(input.plannedRecipeIds)
   const taken = new Set<string>()
   const picks: WeekPlanPick[] = []
@@ -391,7 +456,11 @@ export function acceptAiPicks(
     }
     const name = cleanText(item.quickMeal, QUICK_MEAL_NAME_MAX)
     if (!name) continue
-    const known = quickByName.get(name.toLocaleLowerCase())
+    const nameKey = quickMealKey(name)
+    if (!nameKey || namedQuick.has(nameKey)) continue
+    const known = quickByName.get(nameKey)
+    if (!known && !inventedQuickMealFits(name, input.prefs)) continue
+    namedQuick.add(nameKey)
     const minutes =
       known?.prepMinutes ??
       (typeof item.minutes === 'number' &&
