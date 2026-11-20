@@ -734,6 +734,7 @@ const USER_REFERENCES: {
   plannedDinners: { eaterIds: 'repoint' },
   pantryEntries: { createdBy: 'repoint' },
   mealPreferences: { memberDefaults: 'repoint', updatedBy: 'repoint' },
+  mealPlanDrafts: { createdBy: 'repoint' },
   groceryStaples: { createdBy: 'repoint' },
   calendars: { createdBy: 'repoint' },
   calendarEvents: { createdBy: 'repoint', assigneeIds: 'repoint' },

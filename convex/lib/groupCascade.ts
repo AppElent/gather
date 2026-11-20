@@ -302,6 +302,16 @@ const GROUP_CONTENT: {
         .collect(),
     ),
 
+  mealPlanDrafts: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'mealPlanDrafts',
+      await ctx.db
+        .query('mealPlanDrafts')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
   pantryEntries: async (ctx, groupId) =>
     purge(
       ctx,

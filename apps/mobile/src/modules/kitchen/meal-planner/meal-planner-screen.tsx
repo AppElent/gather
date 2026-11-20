@@ -12,9 +12,9 @@
 import { MenuView } from '@expo/ui/community/menu'
 import { addDays, localIsoDate, mondayStart } from '@gather/core/civil-date'
 import type { MealSlot } from '@gather/core/meal-planner'
-import { useMutation } from 'convex/react'
+import { useAction, useMutation } from 'convex/react'
 import { router, Stack } from 'expo-router'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
   type HostInstance,
@@ -58,6 +58,8 @@ import { MealGroceriesSheet } from './meal-groceries-sheet'
 import { MealSheet } from './meal-sheet'
 import { EmptyThumb, MealThumb, MemberCoins } from './parts'
 import { PickSheet } from './pick-sheet'
+import { type PlanOutcome, PlanSheet } from './plan-sheet'
+import { DraftCard, ProposalBar, ProposalCard } from './proposal'
 import {
   busyEvent,
   clock,
@@ -75,6 +77,7 @@ import {
   weekRange,
 } from './week'
 import { WeekGroceriesSheet } from './week-groceries-sheet'
+import { type Draft, draftIn } from './week-plan'
 
 /** Eetvoorkeuren, from the bar menu and the button beside Boodschappen. */
 const PREFERENCES_PATH: ModulePath = '/all/meal-planner/preferences'
@@ -95,6 +98,8 @@ type Sheet =
   | { kind: 'groceries' }
   /** One meal's Recipe onto the grocery list, at its servings (APP-421). */
   | { kind: 'meal-groceries'; recipeId: string; servings: number }
+  /** Plan mijn week's start sheet (APP-319). */
+  | { kind: 'plan' }
 
 interface Drag {
   meal: PlannedMeal
@@ -125,6 +130,35 @@ export function MealPlannerScreen() {
     to,
   })
   const move = useMutation(api.mealPlan.move)
+  const draftList = useQuery(api.mealPlanDrafts.list, {
+    groupSlug: group.slug,
+    weekStart,
+  })
+  const drafts = draftList ?? []
+  const acceptDraft = useMutation(api.mealPlanDrafts.accept)
+  const acceptAll = useMutation(api.mealPlanDrafts.acceptAll)
+  const discard = useMutation(api.mealPlanDrafts.discard)
+  const regenerate = useAction(api.mealPlanDrafts.regenerate)
+  // The proposal this visit: the bar stays, saying all is saved, once the
+  // last draft is accepted, until Klaar. Accepted slots say "net
+  // overgenomen" until the screen is left.
+  const [proposalOpen, setProposalOpen] = useState(false)
+  const [justAccepted, setJustAccepted] = useState<ReadonlySet<string>>(new Set())
+  const [regenerating, setRegenerating] = useState<string | null>(null)
+  const [accepting, setAccepting] = useState(false)
+  const [fallback, setFallback] = useState(false)
+  const draftFallback = drafts.some((draft) => draft.source === 'fallback')
+  useEffect(() => {
+    if (drafts.length === 0) return
+    setProposalOpen(true)
+    setFallback(draftFallback)
+  }, [drafts.length, draftFallback])
+  // A new week starts with no proposal of this visit.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset per week
+  useEffect(() => {
+    setProposalOpen(false)
+    setJustAccepted(new Set())
+  }, [weekStart])
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
@@ -250,6 +284,99 @@ export function MealPlannerScreen() {
     router.push(moduleHref(PREFERENCES_PATH))
   }
 
+  // Closing the proposal also drops its "net overgenomen" marks.
+  const closeProposal = () => {
+    setProposalOpen(false)
+    setJustAccepted(new Set())
+  }
+  const markAccepted = (keys: readonly string[]) =>
+    setJustAccepted((current) => new Set([...current, ...keys]))
+  const proposalWords = words.proposal
+  const onAcceptDraft = (draft: Draft) => {
+    acceptDraft({ groupSlug: group.slug, id: draft._id })
+      .then((result) => {
+        if (result === 'planned') {
+          haptics.itemSaved()
+          markAccepted([`${draft.date}|${draft.slot}`])
+          return
+        }
+        haptics.actionFailed()
+        showToast({
+          message: result === 'taken' ? proposalWords.taken : proposalWords.gone,
+        })
+      })
+      .catch(() => {
+        haptics.actionFailed()
+        showToast({ message: words.failed })
+      })
+  }
+  const onAcceptAll = () => {
+    const keys = drafts.map((draft) => `${draft.date}|${draft.slot}`)
+    setAccepting(true)
+    acceptAll({ groupSlug: group.slug, weekStart })
+      .then((result) => {
+        haptics.itemSaved()
+        markAccepted(keys)
+        // Only what was shown counts: a draft whose slot someone filled
+        // before is already gone from the week.
+        const lost = keys.length - result.planned
+        if (lost > 0)
+          showToast({ message: plural(locale, lost, proposalWords.skipped) })
+      })
+      .catch(() => {
+        haptics.actionFailed()
+        showToast({ message: words.failed })
+      })
+      .finally(() => setAccepting(false))
+  }
+  const onDiscard = () => {
+    discard({ groupSlug: group.slug, weekStart })
+      .then(() => {
+        haptics.selectionChanged()
+        closeProposal()
+        showToast({ message: proposalWords.discarded })
+      })
+      .catch(() => {
+        haptics.actionFailed()
+        showToast({ message: words.failed })
+      })
+  }
+  const onRegenerate = (draft: Draft) => {
+    setRegenerating(draft._id)
+    regenerate({ groupSlug: group.slug, id: draft._id, locale })
+      .then((result) => {
+        if (result.status === 'limit') {
+          haptics.actionFailed()
+          setSheet({ kind: 'plan' })
+          return
+        }
+        if (result.status === 'none') {
+          showToast({
+            message: fmt(proposalWords.regenerateNone, {
+              day: weekdayName(draft.date, locale).toLocaleLowerCase(locale),
+            }),
+          })
+          return
+        }
+        haptics.itemSaved()
+      })
+      .catch(() => {
+        haptics.actionFailed()
+        showToast({ message: words.failed })
+      })
+      .finally(() => setRegenerating(null))
+  }
+  const onPlanned = (outcome: PlanOutcome) => {
+    setSheet(null)
+    if (outcome.status === 'empty') showToast({ message: words.plan.empty })
+    else {
+      setJustAccepted(new Set())
+      setProposalOpen(true)
+      scrollRef.current?.scrollTo({ y: 0, animated: true })
+    }
+  }
+  const showBar = proposalOpen && (drafts.length > 0 || justAccepted.size > 0)
+
   return (
     <View ref={rootRef} collapsable={false} style={styles.root}>
       <Stack.Screen
@@ -301,7 +428,9 @@ export function MealPlannerScreen() {
           contentInsetAdjustmentBehavior="automatic"
           scrollEnabled={drag === null}
           style={{ backgroundColor: tokens.ground }}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 72 }}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + (showBar ? 168 : 72),
+          }}
         >
           {tile ? (
             <WashHeader
@@ -357,6 +486,30 @@ export function MealPlannerScreen() {
               </RoundButton>
             </View>
 
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={words.plan.open}
+              testID="meal-planner-plan"
+              disabled={!data}
+              onPress={() => setSheet({ kind: 'plan' })}
+              style={({ pressed }) => [
+                styles.pill,
+                { backgroundColor: tokens.accent },
+                pressed && styles.pressed,
+              ]}
+            >
+              <UI_ICONS.Spark
+                size={18}
+                color={tokens.onAccent}
+                strokeWidth={2}
+              />
+              <Text
+                maxFontSizeMultiplier={2}
+                style={[styles.pillLabel, { color: tokens.onAccent }]}
+              >
+                {words.plan.open}
+              </Text>
+            </Pressable>
             <View style={styles.actions}>
               <Pressable
                 accessibilityRole="button"
@@ -365,6 +518,7 @@ export function MealPlannerScreen() {
                 onPress={() => setSheet({ kind: 'groceries' })}
                 style={({ pressed }) => [
                   styles.pill,
+                  styles.groceriesPill,
                   { backgroundColor: tokens.surface },
                   pressed && styles.pressed,
                 ]}
@@ -372,7 +526,7 @@ export function MealPlannerScreen() {
                 <UI_ICONS.Cart size={18} color={tokens.ink} strokeWidth={2} />
                 <Text
                   maxFontSizeMultiplier={2}
-                  style={[styles.pillLabel, { color: tokens.ink }]}
+                  style={[styles.groceriesLabel, { color: tokens.ink }]}
                 >
                   {words.groceries}
                 </Text>
@@ -390,6 +544,10 @@ export function MealPlannerScreen() {
                 />
               </RoundButton>
             </View>
+
+            {data && (drafts.length > 0 || showBar) ? (
+              <ProposalCard fallback={fallback} />
+            ) : null}
 
             {data
               ? days.map((date) => (
@@ -409,6 +567,11 @@ export function MealPlannerScreen() {
                       onDrag={handlers}
                       onOpen={(meal) => setSheet({ kind: 'meal', id: meal._id })}
                       onPick={(slot) => setSheet({ kind: 'pick', date, slot })}
+                      drafts={drafts}
+                      justAccepted={justAccepted}
+                      regenerating={regenerating}
+                      onAcceptDraft={onAcceptDraft}
+                      onRegenerate={onRegenerate}
                     />
                   </View>
                 ))
@@ -457,6 +620,35 @@ export function MealPlannerScreen() {
         </Animated.View>
       ) : null}
 
+      {showBar ? (
+        <ProposalBar
+          pending={drafts.length}
+          bottom={insets.bottom + SPACE[3]}
+          busy={accepting}
+          onDiscard={onDiscard}
+          onAcceptAll={onAcceptAll}
+          onGroceries={() => {
+            closeProposal()
+            setSheet({ kind: 'groceries' })
+          }}
+          onDone={closeProposal}
+        />
+      ) : null}
+
+      {data && sheet?.kind === 'plan' ? (
+        <PlanSheet
+          key={weekStart}
+          weekStart={weekStart}
+          data={data}
+          onClose={() => setSheet(null)}
+          onPlanned={onPlanned}
+          onChooseYourself={(date, slot) => setSheet({ kind: 'pick', date, slot })}
+          onPreferences={() => {
+            setSheet(null)
+            openPreferences()
+          }}
+        />
+      ) : null}
       {data && sheet?.kind === 'meal' ? (
         <MealSheet
           key={sheet.id}
@@ -525,6 +717,11 @@ function Day({
   onDrag,
   onOpen,
   onPick,
+  drafts,
+  justAccepted,
+  regenerating,
+  onAcceptDraft,
+  onRegenerate,
 }: {
   date: string
   data: WeekData
@@ -538,6 +735,11 @@ function Day({
   }>
   onOpen: (meal: PlannedMeal) => void
   onPick: (slot: MealSlot) => void
+  drafts: readonly Draft[]
+  justAccepted: ReadonlySet<string>
+  regenerating: string | null
+  onAcceptDraft: (draft: Draft) => void
+  onRegenerate: (draft: Draft) => void
 }) {
   const { t, locale } = useI18n()
   const words = t.mealPlanner
@@ -605,6 +807,19 @@ function Day({
       >
         {slots.map((slot) => {
           const meal = mealIn(data.meals, date, slot)
+          const draft = meal ? undefined : draftIn(drafts, date, slot)
+          if (draft)
+            return (
+              <DraftCard
+                key={slot}
+                draft={draft}
+                regenerating={regenerating === draft._id}
+                onAccept={() => onAcceptDraft(draft)}
+                // Iets anders: Pick for now; APP-320 brings Swap here.
+                onSomethingElse={() => onPick(slot)}
+                onRegenerate={() => onRegenerate(draft)}
+              />
+            )
           if (!meal)
             return (
               <InsetRow
@@ -631,7 +846,11 @@ function Day({
             <MealRow
               key={slot}
               meal={meal}
-              meta={mealMeta(meal, data, words, locale)}
+              meta={
+                justAccepted.has(`${date}|${slot}`)
+                  ? `${mealMeta(meal, data, words, locale)} · ${words.proposal.justAccepted}`
+                  : mealMeta(meal, data, words, locale)
+              }
               lifted={dragging === meal._id}
               rowRef={rowRef}
               onDrag={onDrag}
@@ -785,7 +1004,11 @@ const styles = StyleSheet.create({
     gap: SPACE[2],
     paddingHorizontal: SPACE[4],
   },
-  pillLabel: { ...TYPE.bodyStrong },
+  pillLabel: { ...TYPE.bodyStrong, flexShrink: 1 },
+  // Plan mijn week has its own row: beside Boodschappen its label only fits
+  // at a smaller size, even on a 6.3" phone.
+  groceriesPill: { flexGrow: 1, gap: 6 },
+  groceriesLabel: { ...TYPE.body },
   pressed: { opacity: 0.7 },
   day: { gap: SPACE[2] },
   dayHeading: {

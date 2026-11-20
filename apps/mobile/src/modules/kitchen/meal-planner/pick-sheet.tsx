@@ -44,7 +44,7 @@ import { fmt, plural, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { InsetAddRow, InsetList, InsetRow } from '../../../ui/inset-list'
-import { MealThumb } from './parts'
+import { Chip, MealThumb } from './parts'
 import { type WeekData, weekdayName } from './week'
 
 export function PickSheet({
@@ -335,49 +335,6 @@ export function PickSheet({
   )
 }
 
-function Chip({
-  label,
-  on,
-  testID,
-  icon: Icon,
-  onPress,
-}: {
-  label: string
-  on: boolean
-  testID: string
-  icon?: (typeof UI_ICONS)[keyof typeof UI_ICONS]
-  onPress: () => void
-}) {
-  const tokens = useTokens()
-  const color = on ? tokens.onInk : tokens.ink
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: on }}
-      accessibilityLabel={label}
-      testID={testID}
-      onPress={() => {
-        haptics.selectionChanged()
-        onPress()
-      }}
-      style={({ pressed }) => [
-        styles.chip,
-        on
-          ? { backgroundColor: tokens.ink, borderColor: tokens.ink }
-          : { backgroundColor: tokens.surface, borderColor: tokens.hair },
-        pressed && styles.pressed,
-      ]}
-    >
-      {on ? (
-        <UI_ICONS.Check size={14} color={color} strokeWidth={2.6} />
-      ) : Icon ? (
-        <Icon size={14} color={color} strokeWidth={2.2} />
-      ) : null}
-      <Text style={[styles.chipLabel, { color }]}>{label}</Text>
-    </Pressable>
-  )
-}
-
 function QuickComposer({
   value,
   onChange,
@@ -443,16 +400,6 @@ const styles = StyleSheet.create({
     marginHorizontal: -SPACE[4],
   },
   chips: { gap: SPACE[2], paddingHorizontal: SPACE[4] },
-  chip: {
-    minHeight: 36,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE[1],
-    paddingHorizontal: SPACE[3],
-    borderRadius: RADIUS.pill,
-    borderWidth: 1,
-  },
-  chipLabel: { ...TYPE.footnoteStrong },
   body: { gap: SPACE[3], paddingTop: SPACE[3], paddingBottom: SPACE[6] },
   status: { ...TYPE.footnote, paddingHorizontal: SPACE[1] },
   quick: { gap: SPACE[2], marginTop: SPACE[2] },

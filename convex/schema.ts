@@ -444,6 +444,35 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index('by_group', ['groupId']),
 
+  // A proposal from Plan mijn week (APP-319): one row per proposed meal, per
+  // Group and week, until a Member accepts it (it becomes a `plannedDinners`
+  // row), discards the week's proposal, or it expires after 24 hours. Its own
+  // table, not a flag on Planned meals, so phones from before APP-319 never
+  // draw a proposal as a real meal. Group content: every Member sees and acts
+  // on it. `createdBy` is attribution only. Exactly one of `recipeId` and
+  // `quickMeal` is set; `mealEntryId` when the quick meal is one the Group
+  // has. `reason` is the model's line; `source` says which planner chose it:
+  // the model (`ai`), the rules for a slot the model left open (`rules`), or
+  // the rules because the model was not reachable (`fallback`).
+  mealPlanDrafts: defineTable({
+    groupId: v.id('groups'),
+    /** Monday of the week, `YYYY-MM-DD`. */
+    weekStart: v.string(),
+    date: v.string(),
+    slot: mealSlotValidator,
+    recipeId: v.optional(v.id('recipes')),
+    quickMeal: v.optional(v.string()),
+    mealEntryId: v.optional(v.id('mealEntries')),
+    prepMinutes: v.optional(v.number()),
+    reason: v.optional(v.string()),
+    source: v.union(v.literal('ai'), v.literal('rules'), v.literal('fallback')),
+    createdBy: v.id('users'),
+    expiresAt: v.number(),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_group_week', ['groupId', 'weekStart'])
+    .index('by_expires', ['expiresAt']),
+
   // The Pantry before it folded into Groceries as In stock (APP-314). Kept,
   // unread by current phones, while installed apps still call `kitchen.*`
   // pantry functions; `maintenance:migratePantryToStaples` copies it into

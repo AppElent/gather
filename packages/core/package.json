@@ -38,6 +38,7 @@
     "./smart-lists": "./src/smartLists.ts",
     "./task-lists": "./src/taskLists.ts",
     "./task-reminders": "./src/taskReminders.ts",
+    "./week-plan": "./src/weekPlan.ts",
     "./task-repeat": "./src/taskRepeat.ts",
     "./tastings": "./src/tastings.ts"
   },
