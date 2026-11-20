@@ -19,4 +19,12 @@ crons.daily(
   {},
 )
 
+// Plan mijn week's proposals are kept for 24 hours (APP-319).
+crons.hourly(
+  'sweep expired meal plan drafts',
+  { minuteUTC: 41 },
+  internal.mealPlanDrafts.sweep,
+  {},
+)
+
 export default crons
