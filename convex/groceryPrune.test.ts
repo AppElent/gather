@@ -294,6 +294,45 @@ describe('pruning checked groceries', () => {
     expect(back).toHaveLength(20)
   })
 
+  test('keeps subtasks and their parents, from a list that became a grocery list', async () => {
+    const s = await seed()
+    // Oldest of all, by check and by when they were added: only the subtask
+    // tree keeps them.
+    const long = Date.now() - 100_000 * HOUR
+    const old = (title: string, extra: object = {}) =>
+      s.t.run((ctx) =>
+        ctx.db.insert('tasks', {
+          listId: s.groceries,
+          title,
+          done: true,
+          doneAt: long,
+          createdBy: s.userId,
+          order: 0,
+          ...extra,
+        }),
+      )
+    const parent = await old('zzparentk')
+    const checkedChild = await old('zzchildk', { parentTaskId: parent })
+    const openChild = await old('zzopenk', {
+      parentTaskId: parent,
+      done: false,
+      doneAt: undefined,
+    })
+    const plain = await old('zzplaink')
+    await fill(s, s.groceries, { stamped: CHECKED_GROCERIES_KEPT + 10 })
+
+    await prune(s)
+
+    const get = (id: Id<'tasks'>) => s.t.run((ctx) => ctx.db.get(id))
+    expect(await get(plain)).toBeNull()
+    expect(await get(parent)).not.toBeNull()
+    expect(await get(checkedChild)).toMatchObject({ parentTaskId: parent })
+    expect(await get(openChild)).toMatchObject({ parentTaskId: parent })
+    expect((await rows(s, s.groceries)).stamped).toBe(
+      CHECKED_GROCERIES_KEPT + 2,
+    )
+  })
+
   test('stops for a list that is no grocery list any more', async () => {
     const s = await seed()
     await fill(s, s.market, { stamped: CHECKED_GROCERIES_KEPT + 10 })

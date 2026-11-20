@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
-import { internalMutation } from './_generated/server'
+import { internalMutation, type QueryCtx } from './_generated/server'
 import {
   GROCERY_HISTORY_WINDOW,
   isGroceryList,
@@ -35,6 +35,22 @@ const LISTS_PAGE_SIZE = 100
  * checked before `doneAt` existed sit together.
  */
 const rangeValidator = v.union(v.literal('stamped'), v.literal('unstamped'))
+
+/**
+ * A subtask, or a task with subtasks (APP-304). A grocery list makes neither,
+ * but a list that had them can become one (`kitchen.setGroceryList`). The
+ * prune keeps both: deleting a parent the way `tasks.remove` does would take
+ * its open subtasks too, and deleting a subtask would change its parent's
+ * progress.
+ */
+async function inSubtaskTree(ctx: QueryCtx, task: Doc<'tasks'>) {
+  if (task.parentTaskId) return true
+  const child = await ctx.db
+    .query('tasks')
+    .withIndex('by_parent', (q) => q.eq('parentTaskId', task._id))
+    .first()
+  return child !== null
+}
 
 /**
  * The daily prune of checked grocery items (APP-404), run by `crons.ts`:
@@ -91,7 +107,7 @@ export const pruneCheckedGroceries = internalMutation({
  *   the history recognition reads (`recentListItems`). Their oldest moment
  *   is taken once, at the first step, and handed on (`protectFrom`).
  *
- * Open items are never deleted. Each step reads the list again and stops
+ * Open items, subtasks and tasks with subtasks are never deleted. Each step reads the list again and stops
  * when it is gone or no longer a local grocery list. Safe to run again:
  * whatever it already deleted is not read, and a second run over the same
  * list keeps the same items.
@@ -141,6 +157,7 @@ export const pruneCheckedGroceryList = internalMutation({
         continue
       }
       if (task._creationTime >= protectFrom) continue
+      if (await inSubtaskTree(ctx, task)) continue
       removed++
       if (args.dryRun) continue
       await cancelSend(ctx, task)
