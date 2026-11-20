@@ -1,10 +1,17 @@
 import type { ExternalProviderId } from '@gather/core/domain'
 import { aisleOrder, isDefaultAisleOrder } from '@gather/core/groceries'
+import { taskRefusal } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
+import type { Id } from './_generated/dataModel'
+import type { MutationCtx } from './_generated/server'
 import { action, internalQuery, mutation, query } from './_generated/server'
 import { getGatedIdentity } from './lib/connectedApps'
-import { isGroceryList, recogniseGroceryTitle } from './lib/groceryCategories'
+import {
+  isGroceryList,
+  recogniseGroceryTitle,
+  requireWritableGroceryList,
+} from './lib/groceryCategories'
 import { groceryAisleValidator } from './lib/groceryFields'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { deleteTaskList } from './lib/groupCascade'
@@ -272,25 +279,28 @@ export const rename = mutation({
 /**
  * "Clear checked" on a grocery list (APP-310): what is checked now leaves the
  * list's Checked section and stays in Recent. Nothing is deleted; the list
- * only remembers when. Answers the previous moment, which is what the undo
- * puts back through `restoreCheckedCleared`.
+ * only remembers when. Answers that moment (`clearedAt`) and the one before
+ * (`previous`); the undo passes both back to `restoreCheckedCleared`, which
+ * puts `previous` back only while `clearedAt` is still the list's last clear
+ * (APP-403).
+ */
+export const clearCheckedUndoable = mutation({
+  args: { listId: v.id('taskLists'), groupSlug: v.string() },
+  returns: v.object({
+    clearedAt: v.number(),
+    previous: v.union(v.number(), v.null()),
+  }),
+  handler: async (ctx, args) => await clearCheckedOn(ctx, args),
+})
+
+/**
+ * `clearCheckedUndoable` for installed phones, which read the previous moment
+ * as the whole answer. Retires with its row in `docs/migrations/README.md`.
  */
 export const clearChecked = mutation({
   args: { listId: v.id('taskLists'), groupSlug: v.string() },
   returns: v.union(v.number(), v.null()),
-  handler: async (ctx, args) => {
-    const { group, doc: list } = await requireInGroup(
-      ctx,
-      args.groupSlug,
-      args.listId,
-      'List not found',
-    )
-    if (list.provider !== 'local' || !isGroceryList(group, list)) {
-      throw new ConvexError('That is not a grocery list')
-    }
-    await ctx.db.patch(args.listId, { checkedClearedAt: Date.now() })
-    return list.checkedClearedAt ?? null
-  },
+  handler: async (ctx, args) => (await clearCheckedOn(ctx, args)).previous,
 })
 
 /**
@@ -329,19 +339,61 @@ export const setAisleOrder = mutation({
   },
 })
 
-/** The undo of `clearChecked`: the moment it answered, or none. */
+async function clearCheckedOn(
+  ctx: MutationCtx,
+  args: { listId: Id<'taskLists'>; groupSlug: string },
+) {
+  const { group, doc: list } = await requireInGroup(
+    ctx,
+    args.groupSlug,
+    args.listId,
+    taskRefusal('not-found'),
+  )
+  requireWritableGroceryList(group, list)
+  const clearedAt = Date.now()
+  await ctx.db.patch(args.listId, { checkedClearedAt: clearedAt })
+  return { clearedAt, previous: list.checkedClearedAt ?? null }
+}
+
+/**
+ * The undo of Clear checked: the moment it answered as `previous`, or none.
+ *
+ * Refused, and nothing changes (APP-403), when:
+ * - the moment is in the future, or not before the clear it undoes
+ *   (`invalid-undo`);
+ * - the list has been cleared again since, by anyone, or already put back
+ *   (`clear-superseded`). A current phone passes the `clearedAt` its clear
+ *   answered, and only that clear can be undone. An installed phone passes
+ *   none; then only a list whose last clear is after `checkedClearedAt` can
+ *   be put back.
+ */
 export const restoreCheckedCleared = mutation({
   args: {
     listId: v.id('taskLists'),
     groupSlug: v.string(),
     checkedClearedAt: v.union(v.number(), v.null()),
+    clearedAt: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
-    await ctx.db.patch(args.listId, {
-      checkedClearedAt: args.checkedClearedAt ?? undefined,
-    })
+    const { group, doc: list } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.listId,
+      taskRefusal('not-found'),
+    )
+    requireWritableGroceryList(group, list)
+    const previous = args.checkedClearedAt
+    const latest = args.clearedAt ?? Date.now()
+    if (previous !== null && (previous > Date.now() || previous >= latest))
+      throw new ConvexError(taskRefusal('invalid-undo'))
+    const current = list.checkedClearedAt
+    const superseded =
+      args.clearedAt !== undefined
+        ? current !== args.clearedAt
+        : current === undefined || (previous !== null && current <= previous)
+    if (superseded) throw new ConvexError(taskRefusal('clear-superseded'))
+    await ctx.db.patch(args.listId, { checkedClearedAt: previous ?? undefined })
     return null
   },
 })

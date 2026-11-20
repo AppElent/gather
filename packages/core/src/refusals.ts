@@ -116,10 +116,27 @@ export function readLoyaltyCardRefusal(
 }
 
 /**
- * Why a task write was refused (APP-302): `assignee-not-member` is a person
- * who is not a current Member of the task's Group.
+ * Why a task write was refused.
+ *
+ * - `assignee-not-member` (APP-302): a person who is not a current Member of
+ *   the task's Group.
+ * - `not-found`: no such task or list, or one in another Group (ADR-0009).
+ * - `read-only`: a list linked to an outside service; Gather cannot write it.
+ * - `not-grocery-list`: Recent, put back and Clear checked work on grocery
+ *   lists only (APP-310).
+ * - `invalid-undo`: an undo of Clear checked that names a moment it cannot
+ *   have come from, such as one in the future (APP-403).
+ * - `clear-superseded`: the list was cleared again, or already put back,
+ *   since the clear being undone; nothing changed (APP-403).
  */
-export const TASK_REFUSAL_CODES = ['assignee-not-member'] as const
+export const TASK_REFUSAL_CODES = [
+  'assignee-not-member',
+  'not-found',
+  'read-only',
+  'not-grocery-list',
+  'invalid-undo',
+  'clear-superseded',
+] as const
 export type TaskRefusalCode = (typeof TASK_REFUSAL_CODES)[number]
 
 /** Namespaced on the wire, like the calendar's, so kinds cannot collide. */

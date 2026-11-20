@@ -165,6 +165,8 @@ export const tasks = {
       restore: 'Standaardvolgorde herstellen',
       failed: 'De schapvolgorde kon niet worden bewaard. Probeer het opnieuw.',
     },
+    undoSuperseded:
+      'De lijst is sindsdien opnieuw gewist. Er is niets ongedaan gemaakt.',
     recent: {
       title: 'Recent',
       count: { one: '{count} item', other: '{count} items' },
