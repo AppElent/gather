@@ -24,6 +24,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { SearchField } from '../../../../src/components/SearchField'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
+import { openProblemReport } from '../../../../src/observability/init'
+import { showAlert } from '../../../../src/observability/native-presentation'
 import { identityInitial } from '../../../../src/settings/identity'
 import {
   type SettingsEntry,
@@ -246,6 +248,7 @@ function Row({
   within?: string
 }) {
   const tokens = useTokens()
+  const { t } = useI18n()
   // A row that leaves for a web page says so instead of promising a screen.
   const Trailing = entry.url ? UI_ICONS.ExternalLink : UI_ICONS.ChevronRight
 
@@ -257,7 +260,10 @@ function Row({
         .join(', ')}
       onPress={() => {
         if (entry.href) router.push(entry.href)
-        else openBrowserAsync(entry.url).catch(() => {})
+        else if (entry.url) openBrowserAsync(entry.url).catch(() => {})
+        // Report a problem (APP-439): Sentry's form, or a word on why not.
+        else if (!openProblemReport())
+          showAlert(t.feedback.report, t.feedback.unavailable)
       }}
       style={({ pressed }) => [
         styles.row,

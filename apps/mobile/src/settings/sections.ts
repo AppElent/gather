@@ -41,6 +41,7 @@ export type SettingsEntryId =
   | 'baby-log'
   | 'privacy'
   | 'data-sources'
+  | 'report-problem'
   | 'labs'
 
 /** The screens below the tab's index. Typed so a dead link fails the build. */
@@ -95,12 +96,20 @@ interface SettingsEntryBase {
   children?: SettingsEntry[]
 }
 
+/** What a row does in place, rather than going somewhere. */
+export type SettingsAction = 'report-problem'
+
 /**
- * Where a row goes: a screen inside Settings, or — for the one row that is a
- * document rather than a setting — a web page.
+ * Where a row goes: a screen inside Settings, a web page for the rows that are
+ * documents rather than settings, or an action for the one row that opens a
+ * form over the list (Report a problem, APP-439).
  */
 export type SettingsEntry = SettingsEntryBase &
-  ({ href: SettingsHref; url?: never } | { url: string; href?: never })
+  (
+    | { href: SettingsHref; url?: never; action?: never }
+    | { url: string; href?: never; action?: never }
+    | { action: SettingsAction; href?: never; url?: never }
+  )
 
 export interface SettingsSection {
   id: SettingsSectionId
@@ -250,6 +259,11 @@ export function settingsSections(
           id: 'data-sources',
           label: t.settings.dataSources,
           url: ABOUT_PAGE_URL,
+        },
+        {
+          id: 'report-problem',
+          label: t.feedback.report,
+          action: 'report-problem',
         },
       ],
     },

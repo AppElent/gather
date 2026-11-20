@@ -20,7 +20,6 @@ import { router } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -33,6 +32,7 @@ import { isTestAccount } from '../../../../../src/auth/config'
 import { useSignOut } from '../../../../../src/auth/useSignOut'
 import { useAvailability } from '../../../../../src/availability/AvailabilityProvider'
 import { useI18n } from '../../../../../src/i18n'
+import { showAlert } from '../../../../../src/observability/native-presentation'
 import { identityInitial } from '../../../../../src/settings/identity'
 import { setProfilePhoto } from '../../../../../src/settings/profilePhoto'
 import type { SettingsHref } from '../../../../../src/settings/sections'
@@ -162,12 +162,12 @@ function Identity({ locked }: { locked: boolean }) {
     setBusy(true)
     const outcome = await setProfilePhoto(user, action)
     setBusy(false)
-    if (outcome === 'denied') Alert.alert(t.account.picture.denied)
-    if (outcome === 'failed') Alert.alert(t.account.picture.failed)
+    if (outcome === 'denied') showAlert(t.account.picture.denied)
+    if (outcome === 'failed') showAlert(t.account.picture.failed)
   }
 
   function choose() {
-    Alert.alert(t.account.picture.change, undefined, [
+    showAlert(t.account.picture.change, undefined, [
       { text: t.account.picture.take, onPress: () => void change('camera') },
       { text: t.account.picture.choose, onPress: () => void change('library') },
       ...(photo

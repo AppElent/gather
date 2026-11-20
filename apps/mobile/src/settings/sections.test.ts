@@ -27,7 +27,7 @@ describe('the Settings list', () => {
       ['account', ['account', 'groups', 'notifications']],
       ['modules', ['baby-log']],
       ['phone', ['appearance', 'language']],
-      ['about', ['privacy', 'data-sources']],
+      ['about', ['privacy', 'data-sources', 'report-problem']],
     ])
   })
 
@@ -39,6 +39,26 @@ describe('the Settings list', () => {
     })
     expect(privacy.href).toBeUndefined()
     expect(idsFor('privacy')).toEqual(['privacy'])
+  })
+
+  test('Report a problem is an action in About, found by its words in both languages', () => {
+    const report = sections[3].entries[2]
+    expect(report).toEqual({
+      id: 'report-problem',
+      label: 'Report a problem',
+      action: 'report-problem',
+    })
+    expect(idsFor('problem')).toEqual(['report-problem'])
+    const dutch = settingsSections(nl, {
+      appearance: 'dark',
+      locale: 'nl',
+      groupName: 'Huize Jansen',
+      accountName: 'Eric Jansen',
+      accountEmail: 'eric@example.com',
+    })
+    expect(
+      searchSettings(dutch, 'probleem').map(({ entry }) => entry.id),
+    ).toEqual(['report-problem'])
   })
 
   test('shows what the phone-local settings are currently set to', () => {

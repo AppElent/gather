@@ -114,11 +114,14 @@ vi.mock('../../../drop/DropGate', () => ({ DropGate: () => null }))
 vi.mock('../../notifications/push/push-permission-provider', () => ({
   PushPermissionProvider: ({ children }: { children: ReactNode }) => children,
 }))
-vi.mock('react-native', () => ({
-  Alert: {
-    alert: (title: string, body: string) => state.alerts.push([title, body]),
-  },
+vi.mock('../../../observability/native-presentation', () => ({
+  showAlert: (title: string, body: string) => state.alerts.push([title, body]),
 }))
+vi.mock('../../../observability/shake-to-report', () => ({
+  isPresentedRoute: () => false,
+  useShakeToReportBlocker: () => {},
+}))
+vi.mock('react-native', () => ({}))
 vi.mock('../../../i18n', async () => {
   const { en } = await import('../../../i18n/messages/en')
   return { useI18n: () => ({ t: en }) }

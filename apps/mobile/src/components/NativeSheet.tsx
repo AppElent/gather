@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useRef } from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../i18n'
+import { useShakeToReportBlocker } from '../observability/shake-to-report'
 import { UI_ICONS } from '../theme/icons'
 import { type ModuleGroup, RADIUS, TYPE, useTokens } from '../theme/tokens'
 
@@ -76,6 +77,9 @@ export function NativeSheet({
   const tokens = useTokens()
   const { t } = useI18n()
   const Close = UI_ICONS.X
+  // Presented from the root view controller, like Sentry's report form, so a
+  // shake while it is up must not open the form (APP-439).
+  useShakeToReportBlocker(true)
 
   useEffect(() => {
     const modal = ref.current
