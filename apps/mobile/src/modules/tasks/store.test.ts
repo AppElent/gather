@@ -55,6 +55,7 @@ function listRow(id: string, provider: 'local' | 'notion' | 'todoist') {
     color: null,
     grocery: false,
     checkedClearedAt: null,
+    suggestionsOff: false,
     writable: provider === 'local',
     sections: [] as { id: string; name: string }[],
   }
@@ -431,6 +432,7 @@ describe('what the writes send', () => {
     writable: true,
     grocery: false,
     checkedClearedAt: null,
+    suggestionsOff: false,
     display: { due: true, priority: false, labels: true },
     order: 0,
     sync: 'live',

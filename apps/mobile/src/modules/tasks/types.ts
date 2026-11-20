@@ -49,6 +49,11 @@ export interface TaskList {
    */
   checkedClearedAt: number | null
   /**
+   * Whether a Member switched its "Maybe needed" suggestions off (APP-311).
+   * False from an older server.
+   */
+  suggestionsOff: boolean
+  /**
    * Its sections in order (APP-357). Empty for a list without any, for a
    * linked list, and from a server older than sections.
    */

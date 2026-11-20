@@ -236,7 +236,7 @@ describe('Recent', () => {
 })
 
 describe('putting back from Recent', () => {
-  test('on its own list the item itself is unchecked, at the end', async () => {
+  test('on its own list a copy is added and the checked item stays history (APP-311)', async () => {
     const s = await seed()
     const id = await checked(s, s.groceries, 'melk', 100, {
       quantity: 2,
@@ -248,15 +248,18 @@ describe('putting back from Recent', () => {
       taskId: id,
       listId: s.groceries,
     })
-    expect(back).toBe(id)
-    const task = await s.t.run((ctx) => ctx.db.get(id))
-    expect(task).toMatchObject({
+    expect(back).not.toBe(id)
+    expect(await s.t.run((ctx) => ctx.db.get(back))).toMatchObject({
+      listId: s.groceries,
       done: false,
       quantity: 2,
       unit: 'pak',
       category: 'dairy',
     })
-    expect(task?.doneAt).toBeUndefined()
+    expect(await s.t.run((ctx) => ctx.db.get(id))).toMatchObject({
+      done: true,
+      doneAt: 100,
+    })
   })
 
   test('from another grocery list a copy is added with amount and aisle', async () => {
