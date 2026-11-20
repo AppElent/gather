@@ -29,7 +29,7 @@ import { groupUnwindActions, type NavState } from '../../src/group/groupUnwind'
 import { useI18n } from '../../src/i18n'
 import { showAlert } from '../../src/observability/native-presentation'
 import {
-  isPresentedRoute,
+  hasPresentedRoute,
   useShakeToReportBlocker,
 } from '../../src/observability/shake-to-report'
 import { useTokens } from '../../src/theme/tokens'
@@ -97,9 +97,7 @@ export default function AppLayout() {
           <Stack
             layout={({ state, descriptors, children }) => (
               <ShakeToReportGate
-                blocked={state.routes.some((route) =>
-                  isPresentedRoute(descriptors[route.key]?.options.presentation),
-                )}
+                blocked={hasPresentedRoute(state, descriptors)}
               >
                 {children}
               </ShakeToReportGate>

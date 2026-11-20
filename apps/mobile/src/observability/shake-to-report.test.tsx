@@ -12,6 +12,7 @@ import { mount } from '../testing/dom'
 import { Modal } from '../ui/modal'
 import {
   DISMISS_SETTLE_MS,
+  hasPresentedRoute,
   holdShakeToReport,
   isPresentedRoute,
   resetShakeToReportForTests,
@@ -59,6 +60,18 @@ afterEach(() => {
 it('listens for shakes once started with nothing presented', () => {
   startShakeToReport()
   expect(listening()).toHaveBeenCalledTimes(1)
+})
+
+it('stays off outside iOS', async () => {
+  const { Platform } = await import('react-native')
+  const os = Platform.OS
+  Object.assign(Platform, { OS: 'android' })
+  try {
+    startShakeToReport()
+    expect(listening()).not.toHaveBeenCalled()
+  } finally {
+    Object.assign(Platform, { OS: os })
+  }
 })
 
 it('pauses while a sheet is presented and resumes after the last one closes', () => {
@@ -119,12 +132,28 @@ it('counts sheets and modals as presented routes, plain pushes as not', () => {
   expect(isPresentedRoute(undefined)).toBe(false)
 })
 
+it('finds a presented route among a stack of plain pushes', () => {
+  const state = { routes: [{ key: 'home' }, { key: 'edit' }] }
+  const plain = { home: { options: {} }, edit: { options: { presentation: 'card' } } }
+  expect(hasPresentedRoute(state, plain)).toBe(false)
+  expect(
+    hasPresentedRoute(state, {
+      ...plain,
+      edit: { options: { presentation: 'formSheet' } },
+    }),
+  ).toBe(true)
+  // A route without a descriptor yet is not presented.
+  expect(hasPresentedRoute({ routes: [{ key: 'new' }] }, {})).toBe(false)
+})
+
 it('treats a presented route in the stack as a blocker', () => {
   startShakeToReport()
-  const routes = [{ presentation: undefined }, { presentation: 'formSheet' }]
-  const view = mount(
-    <Blocker active={routes.some((r) => isPresentedRoute(r.presentation))} />,
-  )
+  const state = { routes: [{ key: 'home' }, { key: 'sheet' }] }
+  const descriptors = {
+    home: { options: {} },
+    sheet: { options: { presentation: 'formSheet' } },
+  }
+  const view = mount(<Blocker active={hasPresentedRoute(state, descriptors)} />)
   expect(paused()).toHaveBeenCalledTimes(1)
   view.unmount()
   settle()

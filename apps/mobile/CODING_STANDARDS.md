@@ -31,8 +31,8 @@ Apply the shared [mobile coding](../../docs/standards/mobile-coding.md),
 - **A Drop is native surface** — see [Drop](../../docs/contracts/drop.md).
 - **Auth is Clerk Core 3** (`@clerk/expo`), the same generation as the web
   ([ADR-0038](../../docs/adr/0038-both-clients-speak-clerk-core-3.md)).
-- **Alerts, prompts, action sheets, image pickers and React Native's `Modal`**
-  go through `src/observability/native-presentation.ts` and `src/ui/modal.tsx`,
+- **Alerts, prompts, action sheets, image pickers, the in-app browser and
+  React Native's `Modal`** go through `src/observability/native-presentation.ts` and `src/ui/modal.tsx`,
   which pause shake-to-report while they are up (APP-439); `biome.json` bans the
   raw imports. A new kind of sheet holds `useShakeToReportBlocker` while it is
   visible, as `NativeSheet` does. Policy: [Sentry](../../docs/runbooks/sentry.md).

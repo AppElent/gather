@@ -8,12 +8,14 @@ import {
   launchCameraAsync as nativeLaunchCamera,
   launchImageLibraryAsync as nativeLaunchLibrary,
 } from 'expo-image-picker'
+import { openBrowserAsync as nativeOpenBrowser } from 'expo-web-browser'
 import { ActionSheetIOS, Alert, type AlertButton } from 'react-native'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   launchCameraAsync,
   launchImageLibraryAsync,
+  openBrowserAsync,
   showActionSheet,
   showAlert,
   showPrompt,
@@ -33,6 +35,7 @@ vi.mock('react-native', () => ({
   Alert: { alert: vi.fn(), prompt: vi.fn() },
   ActionSheetIOS: { showActionSheetWithOptions: vi.fn() },
 }))
+vi.mock('expo-web-browser', () => ({ openBrowserAsync: vi.fn() }))
 vi.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: vi.fn(),
   launchCameraAsync: vi.fn(),
@@ -152,7 +155,12 @@ describe('showActionSheet', () => {
 describe.each([
   ['launchImageLibraryAsync', launchImageLibraryAsync, nativeLaunchLibrary],
   ['launchCameraAsync', launchCameraAsync, nativeLaunchCamera],
-] as const)('%s', (_name, launch, native) => {
+  [
+    'openBrowserAsync',
+    (options?: object) => openBrowserAsync('https://example.com', options),
+    nativeOpenBrowser,
+  ],
+] as const)('%s', (name, launch, native) => {
   it('pauses shake while the picker is open and resumes after it settles', async () => {
     let finish: (result: unknown) => void = () => {}
     vi.mocked(native).mockReturnValue(
@@ -162,7 +170,11 @@ describe.each([
     )
     const pending = launch({ quality: 1 })
     expect(paused()).toHaveBeenCalledTimes(1)
-    expect(native).toHaveBeenCalledWith({ quality: 1 })
+    if (name === 'openBrowserAsync') {
+      expect(native).toHaveBeenCalledWith('https://example.com', { quality: 1 })
+    } else {
+      expect(native).toHaveBeenCalledWith({ quality: 1 })
+    }
 
     finish({ canceled: true, assets: null })
     await expect(pending).resolves.toEqual({ canceled: true, assets: null })

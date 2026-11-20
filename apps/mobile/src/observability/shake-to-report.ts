@@ -36,7 +36,8 @@ function sync() {
 
 /** Turns shake-to-report on. Call once, after `Sentry.init`. */
 export function startShakeToReport() {
-  if (Platform.OS === 'web') return
+  // iOS only (APP-439): Android is paused and web has no shake.
+  if (Platform.OS !== 'ios') return
   started = true
   sync()
 }
@@ -84,6 +85,16 @@ const PRESENTED = new Set([
 
 export function isPresentedRoute(presentation: string | undefined) {
   return presentation !== undefined && PRESENTED.has(presentation)
+}
+
+/** Whether a stack shows any sheet or modal route (the `Stack` `layout` gate). */
+export function hasPresentedRoute(
+  state: { routes: readonly { key: string }[] },
+  descriptors: Record<string, { options: { presentation?: string } } | undefined>,
+) {
+  return state.routes.some((route) =>
+    isPresentedRoute(descriptors[route.key]?.options.presentation),
+  )
 }
 
 /** Test-only: forget all state between tests. */

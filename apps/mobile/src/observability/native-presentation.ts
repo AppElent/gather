@@ -1,16 +1,18 @@
 // biome-ignore-all lint/correctness/useReactNativePlatformComponents: the action sheet wrapper is iOS-only, like ActionSheetIOS itself.
 /**
  * The only place the app presents an OS alert, prompt, action sheet or image
- * picker.
+ * picker, or an in-app browser.
  *
  * Each is presented from the root view controller, the same one Sentry's
  * feedback form needs, so a shake while one is open strands the form's
  * backdrop. These wrappers hold shake-to-report for as long as the
  * presentation is up and release on every way out. `biome.json` bans
- * importing `Alert`, `ActionSheetIOS` and `expo-image-picker` anywhere else.
+ * importing `Alert`, `ActionSheetIOS`, `expo-image-picker` and `expo-web-browser` anywhere
+ * else.
  * Copied from Foundry (APP-258); `showPrompt` is Gather's addition.
  */
 import * as ImagePicker from 'expo-image-picker'
+import * as WebBrowser from 'expo-web-browser'
 import {
   ActionSheetIOS,
   type ActionSheetIOSOptions,
@@ -118,4 +120,12 @@ export function launchImageLibraryAsync(
 
 export function launchCameraAsync(options?: ImagePicker.ImagePickerOptions) {
   return whilePickerOpen(() => ImagePicker.launchCameraAsync(options))
+}
+
+/** The in-app browser (SFSafariViewController), held until it closes. */
+export function openBrowserAsync(
+  url: string,
+  options?: WebBrowser.WebBrowserOpenOptions,
+) {
+  return whilePickerOpen(() => WebBrowser.openBrowserAsync(url, options))
 }

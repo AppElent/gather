@@ -69,6 +69,7 @@ export function openProblemReport(): boolean {
   return true
 }
 
+// `dsn &&` only narrows the type; `sentryEnabled` already implies it.
 if (dsn && sentryEnabled) {
   Sentry.init({
     ...buildSentryOptions({
