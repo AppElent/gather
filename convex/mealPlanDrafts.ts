@@ -30,6 +30,7 @@ import {
   AI_RECIPES_MAX,
   completePlan,
   DRAFT_LIFETIME_MS,
+  draftCheck,
   plannableQuickMeals,
   plannableRecipes,
   rulesPlan,
@@ -52,7 +53,7 @@ import {
   type QueryCtx,
   query,
 } from './_generated/server'
-import { DAILY_AI_CALLS } from './lib/aiUsage'
+import { DAILY_AI_CALLS, takeRefundableAiCall } from './lib/aiUsage'
 import { anthropicApiKey } from './lib/anthropic'
 import { rejectConnectedApps } from './lib/connectedApps'
 import {
@@ -61,7 +62,7 @@ import {
   requireInGroup,
 } from './lib/groupAccess'
 import { mealSlotValidator } from './lib/kitchen'
-import { mealAt } from './lib/mealPlan'
+import { mealAt, mealPreferencesOf } from './lib/mealPlan'
 import { recipesVisibleIn } from './lib/recipeShares'
 import { requireIdentity } from './lib/sharing'
 import { askWeekPlan, type WeekPlanPromptInput } from './lib/weekPlanAi'
@@ -108,41 +109,79 @@ async function draftsOfWeek(
 }
 
 /**
+ * The week's drafts as `list` shows them: not expired, the slot still empty,
+ * and a recipe the Group can still see, with that recipe. `acceptAll` takes
+ * the same set, so "Neem alle {n} over" counts what it plans (APP-460).
+ */
+async function shownDrafts(
+  ctx: QueryCtx,
+  groupId: Id<'groups'>,
+  weekStart: string,
+) {
+  const now = Date.now()
+  const [drafts, meals] = await Promise.all([
+    draftsOfWeek(ctx, groupId, weekStart),
+    ctx.db
+      .query('plannedDinners')
+      .withIndex('by_group_date', (q) =>
+        q
+          .eq('groupId', groupId)
+          .gte('date', weekStart)
+          .lte('date', addDays(weekStart, 6)),
+      )
+      .collect(),
+  ])
+  const filled = new Set(
+    meals.map((meal) => `${meal.date}|${meal.slot ?? 'dinner'}`),
+  )
+  const shown = await Promise.all(
+    drafts
+      .filter(
+        (draft) =>
+          draft.expiresAt > now && !filled.has(`${draft.date}|${draft.slot}`),
+      )
+      .map(async (draft) => {
+        const recipe = draft.recipeId ? await ctx.db.get(draft.recipeId) : null
+        if (draft.recipeId && (!recipe || !isVisibleToGroups(recipe, [groupId])))
+          return null
+        return { draft, recipe }
+      }),
+  )
+  return { drafts, shown: shown.filter((entry) => entry !== null) }
+}
+
+/** The rules planner's leftover evening is yesterday's dinner: nothing to check. */
+function isLeftovers(draft: Doc<'mealPlanDrafts'>) {
+  return (
+    !draft.recipeId &&
+    !draft.mealEntryId &&
+    Object.values(LEFTOVERS).includes(draft.quickMeal ?? '')
+  )
+}
+
+/**
  * The open proposal for a week: every draft that has not expired and whose
  * slot is still empty, with its recipe's live title and photo. A draft whose
- * recipe the Group can no longer see is left out.
+ * recipe the Group can no longer see is left out. `check` is the allergy or
+ * diet the matcher can't rule out ("controleer zelf", APP-460); a phone from
+ * before it ignores the field.
  */
 export const list = query({
   args: { groupSlug: v.string(), weekStart: v.string() },
   handler: async (ctx, args) => {
     requireWeekStart(args.weekStart)
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const now = Date.now()
-    const [drafts, meals] = await Promise.all([
-      draftsOfWeek(ctx, group._id, args.weekStart),
-      ctx.db
-        .query('plannedDinners')
-        .withIndex('by_group_date', (q) =>
-          q
-            .eq('groupId', group._id)
-            .gte('date', args.weekStart)
-            .lte('date', addDays(args.weekStart, 6)),
-        )
-        .collect(),
+    const [{ shown: entries }, prefs] = await Promise.all([
+      shownDrafts(ctx, group._id, args.weekStart),
+      mealPreferencesOf(ctx, group._id, []),
     ])
-    const filled = new Set(
-      meals.map((meal) => `${meal.date}|${meal.slot ?? 'dinner'}`),
-    )
     const shown = await Promise.all(
-      drafts
-        .filter(
-          (draft) =>
-            draft.expiresAt > now && !filled.has(`${draft.date}|${draft.slot}`),
-        )
-        .map(async (draft) => {
-          const recipe = draft.recipeId ? await ctx.db.get(draft.recipeId) : null
-          if (draft.recipeId && (!recipe || !isVisibleToGroups(recipe, [group._id])))
-            return null
+      entries.map(async ({ draft, recipe }) => {
+          const check = recipe
+            ? draftCheck({ recipe }, prefs)
+            : isLeftovers(draft)
+              ? undefined
+              : draftCheck({ quickMeal: draft.quickMeal ?? '' }, prefs)
           return {
             _id: draft._id,
             date: draft.date,
@@ -154,11 +193,11 @@ export const list = query({
             reason: draft.reason,
             source: draft.source,
             expiresAt: draft.expiresAt,
+            check,
           }
         }),
     )
     return shown
-      .filter((draft) => draft !== null)
       .sort(
         (a, b) =>
           a.date.localeCompare(b.date) ||
@@ -384,14 +423,18 @@ export const write = internalMutation({
       const fields = await checkedPick(ctx, group._id, pick)
       if (fields) rows.push({ pick, fields })
     }
+    // A plan with nothing that still fits keeps the drafts it would replace:
+    // the week's open proposal, or the one draft being regenerated.
+    if (rows.length === 0) return 0
     if (args.replace.kind === 'week') {
       for (const draft of await draftsOfWeek(ctx, group._id, args.weekStart))
         await ctx.db.delete(draft._id)
     } else {
-      // Regenerating with nothing that still fits keeps the draft it replaces.
-      if (rows.length === 0) return 0
+      // A draft accepted or discarded while it was regenerated is not
+      // brought back as a lone or second draft (APP-460).
       const draft = await ctx.db.get(args.replace.id)
-      if (draft && draft.groupId === group._id) await ctx.db.delete(draft._id)
+      if (!draft || draft.groupId !== group._id) return 0
+      await ctx.db.delete(draft._id)
     }
     const expiresAt = Date.now() + DRAFT_LIFETIME_MS
     for (const { pick, fields } of rows) {
@@ -465,11 +508,9 @@ async function runPlan(
   )
   if (input.targets.length === 0) return { status: 'empty' }
 
-  const used: number | null = await ctx.runMutation(
-    internal.aiUsage.takeCounted,
-    { clerkId: identity.subject },
-  )
-  if (used === null) return { status: 'limit', limit: DAILY_AI_CALLS }
+  const taken = await takeRefundableAiCall(ctx, identity.subject)
+  if (taken === null) return { status: 'limit', limit: DAILY_AI_CALLS }
+  const { used } = taken
 
   const apiKey = anthropicApiKey()
   // Only a call that never reached the model is given back: an answer the
@@ -478,14 +519,15 @@ async function runPlan(
   let picks: (WeekPlanPick & { source: 'ai' | 'rules' | 'fallback' })[]
   let spent = used
   if (aiPicks === null) {
-    await ctx.runMutation(internal.aiUsage.refund, { clerkId: identity.subject })
+    await taken.refund()
     spent = used - 1
     picks = rulesPlan(input).map((pick) => ({ ...pick, source: 'fallback' as const }))
   } else {
     picks = completePlan(aiPicks, input)
   }
-  // Regenerating with nothing else to offer keeps the draft it would replace.
-  if (replace.kind === 'draft' && picks.length === 0)
+  // Nothing to offer keeps the drafts it would replace (`write` again checks
+  // what still fits); the phone says so on a count of 0.
+  if (picks.length === 0)
     return {
       status: aiPicks === null ? 'fallback' : 'ai',
       count: 0,
@@ -574,14 +616,18 @@ export const draftFor = internalQuery({
 
 /**
  * Ander voorstel voor {weekday}: a new draft for one slot, never the recipe
- * it replaces nor one already proposed for another day. One AI call; with
- * nothing else to propose the draft stays as it was.
+ * it replaces nor one already proposed for another day, with the wishes the
+ * proposal was made with. One AI call; with nothing else to propose the
+ * draft stays as it was.
  */
 export const regenerate = action({
   args: {
     groupSlug: v.string(),
     id: v.id('mealPlanDrafts'),
     locale: localeValidator,
+    /** The start sheet's wishes for this proposal; a phone from before sends none. */
+    wishes: v.optional(v.array(wishValidator)),
+    wish: v.optional(v.string()),
   },
   returns: v.union(proposeResult, v.object({ status: v.literal('none') })),
   handler: async (ctx, args): Promise<ProposeResult | { status: 'none' }> => {
@@ -605,7 +651,8 @@ export const regenerate = action({
         dates: [draft.date],
         slots: [draft.slot],
         locale: args.locale,
-        wishes: [],
+        wishes: args.wishes ?? [],
+        wish: args.wish,
         avoidRecipeIds: draft.recipeIds,
         avoidMealEntryId: draft.mealEntryId,
         avoidQuickMeals: draft.quickMeals,
@@ -675,21 +722,38 @@ export const accept = mutation({
   },
 })
 
-/** Neem alle {n} over: every open draft of the week, in one transaction. */
+/**
+ * Neem alle {n} over: every open draft of the week, in one transaction.
+ * `planned` and `skipped` count the drafts `list` shows, so they add up to
+ * the bar's {n}; a hidden one (expired, its slot filled, its recipe no longer
+ * visible) just goes. `slots` are the slots planned, for "net overgenomen"
+ * (APP-460); a phone from before ignores it.
+ */
 export const acceptAll = mutation({
   args: { groupSlug: v.string(), weekStart: v.string() },
-  returns: v.object({ planned: v.number(), skipped: v.number() }),
+  returns: v.object({
+    planned: v.number(),
+    skipped: v.number(),
+    slots: v.array(v.object({ date: v.string(), slot: mealSlotValidator })),
+  }),
   handler: async (ctx, args) => {
     await rejectConnectedApps(ctx)
     requireWeekStart(args.weekStart)
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const { drafts, shown } = await shownDrafts(ctx, group._id, args.weekStart)
+    const visible = new Set(shown.map(({ draft }) => draft._id))
     let planned = 0
     let skipped = 0
-    for (const draft of await draftsOfWeek(ctx, group._id, args.weekStart)) {
-      if ((await acceptDraft(ctx, group._id, draft)) === 'planned') planned++
-      else skipped++
+    const slots: { date: string; slot: MealSlot }[] = []
+    for (const draft of drafts) {
+      const result = await acceptDraft(ctx, group._id, draft)
+      if (!visible.has(draft._id)) continue
+      if (result === 'planned') {
+        planned++
+        slots.push({ date: draft.date, slot: draft.slot })
+      } else skipped++
     }
-    return { planned, skipped }
+    return { planned, skipped, slots }
   },
 })
 

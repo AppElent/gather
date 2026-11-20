@@ -216,6 +216,8 @@ export async function askWeekPlan(
  * One tool call, and whether the model was reached at all: a reached model
  * was paid for even when its answer is unusable, so only an unreached one is
  * given back to the daily cap (Plan mijn week, Iets anders, Nieuw idee).
+ * Reached means a 2xx response whose body is JSON: a 2xx that isn't (a proxy
+ * page, a body cut off in transit) is no answer from the model (APP-460).
  */
 export async function askModel(args: {
   apiKey: string
@@ -233,8 +235,16 @@ export async function askModel(args: {
     prompt: args.prompt,
     fetchImpl: (async (url: URL | RequestInfo, init?: RequestInit) => {
       const response = await fetchImpl(url, init)
-      reached = response.ok
-      return response
+      if (!response.ok) return response
+      // The body is read here, once, to tell a JSON answer from one that isn't.
+      let body: unknown
+      try {
+        body = await response.json()
+      } catch {
+        return { ok: false, status: response.status } as Response
+      }
+      reached = true
+      return { ok: true, status: response.status, json: async () => body } as Response
     }) as typeof fetch,
   })
   return { reached, answer }

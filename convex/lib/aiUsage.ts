@@ -17,7 +17,9 @@
  * something whether or not it produced a recipe. The exceptions are the
  * meal planner's AI actions (Plan mijn week, Iets anders, Nieuw idee), whose
  * fallback is promised to cost nothing: they give the call back with
- * `aiUsage.refund` when no key is set or the model could not be reached.
+ * `aiUsage.refund` when no key is set or the model could not be reached,
+ * through `takeRefundableAiCall`, so the refund lands on the day the call was
+ * counted against.
  */
 
 import { AI_LIMIT_KIND } from '@gather/core/ai-limit'
@@ -53,4 +55,27 @@ export async function takeAiCall(
 ): Promise<void> {
   const taken = await ctx.runMutation(internal.aiUsage.take, { clerkId })
   if (!taken) aiLimitReached()
+}
+
+/**
+ * Take one call as `takeAiCall` does, or null over the cap, with a `refund`
+ * that gives it back to the day it was counted against (a take just before
+ * UTC midnight is not refunded from the next day, APP-460). `used` is how
+ * many calls that day has used with this one.
+ */
+export async function takeRefundableAiCall(
+  ctx: ActionCtx,
+  clerkId: string,
+): Promise<{ used: number; refund: () => Promise<void> } | null> {
+  const taken: { used: number; day: string } | null = await ctx.runMutation(
+    internal.aiUsage.takeDated,
+    { clerkId },
+  )
+  if (!taken) return null
+  return {
+    used: taken.used,
+    refund: async () => {
+      await ctx.runMutation(internal.aiUsage.refund, { clerkId, day: taken.day })
+    },
+  }
 }

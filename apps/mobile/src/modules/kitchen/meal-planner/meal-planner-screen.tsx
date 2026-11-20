@@ -12,9 +12,10 @@
 import { MenuView } from '@expo/ui/community/menu'
 import { addDays, localIsoDate, mondayStart } from '@gather/core/civil-date'
 import type { MealSlot } from '@gather/core/meal-planner'
+import type { WeekPlanWish } from '@gather/core/week-plan'
 import { useAction, useMutation } from 'convex/react'
 import { router, Stack } from 'expo-router'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   Animated,
   type HostInstance,
@@ -60,6 +61,7 @@ import { EmptyThumb, MealThumb, MemberCoins } from './parts'
 import { PickSheet } from './pick-sheet'
 import { type PlanOutcome, PlanSheet } from './plan-sheet'
 import { DraftCard, ProposalBar, ProposalCard } from './proposal'
+import { slotKey, useProposalBar } from './proposal-bar'
 import { SwapSheet } from './swap-sheet'
 import {
   busyEvent,
@@ -149,25 +151,19 @@ export function MealPlannerScreen() {
   const acceptAll = useMutation(api.mealPlanDrafts.acceptAll)
   const discard = useMutation(api.mealPlanDrafts.discard)
   const regenerate = useAction(api.mealPlanDrafts.regenerate)
-  // The bar shows while the week has drafts. Once this visit accepted the
-  // last one it stays, saying all is saved, until Klaar (`savedTail`).
-  // Accepted slots say "net overgenomen" until then or a week change.
-  const [savedTail, setSavedTail] = useState(false)
-  const [justAccepted, setJustAccepted] = useState<ReadonlySet<string>>(new Set())
+  // The bar, the all-saved tail and "net overgenomen" (`proposal-bar.ts`).
+  const {
+    showBar,
+    fallback,
+    justAccepted,
+    startAccept,
+    close: closeProposal,
+  } = useProposalBar(weekStart, drafts)
   const [regenerating, setRegenerating] = useState<string | null>(null)
   const [accepting, setAccepting] = useState(false)
-  const [fallback, setFallback] = useState(false)
-  const draftFallback = drafts.some((draft) => draft.source === 'fallback')
-  // Kept from the drafts, so the all-saved tail still says which kind it was.
-  useEffect(() => {
-    if (drafts.length > 0) setFallback(draftFallback)
-  }, [drafts.length, draftFallback])
-  // A new week starts with no proposal of this visit.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset per week
-  useEffect(() => {
-    setSavedTail(false)
-    setJustAccepted(new Set())
-  }, [weekStart])
+  // The start sheet's wishes per week, so Ander voorstel keeps them (APP-460).
+  // This visit only: a proposal reopened later regenerates without them.
+  const planWishes = useRef(new Map<string, { wishes: WeekPlanWish[]; wish?: string }>())
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
@@ -293,48 +289,42 @@ export function MealPlannerScreen() {
     router.push(moduleHref(PREFERENCES_PATH))
   }
 
-  // Closing the proposal also drops its "net overgenomen" marks.
-  const closeProposal = () => {
-    setSavedTail(false)
-    setJustAccepted(new Set())
-  }
-  const markAccepted = (keys: readonly string[]) => {
-    setSavedTail(true)
-    setJustAccepted((current) => new Set([...current, ...keys]))
-  }
   const proposalWords = words.proposal
   const onAcceptDraft = (draft: Draft) => {
+    const accepted = startAccept()
     acceptDraft({ groupSlug: group.slug, id: draft._id })
       .then((result) => {
         if (result === 'planned') {
           haptics.itemSaved()
-          markAccepted([`${draft.date}|${draft.slot}`])
+          accepted([slotKey(draft)])
           return
         }
+        accepted([])
         haptics.actionFailed()
         showToast({
           message: result === 'taken' ? proposalWords.taken : proposalWords.gone,
         })
       })
       .catch(() => {
+        accepted([])
         haptics.actionFailed()
         showToast({ message: words.failed })
       })
   }
   const onAcceptAll = () => {
-    const keys = drafts.map((draft) => `${draft.date}|${draft.slot}`)
+    const accepted = startAccept()
     setAccepting(true)
     acceptAll({ groupSlug: group.slug, weekStart })
       .then((result) => {
         haptics.itemSaved()
-        markAccepted(keys)
-        // Only what was shown counts: a draft whose slot someone filled
-        // before is already gone from the week.
-        const lost = keys.length - result.planned
-        if (lost > 0)
-          showToast({ message: plural(locale, lost, proposalWords.skipped) })
+        // Only the slots the server planned say "net overgenomen".
+        accepted(result.slots.map(slotKey))
+        // `skipped` counts only drafts the bar counted.
+        if (result.skipped > 0)
+          showToast({ message: plural(locale, result.skipped, proposalWords.skipped) })
       })
       .catch(() => {
+        accepted([])
         haptics.actionFailed()
         showToast({ message: words.failed })
       })
@@ -354,7 +344,12 @@ export function MealPlannerScreen() {
   }
   const onRegenerate = (draft: Draft) => {
     setRegenerating(draft._id)
-    regenerate({ groupSlug: group.slug, id: draft._id, locale })
+    regenerate({
+      groupSlug: group.slug,
+      id: draft._id,
+      locale,
+      ...planWishes.current.get(weekStart),
+    })
       .then((result) => {
         if (result.status === 'limit') {
           haptics.actionFailed()
@@ -381,12 +376,14 @@ export function MealPlannerScreen() {
   const onPlanned = (outcome: PlanOutcome) => {
     setSheet(null)
     if (outcome.status === 'empty') showToast({ message: words.plan.empty })
+    // Nothing fitted: the open proposal, if any, stays as it was.
+    else if (outcome.count === 0) showToast({ message: words.plan.nothingFits })
     else {
+      planWishes.current.set(weekStart, { wishes: outcome.wishes, wish: outcome.wish })
       closeProposal()
       scrollRef.current?.scrollTo({ y: 0, animated: true })
     }
   }
-  const showBar = drafts.length > 0 || savedTail
 
   return (
     <View ref={rootRef} collapsable={false} style={styles.root}>
