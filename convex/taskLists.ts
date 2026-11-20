@@ -555,6 +555,7 @@ export const getTasks = action({
           dueDate: t.dueDate,
           priority: t.priority,
           labels: t.labels,
+          parentExternalId: t.parentTaskId,
         })),
       }
     }

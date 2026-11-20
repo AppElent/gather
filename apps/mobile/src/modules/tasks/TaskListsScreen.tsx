@@ -25,6 +25,7 @@
  */
 import { MenuView } from '@expo/ui/community/menu'
 import { SMART_LISTS, type SmartListId } from '@gather/core/smart-lists'
+import { topLevelTasks } from '@gather/core/subtasks'
 import { keepsCheckedInPlace } from '@gather/core/task-lists'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
@@ -78,7 +79,10 @@ export function TaskLists() {
   const smartListOf = (id: string) =>
     smart.lists.find((list) => list.id === id)
 
-  const openTotal = state.tasks.filter((task) => !task.done).length
+  // Counted as each list counts itself: subtasks are steps of their parent's
+  // row there, not rows of their own (APP-304).
+  const openTotal = topLevelTasks(state.tasks).filter((task) => !task.done)
+    .length
 
   // Tasks someone else gave you that you have not opened yet (APP-302): the
   // in-app half of the assignment notice, while push cannot reach the phone.
@@ -358,16 +362,16 @@ function openCount(
   }
   // A packing list counts what is packed: its items are ticked off and reset,
   // so "3 left" would read as a list nearly done when it is nearly packed.
+  // Its rows, as the list screen counts them: a subtask is a step of its
+  // parent's row, not a row of its own (APP-304).
+  const items = topLevelTasks(tasks.filter((task) => task.listId === list.id))
   if (keepsCheckedInPlace(list.kind)) {
-    const items = tasks.filter((task) => task.listId === list.id)
     return fmt(t.tasks.packing.progress, {
       done: items.filter((task) => task.done).length,
       total: items.length,
     })
   }
-  const open = tasks.filter(
-    (task) => task.listId === list.id && !task.done,
-  ).length
+  const open = items.filter((task) => !task.done).length
   if (open === 0) return t.tasks.allDone
   if (open === 1) return t.tasks.openOne
   return fmt(t.tasks.open, { count: open })

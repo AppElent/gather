@@ -39,6 +39,7 @@
     "./task-lists": "./src/taskLists.ts",
     "./task-reminders": "./src/taskReminders.ts",
     "./task-repeat": "./src/taskRepeat.ts",
+    "./subtasks": "./src/subtasks.ts",
     "./tastings": "./src/tastings.ts"
   },
   "dependencies": {},

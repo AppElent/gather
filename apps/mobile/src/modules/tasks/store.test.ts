@@ -693,3 +693,111 @@ describe('smart lists (APP-301)', () => {
     ])
   })
 })
+
+describe('subtasks (APP-304)', () => {
+  const today = '2026-11-19'
+  const me = 'me' as Id<'users'>
+  const step = (id: string, parent: string, done = false) => ({
+    ...taskRow(id, 'chores', done),
+    parentTaskId: parent as Id<'tasks'>,
+  })
+
+  test('a list’s parents carry how far along their subtasks are', () => {
+    const { tasks } = mergeTasks(
+      [listRow('chores', 'local')],
+      {
+        chores: [
+          taskRow('attic', 'chores'),
+          step('boxes', 'attic', true),
+          step('sweep', 'attic'),
+          taskRow('bins', 'chores'),
+        ],
+      },
+      new Map(),
+    )
+    const byId = new Map(tasks.map((task) => [task.id, task]))
+    expect(byId.get('attic')?.subtasks).toEqual({ done: 1, total: 2 })
+    expect(byId.get('sweep')?.parentTaskId).toBe('attic')
+    expect(byId.get('bins')?.subtasks).toBeUndefined()
+  })
+
+  test('a smart list names a subtask’s parent and counts a parent’s steps', () => {
+    const model = smartModel(
+      [listRow('chores', 'local')],
+      {
+        me,
+        tasks: [
+          { ...taskRow('attic', 'chores'), dueDate: today },
+          { ...step('sweep', 'attic'), dueDate: today },
+        ],
+        subtasks: [{ taskId: 'attic' as Id<'tasks'>, done: 1, total: 3 }],
+        parents: [{ taskId: 'attic' as Id<'tasks'>, title: 'Clear the attic' }],
+      },
+      new Map(),
+      today,
+    )
+    const byId = new Map(model.byList.today.map((task) => [task.id, task]))
+    expect(byId.get('attic')?.subtasks).toEqual({ done: 1, total: 3 })
+    expect(byId.get('sweep')?.parentTitle).toBe('Clear the attic')
+  })
+
+  test('a Todoist subtask names its parent', () => {
+    const entry = externalEntry(
+      'work',
+      {
+        status: 'ok',
+        tasks: [
+          {
+            externalId: 'child',
+            title: 'Child',
+            done: false,
+            parentExternalId: 'parent',
+          },
+        ],
+      } as never,
+      [],
+    )
+    expect(entry.tasks[0].parentTaskId).toBe('parent')
+  })
+
+  const storeOf = (rows: Doc<'tasks'>[]) => {
+    const written: Doc<'tasks'>[][] = []
+    const store = {
+      getAllQueries: listQueriesOnly([
+        { args: { listId: 'chores' }, value: rows },
+      ]),
+      setQuery: (_query: unknown, _args: unknown, value: Doc<'tasks'>[]) =>
+        written.push(value),
+    } as unknown as OptimisticLocalStore
+    return { store, written }
+  }
+  const doneOf = (rows: Doc<'tasks'>[]) =>
+    Object.fromEntries(rows.map((row) => [row._id, row.done]))
+
+  test('Complete all ticks the open subtasks with it; Only this leaves them', () => {
+    const rows = [taskRow('attic', 'chores'), step('sweep', 'attic')]
+    const all = storeOf(rows)
+    toggleInPlace(all.store, {
+      taskId: 'attic' as Id<'tasks'>,
+      withSubtasks: true,
+    })
+    expect(doneOf(all.written[0])).toEqual({ attic: true, sweep: true })
+
+    const only = storeOf(rows)
+    toggleInPlace(only.store, { taskId: 'attic' as Id<'tasks'> })
+    expect(doneOf(only.written[0])).toEqual({ attic: true, sweep: false })
+  })
+
+  test('a repeating parent’s subtasks reopen with its next occurrence', () => {
+    const { store, written } = storeOf([
+      {
+        ...taskRow('bins', 'chores'),
+        dueDate: '2026-11-21',
+        repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [6] },
+      },
+      step('rinse', 'bins', true),
+    ])
+    toggleInPlace(store, { taskId: 'bins' as Id<'tasks'>, today })
+    expect(doneOf(written[0])).toEqual({ bins: false, rinse: false })
+  })
+})

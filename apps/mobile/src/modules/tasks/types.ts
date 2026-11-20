@@ -1,5 +1,6 @@
 import type { TaskProviderId } from '@gather/core/domain'
 import type { GroceryAisle, GroceryUnit } from '@gather/core/groceries'
+import type { SubtaskProgress } from '@gather/core/subtasks'
 import type {
   TaskListColor,
   TaskListIcon,
@@ -99,6 +100,18 @@ export interface Task {
   /** The section it sits in; none, or one that is gone, is "No section". */
   sectionId?: string
   order: number
+  /**
+   * The task it is a step of (APP-304); absent on a task of its own. A list
+   * draws a subtask under its parent only, never as a row.
+   */
+  parentTaskId?: string
+  /** How far along its subtasks are; absent when it has none. */
+  subtasks?: SubtaskProgress
+  /**
+   * Its parent's title, for a subtask drawn outside its parent: a smart
+   * list's row names what it is a step of.
+   */
+  parentTitle?: string
 }
 
 export interface TaskReminder {

@@ -22,6 +22,7 @@ import {
 import { ConvexError } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
+import { reopenSubtasks } from './subtasks'
 import { shiftedReminder, syncSend } from './taskReminders'
 
 /**
@@ -80,6 +81,9 @@ export interface Completion {
  * A reminder (APP-305) moves with the due date, the same days on, so it is
  * about the next occurrence: completing early withdraws the one queued for
  * the occurrence just done.
+ *
+ * Its checked subtasks open again for the next occurrence (APP-304); the
+ * completion keeps which, so undoing it checks them again.
  */
 export async function completeOccurrence(
   ctx: MutationCtx,
@@ -103,6 +107,7 @@ export async function completeOccurrence(
   const dueDate = nextDueDate(task.repeat, { dueDate: task.dueDate, today })
   await ctx.db.patch(task._id, { dueDate, done: false })
   await moveReminder(ctx, task, groupId, dueDate)
+  const reopened = await reopenSubtasks(ctx, task._id, groupId)
   const completionId = await ctx.db.insert('taskCompletions', {
     groupId,
     taskId: task._id,
@@ -111,6 +116,7 @@ export async function completeOccurrence(
     completedOn: today,
     previousDueDate: task.dueDate,
     nextDueDate: dueDate,
+    ...(reopened.length ? { reopenedSubtaskIds: reopened } : {}),
   })
   return { completionId, dueDate }
 }
