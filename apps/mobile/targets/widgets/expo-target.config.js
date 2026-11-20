@@ -7,7 +7,8 @@
  * The config is a function of the resolved app config, so the extension takes
  * the variant from `app.config.ts` (ADR 0045): its bundle ID is the app's plus
  * `.widgets` and its name is the app's ("Gather", "Gather Preview",
- * "Gather Dev"), which the control shows as its own.
+ * "Gather Dev"), from which the control takes the variant it names in
+ * brackets: "Quick actions (Preview)" (APP-443).
  *
  * No `entitlements`: the control only opens the app, so the extension joins no
  * App Group and needs nothing beyond a plain provisioning profile.
