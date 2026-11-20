@@ -973,6 +973,12 @@ export default defineSchema({
     backPhotoId: v.optional(v.id('_storage')),
     /** Set by `markUsed` when the card is shown; absent until then. */
     lastUsedAt: v.optional(v.number()),
+    /**
+     * The Group's own arrangement (APP-440): one order per Group, written
+     * only by `reorder`. Absent until someone reorders, and on a card added
+     * since, which `compareLoyaltyCards` puts on top.
+     */
+    order: v.optional(v.number()),
     /** Attribution only. Confers no ownership and no access (GLOSSARY.md). */
     createdByUserId: v.id('users'),
   }).index('by_group', ['groupId']),

@@ -1,7 +1,9 @@
 /**
  * Draws nothing. Keeps the app icon's long-press menu (`homeScreenActions.ts`)
  * in the current language, and follows a chosen item, or the Control Center
- * control's request (`controlRequest.ts`), to the quick-actions sheet.
+ * control's request (`controlRequest.ts`), to the quick-actions sheet. The
+ * control's request opens the Loyalty card that is open instead, when there is
+ * one (APP-443); the icon's menu and `<scheme>://quick` always open the sheet.
  *
  * Mounted by the root navigator once the router is up, signed in or not: the
  * route holds the request across sign-in, as it does for the deep link.
@@ -11,11 +13,21 @@ import { router } from 'expo-router'
 import { useEffect } from 'react'
 import { Platform, Settings } from 'react-native'
 
+import { confirmedAccount } from '../convex/lastKnown'
+import {
+  isCardOnScreen,
+  readOpenCard,
+} from '../features/loyalty-cards/card/open-card-store'
+import { offlineGroupCards } from '../features/loyalty-cards/offline/offline-cards'
+import { readRetainedGroup } from '../group/retainedGroup'
 import { useI18n } from '../i18n'
+import { moduleHref } from '../modules/moduleDestination'
 import { reportError } from '../observability/report'
 import {
   CONTROL_REQUEST_KEY,
   CONTROL_REQUEST_MAX_AGE_MS,
+  CONTROL_REQUEST_TAKEN,
+  controlTarget,
   isFreshControlRequest,
 } from './controlRequest'
 import {
@@ -50,6 +62,34 @@ function openQuickSheet(request: QuickSheetRequest) {
   setTimeout(() => router.navigate(quickSheetHref(request)))
 }
 
+/**
+ * The control's press: the open Loyalty card, when there is one, else the
+ * sheet. A card already on screen stays as it is, without a second copy.
+ */
+function followControl() {
+  const card = readOpenCard()
+  const target = controlTarget(card, {
+    now: Date.now(),
+    currentGroupId: readRetainedGroup(),
+    savedCardIds: card
+      ? offlineGroupCards(confirmedAccount(), card.groupSlug)?.map(
+          (saved) => saved._id,
+        )
+      : undefined,
+    isOnScreen: isCardOnScreen,
+  })
+  if (target.kind === 'stay') return
+  if (target.kind === 'sheet') {
+    openQuickSheet({})
+    return
+  }
+  const href = moduleHref('/all/loyalty-cards/card', {
+    cardId: target.cardId,
+    via: 'control',
+  })
+  setTimeout(() => router.navigate(href))
+}
+
 export function HomeScreenActionLinks() {
   const { t } = useI18n()
 
@@ -72,14 +112,15 @@ export function HomeScreenActionLinks() {
   }, [])
 
   // The control's request: one left before this mounted (a cold start), then
-  // each new one. Taken once: cleared before the sheet opens.
+  // each new one. Taken once: marked taken (`CONTROL_REQUEST_TAKEN`) before the card or the
+  // sheet opens.
   useEffect(() => {
     if (Platform.OS !== 'ios') return
     const take = () => {
       const requestedAt = Settings.get(CONTROL_REQUEST_KEY)
-      if (requestedAt == null) return
-      Settings.set({ [CONTROL_REQUEST_KEY]: null })
-      if (isFreshControlRequest(requestedAt, Date.now())) openQuickSheet({})
+      if (requestedAt == null || requestedAt === CONTROL_REQUEST_TAKEN) return
+      Settings.set({ [CONTROL_REQUEST_KEY]: CONTROL_REQUEST_TAKEN })
+      if (isFreshControlRequest(requestedAt, Date.now())) followControl()
     }
     take()
     const watch = Settings.watchKeys(CONTROL_REQUEST_KEY, take)

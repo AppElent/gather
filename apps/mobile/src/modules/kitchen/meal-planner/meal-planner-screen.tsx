@@ -487,7 +487,6 @@ export function MealPlannerScreen() {
         <MealGroceriesSheet
           key={sheet.recipeId}
           recipeId={sheet.recipeId}
-          weekStart={weekStart}
           servings={sheet.servings}
           onClose={() => setSheet(null)}
         />
