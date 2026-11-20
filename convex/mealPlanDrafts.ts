@@ -659,6 +659,8 @@ export const regenerate = action({
       },
       { kind: 'draft', id: args.id },
     )
+    // 0 also covers a draft accepted or discarded meanwhile: nothing is
+    // inserted, and the phone's "no other proposal" toast is close enough.
     return 'count' in result && result.count === 0 ? { status: 'none' } : result
   },
 })
