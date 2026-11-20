@@ -19,45 +19,10 @@ Do not pick individual checks instead: `pnpm verify` is the one list, so it stay
 step with CI. On web (no dev server / no Convex+Clerk runtime creds), these static checks
 are the fallback; otherwise also drive the flow below.
 
-## Route → module map
+## Routes
 
-Routes live under `src/routes/` (file-based, TanStack Router). `src/routes/_app.tsx` is
-the authenticated shell; `src/routes/_app/*` are its child routes. Module metadata
-(id, group, status) lives in `packages/core/src/modules.ts`; labels live in the
-core message trees.
-
-| Route | File | Module status |
-| --- | --- | --- |
-| `/` | `src/routes/index.tsx` | landing |
-| `/about` | `src/routes/about.tsx` | static |
-| `/sign-in` | `src/routes/sign-in.tsx` | auth |
-| `/sign-up` | `src/routes/sign-up.tsx` | auth |
-| `/forgot-password` | `src/routes/forgot-password.tsx` | auth |
-| `/dashboard` | `src/routes/_app/dashboard.tsx` | live |
-| `/recipes` | `src/routes/_app/recipes/index.tsx` | live |
-| `/recipes/new` | `src/routes/_app/recipes/new.tsx` | live |
-| `/recipes/$recipeId` | `src/routes/_app/recipes/$recipeId.index.tsx` | live |
-| `/recipes/$recipeId/edit` | `src/routes/_app/recipes/$recipeId.edit.tsx` | live |
-| `/meal-planner` | `src/routes/_app/meal-planner.tsx` | placeholder |
-| `/groceries` | `src/routes/_app/groceries.tsx` | placeholder |
-| `/pantry` | `src/routes/_app/pantry.tsx` | redirects to `/groceries` (APP-314) |
-| `/finances` | `src/routes/_app/finances.tsx` | placeholder |
-| `/tasks` | `src/routes/_app/tasks.tsx` | placeholder |
-| `/baby` | `src/routes/_app/baby/index.tsx` | live |
-| `/baby/new` | `src/routes/_app/baby/new.tsx` | live |
-| `/baby/$babyId` | `src/routes/_app/baby/$babyId.index.tsx` | live |
-| `/baby/$babyId/edit` | `src/routes/_app/baby/$babyId.edit.tsx` | live |
-| `/calendar` | `src/routes/_app/calendar.tsx` | placeholder |
-| `/notes` | `src/routes/_app/notes.tsx` | placeholder |
-| `/cheeses` | `src/routes/_app/cheeses.tsx` | placeholder |
-| `/wines` | `src/routes/_app/wines.tsx` | placeholder |
-| `/groups` | `src/routes/_app/groups.tsx` | live |
-| `/account` | `src/routes/_app/account.tsx` | live |
-| `/settings` | `src/routes/_app/settings.tsx` | live |
-
-Convex backend functions: `convex/recipes.ts`, `convex/groups.ts`, `convex/users.ts`,
-`convex/babies.ts`, `convex/babyEvents.ts`, `convex/lib/sharing.ts`,
-`convex/lib/groupAccess.ts`, `convex/lib/babyEvents.ts`.
+Web routes live under `src/routes/` (`_app.tsx` is the signed-in shell); each
+Module's status (live or placeholder) is in `packages/core/src/modules.ts`.
 
 ## Auth note
 
@@ -73,9 +38,8 @@ gather's sign-in flow (`src/routes/sign-in.tsx`) renders `src/lib/auth`'s
 
 1. Start the dev server (`.claude/launch.json` → `dev:watch`, needs both Convex and Vite).
 2. Log in via the test-login button (see above) or an already-authenticated session.
-3. For a change to a `live` route (Recipes, Groups, Account, Settings): exercise the
-   actual CRUD flow the change touches — create/edit/delete a recipe, join/leave a
-   group, etc. — not just a page load.
-4. For a change to a `placeholder` route: confirm it still renders the placeholder
-   shell without erroring (`src/components/app/ModulePlaceholder.tsx`).
+3. For a change to a live Module: exercise the actual CRUD flow the change
+   touches (create, edit, delete; join or leave a group), not just a page load.
+4. For a change to a placeholder Module: confirm it still renders the placeholder
+   shell without erroring.
 5. Check the browser console and network tab for errors introduced by the change.
