@@ -8,9 +8,8 @@
  * checked since the last "Clear checked"; everything checked stays in Recent.
  *
  * The action row opens Recent (on a list Gather can write to) and In stock
- * (APP-314). Shopping mode and the
- * suggestion strip (APP-315, 311) have no slot here yet: they arrive with
- * their own issues.
+ * (APP-314); under it, the "Maybe needed" strip (APP-311). Shopping mode
+ * (APP-315) has no slot here yet: it arrives with its own issue.
  */
 import { useRouter } from 'expo-router'
 import { type ReactNode, useState } from 'react'
@@ -24,7 +23,12 @@ import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/token
 import { CompletedSection } from '../../ui/completed-section'
 import { InsetList } from '../../ui/inset-list'
 import { moduleHref } from '../moduleDestination'
-import { aisleSections, inCheckedSection } from './groceryList'
+import { SuggestionStrip } from './GrocerySuggestions'
+import {
+  aisleSections,
+  checkedOncePerName,
+  inCheckedSection,
+} from './groceryList'
 import { useTaskActions } from './store'
 import type { Task, TaskList } from './types'
 
@@ -61,9 +65,13 @@ export function GroceryListBody({
   const g = t.tasks.grocery
 
   const open = tasks.filter((task) => !task.done || lingering.has(task.id))
-  const checked = tasks.filter(
-    (task) =>
-      !lingering.has(task.id) && inCheckedSection(task, list.checkedClearedAt),
+  const checked = checkedOncePerName(
+    tasks,
+    tasks.filter(
+      (task) =>
+        !lingering.has(task.id) &&
+        inCheckedSection(task, list.checkedClearedAt),
+    ),
   )
   const sections = aisleSections(open, list.aisleOrder)
 
@@ -108,6 +116,8 @@ export function GroceryListBody({
           onPress={() => router.push(moduleHref('/all/groceries/in-stock'))}
         />
       </View>
+
+      <SuggestionStrip list={list} onUndoable={onUndoable} />
 
       {sections.map(({ aisle, tasks: rows }) => (
         <View key={aisle} style={styles.section} testID={`aisle-${aisle}`}>

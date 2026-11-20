@@ -8,6 +8,7 @@ import type { MutationCtx } from './_generated/server'
 import { action, internalQuery, mutation, query } from './_generated/server'
 import { getGatedIdentity } from './lib/connectedApps'
 import {
+  groceryTitleKey,
   isGroceryList,
   recogniseGroceryTitle,
   requireWritableGroceryList,
@@ -66,6 +67,8 @@ export const list = query({
         // APP-313: a grocery list's own aisle order, or null for the default
         // walking order. Read through `aisleOrder` (`@gather/core/groceries`).
         aisleOrder: l.aisleOrder ?? null,
+        // APP-311: whether the list's "Maybe needed" strip is switched off.
+        suggestionsOff: l.suggestionsOff ?? false,
         // Whether this list can be added to from Gather: only a local list
         // has `tasks` rows, and no provider write path exists (ADR-0021).
         // Callers that offer a list as somewhere to write — the baby log's
@@ -394,6 +397,91 @@ export const restoreCheckedCleared = mutation({
         : current === undefined || (previous !== null && current <= previous)
     if (superseded) throw new ConvexError(taskRefusal('clear-superseded'))
     await ctx.db.patch(args.listId, { checkedClearedAt: previous ?? undefined })
+    return null
+  },
+})
+
+/** How many names one list's suggestions can hide; the oldest go first. */
+export const HIDDEN_SUGGESTIONS_LIMIT = 500
+
+/** The longest title a suggestion is hidden by, as for a grocery line. */
+const SUGGESTION_TITLE_MAX = 500
+
+/** A hidden suggestion's key: a grocery title, not longer than a line. */
+function suggestionKey(title: string): string {
+  if (title.length > SUGGESTION_TITLE_MAX) {
+    throw new ConvexError('That is not an item')
+  }
+  return groceryTitleKey(title)
+}
+
+/** A local grocery list of the named Group, for a suggestions write. */
+async function requireSuggestionsList(
+  ctx: MutationCtx,
+  groupSlug: string,
+  listId: Id<'taskLists'>,
+) {
+  const { group, doc: list } = await requireInGroup(
+    ctx,
+    groupSlug,
+    listId,
+    'List not found',
+  )
+  if (list.provider !== 'local' || !isGroceryList(group, list)) {
+    throw new ConvexError('That is not a grocery list')
+  }
+  return list
+}
+
+/**
+ * The "Maybe needed" strip on or off for a grocery list (APP-311), for every
+ * Member: the list's `…` menu.
+ */
+export const setSuggestions = mutation({
+  args: { listId: v.id('taskLists'), groupSlug: v.string(), on: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireSuggestionsList(ctx, args.groupSlug, args.listId)
+    await ctx.db.patch(args.listId, {
+      suggestionsOff: args.on ? undefined : true,
+    })
+    return null
+  },
+})
+
+/**
+ * A name off a grocery list's suggestions for good (APP-311): press and hold
+ * on the strip. Kept as its `groceryTitleKey`, so "Melk" and "2 pak melk"
+ * are one name.
+ */
+export const hideSuggestion = mutation({
+  args: { listId: v.id('taskLists'), groupSlug: v.string(), title: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const list = await requireSuggestionsList(ctx, args.groupSlug, args.listId)
+    const key = suggestionKey(args.title)
+    const hidden = list.hiddenSuggestions ?? []
+    if (!key || hidden.includes(key)) return null
+    await ctx.db.patch(args.listId, {
+      hiddenSuggestions: [...hidden, key].slice(-HIDDEN_SUGGESTIONS_LIMIT),
+    })
+    return null
+  },
+})
+
+/** The undo of `hideSuggestion`: the name can be suggested again. */
+export const unhideSuggestion = mutation({
+  args: { listId: v.id('taskLists'), groupSlug: v.string(), title: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const list = await requireSuggestionsList(ctx, args.groupSlug, args.listId)
+    const key = suggestionKey(args.title)
+    const hidden = list.hiddenSuggestions ?? []
+    if (!hidden.includes(key)) return null
+    const rest = hidden.filter((name) => name !== key)
+    await ctx.db.patch(args.listId, {
+      hiddenSuggestions: rest.length ? rest : undefined,
+    })
     return null
   },
 })

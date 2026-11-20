@@ -4,6 +4,7 @@ import {
   aisleCounts,
   aisleOf,
   aisleSections,
+  checkedOncePerName,
   groceryListsOf,
   inCheckedSection,
   openGroceryList,
@@ -119,5 +120,22 @@ describe('which grocery list opens', () => {
     // Deleted, or no longer a grocery list: the first one opens instead.
     expect(openGroceryList(grocery, 'chores')?._id).toBe('ah')
     expect(openGroceryList([], 'ah')).toBeUndefined()
+  })
+})
+
+describe('the Checked section', () => {
+  test('one row per name, the newest, and none whose name is open', () => {
+    const tasks = [
+      { id: 'melk-open', title: '2 pak melk', done: false },
+      { id: 'melk-checked', title: 'Melk', done: true, doneAt: 5 },
+      { id: 'brood-old', title: 'brood', done: true, doneAt: 1 },
+      { id: 'kaas', title: 'kaas', done: true, doneAt: 3 },
+      { id: 'brood-new', title: 'Brood', done: true, doneAt: 4 },
+    ]
+    const checked = tasks.filter((task) => task.done)
+    expect(checkedOncePerName(tasks, checked).map((task) => task.id)).toEqual([
+      'kaas',
+      'brood-new',
+    ])
   })
 })

@@ -49,7 +49,7 @@ import { WashHeader } from '../../ui/wash-header'
 import { Chip, priorityColor } from './components'
 import { GroceryAmount, useGroceryAmountText } from './GroceryFields'
 import { GroceryListBody } from './GroceryListBody'
-import { inCheckedSection } from './groceryList'
+import { checkedOncePerName, inCheckedSection } from './groceryList'
 import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
 import { AppearanceSheet } from './listFace'
 import { PackingProgress, UncheckAll } from './packing'
@@ -138,11 +138,15 @@ export function TaskList({
   // A grocery row carries its amount at the end (APP-309), and the list is in
   // aisle sections with Checked and Recent (APP-310).
   const grocery = list.grocery
+  // As the Checked section counts them: one row per name (APP-311).
   const clearable = grocery
-    ? tasks.filter(
-        (task) =>
-          !lingering.has(task.id) &&
-          inCheckedSection(task, list.checkedClearedAt),
+    ? checkedOncePerName(
+        tasks,
+        tasks.filter(
+          (task) =>
+            !lingering.has(task.id) &&
+            inCheckedSection(task, list.checkedClearedAt),
+        ),
       ).length
     : 0
   const openCount = grocery
@@ -185,7 +189,31 @@ export function TaskList({
     if (action === 'sections') setEditingSections(true)
     if (action === 'delete') confirmDeleteList()
     if (action === 'clear-checked') clearChecked()
+    if (action === 'suggestions') toggleSuggestions()
     menuExtras.find((extra) => extra.id === action)?.onPress()
+  }
+
+  /** The "Maybe needed" strip on or off for every Member (APP-311). */
+  const toggleSuggestions = () => {
+    const on = list.suggestionsOff
+    actions
+      .setSuggestions(list.id, on)
+      .then(() => {
+        haptics.selectionChanged()
+        const s = t.tasks.grocery.suggestions
+        undoToast.show({
+          message: on ? s.on : s.off,
+          undo: {
+            label: t.tasks.grocery.undo,
+            onPress: () => {
+              void actions
+                .setSuggestions(list.id, !on)
+                .catch(() => haptics.actionFailed())
+            },
+          },
+        })
+      })
+      .catch(() => haptics.actionFailed())
   }
 
   /** Checked items leave the Checked row, stay in Recent, and can come back. */
@@ -357,6 +385,15 @@ export function TaskList({
                           image: 'checkmark.circle.badge.xmark' as const,
                           attributes: { disabled: clearable === 0 },
                         },
+                        {
+                          id: 'suggestions',
+                          title: list.suggestionsOff
+                            ? t.tasks.grocery.suggestions.turnOn
+                            : t.tasks.grocery.suggestions.turnOff,
+                          image: list.suggestionsOff
+                            ? ('lightbulb' as const)
+                            : ('lightbulb.slash' as const),
+                        },
                       ]
                     : []),
                   ...menuExtras.map(({ id, title, image }) => ({
@@ -491,6 +528,7 @@ export function TaskList({
                         listId={list.id}
                         placeholder={addPlaceholder ?? t.kitchen.addGroceryItem}
                         grocery
+                        tasks={tasks}
                       />
                     ) : null
                   }

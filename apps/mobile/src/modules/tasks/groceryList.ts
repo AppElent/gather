@@ -8,7 +8,9 @@ import { localIsoDate } from '@gather/core/civil-date'
 import {
   aisleOrder,
   type GroceryAisle,
+  groceryKey,
   isGroceryAisle,
+  parseGroceryLine,
 } from '@gather/core/groceries'
 
 /** The aisle an item is shown under: its own, or Other when it has none. */
@@ -117,4 +119,28 @@ export function openGroceryList<T extends GroceryListRow>(
   remembered: string | null | undefined,
 ): T | undefined {
   return lists.find((list) => list._id === remembered) ?? lists[0]
+}
+
+/**
+ * The Checked section's rows: one per name, the newest, and none whose name is
+ * open on the list. A put-back from Recent adds a copy and keeps the checked
+ * item as history (APP-311), so without this a name would show open and
+ * checked at once, and "Put back all" would list it twice.
+ */
+export function checkedOncePerName<
+  T extends { title: string; done: boolean; doneAt?: number },
+>(tasks: readonly T[], checked: readonly T[]): T[] {
+  const keyOf = (title: string) => groceryKey(parseGroceryLine(title).name)
+  const open = new Set(
+    tasks.filter((task) => !task.done).map((task) => keyOf(task.title)),
+  )
+  const newest = new Map<string, T>()
+  for (const task of checked) {
+    const key = keyOf(task.title)
+    if (open.has(key)) continue
+    const kept = newest.get(key)
+    if (!kept || (task.doneAt ?? 0) > (kept.doneAt ?? 0)) newest.set(key, task)
+  }
+  const shown = new Set(newest.values())
+  return checked.filter((task) => shown.has(task))
 }
