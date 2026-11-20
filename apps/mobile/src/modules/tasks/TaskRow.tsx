@@ -28,6 +28,7 @@ import { useInsetSeparator } from '../../ui/inset-list'
 import { AssigneeCoin, useTaskPeople } from './assignee'
 import { Checkbox } from './components'
 import { GroceryPreview } from './GroceryFields'
+import { GroceryCompletions } from './GrocerySuggestions'
 import { TASK_ICONS } from './icons'
 import { useTaskActions } from './store'
 import { taskMenuActions } from './taskMenu'
@@ -292,6 +293,7 @@ export function TaskComposer({
   placeholder,
   grocery = false,
   sectionId,
+  tasks,
 }: {
   listId: string
   placeholder: string
@@ -299,6 +301,11 @@ export function TaskComposer({
   grocery?: boolean
   /** The section the composer sits in, which a new task joins (APP-357). */
   sectionId?: string
+  /**
+   * A grocery list's items: with them, typing completes from the Group's
+   * history and the bundled names (APP-311).
+   */
+  tasks?: readonly Task[]
 }) {
   const tokens = useTokens('home')
   const actions = useTaskActions()
@@ -342,8 +349,18 @@ export function TaskComposer({
     </View>
   )
   if (!grocery) return field
+  // The completions sit above the field: the list scrolls the field to just
+  // above the keyboard, so anything under it would be covered.
   return (
     <View>
+      {tasks ? (
+        <GroceryCompletions
+          listId={listId}
+          line={draft}
+          tasks={tasks}
+          onPicked={() => setDraft('')}
+        />
+      ) : null}
       {field}
       <GroceryPreview line={draft} />
     </View>

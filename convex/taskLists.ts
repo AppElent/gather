@@ -1,9 +1,17 @@
 import type { ExternalProviderId } from '@gather/core/domain'
+import { taskRefusal } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
+import type { Id } from './_generated/dataModel'
+import type { MutationCtx } from './_generated/server'
 import { action, internalQuery, mutation, query } from './_generated/server'
 import { getGatedIdentity } from './lib/connectedApps'
-import { isGroceryList, recogniseGroceryTitle } from './lib/groceryCategories'
+import {
+  groceryTitleKey,
+  isGroceryList,
+  recogniseGroceryTitle,
+  requireWritableGroceryList,
+} from './lib/groceryCategories'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { deleteTaskList } from './lib/groupCascade'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
@@ -54,6 +62,8 @@ export const list = query({
         // APP-310: items checked before this left the Checked section of a
         // grocery list ("Clear checked") and are only in Recent now.
         checkedClearedAt: l.checkedClearedAt ?? null,
+        // APP-311: whether the list's "Maybe needed" strip is switched off.
+        suggestionsOff: l.suggestionsOff ?? false,
         // Whether this list can be added to from Gather: only a local list
         // has `tasks` rows, and no provider write path exists (ADR-0021).
         // Callers that offer a list as somewhere to write — the baby log's
@@ -252,39 +262,169 @@ export const rename = mutation({
 /**
  * "Clear checked" on a grocery list (APP-310): what is checked now leaves the
  * list's Checked section and stays in Recent. Nothing is deleted; the list
- * only remembers when. Answers the previous moment, which is what the undo
- * puts back through `restoreCheckedCleared`.
+ * only remembers when. Answers that moment (`clearedAt`) and the one before
+ * (`previous`); the undo passes both back to `restoreCheckedCleared`, which
+ * puts `previous` back only while `clearedAt` is still the list's last clear
+ * (APP-403).
+ */
+export const clearCheckedUndoable = mutation({
+  args: { listId: v.id('taskLists'), groupSlug: v.string() },
+  returns: v.object({
+    clearedAt: v.number(),
+    previous: v.union(v.number(), v.null()),
+  }),
+  handler: async (ctx, args) => await clearCheckedOn(ctx, args),
+})
+
+/**
+ * `clearCheckedUndoable` for installed phones, which read the previous moment
+ * as the whole answer. Retires with its row in `docs/migrations/README.md`.
  */
 export const clearChecked = mutation({
   args: { listId: v.id('taskLists'), groupSlug: v.string() },
   returns: v.union(v.number(), v.null()),
-  handler: async (ctx, args) => {
-    const { group, doc: list } = await requireInGroup(
-      ctx,
-      args.groupSlug,
-      args.listId,
-      'List not found',
-    )
-    if (list.provider !== 'local' || !isGroceryList(group, list)) {
-      throw new ConvexError('That is not a grocery list')
-    }
-    await ctx.db.patch(args.listId, { checkedClearedAt: Date.now() })
-    return list.checkedClearedAt ?? null
-  },
+  handler: async (ctx, args) => (await clearCheckedOn(ctx, args)).previous,
 })
 
-/** The undo of `clearChecked`: the moment it answered, or none. */
+async function clearCheckedOn(
+  ctx: MutationCtx,
+  args: { listId: Id<'taskLists'>; groupSlug: string },
+) {
+  const { group, doc: list } = await requireInGroup(
+    ctx,
+    args.groupSlug,
+    args.listId,
+    taskRefusal('not-found'),
+  )
+  requireWritableGroceryList(group, list)
+  const clearedAt = Date.now()
+  await ctx.db.patch(args.listId, { checkedClearedAt: clearedAt })
+  return { clearedAt, previous: list.checkedClearedAt ?? null }
+}
+
+/**
+ * The undo of Clear checked: the moment it answered as `previous`, or none.
+ *
+ * Refused, and nothing changes (APP-403), when:
+ * - the moment is in the future, or not before the clear it undoes
+ *   (`invalid-undo`);
+ * - the list has been cleared again since, by anyone, or already put back
+ *   (`clear-superseded`). A current phone passes the `clearedAt` its clear
+ *   answered, and only that clear can be undone. An installed phone passes
+ *   none; then only a list whose last clear is after `checkedClearedAt` can
+ *   be put back.
+ */
 export const restoreCheckedCleared = mutation({
   args: {
     listId: v.id('taskLists'),
     groupSlug: v.string(),
     checkedClearedAt: v.union(v.number(), v.null()),
+    clearedAt: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
+    const { group, doc: list } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.listId,
+      taskRefusal('not-found'),
+    )
+    requireWritableGroceryList(group, list)
+    const previous = args.checkedClearedAt
+    const latest = args.clearedAt ?? Date.now()
+    if (previous !== null && (previous > Date.now() || previous >= latest))
+      throw new ConvexError(taskRefusal('invalid-undo'))
+    const current = list.checkedClearedAt
+    const superseded =
+      args.clearedAt !== undefined
+        ? current !== args.clearedAt
+        : current === undefined || (previous !== null && current <= previous)
+    if (superseded) throw new ConvexError(taskRefusal('clear-superseded'))
+    await ctx.db.patch(args.listId, { checkedClearedAt: previous ?? undefined })
+    return null
+  },
+})
+
+/** How many names one list's suggestions can hide; the oldest go first. */
+export const HIDDEN_SUGGESTIONS_LIMIT = 500
+
+/** The longest title a suggestion is hidden by, as for a grocery line. */
+const SUGGESTION_TITLE_MAX = 500
+
+/** A hidden suggestion's key: a grocery title, not longer than a line. */
+function suggestionKey(title: string): string {
+  if (title.length > SUGGESTION_TITLE_MAX) {
+    throw new ConvexError('That is not an item')
+  }
+  return groceryTitleKey(title)
+}
+
+/** A local grocery list of the named Group, for a suggestions write. */
+async function requireSuggestionsList(
+  ctx: MutationCtx,
+  groupSlug: string,
+  listId: Id<'taskLists'>,
+) {
+  const { group, doc: list } = await requireInGroup(
+    ctx,
+    groupSlug,
+    listId,
+    'List not found',
+  )
+  if (list.provider !== 'local' || !isGroceryList(group, list)) {
+    throw new ConvexError('That is not a grocery list')
+  }
+  return list
+}
+
+/**
+ * The "Maybe needed" strip on or off for a grocery list (APP-311), for every
+ * Member: the list's `…` menu.
+ */
+export const setSuggestions = mutation({
+  args: { listId: v.id('taskLists'), groupSlug: v.string(), on: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireSuggestionsList(ctx, args.groupSlug, args.listId)
     await ctx.db.patch(args.listId, {
-      checkedClearedAt: args.checkedClearedAt ?? undefined,
+      suggestionsOff: args.on ? undefined : true,
+    })
+    return null
+  },
+})
+
+/**
+ * A name off a grocery list's suggestions for good (APP-311): press and hold
+ * on the strip. Kept as its `groceryTitleKey`, so "Melk" and "2 pak melk"
+ * are one name.
+ */
+export const hideSuggestion = mutation({
+  args: { listId: v.id('taskLists'), groupSlug: v.string(), title: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const list = await requireSuggestionsList(ctx, args.groupSlug, args.listId)
+    const key = suggestionKey(args.title)
+    const hidden = list.hiddenSuggestions ?? []
+    if (!key || hidden.includes(key)) return null
+    await ctx.db.patch(args.listId, {
+      hiddenSuggestions: [...hidden, key].slice(-HIDDEN_SUGGESTIONS_LIMIT),
+    })
+    return null
+  },
+})
+
+/** The undo of `hideSuggestion`: the name can be suggested again. */
+export const unhideSuggestion = mutation({
+  args: { listId: v.id('taskLists'), groupSlug: v.string(), title: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const list = await requireSuggestionsList(ctx, args.groupSlug, args.listId)
+    const key = suggestionKey(args.title)
+    const hidden = list.hiddenSuggestions ?? []
+    if (!hidden.includes(key)) return null
+    const rest = hidden.filter((name) => name !== key)
+    await ctx.db.patch(args.listId, {
+      hiddenSuggestions: rest.length ? rest : undefined,
     })
     return null
   },

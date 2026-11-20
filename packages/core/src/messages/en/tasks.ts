@@ -174,6 +174,53 @@ export const tasks = {
       other: '{count} checked items cleared. They stay in Recent.',
     },
     undo: 'Undo',
+    /**
+     * "Maybe needed" and the composer's autocomplete (APP-311;
+     * `designs/groceries/README.md`, section 1 item 2 and section 2).
+     */
+    suggestions: {
+      title: 'Maybe needed',
+      /** The strip's aside: the only visible hint of press and hold. */
+      hint: 'Press and hold to hide',
+      /** Read out for a card: the name and why. */
+      add: 'Add {name} to the list. {why}',
+      added: '{name} is on the list.',
+      hide: 'Hide',
+      hidden: '{name} will not be suggested again.',
+      /** The list's menu. */
+      turnOff: 'Turn off suggestions',
+      turnOn: 'Turn on suggestions',
+      off: 'Suggestions are off for this list.',
+      on: 'Suggestions are on for this list.',
+      /** How often it is bought, mid-sentence. */
+      cadence: {
+        day: 'every day',
+        days: 'every {count} days',
+        week: 'every week',
+        weeks: 'every {count} weeks',
+        month: 'every month',
+        months: 'every {count} months',
+      },
+      /** When it was last bought. */
+      ago: {
+        today: 'today',
+        yesterday: 'yesterday',
+        days: { one: '{count} day ago', other: '{count} days ago' },
+      },
+      /** A card's footnote: "Every week · 8 days ago". */
+      why: '{cadence} · {ago}',
+      /** Autocomplete rows' footnotes. */
+      often: 'Often bought · {cadence}',
+      history: 'Your history',
+      dictionary: 'Dictionary',
+      /** Appended to a row's footnote when the name is already open. */
+      onList: 'already on the list',
+      onListAmount: 'already on the list ({amount})',
+      /** Read out for an autocomplete row. */
+      pick: 'Add {name}',
+    },
+    /** The undo of Clear checked, refused: the list was cleared since (APP-403). */
+    undoSuperseded: 'The list was cleared again since. Nothing was undone.',
     recent: {
       title: 'Recent',
       count: { one: '{count} item', other: '{count} items' },

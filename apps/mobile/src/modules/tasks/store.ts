@@ -196,6 +196,7 @@ function listView(list: ListRow, sync: ListSync): TaskList {
     sync,
     grocery: list.grocery ?? false,
     checkedClearedAt: list.checkedClearedAt ?? null,
+    suggestionsOff: list.suggestionsOff ?? false,
     sections: list.sections ?? [],
     ...listFace(list),
   }
@@ -512,9 +513,12 @@ export function useTaskActions() {
   const setAppearance = useMutation(api.taskLists.setAppearance)
   const setDoneInList = useMutation(api.tasks.setDoneInList)
   const undoCompletion = useMutation(api.tasks.undoCompletion)
-  const clearChecked = useMutation(api.taskLists.clearChecked)
+  const clearChecked = useMutation(api.taskLists.clearCheckedUndoable)
   const restoreCheckedCleared = useMutation(api.taskLists.restoreCheckedCleared)
   const putBack = useMutation(api.tasks.putBack)
+  const setSuggestions = useMutation(api.taskLists.setSuggestions)
+  const hideSuggestion = useMutation(api.taskLists.hideSuggestion)
+  const unhideSuggestion = useMutation(api.taskLists.unhideSuggestion)
   const markSeen = useMutation(api.tasks.markAssignmentSeen)
   const setReminder = useMutation(api.tasks.setReminder)
   const setSection = useMutation(api.tasks.setSection)
@@ -676,15 +680,20 @@ export function useTaskActions() {
     setAisle: (id: string, category: GroceryAisle) => patch(id, { category }),
     /**
      * "Clear checked" on a grocery list (APP-310). Answers the moment it
-     * replaced, which is what `restoreCheckedCleared` puts back on undo.
+     * cleared and the one it replaced; the undo passes both back, so it puts
+     * back only this clear, never one another Member made since (APP-403).
      */
     clearChecked: (listId: string) =>
       clearChecked({ listId: listId as Id<'taskLists'>, groupSlug }),
-    restoreCheckedCleared: (listId: string, checkedClearedAt: number | null) =>
+    restoreCheckedCleared: (
+      listId: string,
+      cleared: { clearedAt: number; previous: number | null },
+    ) =>
       restoreCheckedCleared({
         listId: listId as Id<'taskLists'>,
         groupSlug,
-        checkedClearedAt,
+        checkedClearedAt: cleared.previous,
+        clearedAt: cleared.clearedAt,
       }),
     /** A Recent item back onto a grocery list, with its amount and aisle. */
     putBack: (taskId: string, listId: string) =>
@@ -693,6 +702,30 @@ export function useTaskActions() {
         listId: listId as Id<'taskLists'>,
         groupSlug,
       }),
+    /**
+     * A grocery item with a known amount onto a grocery list: a suggestion or
+     * an autocomplete row (APP-311). The server picks its aisle as for any
+     * typed line.
+     */
+    addGrocery: (
+      listId: string,
+      item: { title: string; quantity?: number; unit?: GroceryUnit },
+    ) =>
+      add({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        title: item.title,
+        ...(item.quantity !== undefined ? { quantity: item.quantity } : {}),
+        ...(item.unit !== undefined ? { unit: item.unit } : {}),
+      }),
+    /** A grocery list's "Maybe needed" strip on or off (APP-311). */
+    setSuggestions: (listId: string, on: boolean) =>
+      setSuggestions({ listId: listId as Id<'taskLists'>, groupSlug, on }),
+    /** A name off a grocery list's suggestions for good, and its undo. */
+    hideSuggestion: (listId: string, title: string) =>
+      hideSuggestion({ listId: listId as Id<'taskLists'>, groupSlug, title }),
+    unhideSuggestion: (listId: string, title: string) =>
+      unhideSuggestion({ listId: listId as Id<'taskLists'>, groupSlug, title }),
     /** The Member responsible, or nobody (APP-302). */
     setAssignee: (id: string, userId: string | null) =>
       patch(id, { assigneeId: userId as Id<'users'> | null }),
@@ -709,4 +742,17 @@ export function useTaskActions() {
 export function useRecentGroceries() {
   const { group } = useGroup()
   return useQuery(api.tasks.recentGroceries, { groupSlug: group.slug })
+}
+
+/**
+ * What the Current Group usually buys, for one grocery list (APP-311): its
+ * habits, most bought first, for the composer, and the "Maybe needed"
+ * suggestions, computed on the server. `undefined` until Convex answers.
+ */
+export function useGroceryHabits(listId: string) {
+  const { group } = useGroup()
+  return useQuery(api.tasks.groceryHabits, {
+    groupSlug: group.slug,
+    listId: listId as Id<'taskLists'>,
+  })
 }

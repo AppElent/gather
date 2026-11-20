@@ -459,6 +459,10 @@ export async function applySample(
           listId,
           title: task.title,
           done: task.done,
+          // A checked item carries when (APP-403), as a real check does.
+          doneAt: task.done
+            ? now - (task.checkedDaysAgo ?? 0) * DAY_MS
+            : undefined,
           dueDate:
             task.dueInDays === undefined
               ? undefined
