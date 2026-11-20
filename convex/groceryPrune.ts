@@ -41,7 +41,8 @@ const rangeValidator = v.union(v.literal('stamped'), v.literal('unstamped'))
  * every local grocery list gets its own prune, a page of lists at a time.
  * Only grocery lists (`isGroceryList`); other lists keep every row.
  *
- * `dryRun` only logs, per list, how many items a real run would delete.
+ * `dryRun` only logs, per list that has any, how many items a real run
+ * would delete.
  */
 export const pruneCheckedGroceries = internalMutation({
   args: {
@@ -156,7 +157,7 @@ export const pruneCheckedGroceryList = internalMutation({
       )
       return null
     }
-    if (removed || args.dryRun)
+    if (removed)
       console.log(
         `checked-groceries prune list=${list._id} range=${range} ` +
           `${args.dryRun ? 'wouldRemove' : 'removed'}=${removed}`,
