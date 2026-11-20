@@ -62,12 +62,14 @@ import Pencil from 'lucide-react-native/icons/pencil'
 import Pin from 'lucide-react-native/icons/pin'
 import Plus from 'lucide-react-native/icons/plus'
 import Repeat from 'lucide-react-native/icons/repeat'
+import RotateCw from 'lucide-react-native/icons/rotate-cw'
 import Search from 'lucide-react-native/icons/search'
 import Settings from 'lucide-react-native/icons/settings'
 import Share from 'lucide-react-native/icons/share'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
 import Smartphone from 'lucide-react-native/icons/smartphone'
+import Sparkles from 'lucide-react-native/icons/sparkles'
 import Store from 'lucide-react-native/icons/store'
 import Target from 'lucide-react-native/icons/target'
 import Trash2 from 'lucide-react-native/icons/trash-2'
@@ -215,4 +217,8 @@ export const UI_ICONS = {
   Share: glyph(Share, 'square.and.arrow.up'),
   /** Preferences that filter a list: Meal preferences. */
   Sliders: glyph(SlidersHorizontal, 'slider.horizontal.3'),
+  /** A slimme actie: Plan mijn week and its proposals (APP-319). */
+  Spark: glyph(Sparkles, 'sparkles'),
+  /** Ask again for one thing: a new proposal for one day (APP-319). */
+  Regenerate: glyph(RotateCw, 'arrow.clockwise'),
 } satisfies Record<string, Glyph>

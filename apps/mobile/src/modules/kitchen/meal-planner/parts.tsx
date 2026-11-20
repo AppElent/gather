@@ -1,11 +1,13 @@
 /**
- * The small pieces the week, the meal sheet and Pick share: a meal's 46 pt
- * thumb, the empty slot's dashed tile, and the row of Member coins.
+ * The small pieces the week, the meal sheet, Pick and Plan mijn week share: a
+ * meal's 46 pt thumb, the empty slot's dashed tile, the row of Member coins,
+ * and the toggle chip.
  */
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 
+import { haptics } from '../../../feedback/haptics'
 import { UI_ICONS } from '../../../theme/icons'
-import { RADIUS, SIZE, TYPE, useTokens } from '../../../theme/tokens'
+import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { RecordThumb } from '../../../ui/record-thumb'
 import type { Member } from './week'
 
@@ -140,7 +142,62 @@ export function Coin({
   )
 }
 
+/** A toggle chip: ink when on, with a check. */
+export function Chip({
+  label,
+  on,
+  testID,
+  icon: Icon,
+  onPress,
+}: {
+  label: string
+  on: boolean
+  testID: string
+  icon?: (typeof UI_ICONS)[keyof typeof UI_ICONS]
+  onPress: () => void
+}) {
+  const tokens = useTokens()
+  const color = on ? tokens.onInk : tokens.ink
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      accessibilityLabel={label}
+      testID={testID}
+      onPress={() => {
+        haptics.selectionChanged()
+        onPress()
+      }}
+      style={({ pressed }) => [
+        styles.chip,
+        on
+          ? { backgroundColor: tokens.ink, borderColor: tokens.ink }
+          : { backgroundColor: tokens.surface, borderColor: tokens.hair },
+        pressed && styles.pressed,
+      ]}
+    >
+      {on ? (
+        <UI_ICONS.Check size={14} color={color} strokeWidth={2.6} />
+      ) : Icon ? (
+        <Icon size={14} color={color} strokeWidth={2.2} />
+      ) : null}
+      <Text style={[styles.chipLabel, { color }]}>{label}</Text>
+    </Pressable>
+  )
+}
+
 const styles = StyleSheet.create({
+  chip: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE[1],
+    paddingHorizontal: SPACE[3],
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+  },
+  chipLabel: { ...TYPE.footnoteStrong },
+  pressed: { opacity: 0.7 },
   thumb: {
     width: SIZE.thumb,
     height: SIZE.thumb,
