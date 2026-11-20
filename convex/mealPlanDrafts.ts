@@ -355,22 +355,26 @@ export const write = internalMutation({
   handler: async (ctx, args) => {
     requireWeekStart(args.weekStart)
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
-    if (args.replace.kind === 'week') {
-      for (const draft of await draftsOfWeek(ctx, group._id, args.weekStart))
-        await ctx.db.delete(draft._id)
-    } else {
-      const draft = await ctx.db.get(args.replace.id)
-      if (draft && draft.groupId === group._id) await ctx.db.delete(draft._id)
-    }
     const end = addDays(args.weekStart, 6)
-    const expiresAt = Date.now() + DRAFT_LIFETIME_MS
-    let written = 0
+    const rows = []
     for (const pick of args.picks) {
       if (!isIsoDate(pick.date) || pick.date < args.weekStart || pick.date > end)
         continue
       if (await mealAt(ctx, group._id, pick.date, pick.slot)) continue
       const fields = await checkedPick(ctx, group._id, pick)
-      if (!fields) continue
+      if (fields) rows.push({ pick, fields })
+    }
+    if (args.replace.kind === 'week') {
+      for (const draft of await draftsOfWeek(ctx, group._id, args.weekStart))
+        await ctx.db.delete(draft._id)
+    } else {
+      // Regenerating with nothing that still fits keeps the draft it replaces.
+      if (rows.length === 0) return 0
+      const draft = await ctx.db.get(args.replace.id)
+      if (draft && draft.groupId === group._id) await ctx.db.delete(draft._id)
+    }
+    const expiresAt = Date.now() + DRAFT_LIFETIME_MS
+    for (const { pick, fields } of rows) {
       await ctx.db.insert('mealPlanDrafts', {
         groupId: group._id,
         weekStart: args.weekStart,
@@ -382,9 +386,8 @@ export const write = internalMutation({
         createdBy: user._id,
         expiresAt,
       })
-      written++
     }
-    return written
+    return rows.length
   },
 })
 
@@ -449,6 +452,8 @@ async function runPlan(
   if (used === null) return { status: 'limit', limit: DAILY_AI_CALLS }
 
   const apiKey = anthropicApiKey()
+  // Only a call that never reached the model is given back: an answer the
+  // model gave but got wrong was paid for, and the rules fill it in.
   const aiPicks = apiKey ? await askWeekPlan(input, apiKey) : null
   let picks: (WeekPlanPick & { source: 'ai' | 'rules' | 'fallback' })[]
   let spent = used

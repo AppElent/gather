@@ -166,23 +166,30 @@ export function weekPlanPrompt(input: WeekPlanPromptInput): string {
 }
 
 /**
- * Ask the model for the week, or null when there was no usable answer at
- * all (no response, a refused call, the tool not used). An answer with only
- * invalid picks is an empty list, not null: the call did happen.
+ * Ask the model for the week, or null when the model was never reached (no
+ * response, a network error, a refused call). Once it answered, the call was
+ * paid for: an answer without usable picks (the tool not used, cut off at
+ * the token limit, malformed) is an empty list, and the rules fill the week.
+ * Without this a wish that makes the model answer badly would plan for free.
  */
 export async function askWeekPlan(
   input: WeekPlanPromptInput,
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<WeekPlanPick[] | null> {
+  let reached = false
   const answer = await callAnthropicTool({
     apiKey,
     tool: PLAN_TOOL,
     maxTokens: 2048,
     prompt: weekPlanPrompt(input),
-    fetchImpl,
+    fetchImpl: (async (input: URL | RequestInfo, init?: RequestInit) => {
+      const response = await fetchImpl(input, init)
+      reached = response.ok
+      return response
+    }) as typeof fetch,
   })
-  if (!answer || !Array.isArray(answer.meals)) return null
+  if (!answer || !Array.isArray(answer.meals)) return reached ? [] : null
   return acceptAiPicks(answer.meals, {
     ...input,
     recipes: input.recipes.slice(0, AI_RECIPES_MAX),

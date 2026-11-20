@@ -223,6 +223,20 @@ describe('mealPlanDrafts.propose', () => {
     expect(titles).not.toContain('Pasta pesto')
   })
 
+  test('a reached model with an unusable answer is counted; the rules fill', async () => {
+    const { t, as } = await seed()
+    vi.stubEnv('ANTHROPIC_API_KEY', 'test-key')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ content: [{ type: 'text', text: 'Sorry' }] }) }),
+    )
+    const result = await as.action(api.mealPlanDrafts.propose, PLAN)
+    expect(result).toMatchObject({ count: 4, left: DAILY_AI_CALLS - 1 })
+    expect(await usedToday(t)).toBe(1)
+    const drafts = await as.query(api.mealPlanDrafts.list, WEEK)
+    expect(drafts.every((d) => d.source === 'rules')).toBe(true)
+  })
+
   test('without a key the plan is the rules plan, and costs nothing', async () => {
     const { t, as } = await seed()
     vi.stubEnv('ANTHROPIC_API_KEY', '')
@@ -377,6 +391,21 @@ describe('mealPlanDrafts accept, discard and expiry', () => {
     expect(tue?.source).toBe('rules')
     expect(after).toHaveLength(4)
     expect(await usedToday(t)).toBe(2)
+  })
+
+  test('regenerate with nothing else that fits keeps the draft', async () => {
+    const { t, as, drafts, curry, soup, toast } = await proposed()
+    await t.run(async (ctx) => {
+      await ctx.db.delete(curry)
+      await ctx.db.delete(soup)
+      await ctx.db.delete(toast)
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(aiReply([])))
+    const result = await as.action(api.mealPlanDrafts.regenerate, { groupSlug: 'home', id: drafts[0]._id, locale: 'nl' })
+    expect(result).toEqual({ status: 'none' })
+    const after = await as.query(api.mealPlanDrafts.list, WEEK)
+    expect(after.map((d) => d._id)).toEqual(drafts.map((d) => d._id))
+    expect(after[0].title).toBe('Tacos met kip')
   })
 
   test('another Group cannot accept or discard', async () => {

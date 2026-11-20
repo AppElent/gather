@@ -139,24 +139,23 @@ export function MealPlannerScreen() {
   const acceptAll = useMutation(api.mealPlanDrafts.acceptAll)
   const discard = useMutation(api.mealPlanDrafts.discard)
   const regenerate = useAction(api.mealPlanDrafts.regenerate)
-  // The proposal this visit: the bar stays, saying all is saved, once the
-  // last draft is accepted, until Klaar. Accepted slots say "net
-  // overgenomen" until the screen is left.
-  const [proposalOpen, setProposalOpen] = useState(false)
+  // The bar shows while the week has drafts. Once this visit accepted the
+  // last one it stays, saying all is saved, until Klaar (`savedTail`).
+  // Accepted slots say "net overgenomen" until then or a week change.
+  const [savedTail, setSavedTail] = useState(false)
   const [justAccepted, setJustAccepted] = useState<ReadonlySet<string>>(new Set())
   const [regenerating, setRegenerating] = useState<string | null>(null)
   const [accepting, setAccepting] = useState(false)
   const [fallback, setFallback] = useState(false)
   const draftFallback = drafts.some((draft) => draft.source === 'fallback')
+  // Kept from the drafts, so the all-saved tail still says which kind it was.
   useEffect(() => {
-    if (drafts.length === 0) return
-    setProposalOpen(true)
-    setFallback(draftFallback)
+    if (drafts.length > 0) setFallback(draftFallback)
   }, [drafts.length, draftFallback])
   // A new week starts with no proposal of this visit.
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset per week
   useEffect(() => {
-    setProposalOpen(false)
+    setSavedTail(false)
     setJustAccepted(new Set())
   }, [weekStart])
   const days = useMemo(
@@ -286,11 +285,13 @@ export function MealPlannerScreen() {
 
   // Closing the proposal also drops its "net overgenomen" marks.
   const closeProposal = () => {
-    setProposalOpen(false)
+    setSavedTail(false)
     setJustAccepted(new Set())
   }
-  const markAccepted = (keys: readonly string[]) =>
+  const markAccepted = (keys: readonly string[]) => {
+    setSavedTail(true)
     setJustAccepted((current) => new Set([...current, ...keys]))
+  }
   const proposalWords = words.proposal
   const onAcceptDraft = (draft: Draft) => {
     acceptDraft({ groupSlug: group.slug, id: draft._id })
@@ -350,7 +351,8 @@ export function MealPlannerScreen() {
           setSheet({ kind: 'plan' })
           return
         }
-        if (result.status === 'none') {
+        // `empty`: the slot was filled or turned off meanwhile.
+        if (result.status === 'none' || result.status === 'empty') {
           showToast({
             message: fmt(proposalWords.regenerateNone, {
               day: weekdayName(draft.date, locale).toLocaleLowerCase(locale),
@@ -370,12 +372,11 @@ export function MealPlannerScreen() {
     setSheet(null)
     if (outcome.status === 'empty') showToast({ message: words.plan.empty })
     else {
-      setJustAccepted(new Set())
-      setProposalOpen(true)
+      closeProposal()
       scrollRef.current?.scrollTo({ y: 0, animated: true })
     }
   }
-  const showBar = proposalOpen && (drafts.length > 0 || justAccepted.size > 0)
+  const showBar = drafts.length > 0 || savedTail
 
   return (
     <View ref={rootRef} collapsable={false} style={styles.root}>
