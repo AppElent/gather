@@ -33,6 +33,7 @@ import {
   type PlannedMeal,
   servingsOf,
   type WeekData,
+  weekdayInText,
   weekdayName,
 } from './week'
 
@@ -486,7 +487,7 @@ function MealSheetBody({
           <InsetRow
             title={mealWords.somethingElse}
             subtitle={fmt(mealWords.somethingElseSub, {
-              weekday: weekdayName(meal.date, locale),
+              weekday: weekdayInText(meal.date, locale),
             })}
             testID="meal-something-else"
             chevron

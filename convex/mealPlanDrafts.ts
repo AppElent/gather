@@ -168,8 +168,12 @@ export const list = query({
   },
 })
 
-/** What the planners need, read once for one plan. */
-async function planContext(
+/**
+ * What the planners need, read once for one plan. `swapping` (Iets anders,
+ * Nieuw idee, APP-320) keeps the asked slots as targets even when a meal is
+ * there or the slot is switched off: the meal there is what gets replaced.
+ */
+export async function planContext(
   ctx: QueryCtx,
   args: {
     groupSlug: string
@@ -183,6 +187,7 @@ async function planContext(
     avoidRecipeIds?: string[]
     avoidMealEntryId?: string
     avoidQuickMeals?: string[]
+    swapping?: boolean
   },
 ) {
   const { group } = await requireGroupBySlug(ctx, args.groupSlug)
@@ -199,8 +204,10 @@ async function planContext(
     const date = addDays(from, index)
     if (!wanted.has(date)) continue
     const weekday = weekdayIndex(date)
-    for (const slot of enabledSlots(prefs, weekday)) {
-      if (!args.slots.includes(slot) || filled.has(`${date}|${slot}`)) continue
+    const slots = args.swapping ? args.slots : enabledSlots(prefs, weekday)
+    for (const slot of slots) {
+      if (!args.slots.includes(slot)) continue
+      if (!args.swapping && filled.has(`${date}|${slot}`)) continue
       const evening =
         slot === 'dinner' && prefs.smart.useCalendar
           ? eveningEvents(week.events, date)[0]

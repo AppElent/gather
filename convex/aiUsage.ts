@@ -55,8 +55,9 @@ async function takeOne(
 /**
  * Give back the call `take` counted, for an action whose request got no
  * answer (APP-319: Plan mijn week's fallback "kostte geen slimme actie").
- * Only Plan mijn week refunds: its fallback promises the person it cost
- * nothing, and the plan they get is made without the provider. Never below
+ * Only the meal planner's AI actions refund (Plan mijn week, and APP-320's
+ * Iets anders and Nieuw idee): their fallback promises the person it cost
+ * nothing, and what they get is made without the provider. Never below
  * zero, and only today's row.
  */
 export const refund = internalMutation({

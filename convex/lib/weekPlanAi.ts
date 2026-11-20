@@ -79,10 +79,51 @@ const WISH_WORDS: Record<WeekPlanWish, string> = {
   useLow: 'use what is running low',
 }
 
-/** The prompt: rules first, then the data, as compact lines. */
-export function weekPlanPrompt(input: WeekPlanPromptInput): string {
-  const language = input.locale === 'nl' ? 'Dutch' : 'English'
-  const slots = input.targets.map((target) => {
+/** The recipe list as the model sees it: id | title | minutes | rating | last cooked | tags. */
+export function recipeLines(
+  recipes: WeekPlanPromptInput['recipes'],
+  today: string,
+): string[] {
+  return recipes.slice(0, AI_RECIPES_MAX).map((recipe) => {
+    const parts = [
+      recipe.id,
+      JSON.stringify(recipe.title.slice(0, 80)),
+      recipe.prepMinutes !== undefined ? `${recipe.prepMinutes} min` : 'time unknown',
+    ]
+    if (recipe.rating !== undefined) parts.push(`rated ${recipe.rating}/5`)
+    parts.push(
+      recipe.lastCooked
+        ? `cooked ${daysBetween(recipe.lastCooked, today)} days ago`
+        : 'never planned',
+    )
+    if (recipe.tags.length > 0)
+      parts.push(`tags: ${recipe.tags.slice(0, 5).join(', ').slice(0, 60)}`)
+    return `- ${parts.join(' | ')}`
+  })
+}
+
+/** The Group's rules, one line each, for any meal planner prompt. */
+export function ruleLines(input: WeekPlanPromptInput): string[] {
+  return [
+    input.diets.length > 0 && `Diets: ${input.diets.join(', ')}.`,
+    input.allergens.length > 0 &&
+      `Allergies (already filtered out of the list; never suggest a quick meal with them; a quick meal you name yourself is dropped, so use a recipe or one of the household's own quick meals): ${input.allergens.join(', ')}.`,
+    input.dislikes.length > 0 &&
+      `Disliked (never in a quick meal): ${input.dislikes.slice(0, 20).join(', ')}.`,
+    input.prefs.noRepeatDays > 0 &&
+      `Variety: avoid recipes cooked in the last ${input.prefs.noRepeatDays} days.`,
+    input.prefs.meatFreeNights > 0 &&
+      `${input.prefs.meatFreeNights} meat-free dinners this week.`,
+    input.prefs.smart.preferHighRated &&
+      'Prefer higher rated recipes and ones not cooked for a long time.',
+    input.prefs.smart.useStock &&
+      input.stock.inStock.length + input.stock.low.length > 0 &&
+      'Prefer recipes that use what is in stock, especially what is running low.',
+  ].filter((line): line is string => typeof line === 'string')
+}
+
+/** A slot as the model sees it: day, slot, time, eaters, busy evening, fish day. */
+export function slotLine(target: WeekPlanPromptInput['targets'][number], input: WeekPlanPromptInput): string {
     const limit = targetLimit(target)
     const parts = [
       `${target.date} ${WEEKDAYS_EN[weekdayIndex(target.date)]} ${target.slot}`,
@@ -98,39 +139,14 @@ export function weekPlanPrompt(input: WeekPlanPromptInput): string {
     if (input.prefs.leftoverDays.some((day) => day === weekday))
       parts.push('cook double for leftovers tomorrow')
     return `- ${parts.join(', ')}`
-  })
-  const recipes = input.recipes.slice(0, AI_RECIPES_MAX).map((recipe) => {
-    const parts = [
-      recipe.id,
-      JSON.stringify(recipe.title.slice(0, 80)),
-      recipe.prepMinutes !== undefined ? `${recipe.prepMinutes} min` : 'time unknown',
-    ]
-    if (recipe.rating !== undefined) parts.push(`rated ${recipe.rating}/5`)
-    parts.push(
-      recipe.lastCooked
-        ? `cooked ${daysBetween(recipe.lastCooked, input.today)} days ago`
-        : 'never planned',
-    )
-    if (recipe.tags.length > 0)
-      parts.push(`tags: ${recipe.tags.slice(0, 5).join(', ').slice(0, 60)}`)
-    return `- ${parts.join(' | ')}`
-  })
-  const rules = [
-    input.diets.length > 0 && `Diets: ${input.diets.join(', ')}.`,
-    input.allergens.length > 0 &&
-      `Allergies (already filtered out of the list; never suggest a quick meal with them; a quick meal you name yourself is dropped, so use a recipe or one of the household's own quick meals): ${input.allergens.join(', ')}.`,
-    input.dislikes.length > 0 &&
-      `Disliked (never in a quick meal): ${input.dislikes.slice(0, 20).join(', ')}.`,
-    input.prefs.noRepeatDays > 0 &&
-      `Variety: avoid recipes cooked in the last ${input.prefs.noRepeatDays} days.`,
-    input.prefs.meatFreeNights > 0 &&
-      `${input.prefs.meatFreeNights} meat-free dinners this week.`,
-    input.prefs.smart.preferHighRated &&
-      'Prefer higher rated recipes and ones not cooked for a long time.',
-    input.prefs.smart.useStock &&
-      input.stock.inStock.length + input.stock.low.length > 0 &&
-      'Prefer recipes that use what is in stock, especially what is running low.',
-  ].filter(Boolean)
+}
+
+/** The prompt: rules first, then the data, as compact lines. */
+export function weekPlanPrompt(input: WeekPlanPromptInput): string {
+  const language = input.locale === 'nl' ? 'Dutch' : 'English'
+  const slots = input.targets.map((target) => slotLine(target, input))
+  const recipes = recipeLines(input.recipes, input.today)
+  const rules = ruleLines(input)
   const planned = new Set(input.plannedTitles)
   const turnedDown = input.skipQuickMeals.filter((title) => !planned.has(title))
   const wishes = [
@@ -182,21 +198,44 @@ export async function askWeekPlan(
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<WeekPlanPick[] | null> {
-  let reached = false
-  const answer = await callAnthropicTool({
+  const { reached, answer } = await askModel({
     apiKey,
     tool: PLAN_TOOL,
     maxTokens: 2048,
     prompt: weekPlanPrompt(input),
-    fetchImpl: (async (input: URL | RequestInfo, init?: RequestInit) => {
-      const response = await fetchImpl(input, init)
-      reached = response.ok
-      return response
-    }) as typeof fetch,
+    fetchImpl,
   })
   if (!answer || !Array.isArray(answer.meals)) return reached ? [] : null
   return acceptAiPicks(answer.meals, {
     ...input,
     recipes: input.recipes.slice(0, AI_RECIPES_MAX),
   })
+}
+
+/**
+ * One tool call, and whether the model was reached at all: a reached model
+ * was paid for even when its answer is unusable, so only an unreached one is
+ * given back to the daily cap (Plan mijn week, Iets anders, Nieuw idee).
+ */
+export async function askModel(args: {
+  apiKey: string
+  tool: AnthropicTool
+  maxTokens: number
+  prompt: string
+  fetchImpl?: typeof fetch
+}): Promise<{ reached: boolean; answer: Record<string, unknown> | null }> {
+  const fetchImpl = args.fetchImpl ?? fetch
+  let reached = false
+  const answer = await callAnthropicTool({
+    apiKey: args.apiKey,
+    tool: args.tool,
+    maxTokens: args.maxTokens,
+    prompt: args.prompt,
+    fetchImpl: (async (url: URL | RequestInfo, init?: RequestInit) => {
+      const response = await fetchImpl(url, init)
+      reached = response.ok
+      return response
+    }) as typeof fetch,
+  })
+  return { reached, answer }
 }
