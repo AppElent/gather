@@ -42,7 +42,8 @@ Top to bottom:
      `textOnBrand`), a decorative barcode hint. Under the card: store name
      (`subhead` 600, `ink`) and last used (`footnote`, `muted`, same wording
      as the list screen).
-   - Order: last used first (`features/loyalty-cards/list/card-last-used.ts`).
+   - Order: the list's, as Convex sends it (last used first until the Group
+     arranges its cards, then that arrangement, APP-440); never re-sorted here.
      Show all the Group's cards; the row scrolls.
    - Trailing header link `Alle kaarten` / `All cards` opens the loyalty-cards
      list. Min 44 pt hit area.

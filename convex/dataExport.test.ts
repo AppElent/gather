@@ -310,6 +310,7 @@ async function household(t: Harness): Promise<Household> {
       cardNumber: '2620187342052',
       barcodeFormat: 'EAN_13',
       holder: 'Bob',
+      order: 0,
       frontPhotoId: await ctx.storage.store(new Blob(['front'])),
       backPhotoId: await ctx.storage.store(new Blob(['back'])),
       createdByUserId: bob,
@@ -617,6 +618,8 @@ describe('what the file contains', () => {
       expect.stringContaining('http'),
     )
     const [card] = household.loyaltyCards
+    // The Group's arrangement travels with the card (APP-440).
+    expect(card.order).toBe(0)
     expect(card).not.toHaveProperty('frontPhotoId')
     expect(card).not.toHaveProperty('backPhotoId')
     expect(card.frontPhotoUrl).toEqual(expect.stringContaining('http'))
