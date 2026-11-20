@@ -14,7 +14,7 @@ import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { StoreTile } from './StoreTile'
 
 const BUTTON =
-  'inline-flex min-h-9 min-w-9 items-center justify-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-2 text-sm font-semibold text-[var(--app-fg)] disabled:opacity-40'
+  'inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-2 text-sm font-semibold text-[var(--app-fg)] disabled:opacity-40'
 
 /**
  * The Current Group's Loyalty cards, in Convex's order: cards nobody arranged
@@ -80,7 +80,7 @@ export function LoyaltyCardsPage() {
   return (
     <div className="mx-auto grid max-w-5xl gap-4">
       <header className="flex items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h2 className="m-0 text-2xl font-semibold">
             {messages.modules.byId['loyalty-cards'].label}
           </h2>
