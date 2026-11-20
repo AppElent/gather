@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { editedRead, ingredientsDigest, pickRows, type SourceLine } from './pick'
+import {
+  byLineKey,
+  editedRead,
+  ingredientsDigest,
+  type PickRow,
+  pickRows,
+  type SourceLine,
+  sectionsByAisle,
+  withEdits,
+} from './pick'
 
 const line = (
   key: string,
@@ -117,5 +126,70 @@ describe('ingredientsDigest', () => {
     const one = ingredientsDigest(['2 uien', '1 blik tomaten'])
     expect(ingredientsDigest(['2 uien', '1 blik tomaten'])).toBe(one)
     expect(ingredientsDigest(['3 uien', '1 blik tomaten'])).not.toBe(one)
+  })
+})
+
+describe('keys a line had before (APP-423)', () => {
+  const reading: SourceLine = { key: 'di:3', text: 'een handje koriander', read: { kind: 'reading' } }
+  // The AI answered: the line is now an item's row under another key.
+  const arrived: SourceLine = { ...line('item:koriander:0', 'Koriander', 1), was: ['di:3'] }
+
+  it('a tick made while the line was being read survives its answer', () => {
+    // Unticked while reading: the row is off, and still off once it is read.
+    expect(pickRows({ lines: [reading], items: [], ticks: { 'di:3': false } }).rows[0].on).toBe(false)
+    const after = pickRows({ lines: [arrived], items: [], ticks: { 'di:3': false } })
+    expect(after.rows[0]).toMatchObject({ title: 'Koriander', on: false })
+    expect(after.lines).toEqual([])
+    // Without the earlier key the tick is lost, which is the bug.
+    expect(
+      pickRows({ lines: [{ ...arrived, was: undefined }], items: [], ticks: { 'di:3': false } }).rows[0].on,
+    ).toBe(true)
+  })
+
+  it('its own key wins over an earlier one, and the first earlier key with an answer wins', () => {
+    expect(byLineKey({ 'item:koriander:0': true, 'di:3': false }, arrived)).toBe(true)
+    expect(byLineKey({ 'ma:1': false, 'di:3': true }, { key: 'x', was: ['do:2', 'ma:1', 'di:3'] })).toBe(false)
+    expect(byLineKey({}, arrived)).toBeUndefined()
+  })
+
+  it('a retype made while the line was being read is on the row it became', () => {
+    const typed = editedRead('3 bosjes koriander')
+    const [shown] = withEdits([arrived], { 'di:3': typed })
+    expect(shown.read).toEqual(typed)
+    const { rows } = pickRows({ lines: [shown], items: [], ticks: { 'di:3': true } })
+    expect(rows[0]).toMatchObject({ title: 'Koriander', amount: { quantity: 3, unit: 'bos' }, on: true })
+    // Lines nobody retyped are as they were.
+    expect(withEdits([arrived], {})[0]).toBe(arrived)
+  })
+})
+
+describe('sectionsByAisle', () => {
+  const row = (key: string, title: string, meta: PickRow['meta'] = null): PickRow => ({
+    key,
+    title,
+    amount: {},
+    on: true,
+    meta,
+  })
+
+  it('groups by the aisle asked for, in walking order, reading and text rows under Other', () => {
+    // The Group files Penne under snacks, whatever the dictionary says.
+    const aisleOf = (title: string) => (title === 'Penne' ? 'snacks' : title === 'Eieren' ? 'dairy' : 'produce')
+    const sections = sectionsByAisle(
+      [
+        row('0', 'Penne'),
+        row('1', 'Eieren'),
+        row('2', 'Ui'),
+        row('3', 'Koriander', { kind: 'reading' }),
+        row('4', 'iets onduidelijks', { kind: 'text' }),
+      ],
+      aisleOf,
+    )
+    expect(sections.map((s) => [s.id, s.rows.map((r) => r.key)])).toEqual([
+      ['produce', ['2']],
+      ['dairy', ['1']],
+      ['snacks', ['0']],
+      ['other', ['3', '4']],
+    ])
   })
 })

@@ -8,14 +8,18 @@
  * - A subtask does not repeat on its own.
  * - A repeating parent's next occurrence reopens its subtasks; the completion
  *   remembers which were checked, so its undo checks them again.
+ * - It also moves each dated subtask by as many days as the parent moved
+ *   (APP-451), with its reminder, so a weekly step is not overdue from the
+ *   second week on. Undo moves them back by the same days.
  * - Deleting a parent deletes its subtasks.
  */
+import { addDays } from '@gather/core/civil-date'
 import { taskRefusal } from '@gather/core/refusals'
 import { ConvexError } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { isGroceryList } from './groceryCategories'
-import { cancelSend, syncSend } from './taskReminders'
+import { cancelSend, shiftedReminder, syncSend } from './taskReminders'
 
 /** A task's subtasks, in no particular order. */
 export async function subtasksOfTask(
@@ -111,6 +115,45 @@ export async function recheckSubtasks(
     const subtask = await ctx.db.get(id)
     if (subtask && subtask.parentTaskId === parentId && !subtask.done) {
       await setDone(ctx, subtask, groupId, true)
+    }
+  }
+}
+
+/**
+ * A repeating parent's due date moved `days` calendar days (back, when
+ * negative): each dated subtask moves the same days, and its reminder keeps
+ * its distance from the subtask's date (`moveReminder` for a subtask). An
+ * undated subtask stays undated.
+ *
+ * `createdBefore` limits it to subtasks created before that `_creationTime`:
+ * an undo passes its completion's, so it moves back only the subtasks that
+ * completion could have moved, not one added since.
+ */
+export async function shiftSubtaskDates(
+  ctx: MutationCtx,
+  parentId: Id<'tasks'>,
+  groupId: Id<'groups'>,
+  days: number,
+  { createdBefore }: { createdBefore?: number } = {},
+): Promise<void> {
+  if (!days) return
+  for (const subtask of await subtasksOfTask(ctx, parentId)) {
+    if (!subtask.dueDate) continue
+    if (createdBefore !== undefined && subtask._creationTime >= createdBefore)
+      continue
+    const dueDate = addDays(subtask.dueDate, days)
+    const reminder = shiftedReminder(subtask.reminder, subtask.dueDate, dueDate)
+    await ctx.db.patch(subtask._id, {
+      dueDate,
+      ...(reminder !== subtask.reminder ? { reminder } : {}),
+    })
+    if (subtask.reminder) {
+      await syncSend(
+        ctx,
+        { ...subtask, dueDate, reminder },
+        groupId,
+        subtask.reminder,
+      )
     }
   }
 }

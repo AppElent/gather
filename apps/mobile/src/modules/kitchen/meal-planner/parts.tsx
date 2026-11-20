@@ -1,7 +1,7 @@
 /**
  * The small pieces the week, the meal sheet, Pick and Plan mijn week share: a
  * meal's 46 pt thumb, the empty slot's dashed tile, the row of Member coins,
- * and the toggle chip.
+ * the toggle chip, and the week's Boodschappen pill.
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -186,7 +186,65 @@ export function Chip({
   )
 }
 
+/**
+ * The week's Boodschappen pill. The label is explicit and the cart is hidden
+ * from VoiceOver: without that, iOS reads the SF Symbol's name first
+ * ("winkelwagen, Boodschappen", APP-461).
+ */
+export function GroceriesPill({
+  label,
+  disabled,
+  onPress,
+}: {
+  label: string
+  disabled?: boolean
+  onPress: () => void
+}) {
+  const tokens = useTokens()
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      testID="meal-planner-groceries"
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.groceriesPill,
+        { backgroundColor: tokens.surface },
+        pressed && styles.pressed,
+      ]}
+    >
+      <UI_ICONS.Cart
+        size={18}
+        color={tokens.ink}
+        strokeWidth={2}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      />
+      <Text
+        maxFontSizeMultiplier={2}
+        style={[styles.groceriesLabel, { color: tokens.ink }]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
+
 const styles = StyleSheet.create({
+  // Plan mijn week has its own row: beside Boodschappen its label only fits
+  // at a smaller size, even on a 6.3" phone.
+  groceriesPill: {
+    minHeight: SIZE.hitMin,
+    borderRadius: RADIUS.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: SPACE[4],
+    flexGrow: 1,
+  },
+  groceriesLabel: { ...TYPE.body },
   chip: {
     minHeight: 36,
     flexDirection: 'row',
