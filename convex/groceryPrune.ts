@@ -41,7 +41,8 @@ const rangeValidator = v.union(v.literal('stamped'), v.literal('unstamped'))
  * but a list that had them can become one (`kitchen.setGroceryList`). The
  * prune keeps both: deleting a parent the way `tasks.remove` does would take
  * its open subtasks too, and deleting a subtask would change its parent's
- * progress.
+ * progress. Such rows stay for good, but a list gains them only before it
+ * becomes a grocery list, so their number does not grow.
  */
 async function inSubtaskTree(ctx: QueryCtx, task: Doc<'tasks'>) {
   if (task.parentTaskId) return true
@@ -107,10 +108,10 @@ export const pruneCheckedGroceries = internalMutation({
  *   the history recognition reads (`recentListItems`). Their oldest moment
  *   is taken once, at the first step, and handed on (`protectFrom`).
  *
- * Open items, subtasks and tasks with subtasks are never deleted. Each step reads the list again and stops
- * when it is gone or no longer a local grocery list. Safe to run again:
- * whatever it already deleted is not read, and a second run over the same
- * list keeps the same items.
+ * Open items, subtasks and tasks with subtasks are never deleted. Each step
+ * reads the list again and stops when it is gone or no longer a local
+ * grocery list. Safe to run again: whatever it already deleted is not read,
+ * and a second run over the same list keeps the same items.
  */
 export const pruneCheckedGroceryList = internalMutation({
   args: {
