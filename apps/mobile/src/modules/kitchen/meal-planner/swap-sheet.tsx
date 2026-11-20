@@ -135,8 +135,15 @@ export function SwapSheet({
   const [choosing, setChoosing] = useState<string | null>(null)
   const [saving, setSaving] = useState<'plan' | 'only' | null>(null)
   const [left, setLeft] = useState<number | null>(null)
+  const [chooseFailed, setChooseFailed] = useState(false)
+  const [saveFailed, setSaveFailed] = useState(false)
   const turnedDown = useRef<string[]>([])
   const asked = useRef(false)
+  // Only the latest ask may set the state; an older answer arriving late is dropped.
+  const swapAsk = useRef(0)
+  const ideaAsk = useRef(0)
+  const ideaBusy = useRef(false)
+  const lastSwapAsk = useRef<string | null>(null)
 
   const weekday = weekdayInText(date, locale)
   const meal = replacing ? data.meals.find((m) => m._id === replacing) : mealIn(data.meals, date, slot)
@@ -160,11 +167,17 @@ export function SwapSheet({
   const trimmedWish = wish.trim() ? wish.trim().slice(0, WISH_MAX) : undefined
   const ask = { groupSlug: group.slug, date, slot, locale }
 
+  const swapKey = (nextChip: SwapChip | null) => `${trimmedWish ?? ''}|${nextChip ?? ''}`
+
   const runSwap = (nextChip: SwapChip | null) => {
     if (!online) return
+    const id = ++swapAsk.current
+    lastSwapAsk.current = swapKey(nextChip)
+    setChooseFailed(false)
     setSwap({ kind: 'asking' })
     askSwap({ ...ask, wish: trimmedWish, chip: nextChip ?? undefined })
       .then((result) => {
+        if (id !== swapAsk.current) return
         if (result.status === 'limit') {
           haptics.actionFailed()
           setLeft(0)
@@ -179,9 +192,18 @@ export function SwapSheet({
         })
       })
       .catch(() => {
+        if (id !== swapAsk.current) return
         haptics.actionFailed()
         setSwap({ kind: 'failed' })
       })
+  }
+
+  // The wish asks again on return, but not while an ask is out, and not for
+  // the same wish and chip that are already showing: each ask costs a call.
+  const onWish = () => {
+    if (swap.kind === 'asking') return
+    if (swap.kind === 'shown' && lastSwapAsk.current === swapKey(chip)) return
+    runSwap(chip)
   }
 
   // One ask when the sheet opens, or as soon as it is back online.
@@ -193,8 +215,11 @@ export function SwapSheet({
   }, [online])
 
   const runIdea = () => {
-    if (!online) return
     setView('idea')
+    if (!online || ideaBusy.current) return
+    const id = ++ideaAsk.current
+    ideaBusy.current = true
+    setSaveFailed(false)
     setIdea({ kind: 'asking' })
     askIdea({
       ...ask,
@@ -203,6 +228,7 @@ export function SwapSheet({
       avoidTitles: turnedDown.current,
     })
       .then((result) => {
+        if (id !== ideaAsk.current) return
         if (result.status === 'limit') {
           haptics.actionFailed()
           setLeft(0)
@@ -219,8 +245,12 @@ export function SwapSheet({
         setIdea({ kind: 'shown', idea: result.idea })
       })
       .catch(() => {
+        if (id !== ideaAsk.current) return
         haptics.actionFailed()
         setIdea({ kind: 'failed' })
+      })
+      .finally(() => {
+        if (id === ideaAsk.current) ideaBusy.current = false
       })
   }
 
@@ -233,7 +263,8 @@ export function SwapSheet({
 
   const onChoose = (alt: Alternative) => {
     const key = altKey(alt)
-    if (choosing || chosen?.key === key) return
+    if (!online || choosing || chosen?.key === key) return
+    setChooseFailed(false)
     setChoosing(key)
     choose({
       groupSlug: group.slug,
@@ -255,22 +286,30 @@ export function SwapSheet({
         })
       })
       .catch(() => {
+        // The slot changed under us (filled, deleted, recipe unshared): the
+        // alternatives stay, the message says nothing changed, and the week
+        // query catches up on its own.
         haptics.actionFailed()
-        setSwap((state) => (state.kind === 'shown' ? state : { kind: 'failed' }))
+        setChooseFailed(true)
       })
       .finally(() => setChoosing(null))
   }
 
   const onUndo = () => {
-    if (!chosen) return
+    if (!chosen || !online) return
     const was = chosen
     setChosen(null)
+    setChooseFailed(false)
     unchoose({
       groupSlug: group.slug,
       id: was.id,
       chosen: { recipeId: was.recipeId, mealEntryId: was.mealEntryId },
       previous: was.previous,
-    }).catch(() => haptics.actionFailed())
+    }).catch(() => {
+      haptics.actionFailed()
+      setChosen(was)
+      setChooseFailed(true)
+    })
   }
 
   const scaled = (shown: Idea) =>
@@ -302,7 +341,8 @@ export function SwapSheet({
     })
 
   const onSave = (shown: Idea, plan: boolean) => {
-    if (saving) return
+    if (saving || !online) return
+    setSaveFailed(false)
     setSaving(plan ? 'plan' : 'only')
     saveIdea({
       groupSlug: group.slug,
@@ -325,8 +365,9 @@ export function SwapSheet({
         )
       })
       .catch(() => {
+        // Keep the draft: it cost a call, and saving again should not.
         haptics.actionFailed()
-        setIdea({ kind: 'failed' })
+        setSaveFailed(true)
       })
       .finally(() => setSaving(null))
   }
@@ -394,7 +435,7 @@ export function SwapSheet({
                     testID="swap-wish"
                     value={wish}
                     onChangeText={setWish}
-                    onSubmitEditing={() => runSwap(chip)}
+                    onSubmitEditing={onWish}
                     maxLength={WISH_MAX}
                     placeholder={swapWords.wishPlaceholder}
                     placeholderTextColor={tokens.muted}
@@ -424,7 +465,7 @@ export function SwapSheet({
                   <Text style={[styles.subhead, { color: tokens.muted }]}>{swapWords.working}</Text>
                 </View>
               ) : null}
-              {swap.kind === 'failed' ? (
+              {swap.kind === 'failed' || chooseFailed ? (
                 <Text accessibilityLiveRegion="polite" style={[styles.subhead, styles.center, { color: tokens.danger }]}>
                   {swapWords.failed}
                 </Text>
@@ -480,11 +521,12 @@ export function SwapSheet({
                           accessibilityLabel={fmt(swapWords.chooseLabel, { title: alt.title, day: weekday })}
                           accessibilityState={{ selected: isChosen, busy: choosing === key }}
                           testID={`swap-choose-${key}`}
-                          disabled={choosing !== null}
+                          disabled={choosing !== null || !online}
                           onPress={() => onChoose(alt)}
                           style={({ pressed }) => [
                             styles.choose,
                             { backgroundColor: isChosen ? tokens.accent : tokens.surface2 },
+                            !online && styles.inert,
                             pressed && styles.pressed,
                           ]}
                         >
@@ -526,9 +568,10 @@ export function SwapSheet({
                   <Pressable
                     accessibilityRole="button"
                     testID="swap-undo"
+                    disabled={!online}
                     onPress={onUndo}
                     hitSlop={8}
-                    style={({ pressed }) => [styles.undo, pressed && styles.pressed]}
+                    style={({ pressed }) => [styles.undo, !online && styles.inert, pressed && styles.pressed]}
                   >
                     <Text style={[styles.undoLabel, { color: tokens.onInk }]}>{swapWords.undo}</Text>
                   </Pressable>
@@ -539,7 +582,8 @@ export function SwapSheet({
                 accessibilityRole="button"
                 testID="swap-new-idea"
                 disabled={!online}
-                onPress={runIdea}
+                // Back from an idea and in again shows the same idea; Ander idee asks anew.
+                onPress={() => (idea.kind === 'shown' ? setView('idea') : runIdea())}
                 style={({ pressed }) => [
                   styles.ideaRow,
                   { backgroundColor: tokens.surface },
@@ -582,7 +626,7 @@ export function SwapSheet({
           ) : null}
           {idea.kind === 'failed' ? (
             <Text accessibilityLiveRegion="polite" style={[styles.subhead, styles.center, { color: tokens.danger }]}>
-              {ideaWords.failed}
+              {ideaWords.askFailed}
             </Text>
           ) : null}
           {idea.kind === 'shown' ? (
@@ -595,12 +639,21 @@ export function SwapSheet({
           ) : null}
           {idea.kind !== 'limit' && idea.kind !== 'asking' ? (
             <View style={styles.section}>
+              {saveFailed ? (
+                <Text
+                  accessibilityLiveRegion="polite"
+                  testID="idea-save-failed"
+                  style={[styles.subhead, styles.center, { color: tokens.danger }]}
+                >
+                  {ideaWords.failed}
+                </Text>
+              ) : null}
               {idea.kind === 'shown' ? (
                 <PrimaryButton
                   label={fmt(ideaWords.savePlan, { weekday })}
                   testID="idea-save-plan"
                   busy={saving === 'plan'}
-                  disabled={saving !== null}
+                  disabled={saving !== null || !online}
                   onPress={() => onSave(idea.idea, true)}
                   minHeight={50}
                 />
@@ -611,7 +664,7 @@ export function SwapSheet({
                     label={ideaWords.saveOnly}
                     testID="idea-save-only"
                     busy={saving === 'only'}
-                    disabled={saving !== null}
+                    disabled={saving !== null || !online}
                     onPress={() => onSave(idea.idea, false)}
                   />
                 ) : null}

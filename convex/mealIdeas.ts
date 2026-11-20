@@ -50,7 +50,7 @@ import {
   requireGroupBySlug,
   requireInGroup,
 } from './lib/groupAccess'
-import { mealSlotValidator } from './lib/kitchen'
+import { mealSlotValidator, quickLimitValidator } from './lib/kitchen'
 import { askIdea, askSwaps, type MealIdeaPromptInput } from './lib/mealIdeasAi'
 import { mealAt, mealPreferencesOf, membersOf } from './lib/mealPlan'
 import { recipesVisibleIn } from './lib/recipeShares'
@@ -382,6 +382,7 @@ const snapshotValidator = v.object({
   prepMinutes: v.optional(v.number()),
   recipeId: v.optional(v.id('recipes')),
   mealEntryId: v.optional(v.id('mealEntries')),
+  quickLimit: v.optional(quickLimitValidator),
 })
 
 /**
@@ -425,6 +426,7 @@ export const choose = mutation({
             prepMinutes: replaced.prepMinutes,
             recipeId: replaced.recipeId,
             mealEntryId: replaced.mealEntryId,
+            quickLimit: replaced.quickLimit,
           }
         : null,
     }
@@ -471,6 +473,7 @@ export const unchoose = mutation({
       prepMinutes: args.previous.prepMinutes,
       recipeId: recipe && isVisibleToGroups(recipe, [group._id]) ? recipe._id : undefined,
       mealEntryId: entry && entry.groupId === group._id ? entry._id : undefined,
+      quickLimit: args.previous.quickLimit,
     })
     return true
   },
@@ -545,15 +548,19 @@ export const saveIdea = mutation({
     })
     if (!args.plan) return { recipeId, mealId: null }
     requireDate(args.plan.date)
-    if (!args.plan.replaceId && (await mealAt(ctx, group._id, args.plan.date, args.plan.slot)))
+    // The meal it was to replace may be gone meanwhile: then it is planned
+    // like into an empty slot, and never over what someone put there since.
+    const replacing = args.plan.replaceId ? await ctx.db.get(args.plan.replaceId) : null
+    const replaceId = replacing?.groupId === group._id ? replacing._id : undefined
+    if (!replaceId && (await mealAt(ctx, group._id, args.plan.date, args.plan.slot)))
       return { recipeId, mealId: null }
     const mealId: Id<'plannedDinners'> = await planMeal(ctx, {
       groupSlug: args.groupSlug,
       date: args.plan.date,
       slot: args.plan.slot as MealSlot,
       recipeId,
-      replace: Boolean(args.plan.replaceId),
-      replaceId: args.plan.replaceId,
+      replace: replaceId !== undefined,
+      replaceId,
     })
     return { recipeId, mealId }
   },

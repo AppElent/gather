@@ -615,6 +615,7 @@ export const nl = {
       noneTitle: 'Geen idee dat bij jullie voorkeuren past',
       noneBody: 'Gather liet een idee weg dat niet bij jullie eetvoorkeuren paste. Probeer Ander idee.',
       failed: 'Bewaren lukte niet. Er is niets veranderd.',
+      askFailed: 'Dat lukte niet. Probeer het opnieuw.',
     },
   },
 

@@ -797,6 +797,7 @@ export const en = {
       noneTitle: 'No idea that fits your preferences',
       noneBody: "Gather left out an idea that didn't fit your meal preferences. Try Another idea.",
       failed: "Saving didn't work. Nothing changed.",
+      askFailed: "That didn't work. Try again.",
     },
   },
 

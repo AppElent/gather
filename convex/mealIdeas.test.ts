@@ -234,6 +234,33 @@ describe('mealIdeas.choose and unchoose', () => {
     expect(row).toMatchObject({ title: 'Tacos met kip', recipeId: tacos, servings: 3 })
   })
 
+  test('Undo on a quick meal brings its time limit back', async () => {
+    const { t, as, meal, teriyaki, tosti } = await seed()
+    await t.run((ctx) =>
+      ctx.db.patch(meal, {
+        title: 'Tosti',
+        recipeId: undefined,
+        mealEntryId: tosti,
+        quickLimit: 20,
+      }),
+    )
+    const chosen = await as.mutation(api.mealIdeas.choose, { ...SLOT, recipeId: teriyaki, replaceId: meal })
+    expect(chosen.previous).toMatchObject({ title: 'Tosti', mealEntryId: tosti, quickLimit: 20 })
+    expect((await t.run((ctx) => ctx.db.get(meal)))?.quickLimit).toBeUndefined()
+    await as.mutation(api.mealIdeas.unchoose, {
+      groupSlug: 'home',
+      id: meal,
+      chosen: { recipeId: teriyaki },
+      previous: chosen.previous,
+    })
+    expect(await t.run((ctx) => ctx.db.get(meal))).toMatchObject({
+      title: 'Tosti',
+      mealEntryId: tosti,
+      quickLimit: 20,
+      servings: 3,
+    })
+  })
+
   test('Undo after someone changed the meal writes nothing', async () => {
     const { t, as, meal, teriyaki, gnocchi } = await seed()
     const chosen = await as.mutation(api.mealIdeas.choose, { ...SLOT, recipeId: teriyaki, replaceId: meal })
@@ -408,6 +435,29 @@ describe('mealIdeas.idea and saveIdea', () => {
     expect(taken.mealId).toBeNull()
     const week = await as.query(api.mealPlan.week, { groupSlug: 'home', from: THURSDAY, to: THURSDAY })
     expect(week.meals.map((m) => m.title)).toEqual(['Tacos met kip'])
+  })
+
+  test('the meal it was to replace is gone: planned into the empty slot, or only saved', async () => {
+    const { t, as, meal } = await seed()
+    await t.run((ctx) => ctx.db.delete(meal))
+    const planned = await as.mutation(api.mealIdeas.saveIdea, {
+      groupSlug: 'home',
+      title: 'Linzensoep',
+      ingredients: ['200 g linzen'],
+      steps: ['Kook de linzen.'],
+      plan: { date: THURSDAY, slot: 'dinner', replaceId: meal },
+    })
+    expect(planned.mealId).not.toBeNull()
+    const again = await as.mutation(api.mealIdeas.saveIdea, {
+      groupSlug: 'home',
+      title: 'Bonensoep',
+      ingredients: ['200 g bonen'],
+      steps: ['Kook de bonen.'],
+      plan: { date: THURSDAY, slot: 'dinner', replaceId: meal },
+    })
+    expect(again.mealId).toBeNull()
+    const week = await as.query(api.mealPlan.week, { groupSlug: 'home', from: THURSDAY, to: THURSDAY })
+    expect(week.meals.map((m) => m.title)).toEqual(['Linzensoep'])
   })
 
   test('saving refuses nutrition lines, an allergen and connected apps', async () => {
