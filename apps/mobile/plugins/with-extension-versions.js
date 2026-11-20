@@ -11,7 +11,9 @@
  * Store Connect warns (ITMS-90473). Nothing at prebuild knows the number, so
  * this plugin adds a last Run Script phase to each extension that copies the
  * two keys from the app's source `Info.plist` (the one EAS updated) into the
- * extension's built `Info.plist`, before code signing.
+ * extension's built `Info.plist`, before code signing. It declares no output file
+ * (Xcode's own plist task already produces it) and turns user-script sandboxing off
+ * for the extension targets.
  *
  * A value that is still a build-setting reference (`$(CURRENT_PROJECT_VERSION)`,
  * as in a local run that EAS did not touch; any value with a `$`) is skipped, so the extension keeps
@@ -90,14 +92,19 @@ function addVersionSyncPhases(project) {
     const { buildPhase } = project.addBuildPhase([], 'PBXShellScriptBuildPhase', PHASE_NAME, uuid, {
       shellPath: '/bin/sh',
       shellScript: versionSyncScript(appPlist).replace(/\n/g, '\\n'),
-      // Declared so the phase also works with user-script sandboxing on: it reads the app's
-      // source plist and rewrites the extension's built plist, and nothing else.
+      // No outputPaths: the file this phase rewrites is the output of Xcode's own plist task, and
+      // declaring it too fails the archive with "Multiple commands produce ... Info.plist".
       inputPaths: [`"$(SRCROOT)/${appPlist}"`],
-      outputPaths: ['"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)"'],
     })
-    // Run on every build: Xcode rewrites the built plist whenever its inputs change, which would
-    // otherwise look like an up-to-date output of this phase.
+    // Without declared outputs Xcode would run the phase on every build and warn; say so instead.
     buildPhase.alwaysOutOfDate = 1
+    // The phase writes into the product, which sandboxing would refuse and which cannot be declared.
+    for (const [, configuration] of IOSConfig.XcodeUtils.getBuildConfigurationsForListId(
+      project,
+      target.buildConfigurationList,
+    )) {
+      configuration.buildSettings.ENABLE_USER_SCRIPT_SANDBOXING = 'NO'
+    }
     changed.push(unquote(target.name))
   }
   return changed

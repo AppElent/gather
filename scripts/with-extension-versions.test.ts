@@ -130,7 +130,7 @@ describe('addVersionSyncPhases', () => {
     expect(phasesOf(project, 'widgets')).toHaveLength(1)
   })
 
-  test("reads the app's source plist, declares it, and runs on every build", () => {
+  test("reads the app's source plist, declares no output, and runs on every build", () => {
     const project = parse()
     addVersionSyncPhases(project)
     const [phase] = Object.values<Record<string, unknown>>(project.hash.project.objects.PBXShellScriptBuildPhase).filter(
@@ -138,8 +138,18 @@ describe('addVersionSyncPhases', () => {
     )
     expect(phase.shellScript).toContain('GatherPreview/Info.plist')
     expect(phase.inputPaths).toEqual(['"$(SRCROOT)/GatherPreview/Info.plist"'])
-    expect(phase.outputPaths).toEqual(['"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)"'])
+    // Xcode's own plist task produces the file; declaring it fails the archive with "Multiple commands produce".
+    expect(phase.outputPaths).toEqual([])
     expect(phase.alwaysOutOfDate).toBe(1)
+  })
+
+  test('turns user-script sandboxing off for the extensions only', () => {
+    const project = parse()
+    addVersionSyncPhases(project)
+    const settings = project.pbxXCBuildConfigurationSection()
+    expect(settings.BBBBBBBBBBBBBBBBBBBBBBB1.buildSettings.ENABLE_USER_SCRIPT_SANDBOXING).toBeUndefined()
+    expect(settings.BBBBBBBBBBBBBBBBBBBBBBB2.buildSettings.ENABLE_USER_SCRIPT_SANDBOXING).toBe('NO')
+    expect(settings.BBBBBBBBBBBBBBBBBBBBBBB3.buildSettings.ENABLE_USER_SCRIPT_SANDBOXING).toBe('NO')
   })
 
   test('fails loudly when the app target has no Info.plist', () => {
