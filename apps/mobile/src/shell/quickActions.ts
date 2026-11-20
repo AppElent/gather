@@ -125,15 +125,15 @@ export const QUICK_ACTIONS: readonly QuickAction[] = MODULES.flatMap(
  *
  * - `live`: Convex's answer, with usage, so it can say when each card was
  *   last used.
+ * - `shown`: `useQuery`'s answer, which is `live` or the last-known copy
+ *   while that answer is on its way.
+ * - `saved`: this Group's offline copy (`offlineGroupCards`), for a sheet
+ *   opened while Convex cannot answer at all. `undefined` is no copy.
  *
  * Every source is already in the list's order (Convex sorts it, the offline
  * copy keeps that order), so the cards come out as they went in: re-sorting
  * here would drop a Group's own arrangement, which the server keeps to itself
  * (APP-440).
- * - `shown`: `useQuery`'s answer, which is `live` or the last-known copy
- *   while that answer is on its way.
- * - `saved`: this Group's offline copy (`offlineGroupCards`), for a sheet
- *   opened while Convex cannot answer at all. `undefined` is no copy.
  *
  * Nothing yet is `loading`, which draws placeholders in the section only: the
  * Add section never waits for cards.
