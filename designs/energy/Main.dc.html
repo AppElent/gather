@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Energie</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.85}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+input{font:inherit;color:inherit;border:0;background:transparent;outline:none;padding:0;margin:0;width:100%}
+</style>
+</helmet>
+<div style="width: 390px; height: {{h}}px; position: relative; overflow: hidden; background: {{c.ground}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: {{c.ink}}">
+
+  <!-- ============ HEADER (every screen) ============ -->
+  <div style="background: {{c.wash}}; padding: 54px 16px 20px 16px; display: flex; flex-direction: column">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <a href="{{hdr.backHref}}" aria-label="Terug naar {{hdr.back}}" style="height: 44px; padding: 0 16px 0 8px; border-radius: 999px; display: flex; align-items: center; gap: 2px; text-decoration: none; color: {{c.ink}}; background: {{c.glass}}; box-shadow: {{c.glassShadow}}">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+        <span style="font-size: 17px; line-height: 22px">{{hdr.back}}</span>
+      </a>
+      <sc-if value="{{hdr.more}}" hint-placeholder-val="{{ true }}">
+        <a href="Sources.dc.html" aria-label="Meer: bronnen, contract, prijsbron" style="width: 44px; height: 44px; border-radius: 999px; background: {{c.glass}}; box-shadow: {{c.glassShadow}}; display: flex; align-items: center; justify-content: center; color: {{c.ink}}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="1.7"></circle><circle cx="19" cy="12" r="1.7"></circle><circle cx="5" cy="12" r="1.7"></circle></svg>
+        </a>
+      </sc-if>
+    </div>
+    <h1 style="margin: 6px 4px 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 34px; line-height: 41px; font-weight: 700">{{hdr.title}}</h1>
+    <div style="margin: 12px 4px 0 4px; display: flex; align-items: center; gap: 14px">
+      <span aria-hidden="true" style="width: 56px; height: 56px; flex: 0 0 56px; border-radius: 17px; background: {{c.fill}}; display: flex; align-items: center; justify-content: center">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="{{c.on}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{hdr.glyph}}"></path></svg>
+      </span>
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 17px; line-height: 22px; font-weight: 600">{{hdr.line1}}</span>
+        <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">{{hdr.line2}}</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 20px 16px 120px 16px; display: flex; flex-direction: column; gap: 20px">
+
+  <!-- ============ HOME A + B ============ -->
+  <sc-if value="{{isHome}}" hint-placeholder-val="{{ true }}">
+
+    <sc-if value="{{isHomeB}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Deze maand" style="background: {{c.wash}}; border-radius: 26px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">November tot en met vandaag</span>
+        <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 44px; line-height: 48px; font-weight: 800; font-variant-numeric: tabular-nums">€ 72,90</span>
+        <span style="font-size: 15px; line-height: 20px">Verwacht voor heel november <b style="font-variant-numeric: tabular-nums">€ 109</b> · oktober was <b style="font-variant-numeric: tabular-nums">€ 96,40</b></span>
+      </section>
+      <a href="Prices.dc.html" style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: {{c.ink}}">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <span style="font-size: 17px; line-height: 22px">Stroom nu <b style="font-variant-numeric: tabular-nums">€ 0,37</b> per kWh</span>
+          <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Prijzen ›</span>
+        </div>
+        <div aria-hidden="true" style="display: flex; align-items: flex-end; gap: 2px; height: 40px">
+          <sc-for list="{{miniBars}}" as="b" hint-placeholder-count="24"><span style="flex: 1 1 0; height: {{b.h}}px; background: {{b.bg}}; border: {{b.border}}; box-sizing: border-box; border-radius: 2px 2px 0 0"></span></sc-for>
+        </div>
+        <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Goedkoopst morgen 11:00–14:00, gemiddeld € 0,12</span>
+      </a>
+    </sc-if>
+
+    <sc-if value="{{isHomeA}}" hint-placeholder-val="{{ true }}">
+      <section aria-label="Stroomprijs nu" style="background: {{c.wash}}; border-radius: 26px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">Stroom nu, 19:00–20:00</span>
+        <div style="display: flex; align-items: baseline; gap: 8px">
+          <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 44px; line-height: 48px; font-weight: 800; font-variant-numeric: tabular-nums">€ 0,37</span>
+          <span style="font-size: 17px; line-height: 22px; color: {{c.muted}}">per kWh</span>
+        </div>
+        <span style="font-size: 15px; line-height: 20px"><b>Duur</b>: 32% boven het gemiddelde van vandaag</span>
+        <span style="font-size: 15px; line-height: 20px">Goedkoopst morgen: <b style="font-variant-numeric: tabular-nums">11:00–14:00</b>, gemiddeld <b style="font-variant-numeric: tabular-nums">€ 0,12</b></span>
+      </section>
+
+      <a href="Prices.dc.html" style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: {{c.ink}}">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 600">Prijs per uur vandaag</h2>
+          <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Morgen ›</span>
+        </div>
+        <figure aria-label="{{todayLabel}}" style="margin: 0; display: flex; flex-direction: column; gap: 4px">
+          <div aria-hidden="true" style="display: flex; align-items: flex-end; gap: 3px; height: 96px">
+            <sc-for list="{{todayBars}}" as="b" hint-placeholder-count="24"><span style="flex: 1 1 0; height: {{b.h}}px; background: {{b.bg}}; border: {{b.border}}; box-sizing: border-box; border-radius: 3px 3px 0 0"></span></sc-for>
+          </div>
+          <div aria-hidden="true" style="display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums"><span>00</span><span>06</span><span>12</span><span>18 · nu</span><span>24</span></div>
+        </figure>
+      </a>
+    </sc-if>
+
+    <section aria-label="Vandaag tot nu" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Vandaag tot nu</h2>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+        <sc-for list="{{todayFacts}}" as="f" hint-placeholder-count="4">
+          <div style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{f.label}}</span>
+            <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 28px; line-height: 32px; font-weight: 700; font-variant-numeric: tabular-nums">{{f.value}}</span>
+            <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{f.unit}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 17px; line-height: 22px">
+        <span>Gas</span><span style="font-variant-numeric: tabular-nums"><b>2,9 m³</b> · € 3,86</span>
+      </div>
+    </section>
+
+    <a href="Solar.dc.html" aria-label="Thuisbatterij 64 procent, ontlaadt 1,2 kilowatt, vandaag 59 cent opgeleverd" style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: {{c.ink}}">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <span style="font-size: 17px; line-height: 22px; font-weight: 600">Thuisbatterij</span>
+        <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">ontlaadt 1,2 kW</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 28px; line-height: 32px; font-weight: 700; font-variant-numeric: tabular-nums">64%</span>
+        <span aria-hidden="true" style="flex-grow: 1; height: 10px; border-radius: 999px; background: {{c.surface2}}; overflow: hidden; display: flex"><span style="width: 64%; background: {{c.ink}}"></span></span>
+      </div>
+      <span style="font-size: 15px; line-height: 20px">Vandaag opgeleverd <b style="font-variant-numeric: tabular-nums">€ 0,59</b> door goedkoop laden en duur ontladen</span>
+    </a>
+
+    <nav aria-label="Meer over energie" style="background: {{c.surface}}; border-radius: 22px; display: flex; flex-direction: column">
+      <sc-for list="{{navRows}}" as="r" hint-placeholder-count="4">
+        <a href="{{r.href}}" style="min-height: 56px; padding: 8px 16px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: {{c.ink}}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.glyph}}"></path></svg>
+          <span style="flex-grow: 1; display: flex; flex-direction: column; border-bottom: {{r.sep}}; padding: 8px 0">
+            <span style="font-size: 17px; line-height: 22px">{{r.title}}</span>
+            <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{r.sub}}</span>
+          </span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+      </sc-for>
+    </nav>
+    <p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Prijzen van EnergyZero met je contract van Zonneplan. Bedragen inclusief btw en energiebelasting.</p>
+  </sc-if>
+
+  <!-- ============ EMPTY ============ -->
+  <sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+    <sc-if value="{{emptyIntro}}" hint-placeholder-val="{{ true }}">
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 20px 16px; display: flex; flex-direction: column; gap: 12px">
+        <h2 style="margin: 0; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Wat kost jullie stroom, elk uur?</h2>
+        <p style="margin: 0; font-size: 17px; line-height: 22px">Zie wat het huis verbruikt, opwekt en betaalt, met de prijs van elk uur. Ook voor zonnepanelen en een thuisbatterij.</p>
+        <p style="margin: 0; font-size: 15px; line-height: 20px; color: {{c.muted}}">Begin met je adres. Daarna koppel je Home Assistant of typ je meterstanden.</p>
+        <button onClick="{{startAdd}}" style="min-height: 50px; border-radius: 999px; background: {{c.fill}}; color: {{c.on}}; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600">Voeg je adres toe</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{emptyForm}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">ADRES</h2>
+        <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+          <label style="min-height: 52px; display: flex; align-items: center; gap: 12px; border-bottom: 0.5px solid {{c.hair}}"><span style="width: 96px; font-size: 17px">Naam</span><input type="text" defaultValue="Thuis" style="font-size: 17px"></label>
+          <label style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="width: 96px; font-size: 17px">Huis</span><input type="text" defaultValue="Geen (optioneel)" style="font-size: 17px; color: {{c.muted}}"></label>
+        </div>
+        <p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Koppel aan een huis uit Financiën om energie naast je hypotheek te zien. Niet nodig.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">HOE KOMT JE DATA BINNEN?</h2>
+        <div role="radiogroup" aria-label="Bron" style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px; display: flex; flex-direction: column">
+          <sc-for list="{{sourceChoices}}" as="o" hint-placeholder-count="2">
+            <button role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="min-height: 64px; display: flex; align-items: center; gap: 12px; border-bottom: {{o.sep}}; padding: 10px 0">
+              <span aria-hidden="true" style="width: 22px; height: 22px; flex: 0 0 22px; border-radius: 999px; border: {{o.ring}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><span style="width: 12px; height: 12px; border-radius: 999px; background: {{o.dot}}"></span></span>
+              <span style="display: flex; flex-direction: column"><span style="font-size: 17px; line-height: 22px">{{o.title}}</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{o.sub}}</span></span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+      <a href="{{emptyNext}}" style="min-height: 50px; border-radius: 999px; background: {{c.fill}}; color: {{c.on}}; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; text-decoration: none">Verder</a>
+      <p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Prijzen werken meteen, zonder sleutel. Contract en prijsbron stel je later in.</p>
+    </sc-if>
+  </sc-if>
+
+  <!-- ============ PRICES ============ -->
+  <sc-if value="{{isPrices}}" hint-placeholder-val="{{ false }}">
+    <div role="tablist" aria-label="Dag" style="height: 36px; padding: 2px; border-radius: 999px; background: {{c.surface2}}; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr))">
+      <sc-for list="{{dayTabs}}" as="t" hint-placeholder-count="2">
+        <button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="border-radius: 999px; background: {{t.bg}}; box-shadow: {{t.shadow}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: {{t.weight}}">{{t.label}}</button>
+      </sc-for>
+    </div>
+    <div style="background: {{c.surface}}; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">{{pr.caption}}</span>
+      <figure aria-label="{{pr.label}}" style="margin: 0; display: flex; flex-direction: column; gap: 4px">
+        <div aria-hidden="true" style="display: flex; align-items: flex-end; gap: 3px; height: 150px; border-bottom: 0.5px solid {{c.hair}}">
+          <sc-for list="{{pr.bars}}" as="b" hint-placeholder-count="24"><span style="flex: 1 1 0; height: {{b.h}}px; background: {{b.bg}}; border: {{b.border}}; box-sizing: border-box; border-radius: 3px 3px 0 0"></span></sc-for>
+        </div>
+        <div aria-hidden="true" style="display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+      </figure>
+      <div aria-hidden="true" style="display: flex; gap: 16px; font-size: 13px; line-height: 18px; color: {{c.muted}}">
+        <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: {{c.ink}}"></span>Goedkoopste 3 uur</span>
+        <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; border: 2px solid {{c.ink}}; box-sizing: border-box"></span>{{pr.markLabel}}</span>
+      </div>
+    </div>
+    <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+      <sc-for list="{{pr.facts}}" as="f" hint-placeholder-count="3">
+        <div style="min-height: 52px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: {{f.sep}}">
+          <span style="font-size: 17px; line-height: 22px">{{f.label}}</span>
+          <span style="font-size: 17px; line-height: 22px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right">{{f.value}}</span>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{pr.warn}}" hint-placeholder-val="{{ false }}">
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; display: flex; gap: 12px">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 22px"><path d="{{g.sun}}"></path></svg>
+        <span style="font-size: 15px; line-height: 20px"><b>Terugleveren kost geld van 12:00 tot 15:00.</b> De marktprijs is dan negatief: je betaalt € 0,02 per teruggeleverde kWh.</span>
+      </div>
+    </sc-if>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Zo is € 0,37 opgebouwd</h2>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div aria-hidden="true" style="height: 14px; border-radius: 999px; overflow: hidden; display: flex; gap: 2px">
+          <span style="width: 52%; background: {{c.ink}}"></span><span style="width: 5%; background: {{c.hairStrong}}"></span><span style="width: 25%; background: {{c.muted}}"></span><span style="width: 18%; background: {{c.surface2}}"></span>
+        </div>
+        <sc-for list="{{buildUp}}" as="b" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 10px; font-size: 15px; line-height: 20px">
+            <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 2px; background: {{b.swatch}}"></span>
+            <span style="flex-grow: 1">{{b.label}}</span><span style="font-variant-numeric: tabular-nums">{{b.value}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <a href="Feed.dc.html" style="background: {{c.surface}}; border-radius: 22px; min-height: 56px; padding: 8px 16px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: {{c.ink}}">
+      <span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-size: 17px; line-height: 22px">Prijsbron</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">EnergyZero · morgen opgehaald om 13:34</span></span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+    </a>
+  </sc-if>
+
+  <!-- ============ FEED ============ -->
+  <sc-if value="{{isFeed}}" hint-placeholder-val="{{ false }}">
+    <div role="radiogroup" aria-label="Prijsbron" style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px; display: flex; flex-direction: column">
+      <sc-for list="{{feeds}}" as="o" hint-placeholder-count="4">
+        <button role="radio" aria-checked="{{o.checked}}" aria-disabled="{{o.disabled}}" onClick="{{o.pick}}" style="min-height: 64px; display: flex; align-items: center; gap: 12px; border-bottom: {{o.sep}}; padding: 10px 0; opacity: {{o.opacity}}">
+          <span aria-hidden="true" style="width: 22px; height: 22px; flex: 0 0 22px; border-radius: 999px; border: {{o.ring}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><span style="width: 12px; height: 12px; border-radius: 999px; background: {{o.dot}}"></span></span>
+          <span style="display: flex; flex-direction: column"><span style="font-size: 17px; line-height: 22px">{{o.title}}</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{o.sub}}</span></span>
+        </button>
+      </sc-for>
+    </div>
+    <sc-if value="{{feedNeedsKey}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">{{feedKeyHeading}}</h2>
+        <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+          <label style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="width: 96px; font-size: 17px">Sleutel</span><input type="password" defaultValue="tibber-demo-sleutel" aria-label="{{feedKeyHeading}}" style="font-size: 17px"></label>
+        </div>
+        <p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{feedKeyHelp}} De sleutel blijft op de server van Gather en is nooit meer te zien. Alleen beheerders van de groep kunnen hem wijzigen.</p>
+      </div>
+    </sc-if>
+    <sc-if value="{{feedAccount}}" hint-placeholder-val="{{ false }}">
+      <p style="margin: 0 4px; font-size: 15px; line-height: 20px">Tibber levert je eigen contractprijs, al inclusief opslag en belasting. De tarieven in je contract gebruikt Gather dan alleen voor gas en vaste kosten.</p>
+    </sc-if>
+    <a href="Prices.dc.html" style="min-height: 50px; border-radius: 999px; background: {{c.fill}}; color: {{c.on}}; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; text-decoration: none">Bewaar</a>
+    <p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Marktprijzen haalt Gather één keer per dag op, rond 13:30. Lukt dat niet, dan staat hier wanneer het voor het laatst goed ging.</p>
+  </sc-if>
+
+  <!-- ============ COSTS ============ -->
+  <sc-if value="{{isCosts}}" hint-placeholder-val="{{ false }}">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 4px">
+      <button aria-label="Vorige maand" onClick="{{noop}}" style="width: 44px; height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: center"><span style="width: 36px; height: 36px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></span></button>
+      <span style="min-height: 36px; padding: 0 14px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; font-size: 15px; font-weight: 600">November 2026</span>
+      <button aria-label="Volgende maand" onClick="{{noop}}" style="width: 44px; height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: center"><span style="width: 36px; height: 36px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></span></button>
+    </div>
+    <div role="tablist" aria-label="Rekenwijze" style="height: 36px; padding: 2px; border-radius: 999px; background: {{c.surface2}}; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr))">
+      <sc-for list="{{netTabs}}" as="t" hint-placeholder-count="2">
+        <button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="border-radius: 999px; background: {{t.bg}}; box-shadow: {{t.shadow}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: {{t.weight}}">{{t.label}}</button>
+      </sc-for>
+    </div>
+    <section aria-label="Totaal" style="background: {{c.wash}}; border-radius: 26px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">1 tot en met 20 november</span>
+      <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 44px; line-height: 48px; font-weight: 800; font-variant-numeric: tabular-nums">{{co.total}}</span>
+      <span style="font-size: 15px; line-height: 20px">{{co.note}}</span>
+    </section>
+    <figure aria-label="Kosten per dag in november, hoogste op 12 november" style="margin: 0; background: {{c.surface}}; border-radius: 22px; padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">Per dag</span>
+      <div aria-hidden="true" style="display: flex; align-items: flex-end; gap: 3px; height: 80px">
+        <sc-for list="{{monthBars}}" as="b" hint-placeholder-count="30"><span style="flex: 1 1 0; height: {{b.h}}px; background: {{b.bg}}; border: {{b.border}}; box-sizing: border-box; border-radius: 2px 2px 0 0"></span></sc-for>
+      </div>
+      <div aria-hidden="true" style="display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums"><span>1</span><span>10</span><span>20</span><span>30</span></div>
+    </figure>
+    <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+      <sc-for list="{{co.lines}}" as="l" hint-placeholder-count="5">
+        <div style="min-height: 56px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: {{l.sep}}; padding: 6px 0">
+          <span style="display: flex; flex-direction: column"><span style="font-size: 17px; line-height: 22px">{{l.label}}</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{l.sub}}</span></span>
+          <span style="font-size: 17px; line-height: 22px; font-weight: 600; font-variant-numeric: tabular-nums">{{l.value}}</span>
+        </div>
+      </sc-for>
+    </div>
+    <a href="Contract.dc.html" style="background: {{c.surface}}; border-radius: 22px; min-height: 56px; padding: 8px 16px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: {{c.ink}}">
+      <span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-size: 17px; line-height: 22px">Contract</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Zonneplan, dynamisch · sinds 1 januari 2026</span></span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+    </a>
+  </sc-if>
+
+  <!-- ============ CONTRACT ============ -->
+  <sc-if value="{{isContract}}" hint-placeholder-val="{{ false }}">
+    <div role="tablist" aria-label="Soort contract" style="height: 36px; padding: 2px; border-radius: 999px; background: {{c.surface2}}; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr))">
+      <sc-for list="{{kindTabs}}" as="t" hint-placeholder-count="2">
+        <button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="border-radius: 999px; background: {{t.bg}}; box-shadow: {{t.shadow}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: {{t.weight}}">{{t.label}}</button>
+      </sc-for>
+    </div>
+    <sc-for list="{{contractGroups}}" as="grp" hint-placeholder-count="4">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">{{grp.title}}</h2>
+        <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+          <sc-for list="{{grp.fields}}" as="f" hint-placeholder-count="3">
+            <label style="min-height: 52px; display: flex; align-items: center; gap: 12px; border-bottom: {{f.sep}}">
+              <span style="flex-grow: 1; font-size: 17px; line-height: 22px">{{f.label}}</span>
+              <input type="text" inputMode="decimal" defaultValue="{{f.value}}" style="width: 96px; text-align: right; font-size: 17px; font-variant-numeric: tabular-nums">
+              <span style="width: 44px; font-size: 15px; color: {{c.muted}}">{{f.unit}}</span>
+            </label>
+          </sc-for>
+        </div>
+        <sc-if value="{{grp.hasNote}}" hint-placeholder-val="{{ false }}"><p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{grp.note}}</p></sc-if>
+      </div>
+    </sc-for>
+    <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+      <div style="min-height: 52px; display: flex; align-items: center; gap: 12px">
+        <span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-size: 17px; line-height: 22px">Salderen</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Gaat op 1 januari 2027 vanzelf uit</span></span>
+        <button role="switch" aria-checked="{{netOnStr}}" aria-label="Salderen" onClick="{{toggleNet}}" style="width: 51px; height: 31px; border-radius: 999px; background: {{netTrack}}; position: relative; flex: 0 0 51px"><span style="position: absolute; top: 2px; left: {{netKnob}}px; width: 27px; height: 27px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,0.2)"></span></button>
+      </div>
+    </div>
+    <a href="Costs.dc.html" style="min-height: 50px; border-radius: 999px; background: {{c.fill}}; color: {{c.on}}; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; text-decoration: none">Bewaar</a>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">EERDERE CONTRACTEN</h2>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px; min-height: 56px; display: flex; flex-direction: column; justify-content: center">
+        <span style="font-size: 17px; line-height: 22px">Eneco, vast</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">1 januari 2024 tot en met 31 december 2025</span>
+      </div>
+      <p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Nieuwe tarieven per 1 januari? Begin een nieuw contract vanaf die datum. Oude maanden blijven met hun eigen tarieven rekenen.</p>
+    </div>
+  </sc-if>
+
+  <!-- ============ SOLAR + BATTERY ============ -->
+  <sc-if value="{{isSolar}}" hint-placeholder-val="{{ false }}">
+    <div role="tablist" aria-label="Periode" style="height: 36px; padding: 2px; border-radius: 999px; background: {{c.surface2}}; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr))">
+      <sc-for list="{{periodTabs}}" as="t" hint-placeholder-count="2">
+        <button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="border-radius: 999px; background: {{t.bg}}; box-shadow: {{t.shadow}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: {{t.weight}}">{{t.label}}</button>
+      </sc-for>
+    </div>
+    <section aria-label="Zonnepanelen" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Zon</h2>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{so.facts}}" as="f" hint-placeholder-count="3">
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{f.label}}</span>
+              <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 28px; line-height: 32px; font-weight: 700; font-variant-numeric: tabular-nums">{{f.value}}</span>
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{f.unit}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div aria-hidden="true" style="height: 14px; border-radius: 999px; overflow: hidden; display: flex; gap: 2px"><span style="width: {{so.selfPct}}%; background: {{c.ink}}"></span><span style="flex-grow: 1; background: {{c.hairStrong}}"></span></div>
+        <span style="font-size: 15px; line-height: 20px">{{so.line}}</span>
+      </div>
+    </section>
+    <section aria-label="Thuisbatterij" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Batterij</h2>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 28px; line-height: 32px; font-weight: 700; font-variant-numeric: tabular-nums">64%</span>
+          <span aria-hidden="true" style="flex-grow: 1; height: 10px; border-radius: 999px; background: {{c.surface2}}; overflow: hidden; display: flex"><span style="width: 64%; background: {{c.ink}}"></span></span>
+          <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">6,4 van 10 kWh</span>
+        </div>
+        <div style="display: flex; flex-direction: column">
+          <sc-for list="{{so.battery}}" as="l" hint-placeholder-count="3">
+            <div style="min-height: 44px; display: flex; justify-content: space-between; align-items: center; border-top: 0.5px solid {{c.hair}}; font-size: 17px; line-height: 22px">
+              <span>{{l.label}}</span><span style="font-variant-numeric: tabular-nums; font-weight: {{l.weight}}">{{l.value}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Opbrengst = ontladen × prijs op dat uur − geladen × prijs op dat uur.</span>
+      </div>
+    </section>
+    <section aria-label="Terugverdiend" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Terugverdiend</h2>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+        <sc-for list="{{assets}}" as="a" hint-placeholder-count="2">
+          <div style="padding: 12px 0; display: flex; flex-direction: column; gap: 8px; border-bottom: {{a.sep}}">
+            <div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; line-height: 22px">{{a.name}}</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{a.spec}}</span></div>
+            <span aria-hidden="true" style="height: 8px; border-radius: 999px; background: {{c.surface2}}; overflow: hidden; display: flex"><span style="width: {{a.pct}}%; background: {{c.ink}}"></span></span>
+            <span style="font-size: 15px; line-height: 20px"><b style="font-variant-numeric: tabular-nums">{{a.paid}}</b> <span style="color: {{c.muted}}">{{a.of}}</span></span>
+          </div>
+        </sc-for>
+      </div>
+      <button onClick="{{noop}}" style="min-height: 44px; align-self: flex-start; padding: 0 16px; border-radius: 999px; background: {{c.surface}}; font-size: 17px">Paneel of batterij toevoegen</button>
+    </section>
+  </sc-if>
+
+  <!-- ============ SOURCES ============ -->
+  <sc-if value="{{isSources}}" hint-placeholder-val="{{ false }}">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">BRONNEN</h2>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+        <a href="Connect.dc.html" style="min-height: 64px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: {{c.ink}}; border-bottom: 0.5px solid {{c.hair}}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.home}}"></path></svg>
+          <span style="flex-grow: 1; display: flex; flex-direction: column; padding: 10px 0"><span style="font-size: 17px; line-height: 22px">Home Assistant thuis</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Verbonden · bijgewerkt 19:55 · 7 kanalen</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+        <a href="Reading.dc.html" style="min-height: 64px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: {{c.ink}}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.pen}}"></path></svg>
+          <span style="flex-grow: 1; display: flex; flex-direction: column; padding: 10px 0"><span style="font-size: 17px; line-height: 22px">Meterstanden</span><span style="font-size: 13px; line-height: 18px; color: {{c.danger}}">Gas: laatste stand 1 november</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">KANALEN</h2>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+        <sc-for list="{{channels}}" as="ch" hint-placeholder-count="6">
+          <div style="min-height: 52px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: {{ch.sep}}">
+            <span style="font-size: 17px; line-height: 22px">{{ch.name}}</span><span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">{{ch.src}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Elk kanaal komt uit één bron. Nieuwe meter? Dan stopt het oude kanaal en begint een nieuw.</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">BRON TOEVOEGEN</h2>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+        <sc-for list="{{addSources}}" as="s" hint-placeholder-count="4">
+          <a href="{{s.href}}" aria-disabled="{{s.disabled}}" style="min-height: 56px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: {{c.ink}}; border-bottom: {{s.sep}}; opacity: {{s.opacity}}">
+            <span style="flex-grow: 1; display: flex; flex-direction: column; padding: 8px 0"><span style="font-size: 17px; line-height: 22px">{{s.title}}</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{s.sub}}</span></span>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ CONNECT HOME ASSISTANT ============ -->
+  <sc-if value="{{isConnect}}" hint-placeholder-val="{{ false }}">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">1 · VERBINDING</h2>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+        <label style="min-height: 52px; display: flex; align-items: center; gap: 12px; border-bottom: 0.5px solid {{c.hair}}"><span style="width: 72px; font-size: 17px">Adres</span><input type="url" defaultValue="https://thuis.ui.nabu.casa" style="font-size: 17px"></label>
+        <label style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="width: 72px; font-size: 17px">Token</span><input type="password" defaultValue="long-lived-token-demo" style="font-size: 17px"></label>
+      </div>
+      <p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Het adres waarop je Home Assistant van buiten bereikbaar is, bijvoorbeeld via Nabu Casa. Maak het token in Home Assistant onder Profiel › Beveiliging › Langdurige toegangstokens.</p>
+      <button onClick="{{testConn}}" style="min-height: 44px; align-self: flex-start; padding: 0 16px; border-radius: 999px; background: {{c.surface}}; font-size: 17px">Verbinding testen</button>
+      <sc-if value="{{tested}}" hint-placeholder-val="{{ true }}">
+        <div style="background: {{c.surface}}; border-radius: 22px; padding: 12px 16px; display: flex; gap: 10px; align-items: center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+          <span style="font-size: 15px; line-height: 20px">Verbonden met Home Assistant 2026.11. In je Energie-dashboard staan 8 kanalen.</span>
+        </div>
+      </sc-if>
+    </div>
+    <sc-if value="{{tested}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">2 · WAT GATHER LEEST</h2>
+        <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+          <sc-for list="{{mapping}}" as="m" hint-placeholder-count="8">
+            <div style="min-height: 60px; display: flex; align-items: center; gap: 12px; border-bottom: {{m.sep}}">
+              <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; padding: 8px 0"><span style="font-size: 17px; line-height: 22px">{{m.name}}</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{m.entity}}</span></span>
+              <button role="switch" aria-checked="{{m.onStr}}" aria-label="{{m.name}} lezen" onClick="{{m.toggle}}" style="width: 51px; height: 31px; border-radius: 999px; background: {{m.track}}; position: relative; flex: 0 0 51px"><span style="position: absolute; top: 2px; left: {{m.knob}}px; width: 27px; height: 27px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,0.2)"></span></button>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Overgenomen uit je Energie-dashboard. Tik op een kanaal om een andere sensor te kiezen. Gas staat uit omdat het al uit Meterstanden komt.</p>
+      </div>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+        <div style="min-height: 52px; display: flex; align-items: center; gap: 12px">
+          <span style="flex-grow: 1; display: flex; flex-direction: column; padding: 8px 0"><span style="font-size: 17px; line-height: 22px">Geschiedenis ophalen</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">De laatste 12 maanden, per uur</span></span>
+          <button role="switch" aria-checked="true" aria-label="Geschiedenis ophalen" onClick="{{noop}}" style="width: 51px; height: 31px; border-radius: 999px; background: {{c.switchOn}}; position: relative; flex: 0 0 51px"><span style="position: absolute; top: 2px; left: 22px; width: 27px; height: 27px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,0.2)"></span></button>
+        </div>
+      </div>
+      <a href="Sources.dc.html" style="min-height: 50px; border-radius: 999px; background: {{c.fill}}; color: {{c.on}}; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; text-decoration: none">Koppelen</a>
+    </sc-if>
+    <p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Alleen beheerders van de groep zien dit. Het token blijft op de server van Gather. Gather leest alleen statistieken en stuurt niets aan.</p>
+  </sc-if>
+
+  <!-- ============ READINGS ============ -->
+  <sc-if value="{{isReading}}" hint-placeholder-val="{{ false }}">
+    <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+      <label style="min-height: 52px; display: flex; align-items: center; gap: 12px"><span style="flex-grow: 1; font-size: 17px">Datum</span><input type="text" defaultValue="20 november 2026" style="width: 170px; text-align: right; font-size: 17px"></label>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">STANDEN</h2>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+        <sc-for list="{{readings}}" as="r" hint-placeholder-count="5">
+          <div style="padding: 8px 0; border-bottom: {{r.sep}}; display: flex; flex-direction: column; gap: 2px">
+            <label style="min-height: 44px; display: flex; align-items: center; gap: 12px">
+              <span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-size: 17px; line-height: 22px">{{r.name}}</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Vorige: {{r.prev}}</span></span>
+              <input type="text" inputMode="decimal" defaultValue="{{r.value}}" aria-invalid="{{r.invalid}}" style="width: 110px; text-align: right; font-size: 17px; font-variant-numeric: tabular-nums; border-bottom: {{r.line}}">
+              <span style="width: 32px; font-size: 15px; color: {{c.muted}}">{{r.unit}}</span>
+            </label>
+            <sc-if value="{{r.hasError}}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size: 13px; line-height: 18px; color: {{c.danger}}">{{r.error}}</span></sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Gather verdeelt het verschil met de vorige stand over de dagen ertussen. Die dagen tellen als schatting.</p>
+    </div>
+    <a href="Sources.dc.html" style="min-height: 50px; border-radius: 999px; background: {{c.fill}}; color: {{c.on}}; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; text-decoration: none">Bewaar</a>
+  </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["home","homeB","empty","prices","feed","costs","contract","solar","sources","connect","reading"],"default":"home"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const st = this.state || {};
+    const screen = p.screen || 'home';
+    const dark = (p.theme || 'light') === 'dark';
+    const set = (o) => this.setState(Object.assign({}, this.state || {}, o));
+    const noop = () => {};
+
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', onInk: '#0F1110', muted: '#A0A8A4', hair: '#2E3331', hairStrong: '#5A615E', danger: '#F0917F',
+      fill: '#D99B2B', on: '#2B1F06', text: '#F2C060', wash: '#2E2611',
+      glass: 'rgba(44,46,45,0.55)', glassShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 8px 24px rgba(0,0,0,0.45)',
+      switchOn: '#30D158', trackOff: '#3E4441', segSel: '#5A615E'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', onInk: '#FFFFFF', muted: '#5E6764', hair: '#DFE2DE', hairStrong: '#9AA19D', danger: '#A4372C',
+      fill: '#F2B233', on: '#2B1F06', text: '#8A5C08', wash: '#FBEBC6',
+      glass: 'rgba(255,255,255,0.62)', glassShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 8px 24px rgba(16,32,30,0.14)',
+      switchOn: '#34C759', trackOff: '#BFC4BF', segSel: '#FFFFFF'
+    };
+    const g = {
+      bolt: 'M13 2 3 14h9l-1 8 10-12h-9z',
+      sun: 'M12 17a5 5 0 1 0 0-10a5 5 0 1 0 0 10M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
+      battery: 'M3 7h15a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zM22 11v2',
+      euro: 'M18 7a6 6 0 1 0 0 10M4 10h9M4 14h9',
+      chart: 'M3 3v18h18M7 15l4-4 3 3 5-6',
+      plug: 'M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4',
+      home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+      pen: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
+      tag: 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01',
+      doc: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5'
+    };
+    const SEP = '0.5px solid ' + c.hair;
+    const eur = (x) => (x < 0 ? '− ' : '') + '€ ' + Math.abs(x).toFixed(2).replace('.', ',');
+    const seg = (items, cur, key) => items.map((it) => {
+      const sel = it.id === cur;
+      return { label: it.label, sel: sel ? 'true' : 'false', bg: sel ? c.segSel : 'transparent', shadow: sel ? '0 1px 4px rgba(0,0,0,0.12)' : 'none', weight: sel ? '600' : '400', pick: () => set({ [key]: it.id }) };
+    });
+    const sw = (on) => ({ onStr: on ? 'true' : 'false', track: on ? c.switchOn : c.trackOff, knob: on ? 22 : 2 });
+
+    // ---------- prices ----------
+    const today = [0.24, 0.22, 0.20, 0.19, 0.19, 0.20, 0.25, 0.31, 0.34, 0.30, 0.27, 0.26, 0.25, 0.25, 0.26, 0.28, 0.32, 0.36, 0.40, 0.37, 0.31, 0.28, 0.26, 0.24];
+    const tomorrow = [0.23, 0.21, 0.20, 0.19, 0.19, 0.21, 0.24, 0.28, 0.26, 0.20, 0.15, 0.13, 0.12, 0.12, 0.14, 0.19, 0.27, 0.35, 0.39, 0.36, 0.30, 0.27, 0.25, 0.23];
+    const NOW = 19;
+    const cheapest = (arr) => { let best = 0, bs = 99; for (let i = 0; i + 3 <= arr.length; i++) { const s = arr[i] + arr[i + 1] + arr[i + 2]; if (s < bs) { bs = s; best = i; } } return best; };
+    const bars = (arr, maxH, mark, withCheap) => {
+      const cs = cheapest(arr);
+      return arr.map((v, i) => {
+        const isCheap = withCheap && i >= cs && i < cs + 3;
+        const isMark = i === mark;
+        const past = mark >= 0 && i < mark;
+        return { h: Math.round((v / 0.42) * maxH), bg: isMark ? 'transparent' : (isCheap ? c.ink : (past ? c.surface2 : c.hairStrong)), border: isMark ? '2px solid ' + c.ink : '0' };
+      });
+    };
+    const day = st.day || 'today';
+    const isTomorrow = day === 'tomorrow';
+    const pr = isTomorrow ? {
+      caption: 'Zaterdag 21 november, all-in per kWh',
+      label: 'Prijs per uur morgen. Goedkoopst 11:00 tot 14:00, gemiddeld 12 cent. Duurst om 18:00, 39 cent.',
+      bars: bars(tomorrow, 150, 18, true), markLabel: 'Duurste uur',
+      facts: [{ label: 'Gemiddeld', value: '€ 0,23' }, { label: 'Goedkoopste 3 uur', value: '11:00–14:00 · € 0,12' }, { label: 'Duurste uur', value: '18:00 · € 0,39' }],
+      warn: true
+    } : {
+      caption: 'Vrijdag 20 november, all-in per kWh',
+      label: 'Prijs per uur vandaag. Nu 37 cent. Goedkoopst was 02:00 tot 05:00, gemiddeld 19 cent.',
+      bars: bars(today, 150, NOW, true), markLabel: 'Nu, 19:00',
+      facts: [{ label: 'Gemiddeld', value: '€ 0,28' }, { label: 'Goedkoopste 3 uur', value: '02:00–05:00 · € 0,19' }, { label: 'Duurste uur', value: '18:00 · € 0,40' }],
+      warn: false
+    };
+    pr.facts = pr.facts.map((f, i) => Object.assign({}, f, { sep: i < 2 ? SEP : '0' }));
+    const dayTabs = seg([{ id: 'today', label: 'Vandaag' }, { id: 'tomorrow', label: 'Morgen' }], day, 'day');
+    const buildUp = [
+      { label: 'Marktprijs (EnergyZero)', value: '€ 0,194', swatch: c.ink },
+      { label: 'Inkoopvergoeding Zonneplan', value: '€ 0,020', swatch: c.hairStrong },
+      { label: 'Energiebelasting', value: '€ 0,092', swatch: c.muted },
+      { label: 'Btw 21%', value: '€ 0,064', swatch: c.surface2 }
+    ];
+
+    // ---------- home ----------
+    const todayBars = bars(today, 96, NOW, false);
+    const miniBars = bars(today, 40, NOW, false);
+    const todayFacts = [
+      { label: 'Verbruikt', value: '9,8', unit: 'kWh, waarvan 4,4 uit zon en batterij' },
+      { label: 'Opgewekt', value: '5,2', unit: 'kWh zon' },
+      { label: 'Teruggeleverd', value: '3,1', unit: 'kWh aan het net' },
+      { label: 'Stroom kostte', value: '€ 2,14', unit: 'tot 19:55' }
+    ];
+    const navRows = [
+      { href: 'Prices.dc.html', glyph: g.chart, title: 'Prijzen', sub: 'Vandaag en morgen, per uur' },
+      { href: 'Costs.dc.html', glyph: g.euro, title: 'Kosten per maand', sub: 'November tot nu € 72,90' },
+      { href: 'Solar.dc.html', glyph: g.sun, title: 'Zon en batterij', sub: 'Zelfvoorziening deze maand 31%' },
+      { href: 'Sources.dc.html', glyph: g.plug, title: 'Bronnen', sub: 'Home Assistant · bijgewerkt 19:55' }
+    ].map((r, i) => Object.assign({}, r, { sep: i < 3 ? SEP : '0' }));
+
+    // ---------- empty ----------
+    const step = st.step || 0;
+    const src = st.src || 'ha';
+    const sourceChoices = [
+      { id: 'ha', title: 'Home Assistant koppelen', sub: 'Per uur, met zon en batterij. Ook HomeWizard en Zonneplan die in HA staan.' },
+      { id: 'manual', title: 'Meterstanden typen', sub: 'Per dag geschat. Goed om mee te beginnen.' }
+    ].map((o, i) => ({ title: o.title, sub: o.sub, checked: o.id === src ? 'true' : 'false', ring: '2px solid ' + (o.id === src ? c.ink : c.hairStrong), dot: o.id === src ? c.ink : 'transparent', sep: i === 0 ? SEP : '0', pick: () => set({ src: o.id }) }));
+
+    // ---------- feed ----------
+    const feed = st.feed || 'energyzero';
+    const feedDefs = [
+      { id: 'energyzero', title: 'EnergyZero', sub: 'Marktprijs per kwartier. Geen sleutel nodig.' },
+      { id: 'entsoe', title: 'ENTSO-E', sub: 'Officiële Europese marktprijs. Eigen token.' },
+      { id: 'tibber', title: 'Tibber', sub: 'Je eigen contractprijs. Eigen API-sleutel.' },
+      { id: 'more', title: 'Meer leveranciers', sub: 'Volgen later', disabled: true }
+    ];
+    const feeds = feedDefs.map((o, i) => {
+      const on = o.id === feed;
+      return { title: o.title, sub: o.sub, checked: on ? 'true' : 'false', disabled: o.disabled ? 'true' : 'false', opacity: o.disabled ? '0.55' : '1', ring: '2px solid ' + (on ? c.ink : c.hairStrong), dot: on ? c.ink : 'transparent', sep: i < 3 ? SEP : '0', pick: o.disabled ? noop : () => set({ feed: o.id }) };
+    });
+    const feedNeedsKey = feed === 'entsoe' || feed === 'tibber';
+    const feedKeyHeading = feed === 'tibber' ? 'TIBBER API-SLEUTEL' : 'ENTSO-E TOKEN';
+    const feedKeyHelp = feed === 'tibber' ? 'Maak een sleutel op developer.tibber.com.' : 'Vraag een token aan bij het ENTSO-E Transparency Platform.';
+
+    // ---------- costs ----------
+    const net = st.net || 'with';
+    const netTabs = seg([{ id: 'with', label: 'Met salderen' }, { id: 'without', label: 'Zonder salderen' }], net, 'net');
+    const dayCosts = [3.9, 4.4, 3.1, 2.6, 4.8, 5.2, 4.1, 2.2, 1.9, 3.6, 4.9, 6.1, 5.0, 3.4, 2.8, 2.4, 3.9, 4.6, 3.8, 1.7];
+    const monthBars = [];
+    for (let i = 0; i < 30; i++) {
+      const v = dayCosts[i];
+      monthBars.push(v === undefined ? { h: 4, bg: 'transparent', border: '1px dashed ' + c.hairStrong } : { h: Math.round((v / 6.2) * 80), bg: c.ink, border: '0' });
+    }
+    const without = net === 'without';
+    const co = {
+      total: without ? '€ 87,50' : '€ 72,90',
+      note: without ? 'Zo had november gekost zonder salderen, zoals vanaf 1 januari 2027: € 14,60 meer.' : 'Oktober was € 96,40. Verwacht voor heel november € 109.',
+      lines: [
+        { label: 'Stroom van het net', sub: '212 kWh', value: '€ 63,10' },
+        { label: 'Teruggeleverd', sub: without ? '96 kWh tegen de terugleverprijs' : '96 kWh, weggestreept tegen verbruik', value: without ? '− € 6,80' : '− € 21,40' },
+        { label: 'Gas', sub: '31 m³', value: '€ 41,20' },
+        { label: 'Vaste kosten', sub: '20 dagen', value: '€ 18,70' },
+        { label: 'Vermindering energiebelasting', sub: '20 dagen', value: '− € 28,70' }
+      ].map((l, i) => Object.assign({}, l, { sep: i < 4 ? SEP : '0' }))
+    };
+
+    // ---------- contract ----------
+    const kind = st.kind || 'dynamic';
+    const kindTabs = seg([{ id: 'dynamic', label: 'Dynamisch' }, { id: 'fixed', label: 'Vast' }], kind, 'kind');
+    const withSep = (arr) => arr.map((f, i) => Object.assign({}, f, { sep: i < arr.length - 1 ? SEP : '0' }));
+    const contractGroups = [
+      { title: 'CONTRACT', fields: withSep([{ label: 'Leverancier', value: 'Zonneplan', unit: '' }, { label: 'Geldig vanaf', value: '1-1-2026', unit: '' }]), hasNote: false, note: '' },
+      { title: kind === 'fixed' ? 'STROOM, VAST TARIEF' : 'STROOM, BOVENOP DE MARKTPRIJS', fields: withSep(kind === 'fixed' ? [{ label: 'Normaal (T2)', value: '0,312', unit: '€/kWh' }, { label: 'Dal (T1)', value: '0,289', unit: '€/kWh' }, { label: 'Teruglevering', value: '0,060', unit: '€/kWh' }] : [{ label: 'Inkoopvergoeding', value: '0,020', unit: '€/kWh' }, { label: 'Terugleververgoeding', value: '0,020', unit: '€/kWh' }, { label: 'Terugleverkosten', value: '0,000', unit: '€/kWh' }, { label: 'Energiebelasting', value: '0,0916', unit: '€/kWh' }]), hasNote: true, note: 'Bedragen zonder btw, zoals op je contract.' },
+      { title: 'GAS', fields: withSep([{ label: 'Inkoopvergoeding', value: '0,050', unit: '€/m³' }, { label: 'Energiebelasting', value: '0,5700', unit: '€/m³' }]), hasNote: false, note: '' },
+      { title: 'VAST', fields: withSep([{ label: 'Vaste kosten en netbeheer', value: '28,05', unit: '€/mnd' }, { label: 'Vermindering energiebelasting', value: '524,95', unit: '€/jr' }, { label: 'Btw', value: '21', unit: '%' }]), hasNote: false, note: '' }
+    ];
+    const netOn = st.netOn !== false;
+    const ns = sw(netOn);
+
+    // ---------- solar ----------
+    const period = st.period || 'today';
+    const periodTabs = seg([{ id: 'today', label: 'Vandaag' }, { id: 'month', label: 'November' }], period, 'period');
+    const so = period === 'month' ? {
+      facts: [{ label: 'Opgewekt', value: '68', unit: 'kWh' }, { label: 'Zelf gebruikt', value: '31', unit: 'kWh · 46%' }, { label: 'Terug', value: '37', unit: 'kWh' }],
+      selfPct: 46, line: 'Zelfvoorziening deze maand 31%: dat deel van je verbruik kwam van je dak en je batterij.',
+      battery: [{ label: 'Geladen', value: '96 kWh · gem. € 0,21', weight: '400' }, { label: 'Ontladen', value: '87 kWh · gem. € 0,36', weight: '400' }, { label: 'Opgeleverd', value: '€ 11,20', weight: '700' }]
+    } : {
+      facts: [{ label: 'Opgewekt', value: '5,2', unit: 'kWh' }, { label: 'Zelf gebruikt', value: '2,1', unit: 'kWh · 40%' }, { label: 'Terug', value: '3,1', unit: 'kWh' }],
+      selfPct: 40, line: 'Vandaag kwam 45% van je verbruik van je dak en je batterij.',
+      battery: [{ label: 'Geladen', value: '4,8 kWh · gem. € 0,20', weight: '400' }, { label: 'Ontladen', value: '4,3 kWh · gem. € 0,36', weight: '400' }, { label: 'Opgeleverd', value: '€ 0,59', weight: '700' }]
+    };
+    const assets = [
+      { name: 'Dak zuid', spec: '4.200 Wp · sinds maart 2023', pct: 24, paid: '€ 1.240', of: 'van € 5.200 terugverdiend' },
+      { name: 'Thuisbatterij', spec: '10 kWh · sinds juni 2026', pct: 2, paid: '€ 96', of: 'van € 6.500 terugverdiend' }
+    ].map((a, i) => Object.assign({}, a, { sep: i === 0 ? SEP : '0' }));
+
+    // ---------- sources ----------
+    const channels = withSep([
+      { name: 'Stroom van het net (dal, normaal)', src: 'HA' },
+      { name: 'Teruggeleverd (dal, normaal)', src: 'HA' },
+      { name: 'Zon', src: 'HA' },
+      { name: 'Batterij laden en ontladen', src: 'HA' },
+      { name: 'Batterij laadstand', src: 'HA' },
+      { name: 'Gas', src: 'Meterstanden' }
+    ]);
+    const addSources = withSep([
+      { href: 'Connect.dc.html', title: 'Home Assistant', sub: 'Per uur, ook HomeWizard en Zonneplan uit HA', disabled: 'false', opacity: '1' },
+      { href: 'Reading.dc.html', title: 'Meterstanden', sub: 'Zelf typen', disabled: 'false', opacity: '1' },
+      { href: '#', title: 'Enelogic', sub: 'Binnenkort', disabled: 'true', opacity: '0.55' },
+      { href: '#', title: 'HomeWizard rechtstreeks', sub: 'Binnenkort. Via Home Assistant werkt het al.', disabled: 'true', opacity: '0.55' }
+    ]);
+
+    // ---------- connect ----------
+    const tested = !!st.tested || p.tested === true;
+    const off = st.off || { gas: true };
+    const mapDefs = [
+      { id: 'i1', name: 'Stroom van het net, dal', entity: 'sensor.p1_meter_energy_import_tariff_1' },
+      { id: 'i2', name: 'Stroom van het net, normaal', entity: 'sensor.p1_meter_energy_import_tariff_2' },
+      { id: 'e1', name: 'Teruggeleverd, dal', entity: 'sensor.p1_meter_energy_export_tariff_1' },
+      { id: 'e2', name: 'Teruggeleverd, normaal', entity: 'sensor.p1_meter_energy_export_tariff_2' },
+      { id: 'pv', name: 'Zon', entity: 'sensor.omvormer_energie_totaal' },
+      { id: 'bc', name: 'Batterij laden', entity: 'sensor.thuisbatterij_geladen' },
+      { id: 'bd', name: 'Batterij ontladen', entity: 'sensor.thuisbatterij_ontladen' },
+      { id: 'gas', name: 'Gas', entity: 'sensor.p1_meter_total_gas' }
+    ];
+    const mapping = mapDefs.map((m, i) => {
+      const on = !off[m.id];
+      return Object.assign({ name: m.name, entity: m.entity, sep: i < mapDefs.length - 1 ? SEP : '0', toggle: () => set({ off: Object.assign({}, off, { [m.id]: on }) }) }, sw(on));
+    });
+
+    // ---------- readings ----------
+    const readings = withSep([
+      { name: 'Stroom van het net, dal', prev: '24.180,2 kWh op 1 nov', value: '24.219,8', unit: 'kWh', hasError: false, error: '' },
+      { name: 'Stroom van het net, normaal', prev: '21.498,0 kWh op 1 nov', value: '21.531,6', unit: 'kWh', hasError: false, error: '' },
+      { name: 'Teruggeleverd, dal', prev: '1.262,0 kWh op 1 nov', value: '1.277,3', unit: 'kWh', hasError: false, error: '' },
+      { name: 'Teruggeleverd, normaal', prev: '2.571,5 kWh op 1 nov', value: '2.592,9', unit: 'kWh', hasError: false, error: '' },
+      { name: 'Gas', prev: '6.402,1 m³ op 1 nov', value: '6.340,0', unit: 'm³', hasError: true, error: 'Lager dan de vorige stand (6.402,1). Nieuwe meter? Voeg dan een nieuw kanaal toe onder Bronnen.' }
+    ]).map((r) => Object.assign({}, r, { invalid: r.hasError ? 'true' : 'false', line: r.hasError ? '2px solid ' + c.danger : '1px solid ' + c.hair }));
+
+    // ---------- header per screen ----------
+    const H = {
+      home: { title: 'Energie', back: 'Huis', backHref: '#', more: true, glyph: g.bolt, line1: 'Thuis', line2: 'Home Assistant · bijgewerkt 19:55', h: 1560 },
+      homeB: { title: 'Energie', back: 'Huis', backHref: '#', more: true, glyph: g.bolt, line1: 'Thuis', line2: 'Home Assistant · bijgewerkt 19:55', h: 1560 },
+      empty: { title: 'Energie', back: 'Huis', backHref: '#', more: false, glyph: g.bolt, line1: 'Nog geen adres', line2: 'Verbruik, kosten en prijzen per uur', h: 844 },
+      prices: { title: 'Prijzen', back: 'Energie', backHref: 'Main.dc.html', more: false, glyph: g.chart, line1: 'Stroom nu € 0,37 per kWh', line2: 'Thuis · EnergyZero + Zonneplan', h: 1420 },
+      feed: { title: 'Prijsbron', back: 'Prijzen', backHref: 'Prices.dc.html', more: false, glyph: g.tag, line1: 'Thuis', line2: 'Waar komen de prijzen vandaan?', h: 1240 },
+      costs: { title: 'Kosten', back: 'Energie', backHref: 'Main.dc.html', more: false, glyph: g.euro, line1: 'Thuis', line2: 'Inclusief btw en energiebelasting', h: 1560 },
+      contract: { title: 'Contract', back: 'Kosten', backHref: 'Costs.dc.html', more: false, glyph: g.doc, line1: 'Thuis', line2: 'Tarieven waarmee Gather rekent', h: 1700 },
+      solar: { title: 'Zon en batterij', back: 'Energie', backHref: 'Main.dc.html', more: false, glyph: g.sun, line1: 'Thuis', line2: '4.200 Wp zon · 10 kWh batterij', h: 1560 },
+      sources: { title: 'Bronnen', back: 'Energie', backHref: 'Main.dc.html', more: false, glyph: g.plug, line1: 'Thuis', line2: '2 bronnen · 7 kanalen', h: 1180 },
+      connect: { title: 'Home Assistant', back: 'Bronnen', backHref: 'Sources.dc.html', more: false, glyph: g.home, line1: 'Koppel je Home Assistant', line2: 'Alleen lezen, nooit aansturen', h: 1760 },
+      reading: { title: 'Meterstanden', back: 'Bronnen', backHref: 'Sources.dc.html', more: false, glyph: g.pen, line1: 'Thuis', line2: 'Laatste standen 1 november', h: 1040 }
+    };
+    const hdr = H[screen] || H.home;
+
+    return {
+      c, g, hdr, h: hdr.h, noop,
+      isHome: screen === 'home' || screen === 'homeB', isHomeA: screen === 'home', isHomeB: screen === 'homeB',
+      isEmpty: screen === 'empty', isPrices: screen === 'prices', isFeed: screen === 'feed', isCosts: screen === 'costs', isContract: screen === 'contract',
+      isSolar: screen === 'solar', isSources: screen === 'sources', isConnect: screen === 'connect', isReading: screen === 'reading',
+      todayBars, miniBars, todayFacts, navRows,
+      todayLabel: 'Prijs per uur vandaag: goedkoopst 02:00 tot 05:00, duurst om 18:00, nu 37 cent.',
+      emptyIntro: step === 0, emptyForm: step === 1, startAdd: () => set({ step: 1 }), sourceChoices, emptyNext: src === 'ha' ? 'Connect.dc.html' : 'Reading.dc.html',
+      dayTabs, pr, buildUp,
+      feeds, feedNeedsKey, feedKeyHeading, feedKeyHelp, feedAccount: feed === 'tibber',
+      netTabs, monthBars, co,
+      kindTabs, contractGroups, netOnStr: ns.onStr, netTrack: ns.track, netKnob: ns.knob, toggleNet: () => set({ netOn: !netOn }),
+      periodTabs, so, assets,
+      channels, addSources,
+      tested, testConn: () => set({ tested: true }), mapping,
+      readings
+    };
+  }
+}
+</script>
+</body>
+</html>
