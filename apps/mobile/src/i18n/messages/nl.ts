@@ -534,6 +534,7 @@ export const nl = {
       cost: 'Kost 1 slimme actie · nog {left} van {limit} vandaag',
       offline: 'Offline, probeer het straks',
       empty: 'Op deze dagen staat alles al gepland.',
+      nothingFits: 'Er past geen voorstel op deze dagen. Er is niets aan je weekmenu veranderd.',
       failed: 'Dat lukte niet. Er is niets aan je weekmenu veranderd.',
       limitTitle: 'Je slimme acties voor vandaag zijn op',
       limitBody: 'Je hebt er vandaag {used} van {limit} gebruikt. Morgen kan het weer. Er is niets aan je weekmenu veranderd.',

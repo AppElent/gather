@@ -394,7 +394,15 @@ describe('mealPlanDrafts accept, discard and expiry', () => {
     expect((await as.query(api.mealPlanDrafts.list, WEEK)).map((d) => d.date)).not.toContain('2026-11-24')
     expect(await as.mutation(api.mealPlanDrafts.accept, { groupSlug: 'home', id: drafts[0]._id })).toBe('taken')
     const result = await as.mutation(api.mealPlanDrafts.acceptAll, WEEK)
-    expect(result).toEqual({ planned: 3, skipped: 0 })
+    expect(result).toEqual({
+      planned: 3,
+      skipped: 0,
+      slots: [
+        { date: '2026-11-25', slot: 'dinner' },
+        { date: '2026-11-26', slot: 'dinner' },
+        { date: '2026-11-27', slot: 'dinner' },
+      ],
+    })
     const week = await as.query(api.mealPlan.week, { groupSlug: 'home', from: WEEK_START, to: '2026-11-29' })
     expect(week.meals.map((m) => [m.date, m.title])).toEqual([
       ['2026-11-23', 'Pasta pesto'],
@@ -487,3 +495,126 @@ describe('mealPlanDrafts accept, discard and expiry', () => {
     expect(await asCarol.mutation(api.mealPlanDrafts.discard, { groupSlug: 'other', weekStart: WEEK_START })).toBe(0)
   })
 })
+
+describe('APP-460 follow-ups', () => {
+  async function proposed() {
+    const seeded = await seed()
+    vi.stubEnv('ANTHROPIC_API_KEY', 'test-key')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        aiReply([
+          { date: '2026-11-24', slot: 'dinner', recipeId: seeded.tacos, reason: 'Hoog beoordeeld' },
+          { date: '2026-11-25', slot: 'dinner', quickMeal: 'Wraps met hummus', minutes: 15, reason: 'Snel' },
+          { date: '2026-11-26', slot: 'dinner', quickMeal: 'tosti', reason: 'Snel' },
+          { date: '2026-11-27', slot: 'dinner', recipeId: seeded.gnocchi, reason: 'Spinazie' },
+        ]),
+      ),
+    )
+    await seeded.as.action(api.mealPlanDrafts.propose, PLAN)
+    const drafts = await seeded.as.query(api.mealPlanDrafts.list, WEEK)
+    return { ...seeded, drafts }
+  }
+
+  test('accept all counts only the drafts the bar showed, and names the slots it planned', async () => {
+    const { t, as, drafts, tacos } = await proposed()
+    // Tuesday's recipe is gone: list hides its draft, so the bar says 3.
+    await t.run((ctx) => ctx.db.delete(tacos))
+    expect(await as.query(api.mealPlanDrafts.list, WEEK)).toHaveLength(3)
+    const result = await as.mutation(api.mealPlanDrafts.acceptAll, WEEK)
+    expect(result.planned + result.skipped).toBe(3)
+    expect(result).toMatchObject({ planned: 3, skipped: 0 })
+    expect(result.slots.map((s) => s.date)).toEqual(['2026-11-25', '2026-11-26', '2026-11-27'])
+    // The hidden draft goes too.
+    expect(await t.run((ctx) => ctx.db.query('mealPlanDrafts').collect())).toEqual([])
+    expect(drafts).toHaveLength(4)
+  })
+
+  test('a regenerate whose draft was discarded meanwhile inserts nothing', async () => {
+    const { t, as, drafts } = await proposed()
+    await t.run((ctx) => ctx.db.delete(drafts[0]._id))
+    const count = await t.withIdentity(alice).mutation(internal.mealPlanDrafts.write, {
+      groupSlug: 'home',
+      weekStart: WEEK_START,
+      picks: [{ date: '2026-11-24', slot: 'dinner', quickMeal: 'Soep', source: 'rules' }],
+      replace: { kind: 'draft', id: drafts[0]._id },
+    })
+    expect(count).toBe(0)
+    const after = await as.query(api.mealPlanDrafts.list, WEEK)
+    expect(after.map((d) => d.date)).toEqual(['2026-11-25', '2026-11-26', '2026-11-27'])
+  })
+
+  test('a whole-week plan with nothing that fits keeps the open proposal', async () => {
+    const { as, drafts } = await proposed()
+    const count = await t_write(as, [])
+    expect(count).toBe(0)
+    expect((await as.query(api.mealPlanDrafts.list, WEEK)).map((d) => d._id)).toEqual(
+      drafts.map((d) => d._id),
+    )
+  })
+
+  test('regenerate asks with the wishes from the start sheet', async () => {
+    const { as, drafts } = await proposed()
+    const fetchMock = vi.fn().mockResolvedValue(aiReply([]))
+    vi.stubGlobal('fetch', fetchMock)
+    await as.action(api.mealPlanDrafts.regenerate, {
+      groupSlug: 'home',
+      id: drafts[0]._id,
+      locale: 'nl',
+      wishes: ['moreVeg'],
+      wish: 'iets met pompoen',
+    })
+    const prompt: string = JSON.parse(fetchMock.mock.calls[0][1].body).messages[0].content
+    expect(prompt).toContain('lots of vegetables')
+    expect(prompt).toContain('iets met pompoen')
+  })
+
+  test('a 2xx answer that is not JSON is given back; the rules plan', async () => {
+    const { t, as } = await seed()
+    vi.stubEnv('ANTHROPIC_API_KEY', 'test-key')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => {
+          throw new SyntaxError('Unexpected token <')
+        },
+      }),
+    )
+    const result = await as.action(api.mealPlanDrafts.propose, PLAN)
+    expect(result).toMatchObject({ status: 'fallback', left: DAILY_AI_CALLS })
+    expect(await usedToday(t)).toBe(0)
+  })
+
+  test('drafts say "controleer zelf" for an allergy a quick meal or recipe cannot rule out', async () => {
+    const { t, as, aliceId, home, tacos } = await proposed()
+    await t.run(async (ctx) => {
+      await ctx.db.insert('mealPreferences', {
+        groupId: home,
+        allergens: ['crustaceans'],
+        updatedBy: aliceId,
+        updatedAt: Date.now(),
+      })
+      // Without ingredients, the matcher can't clear the recipe either.
+      await ctx.db.patch(tacos, { ingredients: [] })
+    })
+    const drafts = await as.query(api.mealPlanDrafts.list, WEEK)
+    const byDate = Object.fromEntries(drafts.map((d) => [d.date, d.check]))
+    expect(byDate['2026-11-24']).toMatchObject({ kind: 'allergen', id: 'crustaceans', uncertain: true })
+    expect(byDate['2026-11-26']).toMatchObject({ kind: 'allergen', id: 'crustaceans', uncertain: true })
+    // Gnocchi lists its ingredients, none of them shellfish.
+    expect(byDate['2026-11-27']).toBeUndefined()
+  })
+})
+
+function t_write(
+  as: Awaited<ReturnType<typeof seed>>['as'],
+  picks: { date: string; slot: 'dinner'; quickMeal?: string; source: 'rules' }[],
+) {
+  return as.mutation(internal.mealPlanDrafts.write, {
+    groupSlug: 'home',
+    weekStart: WEEK_START,
+    picks,
+    replace: { kind: 'week' },
+  })
+}

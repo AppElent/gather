@@ -716,6 +716,7 @@ export const en = {
       cost: 'Costs 1 smart action · {left} of {limit} left today',
       offline: 'Offline, try again later',
       empty: 'Everything on these days is already planned.',
+      nothingFits: 'No proposal fits these days. Nothing in your week menu changed.',
       failed: 'That did not work. Nothing in your week menu changed.',
       limitTitle: 'Your smart actions for today are used up',
       limitBody: 'You used {used} of {limit} today. Tomorrow you can again. Nothing in your week menu changed.',

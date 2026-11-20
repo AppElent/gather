@@ -4,6 +4,7 @@
  * slot inside its day, and the bar at the bottom that accepts or discards
  * them all.
  */
+import { describeClash } from '@gather/core/meal-preferences'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { fmt, plural, useI18n } from '../../../i18n'
@@ -63,6 +64,8 @@ export function DraftCard({
   const tint = tokens.tintOf('kitchen')
   const day = weekdayName(draft.date, locale).toLocaleLowerCase(locale)
   const reason = draftReason(draft, words)
+  // "Controleer zelf" for an allergy or diet the matcher can't rule out.
+  const check = draft.check ? describeClash(draft.check, t.mealPreferences) : null
   return (
     <View
       testID={`draft-${draft.date}-${draft.slot}`}
@@ -70,7 +73,14 @@ export function DraftCard({
     >
       <View
         accessible
-        accessibilityLabel={`${fmt(proposal.eyebrow, { slot: words.slots[draft.slot] })}, ${draft.title}, ${reason}`}
+        accessibilityLabel={[
+          fmt(proposal.eyebrow, { slot: words.slots[draft.slot] }),
+          draft.title,
+          reason,
+          check,
+        ]
+          .filter(Boolean)
+          .join(', ')}
         style={styles.draftHead}
       >
         <MealThumb imageUrl={draft.imageUrl} quick={!draft.recipeId} />
@@ -83,6 +93,14 @@ export function DraftCard({
           </View>
           <Text style={[styles.title, { color: tokens.ink }]}>{draft.title}</Text>
           <Text style={[styles.footnote, { color: tokens.muted }]}>{reason}</Text>
+          {check ? (
+            <Text
+              testID={`draft-check-${draft.date}-${draft.slot}`}
+              style={[styles.footnote, { color: tokens.muted }]}
+            >
+              {check}
+            </Text>
+          ) : null}
         </View>
       </View>
       <View style={styles.buttons}>

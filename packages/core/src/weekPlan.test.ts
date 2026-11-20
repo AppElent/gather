@@ -4,6 +4,7 @@ import {
   acceptAiPicks,
   BUSY_EVENING_MINUTES,
   completePlan,
+  draftCheck,
   fitsSlot,
   inventedQuickMealFits,
   plannableQuickMeals,
@@ -257,5 +258,52 @@ describe('completePlan', () => {
       ['2026-11-25', 'r1', 'ai'],
       ['2026-11-26', 'r2', 'rules'],
     ])
+  })
+})
+
+describe('APP-460', () => {
+  const none = { allergens: [], diets: [], dislikes: [] }
+
+  test('a long made-up name is checked whole, not cut to 60 characters first', () => {
+    const vegetarian = { ...input().prefs, diets: ['vegetarian' as const] }
+    const name = `Wraps met hummus, komkommer, tomaat, rode ui en verse munt, met kip`
+    expect(name.length).toBeGreaterThan(60)
+    expect(name.slice(0, 60)).not.toContain('kip')
+    const picks = acceptAiPicks(
+      [{ date: '2026-11-24', slot: 'dinner', quickMeal: name, reason: 'x' }],
+      input({ prefs: vegetarian }),
+    )
+    expect(picks).toEqual([])
+    // The same name without the meat is kept, cut to fit.
+    const kept = acceptAiPicks(
+      [{ date: '2026-11-24', slot: 'dinner', quickMeal: name.replace(', met kip', ', met feta en olijven'), reason: 'x' }],
+      input({ prefs: vegetarian }),
+    )
+    expect(kept).toHaveLength(1)
+    expect(kept[0].quickMeal?.length).toBeLessThanOrEqual(60)
+  })
+
+  test('draftCheck: "controleer zelf" for an allergy a draft cannot rule out', () => {
+    const shellfish = { ...none, allergens: ['crustaceans' as const] }
+    expect(draftCheck({ quickMeal: 'Tosti' }, shellfish)).toMatchObject({
+      kind: 'allergen',
+      id: 'crustaceans',
+      uncertain: true,
+    })
+    expect(draftCheck({ quickMeal: 'Tosti' }, none)).toBeUndefined()
+    // A quick meal's name never flags a diet: it would flag every name.
+    expect(draftCheck({ quickMeal: 'Tosti' }, { ...none, diets: ['vegetarian'] })).toBeUndefined()
+    const pasta = { title: 'Pasta pesto', ingredients: ['pasta', 'pesto'], tags: [] }
+    // Pesto often holds nuts.
+    expect(draftCheck({ recipe: pasta }, { ...none, allergens: ['nuts'] })).toMatchObject({
+      kind: 'allergen',
+      id: 'nuts',
+      uncertain: true,
+    })
+    expect(draftCheck({ recipe: { ...pasta, ingredients: ['pasta', 'tomaat'] } }, shellfish)).toBeUndefined()
+    expect(draftCheck({ recipe: { ...pasta, ingredients: [] } }, { ...none, diets: ['vegan'] })).toMatchObject({
+      kind: 'diet',
+      uncertain: true,
+    })
   })
 })

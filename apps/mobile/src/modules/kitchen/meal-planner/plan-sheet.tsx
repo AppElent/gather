@@ -42,7 +42,13 @@ import {
 } from './week-plan'
 
 export type PlanOutcome =
-  | { status: 'ai' | 'fallback'; count: number }
+  | {
+      status: 'ai' | 'fallback'
+      count: number
+      /** What the plan was asked with, for Ander voorstel (APP-460). */
+      wishes: WeekPlanWish[]
+      wish?: string
+    }
   | { status: 'empty' }
 
 const USE_ICONS: Record<PlanUse['kind'], (typeof UI_ICONS)[keyof typeof UI_ICONS]> = {
@@ -118,14 +124,17 @@ export function PlanSheet({
     if (busy || targets.length === 0) return
     setBusy(true)
     setFailed(null)
+    const asked = {
+      wishes,
+      wish: wish.trim() ? wish.trim().slice(0, WISH_MAX) : undefined,
+    }
     propose({
       groupSlug: group.slug,
       weekStart,
       dates: fillDates,
       slots,
       locale,
-      wishes,
-      wish: wish.trim() ? wish.trim().slice(0, WISH_MAX) : undefined,
+      ...asked,
     })
       .then((result) => {
         if (result.status === 'limit') {
@@ -133,8 +142,9 @@ export function PlanSheet({
           setOverCap(true)
           return
         }
-        haptics.itemSaved()
-        onPlanned(result)
+        if (result.status === 'empty' || result.count === 0) haptics.actionFailed()
+        else haptics.itemSaved()
+        onPlanned(result.status === 'empty' ? result : { ...result, ...asked })
       })
       .catch(() => {
         haptics.actionFailed()

@@ -239,3 +239,21 @@ describe('recipeImport.importFromUrl', () => {
     expect(await usedToday(t)).toEqual([1])
   })
 })
+
+describe('refund (APP-460)', () => {
+  test('a call taken just before UTC midnight is refunded from that day', async () => {
+    const t = await signUp(asAlice)
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-20T23:59:59.500Z'))
+    const taken = await t.mutation(internal.aiUsage.takeDated, { clerkId: asAlice.subject })
+    expect(taken).toEqual({ used: 1, day: '2026-11-20' })
+    vi.setSystemTime(new Date('2026-11-21T00:00:01.000Z'))
+    await t.mutation(internal.aiUsage.take, { clerkId: asAlice.subject })
+    await t.mutation(internal.aiUsage.refund, { clerkId: asAlice.subject, day: taken?.day })
+    const rows = await t.run((ctx) => ctx.db.query('aiUsage').collect())
+    expect(Object.fromEntries(rows.map((row) => [row.day, row.count]))).toEqual({
+      '2026-11-20': 0,
+      '2026-11-21': 1,
+    })
+  })
+})
