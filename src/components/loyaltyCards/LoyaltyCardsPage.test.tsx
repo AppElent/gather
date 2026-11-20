@@ -171,6 +171,17 @@ describe('LoyaltyCardsPage', () => {
       )
     })
 
+    test('ends when the Group is down to one card, so a new card does not reopen it', () => {
+      const { rerender } = renderInGroup(<LoyaltyCardsPage />)
+      fireEvent.click(screen.getByRole('button', { name: 'Reorder' }))
+      loaded.value = CARDS.slice(0, 1)
+      rerender(<LoyaltyCardsPage />)
+      loaded.value = CARDS
+      rerender(<LoyaltyCardsPage />)
+      expect(cardLinks()).toHaveLength(3)
+      expect(screen.getByRole('button', { name: 'Reorder' })).toBeInTheDocument()
+    })
+
     test('is not offered with fewer than two cards, or while filtering', () => {
       loaded.value = CARDS.slice(0, 1)
       const { unmount } = renderInGroup(<LoyaltyCardsPage />)

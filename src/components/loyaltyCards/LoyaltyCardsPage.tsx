@@ -49,6 +49,8 @@ export function LoyaltyCardsPage() {
 
   const canReorder = (cards?.length ?? 0) >= 2
   const arranging = reordering && canReorder
+  // Down to one card, the mode ends, so a card added later doesn't reopen it.
+  if (reordering && cards !== undefined && !canReorder) setReordering(false)
 
   const move = (id: string, direction: 'up' | 'down') => {
     const ids = (cards ?? []).map((card) => card._id as string)
@@ -99,7 +101,7 @@ export function LoyaltyCardsPage() {
             </button>
           ) : (
             <>
-              {canReorder && !filter ? (
+              {canReorder && !needle ? (
                 <button
                   type="button"
                   className={BUTTON}

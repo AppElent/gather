@@ -77,6 +77,8 @@ export function LoyaltyCardListScreen() {
 
   const canReorder = (cards?.length ?? 0) >= 2
   const arranging = reordering && canReorder
+  // Down to one card, the mode ends, so a card added later doesn't reopen it.
+  if (reordering && cards !== undefined && !canReorder) setReordering(false)
   const startReorder = () => {
     setQuery('')
     setProblem(null)

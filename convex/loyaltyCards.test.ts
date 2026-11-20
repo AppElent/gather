@@ -761,7 +761,9 @@ describe('reorder (APP-440)', () => {
     ).rejects.toThrow()
   })
 
-  test('writes only the rows whose order changed', async () => {
+  // That rows whose order is already right are not patched is a write saving,
+  // not behaviour a caller can see, so it is left to the code.
+  test('a second reorder renumbers the cards and keeps a card that did not move', async () => {
     const { t } = await seed()
     const hema = await addCard(t, 'Hema')
     const action = await addCard(t, 'Action')
