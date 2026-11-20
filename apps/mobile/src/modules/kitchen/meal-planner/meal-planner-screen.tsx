@@ -60,6 +60,7 @@ import { EmptyThumb, MealThumb, MemberCoins } from './parts'
 import { PickSheet } from './pick-sheet'
 import { type PlanOutcome, PlanSheet } from './plan-sheet'
 import { DraftCard, ProposalBar, ProposalCard } from './proposal'
+import { SwapSheet } from './swap-sheet'
 import {
   busyEvent,
   clock,
@@ -100,6 +101,15 @@ type Sheet =
   | { kind: 'meal-groceries'; recipeId: string; servings: number }
   /** Plan mijn week's start sheet (APP-319). */
   | { kind: 'plan' }
+  /** Iets anders and Nieuw idee for one slot (APP-320). */
+  | {
+      kind: 'swap'
+      date: string
+      slot: MealSlot
+      /** The planned meal it replaces; none on a proposal's draft slot. */
+      replacing?: Id<'plannedDinners'>
+      current?: { title: string; prepMinutes?: number }
+    }
 
 interface Drag {
   meal: PlannedMeal
@@ -568,6 +578,14 @@ export function MealPlannerScreen() {
                       onDrag={handlers}
                       onOpen={(meal) => setSheet({ kind: 'meal', id: meal._id })}
                       onPick={(slot) => setSheet({ kind: 'pick', date, slot })}
+                      onSwap={(draft) =>
+                        setSheet({
+                          kind: 'swap',
+                          date: draft.date,
+                          slot: draft.slot,
+                          current: { title: draft.title, prepMinutes: draft.prepMinutes },
+                        })
+                      }
                       drafts={drafts}
                       justAccepted={justAccepted}
                       regenerating={regenerating}
@@ -659,10 +677,11 @@ export function MealPlannerScreen() {
           onClose={() => setSheet(null)}
           onSomethingElse={(meal) =>
             setSheet({
-              kind: 'pick',
+              kind: 'swap',
               date: meal.date,
               slot: meal.slot,
               replacing: meal._id,
+              current: { title: meal.title, prepMinutes: meal.prepMinutes },
             })
           }
           onGroceries={(meal, servings) =>
@@ -695,6 +714,29 @@ export function MealPlannerScreen() {
           onFailed={() => showToast({ message: words.failed })}
         />
       ) : null}
+      {data && sheet?.kind === 'swap' ? (
+        <SwapSheet
+          key={`${sheet.date}-${sheet.slot}`}
+          date={sheet.date}
+          slot={sheet.slot}
+          replacing={sheet.replacing}
+          current={sheet.current}
+          data={data}
+          onClose={() => setSheet(null)}
+          onChooseYourself={() =>
+            setSheet({
+              kind: 'pick',
+              date: sheet.date,
+              slot: sheet.slot,
+              replacing: sheet.replacing,
+            })
+          }
+          onSaved={(message) => {
+            setSheet(null)
+            showToast({ message })
+          }}
+        />
+      ) : null}
       {data && sheet?.kind === 'groceries' ? (
         <WeekGroceriesSheet
           key={weekStart}
@@ -717,6 +759,7 @@ function Day({
   onDrag,
   onOpen,
   onPick,
+  onSwap,
   drafts,
   justAccepted,
   regenerating,
@@ -735,6 +778,8 @@ function Day({
   }>
   onOpen: (meal: PlannedMeal) => void
   onPick: (slot: MealSlot) => void
+  /** Iets anders on a proposal's draft. */
+  onSwap: (draft: Draft) => void
   drafts: readonly Draft[]
   justAccepted: ReadonlySet<string>
   regenerating: string | null
@@ -815,8 +860,7 @@ function Day({
                 draft={draft}
                 regenerating={regenerating === draft._id}
                 onAccept={() => onAcceptDraft(draft)}
-                // Iets anders: Pick for now; APP-320 brings Swap here.
-                onSomethingElse={() => onPick(slot)}
+                onSomethingElse={() => onSwap(draft)}
                 onRegenerate={() => onRegenerate(draft)}
               />
             )

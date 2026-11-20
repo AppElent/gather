@@ -32,6 +32,7 @@
  * (ADR-0009's sibling: never offer an action that can only fail).
  */
 import { isAiLimitReached } from '@gather/core/ai-limit'
+import { AI_RECIPE_TAG, isAiRecipe } from '@gather/core/meal-ideas'
 import { useAction, useMutation } from 'convex/react'
 import { useKeepAwake } from 'expo-keep-awake'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
@@ -208,6 +209,8 @@ export function RecipeScreen() {
   }
 
   const photo = recipe.imageUrl
+  // The AI marker is a tag (APP-320); it shows as a line, not a chip.
+  const shownTags = recipe.tags.filter((tag) => tag !== AI_RECIPE_TAG)
   const byLine = recipe.addedByName
     ? fmt(text.detail.byLine, { name: recipe.addedByName })
     : undefined
@@ -340,9 +343,9 @@ export function RecipeScreen() {
             </Text>
           ) : null}
 
-          {recipe.tags.length ? (
+          {shownTags.length ? (
             <View style={styles.tags}>
-              {recipe.tags.map((tag) => (
+              {shownTags.map((tag) => (
                 <Text
                   key={tag}
                   style={[
@@ -364,6 +367,15 @@ export function RecipeScreen() {
               style={[styles.meta, { color: tokens.muted }]}
             >
               {fmt(text.detail.readOnly, { group: recipe.homeGroupName })}
+            </Text>
+          ) : null}
+
+          {isAiRecipe(recipe) ? (
+            <Text
+              testID="recipe-made-by-ai"
+              style={[styles.meta, { color: tokens.muted }]}
+            >
+              {text.detail.madeByAi}
             </Text>
           ) : null}
 

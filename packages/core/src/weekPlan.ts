@@ -186,7 +186,7 @@ export function targetLimit(target: WeekPlanTarget): number | null {
   return Math.min(target.maxMinutes ?? BUSY_EVENING_MINUTES, BUSY_EVENING_MINUTES)
 }
 
-function fitsTime(minutes: number | undefined, limit: number | null): boolean {
+export function fitsTime(minutes: number | undefined, limit: number | null): boolean {
   return limit === null || minutes === undefined || minutes <= limit
 }
 
@@ -245,7 +245,7 @@ function isFish(recipe: WeekPlanRecipe): boolean {
   ).some((clash) => !clash.uncertain)
 }
 
-function isMeatFree(recipe: WeekPlanRecipe): boolean {
+export function isMeatFree(recipe: WeekPlanRecipe): boolean {
   if (recipe.ingredients.length === 0 && recipe.tags.length === 0) return false
   return recipeClashes(
     recipe,
@@ -269,7 +269,7 @@ function cookedRecently(
  * Every term is from the Group's own data, so the same week always gives the
  * same plan.
  */
-function score(
+export function score(
   recipe: WeekPlanRecipe,
   target: WeekPlanTarget,
   input: WeekPlanInput,
@@ -398,7 +398,7 @@ function sorted(targets: readonly WeekPlanTarget[]): WeekPlanTarget[] {
   )
 }
 
-function cleanText(value: unknown, max: number): string | undefined {
+export function cleanText(value: unknown, max: number): string | undefined {
   if (typeof value !== 'string') return undefined
   const text = value.replace(/\s+/g, ' ').trim()
   if (!text) return undefined
