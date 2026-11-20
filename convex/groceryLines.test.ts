@@ -235,6 +235,69 @@ function aiReply(items: unknown[]) {
   }
 }
 
+describe('groceryLines.aisles', () => {
+  test('answers like the list: the Group’s override, the list’s history, then the dictionary', async () => {
+    const { t, as, groceries } = await seed()
+    await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', SLUG))
+        .unique()
+      const user = await ctx.db.query('users').first()
+      if (!group || !user) throw new Error('seed')
+      // The Group files "Penne" under snacks, whatever the dictionary says.
+      await ctx.db.insert('groceryCategoryOverrides', {
+        groupId: group._id,
+        name: 'penne',
+        aisle: 'snacks',
+        updatedBy: user._id,
+        updatedAt: 0,
+      })
+      // The list's history: "Doenjang" was last put under tins_sauces.
+      await ctx.db.insert('tasks', {
+        listId: groceries,
+        title: 'Doenjang',
+        done: true,
+        createdBy: user._id,
+        order: 9,
+        category: 'tins_sauces',
+      })
+    })
+    const aisles = await as.query(api.groceryLines.aisles, {
+      groupSlug: SLUG,
+      listId: groceries,
+      titles: ['Penne', 'Doenjang', 'Eieren', 'Zzqxv'],
+    })
+    expect(aisles).toEqual(['snacks', 'tins_sauces', 'dairy', 'other'])
+  })
+
+  test('refuses a list that is not a grocery list, and someone outside the Group', async () => {
+    const { t, as, chores, groceries } = await seed()
+    await expect(
+      as.query(api.groceryLines.aisles, {
+        groupSlug: SLUG,
+        listId: chores,
+        titles: ['Eieren'],
+      }),
+    ).rejects.toThrow()
+    await t.withIdentity(bob).mutation(api.users.ensureUser, {})
+    await expect(
+      t.withIdentity(bob).query(api.groceryLines.aisles, {
+        groupSlug: SLUG,
+        listId: groceries,
+        titles: ['Eieren'],
+      }),
+    ).rejects.toThrow()
+    await expect(
+      t.query(api.groceryLines.aisles, {
+        groupSlug: SLUG,
+        listId: groceries,
+        titles: ['Eieren'],
+      }),
+    ).rejects.toThrow()
+  })
+})
+
 describe('groceryLines.read', () => {
   async function signedUp() {
     const t = testConvex()

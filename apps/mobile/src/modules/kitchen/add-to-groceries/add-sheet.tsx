@@ -15,10 +15,7 @@
 import { MenuView } from '@expo/ui/community/menu'
 import {
   formatGroceryAmount,
-  GROCERY_AISLES,
-  type GroceryAisle,
   type GroceryAmount,
-  recogniseGroceryLine,
 } from '@gather/core/groceries'
 import { useMutation } from 'convex/react'
 import { type ReactNode, useMemo, useState } from 'react'
@@ -64,8 +61,11 @@ import {
   pickRows,
   type RowMeta,
   type SourceLine,
+  sectionsByAisle,
+  withEdits,
 } from './pick'
-import type { AiCount } from './use-recipe-lines'
+import type { AiCount } from './read-batches'
+import { useAisleOf } from './use-aisles'
 
 export interface AddSheetSource {
   /** "Shakshuka met feta": the card's title, and the note on the list. */
@@ -142,9 +142,8 @@ export function AddToGroceriesSheet({
   const [failed, setFailed] = useState(false)
   const [rowWidth, setRowWidth] = useState<number>()
 
-  const shown = lines.map((line) =>
-    edits[line.key] ? { ...line, read: edits[line.key] } : line,
-  )
+  // A retype made while a line was still being read stays with its row.
+  const shown = withEdits(lines, edits)
   const pick = pickRows({
     lines: shown,
     servings: servings?.value,
@@ -206,23 +205,25 @@ export function AddToGroceriesSheet({
     return [row.detail, why].filter(Boolean).join(' · ') || null
   }
 
-  // One section per aisle, in walking order; a line still being read waits
-  // under Other.
-  const sections = useMemo(() => {
-    if (!byAisle) return [{ id: null, rows: pick.rows }]
-    const byId = new Map<GroceryAisle, PickRow[]>()
-    for (const row of pick.rows) {
-      const aisle =
-        row.meta?.kind === 'reading' || row.meta?.kind === 'text'
-          ? 'other'
-          : recogniseGroceryLine(row.title).aisle
-      byId.set(aisle, [...(byId.get(aisle) ?? []), row])
-    }
-    return GROCERY_AISLES.filter((aisle) => byId.has(aisle)).map((aisle) => ({
-      id: aisle,
-      rows: byId.get(aisle) ?? [],
-    }))
-  }, [byAisle, pick.rows])
+  // One section per aisle, in walking order, by the aisle the list itself
+  // would give the item; a line still being read waits under Other.
+  const aisleTitles = useMemo(
+    () =>
+      byAisle
+        ? pick.rows
+            .filter((row) => row.meta?.kind !== 'reading' && row.meta?.kind !== 'text')
+            .map((row) => row.title)
+        : [],
+    [byAisle, pick.rows],
+  )
+  const aisleOf = useAisleOf(group.slug, listId, aisleTitles)
+  const sections = useMemo(
+    () =>
+      byAisle
+        ? sectionsByAisle(pick.rows, aisleOf)
+        : [{ id: null, rows: pick.rows }],
+    [byAisle, pick.rows, aisleOf],
+  )
 
   const toggle = (row: PickRow) => {
     haptics.selectionChanged()

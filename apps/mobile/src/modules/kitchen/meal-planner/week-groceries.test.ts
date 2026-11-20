@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { pickRows, type SourceLine } from '../add-to-groceries/pick'
+import { editedRead, pickRows, type SourceLine, withEdits } from '../add-to-groceries/pick'
 import type { PlannedMeal } from './week'
 import {
   defaultDays,
@@ -178,5 +178,56 @@ describe('the week on the list', () => {
       quantity: 2,
       source: 'Tacos 26',
     })
+  })
+})
+
+describe('a line being read when the person ticks it (APP-423)', () => {
+  const tacos = (koriander: SourceLine) => {
+    const lines2 = new Map(lines)
+    lines2.set('tacos', [read('0', 'Rode uien', 1), koriander])
+    lines2.set('shakshuka', [read('0', 'Koriander', 1)])
+    return weekGroceryLines({
+      meals: [
+        { meal: week[1], servings: 4 },
+        { meal: week[3], servings: 4 },
+      ],
+      recipes,
+      lines: lines2,
+      label,
+    }).lines
+  }
+  const reading: SourceLine = { key: '1', text: 'een handje koriander', read: { kind: 'reading' } }
+  const answered: SourceLine = read('1', 'Koriander', 1)
+
+  test('the answer merges the line into an item and the row remembers its key', () => {
+    const before = tacos(reading).find((l) => l.text === 'een handje koriander')
+    expect(before?.key).toBe('do:1')
+    const after = tacos(answered).find((l) => l.text === 'Koriander')
+    expect(after?.was).toEqual(['di:0', 'do:1'])
+    expect(after?.detail).toBe('Shakshuka 24, Tacos 26')
+  })
+
+  test('an untick made while it was read is still unticked when the answer arrives', () => {
+    const ticks = { 'do:1': false }
+    const while_ = pickRows({ lines: tacos(reading), items: [], ticks })
+    expect(while_.rows.find((r) => r.key === 'do:1')?.on).toBe(false)
+    const after = pickRows({ lines: tacos(answered), items: [], ticks })
+    expect(after.rows.find((r) => r.title === 'Koriander')?.on).toBe(false)
+    expect(after.lines.map((l) => l.title)).not.toContain('Koriander')
+  })
+
+  test('a tick on the row of a covered item survives too', () => {
+    const items = [{ id: 'a', title: 'Koriander', quantity: 5, done: false }]
+    const ticks = { 'do:1': true }
+    const after = pickRows({ lines: tacos(answered), items, ticks })
+    expect(after.rows.find((r) => r.title === 'Koriander')?.on).toBe(true)
+  })
+
+  test('a retype made while it was read is on the row when the answer arrives', () => {
+    const edits = { 'do:1': editedRead('2 bosjes koriander') }
+    const shown = withEdits(tacos(answered), edits)
+    const { rows, lines: adding } = pickRows({ lines: shown, items: [], ticks: { 'do:1': true } })
+    expect(rows.find((r) => r.title === 'Koriander')).toMatchObject({ amount: { quantity: 2, unit: 'bos' }, on: true })
+    expect(adding.find((l) => l.title === 'Koriander')).toMatchObject({ quantity: 2, unit: 'bos' })
   })
 })

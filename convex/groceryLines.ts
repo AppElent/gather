@@ -13,6 +13,7 @@
 
 import {
   type GroceryAddLine,
+  type GroceryAisle,
   groceryLineText,
   isGroceryQuantity,
   pendingItemId,
@@ -22,7 +23,7 @@ import {
 import { ConvexError, type Infer, v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
-import { action, mutation } from './_generated/server'
+import { action, mutation, query } from './_generated/server'
 import { DAILY_AI_CALLS } from './lib/aiUsage'
 import { anthropicApiKey } from './lib/anthropic'
 import {
@@ -31,7 +32,7 @@ import {
   recentListItems,
   recogniseGroceryTitle,
 } from './lib/groceryCategories'
-import { groceryUnitValidator } from './lib/groceryFields'
+import { groceryAisleValidator, groceryUnitValidator } from './lib/groceryFields'
 import {
   AI_LINE_LENGTH_MAX,
   AI_LINES_MAX,
@@ -83,6 +84,43 @@ export const read = action({
     const answer = await readGroceryLinesWithAi(lines, apiKey)
     if (!answer) return { status: 'unavailable' as const }
     return { status: 'read' as const, used, limit: DAILY_AI_CALLS, lines: answer }
+  },
+})
+
+/** Titles one `aisles` call may ask about: a week of lines, with room. */
+const AISLE_TITLES_MAX = 200
+
+/**
+ * The aisle each title would get if it were added to this grocery list now:
+ * `recogniseGroceryTitle`, the one `add` and the list use, so the Group's own
+ * choices and the list's history win over the bundled dictionary (APP-423).
+ * The week sheet groups its rows by it. Answers by position; a title nothing
+ * knows is `other`. Reads only, so it asks the AI nothing and counts nothing.
+ */
+export const aisles = query({
+  args: {
+    groupSlug: v.string(),
+    listId: v.id('taskLists'),
+    titles: v.array(v.string()),
+  },
+  returns: v.array(groceryAisleValidator),
+  handler: async (ctx, args) => {
+    const {
+      group,
+      doc: list,
+    } = await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
+    if (!isGroceryList(group, list))
+      throw new ConvexError('This is not a grocery list')
+    if (args.titles.length > AISLE_TITLES_MAX)
+      throw new ConvexError('Too many titles at once')
+    const recent = await recentListItems(ctx, args.listId)
+    const answers: GroceryAisle[] = []
+    for (const title of args.titles)
+      answers.push(
+        (await recogniseGroceryTitle(ctx, group._id, title.slice(0, 500), recent))
+          .aisle,
+      )
+    return answers
   },
 })
 

@@ -77,11 +77,19 @@ export interface WeekLines {
  * scaled from its Recipe's servings to the meal's, then combined with the
  * same item from other meals (`combineGroceryLines`, APP-312's merge rule).
  * A line still being read, or only readable as text, stays a line of its own
- * for its meal. Every line tops the list up rather than adding to it.
+ * for its meal; once read it joins an item's line, which remembers the key it
+ * had (`was`), so a tick or a retype made meanwhile is not lost (APP-423).
+ * Every line tops the list up rather than adding to it.
  */
 export function weekGroceryLines(input: WeekLinesInput): WeekLines {
   const toCheck: PlannedMeal[] = []
-  const read: Array<{ line: GroceryAddLine; meal: PlannedMeal; via: Via }> = []
+  const read: Array<{
+    line: GroceryAddLine
+    meal: PlannedMeal
+    via: Via
+    /** The key this line has while it is still being read. */
+    unreadKey: string
+  }> = []
   const unread: SourceLine[] = []
 
   for (const { meal, servings } of input.meals) {
@@ -107,6 +115,7 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
       read.push({
         meal,
         via: line.read.via,
+        unreadKey: `${meal._id}:${line.key}`,
         line: {
           title: line.read.name,
           ...(line.read.quantity !== undefined
@@ -143,6 +152,8 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
       }
       return {
         key: `item:${key}:${nth}`,
+        // What the person did to it while the AI was still reading it.
+        was: from.map((entry) => entry.unreadKey),
         text: line.title,
         read: readAs,
         detail: input.label(meals),
