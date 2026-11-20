@@ -16,6 +16,8 @@ export type VersionInfo = {
   deployedAt: string
   /** The Sentry release, `gather@<version>+<short sha>`. */
   release: string
+  /** The Convex deployment the bundle calls, or null without a Convex URL. */
+  convex: string | null
 }
 
 export function versionInfo(hostname: string): VersionInfo {
@@ -26,6 +28,7 @@ export function versionInfo(hostname: string): VersionInfo {
     environment: environmentFromHostname(hostname),
     deployedAt: import.meta.env.VITE_BUILT_AT ?? 'unknown',
     release: import.meta.env.VITE_SENTRY_RELEASE ?? 'unknown',
+    convex: convexDeployment(import.meta.env.VITE_CONVEX_URL),
   }
 }
 
@@ -42,4 +45,14 @@ export function versionResponse(request: Request): Response | undefined {
       'access-control-allow-origin': '*',
     },
   })
+}
+
+/** The Convex deployment the bundle calls, e.g. `limitless-bulldog-972`, from its client URL. */
+export function convexDeployment(url: string | undefined): string | null {
+  if (!url) return null
+  try {
+    return new URL(url).hostname.split('.')[0] || null
+  } catch {
+    return null
+  }
 }
