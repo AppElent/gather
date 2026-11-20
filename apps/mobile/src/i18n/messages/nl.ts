@@ -291,6 +291,16 @@ export const nl = {
     privacy: coreNl.privacy.title,
     dataSources: coreNl.shell.about.dataSources.title,
 
+    /**
+     * The line at the foot of Settings. The update is `update <label>`, where
+     * the label is the release standard's, or `geen update` on the embedded bundle.
+     */
+    buildInfo: {
+      line: 'Versie {version} ({build}) · {update} · {channel}',
+      update: 'update {label}',
+      noUpdate: 'geen update',
+    },
+
     search: {
       placeholder: 'Instellingen zoeken',
       empty: 'Niets dat “{query}” heet.',

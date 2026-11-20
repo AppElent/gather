@@ -15,7 +15,9 @@
  * the field searches exactly what the screen shows.
  */
 import { useUser } from '@clerk/expo'
+import Constants from 'expo-constants'
 import { router } from 'expo-router'
+import * as Updates from 'expo-updates'
 import { openBrowserAsync } from 'expo-web-browser'
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
@@ -24,6 +26,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { SearchField } from '../../../../src/components/SearchField'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
+import { environmentFromChannel } from '../../../../src/observability/options'
+import { buildInfoLine } from '../../../../src/settings/build-info'
 import { identityInitial } from '../../../../src/settings/identity'
 import {
   type SettingsEntry,
@@ -156,9 +160,41 @@ export default function Settings() {
               </View>
             )
           })}
+          <BuildInfoLine />
         </>
       )}
     </ScrollView>
+  )
+}
+
+/**
+ * Which version, build and over-the-air update this phone runs. It is a
+ * caption rather than a row: nothing here can be changed, and it is what you
+ * read out when something looks wrong.
+ *
+ * `EXPO_PUBLIC_GIT_SHA` is read by static dot access because Metro substitutes
+ * it textually at publish time (see `observability/init.ts`).
+ */
+function BuildInfoLine() {
+  const tokens = useTokens()
+  const { t } = useI18n()
+  const line = buildInfoLine(t.settings.buildInfo, {
+    version: Constants.expoConfig?.version ?? '?',
+    // The native build number: the manifest's copy can be updated, this cannot.
+    build:
+      Constants.platform?.ios?.buildNumber ??
+      String(Constants.platform?.android?.versionCode ?? '?'),
+    updateId: Updates.updateId,
+    isEmbeddedLaunch: Updates.isEmbeddedLaunch,
+    createdAt: Updates.createdAt,
+    sha: process.env.EXPO_PUBLIC_GIT_SHA,
+    // A development build reports an empty channel, not null.
+    channel: Updates.channel || environmentFromChannel(null, __DEV__),
+  })
+  return (
+    <Text selectable style={[styles.buildInfo, { color: tokens.muted }]}>
+      {line}
+    </Text>
   )
 }
 
@@ -353,6 +389,7 @@ const styles = StyleSheet.create({
   rowLabel: { ...TYPE.body },
   rowWithin: { ...TYPE.footnote },
   rowValue: { ...TYPE.subhead, maxWidth: 150 },
+  buildInfo: { ...TYPE.footnote, marginTop: 22, textAlign: 'center' },
   empty: { ...TYPE.subhead, paddingVertical: 24, textAlign: 'center' },
   pressed: { opacity: 0.6 },
 })

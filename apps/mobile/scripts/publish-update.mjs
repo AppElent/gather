@@ -8,6 +8,10 @@
 //
 // `eas update` always carries `--environment`: EXPO_PUBLIC_* values are inlined
 // at publish time, and a bare publish would bake in this machine's .env.local.
+// The update is named by its OTA label (`<version> · <d mmm> · <short sha>`, the
+// release standard's one format, src/settings/ota-label.mjs). The short sha also
+// goes into the bundle as EXPO_PUBLIC_GIT_SHA, which Settings shows. A `--message`
+// of your own wins, for a hand publish.
 // Maps are keyed by the debug ID Metro stamps on the bundle, so they must come
 // from the exact `dist/` that was just published — never rebuild in between.
 //
@@ -19,6 +23,8 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import { formatOtaLabel } from '../src/settings/ota-label.mjs'
 
 const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const channels = ['preview', 'production']
@@ -74,8 +80,23 @@ if (!upload) {
   console.warn(`${message} Publishing to ${channel} without them; its stacks will not be symbolicated.`)
 }
 
+// The commit being published (the production job checks out the soaked one).
+const git = spawnSync('git', ['rev-parse', '--short=7', 'HEAD'], { cwd: appRoot, encoding: 'utf8' })
+const sha = git.stdout?.trim()
+if (git.status !== 0 || !sha) {
+  console.error('Cannot read the commit to publish: git rev-parse HEAD failed.')
+  process.exit(1)
+}
+const { version } = JSON.parse(readFileSync(join(appRoot, 'app.json'), 'utf8')).expo
+const label = formatOtaLabel(version, new Date(), sha)
+if (!easArgs.some((arg) => arg === '--message' || arg === '-m' || arg.startsWith('--message='))) {
+  easArgs.push('--message', label)
+}
+
 const env = {
   ...process.env,
+  // Metro inlines EXPO_PUBLIC_* from this process's environment into the bundle.
+  EXPO_PUBLIC_GIT_SHA: sha,
   // The channel's builds are its APP_VARIANT (app.config.ts). A bare publish
   // resolves to development, whose fingerprint no preview or production build has.
   APP_VARIANT: channel,

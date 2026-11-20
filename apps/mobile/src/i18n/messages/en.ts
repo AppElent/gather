@@ -431,6 +431,16 @@ export const en = {
     dataSources: coreEn.shell.about.dataSources.title,
 
     /**
+     * The line at the foot of Settings. The update is `update <label>`, where
+     * the label is the release standard's, or `no update` on the embedded bundle.
+     */
+    buildInfo: {
+      line: 'Version {version} ({build}) · {update} · {channel}',
+      update: 'update {label}',
+      noUpdate: 'no update',
+    },
+
+    /**
      * The field above the list. It is the way through for somebody who knows
      * the word and not the group, so its own words have to be the plainest
      * ones available.
