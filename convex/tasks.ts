@@ -45,6 +45,7 @@ import {
   deleteSubtasks,
   recheckSubtasks,
   requireParentFor,
+  shiftSubtaskDates,
   subtasksOfTask,
 } from './lib/subtasks'
 import { assigneeChange, notifyAssignee } from './lib/taskAssignee'
@@ -65,6 +66,7 @@ import {
   completionsOf,
   firstDueDate,
   isRepeating,
+  movedDays,
   moveReminder,
   purgeCompletionsOfTask,
 } from './lib/taskRepeat'
@@ -448,7 +450,8 @@ export const setReminder = mutation({
 
 /**
  * Take back a repeating task's completion right after it: the due date goes
- * back to the one it was completed from, and the history row goes. Only the
+ * back to the one it was completed from, its dated subtasks move back the
+ * same days, and the history row goes. Only the
  * task's latest completion can be undone, so one Member's undo never erases
  * another's later completion.
  */
@@ -475,6 +478,13 @@ export const undoCompletion = mutation({
       done: false,
     })
     await moveReminder(ctx, task, group._id, completion.previousDueDate)
+    await shiftSubtaskDates(
+      ctx,
+      task._id,
+      group._id,
+      movedDays(completion.nextDueDate, completion.previousDueDate),
+      { createdBefore: completion._creationTime },
+    )
     if (completion.reopenedSubtaskIds)
       await recheckSubtasks(
         ctx,

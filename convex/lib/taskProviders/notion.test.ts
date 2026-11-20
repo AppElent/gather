@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest'
-import { mapNotionPage, notionAdapter } from './notion'
+import { mapNotionPage, notionAdapter, parentRelationOf } from './notion'
 import { ProviderAuthError } from './types'
 
 const minimalMapping = { title: 'Name', done: 'Done' }
@@ -130,6 +130,7 @@ describe('notionAdapter', () => {
     })
     const fetchImpl = vi
       .fn()
+      .mockResolvedValueOnce(jsonResponse({ properties: {} }))
       .mockResolvedValueOnce(
         jsonResponse({
           results: [page('a', 'First')],
@@ -150,9 +151,10 @@ describe('notionAdapter', () => {
       fetchImpl as unknown as typeof fetch,
     )
     expect(tasks.map((t) => t.title)).toEqual(['First', 'Second'])
-    expect(fetchImpl).toHaveBeenCalledTimes(2)
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
+    expect(fetchImpl.mock.calls[0][0]).toMatch(/\/databases\/db1$/)
     const secondBody = JSON.parse(
-      (fetchImpl.mock.calls[1][1] as RequestInit).body as string,
+      (fetchImpl.mock.calls[2][1] as RequestInit).body as string,
     )
     expect(secondBody.start_cursor).toBe('cursor-2')
   })
@@ -213,5 +215,171 @@ describe('Notion sub-items (APP-304)', () => {
         minimalMapping,
       ).parentExternalId,
     ).toBeUndefined()
+  })
+})
+
+describe('Notion sub-items by where the relation points (APP-451)', () => {
+  const DB = '11111111-2222-3333-4444-555555555555'
+  const OTHER = '99999999-8888-7777-6666-555555555555'
+  const relationTo = (
+    databaseId: string,
+    extra: Record<string, unknown> = {},
+  ) => ({
+    type: 'relation',
+    relation: { database_id: databaseId, type: 'dual_property', ...extra },
+  })
+  const page = (
+    id: string,
+    relations: Record<string, string[]> = {},
+  ) => ({
+    id,
+    properties: {
+      Name: { type: 'title', title: [{ plain_text: id }] },
+      Done: { type: 'checkbox', checkbox: false },
+      ...Object.fromEntries(
+        Object.entries(relations).map(([name, ids]) => [
+          name,
+          { type: 'relation', relation: ids.map((rid) => ({ id: rid })) },
+        ]),
+      ),
+    },
+  })
+
+  /** `fetchTasks` against a database with `schema` holding `pages`. */
+  async function fetchWith(
+    schema: Record<string, unknown> | 'unavailable',
+    pages: ReturnType<typeof page>[],
+  ) {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        schema === 'unavailable'
+          ? jsonResponse({}, 500)
+          : jsonResponse({ properties: { Name: { type: 'title' }, ...schema } }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ results: pages, has_more: false, next_cursor: null }),
+      )
+    const tasks = await notionAdapter.fetchTasks(
+      'tok',
+      { sourceId: DB, propertyMapping: minimalMapping },
+      fetchImpl as unknown as typeof fetch,
+    )
+    return Object.fromEntries(tasks.map((t) => [t.externalId, t.parentExternalId]))
+  }
+
+  test('a localised sub-items pair: the side with several pages holds the sub-items', async () => {
+    const parents = await fetchWith(
+      {
+        'Bovenliggend item': relationTo(DB),
+        Subitem: relationTo(DB),
+      },
+      [
+        page('zolder', { Subitem: ['dozen', 'vegen'], 'Bovenliggend item': [] }),
+        page('dozen', { 'Bovenliggend item': ['zolder'], Subitem: [] }),
+        page('vegen', { 'Bovenliggend item': ['zolder'], Subitem: [] }),
+      ],
+    )
+    expect(parents).toEqual({ zolder: undefined, dozen: 'zolder', vegen: 'zolder' })
+  })
+
+  test('a renamed relation with a limit of one page is the parent', async () => {
+    const parents = await fetchWith(
+      {
+        'Hoort bij': relationTo(DB, { limit: 1 }),
+        Stappen: relationTo(DB, { limit: null }),
+      },
+      [
+        page('zolder', { Stappen: ['dozen'], 'Hoort bij': [] }),
+        page('dozen', { 'Hoort bij': ['zolder'], Stappen: [] }),
+      ],
+    )
+    expect(parents).toEqual({ zolder: undefined, dozen: 'zolder' })
+  })
+
+  test('a single relation back to the database is the parent, dashes or not', async () => {
+    const parents = await fetchWith(
+      { Bovenliggend: relationTo(DB.replaceAll('-', ''), { type: 'single_property' }) },
+      [page('zolder'), page('dozen', { Bovenliggend: ['zolder'] })],
+    )
+    expect(parents).toEqual({ zolder: undefined, dozen: 'zolder' })
+  })
+
+  test('the English names Notion gives still work', async () => {
+    const parents = await fetchWith(
+      { 'Parent item': relationTo(DB), 'Sub-item': relationTo(DB) },
+      [
+        page('attic', { 'Sub-item': ['sweep'], 'Parent item': [] }),
+        page('sweep', { 'Parent item': ['attic'], 'Sub-item': [] }),
+      ],
+    )
+    expect(parents).toEqual({ attic: undefined, sweep: 'attic' })
+  })
+
+  test('a relation to another database is not the parent, even named "Parent"', async () => {
+    const parents = await fetchWith(
+      { Parent: relationTo(OTHER), Project: relationTo(OTHER) },
+      [page('zolder', { Parent: ['p1'], Project: ['p2'] })],
+    )
+    expect(parents).toEqual({ zolder: undefined })
+  })
+
+  test('a pair it cannot tell apart nests nothing, so no page hides', async () => {
+    // One sub-item per parent and no limit or known name: either side could
+    // be the parent.
+    const parents = await fetchWith(
+      { Boven: relationTo(DB), Onder: relationTo(DB) },
+      [
+        page('zolder', { Onder: ['dozen'], Boven: [] }),
+        page('dozen', { Boven: ['zolder'], Onder: [] }),
+      ],
+    )
+    expect(parents).toEqual({ zolder: undefined, dozen: undefined })
+  })
+
+  test('without the schema it falls back to the English names', async () => {
+    const parents = await fetchWith('unavailable', [
+      page('attic'),
+      page('sweep', { 'Parent item': ['attic'] }),
+      page('box', { Bovenliggend: ['attic'] }),
+    ])
+    expect(parents).toEqual({ attic: undefined, sweep: 'attic', box: undefined })
+  })
+
+  test('deeper Notion nesting, or a parent not in the list, stays one level', async () => {
+    const parents = await fetchWith({ Boven: relationTo(DB, { limit: 1 }) }, [
+      page('zolder'),
+      page('dozen', { Boven: ['zolder'] }),
+      page('boeken', { Boven: ['dozen'] }),
+      page('wees', { Boven: ['elders'] }),
+    ])
+    expect(parents).toEqual({
+      zolder: undefined,
+      dozen: 'zolder',
+      boeken: undefined,
+      wees: undefined,
+    })
+  })
+
+  test('withdrawn access while reading the schema still asks to reconnect', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({}, 401))
+    await expect(
+      notionAdapter.fetchTasks(
+        'tok',
+        { sourceId: DB, propertyMapping: minimalMapping },
+        fetchImpl as unknown as typeof fetch,
+      ),
+    ).rejects.toBeInstanceOf(ProviderAuthError)
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  test('parentRelationOf ignores non-relation properties', () => {
+    expect(
+      parentRelationOf(
+        { Parent: { type: 'rich_text' }, Boven: relationTo(DB) },
+        DB,
+        [],
+      ),
+    ).toBe('Boven')
   })
 })
