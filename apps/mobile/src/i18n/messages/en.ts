@@ -983,6 +983,8 @@ export const en = {
     wishlist: coreEn.tasks.wishlist,
     grocery: coreEn.tasks.grocery,
     assignee: coreEn.tasks.assignee,
+    /** APP-301: the smart lists on the index, shared with the web. */
+    smart: coreEn.tasks.smart,
     title: 'Tasks',
 
     /** The Add tab's "Add a task": a title, a list, and a save. */

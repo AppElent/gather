@@ -737,6 +737,8 @@ export const nl = {
     wishlist: coreNl.tasks.wishlist,
     grocery: coreNl.tasks.grocery,
     assignee: coreNl.tasks.assignee,
+    /** APP-301: the smart lists on the index, shared with the web. */
+    smart: coreNl.tasks.smart,
     title: 'Taken',
     quickAdd: {
       list: 'Op de lijst',

@@ -313,6 +313,36 @@ export const tasks = {
     },
   },
 
+  smart: {
+    section: 'Slimme lijsten',
+    menu: 'Slimme lijsten tonen of verbergen',
+    lists: {
+      today: { title: 'Vandaag', subtitle: 'Vandaag of te laat' },
+      mine: { title: 'Mijn taken', subtitle: 'Aan jou toegewezen' },
+      upcoming: { title: 'Gepland', subtitle: 'Komende 7 dagen' },
+      unassigned: {
+        title: 'Niet toegewezen',
+        subtitle: 'Nog niemand pakt ze op',
+      },
+    },
+    count: { one: '{count} taak', other: '{count} taken' },
+    empty: {
+      today: 'Niets voor vandaag.',
+      mine: 'Er staat niets op jouw naam.',
+      upcoming: 'Niets gepland voor de komende 7 dagen.',
+      unassigned: 'Elke taak heeft iemand.',
+    },
+    fromAll: 'Uit alle lijsten',
+    overdueCount: '{count} te laat',
+    overdue: 'Te laat',
+    yesterday: 'gisteren',
+    days: {
+      overdue: 'Te laat',
+      today: 'Vandaag · {date}',
+      tomorrow: 'Morgen · {date}',
+    },
+  },
+
   appearance: {
     title: 'Kleur en icoon',
   },

@@ -15,6 +15,12 @@ import {
   groceryAddFields,
 } from '@gather/core/groceries'
 import {
+  bySmartOrder,
+  inSmartList,
+  SMART_LISTS,
+  type SmartListId,
+} from '@gather/core/smart-lists'
+import {
   asTaskListKind,
   type TaskListColor,
   type TaskListIcon,
@@ -152,6 +158,51 @@ export function localTaskQueries(
   )
 }
 
+/** A Convex task row as the screens draw it. */
+export function taskFromRow(row: Doc<'tasks'>): Task {
+  return {
+    id: row._id,
+    listId: row.listId,
+    title: row.title,
+    done: row.done,
+    dueDate: row.dueDate,
+    priority: row.priority,
+    labels: row.labels ?? [],
+    notes: row.notes,
+    url: row.url,
+    priceCents: row.priceCents,
+    quantity: row.quantity,
+    unit: row.unit,
+    category: row.category,
+    repeat: row.repeat,
+    doneAt: row.doneAt,
+    assigneeId: row.assigneeId,
+    assignmentNotice: row.assignmentNotice,
+    reminder: row.reminder,
+    sectionId: row.sectionId,
+    order: row.order,
+  }
+}
+
+/** A list row as the screens draw it, with where its tasks stand. */
+function listView(list: ListRow, sync: ListSync): TaskList {
+  return {
+    id: list._id,
+    name: list.name,
+    provider: list.provider,
+    writable: list.writable,
+    display: list.display,
+    order: list.order,
+    sync,
+    grocery: list.grocery ?? false,
+    checkedClearedAt: list.checkedClearedAt ?? null,
+    aisleOrder: list.aisleOrder ?? null,
+    suggestionsOff: list.suggestionsOff ?? false,
+    sections: list.sections ?? [],
+    ...listFace(list),
+  }
+}
+
 /** Local rows and linked rows as one model: the only place the two meet. */
 export function mergeTasks(
   lists: readonly ListRow[],
@@ -170,51 +221,14 @@ export function mergeTasks(
           ? 'failed'
           : 'loading'
       if (Array.isArray(rows)) {
-        for (const row of rows as Doc<'tasks'>[]) {
-          tasks.push({
-            id: row._id,
-            listId: row.listId,
-            title: row.title,
-            done: row.done,
-            dueDate: row.dueDate,
-            priority: row.priority,
-            labels: row.labels ?? [],
-            notes: row.notes,
-            url: row.url,
-            priceCents: row.priceCents,
-            quantity: row.quantity,
-            unit: row.unit,
-            category: row.category,
-            repeat: row.repeat,
-            doneAt: row.doneAt,
-            assigneeId: row.assigneeId,
-            assignmentNotice: row.assignmentNotice,
-            reminder: row.reminder,
-            sectionId: row.sectionId,
-            order: row.order,
-          })
-        }
+        for (const row of rows as Doc<'tasks'>[]) tasks.push(taskFromRow(row))
       }
     } else {
       const entry = linked.get(list._id)
       sync = entry?.sync ?? 'loading'
       tasks.push(...(entry?.tasks ?? []))
     }
-    return {
-      id: list._id,
-      name: list.name,
-      provider: list.provider,
-      writable: list.writable,
-      display: list.display,
-      order: list.order,
-      sync,
-      grocery: list.grocery ?? false,
-      checkedClearedAt: list.checkedClearedAt ?? null,
-      aisleOrder: list.aisleOrder ?? null,
-      suggestionsOff: list.suggestionsOff ?? false,
-      sections: list.sections ?? [],
-      ...listFace(list),
-    }
+    return listView(list, sync)
   })
   return { lists: views, tasks }
 }
@@ -253,23 +267,38 @@ export function toggleInPlace(
     store.setQuery(
       api.tasks.listByList,
       args,
-      value.map((task) => {
-        if (task._id !== taskId) return task
-        if (task.repeat && !task.done && today) {
-          return {
-            ...task,
-            dueDate: nextDueDate(task.repeat, { dueDate: task.dueDate, today }),
-          }
-        }
-        return {
-          ...task,
-          done: !task.done,
-          // As the server stamps it, so a fresh check is not taken for
-          // one from before the last "Clear checked" (APP-310).
-          doneAt: task.done ? undefined : Date.now(),
-        }
-      }),
+      value.map((task) => (task._id === taskId ? toggled(task, today) : task)),
     )
+  }
+  // A smart list holds open tasks only: a checked one leaves it at once, and
+  // a repeating one stays with its next date (APP-301).
+  for (const { args, value } of store.getAllQueries(api.tasks.smartLists)) {
+    if (!value?.tasks.some((task) => task._id === taskId)) continue
+    store.setQuery(api.tasks.smartLists, args, {
+      ...value,
+      tasks: value.tasks.flatMap((task) => {
+        if (task._id !== taskId) return [task]
+        const next = toggled(task, today)
+        return next.done ? [] : [next]
+      }),
+    })
+  }
+}
+
+/** A task as the server will leave it after a tick. */
+function toggled(task: Doc<'tasks'>, today: string | undefined): Doc<'tasks'> {
+  if (task.repeat && !task.done && today) {
+    return {
+      ...task,
+      dueDate: nextDueDate(task.repeat, { dueDate: task.dueDate, today }),
+    }
+  }
+  return {
+    ...task,
+    done: !task.done,
+    // As the server stamps it, so a fresh check is not taken for one from
+    // before the last "Clear checked" (APP-310).
+    doneAt: task.done ? undefined : Date.now(),
   }
 }
 
@@ -386,6 +415,90 @@ export function useTaskList(listId: string) {
  */
 export function useTasksOf(lists: readonly ListRow[]) {
   return useListsOf(lists)
+}
+
+type SmartAnswer = FunctionReturnType<typeof api.tasks.smartLists>
+
+/** The four smart lists (APP-301), and what their rows need to be drawn. */
+export interface SmartLists {
+  /** Whether Convex has answered for the lists and the smart rows. */
+  loaded: boolean
+  today: string
+  /** The caller, as Convex knows them; null until it answers. */
+  me: string | null
+  lists: TaskList[]
+  /** Every row any smart list shows, for the hold menu's sheets. */
+  tasks: Task[]
+  byList: Record<SmartListId, Task[]>
+}
+
+/**
+ * Convex's smart rows and each linked list's last fetched rows (ADR-0021: a
+ * smart list never fetches one), sorted into the four smart lists by the
+ * rules in `@gather/core/smart-lists`.
+ */
+export function smartModel(
+  lists: readonly ListRow[] | undefined,
+  answer: SmartAnswer | undefined,
+  linked: ReadonlyMap<string, ExternalEntry>,
+  today: string,
+): SmartLists {
+  const views = (lists ?? NO_LISTS).map((list) =>
+    listView(
+      list,
+      list.provider === 'local'
+        ? answer
+          ? 'live'
+          : 'loading'
+        : (linked.get(list._id)?.sync ?? 'loading'),
+    ),
+  )
+  const byId = new Map(views.map((view) => [view.id, view]))
+  const tasks = [
+    ...(answer?.tasks ?? []).map(taskFromRow),
+    ...views
+      .filter((view) => view.provider !== 'local')
+      .flatMap((view) => linked.get(view.id)?.tasks ?? []),
+  ].filter((task) => byId.has(task.listId))
+  const scope = { today, me: answer?.me ?? null }
+  const byList = Object.fromEntries(
+    SMART_LISTS.map((id) => [
+      id,
+      tasks
+        .filter((task) => {
+          const list = byId.get(task.listId)
+          return list ? inSmartList(id, task, list, scope) : false
+        })
+        .sort(bySmartOrder),
+    ]),
+  ) as Record<SmartListId, Task[]>
+  return {
+    loaded: lists !== undefined && answer !== undefined,
+    today,
+    me: scope.me,
+    lists: views,
+    tasks,
+    byList,
+  }
+}
+
+/**
+ * The Current Group's smart lists: one Convex subscription for every local
+ * list's open rows, plus whatever the linked lists last answered.
+ */
+export function useSmartLists(): SmartLists {
+  const { group } = useGroup()
+  const today = localIsoDate()
+  const lists = useTaskLists()
+  const answer = useQuery(api.tasks.smartLists, {
+    groupSlug: group.slug,
+    today,
+  })
+  const linked = useSyncExternalStore(subscribe, externalSnapshot)
+  return useMemo(
+    () => smartModel(lists, answer, linked, today),
+    [lists, answer, linked, today],
+  )
 }
 
 /** Every write Tasks makes, in the Current Group. */
