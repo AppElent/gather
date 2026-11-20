@@ -9,6 +9,10 @@ import { LoyaltyCardsPage } from './LoyaltyCardsPage'
  */
 
 const loaded = vi.hoisted(() => ({ value: undefined as unknown }))
+const reorder = vi.hoisted(() => ({
+  calls: [] as unknown[],
+  result: Promise.resolve() as Promise<unknown>,
+}))
 
 const CARDS = [
   {
@@ -41,10 +45,22 @@ const CARDS = [
 
 vi.mock('convex/react', () => ({
   useQuery: () => loaded.value,
+  useMutation: () => {
+    const run = (args: unknown) => {
+      reorder.calls.push(args)
+      return reorder.result
+    }
+    return Object.assign(run, { withOptimisticUpdate: () => run })
+  },
 }))
 
 vi.mock('../../../convex/_generated/api', () => ({
-  api: { loyaltyCards: { list: 'loyaltyCards:list' } },
+  api: {
+    loyaltyCards: {
+      list: 'loyaltyCards:list',
+      reorder: 'loyaltyCards:reorder',
+    },
+  },
 }))
 
 vi.mock('@tanstack/react-router', () => ({
@@ -66,6 +82,8 @@ vi.mock('@tanstack/react-router', () => ({
 
 beforeEach(() => {
   loaded.value = CARDS
+  reorder.calls = []
+  reorder.result = Promise.resolve()
 })
 
 const cardLinks = () =>
@@ -113,5 +131,62 @@ describe('LoyaltyCardsPage', () => {
     expect(
       screen.getByRole('link', { name: 'Add your first card' }),
     ).toHaveAttribute('href', '/loyalty-cards/new')
+  })
+
+  describe('Reorder (APP-440)', () => {
+    test('moves a card with keyboard-reachable buttons and saves the full order', () => {
+      renderInGroup(<LoyaltyCardsPage />)
+      fireEvent.click(screen.getByRole('button', { name: 'Reorder' }))
+
+      // The mode replaces the filter and the links.
+      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+      expect(cardLinks()).toHaveLength(0)
+      expect(
+        screen.getByRole('button', { name: 'Move Albert Heijn (Nora) up' }),
+      ).toBeDisabled()
+      expect(
+        screen.getByRole('button', { name: 'Move Bakkerij De Graaf down' }),
+      ).toBeDisabled()
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Move Bakkerij De Graaf up' }),
+      )
+      expect(reorder.calls).toEqual([
+        { groupSlug: expect.any(String), ids: ['c1', 'c3', 'c2'] },
+      ])
+
+      fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+      expect(cardLinks()).toHaveLength(3)
+    })
+
+    test('says so when the order could not be saved', async () => {
+      reorder.result = Promise.reject(new Error('offline'))
+      renderInGroup(<LoyaltyCardsPage />)
+      fireEvent.click(screen.getByRole('button', { name: 'Reorder' }))
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Move Albert Heijn (Sam) up' }),
+      )
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'That did not work',
+      )
+    })
+
+    test('is not offered with fewer than two cards, or while filtering', () => {
+      loaded.value = CARDS.slice(0, 1)
+      const { unmount } = renderInGroup(<LoyaltyCardsPage />)
+      expect(
+        screen.queryByRole('button', { name: 'Reorder' }),
+      ).not.toBeInTheDocument()
+      unmount()
+
+      loaded.value = CARDS
+      renderInGroup(<LoyaltyCardsPage />)
+      fireEvent.change(screen.getByRole('searchbox', { name: 'Filter cards' }), {
+        target: { value: 'sam' },
+      })
+      expect(
+        screen.queryByRole('button', { name: 'Reorder' }),
+      ).not.toBeInTheDocument()
+    })
   })
 })

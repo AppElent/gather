@@ -1,5 +1,6 @@
 import type { BarcodeFormat, FormatConfidence } from '@gather/core/barcodes'
 import {
+  arrangedLoyaltyCardIds,
   compareLoyaltyCards,
   LOYALTY_CARD_LIMITS,
   type RetailerCategory,
@@ -33,6 +34,9 @@ import {
  * exist answer alike (ADR-0009): reads return null, `update` refuses with
  * `loyalty:notFound`, and `remove` and `markUsed` return quietly, because
  * deleting or showing a card that has gone lands where the caller wanted.
+ *
+ * The order is one per Group (APP-440): `reorder` writes each card's `order`,
+ * and `compareLoyaltyCards` puts cards nobody arranged yet on top.
  *
  * The Retailer catalog is a picker (ADR-0043): `create` copies a retailer's
  * name, colour and domain onto the card, and nothing reads the Catalog row
@@ -97,7 +101,12 @@ function summarize(card: Doc<'loyaltyCards'>): LoyaltyCardSummary {
 // Reading
 // ---------------------------------------------------------------------------
 
-/** The Group's cards, last used first, then by name. */
+/**
+ * The Group's cards in the list's order (`compareLoyaltyCards`): cards nobody
+ * arranged, last used first and then by name, then the arranged ones. The
+ * order travels as the array's order, not as a field, so the returned shape is
+ * the one installed apps already read.
+ */
 export const list = query({
   args: { groupSlug: v.string() },
   handler: async (ctx, args): Promise<LoyaltyCardSummary[]> => {
@@ -106,7 +115,7 @@ export const list = query({
       .query('loyaltyCards')
       .withIndex('by_group', (q) => q.eq('groupId', group._id))
       .collect()
-    return cards.map(summarize).sort(compareLoyaltyCards)
+    return cards.sort(compareLoyaltyCards).map(summarize)
   },
 })
 
@@ -292,7 +301,8 @@ export const remove = mutation({
 })
 
 /**
- * The card was shown at a till: it moves to the top of the list.
+ * The card was shown at a till. A card nobody arranged moves to the top of
+ * the unarranged ones; an arranged card stays where the Group put it.
  *
  * Quiet for a card that has gone, since nothing is left to sort.
  */
@@ -302,5 +312,41 @@ export const markUsed = mutation({
     const found = await findInGroup(ctx, args.groupSlug, args.id)
     if (!found) return
     await ctx.db.patch(found.doc._id, { lastUsedAt: Date.now() })
+  },
+})
+
+/**
+ * Put the Group's cards in a new order (APP-440): `ids` top to bottom.
+ *
+ * Any Member may, since the cards and their order are the Group's. A card of
+ * another Group refuses the whole write with `loyalty:notFound`; a card deleted
+ * while the person was dragging is skipped quietly. Cards the caller did not
+ * list (added on another phone meanwhile) keep their relative order after the
+ * listed ones. Every card ends with `order` 0..n-1; only changed rows are
+ * written.
+ */
+export const reorder = mutation({
+  args: { groupSlug: v.string(), ids: v.array(v.id('loyaltyCards')) },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const cards = await ctx.db
+      .query('loyaltyCards')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const byId = new Map(cards.map((card) => [card._id, card]))
+    for (const id of args.ids) {
+      if (byId.has(id)) continue
+      const elsewhere = await ctx.db.get(id)
+      if (elsewhere) throw new ConvexError(loyaltyCardRefusal('notFound'))
+    }
+    const current = [...cards].sort(compareLoyaltyCards).map((card) => card._id)
+    const arranged = arrangedLoyaltyCardIds(args.ids, current)
+    await Promise.all(
+      arranged.map((id, order) =>
+        byId.get(id)?.order === order
+          ? undefined
+          : ctx.db.patch(id, { order }),
+      ),
+    )
   },
 })
