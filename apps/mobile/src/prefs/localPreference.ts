@@ -36,6 +36,8 @@ export const PREFERENCE_KEYS = {
   locale: 'gather:locale',
   recentRecords: 'gather:search:recent-records',
   allView: 'gather:all:view',
+  /** The smart lists hidden from the Tasks index on this phone (APP-301). */
+  hiddenSmartLists: 'gather:tasks:hidden-smart-lists',
   pushRegistration: 'gather:push:registration',
   pushRelease: 'gather:push:release',
   pushExplained: 'gather:push:explained',

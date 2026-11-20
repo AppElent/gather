@@ -8,6 +8,7 @@
  */
 
 
+import type { SmartListId } from '@gather/core/smart-lists'
 import type { TaskListIcon } from '@gather/core/task-lists'
 import Banknote from 'lucide-react-native/icons/banknote'
 import Bell from 'lucide-react-native/icons/bell'
@@ -25,8 +26,11 @@ import Repeat from 'lucide-react-native/icons/repeat'
 import RotateCcw from 'lucide-react-native/icons/rotate-ccw'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
 import Sparkles from 'lucide-react-native/icons/sparkles'
+import Sun from 'lucide-react-native/icons/sun'
 import Tag from 'lucide-react-native/icons/tag'
 import Trash2 from 'lucide-react-native/icons/trash-2'
+import User from 'lucide-react-native/icons/user'
+import UserPlus from 'lucide-react-native/icons/user-plus'
 
 import { type Glyph, glyph } from '../../theme/glyph'
 
@@ -61,3 +65,11 @@ export const TASK_LIST_GLYPHS = {
   house: glyph(House, 'house'),
   papers: glyph(Files, 'doc.on.doc'),
 } satisfies Record<TaskListIcon, Glyph>
+
+/** A smart list's glyph on its `home` tile (APP-301). */
+export const SMART_LIST_GLYPHS = {
+  today: glyph(Sun, 'sun.max'),
+  mine: glyph(User, 'person'),
+  upcoming: glyph(Calendar, 'calendar'),
+  unassigned: glyph(UserPlus, 'person.badge.plus'),
+} satisfies Record<SmartListId, Glyph>

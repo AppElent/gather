@@ -34,6 +34,7 @@ import {
   localTaskQueries,
   mergeTasks,
   onOccurrenceCompleted,
+  smartModel,
   syncExternalList,
   taskSections,
   toggleInPlace,
@@ -72,6 +73,12 @@ function taskRow(id: string, listId: string, done = false) {
     order: 0,
   } satisfies Doc<'tasks'>
 }
+
+/** A local store whose only cached queries are these `listByList` ones. */
+const listQueriesOnly =
+  (queries: { args: unknown; value: unknown }[]) =>
+  (query: Parameters<typeof getFunctionName>[0]) =>
+    getFunctionName(query) === 'tasks:listByList' ? queries : []
 
 const provided = (titles: string[]) => () =>
   Promise.resolve({
@@ -239,11 +246,11 @@ describe('optimistic task completion', () => {
     const errands = [taskRow('three', 'errands')]
     const written: { args: unknown; value: unknown }[] = []
     const store = {
-      getAllQueries: () => [
+      getAllQueries: listQueriesOnly([
         { args: { listId: 'chores' }, value: chores },
         { args: { listId: 'errands' }, value: errands },
         { args: { listId: 'loading' }, value: undefined },
-      ],
+      ]),
       setQuery: (_query: unknown, args: unknown, value: unknown) =>
         written.push({ args, value }),
     } as unknown as OptimisticLocalStore
@@ -274,7 +281,9 @@ describe('repeating tasks (APP-303)', () => {
   const storeOf = (rows: Doc<'tasks'>[]) => {
     const written: unknown[] = []
     const store = {
-      getAllQueries: () => [{ args: { listId: 'chores' }, value: rows }],
+      getAllQueries: listQueriesOnly([
+        { args: { listId: 'chores' }, value: rows },
+      ]),
       setQuery: (_query: unknown, _args: unknown, value: unknown) =>
         written.push(value),
     } as unknown as OptimisticLocalStore
@@ -553,5 +562,132 @@ describe('sections (APP-357)', () => {
       new Map(),
     )
     expect(lists[0].sections).toEqual([])
+  })
+})
+
+describe('smart lists (APP-301)', () => {
+  const today = '2026-11-19'
+  const me = 'me' as Id<'users'>
+
+  test('local rows from Convex and linked rows already fetched, each on its rules', () => {
+    const lists = [listRow('chores', 'local'), listRow('work', 'todoist')]
+    const answer = {
+      me,
+      tasks: [
+        { ...taskRow('bins', 'chores'), dueDate: '2026-11-18', assigneeId: me },
+        { ...taskRow('plants', 'chores'), dueDate: '2026-11-22' },
+        { ...taskRow('taxes', 'chores'), assigneeId: 'sanne' as Id<'users'> },
+      ],
+    }
+    const linked = new Map([
+      [
+        'work',
+        {
+          sync: 'synced' as const,
+          tasks: [
+            {
+              id: 'report',
+              listId: 'work',
+              title: 'Report',
+              done: false,
+              dueDate: today,
+              labels: [],
+              order: 0,
+            },
+          ],
+        },
+      ],
+    ])
+    const model = smartModel(lists, answer, linked, today)
+    const ids = (id: keyof typeof model.byList) =>
+      model.byList[id].map((task) => task.id)
+
+    expect(model.loaded).toBe(true)
+    expect(model.me).toBe(me)
+    expect(ids('today')).toEqual(['bins', 'report'])
+    expect(ids('mine')).toEqual(['bins'])
+    expect(ids('upcoming')).toEqual(['bins', 'report', 'plants'])
+    expect(ids('unassigned')).toEqual(['report', 'plants'])
+    expect(model.lists.map((list) => [list.id, list.sync])).toEqual([
+      ['chores', 'live'],
+      ['work', 'synced'],
+    ])
+  })
+
+  test('a linked list nobody opened adds nothing, and nothing is fetched', () => {
+    const model = smartModel(
+      [listRow('work', 'notion')],
+      { me, tasks: [] },
+      new Map(),
+      today,
+    )
+    expect(model.tasks).toEqual([])
+    expect(model.lists[0].sync).toBe('loading')
+  })
+
+  test('a list that left the Group takes its rows with it', () => {
+    const model = smartModel(
+      [listRow('chores', 'local')],
+      { me, tasks: [{ ...taskRow('gone', 'deleted'), dueDate: today }] },
+      new Map(),
+      today,
+    )
+    expect(model.byList.today).toEqual([])
+  })
+
+  test('not loaded until both the lists and the smart rows have answered', () => {
+    expect(smartModel(undefined, { me, tasks: [] }, new Map(), today).loaded).toBe(
+      false,
+    )
+    expect(
+      smartModel([listRow('chores', 'local')], undefined, new Map(), today)
+        .loaded,
+    ).toBe(false)
+  })
+
+  test('ticking a task takes it off the smart lists before the server answers', () => {
+    const written: unknown[] = []
+    const value = {
+      me,
+      tasks: [
+        { ...taskRow('bins', 'chores'), dueDate: today },
+        {
+          ...taskRow('plants', 'chores'),
+          dueDate: today,
+          repeat: {
+            mode: 'fixed',
+            unit: 'week',
+            every: 1,
+            weekdays: [4],
+          } satisfies TaskRepeat,
+        },
+      ],
+    }
+    const store = {
+      getAllQueries: (query: Parameters<typeof getFunctionName>[0]) =>
+        getFunctionName(query) === 'tasks:smartLists'
+          ? [{ args: { groupSlug: 'our-household', today }, value }]
+          : [],
+      setQuery: (_query: unknown, _args: unknown, next: unknown) =>
+        written.push(next),
+    } as unknown as OptimisticLocalStore
+
+    toggleInPlace(store, { taskId: 'bins' as Id<'tasks'>, today })
+    toggleInPlace(store, { taskId: 'plants' as Id<'tasks'>, today })
+
+    expect(written).toEqual([
+      { me, tasks: [expect.objectContaining({ _id: 'plants' })] },
+      {
+        me,
+        tasks: [
+          expect.objectContaining({ _id: 'bins' }),
+          expect.objectContaining({
+            _id: 'plants',
+            done: false,
+            dueDate: '2026-11-26',
+          }),
+        ],
+      },
+    ])
   })
 })

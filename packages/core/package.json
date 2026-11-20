@@ -35,6 +35,7 @@
     "./refusals": "./src/refusals.ts",
     "./retailer-logos": "./src/retailerLogos.ts",
     "./sentry-privacy": "./src/sentryPrivacy.ts",
+    "./smart-lists": "./src/smartLists.ts",
     "./task-lists": "./src/taskLists.ts",
     "./task-reminders": "./src/taskReminders.ts",
     "./task-repeat": "./src/taskRepeat.ts",
