@@ -11,6 +11,8 @@ import {
   mealMeta,
   type PlannedMeal,
   type WeekData,
+  weekdayInText,
+  weekdayName,
   weekRange,
 } from './week'
 
@@ -97,5 +99,13 @@ describe('week menu', () => {
         '2026-11-23',
       ),
     ).toBe(1)
+  })
+})
+
+describe('weekdayInText', () => {
+  test('lower case inside a Dutch sentence, capitalised in English', () => {
+    expect(weekdayInText('2026-11-26', 'nl')).toBe('donderdag')
+    expect(weekdayInText('2026-11-26', 'en')).toBe('Thursday')
+    expect(weekdayName('2026-11-26', 'nl')).toBe('Donderdag')
   })
 })

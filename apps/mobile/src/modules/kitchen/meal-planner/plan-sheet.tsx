@@ -170,35 +170,15 @@ export function PlanSheet({
         testID="plan-sheet"
       >
         {limited ? (
-          <View
-            accessibilityRole="alert"
+          <LimitCard
+            used={usage?.used ?? usage?.limit ?? 0}
+            limit={usage?.limit ?? 0}
             testID="plan-limit"
-            style={[styles.card, styles.limit, { backgroundColor: tokens.surface }]}
-          >
-            <View style={styles.limitTitleRow}>
-              <UI_ICONS.Clock size={20} color={tokens.ink} strokeWidth={2.2} />
-              <Text style={[styles.limitTitle, { color: tokens.ink }]}>
-                {plan.limitTitle}
-              </Text>
-            </View>
-            <Text style={[styles.subhead, { color: tokens.ink }]}>
-              {fmt(plan.limitBody, {
-                used: usage?.used ?? usage?.limit ?? 0,
-                limit: usage?.limit ?? 0,
-              })}
-            </Text>
-            <Text style={[styles.footnote, { color: tokens.muted }]}>
-              {plan.limitHint}
-            </Text>
-            <PrimaryButton
-              label={plan.chooseYourself}
-              testID="plan-choose-yourself"
-              onPress={() => {
-                const target = firstEmpty()
-                onChooseYourself(target.date, target.slot)
-              }}
-            />
-          </View>
+            onChooseYourself={() => {
+              const target = firstEmpty()
+              onChooseYourself(target.date, target.slot)
+            }}
+          />
         ) : (
           <>
             <View style={styles.section}>
@@ -389,6 +369,47 @@ export function PlanSheet({
         )}
       </ScrollView>
     </NativeSheet>
+  )
+}
+
+/**
+ * The Limit card (designs/meal-planner, Limit): the day's slimme acties are
+ * used, Zelf kiezen opens Pick. Plan mijn week and Iets anders share it.
+ */
+export function LimitCard({
+  used,
+  limit,
+  testID,
+  onChooseYourself,
+}: {
+  used: number
+  limit: number
+  testID: string
+  onChooseYourself: () => void
+}) {
+  const { t } = useI18n()
+  const plan = t.mealPlanner.plan
+  const tokens = useTokens('kitchen')
+  return (
+    <View
+      accessibilityRole="alert"
+      testID={testID}
+      style={[styles.card, styles.limit, { backgroundColor: tokens.surface }]}
+    >
+      <View style={styles.limitTitleRow}>
+        <UI_ICONS.Clock size={20} color={tokens.ink} strokeWidth={2.2} />
+        <Text style={[styles.limitTitle, { color: tokens.ink }]}>{plan.limitTitle}</Text>
+      </View>
+      <Text style={[styles.subhead, { color: tokens.ink }]}>
+        {fmt(plan.limitBody, { used, limit })}
+      </Text>
+      <Text style={[styles.footnote, { color: tokens.muted }]}>{plan.limitHint}</Text>
+      <PrimaryButton
+        label={plan.chooseYourself}
+        testID={`${testID}-choose-yourself`}
+        onPress={onChooseYourself}
+      />
+    </View>
   )
 }
 

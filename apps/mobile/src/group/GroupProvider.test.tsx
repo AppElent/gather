@@ -20,12 +20,14 @@ const state = vi.hoisted(() => ({
   myGroups: undefined as Row[] | undefined,
   retained: null as string | null,
   replaced: [] as unknown[],
+  replaceOptions: [] as unknown[],
 }))
 
 vi.mock('expo-router', () => ({
   router: {
-    replace: (href: unknown) => {
+    replace: (href: unknown, options?: unknown) => {
       state.replaced.push(href)
+      state.replaceOptions.push(options)
     },
   },
 }))
@@ -111,6 +113,7 @@ beforeEach(() => {
   state.myGroups = [kitchen, willow]
   state.retained = kitchen._id
   state.replaced = []
+  state.replaceOptions = []
 })
 
 afterEach(() => {
@@ -251,6 +254,16 @@ describe('an old /g/<slug> link', () => {
     expect(current().group).toEqual(willow)
     expect(state.retained).toBe(willow._id)
     expect(state.replaced).toEqual(['unwind', '/all/tasting/cheese'])
+  })
+
+  // Checks the option passed to the router, not the resulting stack: the stack
+  // is expo-router's, which a Node test cannot build.
+  test('opens its screen on top of its tab\'s first screen, so it has a back button', () => {
+    rememberGroupLink({ groupSlug: willow.slug, segments: ['cheeses'] })
+
+    mount(handoff())
+
+    expect(state.replaceOptions).toEqual([{ withAnchor: true }])
   })
 
   test('to a Group the Member is not in leaves the Group alone', () => {

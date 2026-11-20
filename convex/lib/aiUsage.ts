@@ -4,8 +4,9 @@
  * Gather reaches Anthropic for a person from these actions — the recipe
  * importer's fallback (`recipeImport.importFromUrl`), the nutrition estimate
  * (`recipeNutrition.estimateNutrition`), reading recipe lines for the
- * grocery list (`groceryLines.read`, APP-312) and Plan mijn week
- * (`mealPlanDrafts.propose` and `.regenerate`, APP-319) — and all spend from this one
+ * grocery list (`groceryLines.read`, APP-312), Plan mijn week
+ * (`mealPlanDrafts.propose` and `.regenerate`, APP-319) and Iets anders /
+ * Nieuw idee (`mealIdeas.swap` and `.idea`, APP-320) — and all spend from this one
  * budget, per person per UTC day. Any new action that calls a model takes a
  * call from `takeAiCall` (or `aiUsage.takeCounted`) first; the limit is not
  * per feature on purpose, so a new one cannot quietly double what a person
@@ -13,9 +14,10 @@
  *
  * The call is taken *before* the request and not refunded when it fails: the
  * cap exists to bound spend, and a request that reached the provider cost
- * something whether or not it produced a recipe. The one exception is Plan
- * mijn week, whose rules-only fallback is promised to cost nothing: it gives
- * the call back with `aiUsage.refund` when the model fails or no key is set.
+ * something whether or not it produced a recipe. The exceptions are the
+ * meal planner's AI actions (Plan mijn week, Iets anders, Nieuw idee), whose
+ * fallback is promised to cost nothing: they give the call back with
+ * `aiUsage.refund` when no key is set or the model could not be reached.
  */
 
 import { AI_LIMIT_KIND } from '@gather/core/ai-limit'

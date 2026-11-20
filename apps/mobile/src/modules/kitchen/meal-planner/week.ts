@@ -61,6 +61,15 @@ export function weekdayName(date: string, locale: string) {
   )
 }
 
+/**
+ * The weekday inside a sentence: "voor donderdag", "for Thursday". Dutch
+ * writes weekdays in lower case; `weekdayName` is for the start of a line.
+ */
+export function weekdayInText(date: string, locale: string) {
+  const name = localMidnight(date).toLocaleDateString(locale, { weekday: 'long' })
+  return locale === 'nl' ? name.toLocaleLowerCase(locale) : sentenceCase(name)
+}
+
 /** "26 Nov". */
 export function shortDate(date: string, locale: string) {
   return localMidnight(date).toLocaleDateString(locale, {
