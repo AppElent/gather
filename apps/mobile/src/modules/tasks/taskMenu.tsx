@@ -92,6 +92,15 @@ export function taskMenuActions(
   ]
 }
 
+/** The delete confirm's body: a parent's subtasks go with it (APP-304). */
+export function deleteMessage(task: Pick<Task, 'subtasks'>, t: Messages) {
+  const count = task.subtasks?.total ?? 0
+  if (count === 0) return t.tasks.list.deleteBody
+  return count === 1
+    ? t.tasks.subtasks.deleteBodyOne
+    : fmt(t.tasks.subtasks.deleteBody, { count })
+}
+
 type TaskSheet =
   | 'due'
   | 'repeat'
@@ -139,7 +148,7 @@ export function useTaskSheets({
   const confirmDelete = (task: Task) =>
     confirmDestructive({
       title: fmt(t.tasks.list.deleteTitle, { title: task.title }),
-      message: t.tasks.list.deleteBody,
+      message: deleteMessage(task, t),
       confirm: t.common.actions.delete,
       cancel: t.common.actions.cancel,
       onConfirm: () => {

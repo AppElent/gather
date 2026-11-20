@@ -141,7 +141,9 @@ export function readLoyaltyCardRefusal(
  *   since the clear being undone; nothing changed (APP-403).
  * - `subtask-depth` (APP-304): a subtask cannot have subtasks, and a task
  *   with subtasks cannot become one.
- * - `subtask-list`: a subtask sits on its parent's list.
+ * - `subtask-list`: a subtask sits on its parent's list, in its parent's
+ *   section.
+ * - `subtask-grocery`: a grocery list holds items, not subtasks.
  * - `subtask-repeat`: a subtask does not repeat on its own; it reopens with
  *   its parent.
  */
@@ -155,6 +157,7 @@ export const TASK_REFUSAL_CODES = [
   'subtask-depth',
   'subtask-list',
   'subtask-repeat',
+  'subtask-grocery',
 ] as const
 export type TaskRefusalCode = (typeof TASK_REFUSAL_CODES)[number]
 

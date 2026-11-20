@@ -435,3 +435,130 @@ describe('smart lists', () => {
     ])
   })
 })
+
+describe('grocery lists, sections and the remaining checks', () => {
+  const groceryList = (as: Awaited<ReturnType<typeof seed>>['as']) =>
+    as.mutation(api.taskLists.create, {
+      groupSlug: JANSEN,
+      name: 'Albert Heijn',
+      provider: 'local',
+      kind: 'groceries',
+    })
+
+  test('a grocery list has items, not subtasks', async () => {
+    const { as } = await seed()
+    const groceries = await groceryList(as)
+    const milk = await as.mutation(api.tasks.add, {
+      listId: groceries,
+      groupSlug: JANSEN,
+      title: 'Melk',
+    })
+    await expect(
+      as.mutation(api.tasks.add, {
+        listId: groceries,
+        groupSlug: JANSEN,
+        title: 'Halfvol',
+        parentTaskId: milk,
+      }),
+    ).rejects.toMatchObject(refused('subtask-grocery'))
+  })
+
+  test('a parent moved onto a grocery list leaves its subtasks behind, as tasks of their own', async () => {
+    const { t, as, attic, subtasks, listId } = await seed()
+    const groceries = await groceryList(as)
+    await as.mutation(api.tasks.moveToList, {
+      taskId: attic,
+      groupSlug: JANSEN,
+      listId: groceries,
+    })
+    expect((await row(t, attic))?.listId).toBe(groceries)
+    for (const id of subtasks) {
+      const left = await row(t, id)
+      expect(left?.listId).toBe(listId)
+      expect(left?.parentTaskId).toBeUndefined()
+    }
+  })
+
+  test('a parent on another list is refused when changing the parent', async () => {
+    const { as, add, otherListId } = await seed()
+    const elsewhere = await as.mutation(api.tasks.add, {
+      listId: otherListId,
+      groupSlug: JANSEN,
+      title: 'Elders',
+    })
+    const loose = await add('Los')
+    await expect(
+      as.mutation(api.tasks.update, {
+        taskId: loose,
+        groupSlug: JANSEN,
+        parentTaskId: elsewhere,
+      }),
+    ).rejects.toMatchObject(refused('subtask-list'))
+  })
+
+  test('a section move takes the subtasks along; a subtask cannot leave its parent’s section', async () => {
+    const { t, as, attic, subtasks, listId } = await seed()
+    const kitchen = await as.mutation(api.taskSections.add, {
+      listId,
+      groupSlug: JANSEN,
+      name: 'Keuken',
+    })
+    await as.mutation(api.tasks.setSection, {
+      taskId: attic,
+      groupSlug: JANSEN,
+      sectionId: kitchen,
+    })
+    for (const id of subtasks) {
+      expect((await row(t, id))?.sectionId).toBe(kitchen)
+    }
+    await expect(
+      as.mutation(api.tasks.setSection, {
+        taskId: subtasks[0],
+        groupSlug: JANSEN,
+        sectionId: null,
+      }),
+    ).rejects.toMatchObject(refused('subtask-list'))
+  })
+
+  test('only a Member of the Group can reorder the subtasks', async () => {
+    const { t, attic, subtasks } = await seed()
+    await expect(
+      t.withIdentity(bob).mutation(api.tasks.reorderSubtasks, {
+        taskId: attic,
+        groupSlug: DE_VRIES,
+        ids: subtasks,
+      }),
+    ).rejects.toThrow('Task not found')
+  })
+
+  test('"Complete all" on a subtask or a done parent changes nothing else', async () => {
+    const { t, as, attic, subtasks } = await seed()
+    await as.mutation(api.tasks.toggleDone, {
+      taskId: subtasks[0],
+      groupSlug: JANSEN,
+      withSubtasks: true,
+    })
+    expect(await doneOf(t, [attic, ...subtasks])).toEqual([
+      false,
+      true,
+      false,
+      false,
+    ])
+    await as.mutation(api.tasks.toggleDone, {
+      taskId: attic,
+      groupSlug: JANSEN,
+    })
+    // Unchecking the parent with withSubtasks leaves its subtasks as they are.
+    await as.mutation(api.tasks.toggleDone, {
+      taskId: attic,
+      groupSlug: JANSEN,
+      withSubtasks: true,
+    })
+    expect(await doneOf(t, [attic, ...subtasks])).toEqual([
+      false,
+      true,
+      false,
+      false,
+    ])
+  })
+})

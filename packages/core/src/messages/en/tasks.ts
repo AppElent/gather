@@ -138,6 +138,9 @@ export const tasks = {
     /** Read out on a smart list's subtask row: what it is a step of. */
     stepOf: 'Step of {title}',
     failed: 'That subtask could not be added. Try again.',
+    /** Under the delete confirm of a task with subtasks. */
+    deleteBody: 'Its {count} subtasks are deleted too. This cannot be undone.',
+    deleteBodyOne: 'Its subtask is deleted too. This cannot be undone.',
   },
 
   /** A packing list: checked items stay in place, and can all be reset. */

@@ -14,6 +14,7 @@ import { taskRefusal } from '@gather/core/refusals'
 import { ConvexError } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
+import { isGroceryList } from './groceryCategories'
 import { cancelSend, syncSend } from './taskReminders'
 
 /** A task's subtasks, in no particular order. */
@@ -30,7 +31,8 @@ export async function subtasksOfTask(
 /**
  * The parent a subtask on `list` may have, or a refusal: a task of the same
  * Group (anything else is "not found", ADR-0009), on the same list, that is
- * not a subtask itself.
+ * not a subtask itself. A grocery list has items, not steps: the app draws no
+ * subtasks there, so none may be made.
  */
 export async function requireParentFor(
   ctx: QueryCtx,
@@ -44,6 +46,10 @@ export async function requireParentFor(
   }
   if (parent.listId !== list._id) {
     throw new ConvexError(taskRefusal('subtask-list'))
+  }
+  const group = await ctx.db.get(list.groupId)
+  if (group && isGroceryList(group, list)) {
+    throw new ConvexError(taskRefusal('subtask-grocery'))
   }
   if (parent.parentTaskId) throw new ConvexError(taskRefusal('subtask-depth'))
   return parent

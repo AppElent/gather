@@ -111,6 +111,10 @@ export const tasks = {
     onlyThis: 'Alleen deze',
     stepOf: 'Stap van {title}',
     failed: 'Die subtaak kon niet worden toegevoegd. Probeer het opnieuw.',
+    deleteBody:
+      'De {count} subtaken worden ook verwijderd. Dit kan niet ongedaan worden gemaakt.',
+    deleteBodyOne:
+      'De subtaak wordt ook verwijderd. Dit kan niet ongedaan worden gemaakt.',
   },
   packing: {
     progress: '{done} van {total}',

@@ -1046,16 +1046,24 @@ export const moveToList = mutation({
       parentTaskId: undefined,
     })
     if (grocery) await askAiOnce(ctx, group._id, grocery, task._id)
-    // A parent takes its subtasks along, in their order, behind it.
+    // A parent takes its subtasks along, in their order, behind it. Onto a
+    // grocery list, which has no subtasks, they stay behind as tasks of
+    // their own.
     const subtasks = (await subtasksOfTask(ctx, task._id)).sort(
       (a, b) => a.order - b.order,
     )
+    if (onGroceryList) {
+      for (const subtask of subtasks) {
+        await ctx.db.patch(subtask._id, { parentTaskId: undefined })
+      }
+      return null
+    }
     for (const subtask of subtasks) {
       await ctx.db.patch(subtask._id, {
         listId: args.listId,
         order: await endOfList(ctx, args.listId),
         sectionId: undefined,
-        ...(onGroceryList ? {} : { category: undefined }),
+        category: undefined,
       })
     }
     return null
@@ -1319,6 +1327,8 @@ export const setSection = mutation({
       args.groupSlug,
       args.taskId,
     )
+    // A subtask sits in its parent's section and moves with it (APP-304).
+    if (task.parentTaskId) throw new ConvexError(taskRefusal('subtask-list'))
     const sectionId = knownSectionId(list, args.sectionId)
     if (args.sectionId !== null && sectionId === undefined) {
       throw new ConvexError('Section not found')
