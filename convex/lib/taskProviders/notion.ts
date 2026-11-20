@@ -8,6 +8,11 @@ import {
 
 const NOTION_API = 'https://api.notion.com/v1'
 const NOTION_VERSION = '2022-06-28'
+/**
+ * The version whose schema says a relation's `limit` (data sources, Notion's
+ * 2025-09-03 API). Used only to read a list's schema, never its pages.
+ */
+const SCHEMA_VERSION = '2025-09-03'
 const DONE_STATUS_NAMES = ['done', 'complete', 'completed']
 
 async function notionRequest(
@@ -15,12 +20,13 @@ async function notionRequest(
   path: string,
   init: RequestInit,
   fetchImpl: typeof fetch,
+  version = NOTION_VERSION,
 ): Promise<unknown> {
   const res = await fetchImpl(`${NOTION_API}${path}`, {
     ...init,
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      'Notion-Version': NOTION_VERSION,
+      'Notion-Version': version,
       'Content-Type': 'application/json',
     },
   })
@@ -37,12 +43,16 @@ type NotionPage = { id: string; url?: string; properties: Record<string, any> }
 
 /**
  * The names Notion gives the relation its sub-items feature adds to a database
- * (APP-304): the page a sub-item belongs to. Only a fallback (APP-451): the
- * parent is found by where a relation points (`parentRelationOf`), and a name
- * decides only when the database's schema could not be read, or to tell two
- * relations to the list's own database apart.
+ * (APP-304): the page a sub-item belongs to, in English and in Dutch. A name
+ * counts only on a relation back to the list's own database (APP-451), unless
+ * the schema could not be read at all.
  */
-const PARENT_RELATION_NAMES = ['parent item', 'parent task', 'parent']
+const PARENT_RELATION_NAMES = [
+  'parent item',
+  'parent task',
+  'parent',
+  'bovenliggend item',
+]
 
 const isParentName = (name: string) =>
   PARENT_RELATION_NAMES.includes(name.trim().toLowerCase())
@@ -53,54 +63,47 @@ const sameNotionId = (a: unknown, b: unknown) =>
   typeof b === 'string' &&
   a.replaceAll('-', '').toLowerCase() === b.replaceAll('-', '').toLowerCase()
 
-/** A database's property schema, as `GET /databases/{id}` answers it. */
+/** A database's property schema, keyed by property name. */
 // biome-ignore lint/suspicious/noExplicitAny: dynamic Notion property shapes
 export type NotionSchema = Record<string, any>
 
 /**
  * The relation that names a page's parent in database `databaseId`, or null
- * for none (APP-451). It is a relation back to the database itself, whatever
- * it is called: Notion's sub-items in any language, or a renamed one. A
- * relation to another database is never the parent, even one named "Parent".
+ * for none (APP-451). Only a relation back to the database itself can be it;
+ * one to another database never is, even one named "Parent". Among those it
+ * needs a positive sign, in turn:
  *
- * Sub-items are two relations to the database itself, "Parent item" and
- * "Sub-item", so when several point home one is picked by, in turn: a limit
- * of one page (when Notion says), a known English name, and the pages
- * themselves (a page with two or more on a relation shows that one holds
- * sub-items). Still undecided means no nesting, never a guess that could
- * hang pages under their own sub-items.
+ * 1. a limit of one page (a page has one parent; Notion's sub-items "Parent
+ *    item" has it), when the schema says limits;
+ * 2. a name Notion gives the parent relation (`PARENT_RELATION_NAMES`).
+ *
+ * Without one, nothing nests: "Blocked by" / "Blocking" (Notion's task
+ * dependencies) are relations back to the database too, and guessing would
+ * hide tasks under their blocker.
  */
 export function parentRelationOf(
   schema: NotionSchema,
   databaseId: string,
-  pages: readonly NotionPage[],
 ): string | null {
-  let home = Object.entries(schema)
+  const home = Object.entries(schema)
     .filter(
       ([, prop]) =>
         prop?.type === 'relation' &&
         sameNotionId(prop.relation?.database_id, databaseId),
     )
     .map(([name, prop]) => ({ name, limit: prop.relation?.limit }))
-  const narrow = (keep: (c: (typeof home)[number]) => boolean) => {
-    const kept = home.filter(keep)
-    if (kept.length) home = kept
-  }
-  if (home.length > 1) narrow((c) => c.limit === 1)
-  if (home.length > 1) narrow((c) => isParentName(c.name))
-  if (home.length > 1) {
-    narrow(
-      (c) =>
-        !pages.some((page) => (page.properties[c.name]?.relation?.length ?? 0) > 1),
-    )
-  }
-  return home.length === 1 ? (home[0]?.name ?? null) : null
+  const one = <T>(list: T[]) => (list.length === 1 ? list[0] : undefined)
+  const limited = home.filter((c) => c.limit === 1)
+  const pool = limited.length > 1 ? limited : home
+  return (
+    one(limited)?.name ?? one(pool.filter((c) => isParentName(c.name)))?.name ?? null
+  )
 }
 
 /**
  * The page this one is a sub-item of. `parentRelation` is the relation that
  * holds it (`parentRelationOf`), or null for none; left out, when the schema
- * is unknown, a relation with a known English name does.
+ * is unknown, a relation with a known parent name does, as before APP-451.
  */
 function parentOf(
   // biome-ignore lint/suspicious/noExplicitAny: dynamic Notion property shapes
@@ -186,24 +189,43 @@ export function mapNotionPage(
  * A database's property schema, or undefined when Notion would not give it:
  * the parent relation then falls back to its name. Access withdrawn still
  * asks to reconnect.
+ *
+ * Read on Notion's data-source API first (`SCHEMA_VERSION`), the only one
+ * whose relations say their `limit`: the database names its data source,
+ * which holds the schema. A database with several data sources, or any other
+ * refusal there, falls back to the schema on `NOTION_VERSION`, which has no
+ * limits, so only a name can pick the parent.
  */
 async function databaseSchema(
   accessToken: string,
   databaseId: string,
   fetchImpl: typeof fetch,
 ): Promise<NotionSchema | undefined> {
-  try {
-    const data = (await notionRequest(
-      accessToken,
-      `/databases/${databaseId}`,
-      { method: 'GET' },
-      fetchImpl,
-    )) as { properties?: NotionSchema }
-    return data.properties
-  } catch (error) {
-    if (error instanceof ProviderAuthError) throw error
-    return undefined
+  const read = async (path: string, version?: string) => {
+    try {
+      return (await notionRequest(
+        accessToken,
+        path,
+        { method: 'GET' },
+        fetchImpl,
+        version,
+      )) as {
+        properties?: NotionSchema
+        data_sources?: Array<{ id?: string }>
+      }
+    } catch (error) {
+      if (error instanceof ProviderAuthError) throw error
+      return undefined
+    }
   }
+  const database = await read(`/databases/${databaseId}`, SCHEMA_VERSION)
+  const sources = database?.data_sources ?? []
+  const sourceId = sources.length === 1 ? sources[0]?.id : undefined
+  if (sourceId) {
+    const source = await read(`/data_sources/${sourceId}`, SCHEMA_VERSION)
+    if (source?.properties) return source.properties
+  }
+  return (await read(`/databases/${databaseId}`))?.properties
 }
 
 export const notionAdapter: TaskProviderAdapter = {
@@ -277,7 +299,7 @@ export const notionAdapter: TaskProviderAdapter = {
       cursor = data.has_more ? (data.next_cursor ?? undefined) : undefined
     } while (cursor)
     const parentRelation = schema
-      ? parentRelationOf(schema, config.sourceId, pages)
+      ? parentRelationOf(schema, config.sourceId)
       : undefined
     return oneLevelDeep(
       pages.map((p) => mapNotionPage(p, mapping, parentRelation)),
