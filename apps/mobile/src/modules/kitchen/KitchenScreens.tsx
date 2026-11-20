@@ -1,6 +1,7 @@
 
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
+import { useState } from 'react'
 import {
   ScrollView,
   StyleSheet,
@@ -21,6 +22,7 @@ import { WashHeader, type WashSummary } from '../../ui/wash-header'
 import { moduleHref } from '../moduleDestination'
 import { useTaskLists } from '../tasks/store'
 import { TaskList } from '../tasks/TaskListScreen'
+import { GroceriesSourceSheet } from './add-to-groceries/source-sheet'
 
 function KitchenShell({
   title,
@@ -79,21 +81,23 @@ export function GroceriesScreen() {
   const set = useMutation(api.kitchen.setGroceryList)
   const lists = useTaskLists()
   const router = useRouter()
+  const [source, setSource] = useState(false)
   const selected = data?.groceryListId
   if (selected)
     return (
+      <>
       <TaskList
         listId={selected}
         moduleId="groceries"
         addPlaceholder={t.kitchen.addGroceryItem}
         menuExtras={[
           {
-            // A recipe's ingredients are added from the recipe (APP-312): the
-            // list leads there; the week menu joins with APP-321.
+            // A recipe's ingredients are added from the recipe (APP-312), the
+            // week's from the week menu (APP-321): the list asks which.
             id: 'groceries-from-recipe',
             title: t.tasks.grocery.addLines.fromRecipe,
             image: 'book',
-            onPress: () => router.push(moduleHref('/all/recipes')),
+            onPress: () => setSource(true),
           },
           {
             // What the house keeps (APP-314). The design's action-row pill
@@ -113,6 +117,13 @@ export function GroceriesScreen() {
           },
         ]}
       />
+      {source ? (
+        <GroceriesSourceSheet
+          onRecipes={() => router.push(moduleHref('/all/recipes'))}
+          onClose={() => setSource(false)}
+        />
+      ) : null}
+      </>
     )
   return (
     <KitchenShell

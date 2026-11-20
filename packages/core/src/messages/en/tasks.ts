@@ -242,6 +242,8 @@ export const tasks = {
       title: 'Add to groceries',
       /** The grocery list's menu entry. */
       fromRecipe: 'From recipe or week menu',
+      /** The week menu row in that entry's chooser (APP-421). */
+      weekMenu: 'Week menu',
       recipe: 'Recipe',
       recipeServes: {
         one: 'Recipe · serves {count}',

@@ -190,6 +190,8 @@ export const tasks = {
     addLines: {
       title: 'Op de boodschappenlijst',
       fromRecipe: 'Uit recept of weekmenu',
+      /** The week menu row in that entry's chooser (APP-421). */
+      weekMenu: 'Weekmenu',
       recipe: 'Recept',
       recipeServes: {
         one: 'Recept · voor {count} persoon',

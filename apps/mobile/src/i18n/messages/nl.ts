@@ -466,12 +466,6 @@ export const nl = {
       somethingElse: 'Iets anders',
       somethingElseSub: 'Kies een ander recept voor {weekday}',
       groceries: 'Boodschappen voor dit recept',
-      groceriesAdded: {
-        one: '{count} item op {list} gezet',
-        other: '{count} items op {list} gezet',
-      },
-      groceriesNothing: 'Alles staat al op {list}',
-      groceriesNoList: 'Kies eerst een boodschappenlijst in Boodschappen',
       remove: 'Uit weekmenu halen',
     },
     pick: {
