@@ -301,6 +301,167 @@ describe('a repeating parent', () => {
   })
 })
 
+describe("a repeating parent's dated subtasks (APP-451)", () => {
+  /** A repeating parent due `due`, with one subtask per date (null: none). */
+  async function parentWith(
+    due: string,
+    repeat: Record<string, unknown>,
+    dates: (string | null)[],
+  ) {
+    const s = await seed()
+    const parent = await s.add('Dakgoot', { dueDate: due, repeat, today: TODAY })
+    const steps: Id<'tasks'>[] = []
+    for (const [i, date] of dates.entries()) {
+      steps.push(
+        await s.add(`Stap ${i}`, {
+          parentTaskId: parent,
+          ...(date ? { dueDate: date } : {}),
+        }),
+      )
+    }
+    const complete = async () => {
+      const done = await s.as.mutation(api.tasks.toggleDone, {
+        taskId: parent,
+        groupSlug: JANSEN,
+        today: TODAY,
+      })
+      if (!done) throw new Error('expected a completion')
+      return done
+    }
+    const undo = (completionId: Id<'taskCompletions'>) =>
+      s.as.mutation(api.tasks.undoCompletion, {
+        completionId,
+        groupSlug: JANSEN,
+      })
+    const datesOf = async () =>
+      Promise.all(steps.map(async (id) => (await row(s.t, id))?.dueDate))
+    return { ...s, parent, steps, complete, undo, datesOf }
+  }
+
+  const weekly = { mode: 'fixed', unit: 'week', every: 1, weekdays: [6] }
+
+  test('move as many days as the parent, and undo moves them back', async () => {
+    const p = await parentWith('2026-11-21', weekly, [
+      '2026-11-20',
+      null,
+      '2026-11-21',
+    ])
+    const done = await p.complete()
+    expect(done.dueDate).toBe('2026-11-28')
+    expect(await p.datesOf()).toEqual(['2026-11-27', undefined, '2026-11-28'])
+
+    await p.undo(done.completionId)
+    expect((await row(p.t, p.parent))?.dueDate).toBe('2026-11-21')
+    expect(await p.datesOf()).toEqual(['2026-11-20', undefined, '2026-11-21'])
+  })
+
+  test('a step that was already overdue moves too, from its own date', async () => {
+    const p = await parentWith('2026-11-21', weekly, ['2026-11-10'])
+    const done = await p.complete()
+    expect(await p.datesOf()).toEqual(['2026-11-17'])
+    await p.undo(done.completionId)
+    expect(await p.datesOf()).toEqual(['2026-11-10'])
+  })
+
+  test('across a month end: the 31st to the end of February and back', async () => {
+    const p = await parentWith(
+      '2027-01-31',
+      { mode: 'fixed', unit: 'month', every: 1, monthDay: 31 },
+      ['2027-01-30', '2027-01-31'],
+    )
+    const done = await p.complete()
+    // The parent clamps to 28 February: 28 days on, so the steps move 28.
+    expect(done.dueDate).toBe('2027-02-28')
+    expect(await p.datesOf()).toEqual(['2027-02-27', '2027-02-28'])
+    await p.undo(done.completionId)
+    expect(await p.datesOf()).toEqual(['2027-01-30', '2027-01-31'])
+  })
+
+  test('over a month boundary into a longer month', async () => {
+    const p = await parentWith(
+      '2026-11-30',
+      { mode: 'fixed', unit: 'month', every: 1, monthDay: 31 },
+      ['2026-11-29'],
+    )
+    const done = await p.complete()
+    expect(done.dueDate).toBe('2026-12-31')
+    expect(await p.datesOf()).toEqual(['2026-12-30'])
+    await p.undo(done.completionId)
+    expect(await p.datesOf()).toEqual(['2026-11-29'])
+  })
+
+  test('across the switch to summer time, by calendar days, with its reminder', async () => {
+    // Summer time starts in Amsterdam on Sunday 28 March 2027.
+    const p = await parentWith('2027-03-27', weekly, ['2027-03-26'])
+    const [step] = p.steps
+    if (!step) throw new Error('expected a step')
+    await p.as.mutation(api.tasks.setReminder, {
+      taskId: step,
+      groupSlug: JANSEN,
+      reminder: {
+        date: '2027-03-25',
+        time: '09:00',
+        timeZone: 'Europe/Amsterdam',
+      },
+    })
+    const queuedAt = () =>
+      p.t.run(async (ctx) =>
+        (await ctx.db.query('scheduledNotifications').collect()).map(
+          (n) => n.at,
+        ),
+      )
+    // 09:00 in winter time is 08:00 UTC.
+    expect(await queuedAt()).toEqual([Date.parse('2027-03-25T08:00:00Z')])
+
+    const done = await p.complete()
+    expect(done.dueDate).toBe('2027-04-03')
+    expect(await row(p.t, step)).toMatchObject({
+      dueDate: '2027-04-02',
+      reminder: { date: '2027-04-01', time: '09:00' },
+    })
+    // Still 09:00 on the wall clock, now summer time: 07:00 UTC.
+    expect(await queuedAt()).toEqual([Date.parse('2027-04-01T07:00:00Z')])
+
+    await p.undo(done.completionId)
+    expect(await row(p.t, step)).toMatchObject({
+      dueDate: '2027-03-26',
+      reminder: { date: '2027-03-25', time: '09:00' },
+    })
+    expect(await queuedAt()).toEqual([Date.parse('2027-03-25T08:00:00Z')])
+  })
+
+  test('undo leaves alone a dated step added after the completion', async () => {
+    const p = await parentWith('2026-11-21', weekly, ['2026-11-20'])
+    const done = await p.complete()
+    const late = await p.add('Ladder terugbrengen', {
+      parentTaskId: p.parent,
+      dueDate: '2026-11-27',
+    })
+    await p.undo(done.completionId)
+    expect(await p.datesOf()).toEqual(['2026-11-20'])
+    expect((await row(p.t, late))?.dueDate).toBe('2026-11-27')
+  })
+
+  test('the first completion of an undated after-done parent moves no step', async () => {
+    const s = await seed()
+    const parent = await s.add('Filter vervangen', {
+      repeat: { mode: 'afterDone', unit: 'week', every: 2 },
+      today: TODAY,
+    })
+    const step = await s.add('Filter kopen', {
+      parentTaskId: parent,
+      dueDate: '2026-11-20',
+    })
+    const done = await s.as.mutation(api.tasks.toggleDone, {
+      taskId: parent,
+      groupSlug: JANSEN,
+      today: TODAY,
+    })
+    expect(done?.dueDate).toBe('2026-12-03')
+    expect((await row(s.t, step))?.dueDate).toBe('2026-11-20')
+  })
+})
+
 describe('deleting', () => {
   test('a parent deletes its subtasks', async () => {
     const { t, as, attic, subtasks, listId } = await seed()

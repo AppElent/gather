@@ -11,6 +11,7 @@ import {
   addDays,
   amsterdamIsoDate,
   compareIsoDates,
+  daysBetween,
   isIsoDate,
 } from '@gather/core/civil-date'
 import {
@@ -22,7 +23,7 @@ import {
 import { ConvexError } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
-import { reopenSubtasks } from './subtasks'
+import { reopenSubtasks, shiftSubtaskDates } from './subtasks'
 import { shiftedReminder, syncSend } from './taskReminders'
 
 /**
@@ -83,7 +84,9 @@ export interface Completion {
  * the occurrence just done.
  *
  * Its checked subtasks open again for the next occurrence (APP-304); the
- * completion keeps which, so undoing it checks them again.
+ * completion keeps which, so undoing it checks them again. Its dated subtasks
+ * move as many days as it did (APP-451); undo moves them back the same days,
+ * from the completion's two dates.
  */
 export async function completeOccurrence(
   ctx: MutationCtx,
@@ -108,6 +111,7 @@ export async function completeOccurrence(
   await ctx.db.patch(task._id, { dueDate, done: false })
   await moveReminder(ctx, task, groupId, dueDate)
   const reopened = await reopenSubtasks(ctx, task._id, groupId)
+  await shiftSubtaskDates(ctx, task._id, groupId, movedDays(task.dueDate, dueDate))
   const completionId = await ctx.db.insert('taskCompletions', {
     groupId,
     taskId: task._id,
@@ -119,6 +123,17 @@ export async function completeOccurrence(
     ...(reopened.length ? { reopenedSubtaskIds: reopened } : {}),
   })
   return { completionId, dueDate }
+}
+
+/**
+ * How many calendar days a due date moved: none when either end has no date
+ * (an after-done task completed for the first time), as with a reminder.
+ */
+export function movedDays(
+  from: string | undefined,
+  to: string | undefined,
+): number {
+  return from && to ? daysBetween(from, to) : 0
 }
 
 /**
