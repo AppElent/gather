@@ -8,7 +8,6 @@ import {
 import type { TastingKind } from '@gather/core/tastings'
 import type { Href } from 'expo-router'
 
-import { lastUsedFirst } from '../features/loyalty-cards/list/card-last-used'
 import { moduleHref } from '../modules/moduleDestination'
 import { isAccessibilityTextSize } from '../ui/text-scale'
 
@@ -124,12 +123,17 @@ export const QUICK_ACTIONS: readonly QuickAction[] = MODULES.flatMap(
  * What the sheet's Loyalty cards section draws (APP-206), from its three
  * sources, best first:
  *
- * - `live`: Convex's answer, with usage, so it can be ordered and say when
- *   each card was last used.
+ * - `live`: Convex's answer, with usage, so it can say when each card was
+ *   last used.
  * - `shown`: `useQuery`'s answer, which is `live` or the last-known copy
  *   while that answer is on its way.
  * - `saved`: this Group's offline copy (`offlineGroupCards`), for a sheet
  *   opened while Convex cannot answer at all. `undefined` is no copy.
+ *
+ * Every source is already in the list's order (Convex sorts it, the offline
+ * copy keeps that order), so the cards come out as they went in: re-sorting
+ * here would drop a Group's own arrangement, which the server keeps to itself
+ * (APP-440).
  *
  * Nothing yet is `loading`, which draws placeholders in the section only: the
  * Add section never waits for cards.
@@ -148,7 +152,7 @@ export function quickCardsSection<T extends SortableLoyaltyCard>(sources: {
   if (cards === undefined) return { kind: 'loading' }
   if (cards.length === 0) return { kind: 'empty' }
   const usageKnown = sources.live !== undefined
-  return { kind: 'cards', cards: lastUsedFirst(cards, usageKnown), usageKnown }
+  return { kind: 'cards', cards: [...cards], usageKnown }
 }
 
 /**

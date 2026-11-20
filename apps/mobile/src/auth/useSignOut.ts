@@ -20,6 +20,7 @@ import { useCallback } from 'react'
 
 import { api } from '../convex/api'
 import { clearLastKnown } from '../convex/lastKnown'
+import { forgetOpenCard } from '../features/loyalty-cards/card/open-card-store'
 import {
   confirmPushRelease,
   moveRegistrationToRelease,
@@ -32,6 +33,7 @@ export function useSignOut(): () => void {
 
   return useCallback(() => {
     clearRetainedGroup()
+    forgetOpenCard()
     // The saved query copy and the confirmed-account marker (APP-143), before
     // the session ends, so a relaunch offline shows nothing of this account.
     clearLastKnown()

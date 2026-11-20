@@ -26,6 +26,7 @@ import { UI_ICONS } from '../../theme/icons'
 import { SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { useInsetSeparator } from '../../ui/inset-list'
 import { AssigneeCoin, useTaskPeople } from './assignee'
+import { useCompleteTask } from './completeTask'
 import { Checkbox } from './components'
 import { GroceryPreview } from './GroceryFields'
 import { GroceryCompletions } from './GrocerySuggestions'
@@ -82,7 +83,6 @@ export function TaskRow({
 }) {
   const tokens = useTokens('home')
   const { t } = useI18n()
-  const actions = useTaskActions()
   const swipe = useRef<SwipeableMethods | null>(null)
   // Rows sit in an `InsetList`: the hairline starts at the text column.
   const separator = useInsetSeparator()
@@ -95,16 +95,9 @@ export function TaskRow({
     : (label ?? task.title)
   const coin = assignee ? <AssigneeCoin initial={assignee.initial} /> : null
 
-  const toggle = () => {
-    if (!task.done) haptics.itemCompleted()
-    actions.toggleTask(task).then(
-      () => onToggled?.(true),
-      () => {
-        haptics.actionFailed()
-        onToggled?.(false)
-      },
-    )
-  }
+  const completeTask = useCompleteTask()
+  // A parent with open subtasks asks first (APP-304).
+  const toggle = () => completeTask(task, onToggled)
 
   const title = (
     <Text
@@ -294,6 +287,8 @@ export function TaskComposer({
   grocery = false,
   sectionId,
   tasks,
+  parent,
+  onFailed,
 }: {
   listId: string
   placeholder: string
@@ -306,6 +301,10 @@ export function TaskComposer({
    * history and the bundled names (APP-311).
    */
   tasks?: readonly Task[]
+  /** Adds a subtask of this task instead (APP-304). */
+  parent?: Pick<Task, 'id' | 'listId'>
+  /** Hears a line that could not be added, which is put back in the field. */
+  onFailed?: () => void
 }) {
   const tokens = useTokens('home')
   const actions = useTaskActions()
@@ -318,9 +317,18 @@ export function TaskComposer({
     // Cleared first: the row appears the moment it is accepted, and a second
     // tap cannot submit the same line twice while the write is in flight.
     setDraft('')
-    actions.addTask(listId, title, grocery, sectionId).then(
+    const write = parent
+      ? actions.addSubtask(parent, title)
+      : actions.addTask(listId, title, grocery, sectionId)
+    write.then(
       () => haptics.itemSaved(),
-      () => haptics.actionFailed(),
+      () => {
+        haptics.actionFailed()
+        if (parent) {
+          setDraft((now) => now || title)
+          onFailed?.()
+        }
+      },
     )
   }
 
@@ -336,7 +344,7 @@ export function TaskComposer({
         />
       </View>
       <TextInput
-        testID="task-composer"
+        testID={parent ? 'subtask-composer' : 'task-composer'}
         value={draft}
         onChangeText={setDraft}
         onSubmitEditing={add}

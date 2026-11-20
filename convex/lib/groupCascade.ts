@@ -562,6 +562,11 @@ export async function destroyGroup(
  * any notice they had not opened.
  *
  * A **task reminder** for them goes, with its queued send (APP-305).
+ *
+ * A **calendar event** on one of the Group's calendars drops them from its
+ * assignees; the event stays, and its `revision` moves so an open editor
+ * still holding the old list gets a conflict rather than writing it back
+ * (APP-407).
  */
 export async function detachFromGroup(
   ctx: MutationCtx,
@@ -634,4 +639,23 @@ export async function detachFromGroup(
     })
   }
   await unassignFromGroup(ctx, userId, groupId)
+
+  // Events hang off a calendar, so the Group's calendars are the way in.
+  const calendars = await ctx.db
+    .query('calendars')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .collect()
+  for (const calendar of calendars) {
+    const events = await ctx.db
+      .query('calendarEvents')
+      .withIndex('by_calendar', (q) => q.eq('calendarId', calendar._id))
+      .collect()
+    for (const event of events) {
+      if (!event.assigneeIds?.includes(userId)) continue
+      await ctx.db.patch(event._id, {
+        assigneeIds: event.assigneeIds.filter((id) => id !== userId),
+        revision: (event.revision ?? 0) + 1,
+      })
+    }
+  }
 }

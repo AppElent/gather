@@ -302,6 +302,15 @@ export default defineSchema({
      * never read it and draw the task as before.
      */
     sectionId: v.optional(v.string()),
+    /**
+     * The task this one is a step of (APP-304): a task on the same list that
+     * has no parent itself, so subtasks are one level deep. Absent on every
+     * other task, and on every task from before subtasks. A subtask is a
+     * whole task (own check, assignee, due date) but never repeats on its own;
+     * it reopens when its parent's next occurrence comes. An installed app
+     * from before subtasks draws one as an ordinary row of the list.
+     */
+    parentTaskId: v.optional(v.id('tasks')),
   })
     .index('by_list', ['listId'])
     // The end of a list without reading all of it (APP-368).
@@ -312,7 +321,9 @@ export default defineSchema({
     .index('by_list_and_done_at', ['listId', 'doneAt'])
     // A person's tasks across lists: the leave-Group clean-up, the in-app
     // notice, and later the "Mine" smart list (APP-301).
-    .index('by_assignee', ['assigneeId']),
+    .index('by_assignee', ['assigneeId'])
+    // A task's subtasks without reading the rest of its list (APP-304).
+    .index('by_parent', ['parentTaskId']),
 
   /**
    * One completion of a repeating task (APP-303): who, when, and the due
@@ -329,6 +340,12 @@ export default defineSchema({
     completedOn: v.string(),
     previousDueDate: v.optional(v.string()),
     nextDueDate: v.string(),
+    /**
+     * The subtasks that were checked when this completion reopened them
+     * (APP-304), so undoing it checks those again. Absent when none were,
+     * and on every completion from before subtasks.
+     */
+    reopenedSubtaskIds: v.optional(v.array(v.id('tasks'))),
   })
     .index('by_task', ['taskId'])
     .index('by_group', ['groupId']),
@@ -956,6 +973,12 @@ export default defineSchema({
     backPhotoId: v.optional(v.id('_storage')),
     /** Set by `markUsed` when the card is shown; absent until then. */
     lastUsedAt: v.optional(v.number()),
+    /**
+     * The Group's own arrangement (APP-440): one order per Group, written
+     * only by `reorder`. Absent until someone reorders, and on a card added
+     * since, which `compareLoyaltyCards` puts on top.
+     */
+    order: v.optional(v.number()),
     /** Attribution only. Confers no ownership and no access (GLOSSARY.md). */
     createdByUserId: v.id('users'),
   }).index('by_group', ['groupId']),

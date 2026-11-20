@@ -13,7 +13,7 @@ import { describeRepeat } from '@gather/core/task-repeat'
 import { useRouter } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 
-import { type Messages, useI18n } from '../../i18n'
+import { fmt, type Messages, useI18n } from '../../i18n'
 import { SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { SectionLabel } from '../../ui/section-label'
 import { TASK_ICONS } from './icons'
@@ -92,7 +92,23 @@ function SmartMeta({
     when = day
   }
   const repeats = Boolean(task.repeat || task.repeatText)
-  const text = [when, listName].filter(Boolean).join(' · ')
+  // After the list: a parent's progress, or the parent a subtask is a step
+  // of, since its row is here without it (APP-304).
+  const progress = task.subtasks
+    ? fmt(t.tasks.subtasks.progress, { ...task.subtasks })
+    : null
+  const where = [listName, task.parentTitle ?? progress]
+    .filter(Boolean)
+    .join(' · ')
+  const spokenWhere = [
+    listName,
+    task.parentTitle
+      ? fmt(t.tasks.subtasks.stepOf, { title: task.parentTitle })
+      : progress,
+  ]
+    .filter(Boolean)
+    .join(', ')
+  const text = [when, spokenWhere].filter(Boolean).join(', ')
   const spokenRepeat = task.repeat
     ? describeRepeat(task.repeat, t.tasks.repeat.summary, locale)
     : task.repeatText
@@ -121,16 +137,14 @@ function SmartMeta({
           ]}
         >
           {when}
-          {listName ? (
+          {where ? (
             <Text style={[styles.list, { color: tokens.muted }]}>
-              {` · ${listName}`}
+              {` · ${where}`}
             </Text>
           ) : null}
         </Text>
-      ) : listName ? (
-        <Text style={[styles.metaText, { color: tokens.muted }]}>
-          {listName}
-        </Text>
+      ) : where ? (
+        <Text style={[styles.metaText, { color: tokens.muted }]}>{where}</Text>
       ) : null}
     </View>
   )
