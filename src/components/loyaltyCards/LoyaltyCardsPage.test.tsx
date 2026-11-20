@@ -159,6 +159,17 @@ describe('LoyaltyCardsPage', () => {
       expect(cardLinks()).toHaveLength(3)
     })
 
+    test('keeps keyboard focus on the card when it reaches an end', () => {
+      renderInGroup(<LoyaltyCardsPage />)
+      fireEvent.click(screen.getByRole('button', { name: 'Reorder' }))
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Move Albert Heijn (Sam) up' }),
+      )
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: 'Move Albert Heijn (Sam) down' }),
+      )
+    })
+
     test('says so when the order could not be saved', async () => {
       reorder.result = Promise.reject(new Error('offline'))
       renderInGroup(<LoyaltyCardsPage />)

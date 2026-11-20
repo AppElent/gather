@@ -46,7 +46,8 @@ describe('the quick-actions sheet’s Loyalty cards (APP-206)', () => {
   const jumbo = { _id: 'jumbo', storeName: 'Jumbo', lastUsedAt: 200 }
   const hema = { _id: 'hema', storeName: 'HEMA' }
 
-  test('shows the live cards last used first, with their usage', () => {
+  test('shows the live cards in the order Convex sorted, with their usage', () => {
+    // An arranged Group's order (APP-440): not last used first, and kept.
     const section = quickCardsSection({
       live: [hema, jumbo, ah],
       shown: [hema, jumbo, ah],
@@ -54,7 +55,7 @@ describe('the quick-actions sheet’s Loyalty cards (APP-206)', () => {
     })
     expect(section).toEqual({
       kind: 'cards',
-      cards: [ah, jumbo, hema],
+      cards: [hema, jumbo, ah],
       usageKnown: true,
     })
   })

@@ -3,7 +3,7 @@ import { movePin } from '@gather/core/pins'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Search, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { formatActivityTime } from '../../lib/groupActivity'
@@ -46,6 +46,9 @@ export function LoyaltyCardsPage() {
   const [filter, setFilter] = useState('')
   const [reordering, setReordering] = useState(false)
   const [failed, setFailed] = useState(false)
+  // The arrow to focus once a move lands a card at an end, where the one just
+  // pressed turns disabled and would drop focus to the page.
+  const [focusNext, setFocusNext] = useState<string | null>(null)
 
   const canReorder = (cards?.length ?? 0) >= 2
   const arranging = reordering && canReorder
@@ -54,12 +57,22 @@ export function LoyaltyCardsPage() {
 
   const move = (id: string, direction: 'up' | 'down') => {
     const ids = (cards ?? []).map((card) => card._id as string)
+    const next = movePin(ids, id, direction)
+    const at = next.indexOf(id)
+    if (direction === 'up' && at === 0) setFocusNext(`${id}:down`)
+    if (direction === 'down' && at === next.length - 1) setFocusNext(`${id}:up`)
     setFailed(false)
-    reorder({
-      groupSlug,
-      ids: movePin(ids, id, direction) as Id<'loyaltyCards'>[],
-    }).catch(() => setFailed(true))
+    reorder({ groupSlug, ids: next as Id<'loyaltyCards'>[] }).catch(() =>
+      setFailed(true),
+    )
   }
+  useEffect(() => {
+    if (!focusNext) return
+    document
+      .querySelector<HTMLButtonElement>(`[data-move="${focusNext}"]`)
+      ?.focus()
+    setFocusNext(null)
+  }, [focusNext])
 
   const needle = foldForSearch(filter)
   const shown = (cards ?? []).filter(
@@ -184,6 +197,7 @@ export function LoyaltyCardsPage() {
                   <button
                     type="button"
                     className={BUTTON}
+                    data-move={`${card._id}:up`}
                     disabled={index === 0}
                     aria-label={fmt(copy.moveUp, { store: storeLabel(card) })}
                     onClick={() => move(card._id, 'up')}
@@ -193,6 +207,7 @@ export function LoyaltyCardsPage() {
                   <button
                     type="button"
                     className={BUTTON}
+                    data-move={`${card._id}:down`}
                     disabled={index === cards.length - 1}
                     aria-label={fmt(copy.moveDown, { store: storeLabel(card) })}
                     onClick={() => move(card._id, 'down')}

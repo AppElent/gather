@@ -277,7 +277,8 @@ function SheetBody({
 }
 
 /**
- * The Group's Loyalty cards, last used first; one tap opens a card for the
+ * The Group's Loyalty cards in the list's order (Convex sorts them, and an
+ * arrangement the Group made holds, APP-440); one tap opens a card for the
  * till. Read the way the list screen reads them (`useQuery`, which answers
  * from the last-known copy until Convex does), and from this Group's offline
  * copy when neither has anything, so a sheet opened with no signal still
