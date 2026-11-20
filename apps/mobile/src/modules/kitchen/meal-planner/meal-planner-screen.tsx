@@ -56,7 +56,7 @@ import { WashHeader } from '../../../ui/wash-header'
 import { type ModulePath, moduleHref } from '../../moduleDestination'
 import { MealGroceriesSheet } from './meal-groceries-sheet'
 import { MealSheet } from './meal-sheet'
-import { EmptyThumb, MealThumb, MemberCoins } from './parts'
+import { EmptyThumb, GroceriesPill, MealThumb, MemberCoins } from './parts'
 import { PickSheet } from './pick-sheet'
 import { type PlanOutcome, PlanSheet } from './plan-sheet'
 import { DraftCard, ProposalBar, ProposalCard } from './proposal'
@@ -522,26 +522,11 @@ export function MealPlannerScreen() {
               </Text>
             </Pressable>
             <View style={styles.actions}>
-              <Pressable
-                accessibilityRole="button"
-                testID="meal-planner-groceries"
+              <GroceriesPill
+                label={words.groceries}
                 disabled={!data}
                 onPress={() => setSheet({ kind: 'groceries' })}
-                style={({ pressed }) => [
-                  styles.pill,
-                  styles.groceriesPill,
-                  { backgroundColor: tokens.surface },
-                  pressed && styles.pressed,
-                ]}
-              >
-                <UI_ICONS.Cart size={18} color={tokens.ink} strokeWidth={2} />
-                <Text
-                  maxFontSizeMultiplier={2}
-                  style={[styles.groceriesLabel, { color: tokens.ink }]}
-                >
-                  {words.groceries}
-                </Text>
-              </Pressable>
+              />
               <RoundButton
                 label={words.preferences}
                 testID="meal-planner-preferences"
@@ -1049,10 +1034,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE[4],
   },
   pillLabel: { ...TYPE.bodyStrong, flexShrink: 1 },
-  // Plan mijn week has its own row: beside Boodschappen its label only fits
-  // at a smaller size, even on a 6.3" phone.
-  groceriesPill: { flexGrow: 1, gap: 6 },
-  groceriesLabel: { ...TYPE.body },
   pressed: { opacity: 0.7 },
   day: { gap: SPACE[2] },
   dayHeading: {
