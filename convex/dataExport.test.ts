@@ -235,6 +235,15 @@ async function household(t: Harness): Promise<Household> {
       dueDate: '2026-11-28',
       repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [6] },
     })
+    // A step of the bins, one level deep (APP-304).
+    await ctx.db.insert('tasks', {
+      listId: chores,
+      title: 'Rinse the bins',
+      done: false,
+      createdBy: alice,
+      order: PAGE_SIZE + 11,
+      parentTaskId: bins,
+    })
     await ctx.db.insert('taskCompletions', {
       groupId: household,
       taskId: bins,
@@ -551,8 +560,12 @@ describe('what the file contains', () => {
     for (const [table, rows] of Object.entries(household)) {
       expect(rows.length, table).toBeGreaterThan(0)
     }
-    // The page of tasks, five more, and the repeating one (APP-303).
-    expect(household.tasks).toHaveLength(PAGE_SIZE + 6)
+    // The page of tasks, five more, the repeating one (APP-303) and its
+    // subtask (APP-304), which names its parent by the id the file gives it.
+    expect(household.tasks).toHaveLength(PAGE_SIZE + 7)
+    const bins = household.tasks.find((task) => task.title === 'Bins')
+    const rinse = household.tasks.find((task) => task.title === 'Rinse the bins')
+    expect(rinse?.parentTaskId).toBe(bins?.id)
     // Who completed it, by name.
     expect(household.taskCompletions).toEqual([
       expect.objectContaining({ completedBy: 'Bob', completedOn: '2026-11-19' }),

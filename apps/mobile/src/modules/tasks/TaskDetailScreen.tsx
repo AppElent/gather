@@ -17,16 +17,18 @@
 import { hasLinkAndPrice } from '@gather/core/task-lists'
 import { describeRepeat } from '@gather/core/task-repeat'
 import { Stack, useRouter } from 'expo-router'
-import { type ReactNode, useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import {
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native'
+// Gesture Handler's own ScrollView: reordering subtasks drags inside it, and
+// the drag has to name it to out-rank it (`ReorderMode.tsx`).
+import { LegacyScrollView as ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { api, type Id } from '../../convex/api'
@@ -43,6 +45,7 @@ import { Checkbox, Chip, priorityColor } from './components'
 import { GroceryFields } from './GroceryFields'
 import { TASK_ICONS } from './icons'
 import { reminderLabel } from './reminder'
+import { SubtaskSection } from './SubtaskSection'
 import { useTaskActions, useTaskState } from './store'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
@@ -57,8 +60,13 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const actions = useTaskActions()
   const taskSheets = useTaskSheets({
     tasks: state.tasks,
-    onDeleted: () => router.back(),
+    // Deleting one of its subtasks from here leaves the parent's screen open.
+    onDeleted: (gone) => {
+      if (gone.id === taskId) router.back()
+    },
   })
+  const scrollRef = useRef<ScrollView>(null)
+  const [dragging, setDragging] = useState(false)
 
   const task = state.tasks.find((each) => each.id === taskId)
   const list = state.lists.find((each) => each.id === task?.listId)
@@ -100,6 +108,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   // A linked list is read-only in Gather, so its repeat is its provider's to
   // set: shown in the provider's words, with the row switched off (APP-303).
   const canRepeat = Boolean(list?.writable && list.provider === 'local')
+  // A subtask repeats with its parent, never on its own (APP-304).
+  const subtask = Boolean(task.parentTaskId)
   const repeatValue = task.repeat
     ? describeRepeat(task.repeat, repeatWords.summary, locale)
     : (task.repeatText ?? repeatWords.summary.never)
@@ -110,6 +120,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         options={{ headerShown: true, title: list?.name ?? t.tasks.title }}
       />
       <ScrollView
+        ref={scrollRef}
+        scrollEnabled={!dragging}
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
@@ -221,7 +233,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             }
             label={repeatWords.title}
             value={repeatValue}
-            disabled={!canRepeat}
+            disabled={!canRepeat || subtask}
             onPress={() => open('repeat')}
           />
           <PropertyRow
@@ -295,6 +307,18 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 list.provider.charAt(0).toUpperCase() + list.provider.slice(1),
             })}
           </Text>
+        ) : null}
+
+        {list && !subtask && !list.grocery ? (
+          <SubtaskSection
+            task={task}
+            list={list}
+            tasks={state.tasks}
+            today={state.today}
+            scrollRef={scrollRef}
+            onDragging={setDragging}
+            onAction={taskSheets.onAction}
+          />
         ) : null}
 
         {list?.provider === 'local' ? <CompletionHistory taskId={task.id} /> : null}

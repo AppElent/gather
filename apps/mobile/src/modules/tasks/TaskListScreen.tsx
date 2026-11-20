@@ -16,6 +16,7 @@
 
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
 import { readTaskRefusal } from '@gather/core/refusals'
+import { reorderWithSubtasks, topLevelTasks } from '@gather/core/subtasks'
 import {
   groupBySection,
   hasLinkAndPrice,
@@ -115,7 +116,10 @@ export function TaskList({
   const [refreshing, setRefreshing] = useState(false)
   const [refreshed, setRefreshed] = useState(false)
 
-  const { active, completed } = taskSections(tasks)
+  // A subtask is drawn under its parent on the detail screen, not as a row
+  // here; the parent's row says how far along they are (APP-304).
+  const rows = topLevelTasks(tasks)
+  const { active, completed } = taskSections(rows)
   // A grocery item just checked stays in its aisle for a moment (APP-310);
   // until it moves it is still open, in the summary and for Clear checked.
   const lingering = useLingering(
@@ -131,9 +135,9 @@ export function TaskList({
   // A packing list keeps its checked items where they are: it is reset for
   // the next trip rather than worked through (APP-306).
   const inPlace = keepsCheckedInPlace(list.kind)
-  const listed = inPlace ? tasks : active
+  const listed = inPlace ? rows : active
   const finished = inPlace ? [] : completed
-  const doneCount = tasks.filter((task) => task.done).length
+  const doneCount = rows.filter((task) => task.done).length
   const wishlist = hasLinkAndPrice(list.kind)
   // A grocery row carries its amount at the end (APP-309), and the list is in
   // aisle sections with Checked and Recent (APP-310).
@@ -465,9 +469,14 @@ export function TaskList({
               scrollRef={scrollRef}
               onDragging={setDragging}
               onCommit={(ids, sectionIds) =>
+              {
+                // The server wants every task once, subtasks included: each
+                // parent's go right behind it (APP-304).
+                const all = reorderWithSubtasks(ids, sectionIds, tasks, inPlace)
                 actions
-                  .reorderTasks(list.id, ids, sectionIds)
+                  .reorderTasks(list.id, all.ids, all.sectionIds)
                   .catch(() => haptics.actionFailed())
+              }
               }
             />
           ) : (
@@ -505,8 +514,8 @@ export function TaskList({
                 </View>
               )}
 
-              {inPlace && tasks.length > 0 ? (
-                <PackingProgress done={doneCount} total={tasks.length} />
+              {inPlace && rows.length > 0 ? (
+                <PackingProgress done={doneCount} total={rows.length} />
               ) : null}
 
               {grocery && !inPlace ? (
@@ -688,7 +697,8 @@ function TaskMeta({
     (display.due && task.dueDate) ||
     (display.priority && task.priority) ||
     (display.labels && task.labels.length > 0) ||
-    repeat
+    repeat ||
+    task.subtasks
   if (!shown) return null
 
   const overdue = Boolean(task.dueDate && isOverdue(task.dueDate, today))
@@ -733,6 +743,20 @@ function TaskMeta({
             importantForAccessibility="no"
           />
           <Text style={[styles.meta, { color: tokens.muted }]}>{repeat}</Text>
+        </View>
+      ) : null}
+      {task.subtasks ? (
+        <View testID={`subtasks-${task.id}`} style={styles.metaItem}>
+          <TASK_ICONS.CircleCheck
+            size={12}
+            color={tokens.muted}
+            strokeWidth={2.2}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+          <Text style={[styles.meta, { color: tokens.muted }]}>
+            {fmt(t.tasks.subtasks.progress, { ...task.subtasks })}
+          </Text>
         </View>
       ) : null}
       {display.priority && task.priority ? (

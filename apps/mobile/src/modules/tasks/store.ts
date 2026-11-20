@@ -20,6 +20,7 @@ import {
   SMART_LISTS,
   type SmartListId,
 } from '@gather/core/smart-lists'
+import { subtaskProgress } from '@gather/core/subtasks'
 import {
   asTaskListKind,
   type TaskListColor,
@@ -92,6 +93,8 @@ export function externalEntry(
       labels: task.labels ?? [],
       repeatText: task.repeatText,
       order,
+      // Todoist's and Notion's subtasks (APP-304), read only.
+      ...(task.parentExternalId ? { parentTaskId: task.parentExternalId } : {}),
     })),
   }
 }
@@ -181,7 +184,21 @@ export function taskFromRow(row: Doc<'tasks'>): Task {
     reminder: row.reminder,
     sectionId: row.sectionId,
     order: row.order,
+    parentTaskId: row.parentTaskId,
   }
+}
+
+/**
+ * Every task with its subtasks' progress (APP-304), worked out from the rows
+ * themselves: a list holds a parent's subtasks with it.
+ */
+export function withProgress(tasks: readonly Task[]): Task[] {
+  const progress = subtaskProgress(tasks)
+  if (progress.size === 0) return [...tasks]
+  return tasks.map((task) => {
+    const own = progress.get(task.id)
+    return own ? { ...task, subtasks: own } : task
+  })
 }
 
 /** A list row as the screens draw it, with where its tasks stand. */
@@ -230,7 +247,7 @@ export function mergeTasks(
     }
     return listView(list, sync)
   })
-  return { lists: views, tasks }
+  return { lists: views, tasks: withProgress(tasks) }
 }
 
 /**
@@ -260,23 +277,42 @@ export function taskSections<T extends { done: boolean }>(tasks: readonly T[]) {
  */
 export function toggleInPlace(
   store: OptimisticLocalStore,
-  { taskId, today }: { taskId: Id<'tasks'>; today?: string },
+  {
+    taskId,
+    today,
+    withSubtasks,
+  }: { taskId: Id<'tasks'>; today?: string; withSubtasks?: boolean },
 ) {
   for (const { args, value } of store.getAllQueries(api.tasks.listByList)) {
-    if (!value?.some((task) => task._id === taskId)) continue
+    const target = value?.find((task) => task._id === taskId)
+    if (!value || !target) continue
+    // "Complete all" (APP-304) checks the open subtasks with it; a repeating
+    // parent's next occurrence opens them all again.
+    const repeats = Boolean(target.repeat && !target.done && today)
+    const closing = !target.done && !repeats
     store.setQuery(
       api.tasks.listByList,
       args,
-      value.map((task) => (task._id === taskId ? toggled(task, today) : task)),
+      value.map((task) => {
+        if (task._id === taskId) return toggled(task, today)
+        if (task.parentTaskId !== taskId) return task
+        if (repeats && task.done) return { ...task, done: false, doneAt: undefined }
+        if (closing && withSubtasks && !task.done) return toggled(task, today)
+        return task
+      }),
     )
   }
   // A smart list holds open tasks only: a checked one leaves it at once, and
   // a repeating one stays with its next date (APP-301).
   for (const { args, value } of store.getAllQueries(api.tasks.smartLists)) {
-    if (!value?.tasks.some((task) => task._id === taskId)) continue
+    const target = value?.tasks.find((task) => task._id === taskId)
+    if (!value || !target) continue
+    // "Complete all" takes the parent's open subtasks off with it (APP-304).
+    const closing = withSubtasks && !target.done && !target.repeat
     store.setQuery(api.tasks.smartLists, args, {
       ...value,
       tasks: value.tasks.flatMap((task) => {
+        if (closing && task.parentTaskId === taskId) return []
         if (task._id !== taskId) return [task]
         const next = toggled(task, today)
         return next.done ? [] : [next]
@@ -417,7 +453,10 @@ export function useTasksOf(lists: readonly ListRow[]) {
   return useListsOf(lists)
 }
 
-type SmartAnswer = FunctionReturnType<typeof api.tasks.smartLists>
+type SmartAnswerRow = FunctionReturnType<typeof api.tasks.smartLists>
+/** The answer; `subtasks` and `parents` are absent from a server before APP-304. */
+type SmartAnswer = Omit<SmartAnswerRow, 'subtasks' | 'parents'> &
+  Partial<Pick<SmartAnswerRow, 'subtasks' | 'parents'>>
 
 /** The four smart lists (APP-301), and what their rows need to be drawn. */
 export interface SmartLists {
@@ -454,12 +493,39 @@ export function smartModel(
     ),
   )
   const byId = new Map(views.map((view) => [view.id, view]))
-  const tasks = [
-    ...(answer?.tasks ?? []).map(taskFromRow),
-    ...views
+  // A smart list draws a subtask as a row of its own, naming its parent, and
+  // a parent with how far along its subtasks are (APP-304). Convex sends both
+  // for local rows; a linked list's last rows hold their own subtasks.
+  const progress = new Map(
+    (answer?.subtasks ?? []).map(({ taskId, done, total }) => [
+      taskId as string,
+      { done, total },
+    ]),
+  )
+  const titles = new Map(
+    (answer?.parents ?? []).map(({ taskId, title }) => [taskId as string, title]),
+  )
+  const linkedRows = withProgress(
+    views
       .filter((view) => view.provider !== 'local')
       .flatMap((view) => linked.get(view.id)?.tasks ?? []),
-  ].filter((task) => byId.has(task.listId))
+  )
+  for (const task of linkedRows) titles.set(task.id, task.title)
+  const tasks = [
+    ...(answer?.tasks ?? []).map((row) => {
+      const task = taskFromRow(row)
+      const own = progress.get(task.id)
+      return own ? { ...task, subtasks: own } : task
+    }),
+    ...linkedRows,
+  ]
+    .filter((task) => byId.has(task.listId))
+    .map((task) => {
+      const parentTitle = task.parentTaskId
+        ? titles.get(task.parentTaskId)
+        : undefined
+      return parentTitle ? { ...task, parentTitle } : task
+    })
   const scope = { today, me: answer?.me ?? null }
   const byList = Object.fromEntries(
     SMART_LISTS.map((id) => [
@@ -530,6 +596,7 @@ export function useTaskActions() {
   const hideSuggestion = useMutation(api.taskLists.hideSuggestion)
   const unhideSuggestion = useMutation(api.taskLists.unhideSuggestion)
   const markSeen = useMutation(api.tasks.markAssignmentSeen)
+  const reorderSubtasks = useMutation(api.tasks.reorderSubtasks)
   const setReminder = useMutation(api.tasks.setReminder)
   const setSection = useMutation(api.tasks.setSection)
   const addSection = useMutation(api.taskSections.add)
@@ -565,11 +632,16 @@ export function useTaskActions() {
      * Ticks a task, or completes a repeating one's open occurrence. The
      * phone's own day goes along, so "after done" counts from it.
      */
-    toggleTask: async (task: Pick<Task, 'id' | 'title'>) => {
+    toggleTask: async (
+      task: Pick<Task, 'id' | 'title'>,
+      options: { withSubtasks?: boolean } = {},
+    ) => {
       const completion = await toggle({
         taskId: task.id as Id<'tasks'>,
         groupSlug,
         today: localIsoDate(),
+        // Only "Complete all" sends it (APP-304).
+        ...(options.withSubtasks ? { withSubtasks: true } : {}),
       })
       if (completion) {
         announceCompletion({ taskId: task.id, title: task.title, ...completion })
@@ -754,6 +826,21 @@ export function useTaskActions() {
       hideSuggestion({ listId: listId as Id<'taskLists'>, groupSlug, title }),
     unhideSuggestion: (listId: string, title: string) =>
       unhideSuggestion({ listId: listId as Id<'taskLists'>, groupSlug, title }),
+    /** A step of a task, on its list and in its section (APP-304). */
+    addSubtask: (parent: Pick<Task, 'id' | 'listId'>, title: string) =>
+      add({
+        listId: parent.listId as Id<'taskLists'>,
+        groupSlug,
+        title,
+        parentTaskId: parent.id as Id<'tasks'>,
+      }),
+    /** A task's subtasks in their new order; every one, once. */
+    reorderSubtasks: (parentId: string, ids: string[]) =>
+      reorderSubtasks({
+        taskId: parentId as Id<'tasks'>,
+        groupSlug,
+        ids: ids as Id<'tasks'>[],
+      }),
     /** The Member responsible, or nobody (APP-302). */
     setAssignee: (id: string, userId: string | null) =>
       patch(id, { assigneeId: userId as Id<'users'> | null }),

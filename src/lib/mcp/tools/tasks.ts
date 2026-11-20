@@ -103,6 +103,14 @@ const assignee = z
     'Who is responsible for the task: the name of a current Member of the Group, from members in list_task_lists. Giving a task to someone else notifies them.',
   )
 
+// A subtask's parent (APP-304): one level deep, on the same list.
+const parentTaskId = z
+  .string()
+  .min(1)
+  .describe(
+    'Makes this a subtask of that task: a task on the same list that is not a subtask itself (one level deep). A subtask has its own done, dueDate and assignee but cannot repeat; it reopens when its repeating parent moves on.',
+  )
+
 function membersOf(context: ToolContext, slug: string) {
   return context.backend.query(api.groups.members, { slug })
 }
@@ -158,7 +166,7 @@ export const taskTools = [
     name: 'list_tasks',
     title: 'List tasks',
     description:
-      'List the tasks on one of a Group\'s task lists, open tasks first in list order. Done tasks are left out unless includeDone is true. assignee is the name of the Member responsible, when there is one.',
+      'List the tasks on one of a Group\'s task lists, open tasks first in list order. Done tasks are left out unless includeDone is true. assignee is the name of the Member responsible, when there is one. parentTaskId marks a subtask: the _id of the task it is a step of.',
     access: 'read',
     input: {
       groupId,
@@ -193,6 +201,7 @@ export const taskTools = [
               category: t.category,
               repeat: t.repeat,
               assignee: t.assigneeId ? names.get(t.assigneeId) : undefined,
+              parentTaskId: t.parentTaskId,
             }),
           ),
       }
@@ -218,7 +227,7 @@ export const taskTools = [
     name: 'create_task',
     title: 'Create task',
     description:
-      'Add a task to the end of a task list. The list must be writable (see list_task_lists). On a grocery list, put the amount in quantity and unit and only the product in title: "2 pakken melk" is title "melk", quantity 2, unit "pak". The aisle is set from the name. A task with repeat on a fixed schedule and no dueDate starts on its first scheduled day. assignee names the Member responsible.',
+      'Add a task to the end of a task list. The list must be writable (see list_task_lists). On a grocery list, put the amount in quantity and unit and only the product in title: "2 pakken melk" is title "melk", quantity 2, unit "pak". The aisle is set from the name. A task with repeat on a fixed schedule and no dueDate starts on its first scheduled day. assignee names the Member responsible. parentTaskId adds it as a subtask of another task on the same list.',
     access: 'write',
     input: {
       groupId,
@@ -232,13 +241,20 @@ export const taskTools = [
       unit: unit.optional(),
       repeat: repeat.optional(),
       assignee: assignee.optional(),
+      parentTaskId: parentTaskId.optional(),
     },
-    async run({ groupId, listId, assignee, ...input }, context) {
+    async run(
+      { groupId, listId, assignee, parentTaskId, ...input },
+      context,
+    ) {
       const slug = await groupSlug(context, groupId)
       const id = await context.backend.mutation(api.tasks.add, {
         groupSlug: slug,
         listId: asId<'taskLists'>(listId),
         ...input,
+        ...(parentTaskId === undefined
+          ? {}
+          : { parentTaskId: asId<'tasks'>(parentTaskId) }),
         ...(assignee === undefined
           ? {}
           : { assigneeId: await assigneeIdOf(context, slug, assignee) }),
@@ -250,7 +266,7 @@ export const taskTools = [
     name: 'update_task',
     title: 'Update task',
     description:
-      'Change a task, or mark it done or open again. Only the fields you pass change; dueDate, priority, labels, notes, quantity, unit, repeat or assignee set to null are cleared. quantity, unit and category apply to grocery lists only and are ignored on other lists. On a repeating task, done true completes the open occurrence: dueDate moves to the next one and the task stays open. Pass occurrence, the dueDate you read, so a retry does not complete it twice.',
+      'Change a task, or mark it done or open again. Only the fields you pass change; dueDate, priority, labels, notes, quantity, unit, repeat or assignee set to null are cleared. quantity, unit and category apply to grocery lists only and are ignored on other lists. On a repeating task, done true completes the open occurrence: dueDate moves to the next one and the task stays open. Pass occurrence, the dueDate you read, so a retry does not complete it twice. done true leaves the open subtasks of the task open unless withSubtasks is true. parentTaskId makes it a subtask of another task on the same list; null makes it a task of its own again.',
     access: 'write',
     // Not idempotent: done true on a repeating task without occurrence
     // completes it again on every retry.
@@ -275,13 +291,29 @@ export const taskTools = [
           'With done true on a repeating task: its dueDate as you read it (null if it had none). When the task has moved on since, nothing is completed again.',
         ),
       assignee: assignee.nullable().optional(),
+      parentTaskId: parentTaskId.nullable().optional(),
+      withSubtasks: z
+        .boolean()
+        .optional()
+        .describe(
+          "With done true: mark the task's open subtasks done too. Left out, they stay open.",
+        ),
     },
-    async run({ groupId, taskId, assignee, ...changes }, context) {
+    async run(
+      { groupId, taskId, assignee, parentTaskId, ...changes },
+      context,
+    ) {
       const slug = await groupSlug(context, groupId)
       const completed = await context.backend.mutation(api.tasks.update, {
         groupSlug: slug,
         taskId: asId<'tasks'>(taskId),
         ...changes,
+        ...(parentTaskId === undefined
+          ? {}
+          : {
+              parentTaskId:
+                parentTaskId === null ? null : asId<'tasks'>(parentTaskId),
+            }),
         ...(assignee === undefined
           ? {}
           : {

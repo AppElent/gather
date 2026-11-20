@@ -128,6 +128,11 @@ export function readLoyaltyCardRefusal(
  *   have come from, such as one in the future (APP-403).
  * - `clear-superseded`: the list was cleared again, or already put back,
  *   since the clear being undone; nothing changed (APP-403).
+ * - `subtask-depth` (APP-304): a subtask cannot have subtasks, and a task
+ *   with subtasks cannot become one.
+ * - `subtask-list`: a subtask sits on its parent's list.
+ * - `subtask-repeat`: a subtask does not repeat on its own; it reopens with
+ *   its parent.
  */
 export const TASK_REFUSAL_CODES = [
   'assignee-not-member',
@@ -136,6 +141,9 @@ export const TASK_REFUSAL_CODES = [
   'not-grocery-list',
   'invalid-undo',
   'clear-superseded',
+  'subtask-depth',
+  'subtask-list',
+  'subtask-repeat',
 ] as const
 export type TaskRefusalCode = (typeof TASK_REFUSAL_CODES)[number]
 

@@ -178,3 +178,40 @@ describe('notionAdapter', () => {
     ).rejects.toThrow(/property mapping/)
   })
 })
+
+describe('Notion sub-items (APP-304)', () => {
+  const page = (extra: Record<string, unknown>) => ({
+    id: 'child',
+    properties: {
+      Name: { type: 'title', title: [{ plain_text: 'Sweep' }] },
+      Done: { type: 'checkbox', checkbox: false },
+      ...extra,
+    },
+  })
+
+  test('reads the parent from the sub-items relation Notion adds', () => {
+    const task = mapNotionPage(
+      page({
+        'Parent item': { type: 'relation', relation: [{ id: 'attic' }] },
+        'Sub-item': { type: 'relation', relation: [] },
+      }),
+      minimalMapping,
+    )
+    expect(task.parentExternalId).toBe('attic')
+  })
+
+  test('a top-level page, or another relation, has no parent', () => {
+    expect(
+      mapNotionPage(
+        page({ 'Parent item': { type: 'relation', relation: [] } }),
+        minimalMapping,
+      ).parentExternalId,
+    ).toBeUndefined()
+    expect(
+      mapNotionPage(
+        page({ Project: { type: 'relation', relation: [{ id: 'p' }] } }),
+        minimalMapping,
+      ).parentExternalId,
+    ).toBeUndefined()
+  })
+})

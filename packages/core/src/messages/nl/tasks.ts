@@ -98,6 +98,20 @@ export const tasks = {
     failed: 'Die lijst kon niet worden gemaakt. Probeer het opnieuw.',
   },
 
+  subtasks: {
+    title: 'Subtaken',
+    progress: '{done} van {total}',
+    add: 'Subtaak toevoegen',
+    footnote:
+      'Bij herhalen gaan de subtaken weer open. Vink je de taak af met open subtaken, dan vragen we of die ook af mogen.',
+    askTitle: 'Subtaken ook afvinken?',
+    askBody: 'Van “{title}” staan nog {count} subtaken open.',
+    askBodyOne: 'Van “{title}” staat nog één subtaak open.',
+    completeAll: 'Alles afvinken',
+    onlyThis: 'Alleen deze',
+    stepOf: 'Stap van {title}',
+    failed: 'Die subtaak kon niet worden toegevoegd. Probeer het opnieuw.',
+  },
   packing: {
     progress: '{done} van {total}',
     packed: 'ingepakt',
@@ -450,7 +464,7 @@ export const tasks = {
     nextNever: 'Komt niet terug',
     pickDay: 'Kies minstens één dag',
     footnote:
-      'Er staat steeds één keer open. Mis je hem, dan blijft hij als te laat staan; er komen geen kopieën bij.',
+      'Er staat steeds één keer open. Mis je hem, dan blijft hij als te laat staan; er komen geen kopieën bij. Subtaken gaan weer open.',
     footnoteNever: 'Een datum alleen geeft geen herinnering en geen herhaling.',
     linked:
       'Deze lijst staat in {provider}. Gather leest hem, maar kan er niet in schrijven: stel het herhalen in {provider} in.',

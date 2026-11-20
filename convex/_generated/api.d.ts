@@ -65,6 +65,7 @@ import type * as lib_sharing from "../lib/sharing.js";
 import type * as lib_slugs from "../lib/slugs.js";
 import type * as lib_stableDigest from "../lib/stableDigest.js";
 import type * as lib_storedFiles from "../lib/storedFiles.js";
+import type * as lib_subtasks from "../lib/subtasks.js";
 import type * as lib_svix from "../lib/svix.js";
 import type * as lib_taskAssignee from "../lib/taskAssignee.js";
 import type * as lib_taskFields from "../lib/taskFields.js";
@@ -164,6 +165,7 @@ declare const fullApi: ApiFromModules<{
   "lib/slugs": typeof lib_slugs;
   "lib/stableDigest": typeof lib_stableDigest;
   "lib/storedFiles": typeof lib_storedFiles;
+  "lib/subtasks": typeof lib_subtasks;
   "lib/svix": typeof lib_svix;
   "lib/taskAssignee": typeof lib_taskAssignee;
   "lib/taskFields": typeof lib_taskFields;
