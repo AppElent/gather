@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { versionResponse } from './version'
+import { convexDeployment, versionResponse } from './version'
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -10,6 +10,7 @@ it('reports the inlined version, commit and release with the environment from th
   vi.stubEnv('VITE_GIT_COMMIT', 'a1b2c3d4e5f6')
   vi.stubEnv('VITE_BUILT_AT', '2026-11-17T08:00:00.000Z')
   vi.stubEnv('VITE_SENTRY_RELEASE', 'gather@1.2.3+a1b2c3d')
+  vi.stubEnv('VITE_CONVEX_URL', 'https://limitless-bulldog-972.eu-west-1.convex.cloud')
 
   const response = versionResponse(new Request('https://gather-stg.appelent.nl/version'))
 
@@ -21,6 +22,7 @@ it('reports the inlined version, commit and release with the environment from th
     environment: 'staging',
     deployedAt: '2026-11-17T08:00:00.000Z',
     release: 'gather@1.2.3+a1b2c3d',
+    convex: 'limitless-bulldog-972',
   })
 })
 
@@ -43,4 +45,9 @@ it('answers HEAD without a body', async () => {
   )
   expect(response?.status).toBe(200)
   expect(await response?.text()).toBe('')
+})
+
+it('names the Convex deployment only from a valid URL', () => {
+  expect(convexDeployment(undefined)).toBeNull()
+  expect(convexDeployment('not a url')).toBeNull()
 })
