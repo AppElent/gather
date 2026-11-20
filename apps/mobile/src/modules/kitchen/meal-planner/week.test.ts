@@ -1,4 +1,4 @@
-import { resolveMealPreferences } from '@gather/core/meal-preferences-stand-in'
+import { resolveMealPreferences } from '@gather/core/meal-preferences'
 import { describe, expect, test } from 'vitest'
 
 import { en } from '../../../i18n/messages/en'
