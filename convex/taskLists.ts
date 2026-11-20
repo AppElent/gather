@@ -1,4 +1,5 @@
 import type { ExternalProviderId } from '@gather/core/domain'
+import { aisleOrder, isDefaultAisleOrder } from '@gather/core/groceries'
 import { taskRefusal } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
@@ -12,6 +13,7 @@ import {
   recogniseGroceryTitle,
   requireWritableGroceryList,
 } from './lib/groceryCategories'
+import { groceryAisleValidator } from './lib/groceryFields'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { deleteTaskList } from './lib/groupCascade'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
@@ -62,6 +64,9 @@ export const list = query({
         // APP-310: items checked before this left the Checked section of a
         // grocery list ("Clear checked") and are only in Recent now.
         checkedClearedAt: l.checkedClearedAt ?? null,
+        // APP-313: a grocery list's own aisle order, or null for the default
+        // walking order. Read through `aisleOrder` (`@gather/core/groceries`).
+        aisleOrder: l.aisleOrder ?? null,
         // APP-311: whether the list's "Maybe needed" strip is switched off.
         suggestionsOff: l.suggestionsOff ?? false,
         // Whether this list can be added to from Gather: only a local list
@@ -88,6 +93,12 @@ export const create = mutation({
     icon: v.optional(taskListIconValidator),
     color: v.optional(taskListColorValidator),
     starterTasks: v.optional(v.array(v.string())),
+    // APP-313: sent by phones whose Groceries Module opens the list by id, so a
+    // second store list does not re-point `groups.groceryListId`. Absent
+    // (installed phones, the web, MCP), a new groceries list is the Group's
+    // grocery list, which is where an installed phone goes next. Contract:
+    // drop with `groceryListId` (docs/migrations/README.md).
+    keepGroceryList: v.optional(v.boolean()),
     // APP-357: a template's items already in their sections, in the
     // creator's language. Sent instead of `starterTasks`, never with it.
     starterSections: v.optional(
@@ -184,11 +195,20 @@ export const create = mutation({
             ...(sectionId ? { sectionId } : {}),
           })
         }
-        // A list made as the groceries becomes the Group's grocery list, which
-        // is what the Groceries Module opens (ADR-0034). The list it replaces
-        // stays in Tasks, exactly as when someone picks another one there.
+        // A list made as the groceries becomes the Group's grocery list, the
+        // one an installed phone's Groceries Module opens (ADR-0034,
+        // `kitchen.groceries`); an installed phone opens it right after making
+        // it. A newer phone making a second store list (APP-313) keeps the
+        // named one, or every installed phone would move onto an empty list;
+        // it names this one only when the Group names no list of its own.
         if (args.kind === 'groceries') {
-          await ctx.db.patch(groupId, { groceryListId: listId })
+          const named = (await ctx.db.get(groupId))?.groceryListId
+          const current = named ? await ctx.db.get(named) : null
+          const keeps =
+            args.keepGroceryList === true &&
+            current !== null &&
+            current.groupId === groupId
+          if (!keeps) await ctx.db.patch(groupId, { groceryListId: listId })
         }
         return listId
       },
@@ -284,6 +304,42 @@ export const clearChecked = mutation({
   args: { listId: v.id('taskLists'), groupSlug: v.string() },
   returns: v.union(v.number(), v.null()),
   handler: async (ctx, args) => (await clearCheckedOn(ctx, args)).previous,
+})
+
+/**
+ * A grocery list's aisle order, the way its store is walked (APP-313), or
+ * `null` for the default walking order ("Restore default order"). The order
+ * may leave out aisles a phone did not know; they are stored after it, so the
+ * list always holds every aisle once.
+ */
+export const setAisleOrder = mutation({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    order: v.union(v.array(groceryAisleValidator), v.null()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { group, doc: list } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.listId,
+      'List not found',
+    )
+    if (list.provider !== 'local' || !isGroceryList(group, list)) {
+      throw new ConvexError('That is not a grocery list')
+    }
+    if (args.order && new Set(args.order).size !== args.order.length) {
+      throw new ConvexError('An aisle order names each aisle once')
+    }
+    await ctx.db.patch(args.listId, {
+      aisleOrder:
+        args.order === null || isDefaultAisleOrder(args.order)
+          ? undefined
+          : aisleOrder(args.order),
+    })
+    return null
+  },
 })
 
 async function clearCheckedOn(

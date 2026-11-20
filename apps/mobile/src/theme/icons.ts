@@ -20,6 +20,7 @@
  */
 
 import type { ModuleIconName } from '@gather/core/modules'
+import ArrowDownUp from 'lucide-react-native/icons/arrow-down-up'
 import ArrowUp from 'lucide-react-native/icons/arrow-up'
 import Baby from 'lucide-react-native/icons/baby'
 import Beer from 'lucide-react-native/icons/beer'
@@ -67,6 +68,7 @@ import Share from 'lucide-react-native/icons/share'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
 import Smartphone from 'lucide-react-native/icons/smartphone'
+import Store from 'lucide-react-native/icons/store'
 import Target from 'lucide-react-native/icons/target'
 import Trash2 from 'lucide-react-native/icons/trash-2'
 import TriangleAlert from 'lucide-react-native/icons/triangle-alert'
@@ -110,6 +112,10 @@ export const MODULE_ICONS = {
 export const UI_ICONS = {
   /** Committing a composer, where the control is a button and not a word. */
   ArrowUp: glyph(ArrowUp, 'arrow.up'),
+  /** A grocery list's aisle order (APP-313). */
+  ArrowDownUp: glyph(ArrowDownUp, 'arrow.up.arrow.down'),
+  /** The store a grocery list is for: the list's pill (APP-313). */
+  Store: glyph(Store, 'storefront'),
   /** The shared photo row's two answers: take one, or pick one. */
   Camera: glyph(Camera, 'camera'),
   ImagePlus: glyph(ImagePlus, 'photo.badge.plus'),

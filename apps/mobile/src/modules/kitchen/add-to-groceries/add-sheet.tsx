@@ -34,7 +34,6 @@ import {
 import { NativeContextMenu } from '../../../components/NativeContextMenu'
 import { NativeSheet } from '../../../components/NativeSheet'
 import { api, type Id } from '../../../convex/api'
-import { useQuery } from '../../../convex/queries'
 import { haptics } from '../../../feedback/haptics'
 import { useGroup } from '../../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../../i18n'
@@ -114,8 +113,8 @@ export function AddToGroceriesSheet({
   const { group } = useGroup()
   const add = useMutation(api.groceryLines.add)
 
-  // The grocery lists Gather can write to; the sheet opens on the one the
-  // last recipe went to, then the Group's own.
+  // The grocery lists Gather can write to; the sheet opens on the one last
+  // used on this phone (APP-313), then the first.
   const allLists = useTaskLists()
   const lists = useMemo(
     () =>
@@ -124,13 +123,11 @@ export function AddToGroceriesSheet({
       ),
     [allLists],
   )
-  const kitchenData = useQuery(api.kitchen.groceries, { groupSlug: group.slug })
   const [chosenListId, setChosenListId] = useState<string>()
   const listId = [
     chosenListId,
     preferredListId,
     readPreference(lastGroceryListKey(group.slug)) ?? undefined,
-    kitchenData?.groceryListId ?? undefined,
   ]
     .concat(lists.map((list) => list._id))
     .find((id) => id && lists.some((list) => list._id === id))

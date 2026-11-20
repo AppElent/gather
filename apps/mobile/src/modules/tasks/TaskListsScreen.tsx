@@ -330,8 +330,12 @@ export function TaskLists() {
           onClose={() => setCreating(false)}
           onCreated={(list) =>
             // A store build that hides Groceries opens the new list itself.
+            // Groceries opens the new grocery list, not the last used one.
             list.kind === 'groceries' && moduleShown('groceries')
-              ? router.push('/all/groceries')
+              ? router.push({
+                  pathname: '/all/groceries',
+                  params: { listId: list.id },
+                })
               : router.push({
                   pathname: '/all/tasks/[listId]',
                   params: { listId: list.id },

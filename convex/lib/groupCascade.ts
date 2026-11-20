@@ -76,10 +76,10 @@ export async function purgeTasksOfList(
 
 /**
  * Delete one list, its tasks, and every pointer at it: the Group's grocery
- * list and a child's to-do and questions cards. Both are set through
- * `requireInGroup`, so they live in the list's own Group. A card that lost its
- * list also loses `…Chosen`, so the list `babies.ensureAuxLists` gives it next
- * dies with the child.
+ * list (moved to its next grocery list, if any) and a child's to-do and
+ * questions cards. Both are set through `requireInGroup`, so they live in the
+ * list's own Group. A card that lost its list also loses `…Chosen`, so the
+ * list `babies.ensureAuxLists` gives it next dies with the child.
  */
 export async function deleteTaskList(
   ctx: MutationCtx,
@@ -92,7 +92,17 @@ export async function deleteTaskList(
 
   const group = await ctx.db.get(list.groupId)
   if (group?.groceryListId === listId) {
-    await ctx.db.patch(group._id, { groceryListId: undefined })
+    // A Group with several grocery lists (APP-313) points installed phones at
+    // the next one, so they open a list rather than the picker.
+    const next = (
+      await ctx.db
+        .query('taskLists')
+        .withIndex('by_group', (q) => q.eq('groupId', group._id))
+        .collect()
+    )
+      .filter((other) => other.kind === 'groceries' && other.provider === 'local')
+      .sort((a, b) => a.order - b.order)[0]
+    await ctx.db.patch(group._id, { groceryListId: next?._id })
   }
   const babies = await ctx.db
     .query('babies')

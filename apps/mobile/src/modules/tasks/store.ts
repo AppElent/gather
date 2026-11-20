@@ -196,6 +196,7 @@ function listView(list: ListRow, sync: ListSync): TaskList {
     sync,
     grocery: list.grocery ?? false,
     checkedClearedAt: list.checkedClearedAt ?? null,
+    aisleOrder: list.aisleOrder ?? null,
     suggestionsOff: list.suggestionsOff ?? false,
     sections: list.sections ?? [],
     ...listFace(list),
@@ -408,6 +409,14 @@ export function useTaskList(listId: string) {
   }
 }
 
+/**
+ * The tasks of the given lists only (APP-313: the Grocery lists sheet's
+ * counts). `lists` must be memoised by the caller, as `useQueries` needs.
+ */
+export function useTasksOf(lists: readonly ListRow[]) {
+  return useListsOf(lists)
+}
+
 type SmartAnswer = FunctionReturnType<typeof api.tasks.smartLists>
 
 /** The four smart lists (APP-301), and what their rows need to be drawn. */
@@ -515,6 +524,7 @@ export function useTaskActions() {
   const undoCompletion = useMutation(api.tasks.undoCompletion)
   const clearChecked = useMutation(api.taskLists.clearCheckedUndoable)
   const restoreCheckedCleared = useMutation(api.taskLists.restoreCheckedCleared)
+  const setAisleOrder = useMutation(api.taskLists.setAisleOrder)
   const putBack = useMutation(api.tasks.putBack)
   const setSuggestions = useMutation(api.taskLists.setSuggestions)
   const hideSuggestion = useMutation(api.taskLists.hideSuggestion)
@@ -650,7 +660,15 @@ export function useTaskActions() {
       /** The template's items in their sections, in the Group's words. */
       starterSections: { name: string; tasks: string[] }[]
       idempotencyKey: string
-    }) => createList({ groupSlug, provider: 'local', ...fields }),
+    }) =>
+      // This build opens a grocery list by id (APP-313), so a new one leaves
+      // the list installed phones open where it is.
+      createList({
+        groupSlug,
+        provider: 'local',
+        keepGroceryList: true,
+        ...fields,
+      }),
     setListAppearance: (
       id: string,
       face: { icon?: TaskListIcon; color?: TaskListColor },
@@ -694,6 +712,16 @@ export function useTaskActions() {
         groupSlug,
         checkedClearedAt: cleared.previous,
         clearedAt: cleared.clearedAt,
+      }),
+    /**
+     * A grocery list's aisle order, the way its store is walked (APP-313);
+     * null restores the default walking order.
+     */
+    setAisleOrder: (listId: string, order: readonly GroceryAisle[] | null) =>
+      setAisleOrder({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        order: order ? [...order] : null,
       }),
     /** A Recent item back onto a grocery list, with its amount and aisle. */
     putBack: (taskId: string, listId: string) =>

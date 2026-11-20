@@ -1,7 +1,7 @@
 /**
  * A grocery list's body (APP-310; `designs/groceries/README.md`, "1. List"):
- * the action row, the open items in aisle sections in the default walking
- * order, the composer, and the Checked row with Put back.
+ * the action row, the open items in aisle sections in the list's own aisle
+ * order (APP-313), the composer, and the Checked row with Put back.
  *
  * A checked item stays where it is for a moment, so a mistaken tap can be
  * tapped back, and then leaves its aisle for Checked. Checked holds what was
@@ -73,7 +73,7 @@ export function GroceryListBody({
         inCheckedSection(task, list.checkedClearedAt),
     ),
   )
-  const sections = aisleSections(open)
+  const sections = aisleSections(open, list.aisleOrder)
 
   const putBackAll = () => {
     const ids = checked.map((task) => task.id)

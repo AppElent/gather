@@ -49,6 +49,11 @@ export interface TaskList {
    */
   checkedClearedAt: number | null
   /**
+   * A grocery list's own aisle order (APP-313), read through `aisleOrder`.
+   * Null is the default walking order, and what an older server sends.
+   */
+  aisleOrder: readonly GroceryAisle[] | null
+  /**
    * Whether a Member switched its "Maybe needed" suggestions off (APP-311).
    * False from an older server.
    */
