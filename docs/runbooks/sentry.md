@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when changing web or phone error reporting, the privacy scrubber, source-map upload, or the Sentry variables.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Sentry (web and phone)
@@ -100,28 +100,30 @@ pnpm env:exec local -- pnpm sentry:convex --deployment <dev-deployment-name>
 value as `VITE_SENTRY_DSN`) and `CONVEX_DEPLOYMENT`, which the script uses when no
 `--deployment` is given. The environment tag is `development`.
 
-**Production** (`eric-jansen:gather`, deployment `limitless-bulldog-972`) with a
-logged-in Convex CLI (`pnpm exec convex login`):
+### Production
 
-```sh
-pnpm env:exec production --only github -- sh -c 'unset CONVEX_DEPLOY_KEY; SENTRY_CONVEX_DSN="$VITE_SENTRY_DSN" SENTRY_ENVIRONMENT=production pnpm sentry:convex --deployment eric-jansen:gather:prod'
-```
+Production failures are forwarded by the shared
+[incident inbox](https://github.com/AppElent/developer-home/blob/main/services/incident-inbox/README.md) in `AppElent/developer-home`, not by this repo's
+script (since 17 Nov 2026). One launchd agent on Eric's always-on Mac,
+`com.appelent.incident-inbox` (run from `~/Developer/.services/developer-home`),
+reads `eric-jansen:gather:prod` with the logged-in Convex CLI and sends failed executions to this
+app's Sentry project with the same `app=gather-convex` tag and
+`environment=production`. Its incident poll then files each new Sentry issue in
+Linear (team `APP`, labels `app:gather` and Source `convex`). Events are grouped
+by throwing function and message, so one helper failing under several queries
+is one Sentry issue; the `func` tag still names the query.
 
-- **Deploy-key permission gap:** the production `CONVEX_DEPLOY_KEY` may lack
-  `deployment:logs:view`, and the Convex CLI prefers a deploy key over the login
-  when both exist. The command unsets it so `convex logs` uses your login. Never
-  copy the deploy key onto the forwarder host.
-- `SENTRY_ENVIRONMENT=production` is needed because only `--prod` implies it;
-  `--deployment` alone tags `development`.
-- The DSN is not a secret, but the command still reads it at run time rather than
-  writing it to a file.
+- Log: `~/Library/Logs/incident-inbox.log`. A healthy start logs
+  `convex gather: reading eric-jansen:gather:prod`.
+- Restart: `launchctl kickstart -k "gui/$(id -u)/com.appelent.incident-inbox"`.
+- Deployment, tag and DSN (`SENTRY_DSN_GATHER`) are set in the inbox's `config.mjs` and
+  its env file; change them there, not here.
 
-**Always-on host (later):** like the other apps, the forwarder will run from a
-dedicated always-on clone under `~/Developer/.services` through the
-`convex-sentry-run` wrapper, as the launchd unit `com.appelent.convex-sentry.gather`
-logging to `~/Library/Logs/convex-sentry-gather.log`. That unit is installed after
-the forwarder lands on `main`; until then production failures reach Sentry only
-while someone runs the command above.
+Do not run `pnpm sentry:convex` against production while the inbox runs:
+Sentry would get each failure twice. The old per-app agent
+`com.appelent.convex-sentry.gather`, its clone `~/Developer/.services/gather`
+and the `convex-sentry-run` wrapper are retired
+([APP-98](https://linear.app/appelent/issue/APP-98), [APP-222](https://linear.app/appelent/issue/APP-222)).
 
 ## Local reporting is off
 
@@ -142,8 +144,8 @@ listener. A Metro-served bundle also attaches the source lines around each frame
   already swallowed the exception.
 - **Convex:** failed executions, including scheduled functions, while the
   forwarder runs ([Convex forwarder](#convex-forwarder)). Best effort: no durable
-  queue, and production is covered only once the launchd unit is installed (or
-  while someone runs it by hand). Console output and successful calls are never sent.
+  queue. Production is covered by the shared incident inbox
+  ([Production](#production)). Console output and successful calls are never sent.
 - **Phone:** active once `EXPO_PUBLIC_SENTRY_DSN` is set in an EAS environment
   and a build containing the SDK is installed. The SDK is **native**: it moves
   the `fingerprint` runtime version, so it ships only with the next native build
