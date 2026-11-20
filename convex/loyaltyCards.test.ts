@@ -728,24 +728,24 @@ describe('reorder (APP-440)', () => {
     expect(await names(t)).toEqual(['Action', 'Hema'])
   })
 
-  test('a card of another Group refuses the whole write', async () => {
+  test('a card of another Group is skipped like a missing one, and left alone', async () => {
     const { t } = await seed()
     const hema = await addCard(t, 'Hema')
+    const action = await addCard(t, 'Action')
     const theirs = await t.withIdentity(carol).mutation(api.loyaltyCards.create, {
       ...OTHER,
       storeName: 'Theirs',
       cardNumber: '12345678',
       barcodeFormat: 'CODE_128',
     })
-    await expect(
-      t
-        .withIdentity(alice)
-        .mutation(api.loyaltyCards.reorder, { ...HOME, ids: [theirs, hema] }),
-    ).rejects.toThrow(/loyalty:notFound/)
-    const orders = await t.run(async (ctx) =>
-      (await ctx.db.query('loyaltyCards').collect()).map((card) => card.order ?? null),
+    await t
+      .withIdentity(alice)
+      .mutation(api.loyaltyCards.reorder, { ...HOME, ids: [theirs, hema, action] })
+    expect(await names(t)).toEqual(['Hema', 'Action'])
+    const theirOrder = await t.run(
+      async (ctx) => (await ctx.db.get(theirs))?.order ?? null,
     )
-    expect(orders).toEqual([null, null])
+    expect(theirOrder).toBeNull()
   })
 
   test('someone outside the Group cannot reorder it', async () => {

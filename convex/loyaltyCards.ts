@@ -318,9 +318,10 @@ export const markUsed = mutation({
 /**
  * Put the Group's cards in a new order (APP-440): `ids` top to bottom.
  *
- * Any Member may, since the cards and their order are the Group's. A card of
- * another Group refuses the whole write with `loyalty:notFound`; a card deleted
- * while the person was dragging is skipped quietly. Cards the caller did not
+ * Any Member may, since the cards and their order are the Group's. An id this
+ * Group does not have is skipped quietly, whether it was deleted while the
+ * person was dragging or belongs to another Group: the two answer alike
+ * (ADR-0009), and another Group's card is never touched. Cards the caller did not
  * list (added on another phone meanwhile) keep their relative order after the
  * listed ones. Every card ends with `order` 0..n-1; only changed rows are
  * written.
@@ -334,11 +335,6 @@ export const reorder = mutation({
       .withIndex('by_group', (q) => q.eq('groupId', group._id))
       .collect()
     const byId = new Map(cards.map((card) => [card._id, card]))
-    for (const id of args.ids) {
-      if (byId.has(id)) continue
-      const elsewhere = await ctx.db.get(id)
-      if (elsewhere) throw new ConvexError(loyaltyCardRefusal('notFound'))
-    }
     const current = [...cards].sort(compareLoyaltyCards).map((card) => card._id)
     const arranged = arrangedLoyaltyCardIds(args.ids, current)
     await Promise.all(
