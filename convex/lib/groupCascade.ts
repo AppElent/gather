@@ -292,6 +292,16 @@ const GROUP_CONTENT: {
         .collect(),
     ),
 
+  mealPreferences: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'mealPreferences',
+      await ctx.db
+        .query('mealPreferences')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
   pantryEntries: async (ctx, groupId) =>
     purge(
       ctx,
@@ -531,7 +541,7 @@ export async function destroyGroup(
 }
 
 /**
- * Take a departing member out of the two places a Group stores them as more
+ * Take a departing member out of the places a Group stores them as more
  * than a byline.
  *
  * A **cost split** is refused on save unless it adds to a hundred and names
@@ -539,6 +549,8 @@ export async function destroyGroup(
  * party missing is not a split the household could ever have agreed to, and it
  * is not this function's business to invent a new one. It is cleared, and the
  * cost goes back to being undivided until somebody says how it should be.
+ *
+ * A **meal-preference default** for them is dropped: it was about a Member.
  *
  * A **saved split scenario** is the opposite: it is immutable on purpose and
  * already stores each party's name beside their id precisely so it keeps
@@ -609,5 +621,17 @@ export async function detachFromGroup(
     })
   }
 
+  // A meal-preference default speaks of a Member; somebody who left has none.
+  const preferences = await ctx.db
+    .query('mealPreferences')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .unique()
+  if (preferences?.memberDefaults?.some((entry) => entry.userId === userId)) {
+    await ctx.db.patch(preferences._id, {
+      memberDefaults: preferences.memberDefaults.filter(
+        (entry) => entry.userId !== userId,
+      ),
+    })
+  }
   await unassignFromGroup(ctx, userId, groupId)
 }

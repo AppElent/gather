@@ -413,6 +413,14 @@ async function household(t: Harness): Promise<Household> {
       groupId: household,
       homeCurrency: 'EUR',
     })
+    await ctx.db.insert('mealPreferences', {
+      groupId: household,
+      memberDefaults: [{ userId: bob, eatsByDefault: false }],
+      allergens: ['peanuts'],
+      weeklyBudgetCents: 8500,
+      updatedBy: alice,
+      updatedAt: 0,
+    })
     await ctx.db.insert('netWorthEntries', {
       groupId: household,
       createdByUserId: alice,
@@ -564,6 +572,19 @@ describe('what the file contains', () => {
     expect(household.groceryStaples.map((r) => r.name)).toEqual(['Rice'])
     expect(groupOf(data, 'allotment').notes.map((n) => n.title)).toEqual([
       'Seeds',
+    ])
+  })
+
+  test('meal preferences, with people by name', async () => {
+    const t = testConvex()
+    const { data } = await exported(t)
+    expect(groupOf(data, 'household').mealPreferences).toEqual([
+      expect.objectContaining({
+        memberDefaults: [{ userId: 'Bob', eatsByDefault: false }],
+        allergens: ['peanuts'],
+        weeklyBudgetCents: 8500,
+        updatedBy: 'Alice',
+      }),
     ])
   })
 

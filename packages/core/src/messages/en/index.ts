@@ -5,6 +5,7 @@ import { common } from './common'
 import { finances } from './finances'
 import { loyaltyCards } from './loyaltyCards'
 import { mcpViews } from './mcpViews'
+import { mealPreferences } from './mealPreferences'
 import { modules } from './modules'
 import { notes } from './notes'
 import { notifications } from './notifications'
@@ -36,6 +37,7 @@ export const en = {
   calendar,
   tastings,
   loyaltyCards,
+  mealPreferences,
   settings,
   auth,
   privacy,

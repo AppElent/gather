@@ -76,12 +76,8 @@ import {
 } from './week'
 import { WeekGroceriesSheet } from './week-groceries-sheet'
 
-/**
- * Meal preferences is APP-318's screen. Until its route is on main there is
- * nowhere to send the Eetvoorkeuren button and menu item, so both stay out;
- * APP-318 sets this to `/all/meal-planner/preferences`.
- */
-const PREFERENCES_PATH: ModulePath | null = null
+/** Eetvoorkeuren, from the bar menu and the button beside Boodschappen. */
+const PREFERENCES_PATH: ModulePath = '/all/meal-planner/preferences'
 
 /** The width iOS keeps for its back swipe at the left edge. */
 const EDGE_SWIPE = 24
@@ -251,7 +247,7 @@ export function MealPlannerScreen() {
     )
   }
   const openPreferences = () => {
-    if (PREFERENCES_PATH) router.push(moduleHref(PREFERENCES_PATH))
+    router.push(moduleHref(PREFERENCES_PATH))
   }
 
   return (
@@ -266,15 +262,11 @@ export function MealPlannerScreen() {
             <MenuView
               testID="meal-planner-menu"
               actions={[
-                ...(PREFERENCES_PATH
-                  ? [
-                      {
-                        id: 'preferences',
-                        title: words.preferences,
-                        image: 'slider.horizontal.3' as const,
-                      },
-                    ]
-                  : []),
+                {
+                  id: 'preferences',
+                  title: words.preferences,
+                  image: 'slider.horizontal.3' as const,
+                },
                 {
                   id: 'share',
                   title: words.share,
@@ -385,20 +377,18 @@ export function MealPlannerScreen() {
                   {words.groceries}
                 </Text>
               </Pressable>
-              {PREFERENCES_PATH ? (
-                <RoundButton
-                  label={words.preferences}
-                  testID="meal-planner-preferences"
-                  onPress={openPreferences}
-                  size={SIZE.hitMin}
-                >
-                  <UI_ICONS.Sliders
-                    size={18}
-                    color={tokens.ink}
-                    strokeWidth={2}
-                  />
-                </RoundButton>
-              ) : null}
+              <RoundButton
+                label={words.preferences}
+                testID="meal-planner-preferences"
+                onPress={openPreferences}
+                size={SIZE.hitMin}
+              >
+                <UI_ICONS.Sliders
+                  size={18}
+                  color={tokens.ink}
+                  strokeWidth={2}
+                />
+              </RoundButton>
             </View>
 
             {data

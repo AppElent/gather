@@ -733,6 +733,7 @@ const USER_REFERENCES: {
   mealEntries: { createdBy: 'repoint' },
   plannedDinners: { eaterIds: 'repoint' },
   pantryEntries: { createdBy: 'repoint' },
+  mealPreferences: { memberDefaults: 'repoint', updatedBy: 'repoint' },
   groceryStaples: { createdBy: 'repoint' },
   calendars: { createdBy: 'repoint' },
   calendarEvents: { createdBy: 'repoint', assigneeIds: 'repoint' },
@@ -824,6 +825,16 @@ const FOLD_DUPLICATES: {
     [K in UserColumn<T>]?: (value: Doc<T>[K]) => Doc<T>[K]
   }
 } = {
+  // Two defaults for one person: the first stands.
+  mealPreferences: {
+    memberDefaults: (defaults) =>
+      defaults &&
+      foldBy(
+        defaults,
+        (entry) => entry.userId,
+        (into) => into,
+      ),
+  },
   recurringCosts: {
     split: (shares) =>
       shares &&

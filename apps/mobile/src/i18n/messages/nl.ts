@@ -33,6 +33,9 @@ export const nl = {
 
   recipes: coreNl.recipes,
 
+  /** Meal preferences (APP-318): the screen and the planner's filter words. */
+  mealPreferences: coreNl.mealPreferences,
+
   nutrients: coreNl.nutrients,
 
   tastings: coreNl.tastings,
@@ -476,10 +479,6 @@ export const nl = {
         other:
           '{count} recepten verborgen door jullie voorkeuren ({reasons}). Tik Volgens voorkeuren om ze te zien.',
       },
-      reasonTime: 'te lang voor {weekday}',
-      reasonDislike: '{item}',
-      clashTime: 'Duurt {minutes} min, langer dan {weekday} toelaat',
-      clashDislike: 'Bevat {item}, staat bij liever niet',
       stars: '{rating} sterren',
       alreadyOn: 'Staat al op {day}',
       noMatches: 'Geen recept gevonden.',
