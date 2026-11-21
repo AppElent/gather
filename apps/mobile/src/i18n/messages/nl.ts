@@ -907,6 +907,7 @@ export const nl = {
       reorderAislesHint:
         'Sleep een item onder een andere afdeling om het daarheen te verplaatsen. Afvinken, bewerken en vegen staan uit tot je op Klaar tikt.',
       reorderChecked: 'Afgevinkte items zijn verborgen terwijl je ordent.',
+      reorderReset: 'Die verplaatsing is niet bewaard. Zo staat de lijst er nu bij.',
       readOnly:
         'Deze lijst staat in {provider}. Gather kan hem lezen, maar er niet in schrijven — dus hier is geen invoerregel.',
       refreshed: 'Zojuist gesynchroniseerd',

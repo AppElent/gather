@@ -19,8 +19,10 @@
  * past one moves into that section (`sectionArrange.ts`, APP-357). On a
  * grocery list the headings are its aisles, every one in the list's aisle
  * order, and an item dragged under another aisle moves there (APP-522).
- * There is no drag-and-drop dependency: a list that does not auto-scroll is
- * short, and the library is five hundred kilobytes and a native rebuild.
+ * There is no drag-and-drop dependency: the library is five hundred
+ * kilobytes and a native rebuild. A row held near the top or bottom edge
+ * scrolls the screen (`arrange/edgeScroll.ts`, APP-534), so an item reaches
+ * an aisle a screen away in one drop.
  *
  * The gesture is **`react-native-gesture-handler`, not `PanResponder`.**
  * `PanResponder`, which the Baby log's arranging bar uses, does not drag here
@@ -41,6 +43,7 @@ import {
   type LegacyScrollView as GestureScrollView,
 } from 'react-native-gesture-handler'
 import { dropIndexAcross, movedTo, shiftFor } from '../../arrange/arrange'
+import type { EdgeScroll } from '../../arrange/edgeScroll'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
@@ -60,7 +63,9 @@ import type { ListDisplay, Task } from './types'
 /** What a grip needs to talk to the list it belongs to. */
 interface DragHandlers {
   begin: (index: number) => void
-  move: (dy: number) => void
+  move: (dy: number, absoluteY?: number) => void
+  /** Puts the lifted row where the finger and any edge scrolling have taken it. */
+  place: () => void
   end: () => void
 }
 
@@ -70,9 +75,11 @@ export function ReorderMode({
   arrangement,
   hint,
   note,
+  problem,
   display,
   today,
   scrollRef,
+  edgeScroll,
   onDragging,
   onCommit,
 }: {
@@ -89,6 +96,11 @@ export function ReorderMode({
   /** The banner's words, and the line under the column, when not a task list's. */
   hint?: string
   note?: string
+  /**
+   * Why the column was just put back to the list's saved order: a drop the
+   * server refused, often because another Member changed the list (APP-534).
+   */
+  problem?: string | null
   display: ListDisplay
   today: string
   /**
@@ -96,6 +108,8 @@ export function ReorderMode({
    * without this the list scrolls and the row stays put.
    */
   scrollRef: React.RefObject<GestureScrollView | null>
+  /** Scrolls the screen while a row is held near its top or bottom edge. */
+  edgeScroll?: EdgeScroll
   /** Belt to the gesture's braces: the list stops scrolling mid-drag. */
   onDragging: (dragging: boolean) => void
   /**
@@ -128,9 +142,13 @@ export function ReorderMode({
   const [drag, setDrag] = useState<{ from: number; to: number } | null>(null)
   const lift = useRef(new Animated.Value(0)).current
   // Read inside the responder, which is created once and must not close over a
-  // stale render's values.
-  const live = useRef({ order, drag })
-  live.current = { order, drag }
+  // stale render's values. The drag works on the rows as drawn, so a task
+  // deleted elsewhere neither shifts the drop nor goes back to the server.
+  const live = useRef({ order: rows, drag })
+  live.current = { order: rows, drag }
+  // The finger's own travel and how far edge scrolling has moved the content
+  // since the drag began: the row follows their sum.
+  const travel = useRef({ finger: 0, scrolled: 0 })
   // Each row's laid-out height, by task id. A row that has not laid out yet
   // counts as the shortest a row can be.
   const heights = useRef(new Map<string, number>())
@@ -142,16 +160,28 @@ export function ReorderMode({
   const handlers = useRef<DragHandlers>({
     begin: () => {},
     move: () => {},
+    place: () => {},
     end: () => {},
   })
   handlers.current = {
     begin: (index) => {
       lift.setValue(0)
+      travel.current = { finger: 0, scrolled: 0 }
       setDrag({ from: index, to: index })
       onDragging(true)
+      edgeScroll?.begin((scrolled) => {
+        travel.current.scrolled = scrolled
+        handlers.current.place()
+      })
       haptics.selectionChanged()
     },
-    move: (dy) => {
+    move: (finger, absoluteY) => {
+      travel.current.finger = finger
+      handlers.current.place()
+      edgeScroll?.follow(absoluteY)
+    },
+    place: () => {
+      const dy = travel.current.finger + travel.current.scrolled
       lift.setValue(dy)
       const current = live.current.drag
       if (!current) return
@@ -169,6 +199,7 @@ export function ReorderMode({
       }
     },
     end: () => {
+      edgeScroll?.end()
       const current = live.current.drag
       // A tap on the grip that never moved is not a rearrangement, and must
       // not buzz as though something were saved.
@@ -209,6 +240,15 @@ export function ReorderMode({
           {hint ?? t.tasks.list.reorderHint}
         </Text>
       </View>
+      {problem ? (
+        <Text
+          testID="reorder-problem"
+          accessibilityRole="alert"
+          style={[styles.problem, { color: tokens.danger }]}
+        >
+          {problem}
+        </Text>
+      ) : null}
 
       {/* Not clipped: a card that hides its overflow cuts the lifted row in
           half the moment it passes the first or last row. */}
@@ -385,7 +425,9 @@ function Grip({
         .runOnJS(true)
         .blocksExternalGesture(scrollRef)
         .onBegin(() => handlers.current.begin(index))
-        .onUpdate((event) => handlers.current.move(event.translationY))
+        .onUpdate((event) =>
+          handlers.current.move(event.translationY, event.absoluteY),
+        )
         .onFinalize(() => handlers.current.end()),
     [index, handlers, scrollRef],
   )
@@ -419,6 +461,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.card,
   },
   hintText: { ...TYPE.footnote, flex: 1 },
+  problem: { ...TYPE.subhead, paddingHorizontal: 4 },
   /**
    * A section's heading in the draggable column, set as `SectionLabel` is:
    * the rows of every section still share one coordinate space, which is

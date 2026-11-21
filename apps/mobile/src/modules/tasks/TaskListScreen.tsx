@@ -36,6 +36,7 @@ import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { LegacyScrollView as ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useEdgeScroll } from '../../arrange/edgeScroll'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
@@ -112,11 +113,20 @@ export function TaskList({
   const [restyling, setRestyling] = useState(false)
   const [editingSections, setEditingSections] = useState(false)
   const [reordering, setReordering] = useState(false)
-  const taskSheets = useTaskSheets({
-    tasks,
-    onReorder: () => setReordering(true),
-  })
+  // A drop the server refused puts Reorder mode back to the list's saved
+  // order, which a remount reads, and says so (APP-534). Without it the mode
+  // keeps the order it opened with, so after another Member adds an item
+  // every later drop is refused too. The loyalty cards' reorder does the same
+  // (APP-440).
+  const [reorderKey, setReorderKey] = useState(0)
+  const [reorderProblem, setReorderProblem] = useState<string | null>(null)
+  const startReorder = () => {
+    setReorderProblem(null)
+    setReordering(true)
+  }
+  const taskSheets = useTaskSheets({ tasks, onReorder: startReorder })
   const scrollRef = useRef<ScrollView>(null)
+  const { edgeScroll, scrollProps } = useEdgeScroll(scrollRef)
   const [dragging, setDragging] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshed, setRefreshed] = useState(false)
@@ -192,7 +202,7 @@ export function TaskList({
       haptics.selectionChanged()
       return
     }
-    if (action === 'reorder') setReordering(true)
+    if (action === 'reorder') startReorder()
     if (action === 'rename') setRenamingList(true)
     if (action === 'appearance') setRestyling(true)
     if (action === 'sections') setEditingSections(true)
@@ -433,6 +443,7 @@ export function TaskList({
 
       <ScrollView
         ref={scrollRef}
+        {...scrollProps}
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
@@ -467,6 +478,7 @@ export function TaskList({
         <View style={styles.content}>
           {reordering ? (
             <ReorderMode
+              key={reorderKey}
               tasks={listed}
               // A grocery list is arranged in its aisles (APP-522): an item
               // dragged under another aisle's heading moves to that aisle.
@@ -483,12 +495,19 @@ export function TaskList({
               }
               hint={grocery ? t.tasks.list.reorderAislesHint : undefined}
               note={grocery ? t.tasks.list.reorderChecked : undefined}
+              problem={reorderProblem}
               display={list.display}
               today={today}
               scrollRef={scrollRef}
+              edgeScroll={edgeScroll}
               onDragging={setDragging}
               onCommit={(ids, sectionIds, moved) => {
-                const failed = () => haptics.actionFailed()
+                setReorderProblem(null)
+                const failed = () => {
+                  haptics.actionFailed()
+                  setReorderKey((key) => key + 1)
+                  setReorderProblem(t.tasks.list.reorderReset)
+                }
                 if (grocery) {
                   // The order within each aisle, then the dragged item's new
                   // aisle, saved as a Member's own choice: the Group keeps it

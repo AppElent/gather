@@ -1169,6 +1169,8 @@ export const en = {
       reorderAislesHint:
         'Drag an item under another aisle to move it there. Checking, editing and swiping are off until you tap Done.',
       reorderChecked: 'Checked items are hidden while you rearrange.',
+      /** Reorder mode put back to the saved order after a refused drop (APP-534). */
+      reorderReset: "That move didn't save. This is the list as it is now.",
       /** A list Gather may read and not write (ADR-0021). */
       readOnly:
         'This list lives in {provider}. Gather can read it, but not write to it — so there is no composer here.',
