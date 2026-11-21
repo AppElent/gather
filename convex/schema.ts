@@ -263,7 +263,8 @@ export default defineSchema({
     unit: v.optional(groceryUnitValidator),
     /**
      * When the task was last checked (APP-310); cleared when it is unchecked.
-     * Absent on open tasks and on tasks checked before it existed. A grocery
+     * Absent on open tasks; tasks checked before it existed got the moment
+     * they were added (`maintenance:backfillDoneAt`, APP-445). A grocery
      * list's Recent is its checked items, newest first, read through
      * `by_list_and_done_at`.
      */

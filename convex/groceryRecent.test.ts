@@ -150,8 +150,10 @@ describe('Recent', () => {
     await checked(s, s.market, 'Melk', 50)
     await checked(s, s.market, 'appels', 300)
     await checked(s, s.chores, 'stofzuigen', 400)
-    // Checked before doneAt existed: after every stamped item.
-    await checked(s, s.groceries, 'kaas', undefined)
+    // Checked long ago, stamped when it was added (APP-445).
+    await checked(s, s.groceries, 'kaas', 10)
+    // Checked with no stamp at all: never read.
+    await checked(s, s.groceries, 'oude kaas', undefined)
     // Open with a stale stamp (a write that forgot to clear it): not checked.
     await s.t.run(async (ctx) => {
       await ctx.db.insert('tasks', {
@@ -174,27 +176,6 @@ describe('Recent', () => {
       unit: 'pak',
       category: 'dairy',
     })
-  })
-
-  test('items checked before doneAt: newest added first, after stamped ones, open ones left out', async () => {
-    const s = await seed()
-    await checked(s, s.groceries, 'oud brood', undefined)
-    await checked(s, s.groceries, 'oude kaas', undefined)
-    // A stamped check of the same name wins over the old one.
-    await checked(s, s.groceries, 'oud brood', 10)
-    await s.as.mutation(api.tasks.add, {
-      groupSlug: SLUG,
-      listId: s.groceries,
-      title: 'appels',
-    })
-    const recent = await s.as.query(api.tasks.recentGroceries, {
-      groupSlug: SLUG,
-    })
-    expect(recent.map((row) => [row.title, row.doneAt === 10])).toEqual([
-      ['oud brood', true],
-      ['oude kaas', false],
-    ])
-    expect(recent[1]?.doneAt).toEqual(expect.any(Number))
   })
 
   test('holds at most the limit', async () => {
@@ -272,15 +253,15 @@ describe('backfillDoneAt (APP-445)', () => {
     ).toMatchObject({ missing: 0, more: false })
   })
 
-  test('Recent and the habits answer the same before and after', async () => {
+  test('afterwards Recent and the habits read them, after every later check', async () => {
     const s = await seed()
     // Checked before doneAt existed, so added before any stamp was written.
     await checked(s, s.groceries, 'oud brood', undefined)
     await checked(s, s.groceries, 'oude kaas', undefined)
     await checked(s, s.market, 'oude appels', undefined)
-    const after = Date.now() + 1000
-    await checked(s, s.groceries, 'oud brood', after)
-    await checked(s, s.market, 'melk', after + 1)
+    const later = Date.now() + 1000
+    await checked(s, s.groceries, 'oud brood', later)
+    await checked(s, s.market, 'melk', later + 1)
     await s.as.mutation(api.tasks.add, {
       groupSlug: SLUG,
       listId: s.groceries,
@@ -293,15 +274,27 @@ describe('backfillDoneAt (APP-445)', () => {
         listId: s.groceries,
       }),
     })
-    const before = await read()
-    expect(before.recent.map((row) => row.title)).toEqual([
+    // Without a stamp they are not read (APP-445 dropped that fallback).
+    expect((await read()).recent.map((row) => row.title)).toEqual([
+      'melk',
+      'oud brood',
+    ])
+    await s.t.mutation(internal.maintenance.backfillDoneAt, { apply: true })
+    const after = await read()
+    // Newest added first, after the later checks; a later check of the same
+    // name wins over the old one.
+    expect(after.recent.map((row) => [row.title, row.doneAt])).toEqual([
+      ['melk', later + 1],
+      ['oud brood', later],
+      ['oude appels', expect.any(Number)],
+      ['oude kaas', expect.any(Number)],
+    ])
+    expect(after.habits.habits.map((habit) => habit.title).sort()).toEqual([
       'melk',
       'oud brood',
       'oude appels',
       'oude kaas',
     ])
-    await s.t.mutation(internal.maintenance.backfillDoneAt, { apply: true })
-    expect(await read()).toEqual(before)
   })
 
   test('pages by cursor until more is false', async () => {
