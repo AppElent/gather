@@ -977,6 +977,7 @@ export const en = {
       'That password has turned up in a data breach. Please pick another.',
     codeIncorrect: 'That code is not right.',
     codeExpired: coreEn.auth.errors.codeExpired,
+    codeAttemptsExceeded: coreEn.auth.errors.codeAttemptsExceeded,
     emailCodeUnavailable: coreEn.auth.signIn.emailCode.unavailable,
     needsExtraStep: coreEn.auth.errors.needsExtraStep,
     noSecondFactor: coreEn.auth.errors.noSecondFactor,

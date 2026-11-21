@@ -22,8 +22,8 @@ export const auth = {
     generic: 'Something went wrong. Try again.',
     emailRequired: 'Enter your email address first.',
     codeIncorrect: "That code isn't right. Check it and try again.",
-    codeExpired:
-      'That code has expired or was tried too often. Send a new one.',
+    codeExpired: 'That code has expired. Send a new one.',
+    codeAttemptsExceeded: 'Too many wrong codes. Send a new one.',
     rateLimited: 'Too many attempts. Wait a minute and try again.',
     invalidVerification: 'Invalid or incomplete verification.',
     needsExtraStep:

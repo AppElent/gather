@@ -14,8 +14,8 @@ export const auth = {
     emailRequired: 'Vul eerst je e-mailadres in.',
     codeIncorrect:
       'Die code klopt niet. Controleer hem en probeer het opnieuw.',
-    codeExpired:
-      'Die code is verlopen of te vaak geprobeerd. Vraag een nieuwe aan.',
+    codeExpired: 'Die code is verlopen. Vraag een nieuwe aan.',
+    codeAttemptsExceeded: 'Te veel foute codes. Vraag een nieuwe aan.',
     rateLimited: 'Te veel pogingen. Wacht een minuut en probeer het opnieuw.',
     invalidVerification: 'Ongeldige of onvolledige verificatie.',
     needsExtraStep:
