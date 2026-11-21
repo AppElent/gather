@@ -176,6 +176,9 @@ export const tasks = {
     clearAmount: 'No amount',
     unit: 'Unit',
     aisle: 'Aisle',
+    /** An item's own screen says item, not task (APP-387). */
+    itemPlaceholder: 'What do you need?',
+    deleteItem: 'Delete item',
     /** Under the composer while a line is typed. */
     recognised: 'Amount and aisle filled in from what you type',
     /** Read out for the composer's aisle chip, which opens the aisle menu. */
