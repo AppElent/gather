@@ -38,6 +38,7 @@
     "./sentry-privacy": "./src/sentryPrivacy.ts",
     "./smart-lists": "./src/smartLists.ts",
     "./task-lists": "./src/taskLists.ts",
+    "./task-quick-add": "./src/taskQuickAdd.ts",
     "./task-reminders": "./src/taskReminders.ts",
     "./week-plan": "./src/weekPlan.ts",
     "./task-repeat": "./src/taskRepeat.ts",

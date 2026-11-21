@@ -1124,6 +1124,16 @@ export const en = {
       save: 'Add task',
       noList: 'This group has no list Gather can add a task to yet.',
       failed: 'That task could not be added. Try again.',
+      /** APP-307: under the field; dates and the rest are read as typed. */
+      hint: 'Dates, repeats, @Member and #label are recognised',
+      /** Adds the task and opens it, for what the line cannot say. */
+      moreDetails: 'More details',
+      /** A recognised part's ×, for VoiceOver: "Remove Tomorrow, Thu 19 Nov". */
+      remove: 'Remove {part}',
+      /** The list chip, for VoiceOver. */
+      listChip: 'List: {list}, change',
+      /** A typed time is the task's reminder; the task went in without it. */
+      reminderFailed: 'The task was added, but not its reminder.',
     },
     today: 'Today',
     todayEmpty: 'Nothing due today.',

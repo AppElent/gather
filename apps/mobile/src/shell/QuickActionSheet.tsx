@@ -10,8 +10,9 @@
  */
 import { useAuth } from '@clerk/expo'
 import { type Href, router } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { type ComponentRef, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -143,6 +144,23 @@ function SheetBody({
   const columns = quickGridColumns(fontScale)
   const tileWidth = quickTileWidth(gridWidth, columns, SPACE[3])
 
+  const expanded = openAction?.kind === 'row' ? openAction : undefined
+  const formOpen = expanded !== undefined
+
+  // The open form is the sheet's last thing; as it grows (a chip appears) or
+  // the keyboard rises, its end stays in view (APP-307).
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null)
+  const keepFormInView = () => {
+    if (formOpen) scrollRef.current?.scrollToEnd({ animated: true })
+  }
+  useEffect(() => {
+    if (!formOpen) return
+    const shown = Keyboard.addListener('keyboardDidShow', () =>
+      scrollRef.current?.scrollToEnd({ animated: true }),
+    )
+    return () => shown.remove()
+  }, [formOpen])
+
   /**
    * Leave the sheet for a screen: a card, the list, the scanner, a form. With
    * the All index beneath it, so a screen opened before All has loaded still
@@ -174,6 +192,12 @@ function SheetBody({
               setAdded((items) => [...items, `${title} — ${list}`])
               setOpenId(null)
             }}
+            onOpenTask={(taskId) =>
+              go({
+                pathname: '/all/tasks/task/[taskId]',
+                params: { taskId },
+              })
+            }
           />
         )
       default:
@@ -224,7 +248,6 @@ function SheetBody({
     )
   }
 
-  const expanded = openAction?.kind === 'row' ? openAction : undefined
 
   return (
     <NativeSheet
@@ -238,7 +261,12 @@ function SheetBody({
       background="ground"
     >
       <ScrollView
+        ref={scrollRef}
         keyboardShouldPersistTaps="handled"
+        // The task form's chips sit under its field (APP-307): the sheet
+        // keeps the form's end above the keyboard, not under it.
+        automaticallyAdjustKeyboardInsets
+        onContentSizeChange={keepFormInView}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
       >

@@ -5,15 +5,15 @@
  * checklist inside another Module — so a tick, a swipe and a hold mean the same
  * thing wherever the task appears.
  */
-import { type ReactNode, type RefObject, useRef, useState } from 'react'
+import { type ReactNode, type RefObject, useRef } from 'react'
 import {
+  Alert,
   type HostInstance,
   Keyboard,
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native'
 import type { LegacyScrollView as GestureScrollView } from 'react-native-gesture-handler'
@@ -34,6 +34,7 @@ import { Checkbox } from './components'
 import { GroceryPreview } from './GroceryFields'
 import { GroceryCompletions } from './GrocerySuggestions'
 import { TASK_ICONS } from './icons'
+import { QuickAddChips, QuickAddInput, useQuickAddLine } from './QuickAddParts'
 import { useTaskActions } from './store'
 import { taskMenuActions } from './taskMenu'
 import type { Task } from './types'
@@ -321,7 +322,19 @@ export function TaskComposer({
   const tokens = useTokens('home')
   const actions = useTaskActions()
   const separator = useInsetSeparator()
-  const [draft, setDraft] = useState('')
+  // Dates, repeats, @Member and #label are read off the line (APP-307),
+  // except on a grocery list, whose line is an amount, and for a subtask.
+  const recognise = !grocery && !parent
+  const {
+    line: draft,
+    parsed,
+    today,
+    setLine: setDraft,
+    restore,
+    dismiss,
+    reset,
+  } = useQuickAddLine(recognise)
+  const { t } = useI18n()
   const fieldRef = useRef<HostInstance>(null)
 
   // Brings the field back above the keyboard once the new row has pushed it
@@ -344,24 +357,36 @@ export function TaskComposer({
   }
 
   const add = () => {
-    const title = draft.trim()
+    const title = parsed.title
     if (!title) return
+    const line = draft
+    const read = parsed
     // Cleared first: the row appears the moment it is accepted, and a second
     // tap cannot submit the same line twice while the write is in flight.
-    setDraft('')
-    const write = parent
-      ? actions.addSubtask(parent, title)
-      : actions.addTask(listId, title, grocery, sectionId)
+    reset()
+    // Answers whether a typed time could not become the reminder.
+    const write: Promise<boolean> = parent
+      ? actions.addSubtask(parent, title).then(() => false)
+      : recognise
+        ? actions
+            .addParsedTask(listId, read, sectionId)
+            .then((saved) => saved.reminderFailed)
+        : actions.addTask(listId, title, grocery, sectionId).then(() => false)
     write.then(
-      () => {
+      (reminderFailed) => {
         haptics.itemSaved()
         keepInView()
+        // A haptic is never the only word, and the task did go in.
+        if (reminderFailed) Alert.alert(t.tasks.quickAdd.reminderFailed)
       },
       () => {
         haptics.actionFailed()
         if (parent) {
-          setDraft((now) => now || title)
+          restore(title)
           onFailed?.()
+        } else if (recognise) {
+          // The whole line, so what was recognised is recognised again.
+          restore(line)
         }
       },
     )
@@ -378,9 +403,10 @@ export function TaskComposer({
           importantForAccessibility="no"
         />
       </View>
-      <TextInput
+      <QuickAddInput
         testID={parent ? 'subtask-composer' : 'task-composer'}
-        value={draft}
+        line={draft}
+        parsed={parsed}
         onChangeText={setDraft}
         onSubmitEditing={add}
         // Stays focused after adding, so the next line can be typed at once
@@ -390,11 +416,30 @@ export function TaskComposer({
         placeholderTextColor={tokens.muted}
         returnKeyType="done"
         accessibilityLabel={placeholder}
-        style={[styles.composerInput, separator, { color: tokens.ink }]}
+        style={[
+          styles.composerInput,
+          parsed.parts.length === 0 && separator,
+          { color: tokens.ink },
+        ]}
       />
     </View>
   )
-  if (!grocery) return field
+  if (!grocery) {
+    // The chips sit under the line, where the hairline then goes. The field
+    // keeps its place in the tree as they come and go: a remounted input
+    // would drop its focus, and the keyboard, mid-word.
+    const chips = parsed.parts.length > 0
+    return (
+      <View>
+        {field}
+        {chips ? (
+          <View style={[styles.composerChips, separator]}>
+            <QuickAddChips parsed={parsed} today={today} onDismiss={dismiss} />
+          </View>
+        ) : null}
+      </View>
+    )
+  }
   // The completions sit above the field: the list scrolls the field to just
   // above the keyboard, so anything under it would be covered.
   return (
@@ -462,6 +507,14 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   actionText: { ...TYPE.footnoteStrong },
+  composerChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACE[2],
+    marginLeft: SPACE[4] + CHECK_RING + SPACE[3],
+    paddingRight: SPACE[4],
+    paddingBottom: SPACE[3],
+  },
   composerInput: {
     ...TYPE.body,
     flex: 1,
