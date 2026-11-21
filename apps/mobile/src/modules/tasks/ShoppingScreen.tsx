@@ -24,9 +24,10 @@ import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, useInsetSeparator } from '../../ui/inset-list'
 import { useKeepAwakeWhile } from '../../ui/use-keep-awake-while'
+import { moduleHref } from '../moduleDestination'
 import { useCompleteTask } from './completeTask'
 import { useGroceryAmountText } from './GroceryFields'
-import { aisleSections } from './groceryList'
+import { aisleSections, inCheckedSection } from './groceryList'
 import {
   SHOPPING_IDLE_MS,
   shoppingIds,
@@ -63,6 +64,8 @@ export function ShoppingScreen({ listId }: { listId: string }) {
 
   const leave = () => {
     if (router.canGoBack()) router.back()
+    // Opened straight from a link with nothing under it: the list itself.
+    else router.replace(moduleHref('/all/groceries'))
   }
   useKeepAwakeWhile(focused, AWAKE_TAG)
   const touch = useIdleTimeout(focused, SHOPPING_IDLE_MS, leave)
@@ -77,7 +80,10 @@ export function ShoppingScreen({ listId }: { listId: string }) {
     } else {
       setLast(task)
     }
-    completeTask(task)
+    // A check the server refused leaves the row open: no pill for it.
+    completeTask(task, (ok) => {
+      if (!ok) setLast((current) => (current?.id === task.id ? null : current))
+    })
   }
 
   const undo = () => {
@@ -93,7 +99,12 @@ export function ShoppingScreen({ listId }: { listId: string }) {
 
   const finish = () => {
     touch()
-    if (done === 0) {
+    // Anything in the list's Checked row counts, also what was checked
+    // before shopping began and is not shown here.
+    const clearable = tasks.some((task) =>
+      inCheckedSection(task, list?.checkedClearedAt ?? null),
+    )
+    if (!clearable) {
       leave()
       return
     }
@@ -171,6 +182,7 @@ export function ShoppingScreen({ listId }: { listId: string }) {
             </Text>
           </View>
           <View
+            accessible
             accessibilityRole="progressbar"
             accessibilityLabel={fmt(words.progressLabel, { done, total })}
             accessibilityValue={{ min: 0, max: total, now: done }}
@@ -221,7 +233,7 @@ export function ShoppingScreen({ listId }: { listId: string }) {
                 <ShoppingRow
                   key={task.id}
                   task={task}
-                  amount={amountText(task.quantity, task.unit) ?? ""}
+                  amount={amountText(task.quantity, task.unit) ?? ''}
                   disabled={!list?.writable}
                   onPress={() => toggle(task)}
                 />
