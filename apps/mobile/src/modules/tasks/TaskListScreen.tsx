@@ -538,6 +538,7 @@ export function TaskList({
                         placeholder={addPlaceholder ?? t.kitchen.addGroceryItem}
                         grocery
                         tasks={tasks}
+                        scrollRef={scrollRef}
                       />
                     ) : null
                   }
@@ -591,6 +592,7 @@ export function TaskList({
                           }
                           grocery={grocery}
                           sectionId={section.id ?? undefined}
+                          scrollRef={scrollRef}
                         />
                       ) : null}
                     </InsetList>

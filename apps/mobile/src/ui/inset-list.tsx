@@ -17,7 +17,13 @@
  * reads the same through `useInsetRowFirst()`.
  */
 import type { MenuAction } from '@expo/ui/community/menu'
-import { Children, createContext, type ReactNode, use } from 'react'
+import {
+  Children,
+  createContext,
+  isValidElement,
+  type ReactNode,
+  use,
+} from 'react'
 import {
   Platform,
   Pressable,
@@ -71,7 +77,13 @@ export function InsetList({
       style={[styles.section, { backgroundColor: tokens.surface }, style]}
     >
       {rows.map((row, index) => (
-        <FirstInSection key={index} value={index === 0}>
+        // Keyed by the row's own key, not its place: a row that comes or goes
+        // above another (an empty-list note above the composer) must not
+        // remount it, or the focused composer loses its keyboard (APP-521).
+        <FirstInSection
+          key={isValidElement(row) && row.key !== null ? row.key : index}
+          value={index === 0}
+        >
           {row}
         </FirstInSection>
       ))}

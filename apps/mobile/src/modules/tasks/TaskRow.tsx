@@ -5,8 +5,10 @@
  * checklist inside another Module — so a tick, a swipe and a hold mean the same
  * thing wherever the task appears.
  */
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, type RefObject, useRef, useState } from 'react'
 import {
+  type HostInstance,
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
@@ -14,6 +16,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import type { LegacyScrollView as GestureScrollView } from 'react-native-gesture-handler'
 import ReanimatedSwipeable, {
   type SwipeableMethods,
   SwipeDirection,
@@ -34,6 +37,9 @@ import { TASK_ICONS } from './icons'
 import { useTaskActions } from './store'
 import { taskMenuActions } from './taskMenu'
 import type { Task } from './types'
+
+/** Room kept between the composer and the keyboard after an add. */
+const KEEP_CLEAR = SPACE[4]
 
 /** The check ring's diameter (`components/InsetList`). */
 const CHECK_RING = 24
@@ -289,6 +295,7 @@ export function TaskComposer({
   tasks,
   parent,
   onFailed,
+  scrollRef,
 }: {
   listId: string
   placeholder: string
@@ -305,11 +312,36 @@ export function TaskComposer({
   parent?: Pick<Task, 'id' | 'listId'>
   /** Hears a line that could not be added, which is put back in the field. */
   onFailed?: () => void
+  /**
+   * The list's scroll view: each added row pushes the composer down, and
+   * with the keyboard kept open it would slide under it (APP-521).
+   */
+  scrollRef?: RefObject<GestureScrollView | null>
 }) {
   const tokens = useTokens('home')
   const actions = useTaskActions()
   const separator = useInsetSeparator()
   const [draft, setDraft] = useState('')
+  const fieldRef = useRef<HostInstance>(null)
+
+  // Brings the field back above the keyboard once the new row has pushed it
+  // down, and leaves the list alone while it is still in view.
+  const keepInView = () => {
+    requestAnimationFrame(() => {
+      const field = fieldRef.current
+      const scroll = scrollRef?.current
+      if (!field || !scroll) return
+      field.measureInWindow((_x, y, _width, height) => {
+        const keyboard = Keyboard.metrics()
+        if (!keyboard || y + height + KEEP_CLEAR <= keyboard.screenY) return
+        scroll.scrollResponderScrollNativeHandleToKeyboard(
+          field,
+          KEEP_CLEAR,
+          true,
+        )
+      })
+    })
+  }
 
   const add = () => {
     const title = draft.trim()
@@ -321,7 +353,10 @@ export function TaskComposer({
       ? actions.addSubtask(parent, title)
       : actions.addTask(listId, title, grocery, sectionId)
     write.then(
-      () => haptics.itemSaved(),
+      () => {
+        haptics.itemSaved()
+        keepInView()
+      },
       () => {
         haptics.actionFailed()
         if (parent) {
@@ -333,7 +368,7 @@ export function TaskComposer({
   }
 
   const field = (
-    <View style={styles.row}>
+    <View ref={fieldRef} style={styles.row}>
       <View style={styles.box}>
         <UI_ICONS.Plus
           size={20}
@@ -348,6 +383,9 @@ export function TaskComposer({
         value={draft}
         onChangeText={setDraft}
         onSubmitEditing={add}
+        // Stays focused after adding, so the next line can be typed at once
+        // and the keyboard does not close and reopen under the list (APP-521).
+        submitBehavior="submit"
         placeholder={placeholder}
         placeholderTextColor={tokens.muted}
         returnKeyType="done"
