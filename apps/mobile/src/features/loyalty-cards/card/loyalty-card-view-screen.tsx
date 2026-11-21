@@ -35,6 +35,7 @@ import { requestQuickSheet } from '../../../shell/quickSheetRequest'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../../theme/tokens'
 import { HeaderIconButton } from '../../../ui/header-icon-button'
+import { useKeepAwakeWhile } from '../../../ui/use-keep-awake-while'
 import { CardBarcode } from '../components/card-barcode'
 import { StoreTile } from '../components/store-tile'
 import { LOYALTY_CARD_ICONS } from '../loyalty-card-icons'
@@ -42,7 +43,6 @@ import { offlineGroupCard } from '../offline/offline-cards'
 import { useDeleteLoyaltyCard } from '../use-delete-loyalty-card'
 import { useRecordOpenCard } from './open-card-store'
 import { useGiveWayWhenGone } from './use-give-way-when-gone'
-import { useKeepAwakeWhile } from './use-keep-awake-while'
 import { useMarkUsedOnce } from './use-mark-used-once'
 import { useTillBrightness } from './use-till-brightness'
 
@@ -78,7 +78,7 @@ export function LoyaltyCardViewScreen({
 
   const focused = useIsFocused()
   const shown = focused && Boolean(face)
-  useKeepAwakeWhile(shown)
+  useKeepAwakeWhile(shown, 'loyalty-card-till')
   useTillBrightness(shown)
   useMarkUsedOnce(group.slug, cardId, justAdded)
   useRecordOpenCard(

@@ -7,9 +7,9 @@
  * tapped back, and then leaves its aisle for Checked. Checked holds what was
  * checked since the last "Clear checked"; everything checked stays in Recent.
  *
- * The action row opens Recent (on a list Gather can write to) and In stock
- * (APP-314); under it, the "Maybe needed" strip (APP-311). Shopping mode
- * (APP-315) has no slot here yet: it arrives with its own issue.
+ * The action row starts shopping mode (APP-315), and opens In stock
+ * (APP-314) and Recent; Shop and Recent only on a list Gather can write to.
+ * Under it, the "Maybe needed" strip (APP-311).
  */
 import { useRouter } from 'expo-router'
 import { type ReactNode, useState } from 'react'
@@ -95,8 +95,43 @@ export function GroceryListBody({
   return (
     <>
       <View style={styles.actions}>
-        {/* Recent puts items back onto this list, so a list Gather cannot
-            write to (a linked one) has no Recent, as it has no composer. */}
+        {/* Shopping checks items off, and Recent puts them back onto this
+            list, so a list Gather cannot write to (a linked one) has
+            neither, as it has no composer. */}
+        {list.writable ? (
+          <Pressable
+            testID="grocery-shop"
+            accessibilityRole="button"
+            accessibilityLabel={g.shopping.start}
+            onPress={() =>
+              router.push(
+                moduleHref('/all/groceries/shop', { listId: list.id }),
+              )
+            }
+            style={({ pressed }) => [
+              styles.pill,
+              styles.shop,
+              { backgroundColor: tokens.accent, opacity: pressed ? 0.85 : 1 },
+            ]}
+          >
+            <UI_ICONS.Cart
+              size={18}
+              color={tokens.onAccent}
+              strokeWidth={2.2}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+            <Text style={[styles.shopLabel, { color: tokens.onAccent }]}>
+              {g.shopping.start}
+            </Text>
+          </Pressable>
+        ) : null}
+        <ActionPill
+          testID="grocery-in-stock"
+          glyph={UI_ICONS.House}
+          label={t.kitchen.inStock.title}
+          onPress={() => router.push(moduleHref('/all/groceries/in-stock'))}
+        />
         {list.writable ? (
           <ActionPill
             testID="grocery-recent"
@@ -109,12 +144,6 @@ export function GroceryListBody({
             }
           />
         ) : null}
-        <ActionPill
-          testID="grocery-in-stock"
-          glyph={UI_ICONS.House}
-          label={t.kitchen.inStock.title}
-          onPress={() => router.push(moduleHref('/all/groceries/in-stock'))}
-        />
       </View>
 
       <SuggestionStrip list={list} onUndoable={onUndoable} />
@@ -224,6 +253,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   pillLabel: { ...TYPE.body },
+  /** Shopping mode's pill: the Kitchen primary, filling the row's rest. */
+  shop: { flexGrow: 1, justifyContent: 'center', borderWidth: 0, gap: SPACE[2] },
+  shopLabel: { ...TYPE.bodyStrong },
   section: { gap: SPACE[2] },
   sectionHead: {
     flexDirection: 'row',

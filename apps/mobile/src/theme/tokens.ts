@@ -145,6 +145,11 @@ export const TYPE = {
   },
   /** Section headings. */
   title2: { ...ROUNDED, fontSize: 22, lineHeight: 28, fontWeight: '700' },
+  /**
+   * iOS Title 3: shopping mode's rows and aisle headings (APP-315), large
+   * enough to read and hit at arm's length. Aisles and amounts set 700.
+   */
+  title3: { fontSize: 20, lineHeight: 25, fontWeight: '600' },
   /** The label on a photo-less pinned card, on the group fill. */
   cardLabel: { ...ROUNDED, fontSize: 17, lineHeight: 21, fontWeight: '700' },
   /** The one fact on the Now card. */
