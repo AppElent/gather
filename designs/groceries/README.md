@@ -136,12 +136,11 @@ Keyboard-anchored, as Tasks quick add. Above the field, an autocomplete card
 (`surface`, up to 3 rows): history first, then the dictionary. Row: glyph
 (history or book), the name with the typed part in 600, footnote why (`Vaak
 gekocht · elke 4 dagen · staat al op de lijst (2 pak)` / `Often bought · every 4
-days · already on the list (2)`, `Woordenboek · Zuivel en eieren` / `Dictionary
-· Dairy and eggs`), trailing amount (`+2 pak` when it will merge). Chips: the
+days · already on the list (2)`, `Bekend product · Zuivel en eieren` / `Known
+product · Dairy and eggs`), trailing amount (`+2 pak` when it will merge). Chips: the
 target list (kitchen `tile-xs` + name + chevron, opens Stores when there is more
-than one grocery list), amount, aisle. Hint: `Hoeveelheid en afdeling worden
-herkend, zonder AI en ook offline` / `Amount and aisle are recognised, without
-AI and offline`. Adding a name already on the list with a compatible unit adds
+than one grocery list), amount, aisle. Hint: `Hoeveelheid en afdeling ingevuld
+op basis van wat je typt` / `Amount and aisle filled in from what you type`. Adding a name already on the list with a compatible unit adds
 up the amounts.
 
 ## 3. Item sheet (APP-309, 314)
