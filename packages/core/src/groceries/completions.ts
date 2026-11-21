@@ -114,3 +114,40 @@ export function groceryCompletions(
   }
   return completions
 }
+
+/**
+ * Where what is typed sits in a completed name, as `[start, end)` in `title`,
+ * for the row to set that part in 600 (`designs/groceries/README.md`,
+ * section 2): the same match as the ranking, at the start, at a word, or
+ * anywhere, with case and accents ignored. Null when it is not in the name.
+ */
+export function typedSpan(
+  title: string,
+  line: string,
+): [number, number] | null {
+  const typed = foldGroceryText(parseGroceryLine(line).name)
+  if (typed.length === 0) return null
+  // The name folded a character at a time, remembering where each folded
+  // character came from, so a match maps back onto the name as written.
+  let folded = ''
+  const from: number[] = []
+  for (let i = 0; i < title.length; i++) {
+    const piece = title[i]
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f']/g, '')
+    for (const char of piece) {
+      folded += char
+      from.push(i)
+    }
+  }
+  const words = [...folded.matchAll(/(^|[\s-])(?=\S)/g)].map(
+    (hit) => hit.index + hit[1].length,
+  )
+  const at = folded.startsWith(typed)
+    ? 0
+    : (words.find((start) => folded.startsWith(typed, start)) ??
+      folded.indexOf(typed))
+  if (at < 0) return null
+  return [from[at], from[at + typed.length - 1] + 1]
+}

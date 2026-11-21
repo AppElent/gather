@@ -34,7 +34,14 @@ import { nextDueDate, type TaskRepeat } from '@gather/core/task-repeat'
 import type { OptimisticLocalStore } from 'convex/browser'
 import { useAction, useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { api, type Doc, type Id } from '../../convex/api'
 import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
@@ -594,6 +601,8 @@ export function useTaskActions() {
   const restoreCheckedCleared = useMutation(api.taskLists.restoreCheckedCleared)
   const setAisleOrder = useMutation(api.taskLists.setAisleOrder)
   const putBack = useMutation(api.tasks.putBack)
+  const putBackChecked = useMutation(api.tasks.putBackChecked)
+  const removePutBack = useMutation(api.tasks.removePutBack)
   const setSuggestions = useMutation(api.taskLists.setSuggestions)
   const hideSuggestion = useMutation(api.taskLists.hideSuggestion)
   const unhideSuggestion = useMutation(api.taskLists.unhideSuggestion)
@@ -847,6 +856,23 @@ export function useTaskActions() {
         groupSlug,
       }),
     /**
+     * A grocery list's "Put back all" (APP-427): open copies of its checked
+     * items, which stay in the history. Answers the copies, for the undo.
+     */
+    putBackChecked: (listId: string, taskIds: string[]) =>
+      putBackChecked({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        taskIds: taskIds as Id<'tasks'>[],
+      }),
+    /** The undo of `putBackChecked`: its copies still open leave the list. */
+    removePutBack: (listId: string, taskIds: string[]) =>
+      removePutBack({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        taskIds: taskIds as Id<'tasks'>[],
+      }),
+    /**
      * A grocery item with a known amount onto a grocery list: a suggestion or
      * an autocomplete row (APP-311). The server picks its aisle as for any
      * typed line.
@@ -903,15 +929,49 @@ export function useRecentGroceries() {
   return useQuery(api.tasks.recentGroceries, { groupSlug: group.slug })
 }
 
+const HOUR_MS = 60 * 60_000
+
+/** The start of the hour `now` falls in. */
+export function hourOf(now: number): number {
+  return now - (now % HOUR_MS)
+}
+
+/**
+ * The start of the current hour, moving on at each hour while mounted: often
+ * enough for a strip measured in days, rare enough that every phone of the
+ * Group asks the server the same question within the hour.
+ */
+function useHourClock(): number {
+  const [hour, setHour] = useState(() => hourOf(Date.now()))
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setHour(hourOf(Date.now())),
+      hour + HOUR_MS - Date.now(),
+    )
+    return () => clearTimeout(timer)
+  }, [hour])
+  return hour
+}
+
+type GroceryHabits = FunctionReturnType<typeof api.tasks.groceryHabits>
+
 /**
  * What the Current Group usually buys, for one grocery list (APP-311): its
  * habits, most bought first, for the composer, and the "Maybe needed"
- * suggestions, computed on the server. `undefined` until Convex answers.
+ * suggestions, computed on the server from the hour it is, so the strip moves
+ * on while the list stays open (APP-427). `undefined` until Convex first
+ * answers for this list; on the hour, the last answer stays until the next.
  */
-export function useGroceryHabits(listId: string) {
+export function useGroceryHabits(listId: string): GroceryHabits | undefined {
   const { group } = useGroup()
-  return useQuery(api.tasks.groceryHabits, {
+  const now = useHourClock()
+  const live = useQuery(api.tasks.groceryHabits, {
     groupSlug: group.slug,
     listId: listId as Id<'taskLists'>,
+    now,
   })
+  const last = useRef<{ key: string; value: GroceryHabits } | null>(null)
+  const key = `${group.slug}:${listId}`
+  if (live !== undefined) last.current = { key, value: live }
+  return live ?? (last.current?.key === key ? last.current.value : undefined)
 }

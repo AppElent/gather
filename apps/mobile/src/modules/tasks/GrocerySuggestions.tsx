@@ -7,10 +7,13 @@
  *   amount; press and hold opens its menu with Hide, which hides it for good
  *   (with Undo). Hidden when empty, switched off, or read-only.
  * - the composer's autocomplete: what is typed, completed from the Group's
- *   history first, then from the bundled names (`groceryCompletions`). A tap
- *   adds that name.
+ *   history first, then from the bundled names (`groceryCompletions`), the
+ *   typed part in 600. A tap adds that name; a name already open on the list
+ *   is never added beside it: a typed amount that adds up is added to it
+ *   (trailing `+2 pak`), anything else leaves it as it is (APP-427).
  */
 import {
+  addGroceryAmounts,
   capitalise,
   daysAgo,
   type GroceryCompletion,
@@ -20,6 +23,7 @@ import {
   groceryKey,
   groceryNames,
   parseGroceryLine,
+  typedSpan,
 } from '@gather/core/groceries'
 import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
@@ -224,7 +228,9 @@ export function SuggestionStrip({
 /**
  * Above the composer's field while a name is typed: up to three completions, history
  * first. A tap adds the completed name: with the amount typed, or else the
- * usual amount from history.
+ * usual amount from history. When the name is already open on the list, the
+ * typed amount is added to that item where the units add up, and otherwise
+ * nothing changes: no second row (APP-427).
  */
 export function GroceryCompletions({
   listId,
@@ -254,15 +260,35 @@ export function GroceryCompletions({
   )
   if (completions.length === 0) return null
   const typed = parseGroceryLine(line)
+  const typedAmount =
+    typed.quantity !== null || typed.unit !== null
+      ? {
+          ...(typed.quantity !== null ? { quantity: typed.quantity } : {}),
+          ...(typed.unit !== null ? { unit: typed.unit } : {}),
+        }
+      : undefined
+
+  const openNamed = (key: string) =>
+    tasks.find(
+      (task) => !task.done && groceryKey(parseGroceryLine(task.title).name) === key,
+    )
+
+  /**
+   * What a tap does to an item already open: its amount grows to `to`, or,
+   * with no typed amount or one in another measure, nothing changes.
+   */
+  const mergeInto = (open: Task) => {
+    if (!typedAmount) return null
+    return addGroceryAmounts(
+      {
+        ...(open.quantity !== undefined ? { quantity: open.quantity } : {}),
+        ...(open.unit !== undefined ? { unit: open.unit } : {}),
+      },
+      typedAmount,
+    )
+  }
 
   const itemOf = (completion: GroceryCompletion) => {
-    const typedAmount =
-      typed.quantity !== null || typed.unit !== null
-        ? {
-            ...(typed.quantity !== null ? { quantity: typed.quantity } : {}),
-            ...(typed.unit !== null ? { unit: typed.unit } : {}),
-          }
-        : undefined
     if (completion.source === 'history') {
       const { habit } = completion
       return {
@@ -287,9 +313,7 @@ export function GroceryCompletions({
           : completion.habit.category
             ? `${s.history} · ${t.tasks.grocery.aisles[completion.habit.category]}`
             : s.history
-    const open = tasks.find(
-      (task) => !task.done && groceryKey(parseGroceryLine(task.title).name) === key,
-    )
+    const open = openNamed(key)
     if (!open) return base
     const amount = amountText(open.quantity, open.unit)
     return `${base} · ${amount ? fmt(s.onListAmount, { amount }) : s.onList}`
@@ -299,7 +323,15 @@ export function GroceryCompletions({
     <View testID="grocery-completions" style={styles.completions}>
       {completions.map((completion) => {
         const item = itemOf(completion)
-        const amount = amountText(item.quantity, item.unit)
+        const open = openNamed(item.key)
+        const merged = open ? mergeInto(open) : null
+        // Onto an open item only what is typed is added: `+2 pak`.
+        const amount = open
+          ? merged && typedAmount
+            ? `+${amountText(typedAmount.quantity, typedAmount.unit) ?? '1'}`
+            : null
+          : amountText(item.quantity, item.unit)
+        const span = typedSpan(item.title, line)
         return (
           <Pressable
             key={`${completion.source}-${item.key}`}
@@ -309,16 +341,23 @@ export function GroceryCompletions({
             accessibilityHint={footnote(completion, item.key)}
             onPress={() => {
               onPicked()
-              actions
-                .addGrocery(listId, {
-                  title: item.title,
-                  quantity: item.quantity,
-                  unit: item.unit,
-                })
-                .then(
-                  () => haptics.itemSaved(),
-                  () => haptics.actionFailed(),
-                )
+              const done = open
+                ? merged
+                  ? actions.setAmount(
+                      open.id,
+                      merged.quantity ?? null,
+                      merged.unit ?? null,
+                    )
+                  : Promise.resolve()
+                : actions.addGrocery(listId, {
+                    title: item.title,
+                    quantity: item.quantity,
+                    unit: item.unit,
+                  })
+              done.then(
+                () => haptics.itemSaved(),
+                () => haptics.actionFailed(),
+              )
             }}
             style={({ pressed }) => [
               styles.completion,
@@ -344,7 +383,17 @@ export function GroceryCompletions({
             )}
             <View style={styles.completionText}>
               <Text numberOfLines={1} style={[styles.title, { color: tokens.ink }]}>
-                {item.title}
+                {span ? (
+                  <>
+                    {item.title.slice(0, span[0])}
+                    <Text style={styles.typed}>
+                      {item.title.slice(span[0], span[1])}
+                    </Text>
+                    {item.title.slice(span[1])}
+                  </>
+                ) : (
+                  item.title
+                )}
               </Text>
               <Text numberOfLines={2} style={[styles.why, { color: tokens.muted }]}>
                 {footnote(completion, item.key)}
@@ -396,5 +445,7 @@ const styles = StyleSheet.create({
   },
   completionText: { flex: 1, gap: 2 },
   title: { ...TYPE.body },
+  /** The part of a completion that was typed (design section 2). */
+  typed: { fontWeight: TYPE.bodyStrong.fontWeight },
   amount: { ...TYPE.bodyStrong, ...TABULAR },
 })
