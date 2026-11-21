@@ -16,9 +16,11 @@
  * Type, so each row is measured as it lays out and the drop arithmetic walks
  * those heights rather than dividing by one. On a list with sections each
  * section's heading is a fixed row in the same column, and a task dragged
- * past one moves into that section (`sectionArrange.ts`, APP-357). There is no drag-and-drop
- * dependency: a list that does not auto-scroll is short, and the library is
- * five hundred kilobytes and a native rebuild.
+ * past one moves into that section (`sectionArrange.ts`, APP-357). On a
+ * grocery list the headings are its aisles, every one in the list's aisle
+ * order, and an item dragged under another aisle moves there (APP-522).
+ * There is no drag-and-drop dependency: a list that does not auto-scroll is
+ * short, and the library is five hundred kilobytes and a native rebuild.
  *
  * The gesture is **`react-native-gesture-handler`, not `PanResponder`.**
  * `PanResponder`, which the Baby log's arranging bar uses, does not drag here
@@ -50,6 +52,7 @@ import {
   committed,
   firstDropIndex,
   headingSection,
+  sectionMove,
 } from './sectionArrange'
 import { dueLabel } from './taskDates'
 import type { ListDisplay, Task } from './types'
@@ -64,6 +67,9 @@ interface DragHandlers {
 export function ReorderMode({
   tasks,
   sections = [],
+  arrangement,
+  hint,
+  note,
   display,
   today,
   scrollRef,
@@ -74,6 +80,15 @@ export function ReorderMode({
   tasks: Task[]
   /** The list's sections; a task dragged under a heading joins it. */
   sections?: readonly TaskSection[]
+  /**
+   * The column to open with, when it is not the list's own sections: a
+   * grocery list's aisles (`aisleArrangement`, APP-522), whose headings are
+   * named by `sections` and which has no "No section".
+   */
+  arrangement?: readonly string[]
+  /** The banner's words, and the line under the column, when not a task list's. */
+  hint?: string
+  note?: string
   display: ListDisplay
   today: string
   /**
@@ -83,15 +98,24 @@ export function ReorderMode({
   scrollRef: React.RefObject<GestureScrollView | null>
   /** Belt to the gesture's braces: the list stops scrolling mid-drag. */
   onDragging: (dragging: boolean) => void
-  /** The task ids in order and, on a list with sections, each one's section. */
-  onCommit: (ids: string[], sectionIds?: (string | null)[]) => void
+  /**
+   * The task ids in order and, on a list with sections, each one's section;
+   * `moved` is the dragged task's new section when the drop changed it.
+   */
+  onCommit: (
+    ids: string[],
+    sectionIds?: (string | null)[],
+    moved?: { id: string; sectionId: string | null },
+  ) => void
 }) {
   const tokens = useTokens('home')
   const { t, locale } = useI18n()
 
   // The arrangement while the mode is open. Committed on every drop rather
   // than on Done, so leaving by the back gesture cannot lose the work.
-  const [order, setOrder] = useState(() => arrangementOf(sections, tasks))
+  const [order, setOrder] = useState(() =>
+    arrangement ? [...arrangement] : arrangementOf(sections, tasks),
+  )
   const sectioned = sections.length > 0
   const byId = new Map(tasks.map((task) => [task.id, task]))
   const names = new Map(sections.map((section) => [section.id, section.name]))
@@ -149,10 +173,21 @@ export function ReorderMode({
       // A tap on the grip that never moved is not a rearrangement, and must
       // not buzz as though something were saved.
       if (current && current.from !== current.to) {
-        const next = movedTo(live.current.order, current.from, current.to)
+        const before = live.current.order
+        const next = movedTo(before, current.from, current.to)
         setOrder(next)
         const { ids, sectionIds } = committed(next)
-        onCommit(ids, sectionIds)
+        const id = before[current.from]
+        // Only a task moves sections; a heading key is never one.
+        const sectionId =
+          headingSection(id) === undefined
+            ? sectionMove(before, next, id)
+            : undefined
+        onCommit(
+          ids,
+          sectionIds,
+          sectionId === undefined ? undefined : { id, sectionId },
+        )
         haptics.itemSaved()
       }
       lift.setValue(0)
@@ -171,7 +206,7 @@ export function ReorderMode({
           importantForAccessibility="no"
         />
         <Text style={[styles.hintText, { color: tokens.ink }]}>
-          {t.tasks.list.reorderHint}
+          {hint ?? t.tasks.list.reorderHint}
         </Text>
       </View>
 
@@ -300,7 +335,7 @@ export function ReorderMode({
       </Column>
 
       <Text style={[styles.note, { color: tokens.muted }]}>
-        {t.tasks.list.reorderCompleted}
+        {note ?? t.tasks.list.reorderCompleted}
       </Text>
     </View>
   )
