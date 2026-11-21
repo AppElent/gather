@@ -136,10 +136,17 @@ export function toolResult(value: unknown) {
 export const GROUP_NOT_FOUND =
   'Group not found. Call list_groups for the Groups you can use.'
 
-/** Convex's sentences for a refused Group; the agent hears GROUP_NOT_FOUND. */
+/**
+ * A refused Group, keyed (`groups:*`, APP-429) or as the sentence a Convex
+ * deployment from before the keys threw; the agent hears GROUP_NOT_FOUND.
+ */
 const GROUP_REFUSALS = new Set<string>([
   GROUP_REFUSAL_MESSAGES['unknown-slug'],
   GROUP_REFUSAL_MESSAGES['not-a-member'],
+])
+const GROUP_REFUSAL_KINDS = new Set<string>([
+  'groups:unknown-slug',
+  'groups:not-a-member',
 ])
 
 /**
@@ -164,6 +171,7 @@ function refusalText(error: ConvexError<Value>): string {
   const kind =
     data && typeof data === 'object' && 'kind' in data ? data.kind : undefined
   if (typeof kind !== 'string') return 'Gather refused this.'
+  if (GROUP_REFUSAL_KINDS.has(kind)) return GROUP_NOT_FOUND
   return REFUSAL_KINDS[kind] ?? `Gather refused this (${kind}).`
 }
 

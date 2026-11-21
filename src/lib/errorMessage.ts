@@ -11,8 +11,9 @@ import { ConvexError } from 'convex/values'
  * - A keyed refusal (`{ kind }`, `@gather/core/refusals`) reads as the sentence
  *   `refusals` holds for its kind, in the reader's language (ADR-0011). A
  *   refused tasting attribute is read by its `problem`, which says what was
- *   wrong with the field. A key the caller has no sentence for gets the
- *   fallback.
+ *   wrong with the field. A key the caller has no sentence for shows the
+ *   English `message` the refusal carries, when it carries one (a refused
+ *   Group, APP-429), and the fallback otherwise.
  * - A `ConvexError` carrying a sentence ("List not found") shows that sentence.
  *   Its `.message` is the wire's `[CONVEX M(…)]` line, never something to show.
  * - Anything else is an `Error` we did not write the wording for; its message
@@ -25,7 +26,8 @@ export function errorMessage(
 ): string {
   const key = refusalKey(error)
   if (key !== null) {
-    return Object.hasOwn(refusals, key) ? refusals[key] : fallback
+    if (Object.hasOwn(refusals, key)) return refusals[key]
+    return refusalSentence(error) ?? fallback
   }
   if (error instanceof ConvexError) return refusalSentence(error) ?? fallback
   return error instanceof Error && error.message ? error.message : fallback

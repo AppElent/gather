@@ -3,7 +3,10 @@ import { AI_LIMIT_KIND, isAiLimitReached } from '../aiLimit'
 import {
   ACCOUNT_DELETED,
   calendarRefusal,
+  GROUP_REFUSAL_CODES,
+  groupRefusal,
   readCalendarRefusal,
+  readGroupRefusal,
   readRefusal,
   readTaskRefusal,
   refusal,
@@ -79,5 +82,25 @@ describe('task refusals (APP-302)', () => {
     expect(readTaskRefusal(thrown(calendarRefusal('assignee-not-member')))).toBe(
       null,
     )
+  })
+})
+
+describe('group refusals (APP-429)', () => {
+  test('each code round-trips, namespaced on the wire', () => {
+    for (const code of GROUP_REFUSAL_CODES) {
+      const data = groupRefusal(code, 'A sentence')
+      expect(data.kind).toBe(`groups:${code}`)
+      expect(readGroupRefusal(thrown(data))).toBe(code)
+    }
+    expect(readGroupRefusal(thrown({ kind: 'not-a-member' }))).toBeNull()
+    expect(readGroupRefusal(thrown('Not a member of that group'))).toBeNull()
+  })
+
+  test('the sentence it carries is still the sentence a reader shows', () => {
+    const error = thrown(
+      groupRefusal('not-a-member', 'Not a member of that group'),
+    )
+    expect(refusalSentence(error)).toBe('Not a member of that group')
+    expect(refusalSentence(thrown({ kind: 'groups:x', message: 7 }))).toBeNull()
   })
 })

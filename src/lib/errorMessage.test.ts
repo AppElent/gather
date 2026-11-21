@@ -1,5 +1,9 @@
 import { en, nl } from '@gather/core/messages'
-import { refusal, tastingAttributeRefusal } from '@gather/core/refusals'
+import {
+  groupRefusal,
+  refusal,
+  tastingAttributeRefusal,
+} from '@gather/core/refusals'
 import { ConvexError } from 'convex/values'
 import { describe, expect, test } from 'vitest'
 import { errorMessage } from './errorMessage'
@@ -45,4 +49,20 @@ test('a sentence the server threw is shown as written', () => {
   expect(errorMessage(new ConvexError('List not found'), FALLBACK)).toBe(
     'List not found',
   )
+})
+
+describe('a refused Group (APP-429)', () => {
+  const error = new ConvexError(
+    groupRefusal('not-a-member', 'Not a member of that group'),
+  )
+
+  test('still shows the sentence it showed before it was keyed', () => {
+    expect(errorMessage(error, FALLBACK)).toBe('Not a member of that group')
+  })
+
+  test('reads from the caller’s wording when it has one for the kind', () => {
+    expect(
+      errorMessage(error, FALLBACK, { 'groups:not-a-member': 'Not yours' }),
+    ).toBe('Not yours')
+  })
 })

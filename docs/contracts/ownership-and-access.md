@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing who owns, sees, writes to, or is refused Group content, or how the Current Group is chosen.
-version: 2.0.0
+version: 2.1.0
 status: current
 ---
 
@@ -34,7 +34,12 @@ defined in the [glossary](../../GLOSSARY.md).
   a `ConvexError` from the vocabulary in `@gather/core/refusals`, and the client
   reads it with that module's reader and resolves it in the reader's language
   ([ADR-0011](../adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md)).
-  A plain `Error` will not do: production redacts its message.
+  A plain `Error` will not do: production redacts its message. Refusing the
+  Group itself (`convex/lib/groupAccess.ts`) is keyed too, as
+  `groups:not-signed-in`, `groups:unknown-slug` and `groups:not-a-member`
+  (APP-429); read it with `readGroupRefusal`. Its data also carries the English
+  sentence it threw before the keys, as `message`, so a reader without wording
+  for the kind shows what it always showed.
 - **Provenance is permission-checked on read and safe to dangle.** A copied
   or planned recipe keeps what it needs to render when the recipe it points at
   is gone or out of reach.
