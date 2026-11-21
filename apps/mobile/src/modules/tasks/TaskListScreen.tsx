@@ -26,8 +26,16 @@ import {
 } from '@gather/core/task-lists'
 import { describeRepeat } from '@gather/core/task-repeat'
 import { Stack, useRouter } from 'expo-router'
+import { useHeaderHeight } from 'expo-router/react-navigation'
 import { type ReactNode, useRef, useState } from 'react'
-import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import {
+  Platform,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 // Gesture Handler's own ScrollView, not React Native's: reorder's drag names
 // this view in `blocksExternalGesture`, and only a scroll view the library
 // knows about can be told to stand down for one touch. Gesture Handler 3's
@@ -36,6 +44,7 @@ import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { LegacyScrollView as ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useEdgeScroll } from '../../arrange/edgeScroll'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
@@ -112,11 +121,27 @@ export function TaskList({
   const [restyling, setRestyling] = useState(false)
   const [editingSections, setEditingSections] = useState(false)
   const [reordering, setReordering] = useState(false)
-  const taskSheets = useTaskSheets({
-    tasks,
-    onReorder: () => setReordering(true),
-  })
+  // A drop the server refused puts Reorder mode back to the list's saved
+  // order, which a remount reads, and says so (APP-534). Without it the mode
+  // keeps the order it opened with, so after another Member adds an item
+  // every later drop is refused too. The loyalty cards' reorder does the same
+  // (APP-440).
+  const [reorderKey, setReorderKey] = useState(0)
+  const [reorderProblem, setReorderProblem] = useState<string | null>(null)
+  const startReorder = () => {
+    setReorderProblem(null)
+    setReordering(true)
+  }
+  const taskSheets = useTaskSheets({ tasks, onReorder: startReorder })
   const scrollRef = useRef<ScrollView>(null)
+  // The header is see-through and iOS insets the list under it, so the
+  // edge that scrolls the list sits under the header, as does its top.
+  // Android does not inset it.
+  const headerHeight = useHeaderHeight()
+  const { edgeScroll, scrollProps, probeRef } = useEdgeScroll(scrollRef, {
+    top: Platform.OS === 'ios' ? headerHeight : 0,
+    bottom: insets.bottom,
+  })
   const [dragging, setDragging] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshed, setRefreshed] = useState(false)
@@ -192,7 +217,7 @@ export function TaskList({
       haptics.selectionChanged()
       return
     }
-    if (action === 'reorder') setReordering(true)
+    if (action === 'reorder') startReorder()
     if (action === 'rename') setRenamingList(true)
     if (action === 'appearance') setRestyling(true)
     if (action === 'sections') setEditingSections(true)
@@ -433,6 +458,7 @@ export function TaskList({
 
       <ScrollView
         ref={scrollRef}
+        {...scrollProps}
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
@@ -453,6 +479,7 @@ export function TaskList({
           ) : undefined
         }
       >
+        <View ref={probeRef} collapsable={false} />
         {tile ? (
           <WashHeader
             group={tile.group}
@@ -467,6 +494,7 @@ export function TaskList({
         <View style={styles.content}>
           {reordering ? (
             <ReorderMode
+              key={reorderKey}
               tasks={listed}
               // A grocery list is arranged in its aisles (APP-522): an item
               // dragged under another aisle's heading moves to that aisle.
@@ -483,12 +511,23 @@ export function TaskList({
               }
               hint={grocery ? t.tasks.list.reorderAislesHint : undefined}
               note={grocery ? t.tasks.list.reorderChecked : undefined}
+              problem={reorderProblem}
               display={list.display}
               today={today}
               scrollRef={scrollRef}
+              edgeScroll={edgeScroll}
               onDragging={setDragging}
               onCommit={(ids, sectionIds, moved) => {
-                const failed = () => haptics.actionFailed()
+                setReorderProblem(null)
+                // Once per drop, though its order and its aisle may both fail.
+                let reset = false
+                const failed = () => {
+                  if (reset) return
+                  reset = true
+                  haptics.actionFailed()
+                  setReorderKey((key) => key + 1)
+                  setReorderProblem(t.tasks.list.reorderReset)
+                }
                 if (grocery) {
                   // The order within each aisle, then the dragged item's new
                   // aisle, saved as a Member's own choice: the Group keeps it
