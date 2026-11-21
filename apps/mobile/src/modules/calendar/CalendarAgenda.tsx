@@ -21,6 +21,7 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SwipeableRow } from '../../components/SwipeableRow'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { headingCase } from './calendarLabels'
 import { agendaMonths } from './calendarNavigation'
 
 export interface CalendarAgendaProps {
@@ -304,11 +305,14 @@ export function CalendarAgenda({
         </Pressable>
       )
     }
-    const label = new Date(`${item.date}T12:00:00`).toLocaleDateString(locale, {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    })
+    const label = headingCase(
+      new Date(`${item.date}T12:00:00`).toLocaleDateString(locale, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }),
+      locale,
+    )
     return (
       <View testID={`calendar-agenda-day-${item.date}`}>
         <Pressable
@@ -406,7 +410,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  dayTitle: { ...TYPE.bodyStrong, textTransform: 'capitalize' },
+  dayTitle: { ...TYPE.bodyStrong },
   empty: { ...TYPE.footnote, paddingHorizontal: 8, paddingBottom: 12 },
   event: {
     minHeight: 68,
