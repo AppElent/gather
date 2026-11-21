@@ -19,9 +19,8 @@
  * past one moves into that section (`sectionArrange.ts`, APP-357). On a
  * grocery list the headings are its aisles, every one in the list's aisle
  * order, and an item dragged under another aisle moves there (APP-522).
- * There is no drag-and-drop
- * dependency: a list that does not auto-scroll is short, and the library is
- * five hundred kilobytes and a native rebuild.
+ * There is no drag-and-drop dependency: a list that does not auto-scroll is
+ * short, and the library is five hundred kilobytes and a native rebuild.
  *
  * The gesture is **`react-native-gesture-handler`, not `PanResponder`.**
  * `PanResponder`, which the Baby log's arranging bar uses, does not drag here
@@ -179,7 +178,11 @@ export function ReorderMode({
         setOrder(next)
         const { ids, sectionIds } = committed(next)
         const id = before[current.from]
-        const sectionId = sectionMove(before, next, id)
+        // Only a task moves sections; a heading key is never one.
+        const sectionId =
+          headingSection(id) === undefined
+            ? sectionMove(before, next, id)
+            : undefined
         onCommit(
           ids,
           sectionIds,
