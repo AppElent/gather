@@ -1,12 +1,17 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  agendaMonths,
+  agendaRangeAround,
+  agendaRangeForJump,
   chooseHeader,
+  extendAgendaRange,
   initialCalendarNavigation,
   pageActiveDate,
   selectCalendarDate,
   setCalendarView,
   settleHeader,
+  settleTarget,
   toggleHeader,
 } from './calendarNavigation'
 
@@ -72,5 +77,58 @@ describe('calendar navigation', () => {
       selectCalendarDate(initialCalendarNavigation('2026-09-12'), '2026-10-04')
         .activeDate,
     ).toBe('2026-10-04')
+  })
+})
+
+describe('header settle target', () => {
+  test('a flick decides by direction, a slow release by the nearer half', () => {
+    expect(settleTarget(0.2, 900)).toBe(1)
+    expect(settleTarget(0.8, -900)).toBe(0)
+    expect(settleTarget(0.6, 0)).toBe(1)
+    expect(settleTarget(0.4, 100)).toBe(0)
+  })
+})
+
+describe('agenda range', () => {
+  test('starts with the month before, the month itself and the month after', () => {
+    expect(agendaRangeAround('2026-09-12')).toEqual({
+      from: '2026-08-01',
+      toExclusive: '2026-11-01',
+    })
+    expect(agendaMonths(agendaRangeAround('2026-01-31'))).toEqual([
+      '2025-12-01',
+      '2026-01-01',
+      '2026-02-01',
+    ])
+  })
+
+  test('grows a whole month at either end', () => {
+    const range = agendaRangeAround('2026-09-12')
+    expect(extendAgendaRange(range, -1)).toEqual({
+      from: '2026-07-01',
+      toExclusive: '2026-11-01',
+    })
+    expect(extendAgendaRange(range, 1)).toEqual({
+      from: '2026-08-01',
+      toExclusive: '2026-12-01',
+    })
+  })
+
+  test('a jump near what is loaded keeps it and adds a month after the date', () => {
+    const range = { from: '2026-06-01', toExclusive: '2026-11-01' }
+    // The last loaded day needs the month after it, or it cannot reach the top.
+    expect(agendaRangeForJump(range, '2026-10-31')).toEqual({
+      from: '2026-06-01',
+      toExclusive: '2026-12-01',
+    })
+    expect(agendaRangeForJump(range, '2026-08-10')).toEqual(range)
+  })
+
+  test('a jump far away starts over around the date', () => {
+    const range = { from: '2026-06-01', toExclusive: '2026-11-01' }
+    expect(agendaRangeForJump(range, '2027-05-04')).toEqual({
+      from: '2027-04-01',
+      toExclusive: '2027-07-01',
+    })
   })
 })

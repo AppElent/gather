@@ -4,20 +4,17 @@ import type {
   CalendarPerson,
   CalendarView,
 } from '@gather/core/calendar'
-import { addDays } from '@gather/core/civil-date'
 import Constants from 'expo-constants'
 import { Stack } from 'expo-router'
 import {
   type ReactNode,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react'
 import {
   type FlatList,
-  LayoutAnimation,
   Platform,
   Pressable,
   StatusBar,
@@ -25,7 +22,6 @@ import {
   Text,
   View,
 } from 'react-native'
-import { useReducedMotion } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useI18n } from '../../i18n'
@@ -33,7 +29,10 @@ import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { CalendarAgenda } from './CalendarAgenda'
 import { CalendarHeader } from './CalendarHeader'
 import {
+  agendaRangeAround,
+  agendaRangeForJump,
   chooseHeader,
+  extendAgendaRange,
   initialCalendarNavigation,
   pageActiveDate,
   selectCalendarDate,
@@ -85,7 +84,6 @@ export function CalendarScreen({
   const { t } = useI18n()
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
-  const reduceMotion = useReducedMotion()
   const topInset = Math.max(
     insets.top,
     StatusBar.currentHeight ?? 0,
@@ -112,20 +110,15 @@ export function CalendarScreen({
   useEffect(() => {
     onActiveDate(shownDate)
   }, [shownDate, onActiveDate])
-  const from = useMemo(
-    () => addDays(navigation.activeDate, -21),
-    [navigation.activeDate],
-  )
-  const toExclusive = useMemo(
-    () => addDays(navigation.activeDate, 42),
-    [navigation.activeDate],
-  )
+  /** The whole months the agenda has loaded; scrolling grows it at either end. */
+  const [range, setRange] = useState(() => agendaRangeAround(today))
 
   const expandedDates = expandedByMonth[activeMonth] ?? []
 
   const jumpToDate = useCallback((date: string) => {
     setScrolledDate(null)
     setJumpId((id) => id + 1)
+    setRange((current) => agendaRangeForJump(current, date))
     setNavigation((current) => selectCalendarDate(current, date))
   }, [])
 
@@ -204,8 +197,8 @@ export function CalendarScreen({
         </View>
         {sourceNodes}
         <CalendarAgenda
-          from={from}
-          toExclusive={toExclusive}
+          from={range.from}
+          toExclusive={range.toExclusive}
           selectedDate={navigation.activeDate}
           shownDate={shownDate}
           jumpId={jumpId}
@@ -228,14 +221,17 @@ export function CalendarScreen({
           onVisibleDate={setScrolledDate}
           onDragUp={() => {
             // An automatic collapse: the list takes over the space, and the
-            // saved preference stays whatever the person last chose.
+            // saved preference stays whatever the person last chose. The
+            // header springs to its new height by itself.
             if (navigation.presentation !== 'month') return
-            if (!reduceMotion)
-              LayoutAnimation.configureNext(
-                LayoutAnimation.Presets.easeInEaseOut,
-              )
             setNavigation((current) => settleHeader(current, 0))
           }}
+          onLoadEarlier={() =>
+            setRange((current) => extendAgendaRange(current, -1))
+          }
+          onLoadLater={() =>
+            setRange((current) => extendAgendaRange(current, 1))
+          }
           listRef={listRef}
         />
       </View>
