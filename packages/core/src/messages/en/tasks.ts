@@ -177,7 +177,7 @@ export const tasks = {
     unit: 'Unit',
     aisle: 'Aisle',
     /** Under the composer while a line is typed. */
-    recognised: 'Recognised without AI, also offline',
+    recognised: 'Amount and aisle filled in from what you type',
     // The list in aisle sections, the Checked row and Recent (APP-310;
     // `designs/groceries/README.md` sections 1 and 4).
     /** Read out for an aisle section's heading: the aisle and its count. */
@@ -268,7 +268,7 @@ export const tasks = {
       /** Autocomplete rows' footnotes. */
       often: 'Often bought · {cadence}',
       history: 'Your history',
-      dictionary: 'Dictionary',
+      dictionary: 'Known product',
       /** Appended to a row's footnote when the name is already open. */
       onList: 'already on the list',
       onListAmount: 'already on the list ({amount})',
