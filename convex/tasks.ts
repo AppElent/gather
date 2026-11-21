@@ -497,18 +497,26 @@ export const undoCompletion = mutation({
   },
 })
 
-/** Who completed a repeating task and when, newest first (APP-303). */
+/**
+ * Who completed a repeating task and when, newest first (APP-303).
+ *
+ * A task that has gone, or is in another Group's list, has no history to show:
+ * the answer is empty, the same for both (ADR-0009), as `loyaltyCards.get`
+ * answers null. The phone keeps a screen's subscription open for minutes after
+ * it unmounts (`apps/mobile/src/convex/queries.ts`), so deleting a task from
+ * its own screen re-runs this for an id that no longer exists; a throw there
+ * reported to Sentry on every re-run (APP-519). An unknown Group, or one the
+ * caller is not a Member of, is still refused, and distinctly.
+ */
 export const completions = query({
   args: { taskId: v.id('tasks'), groupSlug: v.string() },
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId)
     if (!task) {
       await requireGroupBySlug(ctx, args.groupSlug)
-      throw new ConvexError('Task not found')
+      return []
     }
-    if (!(await findInGroup(ctx, args.groupSlug, task.listId))) {
-      throw new ConvexError('Task not found')
-    }
+    if (!(await findInGroup(ctx, args.groupSlug, task.listId))) return []
     const rows = await ctx.db
       .query('taskCompletions')
       .withIndex('by_task', (q) => q.eq('taskId', args.taskId))
