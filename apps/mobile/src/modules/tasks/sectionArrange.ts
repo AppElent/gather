@@ -76,3 +76,28 @@ export function committed(arrangement: readonly string[]): {
   }
   return sectioned ? { ids, sectionIds } : { ids }
 }
+
+/**
+ * Where a drop took the dragged row: its section after the drop, or
+ * `undefined` when it stayed under the same heading. Read from the drop
+ * alone, never from the tasks as they are now, so a row whose section changed
+ * elsewhere while the mode was open is not written back (APP-522).
+ */
+export function sectionMove(
+  before: readonly string[],
+  after: readonly string[],
+  id: string,
+): string | null | undefined {
+  const sectionAt = (arrangement: readonly string[]) => {
+    let current: string | null = null
+    for (const key of arrangement) {
+      if (key === id) return current
+      const heading = headingSection(key)
+      if (heading !== undefined) current = heading
+    }
+    return current
+  }
+  const from = sectionAt(before)
+  const to = sectionAt(after)
+  return from === to ? undefined : to
+}

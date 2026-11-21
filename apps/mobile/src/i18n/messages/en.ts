@@ -1154,6 +1154,10 @@ export const en = {
         'Drag to rearrange. Completing, editing and swiping are off until you tap Done.',
       /** Completed rows have no order anyone arranges, so the mode hides them. */
       reorderCompleted: 'Completed tasks are hidden while you rearrange.',
+      /** Reorder mode's banner on a grocery list, arranged in its aisles (APP-522). */
+      reorderAislesHint:
+        'Drag an item under another aisle to move it there. Checking, editing and swiping are off until you tap Done.',
+      reorderChecked: 'Checked items are hidden while you rearrange.',
       /** A list Gather may read and not write (ADR-0021). */
       readOnly:
         'This list lives in {provider}. Gather can read it, but not write to it — so there is no composer here.',
