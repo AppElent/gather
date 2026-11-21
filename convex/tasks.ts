@@ -1230,6 +1230,7 @@ async function newestAcross(
 ): Promise<Doc<'tasks'>[]> {
   const out: Doc<'tasks'>[] = []
   if (options.take <= 0) return out
+  // Iterators left unfinished need no closing: the query's reads end with it.
   const iterators = ranges.map((range) => range[Symbol.asyncIterator]())
   const heads = await Promise.all(iterators.map((it) => it.next()))
   let scanned = 0
@@ -1427,7 +1428,8 @@ async function insertOpenCopy(
  * open on the list, or twice among `taskIds`, is not added again. Answers the
  * copies it added, for the undo to remove (`removePutBack`).
  *
- * Every id must be a checked item on this list. Installed phones from before
+ * Every id must be an item on this list, at most `OPEN_ITEMS_SCAN_LIMIT`; one
+ * no longer checked is skipped. Installed phones from before
  * keep calling `setDoneInList` for this and keep unchecking.
  */
 export const putBackChecked = mutation({
@@ -1443,10 +1445,14 @@ export const putBackChecked = mutation({
     if (!list || list.groupId !== group._id)
       throw new ConvexError(taskRefusal('not-found'))
     requireWritableGroceryList(group, list)
-    const tasks = await Promise.all(args.taskIds.map((id) => ctx.db.get(id)))
-    for (const task of tasks)
-      if (!task || task.listId !== args.listId || !task.done)
+    if (args.taskIds.length > OPEN_ITEMS_SCAN_LIMIT)
+      throw new ConvexError(taskRefusal('not-found'))
+    const rows = await Promise.all(args.taskIds.map((id) => ctx.db.get(id)))
+    for (const task of rows)
+      if (!task || task.listId !== args.listId)
         throw new ConvexError(taskRefusal('not-found'))
+    // One unchecked on another phone since the list was drawn is skipped.
+    const tasks = (rows as Doc<'tasks'>[]).filter((task) => task.done)
     const open = await ctx.db
       .query('tasks')
       .withIndex('by_list_and_done', (q) =>
@@ -1455,7 +1461,7 @@ export const putBackChecked = mutation({
       .take(OPEN_ITEMS_SCAN_LIMIT)
     const seen = new Set(open.map((task) => groceryTitleKey(task.title)))
     const added: Id<'tasks'>[] = []
-    for (const task of tasks as Doc<'tasks'>[]) {
+    for (const task of tasks) {
       const key = groceryTitleKey(task.title)
       if (seen.has(key)) continue
       seen.add(key)
@@ -1478,6 +1484,8 @@ export const removePutBack = mutation({
   },
   returns: v.number(),
   handler: async (ctx, args) => {
+    if (args.taskIds.length > OPEN_ITEMS_SCAN_LIMIT)
+      throw new ConvexError(taskRefusal('not-found'))
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     const list = await ctx.db.get(args.listId)
     if (!list || list.groupId !== group._id)

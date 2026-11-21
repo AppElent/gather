@@ -456,17 +456,17 @@ describe('Put back all keeps the history (APP-427)', () => {
     ])
   })
 
-  test('refuses an item that is open or on another list', async () => {
+  test('skips an item unchecked meanwhile, refuses one on another list', async () => {
     const s = await seed()
     await open(s, s.groceries, 'kaas')
     const [kaas] = (await tasksOn(s, s.groceries)).filter((row) => !row.done)
-    await expect(
-      s.as.mutation(api.tasks.putBackChecked, {
-        groupSlug: SLUG,
-        listId: s.groceries,
-        taskIds: [kaas._id],
-      }),
-    ).rejects.toThrow()
+    const melk = await checked(s, 'melk', 1)
+    const added = await s.as.mutation(api.tasks.putBackChecked, {
+      groupSlug: SLUG,
+      listId: s.groceries,
+      taskIds: [kaas._id, melk],
+    })
+    expect(added).toHaveLength(1)
     const elsewhere = await s.t.run((ctx) =>
       ctx.db.insert('tasks', {
         listId: s.market,
