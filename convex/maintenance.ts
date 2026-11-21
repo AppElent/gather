@@ -240,10 +240,13 @@ export const backfillGroceryListKind = internalMutation({
  * and toggling stamps `doneAt` on every list. Open tasks keep no stamp.
  *
  * It exists so the readers can stop reading the no-stamp range of
- * `by_list_and_done_at` for checked items. Until they do, the app reads the
- * same before and after this runs; afterwards, the daily prune
- * (`groceryPrune.ts`) keeps one window of checked items per grocery list
- * instead of two.
+ * `by_list_and_done_at` for checked items. Afterwards a stamped item and a
+ * backfilled one share one window per list: a list with fewer checked items
+ * than a reader's window reads the same as before, a bigger one reads its
+ * newest checks only (accepted in APP-445). The daily prune
+ * (`groceryPrune.ts`) then keeps one window of checked items per grocery
+ * list instead of two, so its next run deletes the oldest backfilled items
+ * beyond it, none of which a reader reads.
  *
  * Pages through `tasks` by `cursor`. Dry unless `{ apply: true }`; run it
  * until `more` is false, then run the dry pass again from the start and
