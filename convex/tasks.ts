@@ -668,6 +668,15 @@ export const update = mutation({
         group._id,
         task.reminder,
       )
+    // A repeating parent's dated subtasks move the same days as its due date,
+    // as they do when it completes (APP-468); a one-off parent's stay put.
+    if (dueDate !== undefined && willRepeat(task, args.repeat))
+      await shiftSubtaskDates(
+        ctx,
+        taskId,
+        group._id,
+        movedDays(task.dueDate, dueDate ?? undefined),
+      )
     if (askAi) await askAiOnce(ctx, group._id, askAi, taskId)
     if (done === true && !task.done)
       await restockCheckedStaples(ctx, group, list, [
