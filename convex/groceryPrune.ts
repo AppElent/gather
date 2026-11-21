@@ -128,6 +128,8 @@ export const pruneCheckedGroceryList = internalMutation({
     const group = list ? await ctx.db.get(list.groupId) : null
     if (!list || !group || list.provider !== 'local') return null
     if (!isGroceryList(group, list)) return null
+    // A step queued before APP-445 for the no-stamp range: nothing to read.
+    if (args.range === 'unstamped') return null
 
     let protectFrom = args.protectFrom
     if (protectFrom === undefined) {
@@ -137,7 +139,6 @@ export const pruneCheckedGroceryList = internalMutation({
       protectFrom = newest[newest.length - 1]._creationTime
     }
 
-    if (args.range === 'unstamped') return null
     const page = await ctx.db
       .query('tasks')
       .withIndex('by_list_and_done_at', (q) =>

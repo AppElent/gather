@@ -178,7 +178,6 @@ describe('Recent', () => {
     })
   })
 
-
   test('holds at most the limit', async () => {
     const s = await seed()
     await s.t.run(async (ctx) => {

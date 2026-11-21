@@ -1237,13 +1237,13 @@ export const groceryHabits = query({
       .flat()
       .filter((task) => task.done && task.doneAt !== undefined)
       .map((task) => ({
-      key: groceryTitleKey(task.title),
-      title: task.title,
-      at: task.doneAt ?? 0,
-      ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
-      ...(task.unit !== undefined ? { unit: task.unit } : {}),
-      ...(task.category !== undefined ? { category: task.category } : {}),
-    }))
+        key: groceryTitleKey(task.title),
+        title: task.title,
+        at: task.doneAt ?? 0,
+        ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
+        ...(task.unit !== undefined ? { unit: task.unit } : {}),
+        ...(task.category !== undefined ? { category: task.category } : {}),
+      }))
     const habits = groceryHabitsOf(purchases)
     if (target.suggestionsOff) {
       return { habits: habits.slice(0, GROCERY_HABITS_LIMIT), suggestions: [] }
