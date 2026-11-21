@@ -212,6 +212,37 @@ describe('pruning checked groceries', () => {
     expect(await readers(s)).toEqual(before)
   })
 
+  test('after the doneAt backfill it deletes only the oldest backfilled items, which nothing reads (APP-445)', async () => {
+    const s = await seed()
+    await fill(s, s.groceries, {
+      legacy: CHECKED_GROCERIES_KEPT + 50,
+      stamped: 30,
+      open: 5,
+    })
+    const stampedBefore = (await rows(s, s.groceries)).all
+      .filter((row) => row.doneAt !== undefined)
+      .map((row) => row._id)
+    let cursor: string | null = null
+    do {
+      const page: { more: boolean; cursor: string } = await s.t.mutation(
+        internal.maintenance.backfillDoneAt,
+        { apply: true, cursor },
+      )
+      cursor = page.more ? page.cursor : null
+    } while (cursor)
+    const before = await readers(s)
+
+    await prune(s)
+
+    const after = await rows(s, s.groceries)
+    expect(after.all.length).toBeLessThan(CHECKED_GROCERIES_KEPT + 85)
+    expect(after.stamped).toBeGreaterThanOrEqual(CHECKED_GROCERIES_KEPT)
+    expect(after.open).toBe(5)
+    const kept = new Set(after.all.map((row) => row._id))
+    expect(stampedBefore.every((id) => kept.has(id))).toBe(true)
+    expect(await readers(s)).toEqual(before)
+  })
+
   test('a dry run deletes nothing', async () => {
     const s = await seed()
     await fill(s, s.groceries, { stamped: CHECKED_GROCERIES_KEPT + 20 })

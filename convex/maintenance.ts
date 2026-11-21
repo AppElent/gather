@@ -230,6 +230,70 @@ export const backfillGroceryListKind = internalMutation({
 })
 
 /**
+ * Stamps `doneAt` on every task checked before it existed (APP-445): the
+ * moment it was added (`_creationTime`) stands in for when it was checked,
+ * which is what Recent and the habits already read for those items
+ * (`tasks.recentGroceries`, `tasks.groceryHabits`). Every such item was added
+ * before any stamp was written (APP-310), so each one still sorts after every
+ * stamped item and the readers' order is unchanged. It covers every list,
+ * not only grocery lists: any list can become one (`kitchen.setGroceryList`),
+ * and toggling stamps `doneAt` on every list. Open tasks keep no stamp.
+ *
+ * It exists so the readers can stop reading the no-stamp range of
+ * `by_list_and_done_at` for checked items. Afterwards a stamped item and a
+ * backfilled one share one window per list: a list with fewer checked items
+ * than a reader's window reads the same as before, a bigger one reads its
+ * newest checks only (accepted in APP-445). The daily prune
+ * (`groceryPrune.ts`) then keeps one window of checked items per grocery
+ * list instead of two, so its next run deletes the oldest backfilled items
+ * beyond it, none of which a reader reads.
+ *
+ * Pages through `tasks` by `cursor`. Dry unless `{ apply: true }`; run it
+ * until `more` is false, then run the dry pass again from the start and
+ * confirm every page reports `missing` zero.
+ */
+const DONE_AT_BATCH = 200
+
+export const backfillDoneAt = internalMutation({
+  args: {
+    apply: v.optional(v.boolean()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+    // Rows per call, at most the default; tests use a small one to page.
+    batch: v.optional(v.number()),
+  },
+  returns: v.object({
+    apply: v.boolean(),
+    scanned: v.number(),
+    missing: v.number(),
+    more: v.boolean(),
+    cursor: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const numItems = Math.max(
+      1,
+      Math.min(DONE_AT_BATCH, Math.floor(args.batch ?? DONE_AT_BATCH)),
+    )
+    const page = await ctx.db
+      .query('tasks')
+      .paginate({ numItems, cursor: args.cursor ?? null })
+    const missing = page.page.filter(
+      (task) => task.done && task.doneAt === undefined,
+    )
+    if (apply)
+      for (const task of missing)
+        await ctx.db.patch(task._id, { doneAt: task._creationTime })
+    return {
+      apply,
+      scanned: page.page.length,
+      missing: missing.length,
+      more: !page.isDone,
+      cursor: page.continueCursor,
+    }
+  },
+})
+
+/**
  * Copies the Pantry into Groceries' staples (APP-314, In stock). Each
  * `pantryEntries` row becomes a staple in stock with the same name, its free
  * quantity kept as the staple's note, in the aisle the Group's grocery list
