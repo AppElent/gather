@@ -247,15 +247,10 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
         </p>
       ) : null}
 
-      <div className="grid gap-2">
-        <div>
-          <button type="submit" className={PRIMARY} disabled={saving}>
-            {saving ? copy.form.saving : copy.form.submit}
-          </button>
-        </div>
-        <p className="m-0 text-xs text-[var(--app-muted)]">
-          {copy.form.footnote}
-        </p>
+      <div>
+        <button type="submit" className={PRIMARY} disabled={saving}>
+          {saving ? copy.form.saving : copy.form.submit}
+        </button>
       </div>
     </form>
   )

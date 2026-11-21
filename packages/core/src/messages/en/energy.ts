@@ -37,8 +37,9 @@ export const energy = {
     manualHint: 'Estimated per day. A good way to start.',
     submit: 'Continue',
     saving: 'Saving…',
-    footnote:
-      'Prices work right away, no key needed. You set up the contract and price source later.',
+    // The design's footnote ("Prices work right away, no key needed…") comes
+    // back with prices themselves (APP-493); until then it would promise
+    // something the Module cannot do yet.
   },
   /** An address that exists, before the screens that fill it (APP-493..496). */
   site: {

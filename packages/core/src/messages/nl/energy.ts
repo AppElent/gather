@@ -26,8 +26,6 @@ export const energy = {
     manualHint: 'Per dag geschat. Goed om mee te beginnen.',
     submit: 'Verder',
     saving: 'Bewaren…',
-    footnote:
-      'Prijzen werken meteen, zonder sleutel. Contract en prijsbron stel je later in.',
   },
   site: {
     sourceNone: 'Nog geen bron gekoppeld',

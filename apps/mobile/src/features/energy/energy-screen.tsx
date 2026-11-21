@@ -300,9 +300,6 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
         onPress={submit}
         testID="energy-submit"
       />
-      <Text style={[TYPE.footnote, styles.hint, { color: tokens.muted }]}>
-        {words.form.footnote}
-      </Text>
     </View>
   )
 }
