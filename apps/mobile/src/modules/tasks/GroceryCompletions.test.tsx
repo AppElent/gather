@@ -105,6 +105,7 @@ const openMelk: Task = {
   title: 'Melk',
   done: false,
   labels: [],
+  order: 0,
   quantity: 1,
   unit: 'pak',
 }
