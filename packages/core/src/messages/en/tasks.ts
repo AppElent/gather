@@ -178,6 +178,8 @@ export const tasks = {
     aisle: 'Aisle',
     /** Under the composer while a line is typed. */
     recognised: 'Recognised without AI, also offline',
+    /** Read out for the composer's aisle chip, which opens the aisle menu. */
+    changeAisleHint: 'Choose the aisle it is added in',
     // The list in aisle sections, the Checked row and Recent (APP-310;
     // `designs/groceries/README.md` sections 1 and 4).
     /** Read out for an aisle section's heading: the aisle and its count. */
