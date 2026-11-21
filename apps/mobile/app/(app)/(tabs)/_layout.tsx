@@ -30,11 +30,14 @@ import {
   type QuickSheetRequest,
   takeQuickSheetRequest,
 } from '../../../src/shell/quickSheetRequest'
+import { useTabBarHidden } from '../../../src/shell/tabBarVisibility'
 import { SHELL_TABS } from '../../../src/shell/tabs'
 
 export default function TabsLayout() {
   const { t } = useI18n()
   const { group } = useGroup()
+  // A full-screen mode, such as groceries shopping mode, holds it hidden.
+  const tabBarHidden = useTabBarHidden()
   const [launcherOpen, setLauncherOpen] = useState(false)
   // The last `<scheme>://quick` request, and how many there have been: the
   // count tells the sheet a new one arrived, so the action it names opens even
@@ -64,7 +67,11 @@ export default function TabsLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <NativeTabs labelVisibilityMode="labeled" minimizeBehavior="onScrollDown">
+      <NativeTabs
+        labelVisibilityMode="labeled"
+        minimizeBehavior="onScrollDown"
+        hidden={tabBarHidden}
+      >
         {SHELL_TABS.map((tab) => (
           <NativeTabs.Trigger
             key={tab.name}
