@@ -34,6 +34,16 @@ describe('the store build, with the real catalogue', () => {
     }
   })
 
+  test('a Module with phone screens is not left marked a placeholder there', () => {
+    // The reverse of the check above: a Module that gains screens in
+    // `NATIVE_MODULES` must also flip `mobileStatus`, or the store build hides it.
+    for (const module of MODULES) {
+      if (isNativeModule(module.id)) {
+        expect(module.mobileStatus, module.id).toBe('live')
+      }
+    }
+  })
+
   test('shows every Module with a working phone screen', () => {
     // The verdict per Module, checked against the screens in APP-374.
     expect(

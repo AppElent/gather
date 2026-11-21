@@ -875,6 +875,11 @@ export const nl = {
       noList:
         'Deze Groep heeft nog geen lijst waar Gather een taak aan kan toevoegen.',
       failed: 'Die taak kon niet worden toegevoegd. Probeer het opnieuw.',
+      hint: 'Datum, herhalen, @lid en #label worden herkend',
+      moreDetails: 'Meer details',
+      remove: '{part} weghalen',
+      listChip: 'Lijst: {list}, wijzigen',
+      reminderFailed: 'De taak is toegevoegd, maar de herinnering niet.',
     },
     today: 'Vandaag',
     todayEmpty: 'Niets wat vandaag af moet.',

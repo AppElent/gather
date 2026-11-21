@@ -28,6 +28,7 @@ import {
   type TaskListKind,
   taskListFace,
 } from '@gather/core/task-lists'
+import type { QuickAdd } from '@gather/core/task-quick-add'
 import type { ReminderClock } from '@gather/core/task-reminders'
 import { nextDueDate, type TaskRepeat } from '@gather/core/task-repeat'
 import type { OptimisticLocalStore } from 'convex/browser'
@@ -37,6 +38,7 @@ import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { api, type Doc, type Id } from '../../convex/api'
 import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
+import { deviceTimeZone } from './reminder'
 import type { ListDisplay, ListSync, Priority, Task, TaskList } from './types'
 
 type ListRow = FunctionReturnType<typeof api.taskLists.list>[number]
@@ -628,6 +630,48 @@ export function useTaskActions() {
         ...(grocery ? groceryAddFields(title) : { title }),
         ...(sectionId ? { sectionId } : {}),
       }),
+    /**
+     * A quick-add line onto a list (APP-307): the title with what was
+     * recognised in it as the task's fields. A time becomes the caller's
+     * reminder, written once the task exists; if that write fails the task
+     * stays, without it, and the answer says so.
+     */
+    addParsedTask: async (
+      listId: string,
+      parsed: QuickAdd,
+      sectionId?: string,
+    ): Promise<{ taskId: string; reminderFailed: boolean }> => {
+      const taskId = await add({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        title: parsed.title,
+        today: localIsoDate(),
+        ...(parsed.dueDate ? { dueDate: parsed.dueDate } : {}),
+        ...(parsed.repeat ? { repeat: parsed.repeat } : {}),
+        ...(parsed.assigneeId
+          ? { assigneeId: parsed.assigneeId as Id<'users'> }
+          : {}),
+        ...(parsed.labels.length > 0 ? { labels: parsed.labels } : {}),
+        ...(sectionId ? { sectionId } : {}),
+      })
+      if (!parsed.time || !parsed.dueDate) {
+        return { taskId, reminderFailed: false }
+      }
+      try {
+        await setReminder({
+          taskId,
+          groupSlug,
+          reminder: {
+            date: parsed.dueDate,
+            time: parsed.time,
+            timeZone: deviceTimeZone(),
+          },
+        })
+        return { taskId, reminderFailed: false }
+      } catch {
+        return { taskId, reminderFailed: true }
+      }
+    },
     /**
      * Ticks a task, or completes a repeating one's open occurrence. The
      * phone's own day goes along, so "after done" counts from it.
