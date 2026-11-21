@@ -252,11 +252,41 @@ describe('undo', () => {
         groupSlug: DE_VRIES,
       }),
     ).rejects.toThrow('Task not found')
-    await expect(
-      t
+    // Reading is no refusal: another Group's task has no history to show.
+    expect(
+      await t
         .withIdentity(bob)
         .query(api.tasks.completions, { taskId, groupSlug: DE_VRIES }),
-    ).rejects.toThrow('Task not found')
+    ).toEqual([])
+  })
+
+  test('a deleted task reads as no history, not a throw (APP-519)', async () => {
+    const { t, listId } = await seed()
+    const taskId = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId,
+      groupSlug: JANSEN,
+      title: 'Ramen',
+      dueDate: '2026-11-19',
+      repeat: { mode: 'fixed', unit: 'day', every: 2 },
+    })
+    await t
+      .withIdentity(alice)
+      .mutation(api.tasks.toggleDone, { taskId, groupSlug: JANSEN, today: TODAY })
+    // The phone's retained subscription re-runs after the screen deletes it.
+    await t
+      .withIdentity(alice)
+      .mutation(api.tasks.remove, { taskId, groupSlug: JANSEN })
+    expect(
+      await t
+        .withIdentity(alice)
+        .query(api.tasks.completions, { taskId, groupSlug: JANSEN }),
+    ).toEqual([])
+    // The Group is still refused, and distinctly.
+    await expect(
+      t
+        .withIdentity(alice)
+        .query(api.tasks.completions, { taskId, groupSlug: 'nobody' }),
+    ).rejects.toThrow('No group has that slug')
   })
 })
 
