@@ -5,7 +5,8 @@
  * checklist inside another Module — so a tick, a swipe and a hold mean the same
  * thing wherever the task appears.
  */
-import { type ReactNode, type RefObject, useRef } from 'react'
+import type { GroceryAisle } from '@gather/core/groceries'
+import { type ReactNode, type RefObject, useRef, useState } from 'react'
 import {
   Alert,
   type HostInstance,
@@ -335,6 +336,10 @@ export function TaskComposer({
     reset,
   } = useQuickAddLine(recognise)
   const { t } = useI18n()
+  // The aisle a Member chose in the preview, for the line it was chosen for
+  // (APP-524): a line typed differently since has not been given one.
+  const [choice, setChoice] = useState<{ line: string; aisle: GroceryAisle }>()
+  const aisle = choice?.line === draft.trim() ? choice.aisle : undefined
   const fieldRef = useRef<HostInstance>(null)
 
   // Brings the field back above the keyboard once the new row has pushed it
@@ -364,6 +369,7 @@ export function TaskComposer({
     // Cleared first: the row appears the moment it is accepted, and a second
     // tap cannot submit the same line twice while the write is in flight.
     reset()
+    setChoice(undefined)
     // Answers whether a typed time could not become the reminder.
     const write: Promise<boolean> = parent
       ? actions.addSubtask(parent, title).then(() => false)
@@ -371,7 +377,18 @@ export function TaskComposer({
         ? actions
             .addParsedTask(listId, read, sectionId)
             .then((saved) => saved.reminderFailed)
-        : actions.addTask(listId, title, grocery, sectionId).then(() => false)
+        : actions.addTask(listId, title, grocery, sectionId).then((taskId) => {
+            // Then moved to the chosen aisle the way the item screen moves
+            // it, so the Group keeps the choice for the name. Untouched, the
+            // server's aisle stands. If only the move fails, the item is
+            // still added.
+            if (grocery && aisle && taskId) {
+              actions
+                .setAisle(taskId, aisle)
+                .catch(() => haptics.actionFailed())
+            }
+            return false
+          })
     write.then(
       (reminderFailed) => {
         haptics.itemSaved()
@@ -453,7 +470,12 @@ export function TaskComposer({
         />
       ) : null}
       {field}
-      <GroceryPreview line={draft} />
+      <GroceryPreview
+        listId={listId}
+        line={draft}
+        aisle={aisle}
+        onAisle={(next) => setChoice({ line: draft.trim(), aisle: next })}
+      />
     </View>
   )
 }
