@@ -6,7 +6,7 @@
  *
  * The preference filter hides a recipe only on a certain clash; a "controleer
  * zelf" stays in the list with its reason. Row text and the hidden line's
- * reasons come from `describeClash` and `clashReasons`.
+ * reasons come from `describeClashes` (one line, however many "controleer zelf") and `clashReasons`.
  */
 import { localMidnight } from '@gather/core/civil-date'
 import {
@@ -18,7 +18,7 @@ import {
 } from '@gather/core/meal-planner'
 import {
   clashReasons,
-  describeClash,
+  describeClashes,
   fitsPreferences,
   recipeClashes,
 } from '@gather/core/meal-preferences'
@@ -234,21 +234,16 @@ export function PickSheet({
                   ? fmt(pickWords.alreadyOn, { day: days.join(', ') })
                   : null,
               ].filter(Boolean)
-              // A certain clash first; else the "controleer zelf".
-              const clash =
-                recipe.clashes.find((entry) => !entry.uncertain) ??
-                recipe.clashes[0]
+              // A certain clash first; else one combined "controleer zelf".
+              const clash = describeClashes(recipe.clashes, t.mealPreferences)
+              const certainClash = recipe.clashes.some((entry) => !entry.uncertain)
               return (
                 <InsetRow
                   key={recipe._id}
                   testID={`pick-recipe-${recipe.title}`}
                   title={recipe.title}
-                  subtitle={
-                    clash
-                      ? describeClash(clash, t.mealPreferences)
-                      : facts.join(' · ') || undefined
-                  }
-                  subtitleTone={clash && !clash.uncertain ? 'danger' : 'muted'}
+                  subtitle={clash ?? (facts.join(' · ') || undefined)}
+                  subtitleTone={certainClash ? 'danger' : 'muted'}
                   leading={<MealThumb imageUrl={recipe.imageUrl} quick={false} />}
                   onPress={() => choose({ recipeId: recipe._id })}
                 />
