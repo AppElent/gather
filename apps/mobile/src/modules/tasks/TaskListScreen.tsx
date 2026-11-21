@@ -15,6 +15,7 @@
  */
 
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
+import { aisleOrder } from '@gather/core/groceries'
 import { readTaskRefusal } from '@gather/core/refusals'
 import { reorderWithSubtasks, topLevelTasks } from '@gather/core/subtasks'
 import {
@@ -50,7 +51,12 @@ import { WashHeader } from '../../ui/wash-header'
 import { Chip, priorityColor } from './components'
 import { GroceryAmount, useGroceryAmountText } from './GroceryFields'
 import { GroceryListBody } from './GroceryListBody'
-import { checkedOncePerName, inCheckedSection } from './groceryList'
+import {
+  aisleArrangement,
+  aisleMoves,
+  checkedOncePerName,
+  inCheckedSection,
+} from './groceryList'
 import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
 import { AppearanceSheet } from './listFace'
 import { PackingProgress, UncheckAll } from './packing'
@@ -463,21 +469,49 @@ export function TaskList({
           {reordering ? (
             <ReorderMode
               tasks={listed}
-              sections={list.sections}
+              // A grocery list is arranged in its aisles (APP-522): an item
+              // dragged under another aisle's heading moves to that aisle.
+              sections={
+                grocery
+                  ? aisleOrder(list.aisleOrder).map((aisle) => ({
+                      id: aisle,
+                      name: t.tasks.grocery.aisles[aisle],
+                    }))
+                  : list.sections
+              }
+              arrangement={
+                grocery ? aisleArrangement(listed, list.aisleOrder) : undefined
+              }
+              hint={grocery ? t.tasks.list.reorderAislesHint : undefined}
+              note={grocery ? t.tasks.list.reorderChecked : undefined}
               display={list.display}
               today={today}
               scrollRef={scrollRef}
               onDragging={setDragging}
-              onCommit={(ids, sectionIds) =>
-              {
+              onCommit={(ids, sectionIds) => {
+                const failed = () => haptics.actionFailed()
+                if (grocery) {
+                  // The order within each aisle, then each moved item's new
+                  // aisle as the Member's own choice, which the Group keeps
+                  // for the name as a choice in the item sheet is (APP-353).
+                  actions
+                    .reorderTasks(
+                      list.id,
+                      reorderWithSubtasks(ids, undefined, tasks, inPlace).ids,
+                    )
+                    .catch(failed)
+                  for (const move of aisleMoves(listed, ids, sectionIds)) {
+                    actions.setAisle(move.id, move.aisle).catch(failed)
+                  }
+                  return
+                }
                 // The server wants every task once, subtasks included: each
                 // parent's go right behind it (APP-304).
                 const all = reorderWithSubtasks(ids, sectionIds, tasks, inPlace)
                 actions
                   .reorderTasks(list.id, all.ids, all.sectionIds)
-                  .catch(() => haptics.actionFailed())
-              }
-              }
+                  .catch(failed)
+              }}
             />
           ) : (
             <>

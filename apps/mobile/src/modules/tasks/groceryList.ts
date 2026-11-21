@@ -12,6 +12,7 @@ import {
   isGroceryAisle,
   parseGroceryLine,
 } from '@gather/core/groceries'
+import { headingKey } from './sectionArrange'
 
 /** The aisle an item is shown under: its own, or Other when it has none. */
 export function aisleOf(task: { category?: string }): GroceryAisle {
@@ -37,6 +38,42 @@ export function aisleSections<T extends { category?: string }>(
   return aisleOrder(order).flatMap((aisle) => {
     const rows = byAisle.get(aisle)
     return rows ? [{ aisle, tasks: rows }] : []
+  })
+}
+
+/**
+ * Reorder mode's column on a grocery list (APP-522): every aisle's heading in
+ * the list's aisle order, each followed by its items in their order. An empty
+ * aisle keeps its heading, so an item can be dragged into it; there is no
+ * "No section", because an item without an aisle is under Other.
+ */
+export function aisleArrangement(
+  tasks: readonly { id: string; category?: string }[],
+  order?: readonly string[] | null,
+): string[] {
+  return aisleOrder(order).flatMap((aisle) => [
+    headingKey(aisle),
+    ...tasks.filter((task) => aisleOf(task) === aisle).map((task) => task.id),
+  ])
+}
+
+/**
+ * The items a drop put under another aisle, with the aisle each is under now
+ * (APP-522). `aisles` is by position in `ids`, as Reorder mode commits it; an
+ * item that stayed in its aisle, Other included, is not a change.
+ */
+export function aisleMoves(
+  tasks: readonly { id: string; category?: string }[],
+  ids: readonly string[],
+  aisles: readonly (string | null)[] | undefined,
+): { id: string; aisle: GroceryAisle }[] {
+  if (!aisles) return []
+  const byId = new Map(tasks.map((task) => [task.id, task]))
+  return ids.flatMap((id, index) => {
+    const task = byId.get(id)
+    const aisle = aisles[index]
+    if (!task || !isGroceryAisle(aisle) || aisleOf(task) === aisle) return []
+    return [{ id, aisle }]
   })
 }
 

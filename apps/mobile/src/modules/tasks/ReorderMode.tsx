@@ -16,7 +16,9 @@
  * Type, so each row is measured as it lays out and the drop arithmetic walks
  * those heights rather than dividing by one. On a list with sections each
  * section's heading is a fixed row in the same column, and a task dragged
- * past one moves into that section (`sectionArrange.ts`, APP-357). There is no drag-and-drop
+ * past one moves into that section (`sectionArrange.ts`, APP-357). On a grocery
+ * list the headings are its aisles, every one in the list's aisle order, and
+ * an item dragged under another aisle moves there (APP-522). There is no drag-and-drop
  * dependency: a list that does not auto-scroll is short, and the library is
  * five hundred kilobytes and a native rebuild.
  *
@@ -64,6 +66,9 @@ interface DragHandlers {
 export function ReorderMode({
   tasks,
   sections = [],
+  arrangement,
+  hint,
+  note,
   display,
   today,
   scrollRef,
@@ -74,6 +79,15 @@ export function ReorderMode({
   tasks: Task[]
   /** The list's sections; a task dragged under a heading joins it. */
   sections?: readonly TaskSection[]
+  /**
+   * The column to open with, when it is not the list's own sections: a
+   * grocery list's aisles (`aisleArrangement`, APP-522), whose headings are
+   * named by `sections` and which has no "No section".
+   */
+  arrangement?: readonly string[]
+  /** The banner's words, and the line under the column, when not a task list's. */
+  hint?: string
+  note?: string
   display: ListDisplay
   today: string
   /**
@@ -91,7 +105,9 @@ export function ReorderMode({
 
   // The arrangement while the mode is open. Committed on every drop rather
   // than on Done, so leaving by the back gesture cannot lose the work.
-  const [order, setOrder] = useState(() => arrangementOf(sections, tasks))
+  const [order, setOrder] = useState(() =>
+    arrangement ? [...arrangement] : arrangementOf(sections, tasks),
+  )
   const sectioned = sections.length > 0
   const byId = new Map(tasks.map((task) => [task.id, task]))
   const names = new Map(sections.map((section) => [section.id, section.name]))
@@ -171,7 +187,7 @@ export function ReorderMode({
           importantForAccessibility="no"
         />
         <Text style={[styles.hintText, { color: tokens.ink }]}>
-          {t.tasks.list.reorderHint}
+          {hint ?? t.tasks.list.reorderHint}
         </Text>
       </View>
 
@@ -300,7 +316,7 @@ export function ReorderMode({
       </Column>
 
       <Text style={[styles.note, { color: tokens.muted }]}>
-        {t.tasks.list.reorderCompleted}
+        {note ?? t.tasks.list.reorderCompleted}
       </Text>
     </View>
   )

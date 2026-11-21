@@ -1,7 +1,10 @@
+import { GROCERY_AISLES } from '@gather/core/groceries'
 import { describe, expect, test } from 'vitest'
-
+import { movedTo } from '../../arrange/arrange'
 import {
+  aisleArrangement,
   aisleCounts,
+  aisleMoves,
   aisleOf,
   aisleSections,
   checkedOncePerName,
@@ -11,6 +14,7 @@ import {
   recentDays,
   recentWeeks,
 } from './groceryList'
+import { committed, firstDropIndex, headingKey } from './sectionArrange'
 
 describe('aisle sections', () => {
   test('in the default walking order, empty aisles left out, order kept', () => {
@@ -137,5 +141,66 @@ describe('the Checked section', () => {
       'kaas',
       'brood-new',
     ])
+  })
+})
+
+describe('dragging between aisles (APP-522)', () => {
+  const items = [
+    { id: 'cola', category: 'drinks' },
+    { id: 'appels', category: 'produce' },
+    { id: 'mystery' },
+    { id: 'peren', category: 'produce' },
+  ]
+
+  test('every aisle has a heading, empty ones too, in the list order', () => {
+    const order = aisleArrangement(items, ['drinks', 'produce'])
+    expect(order.slice(0, 5)).toEqual([
+      headingKey('drinks'),
+      'cola',
+      headingKey('produce'),
+      'appels',
+      'peren',
+    ])
+    // Every other aisle follows in the default order, Other with the item
+    // that has none; nothing lands above the first heading.
+    expect(order.filter((key) => key.startsWith('§'))).toHaveLength(
+      GROCERY_AISLES.length,
+    )
+    expect(order.slice(-2)).toEqual([headingKey('other'), 'mystery'])
+    expect(firstDropIndex(order)).toBe(1)
+  })
+
+  test('an item dropped under another aisle moves there, and only it', () => {
+    const order = aisleArrangement(items, ['drinks', 'produce'])
+    // Cola, from Drinks to below Appels in Produce.
+    const next = movedTo(order, order.indexOf('cola'), order.indexOf('appels'))
+    const { ids, sectionIds } = committed(next)
+    expect(ids).toEqual(['appels', 'cola', 'peren', 'mystery'])
+    expect(aisleMoves(items, ids, sectionIds)).toEqual([
+      { id: 'cola', aisle: 'produce' },
+    ])
+  })
+
+  test('into an empty aisle, and out of Other', () => {
+    const order = aisleArrangement(items, null)
+    // The default order starts with Produce, then Bakery, which is empty.
+    const next = movedTo(
+      order,
+      order.indexOf('mystery'),
+      order.indexOf(headingKey('bakery')) + 1,
+    )
+    const { ids, sectionIds } = committed(next)
+    expect(aisleMoves(items, ids, sectionIds)).toEqual([
+      { id: 'mystery', aisle: 'bakery' },
+    ])
+  })
+
+  test('rearranging within an aisle changes no aisle', () => {
+    const order = aisleArrangement(items, null)
+    const next = movedTo(order, order.indexOf('peren'), order.indexOf('appels'))
+    const { ids, sectionIds } = committed(next)
+    expect(ids.slice(0, 2)).toEqual(['peren', 'appels'])
+    expect(aisleMoves(items, ids, sectionIds)).toEqual([])
+    expect(aisleMoves(items, ids, undefined)).toEqual([])
   })
 })
