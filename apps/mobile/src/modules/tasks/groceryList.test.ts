@@ -4,7 +4,6 @@ import { movedTo } from '../../arrange/arrange'
 import {
   aisleArrangement,
   aisleCounts,
-  aisleMoves,
   aisleOf,
   aisleSections,
   checkedOncePerName,
@@ -14,7 +13,12 @@ import {
   recentDays,
   recentWeeks,
 } from './groceryList'
-import { committed, firstDropIndex, headingKey } from './sectionArrange'
+import {
+  committed,
+  firstDropIndex,
+  headingKey,
+  sectionMove,
+} from './sectionArrange'
 
 describe('aisle sections', () => {
   test('in the default walking order, empty aisles left out, order kept', () => {
@@ -174,11 +178,9 @@ describe('dragging between aisles (APP-522)', () => {
     const order = aisleArrangement(items, ['drinks', 'produce'])
     // Cola, from Drinks to below Appels in Produce.
     const next = movedTo(order, order.indexOf('cola'), order.indexOf('appels'))
-    const { ids, sectionIds } = committed(next)
-    expect(ids).toEqual(['appels', 'cola', 'peren', 'mystery'])
-    expect(aisleMoves(items, ids, sectionIds)).toEqual([
-      { id: 'cola', aisle: 'produce' },
-    ])
+    expect(committed(next).ids).toEqual(['appels', 'cola', 'peren', 'mystery'])
+    expect(sectionMove(order, next, 'cola')).toBe('produce')
+    expect(sectionMove(order, next, 'appels')).toBeUndefined()
   })
 
   test('into an empty aisle, and out of Other', () => {
@@ -189,18 +191,22 @@ describe('dragging between aisles (APP-522)', () => {
       order.indexOf('mystery'),
       order.indexOf(headingKey('bakery')) + 1,
     )
-    const { ids, sectionIds } = committed(next)
-    expect(aisleMoves(items, ids, sectionIds)).toEqual([
-      { id: 'mystery', aisle: 'bakery' },
-    ])
+    expect(sectionMove(order, next, 'mystery')).toBe('bakery')
   })
 
   test('rearranging within an aisle changes no aisle', () => {
     const order = aisleArrangement(items, null)
     const next = movedTo(order, order.indexOf('peren'), order.indexOf('appels'))
-    const { ids, sectionIds } = committed(next)
-    expect(ids.slice(0, 2)).toEqual(['peren', 'appels'])
-    expect(aisleMoves(items, ids, sectionIds)).toEqual([])
-    expect(aisleMoves(items, ids, undefined)).toEqual([])
+    expect(committed(next).ids.slice(0, 2)).toEqual(['peren', 'appels'])
+    expect(sectionMove(order, next, 'peren')).toBeUndefined()
+  })
+
+  test('an aisle changed elsewhere while arranging is not written back', () => {
+    // Opened with Cola under Drinks; another phone (or the AI) then moved it
+    // to Snacks. Dragging Peren within Produce says nothing about Cola.
+    const order = aisleArrangement(items, ['drinks', 'produce'])
+    const next = movedTo(order, order.indexOf('peren'), order.indexOf('appels'))
+    expect(sectionMove(order, next, 'peren')).toBeUndefined()
+    expect(sectionMove(order, next, 'cola')).toBeUndefined()
   })
 })

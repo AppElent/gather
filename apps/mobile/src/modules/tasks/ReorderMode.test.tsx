@@ -118,7 +118,7 @@ beforeEach(() => grips.clear())
 
 test('an item dragged under the next aisle commits in that aisle', () => {
   const tasks = [task('a', 'Appels', 'produce'), task('c', 'Cola', 'drinks')]
-  const commits: [string[], (string | null)[] | undefined][] = []
+  const commits: unknown[][] = []
   const aisles = ['produce', 'bakery', 'drinks'] as const
   const view = mount(
     <ReorderMode
@@ -130,7 +130,7 @@ test('an item dragged under the next aisle commits in that aisle', () => {
       today="2026-11-21"
       scrollRef={{ current: null }}
       onDragging={() => {}}
-      onCommit={(ids, sectionIds) => commits.push([ids, sectionIds])}
+      onCommit={(...args) => commits.push(args)}
     />,
   )
 
@@ -147,7 +147,9 @@ test('an item dragged under the next aisle commits in that aisle', () => {
   act(() => appels.begin())
   act(() => appels.update({ translationY: 52 }))
   act(() => appels.finalize())
-  expect(commits).toEqual([[['a', 'c'], ['bakery', 'drinks']]])
+  expect(commits).toEqual([
+    [['a', 'c'], ['bakery', 'drinks'], { id: 'a', sectionId: 'bakery' }],
+  ])
 
   view.unmount()
 })
@@ -164,7 +166,7 @@ test('nothing lands above the first aisle, and a tap commits nothing', () => {
       today="2026-11-21"
       scrollRef={{ current: null }}
       onDragging={() => {}}
-      onCommit={(ids, sectionIds) => commits.push([ids, sectionIds])}
+      onCommit={(...args) => commits.push(args)}
     />,
   )
 
@@ -178,7 +180,8 @@ test('nothing lands above the first aisle, and a tap commits nothing', () => {
   act(() => peren.begin())
   act(() => peren.update({ translationY: -500 }))
   act(() => peren.finalize())
-  expect(commits).toEqual([[['p', 'a'], ['produce', 'produce']]])
+  // Rearranged within its aisle: no aisle change goes with it.
+  expect(commits).toEqual([[['p', 'a'], ['produce', 'produce'], undefined]])
 
   view.unmount()
 })

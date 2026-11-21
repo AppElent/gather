@@ -15,7 +15,7 @@
  */
 
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
-import { aisleOrder } from '@gather/core/groceries'
+import { aisleOrder, isGroceryAisle } from '@gather/core/groceries'
 import { readTaskRefusal } from '@gather/core/refusals'
 import { reorderWithSubtasks, topLevelTasks } from '@gather/core/subtasks'
 import {
@@ -53,7 +53,6 @@ import { GroceryAmount, useGroceryAmountText } from './GroceryFields'
 import { GroceryListBody } from './GroceryListBody'
 import {
   aisleArrangement,
-  aisleMoves,
   checkedOncePerName,
   inCheckedSection,
 } from './groceryList'
@@ -488,20 +487,22 @@ export function TaskList({
               today={today}
               scrollRef={scrollRef}
               onDragging={setDragging}
-              onCommit={(ids, sectionIds) => {
+              onCommit={(ids, sectionIds, moved) => {
                 const failed = () => haptics.actionFailed()
                 if (grocery) {
-                  // The order within each aisle, then each moved item's new
-                  // aisle as the Member's own choice, which the Group keeps
-                  // for the name as a choice in the item sheet is (APP-353).
+                  // The order within each aisle, then the dragged item's new
+                  // aisle, saved as a Member's own choice: the Group keeps it
+                  // for the item's name, as a choice in the item sheet
+                  // (APP-353). Only the drop's own item, so an aisle another
+                  // phone or the AI changed meanwhile is not written back.
                   actions
                     .reorderTasks(
                       list.id,
                       reorderWithSubtasks(ids, undefined, tasks, inPlace).ids,
                     )
                     .catch(failed)
-                  for (const move of aisleMoves(listed, ids, sectionIds)) {
-                    actions.setAisle(move.id, move.aisle).catch(failed)
+                  if (moved && isGroceryAisle(moved.sectionId)) {
+                    actions.setAisle(moved.id, moved.sectionId).catch(failed)
                   }
                   return
                 }
