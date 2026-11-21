@@ -108,7 +108,8 @@ export async function completeOccurrence(
     return null
   }
   const dueDate = nextDueDate(task.repeat, { dueDate: task.dueDate, today })
-  await ctx.db.patch(task._id, { dueDate, done: false })
+  // `doneAt` goes with `done`: an open task carries no check stamp (APP-516).
+  await ctx.db.patch(task._id, { dueDate, done: false, doneAt: undefined })
   await moveReminder(ctx, task, groupId, dueDate)
   const reopened = await reopenSubtasks(ctx, task._id, groupId)
   await shiftSubtaskDates(ctx, task._id, groupId, movedDays(task.dueDate, dueDate))
