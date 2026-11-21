@@ -503,9 +503,9 @@ const MATCHERS: Matcher[] = [
     },
   },
 
-  // ---- labels
+  // ---- labels: with a letter in them, so "Order #12" stays a number
   {
-    pattern: /(?<![\p{L}\p{N}_#])#([\p{L}\p{N}_-]+)/gu,
+    pattern: /(?<![\p{L}\p{N}_#])#([\p{N}_-]*\p{L}[\p{L}\p{N}_-]*)/gu,
     read: (m) => ({ kind: 'label', label: m[1] }),
   },
 ]

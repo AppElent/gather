@@ -97,6 +97,9 @@ const cases: [string, Expected][] = [
   ['Yoga on Saturdays', { title: 'Yoga', dueDate: '2026-11-21', repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [6] } }],
   ['Lunch maken elke werkdag', { title: 'Lunch maken', dueDate: '2026-11-18', repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [1, 2, 3, 4, 5] } }],
   ['Uitslapen elk weekend', { title: 'Uitslapen', dueDate: '2026-11-21', repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [6, 7] } }],
+  // A number after # is not a label.
+  ['Order #12 for the shop', { title: 'Order #12 for the shop' }],
+  ['Box #3a #2026q1', { title: 'Box', labels: ['3a', '2026q1'] }],
   // A weekday repeat with only a time is due on its first day, not today.
   ['Vuilnis elke dinsdag om 19:30', { title: 'Vuilnis', dueDate: '2026-11-24', time: '19:30', repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [2] } }],
   ['Gym every Wednesday at 8:00', { title: 'Gym', dueDate: '2026-11-25', time: '08:00', repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [3] } }],

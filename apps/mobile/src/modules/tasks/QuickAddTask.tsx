@@ -19,6 +19,7 @@ import { MenuView } from '@expo/ui/community/menu'
 import { useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -79,7 +80,9 @@ export function QuickAddTask({
         : await addParsedTask(target._id, parsed)
       haptics.itemSaved()
       reset()
-      if (saved.reminderFailed) setNotice(text.reminderFailed)
+      // An alert, not the notice: `onSaved` may close this form, and a
+      // haptic is never the only word that the reminder did not go in.
+      if (saved.reminderFailed) Alert.alert(text.reminderFailed)
       onSaved(title, target.name)
       if (open) onOpenTask?.(saved.taskId)
     } catch {
@@ -184,8 +187,9 @@ export function QuickAddTask({
       </View>
 
       <View style={styles.footer}>
+        {/* A grocery list reads amounts, not dates: the hint would be wrong. */}
         <Text style={[styles.note, styles.hint, { color: tokens.muted }]}>
-          {text.hint}
+          {grocery ? '' : text.hint}
         </Text>
         {onOpenTask ? (
           <Pressable
