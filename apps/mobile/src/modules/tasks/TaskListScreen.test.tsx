@@ -52,6 +52,7 @@ vi.mock('react-native', async () => {
     View: dom('div'),
     Text: dom('span'),
     Pressable: dom('button'),
+    Platform: { OS: 'ios' },
     RefreshControl: () => null,
     Animated: { View: dom('div'), Value },
     StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 1 },

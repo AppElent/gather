@@ -94,3 +94,22 @@ test('the middle of the view never scrolls, and unmounting stops a held drag', (
   runFrame()
   expect(scrolledTo).toEqual([])
 })
+
+test('a measurement answered after its drag ended does not start the loop', () => {
+  const { edge, scrolledTo, mounted } = setup()
+  // The view answers late: hold its callback until after the drop.
+  const late: (() => void)[] = []
+  const probe = (edge.probeRef as { current: { measureInWindow: unknown } })
+    .current
+  const answer = probe.measureInWindow as (cb: (...a: number[]) => void) => void
+  probe.measureInWindow = (cb: (...a: number[]) => void) =>
+    late.push(() => answer(cb))
+  edge.edgeScroll.begin(() => {})
+  edge.edgeScroll.follow(790)
+  edge.edgeScroll.end()
+  for (const run of late) run()
+  runFrame()
+  expect(scrolledTo).toEqual([])
+  expect(frames).toEqual([])
+  mounted.unmount()
+})

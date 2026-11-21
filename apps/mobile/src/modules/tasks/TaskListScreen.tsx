@@ -28,7 +28,14 @@ import { describeRepeat } from '@gather/core/task-repeat'
 import { Stack, useRouter } from 'expo-router'
 import { useHeaderHeight } from 'expo-router/react-navigation'
 import { type ReactNode, useRef, useState } from 'react'
-import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import {
+  Platform,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 // Gesture Handler's own ScrollView, not React Native's: reorder's drag names
 // this view in `blocksExternalGesture`, and only a scroll view the library
 // knows about can be told to stand down for one touch. Gesture Handler 3's
@@ -129,9 +136,10 @@ export function TaskList({
   const scrollRef = useRef<ScrollView>(null)
   // The header is see-through and iOS insets the list under it, so the
   // edge that scrolls the list sits under the header, as does its top.
+  // Android does not inset it.
   const headerHeight = useHeaderHeight()
   const { edgeScroll, scrollProps, probeRef } = useEdgeScroll(scrollRef, {
-    top: headerHeight,
+    top: Platform.OS === 'ios' ? headerHeight : 0,
     bottom: insets.bottom,
   })
   const [dragging, setDragging] = useState(false)
