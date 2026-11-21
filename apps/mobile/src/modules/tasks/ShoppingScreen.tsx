@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     paddingVertical: 10,
-    paddingRight: SPACE[4],
+    paddingHorizontal: SPACE[4],
   },
   disc: {
     width: 32,
