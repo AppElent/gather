@@ -306,7 +306,10 @@ export function CalendarHeader(props: CalendarHeaderProps) {
 
   // The clip lifts only once the grid that belongs at rest is drawn: lifting
   // it first would show the whole month for a frame after a collapse.
-  const finish = () => setPreviewMonth(false)
+  // A drag that caught the header just as the spring landed keeps its grid.
+  const finish = () => {
+    if (axis.current !== 'y') setPreviewMonth(false)
+  }
   useLayoutEffect(() => {
     if (!previewMonth) moving.value = false
   }, [previewMonth, moving])
