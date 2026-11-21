@@ -91,8 +91,10 @@ describe('emailCodeErrorKey', () => {
     expect(emailCodeErrorKey(withCode('verification_expired'))).toBe(
       'codeExpired',
     )
+    // Clerk: three wrong codes give `form_code_incorrect`, the fourth
+    // `verification_failed` ("Too many failed attempts") (APP-507).
     expect(emailCodeErrorKey(withCode('verification_failed'))).toBe(
-      'codeExpired',
+      'codeAttemptsExceeded',
     )
     expect(emailCodeErrorKey(withCode('too_many_requests'))).toBe('rateLimited')
     expect(emailCodeErrorKey({ status: 429 })).toBe('rateLimited')

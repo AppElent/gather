@@ -65,7 +65,11 @@ export function clerkErrorMessage(
 }
 
 /** The failures of an email-code sign-in a person can act on. */
-export type EmailCodeErrorKey = 'codeIncorrect' | 'codeExpired' | 'rateLimited'
+export type EmailCodeErrorKey =
+  | 'codeIncorrect'
+  | 'codeExpired'
+  | 'codeAttemptsExceeded'
+  | 'rateLimited'
 
 /**
  * Classify a thrown Clerk error from sending or checking an email code.
@@ -83,8 +87,10 @@ export function emailCodeErrorKey(err: unknown): EmailCodeErrorKey | undefined {
     case 'form_code_incorrect':
       return 'codeIncorrect'
     case 'verification_expired':
-    case 'verification_failed':
       return 'codeExpired'
+    // Too many wrong codes: this code is spent, a new one works (APP-527).
+    case 'verification_failed':
+      return 'codeAttemptsExceeded'
     default:
       return undefined
   }

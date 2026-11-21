@@ -760,6 +760,7 @@ export const nl = {
       'Dat wachtwoord is opgedoken in een datalek. Kies er een andere.',
     codeIncorrect: 'Die code klopt niet.',
     codeExpired: coreNl.auth.errors.codeExpired,
+    codeAttemptsExceeded: coreNl.auth.errors.codeAttemptsExceeded,
     emailCodeUnavailable: coreNl.auth.signIn.emailCode.unavailable,
     needsExtraStep: coreNl.auth.errors.needsExtraStep,
     noSecondFactor: coreNl.auth.errors.noSecondFactor,
