@@ -23,6 +23,10 @@ export const loyaltyCards = {
     reorderDrag: '{store} verplaatsen',
     moveUp: '{store} omhoog',
     moveDown: '{store} omlaag',
+    moveUpAction: 'Omhoog verplaatsen',
+    moveDownAction: 'Omlaag verplaatsen',
+    moved: '{store} verplaatst naar positie {position} van {total}',
+    more: 'Meer acties',
   },
   picker: {
     title: 'Kaart toevoegen',

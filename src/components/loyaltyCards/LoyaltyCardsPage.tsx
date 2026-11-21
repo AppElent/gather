@@ -46,6 +46,9 @@ export function LoyaltyCardsPage() {
   const [filter, setFilter] = useState('')
   const [reordering, setReordering] = useState(false)
   const [failed, setFailed] = useState(false)
+  // What a screen reader says after a move: the buttons keep focus, so
+  // nothing else tells it the card went anywhere.
+  const [announcement, setAnnouncement] = useState('')
   // The arrow to focus once a move lands a card at an end, where the one just
   // pressed turns disabled and would drop focus to the page.
   const [focusNext, setFocusNext] = useState<string | null>(null)
@@ -61,10 +64,21 @@ export function LoyaltyCardsPage() {
     const at = next.indexOf(id)
     if (direction === 'up' && at === 0) setFocusNext(`${id}:down`)
     if (direction === 'down' && at === next.length - 1) setFocusNext(`${id}:up`)
+    const card = (cards ?? []).find((each) => each._id === id)
     setFailed(false)
-    reorder({ groupSlug, ids: next as Id<'loyaltyCards'>[] }).catch(() =>
-      setFailed(true),
+    setAnnouncement(
+      card
+        ? fmt(copy.moved, {
+            store: storeLabel(card),
+            position: at + 1,
+            total: next.length,
+          })
+        : '',
     )
+    reorder({ groupSlug, ids: next as Id<'loyaltyCards'>[] }).catch(() => {
+      setAnnouncement('')
+      setFailed(true)
+    })
   }
   useEffect(() => {
     if (!focusNext) return
@@ -122,6 +136,7 @@ export function LoyaltyCardsPage() {
                   onClick={() => {
                     setFilter('')
                     setFailed(false)
+                    setAnnouncement('')
                     setReordering(true)
                   }}
                 >
@@ -167,6 +182,9 @@ export function LoyaltyCardsPage() {
         <>
           <p className="m-0 text-sm text-[var(--app-muted)]">
             {fmt(copy.reorderShared, { group: group.name })}
+          </p>
+          <p role="status" aria-live="polite" className="sr-only">
+            {announcement}
           </p>
           <ol
             aria-label={copy.reorder}

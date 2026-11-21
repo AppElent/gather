@@ -142,7 +142,12 @@ export function LoyaltyCardListScreen() {
                       if (event.nativeEvent.event === 'reorder') startReorder()
                     }}
                   >
-                    <View style={styles.headerButton}>
+                    <View
+                      style={styles.headerButton}
+                      accessible
+                      accessibilityRole="button"
+                      accessibilityLabel={words.index.more}
+                    >
                       <UI_ICONS.Ellipsis
                         size={22}
                         color={tokens.ink}
@@ -245,6 +250,13 @@ export function LoyaltyCardListScreen() {
                 scrollRef={scrollRef}
                 onDragging={setDragging}
                 onCommit={saveOrder}
+                arrivals="first"
+                moveActions={{
+                  up: words.index.moveUpAction,
+                  down: words.index.moveDownAction,
+                  moved: (store, position, total) =>
+                    fmt(words.index.moved, { store, position, total }),
+                }}
                 dragLabel={(label) => fmt(words.index.reorderDrag, { store: label })}
               />
             </>
