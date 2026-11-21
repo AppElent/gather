@@ -25,15 +25,12 @@
  */
 import { MenuView } from '@expo/ui/community/menu'
 import { SMART_LISTS, type SmartListId } from '@gather/core/smart-lists'
-import { topLevelTasks } from '@gather/core/subtasks'
 import { keepsCheckedInPlace } from '@gather/core/task-lists'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { api } from '../../convex/api'
-import { useQuery } from '../../convex/queries'
 import { fmt, type Messages, plural, useI18n } from '../../i18n'
 import { useHiddenSmartLists } from '../../prefs/hiddenSmartLists'
 import { UI_ICONS } from '../../theme/icons'
@@ -49,26 +46,29 @@ import { SMART_LIST_GLYPHS, TASK_ICONS } from './icons'
 import { ListTile } from './listFace'
 import { NewListSheet } from './NewListSheet'
 import { SmartEmpty, SmartHeading, SmartTaskRow } from './smart'
-import { useSmartLists, useTaskState } from './store'
+import { type ListCount, useSmartLists, useTaskIndex } from './store'
 import { useTaskSheets } from './taskMenu'
-import type { Task, TaskList } from './types'
+import type { TaskList } from './types'
 
 export function TaskLists() {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
   const router = useRouter()
-  const state = useTaskState()
-  const taskSheets = useTaskSheets({ tasks: state.tasks })
+  // Counts only (APP-430): never a subscription to a list's rows.
+  const index = useTaskIndex()
   const tile = moduleTile('tasks')
   const [creating, setCreating] = useState(false)
 
-  const lists = [...state.lists].sort((a, b) => a.order - b.order)
+  const lists = [...index.lists].sort((a, b) => a.order - b.order)
 
   // The smart lists (APP-301): one subscription for every local list's open
   // rows, plus what the linked lists last answered. Today is the first
   // section rather than a row, because it is what this screen is opened for.
   const smart = useSmartLists()
+  // Every row this screen draws is a smart row: the Today strip and the
+  // notices below are both read from it, so its sheets need no more.
+  const taskSheets = useTaskSheets({ tasks: smart.tasks })
   const { hidden, toggle: toggleHidden } = useHiddenSmartLists()
   const shown = (id: SmartListId) => !hidden.includes(id)
   const due = smart.byList.today
@@ -79,23 +79,20 @@ export function TaskLists() {
   const smartListOf = (id: string) =>
     smart.lists.find((list) => list.id === id)
 
-  // Counted as each list counts itself: subtasks are steps of their parent's
-  // row there, not rows of their own (APP-304).
-  const openTotal = topLevelTasks(state.tasks).filter((task) => !task.done)
-    .length
+  const openTotal = index.openTotal
 
   // Tasks someone else gave you that you have not opened yet (APP-302): the
   // in-app half of the assignment notice, while push cannot reach the phone.
-  // Opening one clears it (`tasks.markAssignmentSeen`).
-  const me = useQuery(api.users.me, {})
+  // Opening one clears it (`tasks.markAssignmentSeen`). Mine holds every open
+  // task assigned to the caller, so the notices are among its rows.
   const { byId } = useTaskPeople()
-  const notices = me
-    ? state.tasks
+  const notices = smart.me
+    ? smart.tasks
         .filter(
           (task) =>
             !task.done &&
             task.assignmentNotice &&
-            task.assigneeId === me._id,
+            task.assigneeId === smart.me,
         )
         .sort(
           (a, b) =>
@@ -267,7 +264,7 @@ export function TaskLists() {
             <SectionLabel>{t.tasks.lists}</SectionLabel>
             <InsetList>
               {lists.map((list) => {
-                const count = openCount(list, state.tasks, t)
+                const count = openCount(list, index.counts.get(list.id), t)
                 // The type under the name, unless the name already says it.
                 const typed =
                   list.provider === 'local' &&
@@ -351,30 +348,30 @@ export function TaskLists() {
   )
 }
 
-/** How many tasks are left on a list, or that its provider did not answer. */
+/**
+ * How many tasks are left on a list, or that its provider did not answer; ''
+ * until the count is known.
+ */
 function openCount(
   list: TaskList,
-  tasks: readonly Task[],
+  count: ListCount | undefined,
   t: Messages,
 ): string {
   if (list.sync === 'reconnect' || list.sync === 'failed') {
     return t.tasks.notLoaded
   }
+  if (!count) return ''
   // A packing list counts what is packed: its items are ticked off and reset,
   // so "3 left" would read as a list nearly done when it is nearly packed.
-  // Its rows, as the list screen counts them: a subtask is a step of its
-  // parent's row, not a row of its own (APP-304).
-  const items = topLevelTasks(tasks.filter((task) => task.listId === list.id))
   if (keepsCheckedInPlace(list.kind)) {
     return fmt(t.tasks.packing.progress, {
-      done: items.filter((task) => task.done).length,
-      total: items.length,
+      done: count.done ?? 0,
+      total: count.total ?? count.open,
     })
   }
-  const open = items.filter((task) => !task.done).length
-  if (open === 0) return t.tasks.allDone
-  if (open === 1) return t.tasks.openOne
-  return fmt(t.tasks.open, { count: open })
+  if (count.open === 0) return t.tasks.allDone
+  if (count.open === 1) return t.tasks.openOne
+  return fmt(t.tasks.open, { count: count.open })
 }
 
 const styles = StyleSheet.create({

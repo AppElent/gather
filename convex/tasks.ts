@@ -12,7 +12,11 @@ import {
 import { taskRefusal } from '@gather/core/refusals'
 import { inAnySmartList } from '@gather/core/smart-lists'
 import { reorderedSubtasks, subtaskProgress } from '@gather/core/subtasks'
-import { normalizeTaskUrl } from '@gather/core/task-lists'
+import {
+  asTaskListKind,
+  keepsCheckedInPlace,
+  normalizeTaskUrl,
+} from '@gather/core/task-lists'
 import { clockMoment } from '@gather/core/task-reminders'
 import { reanchorRepeat, type TaskRepeat } from '@gather/core/task-repeat'
 import { ConvexError, v } from 'convex/values'
@@ -176,6 +180,60 @@ export const smartLists = query({
       if (progress) subtasks.push({ taskId: task._id, ...progress })
     }
     return { me: user._id, tasks, subtasks, parents }
+  },
+})
+
+/**
+ * What the phone's Tasks index counts per local list (APP-430): one answer in
+ * place of a `listByList` subscription for every list of the Group.
+ *
+ * Counted as a list counts itself: a subtask is a step of its parent's row,
+ * not a row of its own (APP-304), so rows with a `parentTaskId` are left out.
+ * `open` is the list's open rows, read through `by_list_and_done`, so a
+ * grocery list's years of checked items are never read. A packing list keeps
+ * its checked items in place and shows how much is packed, so it also reads
+ * its (small, reset) rows for `done` and `total`. A linked list has no rows in
+ * Convex and is absent; the phone counts those from the provider.
+ */
+export const openCounts = query({
+  args: { groupSlug: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const lists = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    return await Promise.all(
+      lists
+        .filter((list) => list.provider === 'local')
+        .map(async (list) => {
+          if (keepsCheckedInPlace(asTaskListKind(list.kind))) {
+            const rows = (
+              await ctx.db
+                .query('tasks')
+                .withIndex('by_list', (q) => q.eq('listId', list._id))
+                .collect()
+            ).filter((task) => !task.parentTaskId)
+            const done = rows.filter((task) => task.done).length
+            return {
+              listId: list._id,
+              open: rows.length - done,
+              done,
+              total: rows.length,
+            }
+          }
+          const open = await ctx.db
+            .query('tasks')
+            .withIndex('by_list_and_done', (q) =>
+              q.eq('listId', list._id).eq('done', false),
+            )
+            .collect()
+          return {
+            listId: list._id,
+            open: open.filter((task) => !task.parentTaskId).length,
+          }
+        }),
+    )
   },
 })
 

@@ -20,7 +20,7 @@ import {
   SMART_LISTS,
   type SmartListId,
 } from '@gather/core/smart-lists'
-import { subtaskProgress } from '@gather/core/subtasks'
+import { subtaskProgress, topLevelTasks } from '@gather/core/subtasks'
 import {
   asTaskListKind,
   type TaskListColor,
@@ -376,13 +376,12 @@ export function announceCompletion(done: CompletedOccurrence) {
 
 const NO_LISTS: readonly ListRow[] = []
 
-function useListsOf(lists: readonly ListRow[]) {
+/**
+ * The linked lists' last answers, and a way to ask for one again. A linked
+ * list is fetched once when first seen (ADR-0021); a local list is never asked.
+ */
+function useLinkedLists(lists: readonly ListRow[]) {
   const { group } = useGroup()
-  const localQueries = useMemo(
-    () => localTaskQueries(lists, group.slug),
-    [lists, group.slug],
-  )
-  const local = useQueries(localQueries)
   const linked = useSyncExternalStore(subscribe, externalSnapshot)
   const getTasks = useAction(api.taskLists.getTasks)
   const fetchTasks = useCallback(
@@ -401,6 +400,17 @@ function useListsOf(lists: readonly ListRow[]) {
     (listId: string) => syncExternalList(listId, fetchTasks),
     [fetchTasks],
   )
+  return { linked, refresh }
+}
+
+function useListsOf(lists: readonly ListRow[]) {
+  const { group } = useGroup()
+  const localQueries = useMemo(
+    () => localTaskQueries(lists, group.slug),
+    [lists, group.slug],
+  )
+  const local = useQueries(localQueries)
+  const { linked, refresh } = useLinkedLists(lists)
   return { ...mergeTasks(lists, local, linked), refresh }
 }
 
@@ -460,6 +470,80 @@ export function useTaskList(listId: string) {
  */
 export function useTasksOf(lists: readonly ListRow[]) {
   return useListsOf(lists)
+}
+
+type OpenCountsRow = FunctionReturnType<typeof api.tasks.openCounts>[number]
+
+/** How a list's tasks stand, top-level tasks only (APP-304). */
+export interface ListCount {
+  open: number
+  /** Only a list that keeps checked items in place (packing) reports these. */
+  done?: number
+  total?: number
+}
+
+/**
+ * The Tasks index's lists and how many tasks each holds, from Convex's counts
+ * for local lists and the provider's last rows for linked ones (APP-430). A
+ * list whose count is not known yet has none.
+ */
+export function indexModel(
+  lists: readonly ListRow[] | undefined,
+  answer: readonly OpenCountsRow[] | undefined,
+  linked: ReadonlyMap<string, ExternalEntry>,
+): {
+  lists: TaskList[]
+  counts: ReadonlyMap<string, ListCount>
+  openTotal: number
+} {
+  const local = answer && new Map(answer.map((row) => [row.listId, row]))
+  const counts = new Map<string, ListCount>()
+  const views = (lists ?? NO_LISTS).map((list) => {
+    if (list.provider === 'local') {
+      // Counts for the whole Group arrive together; a list they do not name
+      // yet (just made) has nothing in it.
+      if (local) {
+        const row = local.get(list._id)
+        counts.set(
+          list._id,
+          row
+            ? { open: row.open, done: row.done, total: row.total }
+            : { open: 0 },
+        )
+      }
+      return listView(list, local ? 'live' : 'loading')
+    }
+    const entry = linked.get(list._id)
+    if (entry && !(entry.sync === 'loading' && entry.tasks.length === 0)) {
+      const rows = topLevelTasks(entry.tasks)
+      const done = rows.filter((task) => task.done).length
+      counts.set(list._id, {
+        open: rows.length - done,
+        done,
+        total: rows.length,
+      })
+    }
+    return listView(list, entry?.sync ?? 'loading')
+  })
+  let openTotal = 0
+  for (const count of counts.values()) openTotal += count.open
+  return { lists: views, counts, openTotal }
+}
+
+/**
+ * The Tasks index's lists and counts: one Convex subscription for every local
+ * list's counts, never a subscription to a list's rows. A linked list is
+ * fetched from its provider once, as anywhere else (ADR-0021).
+ */
+export function useTaskIndex() {
+  const { group } = useGroup()
+  const lists = useTaskLists()
+  const answer = useQuery(api.tasks.openCounts, { groupSlug: group.slug })
+  const { linked } = useLinkedLists(lists ?? NO_LISTS)
+  return useMemo(
+    () => indexModel(lists, answer, linked),
+    [lists, answer, linked],
+  )
 }
 
 type SmartAnswerRow = FunctionReturnType<typeof api.tasks.smartLists>
