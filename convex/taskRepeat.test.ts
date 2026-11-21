@@ -317,6 +317,29 @@ describe('every completion path', () => {
     expect(await historyRows(t, taskId)).toHaveLength(1)
   })
 
+  test('reopening the occurrence takes a stale check stamp off (APP-516)', async () => {
+    const { t, listId } = await seed()
+    const taskId = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId,
+      groupSlug: JANSEN,
+      title: 'Handdoeken',
+      dueDate: '2026-11-22',
+      repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [7] },
+    })
+    // An open repeating task that still carries the stamp of an earlier check.
+    await t.run(async (ctx) => {
+      await ctx.db.patch(taskId, { doneAt: NOW - 1000 })
+    })
+
+    await t
+      .withIdentity(alice)
+      .mutation(api.tasks.toggleDone, { taskId, groupSlug: JANSEN, today: TODAY })
+
+    const row = await taskRow(t, taskId)
+    expect(row).toMatchObject({ done: false, dueDate: '2026-11-29' })
+    expect(row?.doneAt).toBeUndefined()
+  })
+
   test('an installed app that sends no day gets the Dutch day', async () => {
     const { t, listId } = await seed()
     vi.setSystemTime(Date.UTC(2026, 10, 19, 23, 30)) // 00:30 on the 20th
