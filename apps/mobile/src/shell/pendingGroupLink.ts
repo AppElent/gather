@@ -1,10 +1,12 @@
 /**
- * A deep link can reach the app before Clerk has established a session.
+ * A tapped notification can reach the app before Clerk has established a
+ * session.
  *
  * This is intentionally only a transient handoff, not a second source of
- * truth for the ambient Group: the link is held long enough to cross the auth
- * gate, then `deep-link.tsx` validates it against the Member's live Groups and
- * replaces itself with an ambient native destination.
+ * truth for the ambient Group: the notification's Group and record are held
+ * long enough to cross the auth gate, then `open-notification.tsx` validates
+ * them against the Member's live Groups and replaces itself with an ambient
+ * native destination.
  */
 export interface PendingGroupLink {
   groupSlug: string

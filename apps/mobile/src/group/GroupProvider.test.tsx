@@ -232,7 +232,7 @@ describe('opening something in another Group', () => {
   })
 })
 
-describe('an old /g/<slug> link', () => {
+describe('a tapped notification', () => {
   function handoff() {
     return (
       <GroupProvider
@@ -247,19 +247,22 @@ describe('an old /g/<slug> link', () => {
   }
 
   test('names its Group by slug, switches to it, then opens', () => {
-    rememberGroupLink({ groupSlug: willow.slug, segments: ['cheeses'] })
+    rememberGroupLink({ groupSlug: willow.slug, segments: ['calendar', 'j9xyz'] })
 
     mount(handoff())
 
     expect(current().group).toEqual(willow)
     expect(state.retained).toBe(willow._id)
-    expect(state.replaced).toEqual(['unwind', '/all/tasting/cheese'])
+    expect(state.replaced).toEqual([
+      'unwind',
+      { pathname: '/all/calendar/[eventId]', params: { eventId: 'j9xyz' } },
+    ])
   })
 
   // Checks the option passed to the router, not the resulting stack: the stack
   // is expo-router's, which a Node test cannot build.
   test('opens its screen on top of its tab\'s first screen, so it has a back button', () => {
-    rememberGroupLink({ groupSlug: willow.slug, segments: ['cheeses'] })
+    rememberGroupLink({ groupSlug: willow.slug, segments: ['calendar', 'j9xyz'] })
 
     mount(handoff())
 
@@ -267,7 +270,7 @@ describe('an old /g/<slug> link', () => {
   })
 
   test('to a Group the Member is not in leaves the Group alone', () => {
-    rememberGroupLink({ groupSlug: 'elsewhere', segments: ['cheeses'] })
+    rememberGroupLink({ groupSlug: 'elsewhere', segments: ['calendar', 'j9xyz'] })
 
     mount(handoff())
 
@@ -275,8 +278,8 @@ describe('an old /g/<slug> link', () => {
     expect(state.replaced).toEqual(['/home'])
   })
 
-  test('to a screen the phone lacks leaves the Group alone', () => {
-    rememberGroupLink({ groupSlug: willow.slug, segments: ['spirits'] })
+  test('to anything but a task or an event leaves the Group alone', () => {
+    rememberGroupLink({ groupSlug: willow.slug, segments: ['cheeses'] })
 
     mount(handoff())
 

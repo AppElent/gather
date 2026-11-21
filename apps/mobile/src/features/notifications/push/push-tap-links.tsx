@@ -1,11 +1,12 @@
 /**
  * Draws nothing. Follows a tapped push notification to its record (APP-298).
  *
- * A notification carries a `/g/<slug>/…` path (`notificationPath` in core),
- * and a tap is treated exactly as that link would be: the router's `/g/…`
- * route holds it across sign-in, and the handoff checks the slug against the
- * person's own Groups, switches to it, and opens the task or event. Nothing
- * in a notification is trusted beyond the shape `notificationLink` accepts.
+ * A notification carries a `/g/<slug>/…` path (`notificationPath` in core).
+ * It is data, not a route: the router no longer has `/g/…` (APP-81). A tap
+ * holds the Group and record in `pendingGroupLink` across sign-in and opens
+ * `/open-notification`, whose handoff checks the slug against the person's own
+ * Groups, switches to it, and opens the task or event. Nothing in a
+ * notification is trusted beyond the shape `notificationLink` accepts.
  *
  * Mounted by the root navigator once the router is up, signed in or not, like
  * `HomeScreenActionLinks`.
@@ -14,6 +15,8 @@ import { notificationLink } from '@gather/core/notifications'
 import * as Notifications from 'expo-notifications'
 import { router } from 'expo-router'
 import { useEffect } from 'react'
+
+import { rememberGroupLink } from '../../../shell/pendingGroupLink'
 
 /**
  * The notification that launched this process is followed once per process,
@@ -38,9 +41,9 @@ function follow(response: Notifications.NotificationResponse | null) {
   lastFollowed = id
   const link = notificationLink(response.notification.request.content.data)
   if (!link) return
-  const path = `/g/${encodeURIComponent(link.groupSlug)}/${link.segments.join('/')}`
+  rememberGroupLink(link)
   // A tick later, so a cold start's router has mounted its first screen.
-  setTimeout(() => router.navigate(path as never))
+  setTimeout(() => router.navigate('/open-notification'))
 }
 
 export function PushTapLinks() {
