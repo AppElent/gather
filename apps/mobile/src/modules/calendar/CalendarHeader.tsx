@@ -25,6 +25,7 @@ import { WeekdayStrip } from '../../components/MonthGridView'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { headingCase } from './calendarLabels'
 
 export interface CalendarHeaderProps {
   activeDate: string
@@ -54,8 +55,8 @@ function displayDate(
 }
 
 /**
- * A day's marks under its number, the same in Month and Week: the drawn marks
- * plus a `+n` for the rest, so a busy day never looks lighter in one view.
+ * A day's marks under its number, the same in Month and Week: one mark plus a
+ * `+n` for the rest, so a busy day never looks lighter in one view.
  */
 function DayMarks({
   marks,
@@ -346,10 +347,13 @@ export function CalendarHeader(props: CalendarHeaderProps) {
           previous: t.calendar.accessibility.previousWeek,
           next: t.calendar.accessibility.nextWeek,
         }
-  const title = displayDate(props.activeDate, locale, {
-    month: 'long',
-    year: 'numeric',
-  })
+  const title = headingCase(
+    displayDate(props.activeDate, locale, {
+      month: 'long',
+      year: 'numeric',
+    }),
+    locale,
+  )
 
   return (
     <Animated.View
@@ -490,7 +494,7 @@ const styles = StyleSheet.create({
   today: { minWidth: 54, minHeight: SIZE.hitMin, justifyContent: 'center' },
   todayText: { ...TYPE.bodyStrong },
   titleButton: { flexShrink: 1, minHeight: SIZE.hitMin, justifyContent: 'center' },
-  title: { ...TYPE.title2, textTransform: 'capitalize' },
+  title: { ...TYPE.title2 },
   actions: { flexDirection: 'row', gap: 7 },
   iconButton: {
     width: SIZE.hitMin,
