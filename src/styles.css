@@ -127,7 +127,10 @@
   --auth-fg: var(--sea-ink);
   --auth-muted: var(--sea-ink-soft);
   --auth-card-bg: var(--surface-strong);
-  --auth-border: var(--line);
+  /* --line is a 14-18% hairline (about 1.3:1); auth edges need 3:1, so mix
+     the ink colour instead. --line stays the quiet hover fill. */
+  --auth-border: color-mix(in srgb, var(--sea-ink) 60%, transparent);
+  --auth-hover-bg: var(--line);
   --auth-radius: 1rem;
   --auth-field-bg: var(--surface);
   --auth-accent: var(--lagoon-deep);

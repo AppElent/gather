@@ -67,7 +67,7 @@ export function AppearanceSettings() {
               'flex items-center gap-1.5 rounded px-3 py-1.5 text-sm transition',
               mode === optionMode
                 ? 'bg-[var(--auth-accent)] text-[var(--auth-accent-fg)]'
-                : 'text-[var(--auth-muted)] hover:bg-[var(--auth-border)]',
+                : 'text-[var(--auth-muted)] hover:bg-[var(--auth-hover-bg)]',
             )}
           >
             <Icon size={15} /> {appearance.modes[optionMode]}
