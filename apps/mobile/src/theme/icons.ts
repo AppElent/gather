@@ -71,6 +71,7 @@ import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
 import Smartphone from 'lucide-react-native/icons/smartphone'
 import Sparkles from 'lucide-react-native/icons/sparkles'
 import Store from 'lucide-react-native/icons/store'
+import Sun from 'lucide-react-native/icons/sun'
 import Target from 'lucide-react-native/icons/target'
 import Trash2 from 'lucide-react-native/icons/trash-2'
 import TriangleAlert from 'lucide-react-native/icons/triangle-alert'
@@ -209,6 +210,8 @@ export const UI_ICONS = {
   Cart: glyph(ShoppingCart, 'cart'),
   /** Groceries' In stock: what the house keeps (APP-314). */
   House: glyph(House, 'house'),
+  /** Shopping mode's note that the screen stays on (APP-315). */
+  Sun: glyph(Sun, 'sun.max'),
   /** A staple running low (APP-314). */
   TriangleAlert: glyph(TriangleAlert, 'exclamationmark.triangle'),
   /** A stepper's take-one-away. */

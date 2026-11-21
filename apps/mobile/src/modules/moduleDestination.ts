@@ -81,7 +81,7 @@ export type ModulePath =
   | `/all/recipes${'' | '/recipe' | '/import' | '/new' | '/edit'}`
   | `/all/tasting/${TastingKind}${'' | '/subject' | '/compose'}`
   | `/all/meal-planner${'' | '/preferences'}`
-  | `/all/groceries${'' | '/in-stock' | '/recent'}`
+  | `/all/groceries${'' | '/in-stock' | '/recent' | '/shop'}`
   | `/all/recurring-costs${'' | '/cost'}`
   | `/all/savings-goals${'' | '/goal'}`
   | `/all/loyalty-cards${'' | '/card' | '/new' | '/edit'}`

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, expect, test, vi } from 'vitest'
 
-import { mount, settle } from '../../../testing/dom'
+import { mount, settle } from '../testing/dom'
 import { useKeepAwakeWhile } from './use-keep-awake-while'
 
 const state = vi.hoisted(() => ({ calls: [] as string[] }))
@@ -16,7 +16,7 @@ vi.mock('expo-keep-awake', () => ({
 }))
 
 function Till({ shown }: { shown: boolean }) {
-  useKeepAwakeWhile(shown)
+  useKeepAwakeWhile(shown, 'loyalty-card-till')
   return null
 }
 

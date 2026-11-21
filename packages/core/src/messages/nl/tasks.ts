@@ -218,6 +218,16 @@ export const tasks = {
     },
     undoSuperseded:
       'De lijst is sindsdien opnieuw gewist. Er is niets ongedaan gemaakt.',
+    shopping: {
+      start: 'Winkelen',
+      title: 'Winkelen',
+      progress: '{done} van {total}',
+      progressLabel: '{done} van {total} afgevinkt',
+      awake: '{list} · scherm blijft aan tot je klaar bent',
+      checked: '{name} afgevinkt',
+      finish: 'Klaar met winkelen',
+      empty: 'Niets meer te halen op deze lijst.',
+    },
     recent: {
       title: 'Recent',
       count: { one: '{count} item', other: '{count} items' },

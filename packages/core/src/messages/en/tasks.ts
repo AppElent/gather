@@ -279,6 +279,21 @@ export const tasks = {
     },
     /** The undo of Clear checked, refused: the list was cleared since (APP-403). */
     undoSuperseded: 'The list was cleared again since. Nothing was undone.',
+    /**
+     * Shopping mode (APP-315, designs/groceries section 8): large rows in
+     * aisle order, the screen kept on, one tap to check.
+     */
+    shopping: {
+      /** The list's action-row pill that starts it. */
+      start: 'Shop',
+      title: 'Shopping',
+      progress: '{done} of {total}',
+      progressLabel: '{done} of {total} checked',
+      awake: '{list} · screen stays on until you are done',
+      checked: '{name} checked',
+      finish: 'Done shopping',
+      empty: 'Nothing left to buy on this list.',
+    },
     recent: {
       title: 'Recent',
       count: { one: '{count} item', other: '{count} items' },
