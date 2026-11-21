@@ -107,6 +107,9 @@ vi.mock('expo-router', () => ({
   },
   useRouter: () => ({ push: () => {}, back: () => {} }),
 }))
+vi.mock('expo-router/react-navigation', () => ({
+  useHeaderHeight: () => 100,
+}))
 vi.mock('@expo/ui/community/menu', async () => {
   const React = await import('react')
   return {

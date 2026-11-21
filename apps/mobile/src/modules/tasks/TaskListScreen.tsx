@@ -26,6 +26,7 @@ import {
 } from '@gather/core/task-lists'
 import { describeRepeat } from '@gather/core/task-repeat'
 import { Stack, useRouter } from 'expo-router'
+import { useHeaderHeight } from 'expo-router/react-navigation'
 import { type ReactNode, useRef, useState } from 'react'
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 // Gesture Handler's own ScrollView, not React Native's: reorder's drag names
@@ -126,7 +127,13 @@ export function TaskList({
   }
   const taskSheets = useTaskSheets({ tasks, onReorder: startReorder })
   const scrollRef = useRef<ScrollView>(null)
-  const { edgeScroll, scrollProps } = useEdgeScroll(scrollRef)
+  // The header is see-through and iOS insets the list under it, so the
+  // edge that scrolls the list sits under the header, as does its top.
+  const headerHeight = useHeaderHeight()
+  const { edgeScroll, scrollProps, probeRef } = useEdgeScroll(scrollRef, {
+    top: headerHeight,
+    bottom: insets.bottom,
+  })
   const [dragging, setDragging] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshed, setRefreshed] = useState(false)
@@ -464,6 +471,7 @@ export function TaskList({
           ) : undefined
         }
       >
+        <View ref={probeRef} collapsable={false} />
         {tile ? (
           <WashHeader
             group={tile.group}
@@ -503,7 +511,11 @@ export function TaskList({
               onDragging={setDragging}
               onCommit={(ids, sectionIds, moved) => {
                 setReorderProblem(null)
+                // Once per drop, though its order and its aisle may both fail.
+                let reset = false
                 const failed = () => {
+                  if (reset) return
+                  reset = true
                   haptics.actionFailed()
                   setReorderKey((key) => key + 1)
                   setReorderProblem(t.tasks.list.reorderReset)

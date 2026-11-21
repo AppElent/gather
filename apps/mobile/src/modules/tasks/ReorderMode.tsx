@@ -35,7 +35,7 @@
  * list too long to see — the same division iOS's own reordering uses.
  */
 import type { TaskSection } from '@gather/core/task-lists'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, StyleSheet, Text, View } from 'react-native'
 import {
   Gesture,
@@ -226,6 +226,18 @@ export function ReorderMode({
       onDragging(false)
     },
   }
+
+  // Put back mid-drag (a refused drop remounts the mode, Done, the back
+  // gesture): the list scrolls again and no edge keeps scrolling it.
+  const held = useRef(false)
+  held.current = drag !== null
+  const leave = useRef(() => {})
+  leave.current = () => {
+    if (!held.current) return
+    edgeScroll?.end()
+    onDragging(false)
+  }
+  useEffect(() => () => leave.current(), [])
 
   return (
     <View style={styles.wrap}>
