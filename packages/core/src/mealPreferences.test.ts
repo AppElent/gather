@@ -1241,11 +1241,46 @@ describe('recipeClashes: the APP-446 follow-ups', () => {
       '250 g wild mushrooms',
       '125 g wild blueberries',
       '300 g wild rice',
-      '2 el sukade',
-      '50 g sukade',
+      '2 el candied peel',
+      '50 g sukadesnippers',
+      '50 g sukadeblokjes',
+      '2 el gekonfijte sukade',
+      '2 el sukade snippers',
     ])('%s', (line) => {
       expect(clashes(line, { diets: ['vegetarian'] })).toEqual([])
       expect(clashes(line, { diets: ['vegan'] })).toEqual([])
+    })
+
+    test.each(['500 g sukade', '2 el sukade', 'sukade in blokjes'])(
+      'a bare sukade may be the beef cut: "controleer zelf", never silent, never a hide: %s',
+      (line) => {
+        for (const diet of ['vegetarian', 'vegan'] as const) {
+          const found = clashes(line, { diets: [diet] })
+          expect(found).toHaveLength(1)
+          expect(found[0]?.uncertain).toBe(true)
+          expect(fitsPreferences(found)).toBe(true)
+        }
+      },
+    )
+
+    test.each(['400 g venison', '2 hertenbiefstuk', '300 g reerug', '1 reebout', '2 reefilets'])(
+      'game meat hides for vegetarians: %s',
+      (line) => {
+        expect(certain(clashes(line, { diets: ['vegetarian'] }))).toHaveLength(1)
+        expect(certain(clashes(line, { diets: ['vegan'] }))).toHaveLength(1)
+      },
+    )
+
+    test('"wild rice and venison" hides; "wild garlic" stays quiet; "kreeft" is not game', () => {
+      expect(
+        certain(clashes('300 g wild rice and venison', { diets: ['vegetarian'] })),
+      ).toHaveLength(1)
+      expect(clashes('1 bosje wild garlic', { diets: ['vegetarian'] })).toEqual([])
+      // A lobster hides for its own reason (seafood); "ree" in it is not game.
+      expect(clashes('1 kreeft', { diets: ['vegetarian'] })).toEqual([
+        { kind: 'diet', id: 'vegetarian', label: 'kreeft' },
+      ])
+      expect(clashes('1 ree', { diets: ['vegetarian'] })[0]?.uncertain).toBeUndefined()
     })
 
     test('bare "wild" is still "controleer zelf"; game and the beef cut still hide', () => {

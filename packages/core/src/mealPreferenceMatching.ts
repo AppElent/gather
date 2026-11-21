@@ -719,6 +719,15 @@ const MEAT: Rule = {
     'wildragout',
     'wildpate',
     'hertenvlees',
+    'hertenbiefstuk',
+    'venison',
+    // "ree" is a whole word below: as a part it would sit inside "kreeft".
+    'reerug',
+    'reebout',
+    'reefilet',
+    'reebiefstuk',
+    'reestoof',
+    'reeragout',
     'struisvogel',
     ...PORK,
   ],
@@ -751,10 +760,11 @@ const MEAT: Rule = {
     'fijngehakt',
     'grofgehakt',
   ],
-  // "half om half" (gehakt or melk) and a bare "wild" (game) are often meat:
-  // "controleer zelf". "sukade" alone is candied peel; the beef cut is
-  // "sukadelap", a `part` term above. "wild" followed by a plant or a grain is
-  // not game (`maybeExcept`).
+  // "half om half" (gehakt or melk), a bare "sukade" (the beef cut, or candied
+  // peel) and a bare "wild" (game) are often meat: "controleer zelf".
+  // "sukadelap" is a `part` term above and hides. Plainly candied peel
+  // ("sukadesnippers", "gekonfijte sukade") and "wild" followed by a plant or
+  // a grain are not meat (`maybeExcept`).
   maybe: [
     'bouillon',
     'stock',
@@ -764,9 +774,19 @@ const MEAT: Rule = {
     'jus',
     'carpaccio',
     'half om half',
+    'sukade',
     'wild',
   ],
   maybeExcept: [
+    'sukadesnippertjes',
+    'sukadesnippers',
+    'sukadeblokjes',
+    'sukadeblokje',
+    'sukade snippers',
+    'sukade blokjes',
+    'gekonfijte sukade',
+    'gekonfijt sukade',
+    'candied sukade',
     'wild garlic',
     'wild rocket',
     'wild arugula',
