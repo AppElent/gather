@@ -142,6 +142,7 @@ export const tasks = {
     unit: 'Eenheid',
     aisle: 'Afdeling',
     recognised: 'Herkend zonder AI, ook offline',
+    changeAisleHint: 'Kies de afdeling waarin het wordt toegevoegd',
     aisleSection: { one: '{aisle}, {count} item', other: '{aisle}, {count} items' },
     checked: 'Afgevinkt',
     putBackAll: 'Zet terug',

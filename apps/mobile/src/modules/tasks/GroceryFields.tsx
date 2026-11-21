@@ -18,7 +18,6 @@ import {
   groceryAddFields,
   isGroceryAisle,
   isGroceryQuantity,
-  recogniseGroceryLine,
   roundGroceryQuantity,
   stepGroceryQuantity,
 } from '@gather/core/groceries'
@@ -26,10 +25,12 @@ import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
+import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
+import { useAisleOf } from '../kitchen/add-to-groceries/use-aisles'
 import { useTaskActions } from './store'
 import type { Task } from './types'
 
@@ -74,44 +75,85 @@ export function GroceryAmount({ task }: { task: Task }) {
 
 /**
  * Under the composer while a line is typed: what the line will be saved as.
- * Recognised here, on the phone, without AI and offline; the server decides
- * the aisle again with the Group's own choices.
+ * The amount is read here, on the phone, without AI and offline. The aisle is
+ * the one the list itself would give the line (`useAisleOf`: the Group's own
+ * choices, then the list's history, then the dictionary), the phone's
+ * dictionary until that answer is in.
+ *
+ * The aisle chip opens the aisle menu (APP-524; `designs/groceries/README.md`,
+ * "Recognition", 3): an aisle chosen there is the one the line is added in.
+ * Untouched, the server decides the aisle as it always has.
  */
-export function GroceryPreview({ line }: { line: string }) {
+export function GroceryPreview({
+  listId,
+  line,
+  aisle: chosen,
+  onAisle,
+}: {
+  listId: string
+  line: string
+  /** The aisle a Member chose for this line, if any. */
+  aisle: GroceryAisle | undefined
+  onAisle: (aisle: GroceryAisle) => void
+}) {
   const tokens = useTokens('kitchen')
   const { t } = useI18n()
+  const { group } = useGroup()
+  const words = t.tasks.grocery
   const amountText = useGroceryAmountText()
+  const typed = line.trim()
+  const aisleOf = useAisleOf(group.slug, listId, typed ? [typed] : [])
+  if (!typed) return null
   const fields = groceryAddFields(line)
-  if (!line.trim()) return null
   const amount = amountText(fields.quantity, fields.unit)
-  const recognised = recogniseGroceryLine(line)
-  const aisle =
-    recognised.source === 'dictionary' ? recognised.aisle : undefined
-  if (!amount && !aisle) return null
+  const detected = aisleOf(typed)
+  const aisle = chosen ?? detected
   const tint = tokens.tintOf('kitchen')
+  const chip = [styles.chip, { backgroundColor: tint.wash, color: tint.text }]
   return (
     <View
       testID="grocery-preview"
       accessibilityLiveRegion="polite"
       style={styles.preview}
     >
-      {amount ? (
-        <Text
-          style={[styles.chip, { backgroundColor: tint.wash, color: tint.text }]}
+      {amount ? <Text style={chip}>{amount}</Text> : null}
+      <MenuView
+        testID="grocery-preview-aisle"
+        actions={GROCERY_AISLES.map((id) => ({
+          id,
+          title: words.aisles[id],
+          state: id === aisle ? ('on' as const) : ('off' as const),
+        }))}
+        onPressAction={(event) => {
+          const next = event.nativeEvent.event
+          if (!isGroceryAisle(next) || next === aisle) return
+          haptics.selectionChanged()
+          onAisle(next)
+        }}
+      >
+        <View
+          accessibilityRole="button"
+          accessibilityLabel={`${words.aisle}, ${words.aisles[aisle]}`}
+          accessibilityHint={words.changeAisleHint}
+          style={[styles.aisleChip, { backgroundColor: tint.wash }]}
         >
-          {amount}
+          <Text style={[styles.chipText, { color: tint.text }]}>
+            {words.aisles[aisle]}
+          </Text>
+          <UI_ICONS.ChevronDown
+            size={12}
+            color={tint.text}
+            strokeWidth={2.6}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+        </View>
+      </MenuView>
+      {amount || (chosen === undefined && detected !== 'other') ? (
+        <Text style={[styles.hint, { color: tokens.muted }]}>
+          {words.recognised}
         </Text>
       ) : null}
-      {aisle ? (
-        <Text
-          style={[styles.chip, { backgroundColor: tint.wash, color: tint.text }]}
-        >
-          {t.tasks.grocery.aisles[aisle]}
-        </Text>
-      ) : null}
-      <Text style={[styles.hint, { color: tokens.muted }]}>
-        {t.tasks.grocery.recognised}
-      </Text>
     </View>
   )
 }
@@ -395,6 +437,16 @@ const styles = StyleSheet.create({
     ...TYPE.footnoteStrong,
     borderRadius: 6,
     overflow: 'hidden',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  chipText: { ...TYPE.footnoteStrong },
+  // A chip that opens a menu: the chip's look, with room for the chevron.
+  aisleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    borderRadius: 6,
     paddingHorizontal: 7,
     paddingVertical: 3,
   },

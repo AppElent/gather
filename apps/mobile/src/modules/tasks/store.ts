@@ -614,20 +614,27 @@ export function useTaskActions() {
      * A line onto a list. On a grocery list the amount is read off it first
      * ("2 pakken melk" is "melk", 2 pak), here rather than on the server, so
      * an installed app that sends only the line keeps it as typed (APP-309).
-     * `sectionId` is the section the composer sits in (APP-357).
+     * `sectionId` is the section the composer sits in (APP-357). `aisle` is
+     * one a Member chose in the composer before adding (APP-524): the item
+     * is added as always and then moved there the way the item screen moves
+     * it (`setAisle`), so the Group keeps the choice for the name too.
      */
-    addTask: (
+    addTask: async (
       listId: string,
       title: string,
       grocery = false,
       sectionId?: string,
-    ) =>
-      add({
+      aisle?: GroceryAisle,
+    ) => {
+      const taskId = await add({
         listId: listId as Id<'taskLists'>,
         groupSlug,
         ...(grocery ? groceryAddFields(title) : { title }),
         ...(sectionId ? { sectionId } : {}),
-      }),
+      })
+      if (grocery && aisle) await patch(taskId, { category: aisle })
+      return taskId
+    },
     /**
      * Ticks a task, or completes a repeating one's open occurrence. The
      * phone's own day goes along, so "after done" counts from it.

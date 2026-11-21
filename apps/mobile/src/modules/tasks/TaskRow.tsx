@@ -5,6 +5,7 @@
  * checklist inside another Module — so a tick, a swipe and a hold mean the same
  * thing wherever the task appears.
  */
+import type { GroceryAisle } from '@gather/core/groceries'
 import { type ReactNode, type RefObject, useRef, useState } from 'react'
 import {
   type HostInstance,
@@ -322,6 +323,9 @@ export function TaskComposer({
   const actions = useTaskActions()
   const separator = useInsetSeparator()
   const [draft, setDraft] = useState('')
+  // The aisle a Member chose in the preview for the line being typed; it
+  // goes with the line it was chosen for (APP-524).
+  const [aisle, setAisle] = useState<GroceryAisle>()
   const fieldRef = useRef<HostInstance>(null)
 
   // Brings the field back above the keyboard once the new row has pushed it
@@ -349,9 +353,10 @@ export function TaskComposer({
     // Cleared first: the row appears the moment it is accepted, and a second
     // tap cannot submit the same line twice while the write is in flight.
     setDraft('')
+    setAisle(undefined)
     const write = parent
       ? actions.addSubtask(parent, title)
-      : actions.addTask(listId, title, grocery, sectionId)
+      : actions.addTask(listId, title, grocery, sectionId, aisle)
     write.then(
       () => {
         haptics.itemSaved()
@@ -381,7 +386,10 @@ export function TaskComposer({
       <TextInput
         testID={parent ? 'subtask-composer' : 'task-composer'}
         value={draft}
-        onChangeText={setDraft}
+        onChangeText={(text) => {
+          setDraft(text)
+          if (!text.trim()) setAisle(undefined)
+        }}
         onSubmitEditing={add}
         // Stays focused after adding, so the next line can be typed at once
         // and the keyboard does not close and reopen under the list (APP-521).
@@ -404,11 +412,19 @@ export function TaskComposer({
           listId={listId}
           line={draft}
           tasks={tasks}
-          onPicked={() => setDraft('')}
+          onPicked={() => {
+            setDraft('')
+            setAisle(undefined)
+          }}
         />
       ) : null}
       {field}
-      <GroceryPreview line={draft} />
+      <GroceryPreview
+        listId={listId}
+        line={draft}
+        aisle={aisle}
+        onAisle={setAisle}
+      />
     </View>
   )
 }
