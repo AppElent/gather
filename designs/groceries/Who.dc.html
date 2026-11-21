@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Winkelen, wie vinkte af</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.85}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+</style>
+</helmet>
+<div style="width: {{w}}px; height: {{h}}px; position: relative; overflow: hidden; background: {{c.ground}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: {{c.ink}}">
+
+  <div style="padding: {{topPad}}px 16px 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px">
+    <a href="#" style="height: 44px; padding: 0 16px; border-radius: 999px; background: {{c.glass}}; box-shadow: {{c.glassShadow}}; display: flex; align-items: center; text-decoration: none; color: {{c.ink}}; font-size: {{f.bar}}px">Klaar</a>
+    <span style="font-size: {{f.bar}}px; line-height: 1.3; font-weight: 600">Winkelen</span>
+    <span style="min-width: 64px; text-align: right; font-size: {{f.bar}}px; line-height: 1.3; font-weight: 600; font-variant-numeric: tabular-nums">{{done}} van {{total}}</span>
+  </div>
+
+  <div style="padding: 16px 16px 200px 16px; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-size: {{f.foot}}px; line-height: 1.35; color: {{c.muted}}; text-align: center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+        Albert Heijn · scherm blijft aan tot je klaar bent
+      </div>
+      <div role="progressbar" aria-label="Afgevinkt" aria-valuemin="0" aria-valuemax="{{total}}" aria-valuenow="{{done}}" style="height: 8px; border-radius: 999px; background: {{c.surface2}}; overflow: hidden">
+        <div style="height: 8px; width: {{pct}}%; border-radius: 999px; background: {{c.kitchenText}}"></div>
+      </div>
+    </div>
+
+    <sc-for list="{{sections}}" as="sec" hint-placeholder-count="3">
+      <section aria-label="{{sec.label}}" style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0; padding: 0 4px; font-size: {{f.head}}px; line-height: 1.25; font-weight: 700">{{sec.label}}</h2>
+        <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px; overflow: hidden">
+          <sc-for list="{{sec.rows}}" as="r" hint-placeholder-count="3">
+            <button onClick="{{r.toggle}}" aria-label="{{r.label}}" aria-pressed="{{r.pressed}}" style="width: calc(100% + 16px); margin-left: -16px; padding: 10px 16px 10px 16px; display: flex; align-items: center; gap: 14px; min-height: 72px; box-sizing: border-box; background: {{r.bg}}; border-top: {{r.sep}}">
+              <span style="width: 32px; height: 32px; flex: 0 0 32px; border-radius: 999px; box-sizing: border-box; border: 2.5px solid {{r.ring}}; background: {{r.discBg}}; display: flex; align-items: center; justify-content: center">
+                <sc-if value="{{r.done}}" hint-placeholder-val="{{ false }}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.ground}}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                </sc-if>
+              </span>
+              <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                <span style="font-size: {{f.name}}px; line-height: 1.25; font-weight: 600; color: {{r.nameColor}}; text-decoration: {{r.strike}}">{{r.name}}</span>
+                <sc-if value="{{r.qtyBelow}}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size: {{f.name}}px; line-height: 1.25; font-weight: 700; font-variant-numeric: tabular-nums; color: {{r.nameColor}}">{{r.qty}}</span>
+                </sc-if>
+                <sc-if value="{{r.hasWho}}" hint-placeholder-val="{{ true }}">
+                  <span style="display: flex; align-items: center; gap: 6px; font-size: {{f.meta}}px; line-height: 1.35; color: {{r.whoColor}}; font-weight: {{r.whoWeight}}">
+                    <span aria-hidden="true" style="width: {{f.avatar}}px; height: {{f.avatar}}px; flex: 0 0 {{f.avatar}}px; border-radius: 999px; background: {{r.avatarBg}}; color: {{r.avatarFg}}; display: flex; align-items: center; justify-content: center; font-size: {{f.initial}}px; font-weight: 700; line-height: 1">{{r.initial}}</span>
+                    <span>{{r.who}}</span>
+                  </span>
+                </sc-if>
+                <sc-if value="{{r.hasMeta}}" hint-placeholder-val="{{ false }}">
+                  <span style="display: flex; align-items: center; gap: 4px; font-size: {{f.meta}}px; line-height: 1.35; color: {{c.muted}}">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>
+                    <span>{{r.meta}}</span>
+                  </span>
+                </sc-if>
+              </span>
+              <sc-if value="{{r.qtyRight}}" hint-placeholder-val="{{ true }}">
+                <span style="font-size: {{f.name}}px; line-height: 1.25; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: {{r.nameColor}}">{{r.qty}}</span>
+              </sc-if>
+            </button>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 34px 16px; background: {{c.ground}}; border-top: 0.5px solid {{c.hair}}; display: flex; flex-direction: column; gap: 10px">
+    <sc-if value="{{hasUndo}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 6px 0 16px; border-radius: 999px; background: {{c.surface2}}">
+        <span style="flex-grow: 1; font-size: {{f.meta}}px; line-height: 1.3">{{undoText}}</span>
+        <button onClick="{{undo}}" style="min-height: 44px; padding: 0 12px; font-size: {{f.meta}}px; font-weight: 600">Ongedaan maken</button>
+      </div>
+    </sc-if>
+    <a href="#" style="min-height: 56px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 18px; font-weight: 700">Klaar met winkelen</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"size":{"editor":"enum","options":["iphone","se"],"default":"iphone"},"text":{"editor":"enum","options":["default","largest"],"default":"default"},"$preview":{"width":390,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const st = this.state || {};
+    const dark = (p.theme || 'light') === 'dark';
+    const se = (p.size || 'iphone') === 'se';
+    const large = (p.text || 'default') === 'largest';
+    const set = (o) => this.setState(Object.assign({}, this.state || {}, o));
+
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#2E3331',
+      kitchenFill: '#0B7C75', kitchenOn: '#FFFFFF', kitchenText: '#6FD6CD', kitchenWash: '#133230',
+      glass: 'rgba(44,46,45,0.55)', glassShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 8px 24px rgba(0,0,0,0.45)'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', muted: '#5E6764', hair: '#DFE2DE',
+      kitchenFill: '#0B7C75', kitchenOn: '#FFFFFF', kitchenText: '#0B7C75', kitchenWash: '#DDEFEC',
+      glass: 'rgba(255,255,255,0.62)', glassShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 8px 24px rgba(16,32,30,0.14)'
+    };
+    const f = large
+      ? { bar: 22, foot: 17, head: 28, name: 28, meta: 21, avatar: 24, initial: 13 }
+      : { bar: 17, foot: 13, head: 20, name: 20, meta: 15, avatar: 18, initial: 10 };
+    const SEP = '0.5px solid ' + c.hair;
+
+    // by: 'me' = checked on this phone (no line), a name = another Member, null = open.
+    // ago: what the line says, from doneAt. live: arrived in the last 3 seconds.
+    const items = [
+      { id: 'a', aisle: 'Groente en fruit', name: 'Bananen', qty: '1 tros', by: 'me' },
+      { id: 'b', aisle: 'Groente en fruit', name: 'Cherrytomaten', qty: '250 g', by: 'Sanne', ago: 'net nu', live: true, meta: 'Pasta pesto · di' },
+      { id: 'c', aisle: 'Groente en fruit', name: 'Basilicum', qty: '1 bos', meta: 'Pasta pesto · di' },
+      { id: 'd', aisle: 'Groente en fruit', name: 'Rode uien', qty: '3', by: 'Sanne', ago: '6 min geleden' },
+      { id: 'e', aisle: 'Brood en bakkerij', name: 'Volkoren brood', qty: '1' },
+      { id: 'f', aisle: 'Zuivel en eieren', name: 'Melk', qty: '2 pak', by: 'Sanne', ago: 'om 13:12' },
+      { id: 'g', aisle: 'Zuivel en eieren', name: 'Eieren', qty: '10' },
+      { id: 'h', aisle: 'Kaas en vleeswaren', name: 'Parmezaan', qty: '80 g', by: 'Thomas', ago: '2 min geleden', meta: 'Pasta pesto · di' },
+      { id: 'i', aisle: 'Drogisterij en baby', name: 'Tandpasta', qty: '1' },
+      { id: 'j', aisle: 'Drogisterij en baby', name: 'Luiers maat 4', qty: '1 pak' }
+    ];
+    const tone = {
+      Sanne: dark ? { bg: '#3B2F55', fg: '#D9CCF5' } : { bg: '#E7E0F6', fg: '#4B3A7A' },
+      Thomas: dark ? { bg: '#4A3520', fg: '#F2D3AE' } : { bg: '#F6E6D2', fg: '#7A4A12' }
+    };
+
+    const over = st.over || {};
+    let done = 0;
+    const order = [];
+    const groups = {};
+    items.forEach((it) => {
+      const state = over[it.id] !== undefined ? over[it.id] : (it.by || null);
+      const isDone = state !== null;
+      if (isDone) done++;
+      const other = isDone && state !== 'me';
+      const fresh = other && it.live && over[it.id] === undefined;
+      const toggle = () => {
+        const m = Object.assign({}, (this.state || {}).over || {});
+        m[it.id] = isDone ? null : 'me';
+        set({ over: m, last: isDone ? null : it.name });
+      };
+      const t = tone[state] || { bg: c.surface2, fg: c.ink };
+      const row = {
+        name: it.name, qty: it.qty, done: isDone, pressed: isDone ? 'true' : 'false',
+        ring: isDone ? c.muted : c.kitchenText, discBg: isDone ? c.muted : 'transparent',
+        nameColor: isDone ? c.muted : c.ink, strike: isDone ? 'line-through' : 'none',
+        bg: fresh ? c.kitchenWash : 'transparent',
+        hasWho: other, who: other ? state + ' vinkte af, ' + it.ago : '', initial: other ? state.charAt(0) : '',
+        avatarBg: t.bg, avatarFg: t.fg,
+        whoColor: fresh ? c.ink : c.muted, whoWeight: fresh ? 600 : 400,
+        hasMeta: !!it.meta && !other, meta: it.meta || '',
+        qtyBelow: large, qtyRight: !large,
+        label: (isDone ? 'Weer open: ' : 'Afvinken: ') + it.name + ', ' + it.qty + (other ? ', afgevinkt door ' + state + ', ' + it.ago : ''),
+        toggle: toggle
+      };
+      if (!groups[it.aisle]) { groups[it.aisle] = []; order.push(it.aisle); }
+      groups[it.aisle].push(row);
+    });
+    const sections = order.map((a) => ({ label: a, rows: groups[a].map((r, i) => Object.assign({}, r, { sep: i === 0 ? '0' : SEP })) }));
+    const last = st.last === undefined ? 'Bananen' : st.last;
+
+    return {
+      c, f, sections, done, total: items.length, pct: Math.round(done * 100 / items.length),
+      w: se ? 375 : 390, h: se ? 667 : (large ? 2280 : 1560), topPad: se ? 28 : 54,
+      hasUndo: !!last, undoText: (last || '') + ' afgevinkt',
+      undo: () => { const it = items.find((x) => x.name === last); if (!it) return; const m = Object.assign({}, (this.state || {}).over || {}); m[it.id] = null; set({ over: m, last: null }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
