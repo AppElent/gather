@@ -26,7 +26,7 @@ that already means making Group content visible to a second Group.
 - Confirming switches the app's Group to the chosen one and, once that Group
   is on screen, lands the person on what they made: the screen changing is the
   confirmation. The switch and the landing go through `useOpenInGroup`, the
-  same path an old `/g/<slug>` link takes; navigating in the same tick as the
+  same path a tapped notification takes; navigating in the same tick as the
   switch would be undone by the switch's unwind of the tab stacks.
 - **The commit clears the Drop.** A target that has not written by the time it
   navigates declares `keepsDrop` (today only `recipe-import`): its screen is

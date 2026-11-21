@@ -126,7 +126,13 @@ export const FEATURES = defineFeatures([
     platforms: ['mobile'],
     reason:
       'Push notifications reach the phone only, so their switches live in its Settings (APP-298). The web sends none.',
-    routes: { mobile: ['(app)/(tabs)/settings/notifications'] },
+    routes: {
+      mobile: [
+        '(app)/(tabs)/settings/notifications',
+        // The handoff a tapped notification passes through to its record.
+        '(app)/open-notification',
+      ],
+    },
   },
   {
     id: 'theme',
@@ -288,15 +294,6 @@ export const FEATURES = defineFeatures([
     platforms: ['mobile'],
     reason: `Receives the phone's share sheet (docs/contracts/drop.md); capture is the phone's goal (${ADR}).`,
     routes: { mobile: ['(app)/drop/**'] },
-  },
-  {
-    id: 'legacy-group-links',
-    kind: 'product',
-    status: 'exclusive',
-    platforms: ['mobile'],
-    reason:
-      'Consumes old gather://g/<slug>/… links (ADR-0015, superseded by ADR-0031). Nothing produces them any more and the web 404s /g/ by ADR-0031, so APP-81 retires the handler.',
-    routes: { mobile: ['g/[groupSlug]/[...rest]', '(app)/deep-link'] },
   },
   {
     id: 'labs',
