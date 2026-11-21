@@ -190,7 +190,9 @@ describe('pruning checked groceries', () => {
 
     const after = await rows(s, s.groceries)
     expect(after.stamped).toBe(CHECKED_GROCERIES_KEPT)
-    expect(after.legacy).toBe(CHECKED_GROCERIES_KEPT)
+    // A checked row without a stamp (one the backfill missed) is never read,
+    // so the prune leaves it alone.
+    expect(after.legacy).toBe(CHECKED_GROCERIES_KEPT + 50)
     expect(after.open).toBe(40)
     // The newest checks stayed, the oldest went.
     const newest = (list: typeof after.all) =>
@@ -210,6 +212,24 @@ describe('pruning checked groceries', () => {
     await prune(s)
     expect((await rows(s, s.groceries)).all.length).toBe(after.all.length)
     expect(await readers(s)).toEqual(before)
+  })
+
+  test('a step scheduled for the range without a stamp ends quietly (APP-445)', async () => {
+    const s = await seed()
+    await fill(s, s.groceries, {
+      legacy: CHECKED_GROCERIES_KEPT + 10,
+      stamped: CHECKED_GROCERIES_KEPT + 10,
+    })
+    await s.t.mutation(internal.groceryPrune.pruneCheckedGroceryList, {
+      listId: s.groceries,
+      range: 'unstamped',
+      protectFrom: Date.now() + DAY_MS,
+    })
+    await s.t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await rows(s, s.groceries)).toMatchObject({
+      stamped: CHECKED_GROCERIES_KEPT + 10,
+      legacy: CHECKED_GROCERIES_KEPT + 10,
+    })
   })
 
   test('a dry run deletes nothing', async () => {

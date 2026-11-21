@@ -1097,11 +1097,9 @@ export const RECENT_GROCERIES_WINDOW = 2 * RECENT_GROCERIES_LIMIT
  * read through `by_list_and_done_at` from its newest check down, so the read
  * is bounded by twice the limit per grocery list of the Group.
  *
- * Items checked before `doneAt` existed have no stamp. They come after every
- * stamped item, newest added first, with the moment they were added standing
- * in for when they were checked: read from the same index's no-stamp range
- * (`doneAt` undefined), which also holds the open items, so it is bounded by
- * the same window per list. No data is rewritten for them.
+ * Every checked item has a stamp: items checked before `doneAt` existed got
+ * the moment they were added (`maintenance:backfillDoneAt`, APP-445), so they
+ * sort after every item checked since.
  */
 export const recentGroceries = query({
   args: { groupSlug: v.string() },
@@ -1125,32 +1123,22 @@ export const recentGroceries = query({
     const grocery = lists.filter(
       (list) => list.provider === 'local' && isGroceryList(group, list),
     )
-    const window = (list: Doc<'taskLists'>, stamped: boolean) =>
-      ctx.db
-        .query('tasks')
-        .withIndex('by_list_and_done_at', (q) =>
-          stamped
-            ? q.eq('listId', list._id).gt('doneAt', 0)
-            : q.eq('listId', list._id).eq('doneAt', undefined),
-        )
-        .order('desc')
-        .take(RECENT_GROCERIES_WINDOW)
-    const [stamped, legacy] = await Promise.all([
-      Promise.all(grocery.map((list) => window(list, true))),
-      Promise.all(grocery.map((list) => window(list, false))),
-    ])
-    const checked = [
-      ...stamped
-        .flat()
-        .filter((task) => task.done && task.doneAt !== undefined)
-        .map((task) => ({ task, at: task.doneAt ?? 0 }))
-        .sort((a, b) => b.at - a.at),
-      ...legacy
-        .flat()
-        .filter((task) => task.done)
-        .map((task) => ({ task, at: task._creationTime }))
-        .sort((a, b) => b.at - a.at),
-    ]
+    const windows = await Promise.all(
+      grocery.map((list) =>
+        ctx.db
+          .query('tasks')
+          .withIndex('by_list_and_done_at', (q) =>
+            q.eq('listId', list._id).gt('doneAt', 0),
+          )
+          .order('desc')
+          .take(RECENT_GROCERIES_WINDOW),
+      ),
+    )
+    const checked = windows
+      .flat()
+      .filter((task) => task.done && task.doneAt !== undefined)
+      .map((task) => ({ task, at: task.doneAt ?? 0 }))
+      .sort((a, b) => b.at - a.at)
     const seen = new Set<string>()
     const recent = []
     for (const { task, at } of checked) {
@@ -1206,7 +1194,8 @@ const groceryHabitValidator = v.object({
  *
  * History is the checked items of the Group's grocery lists, as Recent reads
  * it (`by_list_and_done_at`, no table of its own), bounded per list. Items
- * checked before `doneAt` existed count at the moment they were added. The
+ * checked before `doneAt` existed count at the moment they were added, the
+ * stamp `maintenance:backfillDoneAt` gave them (APP-445). The
  * "now" a query sees is when it last ran: the strip moves on with the next
  * change to the Group's grocery lists or the next time it is opened.
  */
@@ -1233,27 +1222,24 @@ export const groceryHabits = query({
     const grocery = lists.filter(
       (list) => list.provider === 'local' && isGroceryList(group, list),
     )
-    const window = (list: Doc<'taskLists'>, stamped: boolean) =>
-      ctx.db
-        .query('tasks')
-        .withIndex('by_list_and_done_at', (q) =>
-          stamped
-            ? q.eq('listId', list._id).gt('doneAt', 0)
-            : q.eq('listId', list._id).eq('doneAt', undefined),
-        )
-        .order('desc')
-        .take(GROCERY_HABITS_WINDOW)
-    const [stamped, unstamped] = await Promise.all([
-      Promise.all(grocery.map((list) => window(list, true))),
-      Promise.all(grocery.map((list) => window(list, false))),
-    ])
-    const purchases: GroceryPurchase[] = [
-      ...stamped.flat().filter((task) => task.done),
-      ...unstamped.flat().filter((task) => task.done),
-    ].map((task) => ({
+    const windows = await Promise.all(
+      grocery.map((list) =>
+        ctx.db
+          .query('tasks')
+          .withIndex('by_list_and_done_at', (q) =>
+            q.eq('listId', list._id).gt('doneAt', 0),
+          )
+          .order('desc')
+          .take(GROCERY_HABITS_WINDOW),
+      ),
+    )
+    const purchases: GroceryPurchase[] = windows
+      .flat()
+      .filter((task) => task.done && task.doneAt !== undefined)
+      .map((task) => ({
       key: groceryTitleKey(task.title),
       title: task.title,
-      at: task.doneAt ?? task._creationTime,
+      at: task.doneAt ?? 0,
       ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
       ...(task.unit !== undefined ? { unit: task.unit } : {}),
       ...(task.category !== undefined ? { category: task.category } : {}),
@@ -1262,10 +1248,15 @@ export const groceryHabits = query({
     if (target.suggestionsOff) {
       return { habits: habits.slice(0, GROCERY_HABITS_LIMIT), suggestions: [] }
     }
-    // What is open on the list now: the open rows sit in the no-stamp range.
-    const onList = unstamped[grocery.findIndex((list) => list._id === target._id)]
-      .filter((task) => !task.done)
-      .map((task) => groceryTitleKey(task.title))
+    // What is open on the list now, as many rows as the habits read.
+    const open = await ctx.db
+      .query('tasks')
+      .withIndex('by_list_and_done', (q) =>
+        q.eq('listId', target._id).eq('done', false),
+      )
+      .order('desc')
+      .take(GROCERY_HABITS_WINDOW)
+    const onList = open.map((task) => groceryTitleKey(task.title))
     const exclude = new Set([...onList, ...(target.hiddenSuggestions ?? [])])
     return {
       habits: habits.slice(0, GROCERY_HABITS_LIMIT),

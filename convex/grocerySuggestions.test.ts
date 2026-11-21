@@ -7,7 +7,7 @@ import {
   seedMember,
   testConvex,
 } from '../test/convexHarness'
-import { api } from './_generated/api'
+import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 
 /**
@@ -162,7 +162,7 @@ describe('groceryHabits', () => {
   test('counts an item checked before doneAt existed at when it was added', async () => {
     const s = await seed()
     await bought(s, s.groceries, 'melk', [12, 8])
-    // Checked before APP-310: no stamp, so it counts at its creation, now.
+    // Checked before APP-310: the backfill stamps it at its creation, now.
     await s.t.run((ctx) =>
       ctx.db.insert('tasks', {
         listId: s.groceries,
@@ -172,6 +172,7 @@ describe('groceryHabits', () => {
         order: 0,
       }),
     )
+    await s.t.mutation(internal.maintenance.backfillDoneAt, { apply: true })
     const { habits, suggestions } = await read(s)
     expect(habits[0]).toMatchObject({ title: 'Melk', count: 3 })
     // Bought "today", so not due yet.

@@ -30,9 +30,11 @@ const PRUNE_PAGE_SIZE = 250
 const LISTS_PAGE_SIZE = 100
 
 /**
- * Which half of `by_list_and_done_at` a step reads: the stamped checked items
- * (`doneAt` set), or the range without a stamp, where open items and items
- * checked before `doneAt` existed sit together.
+ * Which half of `by_list_and_done_at` a step reads. Only `stamped` is read:
+ * every checked item has a stamp since `maintenance:backfillDoneAt`
+ * (APP-445), so the range without one holds open items only. `unstamped` is
+ * still accepted so a step scheduled before that deploy ends quietly; delete
+ * it with the backfill.
  */
 const rangeValidator = v.union(v.literal('stamped'), v.literal('unstamped'))
 
@@ -99,11 +101,8 @@ export const pruneCheckedGroceries = internalMutation({
  * deleted, with its reminder send and completion rows as `tasks.remove`
  * deletes them, only when it is in none of these:
  *
- * - the list's newest `CHECKED_GROCERIES_KEPT` items with a `doneAt`, newest
+ * - the list's newest `CHECKED_GROCERIES_KEPT` items by `doneAt`, newest
  *   check first: Recent and the habits;
- * - the newest `CHECKED_GROCERIES_KEPT` checked items without one, newest
- *   added first: the same readers' fallback for items checked before
- *   `doneAt` existed, which no write makes any more;
  * - the list's newest `GROCERY_HISTORY_WINDOW` rows by when they were added:
  *   the history recognition reads (`recentListItems`). Their oldest moment
  *   is taken once, at the first step, and handed on (`protectFrom`).
@@ -138,13 +137,11 @@ export const pruneCheckedGroceryList = internalMutation({
       protectFrom = newest[newest.length - 1]._creationTime
     }
 
-    const range = args.range ?? 'stamped'
+    if (args.range === 'unstamped') return null
     const page = await ctx.db
       .query('tasks')
       .withIndex('by_list_and_done_at', (q) =>
-        range === 'stamped'
-          ? q.eq('listId', list._id).gt('doneAt', 0)
-          : q.eq('listId', list._id).eq('doneAt', undefined),
+        q.eq('listId', list._id).gt('doneAt', 0),
       )
       .order('desc')
       .paginate({ cursor: args.cursor ?? null, numItems: PRUNE_PAGE_SIZE })
@@ -171,20 +168,14 @@ export const pruneCheckedGroceryList = internalMutation({
       await ctx.scheduler.runAfter(
         0,
         internal.groceryPrune.pruneCheckedGroceryList,
-        { ...next, range, cursor: page.continueCursor, kept, removed },
+        { ...next, cursor: page.continueCursor, kept, removed },
       )
       return null
     }
     if (removed)
       console.log(
-        `checked-groceries prune list=${list._id} range=${range} ` +
+        `checked-groceries prune list=${list._id} ` +
           `${args.dryRun ? 'wouldRemove' : 'removed'}=${removed}`,
-      )
-    if (range === 'stamped')
-      await ctx.scheduler.runAfter(
-        0,
-        internal.groceryPrune.pruneCheckedGroceryList,
-        { ...next, range: 'unstamped' },
       )
     return null
   },
