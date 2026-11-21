@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groceryCompletions, groceryNameList } from './completions'
+import { groceryCompletions, groceryNameList, typedSpan } from './completions'
 import type { GroceryHabit } from './habits'
 import { groceryNames } from './index'
 import { groceryKey } from './normalise'
@@ -68,5 +68,23 @@ describe('groceryNames', () => {
     const cheese = groceryNames().find((name) => name.name === 'kaas')
     expect(cheese).toMatchObject({ aisle: 'cheese_deli' })
     expect(groceryNames().some((name) => name.name === 'kas')).toBe(false)
+  })
+})
+
+describe('typedSpan', () => {
+  it('finds the typed part at the start, at a word, or anywhere', () => {
+    expect(typedSpan('Melk', 'me')).toEqual([0, 2])
+    expect(typedSpan('Halfvolle melk', '2 pak melk')).toEqual([10, 14])
+    expect(typedSpan('Kipdijfilet', 'dij')).toEqual([3, 6])
+  })
+
+  it('ignores case and accents, and maps back onto the name as written', () => {
+    expect(typedSpan('Crème fraîche', 'creme f')).toEqual([0, 7])
+    expect(typedSpan("Pinda's", 'pindas')).toEqual([0, 7])
+  })
+
+  it('answers null when the typed part is not in the name', () => {
+    expect(typedSpan('Melk', 'kaas')).toBeNull()
+    expect(typedSpan('Melk', '2 pak')).toBeNull()
   })
 })

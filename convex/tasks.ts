@@ -27,6 +27,7 @@ import {
   askAiOnce,
   groceryTitleKey,
   isGroceryList,
+  OPEN_ITEMS_SCAN_LIMIT,
   openItemNamed,
   recentListItems,
   recogniseGroceryTitle,
@@ -1248,9 +1249,10 @@ export const recentGroceries = query({
 })
 
 /**
- * How many of each grocery list's newest checked items the habits read
- * (APP-311): enough for a year of weekly shopping of a full list. The daily
- * prune keeps more than this per list (`groceryPrune.ts`, APP-404).
+ * How many checked items the habits read (APP-311), across all the Group's
+ * grocery lists together, newest first (APP-427): enough for a year of weekly
+ * shopping of a full list. One list can fill it alone, so the daily prune
+ * keeps more than this per list (`groceryPrune.ts`, APP-404).
  */
 export const GROCERY_HABITS_WINDOW = 1000
 
@@ -1269,6 +1271,48 @@ const groceryHabitValidator = v.object({
 })
 
 /**
+ * The newest rows of several index ranges, each already newest first, merged
+ * into one newest-first run of at most `take` that pass `keep`. It reads
+ * lazily, one row at a time from whichever range has the newest next row, and
+ * stops after `scanLimit` rows read in all, so a Group with many lists reads
+ * no more than one with a single list.
+ */
+async function newestAcross(
+  ranges: AsyncIterable<Doc<'tasks'>>[],
+  options: {
+    take: number
+    scanLimit: number
+    at: (task: Doc<'tasks'>) => number
+    keep: (task: Doc<'tasks'>) => boolean
+  },
+): Promise<Doc<'tasks'>[]> {
+  const out: Doc<'tasks'>[] = []
+  if (options.take <= 0) return out
+  // Iterators left unfinished need no closing: the query's reads end with it.
+  const iterators = ranges.map((range) => range[Symbol.asyncIterator]())
+  const heads = await Promise.all(iterators.map((it) => it.next()))
+  let scanned = 0
+  while (out.length < options.take && scanned < options.scanLimit) {
+    let newest = -1
+    for (let i = 0; i < heads.length; i++) {
+      const head = heads[i]
+      if (head.done) continue
+      if (
+        newest === -1 ||
+        options.at(head.value) > options.at(heads[newest].value as Doc<'tasks'>)
+      )
+        newest = i
+    }
+    if (newest === -1) break
+    const row = heads[newest].value as Doc<'tasks'>
+    scanned++
+    if (options.keep(row)) out.push(row)
+    heads[newest] = await iterators[newest].next()
+  }
+  return out
+}
+
+/**
  * What the Group usually buys, for one of its grocery lists (APP-311;
  * `designs/groceries/README.md`, section 1 item 2 and section 2):
  *
@@ -1280,13 +1324,22 @@ const groceryHabitValidator = v.object({
  *   hidden from it, at most eight. Empty when the list has them switched off.
  *
  * History is the checked items of the Group's grocery lists, as Recent reads
- * it (`by_list_and_done_at`, no table of its own), bounded per list. Items
- * checked before `doneAt` existed count at the moment they were added. The
- * "now" a query sees is when it last ran: the strip moves on with the next
- * change to the Group's grocery lists or the next time it is opened.
+ * it (`by_list_and_done_at`, no table of its own): the newest
+ * `GROCERY_HABITS_WINDOW` across all of them together (APP-427). Items
+ * checked before `doneAt` existed count at the moment they were added, read
+ * only while the stamped history leaves room. What is open is read from this
+ * list alone, through `by_list_and_done`.
+ *
+ * `now` is when "due" is measured from. The phone sends the hour it is, so
+ * the strip moves on while the screen stays open (APP-427); without it (an
+ * installed app from before) it is when the query last ran.
  */
 export const groceryHabits = query({
-  args: { groupSlug: v.string(), listId: v.id('taskLists') },
+  args: {
+    groupSlug: v.string(),
+    listId: v.id('taskLists'),
+    now: v.optional(v.number()),
+  },
   returns: v.object({
     habits: v.array(groceryHabitValidator),
     suggestions: v.array(groceryHabitValidator),
@@ -1308,7 +1361,7 @@ export const groceryHabits = query({
     const grocery = lists.filter(
       (list) => list.provider === 'local' && isGroceryList(group, list),
     )
-    const window = (list: Doc<'taskLists'>, stamped: boolean) =>
+    const range = (list: Doc<'taskLists'>, stamped: boolean) =>
       ctx.db
         .query('tasks')
         .withIndex('by_list_and_done_at', (q) =>
@@ -1317,34 +1370,55 @@ export const groceryHabits = query({
             : q.eq('listId', list._id).eq('doneAt', undefined),
         )
         .order('desc')
-        .take(GROCERY_HABITS_WINDOW)
-    const [stamped, unstamped] = await Promise.all([
-      Promise.all(grocery.map((list) => window(list, true))),
-      Promise.all(grocery.map((list) => window(list, false))),
-    ])
-    const purchases: GroceryPurchase[] = [
-      ...stamped.flat().filter((task) => task.done),
-      ...unstamped.flat().filter((task) => task.done),
-    ].map((task) => ({
-      key: groceryTitleKey(task.title),
-      title: task.title,
-      at: task.doneAt ?? task._creationTime,
-      ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
-      ...(task.unit !== undefined ? { unit: task.unit } : {}),
-      ...(task.category !== undefined ? { category: task.category } : {}),
-    }))
+    const stamped = await newestAcross(
+      grocery.map((list) => range(list, true)),
+      {
+        take: GROCERY_HABITS_WINDOW,
+        scanLimit: GROCERY_HABITS_WINDOW,
+        at: (task) => task.doneAt ?? 0,
+        keep: (task) => task.done,
+      },
+    )
+    // Items checked before `doneAt` share the no-stamp range with the open
+    // items; read only while the stamped history leaves room.
+    const unstamped = await newestAcross(
+      grocery.map((list) => range(list, false)),
+      {
+        take: GROCERY_HABITS_WINDOW - stamped.length,
+        scanLimit: GROCERY_HABITS_WINDOW,
+        at: (task) => task._creationTime,
+        keep: (task) => task.done,
+      },
+    )
+    const purchases: GroceryPurchase[] = [...stamped, ...unstamped].map(
+      (task) => ({
+        key: groceryTitleKey(task.title),
+        title: task.title,
+        at: task.doneAt ?? task._creationTime,
+        ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
+        ...(task.unit !== undefined ? { unit: task.unit } : {}),
+        ...(task.category !== undefined ? { category: task.category } : {}),
+      }),
+    )
     const habits = groceryHabitsOf(purchases)
     if (target.suggestionsOff) {
       return { habits: habits.slice(0, GROCERY_HABITS_LIMIT), suggestions: [] }
     }
-    // What is open on the list now: the open rows sit in the no-stamp range.
-    const onList = unstamped[grocery.findIndex((list) => list._id === target._id)]
-      .filter((task) => !task.done)
-      .map((task) => groceryTitleKey(task.title))
-    const exclude = new Set([...onList, ...(target.hiddenSuggestions ?? [])])
+    const open = await ctx.db
+      .query('tasks')
+      .withIndex('by_list_and_done', (q) =>
+        q.eq('listId', target._id).eq('done', false),
+      )
+      .take(OPEN_ITEMS_SCAN_LIMIT)
+    const exclude = new Set([
+      ...open.map((task) => groceryTitleKey(task.title)),
+      ...(target.hiddenSuggestions ?? []),
+    ])
+    const now =
+      args.now !== undefined && Number.isFinite(args.now) ? args.now : Date.now()
     return {
       habits: habits.slice(0, GROCERY_HABITS_LIMIT),
-      suggestions: grocerySuggestions(habits, { now: Date.now(), exclude }),
+      suggestions: grocerySuggestions(habits, { now, exclude }),
     }
   },
 })
@@ -1382,17 +1456,111 @@ export const putBack = mutation({
     requireWritableGroceryList(group, list)
     const open = await openItemNamed(ctx, args.listId, task.title)
     if (open) return open._id
-    const order = await endOfList(ctx, args.listId)
-    return await ctx.db.insert('tasks', {
-      listId: args.listId,
-      title: task.title,
-      done: false,
-      createdBy: user._id,
-      order,
-      ...(task.category ? { category: task.category } : {}),
-      ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
-      ...(task.unit !== undefined ? { unit: task.unit } : {}),
-    })
+    return await insertOpenCopy(ctx, args.listId, user._id, task)
+  },
+})
+
+/** An open copy of a checked grocery item at the end of a list. */
+async function insertOpenCopy(
+  ctx: MutationCtx,
+  listId: Id<'taskLists'>,
+  userId: Id<'users'>,
+  task: Doc<'tasks'>,
+): Promise<Id<'tasks'>> {
+  return await ctx.db.insert('tasks', {
+    listId,
+    title: task.title,
+    done: false,
+    createdBy: userId,
+    order: await endOfList(ctx, listId),
+    ...(task.category ? { category: task.category } : {}),
+    ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
+    ...(task.unit !== undefined ? { unit: task.unit } : {}),
+  })
+}
+
+/**
+ * A grocery list's "Put back all" (APP-427): each checked item of the list is
+ * put back as `putBack` does, as an open copy, so its purchase stays in the
+ * Group's history; unchecking them would take them out of it. A name already
+ * open on the list, or twice among `taskIds`, is not added again. Answers the
+ * copies it added, for the undo to remove (`removePutBack`).
+ *
+ * Every id must be an item on this list, at most `OPEN_ITEMS_SCAN_LIMIT`; one
+ * no longer checked is skipped. Installed phones from before
+ * keep calling `setDoneInList` for this and keep unchecking.
+ */
+export const putBackChecked = mutation({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    taskIds: v.array(v.id('tasks')),
+  },
+  returns: v.array(v.id('tasks')),
+  handler: async (ctx, args) => {
+    const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
+    const list = await ctx.db.get(args.listId)
+    if (!list || list.groupId !== group._id)
+      throw new ConvexError(taskRefusal('not-found'))
+    requireWritableGroceryList(group, list)
+    if (args.taskIds.length > OPEN_ITEMS_SCAN_LIMIT)
+      throw new ConvexError(taskRefusal('not-found'))
+    const rows = await Promise.all(args.taskIds.map((id) => ctx.db.get(id)))
+    for (const task of rows)
+      if (!task || task.listId !== args.listId)
+        throw new ConvexError(taskRefusal('not-found'))
+    // One unchecked on another phone since the list was drawn is skipped.
+    const tasks = (rows as Doc<'tasks'>[]).filter((task) => task.done)
+    const open = await ctx.db
+      .query('tasks')
+      .withIndex('by_list_and_done', (q) =>
+        q.eq('listId', args.listId).eq('done', false),
+      )
+      .take(OPEN_ITEMS_SCAN_LIMIT)
+    const seen = new Set(open.map((task) => groceryTitleKey(task.title)))
+    const added: Id<'tasks'>[] = []
+    for (const task of tasks) {
+      const key = groceryTitleKey(task.title)
+      if (seen.has(key)) continue
+      seen.add(key)
+      added.push(await insertOpenCopy(ctx, args.listId, user._id, task))
+    }
+    return added
+  },
+})
+
+/**
+ * The undo of `putBackChecked`: the copies it added leave the list again.
+ * Only open items on this list are removed; one checked since (bought after
+ * all) or gone already is left as it is. Answers how many it removed.
+ */
+export const removePutBack = mutation({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    taskIds: v.array(v.id('tasks')),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    if (args.taskIds.length > OPEN_ITEMS_SCAN_LIMIT)
+      throw new ConvexError(taskRefusal('not-found'))
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const list = await ctx.db.get(args.listId)
+    if (!list || list.groupId !== group._id)
+      throw new ConvexError(taskRefusal('not-found'))
+    requireWritableGroceryList(group, list)
+    let removed = 0
+    for (const id of args.taskIds) {
+      const task = await ctx.db.get(id)
+      if (!task || task.listId !== args.listId || task.done) continue
+      // As `remove` does, should the copy have gained steps or a reminder.
+      await deleteSubtasks(ctx, task._id)
+      await cancelSend(ctx, task)
+      await purgeCompletionsOfTask(ctx, task._id)
+      await ctx.db.delete(id)
+      removed++
+    }
+    return removed
   },
 })
 
