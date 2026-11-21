@@ -34,6 +34,9 @@ import { useAisleOf } from '../kitchen/add-to-groceries/use-aisles'
 import { useTaskActions } from './store'
 import type { Task } from './types'
 
+/** How long typing pauses before the composer asks the list for an aisle. */
+const ASK_AFTER_MS = 250
+
 /** The units offered as pills, in the design's order; others stay readable. */
 const OFFERED_UNITS: readonly GroceryUnit[] = [
   'stuks',
@@ -102,7 +105,14 @@ export function GroceryPreview({
   const words = t.tasks.grocery
   const amountText = useGroceryAmountText()
   const typed = line.trim()
-  const aisleOf = useAisleOf(group.slug, listId, typed ? [typed] : [])
+  // Asked once typing pauses, not per keystroke; until the answer for this
+  // line is in, the phone's dictionary answers.
+  const [asked, setAsked] = useState(typed)
+  useEffect(() => {
+    const timer = setTimeout(() => setAsked(typed), ASK_AFTER_MS)
+    return () => clearTimeout(timer)
+  }, [typed])
+  const aisleOf = useAisleOf(group.slug, listId, asked ? [asked] : [])
   if (!typed) return null
   const fields = groceryAddFields(line)
   const amount = amountText(fields.quantity, fields.unit)
@@ -126,7 +136,9 @@ export function GroceryPreview({
         }))}
         onPressAction={(event) => {
           const next = event.nativeEvent.event
-          if (!isGroceryAisle(next) || next === aisle) return
+          // Any aisle tapped is a choice, the one shown too: "keep it in
+          // Other" holds against a later AI answer.
+          if (!isGroceryAisle(next) || next === chosen) return
           haptics.selectionChanged()
           onAisle(next)
         }}
@@ -135,8 +147,9 @@ export function GroceryPreview({
           accessibilityRole="button"
           accessibilityLabel={`${words.aisle}, ${words.aisles[aisle]}`}
           accessibilityHint={words.changeAisleHint}
-          style={[styles.aisleChip, { backgroundColor: tint.wash }]}
+          style={styles.aisleTarget}
         >
+          <View style={[styles.aisleChip, { backgroundColor: tint.wash }]}>
           <Text style={[styles.chipText, { color: tint.text }]}>
             {words.aisles[aisle]}
           </Text>
@@ -147,9 +160,12 @@ export function GroceryPreview({
             accessibilityElementsHidden
             importantForAccessibility="no"
           />
+          </View>
         </View>
       </MenuView>
-      {amount || (chosen === undefined && detected !== 'other') ? (
+      {/* The amount is read on the phone; the aisle may come from the
+          server's shared answers, so the hint speaks for the amount only. */}
+      {amount ? (
         <Text style={[styles.hint, { color: tokens.muted }]}>
           {words.recognised}
         </Text>
@@ -441,6 +457,8 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   chipText: { ...TYPE.footnoteStrong },
+  // The chip's tap target reaches 44 pt without moving the row's layout.
+  aisleTarget: { paddingVertical: 10, marginVertical: -10 },
   // A chip that opens a menu: the chip's look, with room for the chevron.
   aisleChip: {
     flexDirection: 'row',

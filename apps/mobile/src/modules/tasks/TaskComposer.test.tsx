@@ -13,6 +13,7 @@ import { mount } from '../../testing/dom'
 
 const state = vi.hoisted(() => ({
   added: [] as unknown[][],
+  moved: [] as unknown[][],
   server: new Map<string, string>(),
 }))
 
@@ -137,6 +138,10 @@ vi.mock('./store', () => ({
       state.added.push(args)
       return Promise.resolve('task')
     },
+    setAisle: (...args: unknown[]) => {
+      state.moved.push(args)
+      return Promise.resolve()
+    },
   }),
 }))
 // What the list itself answers for a line (`groceryLines.aisles`).
@@ -148,6 +153,7 @@ import { TaskComposer } from './TaskRow'
 
 beforeEach(() => {
   state.added = []
+  state.moved = []
   state.server = new Map([['kaas', 'dairy']])
 })
 
@@ -205,25 +211,39 @@ test('an aisle chosen in the menu is the one the line is added in', async () => 
   choose('bakery')
   expect(chip()?.getAttribute('aria-label')).toBe('Aisle, Bread and bakery')
   await submit()
-  expect(state.added).toEqual([['groceries', 'kaas', true, undefined, 'bakery']])
+  // Added as always, then moved the way the item screen moves it.
+  expect(state.added).toEqual([['groceries', 'kaas', true, undefined]])
+  expect(state.moved).toEqual([['task', 'bakery']])
 })
 
-test('untouched, the line goes without an aisle and the server decides', async () => {
+test('untouched, the line is only added and the server decides', async () => {
   const { type, submit } = render()
   type('kaas')
   await submit()
-  expect(state.added).toEqual([['groceries', 'kaas', true, undefined, undefined]])
+  expect(state.added).toEqual([['groceries', 'kaas', true, undefined]])
+  expect(state.moved).toEqual([])
 })
 
-test('a choice goes with its line only: added or cleared, the next starts fresh', async () => {
+test('choosing the aisle already shown is a choice too', async () => {
+  const { type, choose, submit } = render()
+  type('zeldzame zwam')
+  choose('other')
+  await submit()
+  expect(state.moved).toEqual([['task', 'other']])
+})
+
+test('a choice goes with its line only', async () => {
   const { chip, type, choose, submit } = render()
   type('kaas')
   choose('bakery')
   await submit()
+  // The next line starts fresh.
   type('kaas')
   expect(chip()?.getAttribute('aria-label')).toBe('Aisle, Dairy and eggs')
+  // A line typed differently after choosing has not been given that aisle.
   choose('frozen')
-  type('')
-  type('kaas')
-  expect(chip()?.getAttribute('aria-label')).toBe('Aisle, Dairy and eggs')
+  type('melk')
+  expect(chip()?.getAttribute('aria-label')).toBe('Aisle, Other')
+  await submit()
+  expect(state.moved).toEqual([['task', 'bakery']])
 })

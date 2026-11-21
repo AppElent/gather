@@ -498,30 +498,6 @@ describe('what the writes send', () => {
       { listId: 'chores', groupSlug: 'our-household', title: '2 pakken melk' },
     ])
   })
-
-  test('an aisle chosen in the composer moves the new item there, as the item screen does (APP-524)', async () => {
-    sent.length = 0
-    answers['tasks:add'] = 'kaas'
-    await useTaskActions().addTask('groceries', 'kaas', true, undefined, 'bakery')
-    await useTaskActions().addTask('groceries', 'kaas', true)
-    delete answers['tasks:add']
-
-    expect(sent).toEqual([
-      {
-        name: 'tasks:add',
-        args: { listId: 'groceries', groupSlug: 'our-household', title: 'kaas' },
-      },
-      {
-        name: 'tasks:update',
-        args: { taskId: 'kaas', groupSlug: 'our-household', category: 'bakery' },
-      },
-      // Untouched, the server's own aisle stands: nothing follows the add.
-      {
-        name: 'tasks:add',
-        args: { listId: 'groceries', groupSlug: 'our-household', title: 'kaas' },
-      },
-    ])
-  })
 })
 
 describe('a list’s kind and face', () => {
