@@ -172,6 +172,8 @@ function refusalText(error: ConvexError<Value>): string {
     data && typeof data === 'object' && 'kind' in data ? data.kind : undefined
   if (typeof kind !== 'string') return 'Gather refused this.'
   if (GROUP_REFUSAL_KINDS.has(kind)) return GROUP_NOT_FOUND
+  if (kind === 'groups:not-signed-in')
+    return GROUP_REFUSAL_MESSAGES['not-signed-in']
   return REFUSAL_KINDS[kind] ?? `Gather refused this (${kind}).`
 }
 

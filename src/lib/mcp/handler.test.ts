@@ -300,6 +300,19 @@ describe('Gather MCP endpoint', () => {
     }
   })
 
+  it('reads a keyed sign-in refusal as the sentence it always was', async () => {
+    const out = await callTool(
+      fakeBackend({
+        'notes:list': () => {
+          throw groupRefusalError('not-signed-in')
+        },
+      }),
+      'list_notes',
+      { groupId: 'group_home' },
+    )
+    expect(out.content[0].text).toBe('Not authenticated')
+  })
+
   it('reads a Group refusal sentence from an older deployment the same way', async () => {
     for (const refusal of ['Not a member of that group', 'No group has that slug']) {
       const out = await callTool(

@@ -234,7 +234,9 @@ export function readCalendarRefusal(
 /**
  * The sentence a server chose to show: the data itself when it threw a
  * sentence, or the `message` a keyed refusal carries for readers that have no
- * wording of their own for its kind (see `groupRefusal`).
+ * wording of their own for its kind. Only Group refusals carry a `message`
+ * today (`groupRefusal`); give another vocabulary one only to keep a sentence
+ * that installed readers already show.
  */
 export function refusalSentence(error: unknown): string | null {
   const data = errorData(error)
