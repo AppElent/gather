@@ -370,6 +370,19 @@ export const FEATURES = defineFeatures([
     },
   },
 
+  // Energy (APP-491): the phone leads, the web follows with the same
+  // functions (designs/energy/README.md). Only the shell so far (APP-492).
+  {
+    id: 'energy',
+    kind: 'product',
+    status: 'parity',
+    platforms: ['web', 'mobile'],
+    routes: {
+      web: ['_app/energy'],
+      mobile: ['(app)/(tabs)/all/energy/**'],
+    },
+  },
+
   // -- Phone Modules ---------------------------------------------------------
   {
     id: 'calendar',

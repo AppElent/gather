@@ -103,6 +103,8 @@ const ACTIONS_BY_MODULE: Record<ModuleId, readonly QuickActionDef[]> = {
   'baby-log': [],
   calendar: [],
   notes: [],
+  // Nothing to capture until meter readings land (APP-494).
+  energy: [],
 }
 
 const LAUNCHER_ORDER: readonly string[] = Object.keys(ACTIONS_BY_MODULE)

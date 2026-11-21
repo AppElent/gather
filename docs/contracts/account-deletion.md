@@ -22,6 +22,13 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   it.
 - `tasks`, `calendarEvents` and `babyEvents` hang off a parent rather than a
   Group, so each is deleted inside its parent's entry.
+- **Energy** (ADR-0051): every Energy table but `energyPrices` carries a
+  `groupId` and is read by `by_group`. A Group's price feeds take the account
+  prices fetched through them (`energyPrices` by `feedId`); market prices have
+  no feed and no Group and stay. Deleting a House only clears an Address's
+  link to it. The cascade deletes a Group in one transaction, which holds
+  while the hourly intervals are few; paging them is APP-495's, before Home
+  Assistant fills them.
 - A repeating task's completion history (`taskCompletions`, APP-303) carries
   its `groupId`, so it goes with the Group, and with its task or list when
   either is deleted. A Member who leaves a shared Group stays named on the

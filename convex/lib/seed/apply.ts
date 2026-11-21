@@ -12,6 +12,7 @@ import {
   SAMPLE_BABY,
   SAMPLE_BABY_EVENTS,
   SAMPLE_BUYING_COSTS,
+  SAMPLE_ENERGY_SITE,
   SAMPLE_HOLDINGS,
   SAMPLE_HOUSE,
   SAMPLE_HOUSEMATES,
@@ -764,6 +765,29 @@ export async function applySample(
     }),
   )
 
+  // --- Energy ---------------------------------------------------------------
+  // An address on the House, with the meter-readings source the empty
+  // Module's form creates (APP-492).
+  const energySiteId = rec.track(
+    await ctx.db.insert('energySites', {
+      groupId,
+      name: SAMPLE_ENERGY_SITE.name,
+      houseId,
+      createdByUserId: authors.owner,
+      order: 0,
+    }),
+  )
+  rec.track(
+    await ctx.db.insert('energySources', {
+      groupId,
+      siteId: energySiteId,
+      kind: 'manual',
+      label: SAMPLE_ENERGY_SITE.sourceLabel,
+      status: 'ok',
+      connectedByUserId: authors.owner,
+    }),
+  )
+
   for (const [order, cost] of SAMPLE_RECURRING_COSTS.entries()) {
     rec.track(
       await ctx.db.insert('recurringCosts', {
@@ -956,6 +980,7 @@ export async function applySample(
     counts.mortgages +
     counts.loanParts +
     1 + // its home-buying costs
+    2 + // the energy site and its meter-readings source
     counts.recurringCosts +
     counts.savingsGoals +
     counts.splitScenarios +

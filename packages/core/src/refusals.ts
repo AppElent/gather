@@ -127,6 +127,29 @@ export function readLoyaltyCardRefusal(
 }
 
 /**
+ * Why an Energy write was refused (APP-492). `notFound` covers "no such
+ * address" and "an address in another Group" alike, and `houseNotFound` a
+ * House link to a House outside the Group (ADR-0009).
+ */
+export const ENERGY_REFUSAL_CODES = [
+  'needsName',
+  'tooLong',
+  'houseNotFound',
+  'notFound',
+] as const
+export type EnergyRefusalCode = (typeof ENERGY_REFUSAL_CODES)[number]
+
+/** Namespaced on the wire, like the calendar's, so kinds cannot collide. */
+export function energyRefusal(code: EnergyRefusalCode): { kind: string } {
+  return { kind: `energy:${code}` }
+}
+
+export function readEnergyRefusal(error: unknown): EnergyRefusalCode | null {
+  const kind = refusalKind(error)
+  return ENERGY_REFUSAL_CODES.find((code) => `energy:${code}` === kind) ?? null
+}
+
+/**
  * Why a task write was refused.
  *
  * - `assignee-not-member` (APP-302): a person who is not a current Member of

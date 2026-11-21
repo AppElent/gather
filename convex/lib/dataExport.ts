@@ -192,6 +192,17 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   financeSettings: { scope: 'group', index: 'by_group' },
   netWorthEntries: { scope: 'group', index: 'by_group' },
   netWorthSnapshots: { scope: 'group', index: 'by_group' },
+  // Energy (APP-491). A source's token and a price feed's key never leave;
+  // market prices belong to no Group and account prices are the supplier's,
+  // fetched again from the feed (`energyPrices` below).
+  energySites: { scope: 'group', index: 'by_group' },
+  energyContracts: { scope: 'group', index: 'by_group' },
+  energySources: { scope: 'group', index: 'by_group', omit: ['secret'] },
+  energyAssets: { scope: 'group', index: 'by_group' },
+  energyChannels: { scope: 'group', index: 'by_group' },
+  energyReadings: { scope: 'group', index: 'by_group' },
+  energyIntervals: { scope: 'group', index: 'by_group' },
+  energyPriceFeeds: { scope: 'group', index: 'by_group', omit: ['secret'] },
   integrationConnections: {
     scope: 'group',
     index: 'by_group_provider',
@@ -202,6 +213,10 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   // -- Not exported --------------------------------------------------------
   tastingCatalog: { exclude: 'reference-data' },
   retailerCatalog: { exclude: 'reference-data' },
+  // Price slots: a market price is the same for every Group and belongs to
+  // none; an account price is the supplier's own, a cache of its feed that
+  // carries no Group id to scope it by (APP-491).
+  energyPrices: { exclude: 'reference-data' },
   seedRuns: { exclude: 'bookkeeping' },
 }
 
