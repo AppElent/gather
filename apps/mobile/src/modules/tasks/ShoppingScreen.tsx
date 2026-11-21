@@ -7,7 +7,8 @@
  * never shifts under a thumb; what another Member checks turns checked live,
  * as Convex sends it. The screen stays on while the mode is showing, and the
  * mode ends by itself after 30 minutes without a tap (`useIdleTimeout`), so
- * a phone put away in a pocket can sleep again.
+ * a phone put away in a pocket can sleep again. The tab bar hides while the
+ * mode is showing (`useHideTabBarWhile`), so the mode has the whole screen.
  *
  * "Done shopping" is the list's Clear checked: the checked items leave the
  * list for Recent, and the staples among them were already back in stock the
@@ -20,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { haptics } from '../../feedback/haptics'
 import { fmt, plural, useI18n } from '../../i18n'
+import { useHideTabBarWhile } from '../../shell/tabBarVisibility'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, useInsetSeparator } from '../../ui/inset-list'
@@ -68,6 +70,9 @@ export function ShoppingScreen({ listId }: { listId: string }) {
     else router.replace(moduleHref('/all/groceries'))
   }
   useKeepAwakeWhile(focused, AWAKE_TAG)
+  // Full screen, as the design has it (APP-544): leaving in any way unfocuses
+  // the screen, and that brings the tab bar back.
+  useHideTabBarWhile(focused)
   const touch = useIdleTimeout(focused, SHOPPING_IDLE_MS, leave)
 
   const toggle = (task: Task) => {
