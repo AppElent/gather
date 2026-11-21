@@ -64,6 +64,13 @@ test('about page uses Gather-specific copy in the public frame', () => {
   expect(screen.queryByText(/TanStack Start/i)).toBeNull()
 })
 
+test('about page names only Modules that exist, not the retired Nutrition one', () => {
+  renderWithI18n(<AboutPage />)
+
+  expect(screen.getByText(/Gather covers recipes, meal planning/)).toBeDefined()
+  expect(screen.queryByText(/Nutrition is|and Nutrition/)).toBeNull()
+})
+
 test('about page says store names and logos are their owners’ trademarks', () => {
   renderWithI18n(<AboutPage />)
   expect(
