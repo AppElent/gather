@@ -168,7 +168,10 @@ describe('the kept count', () => {
   })
 })
 
-describe('pruning checked groceries', () => {
+// These tests seed hundreds of rows through convex-test, which takes about
+// 1 s on an idle Mac and over 6 s on a busy one, past Vitest's 5 s default
+// (APP-535). 30 s matches the screen tests in Foundry (APP-530).
+describe('pruning checked groceries', { timeout: 30_000 }, () => {
   test('keeps the newest per grocery list and leaves Recent and the habits as they were', async () => {
     const s = await seed()
     const over = 300
