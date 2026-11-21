@@ -34,10 +34,25 @@ vi.mock('react-native', async () => {
       ),
   )
   const Text = ({ children }: Props) => h('span', null, children)
-  const TextInput = ({ testID, value, onChangeText, onSubmitEditing }: Props) =>
+  // The quick-add field carries its line as styled children, not `value`.
+  const textOf = (node: unknown): string =>
+    typeof node === 'string'
+      ? node
+      : Array.isArray(node)
+        ? node.map(textOf).join('')
+        : React.isValidElement<{ children?: unknown }>(node)
+          ? textOf(node.props.children)
+          : ''
+  const TextInput = ({
+    testID,
+    value,
+    children,
+    onChangeText,
+    onSubmitEditing,
+  }: Props) =>
     h('input', {
       'data-testid': testID as string,
-      value: value as string,
+      value: (value as string | undefined) ?? textOf(children),
       onChange: (event: { target: { value: string } }) =>
         (onChangeText as (text: string) => void)(event.target.value),
       onKeyDown: (event: { key: string }) => {
@@ -126,7 +141,7 @@ vi.mock('../../ui/card', () => ({ Card: () => null }))
 vi.mock('../../group/GroupProvider', () => ({
   useGroup: () => ({ group: { slug: 'our-household' } }),
 }))
-vi.mock('./assignee', () => ({ AssigneeCoin: () => null, useTaskPeople: vi.fn() }))
+vi.mock('./assignee', () => ({ AssigneeCoin: () => null, useTaskPeople: () => ({ people: [] }) }))
 vi.mock('./completeTask', () => ({ useCompleteTask: vi.fn() }))
 vi.mock('./components', () => ({ Checkbox: () => null }))
 vi.mock('./GrocerySuggestions', () => ({ GroceryCompletions: () => null }))

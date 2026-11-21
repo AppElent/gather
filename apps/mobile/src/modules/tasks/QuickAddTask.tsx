@@ -1,165 +1,222 @@
 /**
- * The Add tab's "Add a task": a title, the list it goes on, and a save.
+ * The Add tab's "Add a task": one line, the list it goes on, and a save.
+ *
+ * The line is read as it is typed (APP-307): "stofzuigen morgen elke week
+ * @Daan" is the task "stofzuigen", due tomorrow, every week, for Daan. Each
+ * recognised part is highlighted in the field and gets a chip under it, whose
+ * × leaves those words in the title instead.
  *
  * It writes to the Current Group, like every other Tasks write, and offers
- * only the lists Gather can write to (`quickAddLists`). The list is asked for
- * rather than defaulted out of sight, for the reason the Drop's `task-new`
- * gives: a task with nowhere visible to live is a task nobody sees again. It
- * is preselected, though, so the common case is still one field and a save.
+ * only the lists Gather can write to (`quickAddLists`). The list is the first
+ * chip rather than defaulted out of sight, for the reason the Drop's
+ * `task-new` gives: a task with nowhere visible to live is a task nobody sees
+ * again. It is preselected, though, so the common case is one line and a save.
  *
- * A failed save keeps the title and says so under the button; the launcher is
- * told only about a save that happened.
+ * A failed save keeps the line and says so under it; the launcher is told
+ * only about a save that happened.
  */
+import { MenuView } from '@expo/ui/community/menu'
 import { useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
-import { useI18n } from '../../i18n'
-import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
-import { Chip } from './components'
+import { fmt, useI18n } from '../../i18n'
+import { UI_ICONS } from '../../theme/icons'
+import { TYPE, useTokens } from '../../theme/tokens'
+import { ListTile } from './listFace'
+import { QuickAddChips, QuickAddInput, useQuickAddLine } from './QuickAddParts'
 import { quickAddLists, quickAddTarget } from './quickAdd'
-import { useTaskActions, useTaskLists } from './store'
+import { listFace, useTaskActions, useTaskLists } from './store'
 
 export function QuickAddTask({
   onSaved,
+  onOpenTask,
 }: {
   /** The title that was saved, and the name of the list it went on. */
   onSaved: (title: string, listName: string) => void
+  /** "More details": the task was saved, and its screen should open. */
+  onOpenTask?: (taskId: string) => void
 }) {
-  const tokens = useTokens()
+  const tokens = useTokens('home')
   const { t } = useI18n()
   const text = t.tasks.quickAdd
   const lists = useTaskLists()
-  const { addTask } = useTaskActions()
-  const [title, setTitle] = useState('')
+  const { addTask, addParsedTask } = useTaskActions()
   const [pickedId, setPickedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   // `saving` reaches the next render only; a second tap in the same turn is
   // stopped by this, so submitting twice saves once.
   const inFlight = useRef(false)
-  const [failed, setFailed] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
 
   const offered = lists ? quickAddLists(lists) : undefined
   const target = offered ? quickAddTarget(offered, pickedId) : undefined
-  const trimmed = title.trim()
-  const ready = Boolean(trimmed && target && !saving)
+  // A grocery list reads its own line: "2 pakken melk" is an amount (APP-309).
+  const grocery = target?.grocery ?? false
+  const { line, parsed, today, setLine, dismiss, reset } =
+    useQuickAddLine(!grocery)
+  const title = parsed.title
+  const ready = Boolean(title && target && !saving)
 
-  async function save() {
+  async function save(open = false) {
     if (inFlight.current) return
-    if (!trimmed || !target) {
+    if (!title || !target) {
       haptics.actionFailed()
       return
     }
     inFlight.current = true
     setSaving(true)
-    setFailed(false)
+    setNotice(null)
     try {
-      await addTask(target._id, trimmed, target.grocery ?? false)
+      const saved = grocery
+        ? { taskId: await addTask(target._id, title, true), reminderFailed: false }
+        : await addParsedTask(target._id, parsed)
       haptics.itemSaved()
-      setTitle('')
-      onSaved(trimmed, target.name)
+      reset()
+      // An alert, not the notice: `onSaved` may close this form, and a
+      // haptic is never the only word that the reminder did not go in.
+      if (saved.reminderFailed) Alert.alert(text.reminderFailed)
+      onSaved(title, target.name)
+      if (open) onOpenTask?.(saved.taskId)
     } catch {
       haptics.actionFailed()
-      setFailed(true)
+      setNotice(text.failed)
     } finally {
       inFlight.current = false
       setSaving(false)
     }
   }
 
+  const ArrowUp = UI_ICONS.ArrowUp
+  const ChevronDown = UI_ICONS.ChevronDown
+
   return (
     <View style={styles.capture}>
-      <TextInput
-        autoFocus
-        value={title}
-        onChangeText={(value) => {
-          setTitle(value)
-          setFailed(false)
-        }}
-        placeholder={t.tasks.task.titlePlaceholder}
-        placeholderTextColor={tokens.muted}
-        returnKeyType="done"
-        onSubmitEditing={() => void save()}
-        editable={!saving}
-        style={[
-          styles.input,
-          {
-            color: tokens.ink,
-            backgroundColor: tokens.ground,
-            borderColor: tokens.hair,
-          },
-        ]}
-      />
-
-      {offered === undefined ? (
-        <ActivityIndicator
-          color={tokens.muted}
-          accessibilityLabel={t.actions.loading}
+      <View style={styles.composer}>
+        <QuickAddInput
+          testID="quick-add-task"
+          autoFocus
+          line={line}
+          parsed={parsed}
+          onChangeText={(value) => {
+            setLine(value)
+            setNotice(null)
+          }}
+          placeholder={t.tasks.task.titlePlaceholder}
+          placeholderTextColor={tokens.muted}
+          accessibilityLabel={t.tasks.task.titlePlaceholder}
+          returnKeyType="done"
+          submitBehavior="submit"
+          onSubmitEditing={() => void save()}
+          editable={!saving}
+          style={[styles.input, { color: tokens.ink }]}
         />
-      ) : offered.length === 0 ? (
-        <Text style={[styles.note, { color: tokens.muted }]}>
-          {text.noList}
-        </Text>
-      ) : (
-        <View style={styles.lists}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={text.save}
+          accessibilityState={{ disabled: !ready, busy: saving }}
+          onPress={() => void save()}
+          disabled={!ready}
+          hitSlop={4}
+          style={({ pressed }) => [
+            styles.send,
+            { backgroundColor: ready ? tokens.accent : tokens.surface2 },
+            pressed && styles.pressed,
+          ]}
+        >
+          {saving ? (
+            <ActivityIndicator color={tokens.onAccent} />
+          ) : (
+            <ArrowUp
+              size={18}
+              strokeWidth={2.6}
+              color={ready ? tokens.onAccent : tokens.muted}
+            />
+          )}
+        </Pressable>
+      </View>
+
+      <View style={styles.chips}>
+        {offered === undefined ? (
+          <ActivityIndicator
+            color={tokens.muted}
+            accessibilityLabel={t.actions.loading}
+          />
+        ) : target === undefined ? (
           <Text style={[styles.note, { color: tokens.muted }]}>
-            {text.list}
+            {text.noList}
           </Text>
-          <View style={styles.chips}>
-            {offered.map((list) => (
-              <Chip
-                key={list._id}
-                label={list.name}
-                on={list._id === target?._id}
-                onPress={() => {
-                  haptics.selectionChanged()
-                  setPickedId(list._id)
-                }}
-              />
-            ))}
-          </View>
-        </View>
-      )}
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={text.save}
-        accessibilityState={{ disabled: !ready, busy: saving }}
-        onPress={() => void save()}
-        disabled={!ready}
-        style={({ pressed }) => [
-          styles.saveButton,
-          { backgroundColor: ready ? tokens.accent : tokens.surface2 },
-          pressed && styles.pressed,
-        ]}
-      >
-        {saving ? (
-          <ActivityIndicator color={tokens.onAccent} />
         ) : (
-          <Text
-            style={[
-              styles.saveLabel,
-              { color: ready ? tokens.onAccent : tokens.muted },
-            ]}
+          <MenuView
+            actions={offered.map((list) => ({
+              id: list._id,
+              title: list.name,
+              state:
+                list._id === target._id ? ('on' as const) : ('off' as const),
+            }))}
+            onPressAction={(event) => {
+              haptics.selectionChanged()
+              setPickedId(event.nativeEvent.event)
+            }}
           >
-            {text.save}
-          </Text>
+            <View
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel={fmt(text.listChip, { list: target.name })}
+              style={[styles.listChip, { backgroundColor: tokens.surface2 }]}
+            >
+              <ListTile
+                list={{ provider: target.provider, ...listFace(target) }}
+                size="xs"
+              />
+              <Text style={[styles.chipText, { color: tokens.ink }]}>
+                {target.name}
+              </Text>
+              <ChevronDown size={14} strokeWidth={2.4} color={tokens.muted} />
+            </View>
+          </MenuView>
         )}
-      </Pressable>
+        <QuickAddChips parsed={parsed} today={today} onDismiss={dismiss} />
+      </View>
 
-      {failed ? (
+      <View style={styles.footer}>
+        {/* A grocery list reads amounts, not dates: the hint would be wrong. */}
+        <Text style={[styles.note, styles.hint, { color: tokens.muted }]}>
+          {grocery ? '' : text.hint}
+        </Text>
+        {onOpenTask ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !ready }}
+            disabled={!ready}
+            onPress={() => void save(true)}
+            style={({ pressed }) => [styles.more, pressed && styles.pressed]}
+          >
+            <Text
+              style={[
+                styles.moreText,
+                { color: ready ? tokens.ink : tokens.muted },
+              ]}
+            >
+              {text.moreDetails}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      {notice ? (
         <Text
           accessibilityRole="alert"
           style={[styles.note, { color: tokens.danger }]}
         >
-          {text.failed}
+          {notice}
         </Text>
       ) : null}
     </View>
@@ -167,22 +224,45 @@ export function QuickAddTask({
 }
 
 const styles = StyleSheet.create({
-  capture: { gap: 8, paddingBottom: 8 },
+  capture: { gap: 10, paddingBottom: 8 },
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
   input: {
     ...TYPE.body,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.card,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    flex: 1,
+    minHeight: 36,
+    paddingVertical: 7,
   },
-  lists: { gap: 6 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  note: { ...TYPE.footnote },
-  saveButton: {
-    borderRadius: RADIUS.pill,
-    paddingVertical: 12,
+  send: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  saveLabel: { ...TYPE.bodyStrong },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+  },
+  listChip: {
+    minHeight: 32,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  chipText: { ...TYPE.subhead },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  hint: { flex: 1 },
+  note: { ...TYPE.footnote },
+  more: { minHeight: 44, justifyContent: 'center' },
+  moreText: { ...TYPE.subhead, fontWeight: '600' },
   pressed: { opacity: 0.6 },
 })

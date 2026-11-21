@@ -186,7 +186,7 @@ export const shell = {
     subtitle:
       'Gather keeps shared recipes, plans, lists, tasks, notes, and tasting logs in one place, for the people who share a household.',
     modules:
-      'Recipes and Nutrition are live today, and the surrounding modules are staged so a group can grow into meal planning, groceries, pantry tracking, recurring costs, shared costs, savings goals, tasks, calendar, notes, cheeses, and wines without changing products.',
+      'Gather covers recipes, meal planning, groceries, tasks, notes, calendar, shared and recurring costs, savings goals, a baby log, loyalty cards, and cheese, wine, and beer tastings. The phone app leads: some modules arrive on the web once they are ready there.',
     pins: "Every module is available in every group. You pin the ones you use to your own navigation, and the rest stay one click away — your choices are yours alone and never move anybody else's.",
     trademarks:
       'Store names and logos in Loyalty cards are trademarks of their owners and are used only to show which store a card belongs to.',

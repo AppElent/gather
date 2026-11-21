@@ -1,6 +1,10 @@
+import { en as coreEn } from '@gather/core/messages'
+import { parseQuickAdd } from '@gather/core/task-quick-add'
 import { describe, expect, test } from 'vitest'
 
-import { quickAddLists, quickAddTarget } from './quickAdd'
+import { quickAddChipLabel, quickAddLists, quickAddTarget } from './quickAdd'
+
+const enRepeat = coreEn.tasks.repeat.summary
 
 const list = (id: string, order: number, writable = true) => ({
   _id: id,
@@ -30,5 +34,44 @@ describe("the Add tab's task lists", () => {
     expect(quickAddTarget(quickAddLists([list('n', 0, false)]), null)).toBe(
       undefined,
     )
+  })
+})
+
+describe('quick add chips', () => {
+  const words = {
+    today: 'Today',
+    tomorrow: 'Tomorrow',
+    repeat: enRepeat,
+  }
+  const today = '2026-11-18'
+  const chip = (text: string, locale = 'en-GB') => {
+    const parsed = parseQuickAdd(text, {
+      today,
+      now: '10:00',
+      members: [{ id: 'd', name: 'Daan' }],
+    })
+    return parsed.parts.map((part) =>
+      quickAddChipLabel(part, parsed, today, locale, words),
+    )
+  }
+
+  test('says a near date with its word and the date itself', () => {
+    expect(chip('Bins tomorrow')).toEqual(['Tomorrow, Thu 19 Nov'])
+    expect(chip('Bins vrijdag')).toEqual(['Fri 20 Nov'])
+  })
+
+  test('adds the year to a date in another year', () => {
+    expect(chip('Tandarts 12/3')).toEqual(['Fri, 12 Mar 2027'])
+  })
+
+  test('names a repeat on the weekday of its due date', () => {
+    expect(chip('Bins tomorrow every week')).toEqual([
+      'Tomorrow, Thu 19 Nov',
+      'Every week, Thu',
+    ])
+  })
+
+  test('shows a time, a Member and a label as typed', () => {
+    expect(chip('Call at 9:00 @daan #home')).toEqual(['09:00', 'Daan', '#home'])
   })
 })

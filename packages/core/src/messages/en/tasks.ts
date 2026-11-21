@@ -177,7 +177,7 @@ export const tasks = {
     unit: 'Unit',
     aisle: 'Aisle',
     /** Under the composer while a line is typed. */
-    recognised: 'Recognised without AI, also offline',
+    recognised: 'Amount and aisle filled in from what you type',
     /** Read out for the composer's aisle chip, which opens the aisle menu. */
     changeAisleHint: 'Choose the aisle it is added in',
     // The list in aisle sections, the Checked row and Recent (APP-310;
@@ -270,7 +270,7 @@ export const tasks = {
       /** Autocomplete rows' footnotes. */
       often: 'Often bought · {cadence}',
       history: 'Your history',
-      dictionary: 'Dictionary',
+      dictionary: 'Known product',
       /** Appended to a row's footnote when the name is already open. */
       onList: 'already on the list',
       onListAmount: 'already on the list ({amount})',

@@ -163,9 +163,9 @@ export function GroceryPreview({
           </View>
         </View>
       </MenuView>
-      {/* The amount is read on the phone; the aisle may come from the
-          server's shared answers, so the hint speaks for the amount only. */}
-      {amount ? (
+      {/* What was filled in from the line: an amount, or an aisle the
+          Member has not chosen themselves. */}
+      {amount || (chosen === undefined && detected !== 'other') ? (
         <Text style={[styles.hint, { color: tokens.muted }]}>
           {words.recognised}
         </Text>

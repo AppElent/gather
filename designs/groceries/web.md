@@ -96,8 +96,8 @@ Field `Item toevoegen, bijv. 2 pak melk` / `Add an item, e.g. 2 milk`
 the same local recognition as the phone (`@gather/core`) shows a row
 `Herkend:` / `Recognised:` with chips: amount (`2 pak`), name, aisle (with a
 chevron; it opens the aisle menu and stores the Group override). Hint when
-empty: `Hoeveelheid en afdeling worden herkend, zonder AI. Enter voegt toe.` /
-`Amount and aisle are recognised, without AI. Enter adds.` Autocomplete from
+empty: `Hoeveelheid en afdeling ingevuld op basis van wat je typt. Enter voegt toe.` /
+`Amount and aisle filled in from what you type. Enter adds.` Autocomplete from
 history and dictionary as on the phone, as a listbox under the field (arrow
 keys + Enter). Merging amounts as on the phone.
 
