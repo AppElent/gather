@@ -5,6 +5,7 @@ import {
   afterTyping,
   composedTask,
   dateShortcuts,
+  draftAfterHold,
   emptyDraft,
   isDirty,
   lineAfterChoice,
@@ -173,6 +174,24 @@ describe('the draft between tasks', () => {
     })
     // The next task is a new create, never a replay of the one just saved.
     expect(next.saveKey).not.toBe(draft.saveKey)
+  })
+
+  test('a composer reopened mid-save never gets the held draft back', () => {
+    const preset = { listId: 'l1', dueDate: today }
+    const held: TaskDraft = {
+      ...emptyDraft(preset),
+      line: 'Bins',
+      listId: 'l2',
+      saveKey: 'composer-held',
+    }
+    // Saved: the next task, on the list it went to.
+    const saved = draftAfterHold(true, held, preset)
+    expect(saved).toMatchObject({ line: '', listId: 'l2' })
+    expect(saved.saveKey).not.toBe(held.saveKey)
+    // Discarded: gone, back to what the place starts with.
+    const discarded = draftAfterHold(false, held, preset)
+    expect(discarded).toMatchObject({ line: '', listId: 'l1', body: '' })
+    expect(discarded.saveKey).not.toBe(held.saveKey)
   })
 
   test('every new draft has its own save key, long enough for the server', () => {

@@ -117,6 +117,19 @@ export function nextDraft(draft: TaskDraft, preset: TaskPreset): TaskDraft {
   return { ...emptyDraft(preset), listId: draft.listId }
 }
 
+/**
+ * The draft a composer reopened mid-save goes on with once that save settles.
+ * Saved, it is a task and this is the next one; discarded, it is gone. Either
+ * way the held draft does not come back.
+ */
+export function draftAfterHold(
+  saved: boolean,
+  held: TaskDraft,
+  preset: TaskPreset,
+): TaskDraft {
+  return saved ? nextDraft(held, preset) : emptyDraft(preset)
+}
+
 /** Whether closing should keep it: a word typed or a detail changed. */
 export function isDirty(draft: TaskDraft, preset: TaskPreset): boolean {
   if (draft.line.trim() || draft.body.trim()) return true

@@ -42,7 +42,7 @@ import { UI_ICONS } from '../../theme/icons'
 import { TYPE, useTokens } from '../../theme/tokens'
 import {
   draftKey,
-  forgetSavedDraft,
+  forgetSentDraft,
   holdDraft,
   keepDraft,
   keptDraft,
@@ -59,6 +59,7 @@ import {
   type ComposedTask,
   composedTask,
   dateShortcuts,
+  draftAfterHold,
   emptyDraft,
   isDirty,
   lineAfterChoice,
@@ -278,9 +279,9 @@ function TaskComposerCard({
     void waiting.then((saved) => {
       if (!live) return
       setWaiting(undefined)
-      // Saved: it is a task now, and this is the next one. Not saved: the
-      // closed card has asked about it; the draft stays to finish here.
-      if (saved) load(nextDraft(latest.current, preset))
+      // Only a closed card holds a draft another can reopen on, and it settles
+      // when the retry it asked about is answered: saved or discarded.
+      load(draftAfterHold(saved, latest.current, preset))
     })
     return () => {
       live = false
@@ -363,7 +364,7 @@ function TaskComposerCard({
     saving: ComposedTask,
     saveKey: string,
   ) => {
-    forgetSavedDraft<TaskDraft>(place.current.draftId, saveKey)
+    forgetSentDraft<TaskDraft>(place.current.draftId, saveKey)
     haptics.itemSaved()
     markFresh(saved.taskId)
     if (saved.notesFailed || saved.reminderFailed) reportDetails(saved)
@@ -388,7 +389,7 @@ function TaskComposerCard({
    * A save that failed once the composer had moved on to the next task, or
    * closed: asked about, never poured over what is being typed now. The same
    * key goes again, so a create that did land is not made twice. Answers
-   * whether it was saved in the end (false: discarded).
+   * whether it was saved in the end (false: discarded, and forgotten).
    */
   const offerRetry = (
     saving: ComposedTask,
@@ -400,7 +401,15 @@ function TaskComposerCard({
         fmt(words.notAdded, { title: saving.title }),
         undefined,
         [
-          { text: words.discard, style: 'destructive', onPress: () => resolve(false) },
+          {
+            text: words.discard,
+            style: 'destructive',
+            onPress: () => {
+              // Discarded is gone: a close mid-save kept it for the place.
+              forgetSentDraft<TaskDraft>(place.current.draftId, saveKey)
+              resolve(false)
+            },
+          },
           {
             text: words.tryAgain,
             onPress: () =>

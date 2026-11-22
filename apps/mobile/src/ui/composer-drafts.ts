@@ -36,11 +36,12 @@ export function keepDraft<T>(key: string, draft: T | undefined): void {
 }
 
 /**
- * Forgets `key`'s draft once the draft sent under `saveKey` is saved: a close
- * mid-save kept it, and reopening must not bring back a task already made.
- * A newer draft kept since stays.
+ * Forgets `key`'s draft once the draft sent under `saveKey` is done with:
+ * saved, or discarded after it failed. A close mid-save kept it, and reopening
+ * must bring back neither a task already made nor one thrown away. A newer
+ * draft kept since stays.
  */
-export function forgetSavedDraft<T extends { saveKey: string }>(
+export function forgetSentDraft<T extends { saveKey: string }>(
   key: string,
   saveKey: string,
 ): void {
