@@ -36,11 +36,13 @@ import { useHiddenSmartLists } from '../../prefs/hiddenSmartLists'
 import { UI_ICONS } from '../../theme/icons'
 import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetAddRow, InsetList, InsetRow } from '../../ui/inset-list'
+import { ADD_BUTTON_CLEARANCE } from '../../ui/keyboard-composer'
 import { ModuleTile, moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
 import { WashHeader } from '../../ui/wash-header'
 import { moduleShown } from '../buildModules'
+import { AddTask } from './AddTaskComposer'
 import { AssigneeCoin, useTaskPeople } from './assignee'
 import { SMART_LIST_GLYPHS, TASK_ICONS } from './icons'
 import { ListTile } from './listFace'
@@ -148,7 +150,9 @@ export function TaskLists() {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 24 + ADD_BUTTON_CLEARANCE,
+        }}
       >
         {tile ? (
           <WashHeader
@@ -325,6 +329,7 @@ export function TaskLists() {
         </View>
       </ScrollView>
 
+      <AddTask place="index" preset={{}} />
       {taskSheets.sheets}
       {creating ? (
         <NewListSheet

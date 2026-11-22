@@ -1,0 +1,609 @@
+/**
+ * The keyboard composer (APP-587): one card pinned to the top of the keyboard,
+ * for a new task now and a new note (APP-588) or event (APP-589) next. Fast to
+ * start — one tap, one line — with the details set before saving, and room to
+ * write when a line is not enough. Design: `designs/tasks/quick-add_final.md`.
+ *
+ * This is the shell every kind shares: the scrim, the drag handle and expand
+ * button, the title and description, the chip row, the + menu and the send
+ * button. What the chips are, what they say and what their menus do is the
+ * kind's (`modules/tasks/AddTaskComposer.tsx` for a task), so the shell knows
+ * no Module.
+ *
+ * Load-bearing choices:
+ *
+ * - **A transparent `Modal`, not a sheet.** The card tracks the keyboard and
+ *   is not a detent, and the scrim has to cover the header and the tab bar,
+ *   which a view inside the screen cannot. It has its own safe area: a tab
+ *   screen's bottom inset includes the tab bar, which the modal covers. `KeyboardAvoidingView` moves it
+ *   with the keyboard's own curve on iOS; Android resizes the modal's window.
+ * - **Menus keep the keyboard up.** Each chip and the + are `@expo/ui`'s native
+ *   menu, which does not take focus from the field. A date or time wheel
+ *   cannot sit in the keyboard's place on iOS, so a kind's `panel` lowers the
+ *   keyboard, draws the wheel under the chips, and raises it again when done.
+ * - **The card closes; the draft stays.** Every way out (scrim, swipe down,
+ *   Android Back) is `onClose`, and the kind keeps what was typed
+ *   (`composer-drafts.ts`). Nothing asks to confirm.
+ */
+import { type MenuAction, MenuView } from '@expo/ui/community/menu'
+import {
+  type ComponentRef,
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  type StyleProp,
+  StyleSheet,
+  Text,
+  TextInput,
+  type TextStyle,
+  View,
+} from 'react-native'
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler'
+import Animated, {
+  LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated'
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context'
+
+import { useI18n } from '../i18n'
+import type { Glyph } from '../theme/glyph'
+import { UI_ICONS } from '../theme/icons'
+import { type ModuleGroup, RADIUS, SPACE, TYPE, useTokens } from '../theme/tokens'
+
+/** One detail on the chip row: its value when set, its name when not. */
+export interface ComposerChip {
+  id: string
+  label: string
+  /** Read out: "Date: Tomorrow", "Priority, not set". */
+  accessibilityLabel: string
+  /** Set chips sit on the group's wash; unset ones on `surface-2`. */
+  set: boolean
+  icon?: Glyph
+  /** Drawn in place of the icon: a list's or a calendar's tile. */
+  leading?: ReactNode
+  /** The chip's native menu. Ends with Remove when the chip is set. */
+  menu: MenuAction[]
+  onMenu: (actionId: string) => void
+  testID?: string
+}
+
+/** What the shell hands the kind to draw its title field with. */
+export interface ComposerTitleField {
+  inputRef: RefObject<ComponentRef<typeof TextInput> | null>
+  style: StyleProp<TextStyle>
+  placeholderTextColor: string
+  onSubmitEditing: () => void
+}
+
+export interface KeyboardComposerProps {
+  /** The Module whose primary colour the send and add buttons wear. */
+  group: ModuleGroup
+  /** Every way out: scrim, swipe down, Android Back. The kind keeps the draft. */
+  onClose: () => void
+  /**
+   * The title field. The kind draws it, because a task's highlights what was
+   * recognised in it (APP-307); the shell owns its focus, style and Return.
+   */
+  renderTitle: (field: ComposerTitleField) => ReactNode
+  /** The description: a line when shown, the whole card when expanded. */
+  body: {
+    value: string
+    onChange: (text: string) => void
+    /** Shown while collapsed: chosen from +, or already typed. */
+    visible: boolean
+    placeholder: string
+    accessibilityLabel: string
+  }
+  /** The row while collapsed: the always-shown chips and the ones set. */
+  chips: readonly ComposerChip[]
+  /** The row while expanded: every detail of the kind. */
+  allChips: readonly ComposerChip[]
+  /** The + button's menu, for the details not always shown. */
+  more?: { actions: MenuAction[]; onPress: (actionId: string) => void }
+  canSave: boolean
+  /** A save that waits for its answer (All details): the send spins. */
+  busy?: boolean
+  onSave: () => void
+  /** A failure the person did not cause, under the chips. */
+  notice?: string | null
+  /**
+   * A wheel drawn where the keyboard was. While it is set the keyboard is
+   * down; when it clears, the title takes focus again.
+   */
+  panel?: ReactNode
+  /** Asked when expanding, to bring the description field into view. */
+  onExpandedChange?: (expanded: boolean) => void
+  testID?: string
+}
+
+/** How far the handle must travel before a drag counts, in points. */
+const DRAG_EXPAND = 32
+const DRAG_CLOSE = 72
+
+export function KeyboardComposer(props: KeyboardComposerProps) {
+  return (
+    <Modal
+      transparent
+      visible
+      animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={props.onClose}
+    >
+      <SafeAreaProvider>
+        <GestureHandlerRootView style={styles.fill}>
+          <ComposerCard {...props} />
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
+    </Modal>
+  )
+}
+
+function ComposerCard({
+  group,
+  onClose,
+  renderTitle,
+  body,
+  chips,
+  allChips,
+  more,
+  canSave,
+  busy = false,
+  onSave,
+  notice,
+  panel,
+  onExpandedChange,
+  testID,
+}: KeyboardComposerProps) {
+  const tokens = useTokens(group)
+  const insets = useSafeAreaInsets()
+  const { t } = useI18n()
+  const words = t.composer
+  const titleRef = useRef<ComponentRef<typeof TextInput>>(null)
+  const [expanded, setExpanded] = useState(false)
+  const keyboardUp = useKeyboardUp()
+  const drag = useSharedValue(0)
+
+  const toggle = (next = !expanded) => {
+    setExpanded(next)
+    onExpandedChange?.(next)
+  }
+
+  // A wheel takes the keyboard's place, and gives it back when it closes.
+  const hadPanel = useRef(false)
+  useEffect(() => {
+    if (panel) {
+      hadPanel.current = true
+      Keyboard.dismiss()
+    } else if (hadPanel.current) {
+      hadPanel.current = false
+      titleRef.current?.focus()
+    }
+  }, [panel])
+
+  // A finger on the handle: up expands, down collapses an expanded card and
+  // closes a small one. It follows the finger downwards only, and springs
+  // back without a bounce.
+  const pan = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetY([-8, 8])
+    .onUpdate((event) => {
+      drag.value = Math.max(0, event.translationY)
+    })
+    .onEnd((event) => {
+      const up = event.translationY < -DRAG_EXPAND || event.velocityY < -600
+      const down = event.translationY > DRAG_CLOSE || event.velocityY > 900
+      if (up && !expanded) toggle(true)
+      else if (down && expanded) toggle(false)
+      else if (down) onClose()
+      drag.value = withSpring(0, { damping: 40, stiffness: 400 })
+    })
+  const dragStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: drag.value }],
+  }))
+
+  const ExpandIcon = expanded ? UI_ICONS.Collapse : UI_ICONS.Expand
+  const expandLabel = expanded ? words.collapse : words.expand
+  const shownChips = expanded ? allChips : chips
+
+  const send = (
+    <Pressable
+      testID={testID ? `${testID}-save` : undefined}
+      accessibilityRole="button"
+      accessibilityLabel={words.save}
+      accessibilityState={{ disabled: !canSave, busy }}
+      disabled={!canSave || busy}
+      onPress={onSave}
+      hitSlop={4}
+      style={({ pressed }) => [
+        styles.send,
+        { backgroundColor: canSave ? tokens.accent : tokens.surface2 },
+        pressed && styles.pressed,
+      ]}
+    >
+      {busy ? (
+        <ActivityIndicator color={tokens.onAccent} />
+      ) : (
+        <UI_ICONS.ArrowUp
+          size={20}
+          strokeWidth={2.6}
+          color={canSave ? tokens.onAccent : tokens.muted}
+        />
+      )}
+    </Pressable>
+  )
+
+  const plus = more ? (
+    <MenuView actions={more.actions} onPressAction={(e) => more.onPress(e.nativeEvent.event)}>
+      <View
+        testID={testID ? `${testID}-more` : undefined}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel={words.more}
+        style={[styles.plus, { borderColor: tokens.hair }]}
+      >
+        <UI_ICONS.Plus size={18} strokeWidth={2.2} color={tokens.ink} />
+      </View>
+    </MenuView>
+  ) : null
+
+  const chipViews = shownChips.map((chip) => (
+    <ChipButton key={chip.id} chip={chip} group={group} />
+  ))
+
+  return (
+    <>
+        <Pressable
+          testID={testID ? `${testID}-scrim` : undefined}
+          accessibilityRole="button"
+          accessibilityLabel={words.close}
+          onPress={onClose}
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor:
+                tokens.scheme === 'dark'
+                  ? 'rgba(0, 0, 0, 0.45)'
+                  : 'rgba(26, 31, 29, 0.28)',
+            },
+          ]}
+        />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={[styles.fill, { paddingTop: insets.top + SPACE[2] }]}
+          pointerEvents="box-none"
+        >
+          {expanded ? null : <View style={styles.fill} pointerEvents="box-none" />}
+          <Animated.View
+            testID={testID}
+            layout={LinearTransition.duration(220)}
+            style={[
+              styles.card,
+              expanded && styles.expanded,
+              {
+                backgroundColor: tokens.surface,
+                marginBottom: SPACE[2] + (keyboardUp ? 0 : insets.bottom),
+              },
+              dragStyle,
+            ]}
+          >
+            <GestureDetector gesture={pan}>
+              <Pressable
+                testID={testID ? `${testID}-handle` : undefined}
+                // The expand button says the same to VoiceOver; one is enough.
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                onPress={() => toggle()}
+                style={styles.handleBand}
+              >
+                <View style={[styles.handle, { backgroundColor: tokens.hair }]} />
+              </Pressable>
+            </GestureDetector>
+
+            <View style={[styles.titleRow, expanded && styles.grow]}>
+              <View style={[styles.fields, expanded && styles.grow]}>
+                {renderTitle({
+                  inputRef: titleRef,
+                  style: [styles.title, { color: tokens.ink }],
+                  placeholderTextColor: tokens.muted,
+                  onSubmitEditing: onSave,
+                })}
+                {expanded || body.visible ? (
+                  <TextInput
+                    testID={testID ? `${testID}-body` : undefined}
+                    value={body.value}
+                    onChangeText={body.onChange}
+                    placeholder={body.placeholder}
+                    placeholderTextColor={tokens.muted}
+                    accessibilityLabel={body.accessibilityLabel}
+                    multiline={expanded}
+                    textAlignVertical="top"
+                    style={[
+                      expanded ? styles.bodyExpanded : styles.bodyLine,
+                      expanded && { borderTopColor: tokens.hair },
+                      { color: expanded ? tokens.ink : tokens.muted },
+                    ]}
+                  />
+                ) : null}
+              </View>
+              <Pressable
+                testID={testID ? `${testID}-expand` : undefined}
+                accessibilityRole="button"
+                accessibilityLabel={expandLabel}
+                onPress={() => toggle()}
+                hitSlop={4}
+                style={({ pressed }) => [styles.expand, pressed && styles.pressed]}
+              >
+                <ExpandIcon size={18} strokeWidth={2.2} color={tokens.muted} />
+              </Pressable>
+            </View>
+
+            <View style={[styles.chipRow, expanded && styles.chipRowExpanded]}>
+              {expanded ? (
+                <View style={styles.wrap}>
+                  {plus}
+                  {chipViews}
+                </View>
+              ) : (
+                <>
+                  {plus}
+                  <ScrollView
+                    horizontal
+                    keyboardShouldPersistTaps="always"
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.fill}
+                    contentContainerStyle={styles.scrollChips}
+                  >
+                    {chipViews}
+                  </ScrollView>
+                </>
+              )}
+              {send}
+            </View>
+
+            {notice ? (
+              <Text
+                accessibilityRole="alert"
+                style={[styles.notice, { color: tokens.danger }]}
+              >
+                {notice}
+              </Text>
+            ) : null}
+
+            {panel ? <View style={styles.panel}>{panel}</View> : null}
+          </Animated.View>
+        </KeyboardAvoidingView>
+    </>
+  )
+}
+
+function ChipButton({ chip, group }: { chip: ComposerChip; group: ModuleGroup }) {
+  const tokens = useTokens(group)
+  const Icon = chip.icon
+  return (
+    <MenuView
+      actions={chip.menu}
+      onPressAction={(event) => chip.onMenu(event.nativeEvent.event)}
+    >
+      <View
+        testID={chip.testID}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel={chip.accessibilityLabel}
+        style={[
+          styles.chip,
+          chip.leading ? styles.chipWithTile : null,
+          {
+            backgroundColor: chip.set
+              ? tokens.tintOf(group).wash
+              : tokens.surface2,
+          },
+        ]}
+      >
+        {chip.leading ??
+          (Icon ? (
+            <Icon
+              size={16}
+              strokeWidth={2.1}
+              // Ink on the wash, not the group's text colour: group-coloured
+              // marks never sit on a wash (apps/mobile/DESIGN_SYSTEM.md).
+              color={chip.set ? tokens.ink : tokens.muted}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+          ) : null)}
+        <Text numberOfLines={1} style={[styles.chipText, { color: tokens.ink }]}>
+          {chip.label}
+        </Text>
+      </View>
+    </MenuView>
+  )
+}
+
+/**
+ * The round add button on a screen that opens the composer: the Module's
+ * primary colour, bottom right, clear of the tab bar (whose height is in the
+ * screen's safe area, `TabSafeArea`). Hidden by the caller while the composer
+ * is open and where nothing can be added.
+ */
+export function ComposerAddButton({
+  group,
+  label,
+  onPress,
+  testID,
+}: {
+  group: ModuleGroup
+  label: string
+  onPress: () => void
+  testID?: string
+}) {
+  const tokens = useTokens(group)
+  const insets = useSafeAreaInsets()
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.add,
+        {
+          backgroundColor: tokens.accent,
+          bottom: insets.bottom + SPACE[4],
+        },
+        pressed && styles.addPressed,
+      ]}
+    >
+      <UI_ICONS.Plus size={28} strokeWidth={2.6} color={tokens.onAccent} />
+    </Pressable>
+  )
+}
+
+/** The room a screen leaves under its content so the add button covers nothing. */
+export const ADD_BUTTON_CLEARANCE = 60 + SPACE[4] + SPACE[2]
+
+/** Whether the keyboard is up, from the events that move it. */
+function useKeyboardUp(): boolean {
+  const [up, setUp] = useState(Keyboard.isVisible())
+  useEffect(() => {
+    const ios = Platform.OS === 'ios'
+    const show = Keyboard.addListener(
+      ios ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setUp(true),
+    )
+    const hide = Keyboard.addListener(
+      ios ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setUp(false),
+    )
+    return () => {
+      show.remove()
+      hide.remove()
+    }
+  }, [])
+  return up
+}
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  grow: { flex: 1 },
+  card: {
+    marginHorizontal: SPACE[2],
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    paddingTop: 20,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    gap: 10,
+    shadowColor: '#10201E',
+    shadowOpacity: 0.18,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+  },
+  expanded: { flex: 1 },
+  handleBand: {
+    position: 'absolute',
+    top: 0,
+    alignSelf: 'center',
+    width: 88,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  handle: { width: 36, height: 5, borderRadius: RADIUS.pill },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  fields: { flex: 1, minWidth: 0, gap: 2 },
+  title: {
+    ...TYPE.bodyStrong,
+    minHeight: 36,
+    paddingVertical: 6,
+    paddingHorizontal: 0,
+  },
+  bodyLine: { ...TYPE.subhead, paddingVertical: 2, paddingHorizontal: 0 },
+  bodyExpanded: {
+    ...TYPE.body,
+    flex: 1,
+    marginTop: SPACE[2],
+    paddingTop: 10,
+    paddingHorizontal: 0,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  expand: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE[2] },
+  chipRowExpanded: { alignItems: 'flex-end' },
+  wrap: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: SPACE[2] },
+  scrollChips: { gap: SPACE[2], alignItems: 'center' },
+  plus: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chip: {
+    minHeight: 36,
+    paddingLeft: 10,
+    paddingRight: 12,
+    borderRadius: RADIUS.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  chipWithTile: { paddingLeft: 8 },
+  chipText: { ...TYPE.subhead },
+  send: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notice: { ...TYPE.footnote },
+  // Stretched: a wheel's Host collapses to nothing under `alignItems:
+  // 'center'` (expo/expo#46904).
+  panel: { alignSelf: 'stretch', gap: SPACE[2] },
+  pressed: { opacity: 0.6 },
+  add: {
+    position: 'absolute',
+    right: SPACE[5],
+    width: 60,
+    height: 60,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10201E',
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  addPressed: { transform: [{ scale: 0.96 }] },
+})

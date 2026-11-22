@@ -45,6 +45,7 @@ import {
 import { api, type Doc, type Id } from '../../convex/api'
 import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
+import { type ComposedTask, parsedTask } from './composerDraft'
 import { deviceTimeZone } from './reminder'
 import type { ListDisplay, ListSync, Priority, Task, TaskList } from './types'
 
@@ -704,6 +705,48 @@ export function useTaskActions() {
     fields: Omit<Parameters<typeof update>[0], 'taskId' | 'groupSlug'>,
   ) => update({ taskId: id as Id<'tasks'>, groupSlug, ...fields })
 
+  const addComposed = async (
+    listId: string,
+    task: ComposedTask,
+    sectionId?: string,
+  ): Promise<{
+    taskId: string
+    reminderFailed: boolean
+    notesFailed: boolean
+  }> => {
+    const taskId = await add({
+      listId: listId as Id<'taskLists'>,
+      groupSlug,
+      title: task.title,
+      today: localIsoDate(),
+      ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+      ...(task.repeat ? { repeat: task.repeat } : {}),
+      ...(task.assigneeId
+        ? { assigneeId: task.assigneeId as Id<'users'> }
+        : {}),
+      ...(task.labels.length > 0 ? { labels: task.labels } : {}),
+      ...(task.priority ? { priority: task.priority } : {}),
+      ...(sectionId ? { sectionId } : {}),
+    })
+    // `add` takes no notes and no reminder: both are their own writes, so
+    // an installed server from before the composer is all this needs.
+    const [notes, reminder] = await Promise.allSettled([
+      task.notes ? patch(taskId, { notes: task.notes }) : null,
+      task.reminder
+        ? setReminder({
+            taskId,
+            groupSlug,
+            reminder: { ...task.reminder, timeZone: deviceTimeZone() },
+          })
+        : null,
+    ])
+    return {
+      taskId,
+      notesFailed: notes.status === 'rejected',
+      reminderFailed: reminder.status === 'rejected',
+    }
+  }
+
   return {
     /**
      * A line onto a list. On a grocery list the amount is read off it first
@@ -733,38 +776,18 @@ export function useTaskActions() {
       listId: string,
       parsed: QuickAdd,
       sectionId?: string,
-    ): Promise<{ taskId: string; reminderFailed: boolean }> => {
-      const taskId = await add({
-        listId: listId as Id<'taskLists'>,
-        groupSlug,
-        title: parsed.title,
-        today: localIsoDate(),
-        ...(parsed.dueDate ? { dueDate: parsed.dueDate } : {}),
-        ...(parsed.repeat ? { repeat: parsed.repeat } : {}),
-        ...(parsed.assigneeId
-          ? { assigneeId: parsed.assigneeId as Id<'users'> }
-          : {}),
-        ...(parsed.labels.length > 0 ? { labels: parsed.labels } : {}),
-        ...(sectionId ? { sectionId } : {}),
-      })
-      if (!parsed.time || !parsed.dueDate) {
-        return { taskId, reminderFailed: false }
-      }
-      try {
-        await setReminder({
-          taskId,
-          groupSlug,
-          reminder: {
-            date: parsed.dueDate,
-            time: parsed.time,
-            timeZone: deviceTimeZone(),
-          },
-        })
-        return { taskId, reminderFailed: false }
-      } catch {
-        return { taskId, reminderFailed: true }
-      }
-    },
+    ): Promise<{ taskId: string; reminderFailed: boolean }> =>
+      addComposed(listId, parsedTask(parsed), sectionId),
+    /**
+     * A task from the keyboard composer (APP-587), every detail it was given
+     * at once. Notes and a reminder are written once the task exists; the
+     * task stays if either fails, and the answer says which.
+     */
+    addComposedTask: (
+      listId: string,
+      task: ComposedTask,
+      sectionId?: string,
+    ) => addComposed(listId, task, sectionId),
     /**
      * Ticks a task, or completes a repeating one's open occurrence. The
      * phone's own day goes along, so "after done" counts from it.

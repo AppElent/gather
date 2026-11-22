@@ -852,6 +852,33 @@ export const nl = {
       'Dat kon niet worden opgeslagen. Probeer opnieuw of kies iets anders.',
   },
 
+  composer: {
+    expand: 'Groter maken',
+    collapse: 'Kleiner maken',
+    more: 'Meer details',
+    allDetails: 'Alle details',
+    remove: 'Weghalen',
+    save: 'Bewaar',
+    close: 'Sluiten',
+    addTask: 'Taak toevoegen',
+    taskTitle: 'Taaknaam',
+    description: 'Beschrijving',
+    taskBody: 'Beschrijving, links, wat er nodig is…',
+    label: 'Label',
+    newLabel: 'Nieuw label…',
+    customRepeat: 'Aangepast…',
+    date: {
+      label: 'Datum',
+      weekend: 'Dit weekend',
+      nextWeek: 'Volgende week',
+      pick: 'Kies datum…',
+    },
+    time: {
+      pick: 'Kies tijd…',
+    },
+    detailsFailed: 'De taak is toegevoegd, maar niet al haar details.',
+  },
+
   tasks: {
     count: coreNl.tasks.count,
     /** APP-306: the New list sheet, list kinds and their faces, shared with the web. */

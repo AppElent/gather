@@ -1092,6 +1092,47 @@ export const en = {
   },
 
   /**
+   * The keyboard composer (APP-587): one shell, pinned to the top of the
+   * keyboard, for a new task now and a new note or event later. Its own
+   * chrome and the task's chips; the field names are the task form's.
+   */
+  composer: {
+    /** The drag handle and the button top right, both ways. */
+    expand: 'Expand',
+    collapse: 'Collapse',
+    /** The + button: the details not always shown. */
+    more: 'More details',
+    /** The + menu's last entry: the task form, with everything kept. */
+    allDetails: 'All details',
+    /** The last entry in a set chip's menu. */
+    remove: 'Remove',
+    save: 'Save',
+    /** The dim scrim behind the composer, for VoiceOver. */
+    close: 'Close',
+    /** The add button on the Tasks screens. */
+    addTask: 'Add task',
+    taskTitle: 'Task name',
+    description: 'Description',
+    taskBody: 'Description, links, what’s needed…',
+    label: 'Label',
+    /** Starts a #label in the field, where it is recognised as typed. */
+    newLabel: 'New label…',
+    /** The Repeat menu's last entry: the Repeat sheet. */
+    customRepeat: 'Custom…',
+    date: {
+      label: 'Date',
+      weekend: 'This weekend',
+      nextWeek: 'Next week',
+      pick: 'Pick a date…',
+    },
+    time: {
+      pick: 'Pick a time…',
+    },
+    /** The task went in; a note or a reminder chosen with it did not. */
+    detailsFailed: 'The task was added, but not all of its details.',
+  },
+
+  /**
    * The Tasks Module's own words: the phone's, not `coreEn.tasks`. The web's
    * tree for the same Module is a different shape, and merging the two is
    * ADR-0017 work; until then a second `tasks` key here is a duplicate-key
