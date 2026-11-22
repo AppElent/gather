@@ -108,7 +108,66 @@ describe('useIngredientLines', () => {
     const result = renderLines([{ id: 'a', ingredients: unreadable(41) }])
     await settle()
     expect(kinds(result, 'a')).toEqual([...Array(40).fill('read'), 'reading'])
+    // The count shows as soon as the first batch has answered (APP-479).
+    expect(result.current.aiCount).toEqual({ used: 1, limit: 30 })
     await act(async () => release({ status: 'unavailable' }))
     expect(kinds(result, 'a')[40]).toBe('text')
+  })
+
+  test('a batch still out when the lines change is kept and not asked for again (APP-479)', async () => {
+    const calls: string[][] = []
+    let release: () => void = () => undefined
+    const answerFor = (lines: string[]) => ({
+      status: 'read' as const,
+      used: calls.length,
+      limit: 30,
+      lines: lines.map((line) => ({ name: line.slice(0, 20) })),
+    })
+    server.read = ({ lines }) => {
+      calls.push(lines)
+      if (calls.length === 1)
+        return new Promise((resolve) => {
+          release = () => resolve(answerFor(lines))
+        })
+      return Promise.resolve(answerFor(lines))
+    }
+    const result = { current: undefined as unknown as ReturnType<typeof useIngredientLines> }
+    function Probe({ recipes }: { recipes: IngredientSource[] }) {
+      result.current = useIngredientLines(recipes)
+      return null
+    }
+    const ingredients = unreadable(45)
+    const view = mount(<Probe recipes={[{ id: 'a', ingredients }]} />)
+    await settle()
+    expect(calls).toHaveLength(1)
+    // The recipes come back as new objects: the reading effect runs again
+    // while the first call is out. It waits for that call, it does not repeat it.
+    view.rerender(<Probe recipes={[{ id: 'a', ingredients }]} />)
+    await settle()
+    expect(calls).toHaveLength(1)
+    await act(async () => release())
+    await settle()
+    expect(calls.map((lines) => lines.length)).toEqual([40, 5])
+    expect(calls[1]).toEqual(ingredients.slice(40))
+    expect(kinds(result, 'a').every((kind) => kind === 'read')).toBe(true)
+  })
+
+  test('the count shows while later batches are out, before every line is read (APP-479)', async () => {
+    let call = 0
+    server.read = ({ lines }) => {
+      call++
+      if (call === 2) return new Promise(() => undefined)
+      return Promise.resolve({
+        status: 'read',
+        used: 7,
+        limit: 30,
+        lines: lines.map((line) => ({ name: line.slice(0, 20) })),
+      })
+    }
+    const result = renderLines([{ id: 'a', ingredients: unreadable(90) }])
+    expect(result.current.aiCount).toBeNull()
+    await settle()
+    expect(result.current.aiCount).toEqual({ used: 7, limit: 30 })
+    expect(kinds(result, 'a').filter((kind) => kind === 'reading')).toHaveLength(50)
   })
 })

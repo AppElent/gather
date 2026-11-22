@@ -182,7 +182,7 @@ describe('the week on the list', () => {
 })
 
 describe('a line being read when the person ticks it (APP-423)', () => {
-  const tacos = (koriander: SourceLine) => {
+  const tacos = (koriander: SourceLine, touched?: ReadonlySet<string>) => {
     const lines2 = new Map(lines)
     lines2.set('tacos', [read('0', 'Rode uien', 1), koriander])
     lines2.set('shakshuka', [read('0', 'Koriander', 1)])
@@ -194,6 +194,7 @@ describe('a line being read when the person ticks it (APP-423)', () => {
       recipes,
       lines: lines2,
       label,
+      ...(touched ? { touched } : {}),
     }).lines
   }
   const reading: SourceLine = { key: '1', text: 'een handje koriander', read: { kind: 'reading' } }
@@ -229,5 +230,48 @@ describe('a line being read when the person ticks it (APP-423)', () => {
     const { rows, lines: adding } = pickRows({ lines: shown, items: [], ticks: { 'do:1': true } })
     expect(rows.find((r) => r.title === 'Koriander')).toMatchObject({ amount: { quantity: 2, unit: 'bos' }, on: true })
     expect(adding.find((l) => l.title === 'Koriander')).toMatchObject({ quantity: 2, unit: 'bos' })
+  })
+
+  test('an untick on a reading row takes only its own meal’s amount, not the other meals’ (APP-479)', () => {
+    const touched = new Set(['do:1'])
+    const ticks = { 'do:1': false }
+    const rows = tacos(answered, touched)
+    // Shakshuka’s Koriander stays its own item row; Tacos’ is a row of its own.
+    expect(rows.filter((l) => l.text === 'Koriander').map((l) => [l.key, l.detail])).toEqual([
+      ['item:koriander:0', 'Shakshuka 24'],
+      ['item:koriander:do:1', 'Tacos 26'],
+    ])
+    const { rows: shown, lines: adding } = pickRows({ lines: rows, items: [], ticks })
+    expect(shown.filter((r) => r.title === 'Koriander').map((r) => r.on)).toEqual([true, false])
+    expect(adding.filter((l) => l.title === 'Koriander')).toEqual([
+      { title: 'Koriander', quantity: 1, topUp: true, source: 'Shakshuka 24' },
+    ])
+    // Untouched, the answer still joins the item, as before.
+    expect(tacos(answered).filter((l) => l.text === 'Koriander')).toHaveLength(1)
+  })
+
+  test('a retype on a reading row replaces only its own meal’s amount (APP-479)', () => {
+    const touched = new Set(['do:1'])
+    const rows = tacos(answered, touched)
+    const shown = withEdits(rows, { 'do:1': editedRead('2 bosjes koriander') })
+    const { rows: picked, lines: adding } = pickRows({
+      lines: shown,
+      items: [],
+      ticks: { 'do:1': true },
+    })
+    const koriander = picked.filter((r) => r.title === 'Koriander')
+    expect(koriander.map((r) => r.amount)).toEqual([{ quantity: 1 }, { quantity: 2, unit: 'bos' }])
+    expect(adding.filter((l) => l.title === 'Koriander')).toHaveLength(2)
+  })
+
+  test('a tick on a reading row that turns out covered tops up instead of adding it all (APP-479)', () => {
+    const items = [{ id: 'a', title: 'Koriander', quantity: 5, done: false }]
+    const rows = tacos(answered, new Set(['do:1']))
+    const { rows: picked, lines: adding } = pickRows({ lines: rows, items, ticks: { 'do:1': true } })
+    expect(picked.find((r) => r.key === 'item:koriander:do:1')).toMatchObject({
+      on: true,
+      meta: { kind: 'covered' },
+    })
+    expect(adding).toEqual(expect.not.arrayContaining([expect.objectContaining({ title: 'Koriander' })]))
   })
 })

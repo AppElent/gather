@@ -87,7 +87,12 @@ export function AddToGroceriesSheet({
   onClose,
 }: {
   source: AddSheetSource
-  lines: readonly SourceLine[]
+  /**
+   * The lines, or a function of the keys of the rows the person has ticked,
+   * unticked or retyped: the week menu keeps a line they touched while it was
+   * being read apart from the item it merges into (APP-479).
+   */
+  lines: readonly SourceLine[] | ((touched: ReadonlySet<string>) => readonly SourceLine[])
   /** The stepper, when the source scales (a recipe; not the week menu). */
   servings?: { value: number; onChange: (value: number) => void }
   aiCount: AiCount | null
@@ -142,14 +147,22 @@ export function AddToGroceriesSheet({
   const [failed, setFailed] = useState(false)
   const [rowWidth, setRowWidth] = useState<number>()
 
+  const sourceLines =
+    typeof lines === 'function'
+      ? lines(new Set([...Object.keys(ticks), ...Object.keys(edits)]))
+      : lines
   // A retype made while a line was still being read stays with its row.
-  const shown = withEdits(lines, edits)
+  const shown = withEdits(sourceLines, edits)
+  // A week over one call's lines is read in batches: once the first answer is
+  // in, the button does not wait for the rest, which go on as written.
+  const addNow = aiCount !== null
   const pick = pickRows({
     lines: shown,
     servings: servings?.value,
     items: tasks,
     ticks,
     inStock,
+    readingAsText: addNow,
   })
   const count = pick.lines.length
 
@@ -163,7 +176,7 @@ export function AddToGroceriesSheet({
   // "10", not nothing: the merge line names both amounts.
   const amountOrOne = (amount: GroceryAmount) => amountText(amount) ?? '1'
 
-  const detailed = lines.some((line) => line.detail)
+  const detailed = sourceLines.some((line) => line.detail)
   const metaText = (meta: RowMeta | null): string | null => {
     if (!meta) return null
     switch (meta.kind) {
@@ -191,7 +204,7 @@ export function AddToGroceriesSheet({
               limit: String(aiCount.limit),
             })
       case 'reading':
-        return words.reading
+        return addNow ? words.readingAsText : words.reading
       case 'text':
         return words.asText
     }

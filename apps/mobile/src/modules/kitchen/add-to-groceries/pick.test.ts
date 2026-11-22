@@ -163,6 +163,49 @@ describe('keys a line had before (APP-423)', () => {
   })
 })
 
+describe('a tick made on a line still being read (APP-479)', () => {
+  // The list already has enough Koriander; the AI answered after the tick.
+  const items = [{ id: 'a', title: 'Koriander', quantity: 5, done: false }]
+  const arrived: SourceLine = {
+    ...line('item:koriander:0', 'Koriander', 1),
+    was: ['di:3'],
+    topUp: true,
+  }
+
+  it('tops up instead of adding the whole amount', () => {
+    const { rows, lines } = pickRows({ lines: [arrived], items, ticks: { 'di:3': true } })
+    // On, as the person left it, but the list has enough: nothing to add.
+    expect(rows[0]).toMatchObject({ on: true, meta: { kind: 'covered' } })
+    expect(lines).toEqual([])
+  })
+
+  it('a covered row ticked by hand under its own key still adds its whole amount', () => {
+    const { lines } = pickRows({ lines: [arrived], items, ticks: { 'item:koriander:0': true } })
+    expect(lines).toEqual([{ title: 'Koriander', quantity: 1 }])
+  })
+})
+
+describe('lines still being read as text (APP-479)', () => {
+  const reading: SourceLine = { key: 'di:3', text: 'een handje munt', read: { kind: 'reading' } }
+
+  it('holds the button back by default, and adds them as written when asked', () => {
+    const lines = [line('0', 'Ui', 1), reading]
+    const waiting = pickRows({ lines, items: [], ticks: {} })
+    expect(waiting.reading).toBe(true)
+    expect(waiting.lines.map((added) => added.title)).toEqual(['Ui'])
+    const now = pickRows({ lines, items: [], ticks: {}, readingAsText: true })
+    expect(now.reading).toBe(false)
+    expect(now.lines.map((added) => added.title)).toEqual(['Ui', 'een handje munt'])
+    // The row still says it is being read.
+    expect(now.rows[1].meta).toEqual({ kind: 'reading' })
+  })
+
+  it('leaves an unticked reading line out either way', () => {
+    const { lines } = pickRows({ lines: [reading], items: [], ticks: { 'di:3': false }, readingAsText: true })
+    expect(lines).toEqual([])
+  })
+})
+
 describe('sectionsByAisle', () => {
   const row = (key: string, title: string, meta: PickRow['meta'] = null): PickRow => ({
     key,

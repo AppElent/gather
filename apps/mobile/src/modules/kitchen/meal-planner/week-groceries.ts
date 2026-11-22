@@ -63,6 +63,13 @@ export interface WeekLinesInput {
    * di"), two ("Shakshuka di, Tacos do"), or more ("3 recepten").
    */
   label: (meals: readonly PlannedMeal[]) => string
+  /**
+   * Keys of the rows the person ticked, unticked or retyped (the sheet's
+   * `ticks` and `edits`). A line they touched while it was still being read
+   * stays a row of its own once read instead of joining the item's row, so
+   * what they did applies to that meal's amount only (APP-479).
+   */
+  touched?: ReadonlySet<string>
 }
 
 export interface WeekLines {
@@ -78,8 +85,10 @@ export interface WeekLines {
  * same item from other meals (`combineGroceryLines`, APP-312's merge rule).
  * A line still being read, or only readable as text, stays a line of its own
  * for its meal; once read it joins an item's line, which remembers the key it
- * had (`was`), so a tick or a retype made meanwhile is not lost (APP-423).
- * Every line tops the list up rather than adding to it.
+ * had (`was`), so a tick or a retype made meanwhile is not lost (APP-423). A
+ * line the person touched while it was being read does not join: it stays
+ * its own row, so their tick or retype cannot take the other meals' amounts
+ * with it (APP-479). Every line tops the list up rather than adding to it.
  */
 export function weekGroceryLines(input: WeekLinesInput): WeekLines {
   const toCheck: PlannedMeal[] = []
@@ -133,10 +142,33 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
     }
   }
 
+  // What the person touched while it was being read keeps to itself.
+  const alone = read.filter((entry) => input.touched?.has(entry.unreadKey))
+  const joining = read.filter((entry) => !input.touched?.has(entry.unreadKey))
+  const own = alone.map((entry): SourceLine => {
+    const name = entry.line.title
+    return {
+      key: `item:${groceryKey(name) || name}:${entry.unreadKey}`,
+      was: [entry.unreadKey],
+      text: name,
+      read: {
+        kind: 'read',
+        via: entry.via,
+        name,
+        ...(entry.line.quantity !== undefined
+          ? { quantity: entry.line.quantity }
+          : {}),
+        ...(entry.line.unit !== undefined ? { unit: entry.line.unit } : {}),
+      },
+      detail: input.label([entry.meal]),
+      topUp: true,
+    }
+  })
+
   const seen = new Map<string, number>()
-  const combined = combineGroceryLines(read.map((entry) => entry.line)).map(
+  const combined = combineGroceryLines(joining.map((entry) => entry.line)).map(
     (line): SourceLine => {
-      const from = line.from.map((index) => read[index])
+      const from = line.from.map((index) => joining[index])
       const meals = [...new Map(from.map(({ meal }) => [meal._id, meal])).values()]
       // Stable while the days change, so a row keeps its tick: the item's
       // name, and which of the lines with that name it is.
@@ -161,7 +193,7 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
       }
     },
   )
-  return { lines: [...combined, ...unread], toCheck }
+  return { lines: [...combined, ...own, ...unread], toCheck }
 }
 
 type Via = Extract<LineRead, { kind: 'read' }>['via']

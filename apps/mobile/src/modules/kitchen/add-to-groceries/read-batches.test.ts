@@ -88,6 +88,20 @@ describe('readInBatches', () => {
     expect(read).toHaveBeenCalledTimes(1)
   })
 
+  it('hears the answer to a call that was out when the lines changed, and asks no more (APP-479)', async () => {
+    let live = true
+    const heard: ReadBatch[] = []
+    const read = reader()
+    await readInBatches(texts(100), async (lines) => {
+      // The lines change while the first call is out.
+      live = false
+      return read(lines)
+    }, (batch) => heard.push(batch), () => live)
+    expect(read).toHaveBeenCalledTimes(1)
+    expect(heard).toHaveLength(1)
+    expect(heard[0].texts).toHaveLength(40)
+  })
+
   it('asks nothing when there is nothing to read', async () => {
     const read = reader()
     await readInBatches([], read, () => undefined)
