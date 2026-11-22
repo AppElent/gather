@@ -1130,6 +1130,11 @@ export const en = {
     },
     /** The task went in; a note or a reminder chosen with it did not. */
     detailsFailed: 'The task was added, but not all of its details.',
+    /** A save that failed once the composer had moved on or closed. */
+    notAdded: '“{title}” was not added.',
+    tryAgain: 'Try again',
+    discard: 'Discard',
+    ok: 'OK',
   },
 
   /**

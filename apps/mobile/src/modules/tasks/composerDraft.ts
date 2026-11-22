@@ -65,6 +65,11 @@ export interface TaskDraft {
   /** The list picked on the chip; `null` until one is. */
   listId: string | null
   choices: TaskChoices
+  /**
+   * Sent as `tasks.add`'s idempotency key: this draft saves one task however
+   * often it is sent, across a close and a reopen. A new draft has a new one.
+   */
+  saveKey: string
 }
 
 /** The fields one new task is saved with. */
@@ -87,7 +92,7 @@ export function presetChoices(preset: TaskPreset): TaskChoices {
   }
 }
 
-export function emptyDraft(preset: TaskPreset): TaskDraft {
+export function emptyDraft(preset: TaskPreset, saveKey = newSaveKey()): TaskDraft {
   return {
     line: '',
     dismissed: [],
@@ -95,7 +100,13 @@ export function emptyDraft(preset: TaskPreset): TaskDraft {
     showBody: false,
     listId: preset.listId ?? null,
     choices: presetChoices(preset),
+    saveKey,
   }
+}
+
+/** A key no other draft on this phone has; the server needs 8 to 100 characters. */
+export function newSaveKey(): string {
+  return `composer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
 }
 
 /**

@@ -877,6 +877,10 @@ export const nl = {
       pick: 'Kies tijd…',
     },
     detailsFailed: 'De taak is toegevoegd, maar niet al haar details.',
+    notAdded: '“{title}” is niet toegevoegd.',
+    tryAgain: 'Opnieuw proberen',
+    discard: 'Weggooien',
+    ok: 'OK',
   },
 
   tasks: {

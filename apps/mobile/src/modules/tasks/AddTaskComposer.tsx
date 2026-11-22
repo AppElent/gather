@@ -49,6 +49,7 @@ import {
 import { useTaskPeople } from './assignee'
 import {
   afterTyping,
+  type ComposedTask,
   composedTask,
   dateShortcuts,
   emptyDraft,
@@ -76,11 +77,20 @@ import {
   reminderLabel,
   reminderPassed,
 } from './reminder'
-import { listFace, useTaskActions, useTaskLists, useTaskState } from './store'
+import {
+  type ComposedDetails,
+  listFace,
+  useLocalTaskState,
+  useTaskActions,
+  useTaskLists,
+} from './store'
 import { dueLabel, weekendFrom } from './taskDates'
 import { type Priority, SUGGESTED_LABELS } from './types'
 
-/** The list each Group last added to, for the places that are not a list. */
+/**
+ * The list each account last added to in each Group, for the places that are
+ * not a list. Keyed like a draft, on the Group's id: a slug can be reused.
+ */
 const lastList = new Map<string, string>()
 
 /** The iOS picker takes an underscore identifier; the app's locale is a language. */
@@ -103,17 +113,20 @@ export function AddTask({ place, preset, sectionId }: AddTaskProps) {
   const { group } = useGroup()
   const { userId } = useAuth()
   const router = useRouter()
-  const key = draftKey(userId, group.slug, `tasks:${place}`)
+  const key = draftKey(userId, group._id, `tasks:${place}`)
+  const lastKey = draftKey(userId, group._id, 'tasks')
   const [open, setOpen] = useState(false)
   // The Repeat sheet is a sheet of its own: the composer steps aside for it
-  // and comes back with the rule in its draft.
-  const [repeatFor, setRepeatFor] = useState<{ dueDate?: string } | null>(null)
+  // and comes back with the rule in its draft. It opens on the rule the
+  // composer showed, typed or tapped, handed over rather than read back.
+  const [repeatFor, setRepeatFor] = useState<{
+    dueDate?: string
+    repeat?: TaskRepeat
+  } | null>(null)
   const withLast: TaskPreset = {
     ...preset,
-    listId: preset.listId ?? lastList.get(group.slug),
+    listId: preset.listId ?? lastList.get(lastKey),
   }
-
-  const repeatDraft = repeatFor ? keptDraft<TaskDraft>(key) : undefined
 
   return (
     <>
@@ -130,10 +143,11 @@ export function AddTask({ place, preset, sectionId }: AddTaskProps) {
           draftId={key}
           preset={withLast}
           sectionId={sectionId}
+          onListUsed={(listId) => lastList.set(lastKey, listId)}
           onClose={() => setOpen(false)}
-          onCustomRepeat={(dueDate) => {
+          onCustomRepeat={(dueDate, repeat) => {
             setOpen(false)
-            setRepeatFor({ dueDate })
+            setRepeatFor({ dueDate, repeat })
           }}
           onOpenTask={(taskId) => {
             setOpen(false)
@@ -146,10 +160,7 @@ export function AddTask({ place, preset, sectionId }: AddTaskProps) {
       ) : null}
       {repeatFor ? (
         <RepeatSheet
-          task={{
-            repeat: repeatDraft?.choices.repeat ?? undefined,
-            dueDate: repeatFor.dueDate,
-          }}
+          task={{ repeat: repeatFor.repeat, dueDate: repeatFor.dueDate }}
           onSave={(rule) => {
             const draft = keptDraft<TaskDraft>(key) ?? emptyDraft(withLast)
             keepDraft(key, {
@@ -173,6 +184,7 @@ function TaskComposerCard({
   draftId,
   preset,
   sectionId,
+  onListUsed,
   onClose,
   onCustomRepeat,
   onOpenTask,
@@ -180,21 +192,21 @@ function TaskComposerCard({
   draftId: string
   preset: TaskPreset
   sectionId?: string
+  onListUsed: (listId: string) => void
   onClose: () => void
-  onCustomRepeat: (dueDate: string | undefined) => void
+  onCustomRepeat: (dueDate: string | undefined, repeat: TaskRepeat | undefined) => void
   onOpenTask: (taskId: string) => void
 }) {
   const { t, locale } = useI18n()
   const words = t.composer
   const taskWords = t.tasks.task
-  const { group } = useGroup()
   const lists = useTaskLists()
   const actions = useTaskActions()
   const { people, byId } = useTaskPeople()
   const { ask } = usePushPermission()
-  // Every label the Group has typed, for the Label menu. Mounted only while
-  // the composer is open, as the Labels sheet is.
-  const state = useTaskState()
+  // The labels the Group's own lists already use, for the Label menu. Local
+  // lists only: opening the composer asks no provider for anything (ADR-0021).
+  const state = useLocalTaskState()
 
   const [kept] = useState(() => keptDraft<TaskDraft>(draftId) ?? emptyDraft(preset))
   const quick = useQuickAddLine(true, kept)
@@ -203,13 +215,14 @@ function TaskComposerCard({
   const [showBody, setShowBody] = useState(kept.showBody)
   const [listId, setListId] = useState(kept.listId)
   const [choices, setChoices] = useState<TaskChoices>(kept.choices)
+  const [saveKey, setSaveKey] = useState(kept.saveKey)
   const [panel, setPanel] = useState<Panel>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const inFlight = useRef(false)
   // The draft last sent: a second Return before the cleared draft renders
-  // reaches save with the same draft, and must not add the task twice.
-  const submitted = useRef<TaskDraft | null>(null)
+  // reaches save with the same draft. The server dedupes on the key as well.
+  const submitted = useRef<string | null>(null)
   const mounted = useRef(true)
 
   const draft: TaskDraft = {
@@ -219,6 +232,7 @@ function TaskComposerCard({
     showBody,
     listId,
     choices,
+    saveKey,
   }
   // The latest draft, for the moment the card goes: a close keeps it, unless
   // nothing was typed or chosen.
@@ -243,6 +257,7 @@ function TaskComposerCard({
     setShowBody(next.showBody)
     setListId(next.listId)
     setChoices(next.choices)
+    setSaveKey(next.saveKey)
   }
 
   // A part the line newly recognised replaces a value tapped for it.
@@ -311,37 +326,80 @@ function TaskComposerCard({
     }))
   }
 
+  /** A saved task: the haptic, the wash, and the details that did not go in. */
+  const landed = (saved: { taskId: string } & ComposedDetails, saving: ComposedTask) => {
+    haptics.itemSaved()
+    markFresh(saved.taskId)
+    if (saved.notesFailed || saved.reminderFailed) reportDetails(saved)
+    else if (saving.reminder) void ask('reminder')
+  }
+
+  /** The note or reminder that failed, with a retry onto the same task. */
+  const reportDetails = (details: ComposedDetails) => {
+    const retry = details.retry
+    if (!retry) return
+    Alert.alert(
+      details.notesFailed ? words.detailsFailed : t.tasks.quickAdd.reminderFailed,
+      undefined,
+      [
+        { text: words.ok, style: 'cancel' },
+        { text: words.tryAgain, onPress: () => void retry().then(reportDetails) },
+      ],
+    )
+  }
+
+  /**
+   * A save that failed once the composer had moved on to the next task, or
+   * closed: asked about, never poured over what is being typed now. The same
+   * key goes again, so a create that did land is not made twice.
+   */
+  const offerRetry = (
+    saving: ComposedTask,
+    send: () => Promise<{ taskId: string } & ComposedDetails>,
+  ) => {
+    Alert.alert(fmt(words.notAdded, { title: saving.title }), undefined, [
+      { text: words.discard, style: 'destructive' },
+      {
+        text: words.tryAgain,
+        onPress: () =>
+          void send().then(
+            (saved) => landed(saved, saving),
+            () => {
+              haptics.actionFailed()
+              offerRetry(saving, send)
+            },
+          ),
+      },
+    ])
+  }
+
   async function save(open = false) {
     if (!task.title || !target) {
       haptics.actionFailed()
       return
     }
-    if (inFlight.current || submitted.current === draft) return
+    if (inFlight.current || submitted.current === draft.saveKey) return
     const snapshot = draft
-    submitted.current = snapshot
+    submitted.current = snapshot.saveKey
     const saving = task
     const to = target._id
+    const section = to === preset.listId ? sectionId : undefined
+    const send = () => actions.addComposedTask(to, saving, snapshot.saveKey, section)
     setNotice(null)
-    lastList.set(group.slug, to)
+    onListUsed(to)
     if (open) {
       inFlight.current = true
       setBusy(true)
     } else {
-      // Cleared first: the next task can be typed at once, and a second
-      // Return cannot save this one twice.
+      // Cleared first: the next task can be typed at once.
       load(nextDraft(snapshot, preset))
     }
     try {
-      const saved = await actions.addComposedTask(
-        to,
-        saving,
-        to === preset.listId ? sectionId : undefined,
-      )
-      haptics.itemSaved()
-      markFresh(saved.taskId)
-      if (saved.notesFailed) Alert.alert(words.detailsFailed)
-      else if (saved.reminderFailed) Alert.alert(t.tasks.quickAdd.reminderFailed)
-      else if (saving.reminder) void ask('reminder')
+      const saved = await send()
+      // Closed while saving, the place kept this draft: it is a task now.
+      const { draftId: key } = place.current
+      if (keptDraft<TaskDraft>(key)?.saveKey === snapshot.saveKey) keepDraft(key, undefined)
+      landed(saved, saving)
       if (open && mounted.current) {
         load(nextDraft(snapshot, preset))
         onOpenTask(saved.taskId)
@@ -349,21 +407,20 @@ function TaskComposerCard({
     } catch {
       haptics.actionFailed()
       submitted.current = null
-      if (!mounted.current) {
-        // Closed while saving: keep the task as the place's draft, unless
-        // another one was kept since, and say it was not added.
-        const key = place.current.draftId
-        if (!keptDraft(key)) keepDraft(key, snapshot)
-        Alert.alert(t.tasks.quickAdd.failed)
-        return
+      if (mounted.current && open) {
+        // All details: the draft never left the composer.
+        setNotice(t.tasks.quickAdd.failed)
+      } else if (mounted.current && !isDirty(latest.current, preset)) {
+        // Nothing typed since: the task comes back to finish or send again.
+        setNotice(t.tasks.quickAdd.failed)
+        load(snapshot)
+      } else {
+        offerRetry(saving, send)
       }
-      setNotice(t.tasks.quickAdd.failed)
-      // The task comes back, unless the next one is already being typed.
-      if (open || !latest.current.line.trim()) load(snapshot)
     } finally {
       if (open) {
         inFlight.current = false
-        setBusy(false)
+        if (mounted.current) setBusy(false)
       }
     }
   }
@@ -447,8 +504,10 @@ function TaskComposerCard({
     ]),
   ).sort()
   const labelMenu: MenuAction[] = [
+    // A label's id carries its "#", so a label named "new" or "remove" is
+    // never read as the menu's own command.
     ...groupLabels.map((label) => ({
-      id: `label:${label}`,
+      id: `label:#${label}`,
       title: `#${label}`,
       state: task.labels.includes(label) ? ('on' as const) : ('off' as const),
     })),
@@ -525,10 +584,10 @@ function TaskComposerCard({
           setChoices((current) => ({ ...current, labels: [] }))
           return
         }
-        toggleLabel(value)
+        if (value.startsWith('#')) toggleLabel(value.slice(1))
         return
       case 'repeat':
-        if (value === 'custom') onCustomRepeat(task.dueDate)
+        if (value === 'custom') onCustomRepeat(task.dueDate, repeatRule)
         else if (value === 'remove') remove('repeat', 'repeat')
         else choose('repeat', QUICK_REPEATS[value as keyof typeof QUICK_REPEATS], 'repeat')
         return
@@ -726,7 +785,7 @@ function TaskComposerCard({
           accessibilityLabel={words.taskTitle}
           returnKeyType="done"
           submitBehavior="submit"
-          onSubmitEditing={() => void save()}
+          onSubmitEditing={field.onSubmitEditing}
           style={field.style}
         />
       )}

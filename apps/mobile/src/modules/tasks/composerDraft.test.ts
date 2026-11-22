@@ -135,11 +135,24 @@ describe('the draft between tasks', () => {
       showBody: true,
       listId: 'l2',
       choices: { dueDate: '2026-12-01', priority: 1, labels: ['a'] },
+      saveKey: 'composer-saved-one',
     }
-    expect(nextDraft(draft, preset)).toEqual({
+    const next = nextDraft(draft, preset)
+    expect(next).toEqual({
       ...emptyDraft(preset),
       listId: 'l2',
+      saveKey: expect.any(String),
     })
+    // The next task is a new create, never a replay of the one just saved.
+    expect(next.saveKey).not.toBe(draft.saveKey)
+  })
+
+  test('every new draft has its own save key, long enough for the server', () => {
+    const a = emptyDraft({})
+    const b = emptyDraft({})
+    expect(a.saveKey).not.toBe(b.saveKey)
+    expect(a.saveKey.length).toBeGreaterThanOrEqual(8)
+    expect(a.saveKey.length).toBeLessThanOrEqual(100)
   })
 
   test('is kept on close once anything is typed or chosen', () => {

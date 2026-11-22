@@ -662,6 +662,14 @@ export function useSmartLists(): SmartLists {
 }
 
 /** Every write Tasks makes, in the Current Group. */
+/** How the note and reminder written after a composed task went. */
+export interface ComposedDetails {
+  notesFailed: boolean
+  reminderFailed: boolean
+  /** Writes again only what failed, onto the same task; none when all went in. */
+  retry?: () => Promise<ComposedDetails>
+}
+
 export function useTaskActions() {
   const { group } = useGroup()
   const groupSlug = group.slug
@@ -705,20 +713,49 @@ export function useTaskActions() {
     fields: Omit<Parameters<typeof update>[0], 'taskId' | 'groupSlug'>,
   ) => update({ taskId: id as Id<'tasks'>, groupSlug, ...fields })
 
+  /** The note and reminder `add` does not take, as writes of their own. */
+  const composedDetails = async (
+    taskId: string,
+    details: Pick<ComposedTask, 'notes' | 'reminder'>,
+  ): Promise<ComposedDetails> => {
+    const [notes, reminder] = await Promise.allSettled([
+      details.notes ? patch(taskId, { notes: details.notes }) : null,
+      details.reminder
+        ? setReminder({
+            taskId: taskId as Id<'tasks'>,
+            groupSlug,
+            reminder: { ...details.reminder, timeZone: deviceTimeZone() },
+          })
+        : null,
+    ])
+    const failed = {
+      notes: notes.status === 'rejected' ? details.notes : undefined,
+      reminder: reminder.status === 'rejected' ? details.reminder : undefined,
+    }
+    return {
+      notesFailed: failed.notes !== undefined,
+      reminderFailed: failed.reminder !== undefined,
+      retry:
+        failed.notes !== undefined || failed.reminder !== undefined
+          ? () => composedDetails(taskId, failed)
+          : undefined,
+    }
+  }
+
   const addComposed = async (
     listId: string,
     task: ComposedTask,
+    saveKey: string | undefined,
     sectionId?: string,
-  ): Promise<{
-    taskId: string
-    reminderFailed: boolean
-    notesFailed: boolean
-  }> => {
+  ): Promise<{ taskId: string } & ComposedDetails> => {
     const taskId = await add({
       listId: listId as Id<'taskLists'>,
       groupSlug,
       title: task.title,
       today: localIsoDate(),
+      // The draft's own key: sent twice (a close and reopen mid-save, or a
+      // retry after a lost answer), it still makes one task.
+      ...(saveKey ? { idempotencyKey: saveKey } : {}),
       ...(task.dueDate ? { dueDate: task.dueDate } : {}),
       ...(task.repeat ? { repeat: task.repeat } : {}),
       ...(task.assigneeId
@@ -730,21 +767,7 @@ export function useTaskActions() {
     })
     // `add` takes no notes and no reminder: both are their own writes, so
     // an installed server from before the composer is all this needs.
-    const [notes, reminder] = await Promise.allSettled([
-      task.notes ? patch(taskId, { notes: task.notes }) : null,
-      task.reminder
-        ? setReminder({
-            taskId,
-            groupSlug,
-            reminder: { ...task.reminder, timeZone: deviceTimeZone() },
-          })
-        : null,
-    ])
-    return {
-      taskId,
-      notesFailed: notes.status === 'rejected',
-      reminderFailed: reminder.status === 'rejected',
-    }
+    return { taskId, ...(await composedDetails(taskId, task)) }
   }
 
   return {
@@ -777,7 +800,7 @@ export function useTaskActions() {
       parsed: QuickAdd,
       sectionId?: string,
     ): Promise<{ taskId: string; reminderFailed: boolean }> =>
-      addComposed(listId, parsedTask(parsed), sectionId),
+      addComposed(listId, parsedTask(parsed), undefined, sectionId),
     /**
      * A task from the keyboard composer (APP-587), every detail it was given
      * at once. Notes and a reminder are written once the task exists; the
@@ -786,8 +809,9 @@ export function useTaskActions() {
     addComposedTask: (
       listId: string,
       task: ComposedTask,
+      saveKey: string,
       sectionId?: string,
-    ) => addComposed(listId, task, sectionId),
+    ) => addComposed(listId, task, saveKey, sectionId),
     /**
      * Ticks a task, or completes a repeating one's open occurrence. The
      * phone's own day goes along, so "after done" counts from it.

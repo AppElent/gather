@@ -82,8 +82,10 @@ export interface ComposerChip {
   /** Drawn in place of the icon: a list's or a calendar's tile. */
   leading?: ReactNode
   /** The chip's native menu. Ends with Remove when the chip is set. */
-  menu: MenuAction[]
-  onMenu: (actionId: string) => void
+  menu?: MenuAction[]
+  onMenu?: (actionId: string) => void
+  /** A chip without a menu is a plain toggle (a note's Pin): `set` is its state. */
+  onPress?: () => void
   testID?: string
 }
 
@@ -92,7 +94,10 @@ export interface ComposerTitleField {
   inputRef: RefObject<ComponentRef<typeof TextInput> | null>
   style: StyleProp<TextStyle>
   placeholderTextColor: string
+  /** Return as a save: the kind's save, then the title focused for the next. */
   onSubmitEditing: () => void
+  /** Return as a step to the description (a note's title), opening it. */
+  focusBody: () => void
 }
 
 export interface KeyboardComposerProps {
@@ -180,7 +185,21 @@ function ComposerCard({
   const { t } = useI18n()
   const words = t.composer
   const titleRef = useRef<ComponentRef<typeof TextInput>>(null)
+  const bodyRef = useRef<ComponentRef<typeof TextInput>>(null)
   const [expanded, setExpanded] = useState(false)
+  const [bodyAsked, setBodyAsked] = useState(false)
+  const showBody = expanded || body.visible || bodyAsked
+
+  // After a save the next one is typed in the title, wherever the cursor was.
+  const submit = () => {
+    onSave()
+    if (!panel) titleRef.current?.focus()
+  }
+  const focusBody = () => {
+    setBodyAsked(true)
+    // Drawn on this render when it was hidden; focused once it is there.
+    requestAnimationFrame(() => bodyRef.current?.focus())
+  }
   const keyboardUp = useKeyboardUp()
   const drag = useSharedValue(0)
 
@@ -233,7 +252,7 @@ function ComposerCard({
       accessibilityLabel={words.save}
       accessibilityState={{ disabled: !canSave, busy }}
       disabled={!canSave || busy}
-      onPress={onSave}
+      onPress={submit}
       hitSlop={4}
       style={({ pressed }) => [
         styles.send,
@@ -310,9 +329,8 @@ function ComposerCard({
             <GestureDetector gesture={pan}>
               <Pressable
                 testID={testID ? `${testID}-handle` : undefined}
-                // The expand button says the same to VoiceOver; one is enough.
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
+                accessibilityRole="button"
+                accessibilityLabel={expandLabel}
                 onPress={() => toggle()}
                 style={styles.handleBand}
               >
@@ -326,10 +344,12 @@ function ComposerCard({
                   inputRef: titleRef,
                   style: [styles.title, { color: tokens.ink }],
                   placeholderTextColor: tokens.muted,
-                  onSubmitEditing: onSave,
+                  onSubmitEditing: submit,
+                  focusBody,
                 })}
-                {expanded || body.visible ? (
+                {showBody ? (
                   <TextInput
+                    ref={bodyRef}
                     testID={testID ? `${testID}-body` : undefined}
                     value={body.value}
                     onChangeText={body.onChange}
@@ -400,41 +420,57 @@ function ComposerCard({
 function ChipButton({ chip, group }: { chip: ComposerChip; group: ModuleGroup }) {
   const tokens = useTokens(group)
   const Icon = chip.icon
+  const face = (
+    <>
+      {chip.leading ??
+        (Icon ? (
+          <Icon
+            size={16}
+            strokeWidth={2.1}
+            // Ink on the wash, not the group's text colour: group-coloured
+            // marks never sit on a wash (apps/mobile/DESIGN_SYSTEM.md).
+            color={chip.set ? tokens.ink : tokens.muted}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+        ) : null)}
+      <Text numberOfLines={1} style={[styles.chipText, { color: tokens.ink }]}>
+        {chip.label}
+      </Text>
+    </>
+  )
+  const chipStyle = [
+    styles.chip,
+    chip.leading ? styles.chipWithTile : null,
+    { backgroundColor: chip.set ? tokens.tintOf(group).wash : tokens.surface2 },
+  ]
+  if (!chip.menu) {
+    return (
+      <Pressable
+        testID={chip.testID}
+        accessibilityRole="switch"
+        accessibilityLabel={chip.accessibilityLabel}
+        accessibilityState={{ checked: chip.set }}
+        onPress={chip.onPress}
+        style={({ pressed }) => [chipStyle, pressed && styles.pressed]}
+      >
+        {face}
+      </Pressable>
+    )
+  }
   return (
     <MenuView
       actions={chip.menu}
-      onPressAction={(event) => chip.onMenu(event.nativeEvent.event)}
+      onPressAction={(event) => chip.onMenu?.(event.nativeEvent.event)}
     >
       <View
         testID={chip.testID}
         accessible
         accessibilityRole="button"
         accessibilityLabel={chip.accessibilityLabel}
-        style={[
-          styles.chip,
-          chip.leading ? styles.chipWithTile : null,
-          {
-            backgroundColor: chip.set
-              ? tokens.tintOf(group).wash
-              : tokens.surface2,
-          },
-        ]}
+        style={chipStyle}
       >
-        {chip.leading ??
-          (Icon ? (
-            <Icon
-              size={16}
-              strokeWidth={2.1}
-              // Ink on the wash, not the group's text colour: group-coloured
-              // marks never sit on a wash (apps/mobile/DESIGN_SYSTEM.md).
-              color={chip.set ? tokens.ink : tokens.muted}
-              accessibilityElementsHidden
-              importantForAccessibility="no"
-            />
-          ) : null)}
-        <Text numberOfLines={1} style={[styles.chipText, { color: tokens.ink }]}>
-          {chip.label}
-        </Text>
+        {face}
       </View>
     </MenuView>
   )
