@@ -106,6 +106,29 @@ input{font:inherit;color:inherit;border:0;background:transparent;outline:none;pa
       </div>
     </section>
 
+    <sc-if value="{{homeCharts}}" hint-placeholder-val="{{ false }}">
+      <a href="Usage-Day.dc.html" style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: {{c.ink}}">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 600">Verbruik en zon per uur</h2>
+          <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Verbruik ›</span>
+        </div>
+        <figure aria-label="{{hd.label}}" style="margin: 0; display: flex; flex-direction: column; gap: 0">
+          <div aria-hidden="true" style="display: flex; align-items: flex-end; gap: 3px; height: {{hd.upH}}px">
+            <sc-for list="{{hd.up}}" as="b" hint-placeholder-count="24"><span style="flex: 1 1 0; height: {{b.h}}px; background: {{b.bg}}; border: {{b.border}}; box-sizing: border-box; border-radius: 3px 3px 0 0"></span></sc-for>
+          </div>
+          <div aria-hidden="true" style="height: 1px; background: {{c.hairStrong}}"></div>
+          <div aria-hidden="true" style="display: flex; align-items: flex-start; gap: 3px; height: {{hd.downH}}px">
+            <sc-for list="{{hd.down}}" as="b" hint-placeholder-count="24"><span style="flex: 1 1 0; height: {{b.h}}px; background: {{b.bg}}; border-radius: 0 0 3px 3px"></span></sc-for>
+          </div>
+          <div aria-hidden="true" style="margin-top: 4px; display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums"><span>00</span><span>06</span><span>12</span><span>18 · nu</span><span>24</span></div>
+        </figure>
+        <div style="display: flex; gap: 16px; font-size: 13px; line-height: 18px; color: {{c.muted}}">
+          <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{c.ink}}"></span>Verbruikt, boven de lijn</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{prod}}"></span>Zon, eronder</span>
+        </div>
+      </a>
+    </sc-if>
+
     <a href="Solar.dc.html" aria-label="Thuisbatterij 64 procent, ontlaadt 1,2 kilowatt, vandaag 59 cent opgeleverd" style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: {{c.ink}}">
       <div style="display: flex; justify-content: space-between; align-items: baseline">
         <span style="font-size: 17px; line-height: 22px; font-weight: 600">Thuisbatterij</span>
@@ -272,6 +295,28 @@ input{font:inherit;color:inherit;border:0;background:transparent;outline:none;pa
       </div>
       <div aria-hidden="true" style="display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums"><span>1</span><span>10</span><span>20</span><span>30</span></div>
     </figure>
+    <sc-if value="{{charts}}" hint-placeholder-val="{{ false }}">
+      <figure aria-label="{{yrEur.label}}" style="margin: 0; background: {{c.surface}}; border-radius: 22px; padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">Per maand, 2026 en 2025</span>
+          <a href="Usage-Year.dc.html" style="font-size: 13px; line-height: 18px; color: {{c.muted}}; text-decoration: none">Jaar ›</a>
+        </div>
+        <div aria-hidden="true" style="display: flex; align-items: flex-end; gap: 4px; height: 100px">
+          <sc-for list="{{yrEur.months}}" as="m" hint-placeholder-count="12">
+            <span style="flex: 1 1 0; height: 100px; display: flex; align-items: flex-end; gap: 1px">
+              <span style="flex: 1 1 0; height: {{m.hPrev}}px; background: {{c.muted}}; border-radius: 2px 2px 0 0"></span>
+              <span style="flex: 1 1 0; height: {{m.hCur}}px; background: {{m.curBg}}; border: {{m.curBorder}}; box-sizing: border-box; border-radius: 2px 2px 0 0"></span>
+            </span>
+          </sc-for>
+        </div>
+        <div aria-hidden="true" style="display: flex; gap: 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}"><sc-for list="{{yrEur.months}}" as="m" hint-placeholder-count="12"><span style="flex: 1 1 0; text-align: center">{{m.l}}</span></sc-for></div>
+        <div style="display: flex; gap: 16px; font-size: 13px; line-height: 18px; color: {{c.muted}}">
+          <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{c.muted}}"></span>2025</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{c.ink}}"></span>2026</span>
+        </div>
+        <span style="font-size: 15px; line-height: 20px">{{yrEur.line}}</span>
+      </figure>
+    </sc-if>
     <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
       <sc-for list="{{co.lines}}" as="l" hint-placeholder-count="5">
         <div style="min-height: 56px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: {{l.sep}}; padding: 6px 0">
@@ -346,6 +391,27 @@ input{font:inherit;color:inherit;border:0;background:transparent;outline:none;pa
         <div aria-hidden="true" style="height: 14px; border-radius: 999px; overflow: hidden; display: flex; gap: 2px"><span style="width: {{so.selfPct}}%; background: {{c.ink}}"></span><span style="flex-grow: 1; background: {{c.hairStrong}}"></span></div>
         <span style="font-size: 15px; line-height: 20px">{{so.line}}</span>
       </div>
+      <sc-if value="{{solarToday}}" hint-placeholder-val="{{ false }}">
+        <figure aria-label="{{sh.label}}" style="margin: 0; background: {{c.surface}}; border-radius: 22px; padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">Opgewekt per uur</span>
+          <div aria-hidden="true" style="display: flex; align-items: flex-end; gap: 3px; height: 72px">
+            <sc-for list="{{sh.bars}}" as="b" hint-placeholder-count="24"><span style="flex: 1 1 0; height: {{b.h}}px; background: {{b.bg}}; border: {{b.border}}; box-sizing: border-box; border-radius: 3px 3px 0 0"></span></sc-for>
+          </div>
+          <div aria-hidden="true" style="display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums"><span>00</span><span>06</span><span>12</span><span>18 · nu</span><span>24</span></div>
+          <span style="font-size: 15px; line-height: 20px">Piek om 11:00 en 12:00, 0,95 kWh per uur.</span>
+        </figure>
+      </sc-if>
+      <sc-if value="{{solarMonth}}" hint-placeholder-val="{{ false }}">
+        <figure aria-label="{{ss.label}}" style="margin: 0; background: {{c.surface}}; border-radius: 22px; padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">Zelfvoorziening per dag</span>
+          <div aria-hidden="true" style="position: relative; display: flex; align-items: flex-end; gap: 3px; height: 80px">
+            <sc-for list="{{ss.bars}}" as="b" hint-placeholder-count="30"><span style="flex: 1 1 0; height: {{b.h}}px; background: {{b.bg}}; border: {{b.border}}; box-sizing: border-box; border-radius: 2px 2px 0 0"></span></sc-for>
+            <span style="position: absolute; left: 0; right: 0; bottom: {{ss.avgY}}px; border-top: 1.5px dashed {{c.ink}}"></span>
+          </div>
+          <div aria-hidden="true" style="display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums"><span>1</span><span>10</span><span>20</span><span>30</span></div>
+          <span style="font-size: 15px; line-height: 20px">Gemiddeld 31% (stippellijn). Beste dag 8 november, 52%.</span>
+        </figure>
+      </sc-if>
     </section>
     <section aria-label="Thuisbatterij" style="display: flex; flex-direction: column; gap: 8px">
       <h2 style="margin: 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Batterij</h2>
@@ -364,6 +430,33 @@ input{font:inherit;color:inherit;border:0;background:transparent;outline:none;pa
         </div>
         <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Opbrengst = ontladen × prijs op dat uur − geladen × prijs op dat uur.</span>
       </div>
+      <sc-if value="{{solarToday}}" hint-placeholder-val="{{ false }}">
+        <figure aria-label="{{soc.label}}" style="margin: 0; background: {{c.surface}}; border-radius: 22px; padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; justify-content: space-between; align-items: baseline">
+            <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">Laadstand vandaag</span>
+            <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums">nu 64%</span>
+          </div>
+          <div aria-hidden="true" style="display: flex; gap: 8px">
+            <div style="width: 26px; flex: 0 0 26px; height: 100px; display: flex; flex-direction: column; justify-content: space-between; font-size: 13px; line-height: 13px; color: {{c.muted}}; text-align: right; font-variant-numeric: tabular-nums"><span>100</span><span>50</span><span>0</span></div>
+            <svg viewBox="0 0 240 100" preserveAspectRatio="none" style="flex-grow: 1; height: 100px; display: block">
+              <line x1="0" y1="1" x2="240" y2="1" stroke="{{c.hair}}" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+              <line x1="0" y1="50" x2="240" y2="50" stroke="{{c.hair}}" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+              <line x1="0" y1="99" x2="240" y2="99" stroke="{{c.hairStrong}}" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+              <polygon points="{{soc.area}}" fill="{{socFill}}"></polygon>
+              <polyline points="{{soc.line}}" fill="none" stroke="{{c.ink}}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+            </svg>
+          </div>
+          <div aria-hidden="true" style="margin-left: 34px; display: flex; gap: 2px; height: 8px">
+            <sc-for list="{{soc.modes}}" as="m" hint-placeholder-count="24"><span style="flex: 1 1 0; background: {{m.bg}}; border: {{m.border}}; box-sizing: border-box; border-radius: 2px"></span></sc-for>
+          </div>
+          <div aria-hidden="true" style="margin-left: 34px; display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+          <div style="display: flex; gap: 16px; font-size: 13px; line-height: 18px; color: {{c.muted}}">
+            <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{c.ink}}"></span>Laden</span>
+            <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{prod}}"></span>Ontladen</span>
+          </div>
+          <span style="font-size: 15px; line-height: 20px">Geladen in de goedkoopste uren (02:00–05:00) en met zon, ontladen in de dure avond.</span>
+        </figure>
+      </sc-if>
     </section>
     <section aria-label="Terugverdiend" style="display: flex; flex-direction: column; gap: 8px">
       <h2 style="margin: 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Terugverdiend</h2>
@@ -378,6 +471,127 @@ input{font:inherit;color:inherit;border:0;background:transparent;outline:none;pa
       </div>
       <button onClick="{{noop}}" style="min-height: 44px; align-self: flex-start; padding: 0 16px; border-radius: 999px; background: {{c.surface}}; font-size: 17px">Paneel of batterij toevoegen</button>
     </section>
+  </sc-if>
+
+  <!-- ============ USAGE (APP-577) ============ -->
+  <sc-if value="{{isUsage}}" hint-placeholder-val="{{ false }}">
+    <div role="tablist" aria-label="Periode" style="height: 36px; padding: 2px; border-radius: 999px; background: {{c.surface2}}; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr))">
+      <sc-for list="{{rangeTabs}}" as="t" hint-placeholder-count="3">
+        <button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="border-radius: 999px; background: {{t.bg}}; box-shadow: {{t.shadow}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: {{t.weight}}">{{t.label}}</button>
+      </sc-for>
+    </div>
+    <section aria-label="Totaal" style="background: {{c.wash}}; border-radius: 26px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">{{us.caption}}</span>
+      <div style="display: flex; align-items: baseline; gap: 8px">
+        <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 44px; line-height: 48px; font-weight: 800; font-variant-numeric: tabular-nums">{{us.total}}</span>
+        <span style="font-size: 17px; line-height: 22px; color: {{c.muted}}">{{us.unit}}</span>
+      </div>
+      <span style="font-size: 15px; line-height: 20px">{{us.note}}</span>
+    </section>
+
+    <sc-if value="{{usMirror}}" hint-placeholder-val="{{ true }}">
+      <figure aria-label="{{us.label}}" style="margin: 0; background: {{c.surface}}; border-radius: 22px; padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 600">{{us.chartTitle}}</h2>
+          <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">kWh</span>
+        </div>
+        <div style="display: flex; flex-direction: column">
+          <div aria-hidden="true" style="display: flex; align-items: flex-end; gap: {{us.gap}}px; height: {{us.upH}}px">
+            <sc-for list="{{us.up}}" as="b" hint-placeholder-count="24"><span style="flex: 1 1 0; height: {{b.h}}px; background: {{b.bg}}; border: {{b.border}}; box-sizing: border-box; border-radius: 3px 3px 0 0"></span></sc-for>
+          </div>
+          <div aria-hidden="true" style="height: 1px; background: {{c.hairStrong}}"></div>
+          <div aria-hidden="true" style="display: flex; align-items: flex-start; gap: {{us.gap}}px; height: {{us.downH}}px">
+            <sc-for list="{{us.down}}" as="b" hint-placeholder-count="24"><span style="flex: 1 1 0; height: {{b.h}}px; background: {{b.bg}}; border-radius: 0 0 3px 3px"></span></sc-for>
+          </div>
+          <div aria-hidden="true" style="margin-top: 4px; display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums"><sc-for list="{{us.ticks}}" as="t" hint-placeholder-count="5"><span>{{t.l}}</span></sc-for></div>
+        </div>
+        <div style="display: flex; gap: 16px; font-size: 13px; line-height: 18px; color: {{c.muted}}">
+          <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{c.ink}}"></span>Verbruikt</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{prod}}"></span>Zon</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; border: 1px dashed {{c.hairStrong}}; box-sizing: border-box"></span>Nog niet</span>
+        </div>
+      </figure>
+    </sc-if>
+
+    <sc-if value="{{usDay}}" hint-placeholder-val="{{ true }}">
+      <figure aria-label="{{soc.label}}" style="margin: 0; background: {{c.surface}}; border-radius: 22px; padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">Laadstand vandaag</span>
+          <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums">nu 64%</span>
+        </div>
+        <div aria-hidden="true" style="display: flex; gap: 8px">
+          <div style="width: 26px; flex: 0 0 26px; height: 100px; display: flex; flex-direction: column; justify-content: space-between; font-size: 13px; line-height: 13px; color: {{c.muted}}; text-align: right; font-variant-numeric: tabular-nums"><span>100</span><span>50</span><span>0</span></div>
+          <svg viewBox="0 0 240 100" preserveAspectRatio="none" style="flex-grow: 1; height: 100px; display: block">
+            <line x1="0" y1="1" x2="240" y2="1" stroke="{{c.hair}}" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+            <line x1="0" y1="50" x2="240" y2="50" stroke="{{c.hair}}" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+            <line x1="0" y1="99" x2="240" y2="99" stroke="{{c.hairStrong}}" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+            <polygon points="{{soc.area}}" fill="{{socFill}}"></polygon>
+            <polyline points="{{soc.line}}" fill="none" stroke="{{c.ink}}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+          </svg>
+        </div>
+        <div aria-hidden="true" style="margin-left: 34px; display: flex; gap: 2px; height: 8px">
+          <sc-for list="{{soc.modes}}" as="m" hint-placeholder-count="24"><span style="flex: 1 1 0; background: {{m.bg}}; border: {{m.border}}; box-sizing: border-box; border-radius: 2px"></span></sc-for>
+        </div>
+        <div aria-hidden="true" style="margin-left: 34px; display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+        <div style="display: flex; gap: 16px; font-size: 13px; line-height: 18px; color: {{c.muted}}">
+          <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{c.ink}}"></span>Laden</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{prod}}"></span>Ontladen</span>
+        </div>
+        <span style="font-size: 15px; line-height: 20px">Geladen in de goedkoopste uren (02:00–05:00) en met zon, ontladen in de dure avond.</span>
+      </figure>
+    </sc-if>
+
+    <sc-if value="{{usYear}}" hint-placeholder-val="{{ false }}">
+      <div role="tablist" aria-label="Eenheid" style="height: 36px; padding: 2px; border-radius: 999px; background: {{c.surface2}}; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr))">
+        <sc-for list="{{unitTabs}}" as="t" hint-placeholder-count="2">
+          <button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="border-radius: 999px; background: {{t.bg}}; box-shadow: {{t.shadow}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: {{t.weight}}">{{t.label}}</button>
+        </sc-for>
+      </div>
+      <figure aria-label="{{yr.label}}" style="margin: 0; background: {{c.surface}}; border-radius: 22px; padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 600">Per maand, 2026 en 2025</h2>
+          <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{yr.unit}}</span>
+        </div>
+        <div aria-hidden="true" style="display: flex; align-items: flex-end; gap: 4px; height: 130px">
+          <sc-for list="{{yr.months}}" as="m" hint-placeholder-count="12">
+            <span style="flex: 1 1 0; height: 130px; display: flex; align-items: flex-end; gap: 1px">
+              <span style="flex: 1 1 0; height: {{m.hPrev}}px; background: {{c.muted}}; border-radius: 2px 2px 0 0"></span>
+              <span style="flex: 1 1 0; height: {{m.hCur}}px; background: {{m.curBg}}; border: {{m.curBorder}}; box-sizing: border-box; border-radius: 2px 2px 0 0"></span>
+            </span>
+          </sc-for>
+        </div>
+        <div aria-hidden="true" style="display: flex; gap: 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}"><sc-for list="{{yr.months}}" as="m" hint-placeholder-count="12"><span style="flex: 1 1 0; text-align: center">{{m.l}}</span></sc-for></div>
+        <div style="display: flex; gap: 16px; font-size: 13px; line-height: 18px; color: {{c.muted}}">
+          <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{c.muted}}"></span>2025</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{c.ink}}"></span>2026</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid {{c.ink}}; box-sizing: border-box"></span>Lopende maand</span>
+        </div>
+      </figure>
+      <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px">
+        <sc-for list="{{yr.rows}}" as="l" hint-placeholder-count="3">
+          <div style="min-height: 56px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: {{l.sep}}; padding: 6px 0">
+            <span style="display: flex; flex-direction: column"><span style="font-size: 17px; line-height: 22px">{{l.label}}</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{l.sub}}</span></span>
+            <span style="font-size: 17px; line-height: 22px; font-weight: 600; font-variant-numeric: tabular-nums">{{l.value}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{usMirror}}" hint-placeholder-val="{{ true }}">
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+        <sc-for list="{{us.facts}}" as="f" hint-placeholder-count="4">
+          <div style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{f.label}}</span>
+            <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 28px; line-height: 32px; font-weight: 700; font-variant-numeric: tabular-nums">{{f.value}}</span>
+            <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{f.unit}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <a href="Costs-Charts.dc.html" style="background: {{c.surface}}; border-radius: 22px; min-height: 56px; padding: 8px 16px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: {{c.ink}}">
+      <span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-size: 17px; line-height: 22px">Kosten per maand</span><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Wat dit verbruik kostte</span></span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+    </a>
   </sc-if>
 
   <!-- ============ SOURCES ============ -->
@@ -488,7 +702,7 @@ input{font:inherit;color:inherit;border:0;background:transparent;outline:none;pa
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["home","homeB","empty","prices","feed","costs","contract","solar","sources","connect","reading"],"default":"home"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":1560}}'>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["home","homeB","empty","prices","feed","costs","contract","solar","sources","connect","reading","usage"],"default":"home"},"charts":{"editor":"enum","options":["off","on"],"default":"off"},"range":{"editor":"enum","options":["day","month","year"],"default":"day"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":1560}}'>
 class Component extends DCLogic {
   renderVals() {
     const p = this.props;
@@ -518,6 +732,7 @@ class Component extends DCLogic {
       plug: 'M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4',
       home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
       pen: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
+      activity: 'M22 12h-4l-3 9L9 3l-3 9H2',
       tag: 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01',
       doc: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5'
     };
@@ -702,6 +917,94 @@ class Component extends DCLogic {
       { name: 'Gas', prev: '6.402,1 m³ op 1 nov', value: '6.340,0', unit: 'm³', hasError: true, error: 'Lager dan de vorige stand (6.402,1). Nieuwe meter? Voeg dan een nieuw kanaal toe onder Bronnen.' }
     ]).map((r) => Object.assign({}, r, { invalid: r.hasError ? 'true' : 'false', line: r.hasError ? '2px solid ' + c.danger : '1px solid ' + c.hair }));
 
+
+    // ---------- charts (APP-577) ----------
+    const charts = p.charts === 'on' || p.charts === true;
+    const prod = dark ? c.fill : c.text;
+    const socFill = dark ? 'rgba(217,155,43,0.28)' : 'rgba(242,178,51,0.38)';
+    const kwh = (x, d) => x.toFixed(d === undefined ? 1 : d).replace('.', ',');
+    const useH = [0.32, 0.28, 0.26, 0.25, 0.26, 0.30, 0.45, 0.62, 0.55, 0.40, 0.38, 0.42, 0.48, 0.40, 0.36, 0.44, 0.70, 0.95, 1.05, 0.92];
+    const sunH = [0, 0, 0, 0, 0, 0, 0, 0.05, 0.25, 0.55, 0.80, 0.95, 0.95, 0.80, 0.50, 0.25, 0.10, 0, 0, 0];
+    const mirror = (up, down, n, upH, max) => {
+      const u = [], d = [];
+      for (let i = 0; i < n; i++) {
+        const v = up[i], w = down[i];
+        u.push(v === undefined ? { h: 4, bg: 'transparent', border: '1px dashed ' + c.hairStrong } : { h: Math.max(2, Math.round((v / max) * upH)), bg: c.ink, border: '0' });
+        d.push(w === undefined || w === 0 ? { h: 0, bg: 'transparent' } : { h: Math.max(2, Math.round((w / max) * upH)), bg: prod });
+      }
+      return { up: u, down: d };
+    };
+    const hm = mirror(useH, sunH, 24, 56, 1.05);
+    const hd = { up: hm.up, down: hm.down, upH: 56, downH: 52, label: 'Verbruik en zon per uur vandaag. Verbruik het hoogst om 18:00, 1,05 kWh. Zon het hoogst om 11:00 en 12:00, 0,95 kWh.' };
+
+    const useD = [11.2, 12.0, 10.4, 9.8, 12.6, 13.1, 11.5, 9.9, 9.4, 10.8, 12.9, 14.2, 12.4, 10.6, 9.9, 9.6, 11.3, 12.1, 11.0, 9.8];
+    const sunD = [4.1, 2.2, 5.0, 3.4, 1.2, 0.8, 3.9, 5.6, 4.4, 2.9, 1.5, 0.9, 2.6, 4.8, 5.2, 3.1, 2.0, 3.3, 2.0, 5.2];
+    const sum = (a) => a.reduce((x, y) => x + y, 0);
+    const range = st.range || p.range || 'day';
+    const rangeTabs = seg([{ id: 'day', label: 'Dag' }, { id: 'month', label: 'Maand' }, { id: 'year', label: 'Jaar' }], range, 'range');
+    let us;
+    if (range === 'month') {
+      const m = mirror(useD, sunD, 30, 96, 14.2);
+      us = {
+        caption: '1 tot en met 20 november', total: kwh(sum(useD), 0), unit: 'kWh verbruikt',
+        note: 'Gemiddeld ' + kwh(sum(useD) / 20) + ' kWh per dag. Oktober: 10,4 per dag.',
+        chartTitle: 'Per dag in november', up: m.up, down: m.down, upH: 96, downH: 64, gap: 2,
+        ticks: [{ l: '1' }, { l: '10' }, { l: '20' }, { l: '30' }],
+        label: 'Verbruik en zon per dag in november. Meeste verbruik op 12 november, 14,2 kWh. Meeste zon op 8 november, 5,6 kWh.',
+        facts: [{ label: 'Verbruikt', value: kwh(sum(useD), 0), unit: 'kWh' }, { label: 'Opgewekt', value: kwh(sum(sunD), 0), unit: 'kWh zon' }, { label: 'Van het net', value: '212', unit: 'kWh' }, { label: 'Teruggeleverd', value: '96', unit: 'kWh' }]
+      };
+    } else {
+      const m = mirror(useH, sunH, 24, 96, 1.05);
+      us = {
+        caption: 'Vrijdag 20 november, tot 19:55', total: kwh(sum(useH)), unit: 'kWh verbruikt',
+        note: 'Gisteren om deze tijd 10,6 kWh. 4,4 kWh kwam van je dak en je batterij.',
+        chartTitle: 'Per uur vandaag', up: m.up, down: m.down, upH: 96, downH: 90, gap: 3,
+        ticks: [{ l: '00' }, { l: '06' }, { l: '12' }, { l: '18 · nu' }, { l: '24' }],
+        label: hd.label,
+        facts: [{ label: 'Van het net', value: '5,4', unit: 'kWh' }, { label: 'Uit zon en batterij', value: '4,4', unit: 'kWh · 45%' }, { label: 'Teruggeleverd', value: '3,1', unit: 'kWh' }, { label: 'Stroom kostte', value: '€ 2,14', unit: 'tot 19:55' }]
+      };
+    }
+    if (range === 'year') {
+      us = Object.assign({}, us, { caption: 'Januari tot en met oktober 2026', total: '2.488', unit: 'kWh verbruikt', note: '7% minder dan dezelfde maanden in 2025. De batterij is er sinds juni.' });
+    }
+
+    const ML = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+    const pairs = (prev, cur, H, max) => ML.map((l, i) => {
+      const partial = i === 10;
+      const v = cur[i];
+      return { l, hPrev: Math.round((prev[i] / max) * H), hCur: v === undefined ? 0 : Math.round((v / max) * H), curBg: partial ? 'transparent' : c.ink, curBorder: partial ? '1.5px solid ' + c.ink : '0' };
+    });
+    const kwh25 = [420, 370, 330, 260, 210, 180, 175, 190, 230, 300, 360, 410];
+    const kwh26 = [395, 350, 300, 240, 190, 170, 168, 180, 215, 280, 228];
+    const eur25 = [128, 112, 98, 80, 66, 58, 56, 60, 72, 92, 110, 124];
+    const eur26 = [118, 104, 86, 62, 44, 36, 34, 40, 58, 82, 72.9];
+    const unitSel = st.unit || 'kwh';
+    const unitTabs = seg([{ id: 'kwh', label: 'kWh' }, { id: 'eur', label: 'Euro' }], unitSel, 'unit');
+    const inEur = unitSel === 'eur';
+    const yr = inEur ? {
+      unit: '€', months: pairs(eur25, eur26, 130, 128),
+      label: 'Kosten per maand, 2026 naast 2025. Elke maand van 2026 goedkoper; het grootste verschil in juli, 34 tegen 56 euro.',
+      rows: withSep([{ label: 'Jan–okt 2026', sub: 'Stroom en gas, all-in', value: '€ 664' }, { label: 'Jan–okt 2025', sub: 'Zelfde maanden', value: '€ 822' }, { label: 'Verschil', sub: 'Vooral sinds de batterij, juni', value: '− € 158' }])
+    } : {
+      unit: 'kWh', months: pairs(kwh25, kwh26, 130, 420),
+      label: 'Verbruik per maand, 2026 naast 2025. Elke maand van 2026 lager; november loopt nog.',
+      rows: withSep([{ label: 'Jan–okt 2026', sub: 'Stroomverbruik', value: '2.488 kWh' }, { label: 'Jan–okt 2025', sub: 'Zelfde maanden', value: '2.665 kWh' }, { label: 'Verschil', sub: '7% minder', value: '− 177 kWh' }])
+    };
+    const yrEur = { months: pairs(eur25, eur26, 100, 128), label: yr.label, line: 'Januari tot en met oktober € 664, vorig jaar € 822.' };
+    yrEur.label = 'Kosten per maand, 2026 naast 2025. Elke maand van 2026 goedkoper. Januari tot en met oktober 664 euro, vorig jaar 822.';
+
+    const socV = [52, 50, 58, 72, 86, 94, 95, 92, 85, 80, 82, 88, 96, 98, 97, 94, 86, 78, 70, 64];
+    const socPts = socV.map((v, i) => (i * 10 + 5) + ',' + (100 - v)).join(' ');
+    const modeOf = (i) => (i >= 2 && i <= 4) || (i >= 10 && i <= 13) ? 'charge' : (i >= 16 && i <= 19 ? 'discharge' : (i > 19 ? 'future' : 'idle'));
+    const soc = {
+      line: socPts, area: '5,100 ' + socPts + ' 195,100',
+      modes: Array.from({ length: 24 }, (_, i) => { const m = modeOf(i); return { bg: m === 'charge' ? c.ink : (m === 'discharge' ? prod : (m === 'future' ? 'transparent' : c.surface2)), border: m === 'future' ? '1px dashed ' + c.hairStrong : '0' }; }),
+      label: 'Laadstand van de batterij vandaag. Van 50 naar 95 procent in de goedkope nacht, 98 procent om 13:00 met zon, nu 64 procent na ontladen in de dure avond.'
+    };
+    const sh = { bars: Array.from({ length: 24 }, (_, i) => i > NOW ? { h: 4, bg: 'transparent', border: '1px dashed ' + c.hairStrong } : { h: sunH[i] ? Math.max(2, Math.round((sunH[i] / 0.95) * 72)) : 0, bg: prod, border: '0' }), label: 'Opgewekt per uur vandaag: van 07:00 tot 16:00, piek 0,95 kWh om 11:00 en 12:00.' };
+    const selfD = [38, 22, 44, 33, 18, 14, 36, 52, 41, 30, 20, 15, 27, 43, 47, 31, 24, 34, 25, 46];
+    const ss = { bars: Array.from({ length: 30 }, (_, i) => selfD[i] === undefined ? { h: 4, bg: 'transparent', border: '1px dashed ' + c.hairStrong } : { h: Math.round((selfD[i] / 60) * 80), bg: prod, border: '0' }), avgY: Math.round((31 / 60) * 80), label: 'Zelfvoorziening per dag in november, gemiddeld 31 procent, hoogst 52 procent op 8 november.' };
+
     // ---------- header per screen ----------
     const H = {
       home: { title: 'Energie', back: 'Huis', backHref: '#', more: true, glyph: g.bolt, line1: 'Thuis', line2: 'Home Assistant · bijgewerkt 19:55', h: 1560 },
@@ -714,12 +1017,21 @@ class Component extends DCLogic {
       solar: { title: 'Zon en batterij', back: 'Energie', backHref: 'Main.dc.html', more: false, glyph: g.sun, line1: 'Thuis', line2: '4.200 Wp zon · 10 kWh batterij', h: 1560 },
       sources: { title: 'Bronnen', back: 'Energie', backHref: 'Main.dc.html', more: false, glyph: g.plug, line1: 'Thuis', line2: '2 bronnen · 7 kanalen', h: 1180 },
       connect: { title: 'Home Assistant', back: 'Bronnen', backHref: 'Sources.dc.html', more: false, glyph: g.home, line1: 'Koppel je Home Assistant', line2: 'Alleen lezen, nooit aansturen', h: 1760 },
+      usage: { title: 'Verbruik', back: 'Energie', backHref: 'Home-Charts.dc.html', more: false, glyph: g.activity, line1: 'Thuis', line2: 'Home Assistant · bijgewerkt 19:55', h: range === 'day' ? 1560 : 1280 },
       reading: { title: 'Meterstanden', back: 'Bronnen', backHref: 'Sources.dc.html', more: false, glyph: g.pen, line1: 'Thuis', line2: 'Laatste standen 1 november', h: 1040 }
     };
     const hdr = H[screen] || H.home;
+    let h = hdr.h;
+    if (charts && screen === 'home') h = 1880;
+    if (charts && screen === 'solar') h = (st.period || 'today') === 'today' ? 2080 : 1780;
+    if (charts && screen === 'costs') h = 1820;
+    if (charts && screen === 'home') navRows.unshift({ href: 'Usage-Day.dc.html', glyph: g.activity, title: 'Verbruik', sub: 'Per uur, dag, maand en jaar', sep: SEP });
 
     return {
-      c, g, hdr, h: hdr.h, noop,
+      c, g, hdr, h, noop,
+      charts, prod, socFill, homeCharts: charts && screen === 'home', hd,
+      isUsage: screen === 'usage', usMirror: range !== 'year', usDay: range === 'day', usYear: range === 'year', rangeTabs, us, unitTabs, yr, yrEur, soc, sh, ss,
+      solarToday: charts && screen === 'solar' && period === 'today', solarMonth: charts && screen === 'solar' && period === 'month',
       isHome: screen === 'home' || screen === 'homeB', isHomeA: screen === 'home', isHomeB: screen === 'homeB',
       isEmpty: screen === 'empty', isPrices: screen === 'prices', isFeed: screen === 'feed', isCosts: screen === 'costs', isContract: screen === 'contract',
       isSolar: screen === 'solar', isSources: screen === 'sources', isConnect: screen === 'connect', isReading: screen === 'reading',
