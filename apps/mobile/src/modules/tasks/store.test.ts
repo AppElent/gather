@@ -35,6 +35,7 @@ import {
   localTaskQueries,
   mergeTasks,
   onOccurrenceCompleted,
+  settledDetails,
   smartModel,
   syncExternalList,
   taskSections,
@@ -881,5 +882,31 @@ describe('the Tasks index model (APP-430)', () => {
     )
     expect(failed.lists[3].sync).toBe('failed')
     expect(failed.counts.get('work')?.open).toBe(1)
+  })
+})
+
+describe('what a composed task’s note and reminder came to', () => {
+  const reminder = { date: '2026-11-23', time: '09:00' }
+  const ok: PromiseSettledResult<unknown> = { status: 'fulfilled', value: null }
+  const no: PromiseSettledResult<unknown> = { status: 'rejected', reason: new Error() }
+
+  test('a reminder that went in is set even when the note failed', () => {
+    expect(settledDetails({ notes: 'keys', reminder }, no, ok)).toEqual({
+      notesFailed: true,
+      reminderFailed: false,
+      reminderSet: true,
+      failed: { notes: 'keys', reminder: undefined },
+    })
+  })
+
+  test('a reminder written again on a retry is set', () => {
+    expect(settledDetails({ reminder }, ok, ok).reminderSet).toBe(true)
+  })
+
+  test('no reminder, or a failed one, is not set', () => {
+    expect(settledDetails({ notes: 'keys' }, ok, ok).reminderSet).toBe(false)
+    const failed = settledDetails({ reminder }, ok, no)
+    expect(failed).toMatchObject({ reminderSet: false, reminderFailed: true })
+    expect(failed.failed.reminder).toEqual(reminder)
   })
 })

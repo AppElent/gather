@@ -356,23 +356,22 @@ function TaskComposerCard({
 
   /**
    * A saved task: the place's kept draft is forgotten if it was this one (a
-   * close mid-save kept it), then the haptic, the wash, and the details that
-   * did not go in.
+   * close mid-save kept it), then the haptic, the wash, and the note and
+   * reminder that went in or did not.
    */
-  const landed = (
-    saved: { taskId: string } & ComposedDetails,
-    saving: ComposedTask,
-    saveKey: string,
-  ) => {
+  const landed = (saved: { taskId: string } & ComposedDetails, saveKey: string) => {
     forgetSentDraft<TaskDraft>(place.current.draftId, saveKey)
     haptics.itemSaved()
     markFresh(saved.taskId)
-    if (saved.notesFailed || saved.reminderFailed) reportDetails(saved)
-    else if (saving.reminder) void ask('reminder')
+    afterDetails(saved)
   }
 
-  /** The note or reminder that failed, with a retry onto the same task. */
-  const reportDetails = (details: ComposedDetails) => {
+  /**
+   * A reminder that went in asks to notify, whatever the note did, and on a
+   * retry too; what failed is offered again.
+   */
+  const afterDetails = (details: ComposedDetails) => {
+    if (details.reminderSet) void ask('reminder')
     const retry = details.retry
     if (!retry) return
     Alert.alert(
@@ -380,7 +379,7 @@ function TaskComposerCard({
       undefined,
       [
         { text: words.ok, style: 'cancel' },
-        { text: words.tryAgain, onPress: () => void retry().then(reportDetails) },
+        { text: words.tryAgain, onPress: () => void retry().then(afterDetails) },
       ],
     )
   }
@@ -415,7 +414,7 @@ function TaskComposerCard({
             onPress: () =>
               void send().then(
                 (saved) => {
-                  landed(saved, saving, saveKey)
+                  landed(saved, saveKey)
                   resolve(true)
                 },
                 () => {
@@ -464,7 +463,7 @@ function TaskComposerCard({
     }
     try {
       const saved = await request
-      landed(saved, saving, saveKey)
+      landed(saved, saveKey)
       settle(true)
       if (open && mounted.current) {
         load(nextDraft(snapshot, preset))

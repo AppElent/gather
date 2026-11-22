@@ -666,8 +666,34 @@ export function useSmartLists(): SmartLists {
 export interface ComposedDetails {
   notesFailed: boolean
   reminderFailed: boolean
+  /** A reminder went in with this write: the moment to ask to notify. */
+  reminderSet: boolean
   /** Writes again only what failed, onto the same task; none when all went in. */
   retry?: () => Promise<ComposedDetails>
+}
+
+/**
+ * What a task's note and reminder writes came to, each on its own: a reminder
+ * that went in is set even when the note failed, and what failed is what a
+ * retry writes again.
+ */
+export function settledDetails(
+  details: Pick<ComposedTask, 'notes' | 'reminder'>,
+  notes: PromiseSettledResult<unknown>,
+  reminder: PromiseSettledResult<unknown>,
+): Omit<ComposedDetails, 'retry'> & {
+  failed: Pick<ComposedTask, 'notes' | 'reminder'>
+} {
+  const failed = {
+    notes: notes.status === 'rejected' ? details.notes : undefined,
+    reminder: reminder.status === 'rejected' ? details.reminder : undefined,
+  }
+  return {
+    notesFailed: failed.notes !== undefined,
+    reminderFailed: failed.reminder !== undefined,
+    reminderSet: details.reminder !== undefined && reminder.status === 'fulfilled',
+    failed,
+  }
 }
 
 export function useTaskActions() {
@@ -728,15 +754,11 @@ export function useTaskActions() {
           })
         : null,
     ])
-    const failed = {
-      notes: notes.status === 'rejected' ? details.notes : undefined,
-      reminder: reminder.status === 'rejected' ? details.reminder : undefined,
-    }
+    const { failed, ...outcome } = settledDetails(details, notes, reminder)
     return {
-      notesFailed: failed.notes !== undefined,
-      reminderFailed: failed.reminder !== undefined,
+      ...outcome,
       retry:
-        failed.notes !== undefined || failed.reminder !== undefined
+        outcome.notesFailed || outcome.reminderFailed
           ? () => composedDetails(taskId, failed)
           : undefined,
     }
