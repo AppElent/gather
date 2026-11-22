@@ -8,6 +8,9 @@
  * of title + first line + when, in two groups: the ones somebody pinned, and
  * the rest by recency.
  *
+ * New notes start in the keyboard composer behind the add button (APP-588);
+ * the note screen is where one is read and edited.
+ *
  * The field is the second way in, and it filters rather than navigates. An
  * empty result offers no add button, only a way back to everything — the
  * "nothing found" empty state, which is a different thing from "nothing yet"
@@ -26,10 +29,11 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SearchField } from '../../components/SearchField'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
-import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
+import { ADD_BUTTON_CLEARANCE } from '../../ui/keyboard-composer'
 import { SectionLabel } from '../../ui/section-label'
+import { AddNote } from './AddNoteComposer'
 import { confirmDeleteNote } from './notesActions'
 import { noteWhen, preview } from './noteText'
 import { type Note, useNoteActions, useNotes } from './store'
@@ -132,22 +136,6 @@ export function Notes() {
         options={{
           headerShown: true,
           title: t.notes.title,
-          headerRight: () => (
-            <Pressable
-              testID="note-new"
-              accessibilityRole="button"
-              accessibilityLabel={t.notes.newNote}
-              hitSlop={12}
-              onPress={async () => {
-                const id = await actions.addNote()
-                haptics.itemSaved()
-                open(id)
-              }}
-              style={styles.headerButton}
-            >
-              <UI_ICONS.Plus size={22} color={tokens.ink} strokeWidth={2.2} />
-            </Pressable>
-          ),
         }}
       />
       <ScrollView
@@ -156,7 +144,7 @@ export function Notes() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: insets.bottom + 24 },
+          { paddingBottom: insets.bottom + 24 + ADD_BUTTON_CLEARANCE },
         ]}
       >
         <SearchField
@@ -209,13 +197,13 @@ export function Notes() {
           </>
         )}
       </ScrollView>
+      <AddNote />
     </>
   )
 }
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 16 },
-  headerButton: { paddingHorizontal: 6, paddingVertical: 6 },
   group: { gap: 8 },
   row: {
     flexDirection: 'row',
