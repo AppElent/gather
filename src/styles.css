@@ -214,9 +214,12 @@
     mask-image: radial-gradient(circle at 50% 30%, black, transparent 78%);
   }
 
+  /* Links read as body text, so they need 4.5:1 (WCAG 1.4.3). --lagoon-deep
+     is 3.3:1 on --bg-base in light mode; --lagoon-strong is 5.6:1 there and
+     the same #8de5db as before in dark mode (APP-595). */
   a {
-    color: var(--lagoon-deep);
-    text-decoration-color: rgba(50, 143, 151, 0.4);
+    color: var(--lagoon-strong);
+    text-decoration-color: rgba(31, 105, 112, 0.4);
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
   }
