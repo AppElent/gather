@@ -44,7 +44,9 @@ import type {
   ExportRow,
 } from '@gather/core/data-export'
 import { EXPORT_VERSION } from '@gather/core/data-export'
+import { INVALID_EXPORT_CURSOR } from '@gather/core/refusals'
 import type { PaginationOptions } from 'convex/server'
+import { ConvexError } from 'convex/values'
 import type { DataModel, Doc, Id, TableNames } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import type { GroupScopedTable } from './groupAccess'
@@ -52,6 +54,14 @@ import { storedFileIdsOf } from './storedFiles'
 
 /** Rows read per page. Small enough for any table's largest row. */
 export const PAGE_SIZE = 200
+
+/**
+ * Bytes one page reads at most, well inside a query's 16 MiB: 200 rows of a
+ * table whose rows run large (a long note, a recipe with many steps) would not
+ * be. A page that reaches it ends early and the cursor resumes after its last
+ * row. A document is at most 1 MiB, so a page always makes progress.
+ */
+export const PAGE_BYTES = 4 * 1024 * 1024
 
 export type ExportScope = 'account' | 'group'
 
@@ -313,6 +323,27 @@ interface ParentCursor {
   inner: string | null
 }
 
+/** A cursor this module handed out, or the keyed refusal for one it did not. */
+function readParentCursor(cursor: string): ParentCursor {
+  let at: unknown
+  try {
+    at = JSON.parse(cursor)
+  } catch {
+    throw new ConvexError(INVALID_EXPORT_CURSOR)
+  }
+  const c = at as Partial<ParentCursor> | null
+  if (
+    !c ||
+    typeof c !== 'object' ||
+    typeof c.parent !== 'string' ||
+    typeof c.createdAt !== 'number' ||
+    !(c.inner === null || typeof c.inner === 'string')
+  ) {
+    throw new ConvexError(INVALID_EXPORT_CURSOR)
+  }
+  return c as ParentCursor
+}
+
 function parentCursor(parent: Row, inner: string | null): ParentCursor {
   return { parent: parent._id, createdAt: parent._creationTime, inner }
 }
@@ -344,7 +375,7 @@ async function readRaw(
       parentTreatment.index,
       s,
     ).collect()
-    const at = cursor ? (JSON.parse(cursor) as ParentCursor) : null
+    const at = cursor ? readParentCursor(cursor) : null
     let index = 0
     let inner: string | null = null
     if (at) {
@@ -357,7 +388,11 @@ async function readRaw(
     if (!parent) return { rows: [], cursor: null, isDone: true }
     const page = await tableQuery(ctx, table)
       .withIndex(treatment.index, (q) => q.eq(treatment.field, parent._id))
-      .paginate({ numItems: PAGE_SIZE, cursor: inner })
+      .paginate({
+        numItems: PAGE_SIZE,
+        cursor: inner,
+        maximumBytesRead: PAGE_BYTES,
+      })
     const following = parents[index + 1]
     const next = !page.isDone
       ? parentCursor(parent, page.continueCursor)
@@ -374,6 +409,7 @@ async function readRaw(
   const page = await scopeRange(ctx, table, treatment.index, s).paginate({
     numItems: PAGE_SIZE,
     cursor,
+    maximumBytesRead: PAGE_BYTES,
   })
   return { rows: page.page, cursor: page.continueCursor, isDone: page.isDone }
 }
@@ -523,17 +559,28 @@ export async function exportManifest(
   ctx: QueryCtx,
   me: Doc<'users'>,
 ): Promise<ExportManifest> {
+  const groups = (await exportGroups(ctx, me)).map((g) => ({
+    slug: g.slug,
+    name: g.name,
+  }))
+  return { version: EXPORT_VERSION, ...exportLayout(), groups }
+}
+
+/** The person's Groups in export order: by name. */
+export async function exportGroups(
+  ctx: QueryCtx,
+  me: Doc<'users'>,
+): Promise<Doc<'groups'>[]> {
   const memberships = await ctx.db
     .query('memberships')
     .withIndex('by_user', (q) => q.eq('userId', me._id))
     .collect()
-  const groups: ExportManifest['groups'] = []
+  const groups: Doc<'groups'>[] = []
   for (const membership of memberships) {
     const group = await ctx.db.get(membership.groupId)
-    if (group) groups.push({ slug: group.slug, name: group.name })
+    if (group) groups.push(group)
   }
-  groups.sort((a, b) => a.name.localeCompare(b.name))
-  return { version: EXPORT_VERSION, ...exportLayout(), groups }
+  return groups.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 /**

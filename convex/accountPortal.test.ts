@@ -1,4 +1,4 @@
-import { INVALID_PORTAL_CURSOR } from '@gather/core/refusals'
+import { INVALID_EXPORT_CURSOR } from '@gather/core/refusals'
 import { ConvexError } from 'convex/values'
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
@@ -281,7 +281,7 @@ describe('a caller with data', () => {
     const as = t.withIdentity(asAlice)
     expect(
       await refusalOf(as.query(api.accountPortal.exportPage, { cursor: 'nope' })),
-    ).toEqual(INVALID_PORTAL_CURSOR)
+    ).toEqual(INVALID_EXPORT_CURSOR)
     const unknownStep = JSON.stringify({
       groups: [],
       table: 'seedRuns',
@@ -292,16 +292,79 @@ describe('a caller with data', () => {
       await refusalOf(
         as.query(api.accountPortal.exportPage, { cursor: unknownStep }),
       ),
-    ).toEqual(INVALID_PORTAL_CURSOR)
+    ).toEqual(INVALID_EXPORT_CURSOR)
     const forged = JSON.stringify({
-      groups: [bob.slug],
+      groups: [{ id: bob.groupId, slug: bob.slug }],
       table: 'notes',
-      group: bob.slug,
+      group: 0,
       page: null,
     })
     expect(
       await refusalOf(as.query(api.accountPortal.exportPage, { cursor: forged })),
     ).toMatchObject({ kind: expect.stringMatching(/member/i) })
+    const badChild = JSON.stringify({
+      groups: [{ id: bob.groupId, slug: bob.slug }],
+      table: 'tasks',
+      group: 0,
+      page: 'not json',
+    })
+    expect(
+      await refusalOf(
+        t
+          .withIdentity(asBob)
+          .query(api.accountPortal.exportPage, { cursor: badChild }),
+      ),
+    ).toEqual(INVALID_EXPORT_CURSOR)
+  })
+
+  test('a Group renamed mid-export, and another given its old slug, cannot swap in', async () => {
+    const t = testConvex()
+    const alice = await signUp(t, asAlice)
+    await fill(t, alice, { notes: PAGE_SIZE + 1, recipes: 0, tasks: 0 }, 'Own')
+    const as = t.withIdentity(asAlice)
+    // Walk to the middle of the notes.
+    let cursor: string | null = null
+    for (;;) {
+      const page: PortalExportPage = await as.query(
+        api.accountPortal.exportPage,
+        { cursor },
+      )
+      cursor = page.next
+      if (page.tables[`groups/${alice.slug}/notes`]?.length) break
+    }
+    // Rename it, and let a new Group of Alice's take the old slug.
+    await t.run(async (ctx) => {
+      await ctx.db.patch(alice.groupId, { slug: 'renamed' })
+      const impostor = await ctx.db.insert('groups', {
+        name: 'Impostor',
+        slug: alice.slug,
+        inviteCode: 'invite-impostor',
+      })
+      await ctx.db.insert('memberships', {
+        groupId: impostor,
+        userId: alice.userId,
+        role: 'admin',
+      })
+      await ctx.db.insert('notes', {
+        groupId: impostor,
+        title: 'Impostor note',
+        body: '',
+        createdBy: alice.userId,
+        updatedAt: 0,
+      })
+    })
+    const rest: unknown[] = []
+    while (cursor !== null) {
+      const page: PortalExportPage = await as.query(
+        api.accountPortal.exportPage,
+        { cursor },
+      )
+      for (const rows of Object.values(page.tables)) rest.push(...rows)
+      cursor = page.next
+    }
+    const text = JSON.stringify(rest)
+    expect(text).toContain(`Own note ${PAGE_SIZE}`)
+    expect(text).not.toContain('Impostor')
   })
 })
 

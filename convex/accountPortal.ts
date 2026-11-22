@@ -27,7 +27,7 @@ import {
 } from '@gather/core/data-export'
 import {
   DELETION_IN_PROGRESS,
-  INVALID_PORTAL_CURSOR,
+  INVALID_EXPORT_CURSOR,
 } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, TableNames } from './_generated/dataModel'
@@ -36,10 +36,12 @@ import { query } from './_generated/server'
 import { getGatedIdentity, rejectConnectedApps } from './lib/connectedApps'
 import {
   countGroupRows,
+  exportGroups,
+  exportLayout,
   exportManifest,
   readExportPage,
 } from './lib/dataExport'
-import { requireGroupBySlug } from './lib/groupAccess'
+import { getMembership, groupRefusalError } from './lib/groupAccess'
 import { getUserByClerkId, NOT_SIGNED_IN } from './lib/sharing'
 
 /** Bumped only for a breaking change to these shapes. */
@@ -91,6 +93,33 @@ export interface PortalExportPage {
   next: string | null
 }
 
+const countValidator = v.object({
+  key: v.string(),
+  count: v.number(),
+  more: v.boolean(),
+})
+const summaryValidator = v.union(
+  v.null(),
+  v.object({
+    contract: v.literal(PORTAL_CONTRACT),
+    lastActiveAt: v.union(v.number(), v.null()),
+    counts: v.array(countValidator),
+  }),
+)
+const blockerValidator = v.union(
+  v.null(),
+  v.object({
+    code: v.string(),
+    params: v.record(v.string(), v.union(v.string(), v.number())),
+  }),
+)
+const exportPageValidator = v.object({
+  contract: v.literal(PORTAL_CONTRACT),
+  app: v.literal(APP),
+  tables: v.record(v.string(), v.array(v.any())),
+  next: v.union(v.string(), v.null()),
+})
+
 /**
  * The caller's `users` row, or null when they never used Gather. Only a
  * missing token is a refusal: a portal whose token Gather does not accept
@@ -123,6 +152,7 @@ function capped(key: string, read: number): PortalCount {
 
 export const summary = query({
   args: {},
+  returns: summaryValidator,
   handler: async (ctx): Promise<PortalSummary | null> => {
     const me = await activeCaller(ctx)
     if (!me) return null
@@ -158,6 +188,7 @@ export const summary = query({
 
 export const deletionBlocker = query({
   args: {},
+  returns: blockerValidator,
   handler: async (ctx): Promise<PortalBlocker | null> => {
     const user = await portalCaller(ctx)
     // The purge is already running (`accounts.purgeSubject`); deleting Gather
@@ -170,58 +201,97 @@ export const deletionBlocker = query({
 // -- Export ------------------------------------------------------------------
 
 /**
- * Where an export is. The Groups are the manifest's, taken on the first page,
- * so a Group joined mid-export does not move the steps under the cursor; each
- * page still resolves its Group through the membership check, so a cursor
- * names nothing the caller cannot already read. The portal never parses it.
+ * Where an export is. The Groups are the person's on the first page, by id and
+ * the slug they had then, so a Group joined, renamed or replaced by another
+ * with its old slug mid-export does not move the steps under the cursor. Each
+ * page loads its Group by that id and checks the membership again, so a
+ * cursor names nothing the caller cannot already read. The portal never
+ * parses it.
  */
+interface CursorGroup {
+  id: string
+  slug: string
+}
+
 interface PortalCursor {
-  groups: string[]
+  groups: CursorGroup[]
   table: string
-  group: string | null
+  /** Index into `groups`; null for an account table. */
+  group: number | null
   page: string | null
 }
 
 interface Step {
   table: string
-  group: string | null
+  group: number | null
 }
 
+/** Longer than any cursor this server hands out. */
+const MAX_CURSOR_LENGTH = 64 * 1024
+
 /** Account tables first, then each Group's, as the in-app file is ordered. */
-function stepsOf(layout: ExportManifest, groups: string[]): Step[] {
+function stepsOf(layout: ExportManifest, groups: CursorGroup[]): Step[] {
   const steps: Step[] = layout.account.map((table) => ({ table, group: null }))
-  for (const group of groups) {
+  groups.forEach((_, group) => {
     for (const table of layout.group) steps.push({ table, group })
-  }
+  })
   return steps
 }
 
 /** A Group's table under its slug, so two Groups' rows never share a key. */
-function keyOf(step: Step): string {
-  return step.group === null ? step.table : `groups/${step.group}/${step.table}`
+function keyOf(step: Step, groups: CursorGroup[]): string {
+  if (step.group === null) return step.table
+  return `groups/${groups[step.group]?.slug}/${step.table}`
 }
 
 function parseCursor(cursor: string): PortalCursor {
+  if (cursor.length > MAX_CURSOR_LENGTH) {
+    throw new ConvexError(INVALID_EXPORT_CURSOR)
+  }
   let at: unknown
   try {
     at = JSON.parse(cursor)
   } catch {
-    throw new ConvexError(INVALID_PORTAL_CURSOR)
+    throw new ConvexError(INVALID_EXPORT_CURSOR)
   }
   const c = at as Partial<PortalCursor> | null
-  const nullableString = (x: unknown) => x === null || typeof x === 'string'
+  const isGroup = (g: unknown) =>
+    !!g &&
+    typeof g === 'object' &&
+    typeof (g as CursorGroup).id === 'string' &&
+    typeof (g as CursorGroup).slug === 'string'
   if (
     !c ||
     typeof c !== 'object' ||
     !Array.isArray(c.groups) ||
-    !c.groups.every((g) => typeof g === 'string') ||
+    !c.groups.every(isGroup) ||
     typeof c.table !== 'string' ||
-    !nullableString(c.group) ||
-    !nullableString(c.page)
+    !(c.group === null || Number.isInteger(c.group)) ||
+    !(c.page === null || typeof c.page === 'string')
   ) {
-    throw new ConvexError(INVALID_PORTAL_CURSOR)
+    throw new ConvexError(INVALID_EXPORT_CURSOR)
   }
   return c as PortalCursor
+}
+
+/**
+ * The Group a step names, if the caller is still in it. Gone, or left, is the
+ * Group refusal every other read gives, rather than a Group missing silently
+ * from the file.
+ */
+async function stepGroup(
+  ctx: QueryCtx,
+  me: Doc<'users'>,
+  ref: CursorGroup,
+): Promise<Doc<'groups'>> {
+  const id = ctx.db.normalizeId('groups', ref.id)
+  if (!id) throw new ConvexError(INVALID_EXPORT_CURSOR)
+  const group = await ctx.db.get(id)
+  if (!group) throw groupRefusalError('unknown-slug')
+  if (!(await getMembership(ctx, id, me._id))) {
+    throw groupRefusalError('not-a-member')
+  }
+  return group
 }
 
 /** The in-app file's header, so a portal export reads like the in-app one. */
@@ -239,13 +309,13 @@ function header(manifest: ExportManifest) {
 
 /**
  * One page of the export: at most one `dataExport.page` worth of one table
- * (Convex allows one `paginate` per query), keyed by table — `groups/<slug>/
- * <table>` for a Group's — with the file's header under `export` on the first.
- * A Group left, deleted or renamed mid-export is refused, as the in-app export
- * refuses it, rather than silently missing from the file.
+ * (Convex allows one `paginate` per query, and a page stops at `PAGE_BYTES`),
+ * keyed by table — `groups/<slug>/<table>` for a Group's, with the slug it had
+ * when the export started — and the file's header under `export` on the first.
  */
 export const exportPage = query({
   args: { cursor: v.union(v.string(), v.null()) },
+  returns: exportPageValidator,
   handler: async (ctx, { cursor }): Promise<PortalExportPage> => {
     const me = await activeCaller(ctx)
     const empty: PortalExportPage = {
@@ -256,31 +326,31 @@ export const exportPage = query({
     }
     if (!me) return empty
 
-    const manifest = await exportManifest(ctx, me)
     const at = cursor === null ? null : parseCursor(cursor)
-    const groups = at ? at.groups : manifest.groups.map((g) => g.slug)
-    const steps = stepsOf(manifest, groups)
+    const layout = exportLayout()
+    const groups: CursorGroup[] = at
+      ? at.groups
+      : (await exportGroups(ctx, me)).map((g) => ({ id: g._id, slug: g.slug }))
+    const steps = stepsOf({ version: 0, ...layout, groups: [] }, groups)
     const index = at
       ? steps.findIndex((s) => s.table === at.table && s.group === at.group)
       : 0
-    if (index < 0) throw new ConvexError(INVALID_PORTAL_CURSOR)
+    if (index < 0) throw new ConvexError(INVALID_EXPORT_CURSOR)
     const step = steps[index]
 
     const tables: Record<string, unknown[]> = {}
-    if (!at) tables.export = [header(manifest)]
+    if (!at) tables.export = [header(await exportManifest(ctx, me))]
     if (!step) return { ...empty, tables }
 
-    const group =
-      step.group === null
-        ? null
-        : (await requireGroupBySlug(ctx, step.group)).group
+    const ref = step.group === null ? null : groups[step.group]
+    const group = ref ? await stepGroup(ctx, me, ref) : null
     const page = await readExportPage(ctx, {
       table: step.table,
       me,
       group,
       cursor: at?.page ?? null,
     })
-    tables[keyOf(step)] = page.rows
+    tables[keyOf(step, groups)] = page.rows
 
     const following = steps[index + 1]
     const next: PortalCursor | null = !page.isDone
