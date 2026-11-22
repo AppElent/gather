@@ -5,6 +5,7 @@ import {
   calendarRefusal,
   GROUP_REFUSAL_CODES,
   groupRefusal,
+  groupRefusalSentence,
   readCalendarRefusal,
   readGroupRefusal,
   readRefusal,
@@ -86,6 +87,22 @@ describe('task refusals (APP-302)', () => {
 })
 
 describe('group refusals (APP-429)', () => {
+  test('read in the reader’s words, and only for a Group refusal (APP-580)', () => {
+    const sentences = {
+      'not-signed-in': 'a',
+      'unknown-slug': 'b',
+      'not-a-member': 'c',
+    } as const
+    expect(
+      groupRefusalSentence(
+        thrown(groupRefusal('unknown-slug', 'No group has that slug')),
+        sentences,
+      ),
+    ).toBe('b')
+    expect(groupRefusalSentence(thrown({ kind: 'tasks:not-found' }), sentences)).toBeNull()
+    expect(groupRefusalSentence(new Error('Boom'), sentences)).toBeNull()
+  })
+
   test('each code round-trips, namespaced on the wire', () => {
     for (const code of GROUP_REFUSAL_CODES) {
       const data = groupRefusal(code, 'A sentence')

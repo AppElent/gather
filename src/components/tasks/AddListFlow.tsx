@@ -10,7 +10,7 @@ import type {
   ProviderSource,
   SourceProperty,
 } from '../../../convex/lib/taskProviders/types'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, type Messages, useMessages } from '../../lib/i18n'
 import { hrefTo } from '../../lib/links'
 import { PROVIDER_LABELS, useConnectProvider } from '../../lib/oauth'
@@ -46,6 +46,7 @@ export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
   // it survives a full page load in sessionStorage.
   const connect = useConnectProvider(groupSlug, hrefTo('tasks'))
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const { addList, notionMapping } = messages.tasks
 
   const [step, setStep] = useState<Step>({ kind: 'provider' })
@@ -59,7 +60,7 @@ export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
     try {
       await fn()
     } catch (e) {
-      setError(errorMessage(e, addList.failed))
+      setError(errorText(e, addList.failed))
     } finally {
       setBusy(false)
     }

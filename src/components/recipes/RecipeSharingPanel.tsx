@@ -2,7 +2,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { useCurrentGroup } from '../app/useCurrentGroup'
 
@@ -40,6 +40,7 @@ export function RecipeSharingPanel({
   const unshare = useMutation(api.recipes.unshare)
   const { setCurrentGroup } = useCurrentGroup()
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const { sharing } = messages.recipes
 
   const [moveTo, setMoveTo] = useState('')
@@ -57,7 +58,7 @@ export function RecipeSharingPanel({
     try {
       await action()
     } catch (err) {
-      setError(errorMessage(err, messages.common.errors.didNotWork))
+      setError(errorText(err, messages.common.errors.didNotWork))
     } finally {
       setBusy(false)
     }

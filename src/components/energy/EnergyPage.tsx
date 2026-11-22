@@ -4,7 +4,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { type FormEvent, useId, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { useI18n } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
@@ -121,6 +121,7 @@ function AddFirstAddress({ groupSlug }: { groupSlug: string }) {
 
 function AddressForm({ groupSlug }: { groupSlug: string }) {
   const { messages } = useI18n()
+  const errorText = useErrorMessage()
   const copy = messages.energy
   const houses = useQuery(api.houses.list, { groupSlug })
   const createSite = useMutation(api.energy.createSite)
@@ -155,7 +156,7 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
       setError(
         code
           ? copy.refusals[code]
-          : errorMessage(caught, messages.common.errors.didNotWork),
+          : errorText(caught, messages.common.errors.didNotWork),
       )
       setSaving(false)
     }

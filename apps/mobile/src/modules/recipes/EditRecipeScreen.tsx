@@ -11,7 +11,10 @@
  * recipe, and the change is visible the moment the screen behind reappears —
  * `recipes.get` is live, so there is nothing to reload and nothing to say.
  */
-import { refusalSentence } from '@gather/core/refusals'
+import {
+  groupRefusalSentence,
+  refusalSentence,
+} from '@gather/core/refusals'
 import { useAction, useMutation } from 'convex/react'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -69,6 +72,11 @@ export function EditRecipeScreen() {
   }, [loaded, recipe])
 
   const text = t.recipes
+  // A refused Group in the reader's language; any other sentence the server
+  // chose as it was thrown (APP-580).
+  const problemText = (error: unknown) =>
+    groupRefusalSentence(error, t.common.errors.groupRefusals) ??
+    refusalSentence(error)
 
   if (recipe === undefined || !values)
     return <LoadingSkeleton rows={5} label={t.actions.loading} />
@@ -111,7 +119,7 @@ export function EditRecipeScreen() {
       router.back()
     } catch (error) {
       haptics.actionFailed()
-      setSaveProblem(refusalSentence(error) ?? text.form.saveFailed)
+      setSaveProblem(problemText(error) ?? text.form.saveFailed)
       setSaving(false)
     }
   }
