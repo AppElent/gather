@@ -1,9 +1,13 @@
+import { INVALID_PORTAL_CURSOR } from '@gather/core/refusals'
+import { ConvexError } from 'convex/values'
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { COUNT_LIMIT, type PortalExportPage } from './accountPortal'
+import { CONNECTED_APP_REFUSED } from './lib/connectedApps'
 import { PAGE_SIZE } from './lib/dataExport'
+import { NOT_SIGNED_IN } from './lib/sharing'
 
 /**
  * The account portal contract (standards/account-portal.md): what
@@ -109,6 +113,17 @@ async function drain(t: Harness, identity: typeof asAlice) {
   return { tables, pages }
 }
 
+/** The ConvexError data a refused call carried. */
+async function refusalOf(call: Promise<unknown>) {
+  try {
+    await call
+  } catch (error) {
+    if (error instanceof ConvexError) return error.data
+    throw error
+  }
+  throw new Error('expected a refusal')
+}
+
 function countOf(
   summary: { counts: { key: string; count: number; more: boolean }[] },
   key: string,
@@ -133,10 +148,12 @@ describe('a caller who never used Gather', () => {
 
   test('without a token is refused, not shown as never used', async () => {
     const t = testConvex()
-    await expect(t.query(api.accountPortal.summary, {})).rejects.toThrow()
-    await expect(
-      t.query(api.accountPortal.exportPage, { cursor: null }),
-    ).rejects.toThrow()
+    expect(await refusalOf(t.query(api.accountPortal.summary, {}))).toBe(
+      NOT_SIGNED_IN,
+    )
+    expect(
+      await refusalOf(t.query(api.accountPortal.exportPage, { cursor: null })),
+    ).toBe(NOT_SIGNED_IN)
   })
 
   test('a connected app is refused', async () => {
@@ -147,10 +164,13 @@ describe('a caller who never used Gather', () => {
       client_id: 'agent',
       scope: 'gather:read',
     })
-    await expect(agent.query(api.accountPortal.summary, {})).rejects.toThrow()
-    await expect(
+    for (const call of [
+      agent.query(api.accountPortal.summary, {}),
+      agent.query(api.accountPortal.deletionBlocker, {}),
       agent.query(api.accountPortal.exportPage, { cursor: null }),
-    ).rejects.toThrow()
+    ]) {
+      expect(await refusalOf(call)).toBe(CONNECTED_APP_REFUSED)
+    }
   })
 })
 
@@ -214,23 +234,74 @@ describe('a caller with data', () => {
     expect(tables[`${prefix}/notes`]?.[0]).toMatchObject({ createdBy: 'Alice' })
   })
 
+  test('counts add up across Groups and task lists, and stop at the cap', async () => {
+    const t = testConvex()
+    const alice = await signUp(t, asAlice)
+    const second = await t.run(async (ctx) => {
+      const groupId = await ctx.db.insert('groups', {
+        name: 'Allotment',
+        slug: 'allotment',
+        inviteCode: 'invite-allotment',
+      })
+      await ctx.db.insert('memberships', {
+        groupId,
+        userId: alice.userId,
+        role: 'admin',
+      })
+      return { userId: alice.userId, groupId }
+    })
+    await fill(t, alice, { notes: 600, recipes: 1, tasks: 3 }, 'A')
+    await fill(t, alice, { notes: 0, recipes: 0, tasks: 4 }, 'A2')
+    await fill(t, second, { notes: 401, recipes: 2, tasks: 5 }, 'B')
+
+    const summary = await t
+      .withIdentity(asAlice)
+      .query(api.accountPortal.summary, {})
+    if (!summary) throw new Error('no summary')
+    expect(countOf(summary, 'groups')).toMatchObject({ count: 2 })
+    expect(countOf(summary, 'recipes')).toMatchObject({ count: 3, more: false })
+    expect(countOf(summary, 'taskLists')).toMatchObject({ count: 3 })
+    expect(countOf(summary, 'tasks')).toMatchObject({ count: 12, more: false })
+    expect(countOf(summary, 'notes')).toEqual({
+      key: 'notes',
+      count: COUNT_LIMIT,
+      more: true,
+    })
+
+    const { tables } = await drain(t, asAlice)
+    expect(tables['groups/allotment/tasks']).toHaveLength(5)
+    expect(tables[`groups/${alice.slug}/tasks`]).toHaveLength(7)
+    expect(tables['groups/allotment/notes']).toHaveLength(401)
+  })
+
   test('a cursor that is not one, or names a Group of somebody else, is refused', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
     const bob = await signUp(t, asBob)
     const as = t.withIdentity(asAlice)
-    await expect(
-      as.query(api.accountPortal.exportPage, { cursor: 'nope' }),
-    ).rejects.toThrow()
+    expect(
+      await refusalOf(as.query(api.accountPortal.exportPage, { cursor: 'nope' })),
+    ).toEqual(INVALID_PORTAL_CURSOR)
+    const unknownStep = JSON.stringify({
+      groups: [],
+      table: 'seedRuns',
+      group: null,
+      page: null,
+    })
+    expect(
+      await refusalOf(
+        as.query(api.accountPortal.exportPage, { cursor: unknownStep }),
+      ),
+    ).toEqual(INVALID_PORTAL_CURSOR)
     const forged = JSON.stringify({
       groups: [bob.slug],
       table: 'notes',
       group: bob.slug,
       page: null,
     })
-    await expect(
-      as.query(api.accountPortal.exportPage, { cursor: forged }),
-    ).rejects.toThrow()
+    expect(
+      await refusalOf(as.query(api.accountPortal.exportPage, { cursor: forged })),
+    ).toMatchObject({ kind: expect.stringMatching(/member/i) })
   })
 })
 

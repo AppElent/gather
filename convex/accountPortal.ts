@@ -25,7 +25,10 @@ import {
   EXPORT_NOT_INCLUDED,
   type ExportManifest,
 } from '@gather/core/data-export'
-import { DELETION_IN_PROGRESS } from '@gather/core/refusals'
+import {
+  DELETION_IN_PROGRESS,
+  INVALID_PORTAL_CURSOR,
+} from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, TableNames } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
@@ -198,14 +201,12 @@ function keyOf(step: Step): string {
   return step.group === null ? step.table : `groups/${step.group}/${step.table}`
 }
 
-const INVALID_CURSOR = { kind: 'invalidCursor' }
-
 function parseCursor(cursor: string): PortalCursor {
   let at: unknown
   try {
     at = JSON.parse(cursor)
   } catch {
-    throw new ConvexError(INVALID_CURSOR)
+    throw new ConvexError(INVALID_PORTAL_CURSOR)
   }
   const c = at as Partial<PortalCursor> | null
   const nullableString = (x: unknown) => x === null || typeof x === 'string'
@@ -218,7 +219,7 @@ function parseCursor(cursor: string): PortalCursor {
     !nullableString(c.group) ||
     !nullableString(c.page)
   ) {
-    throw new ConvexError(INVALID_CURSOR)
+    throw new ConvexError(INVALID_PORTAL_CURSOR)
   }
   return c as PortalCursor
 }
@@ -262,7 +263,7 @@ export const exportPage = query({
     const index = at
       ? steps.findIndex((s) => s.table === at.table && s.group === at.group)
       : 0
-    if (index < 0) throw new ConvexError(INVALID_CURSOR)
+    if (index < 0) throw new ConvexError(INVALID_PORTAL_CURSOR)
     const step = steps[index]
 
     const tables: Record<string, unknown[]> = {}

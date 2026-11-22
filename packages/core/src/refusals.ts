@@ -47,6 +47,12 @@ export const ACCOUNT_DELETED = 'Account deleted'
  */
 export const DELETION_IN_PROGRESS = 'deletionInProgress'
 
+/**
+ * The refusal for an `accountPortal.exportPage` cursor this server did not
+ * hand out: not JSON, the wrong shape, or a step the export does not have.
+ */
+export const INVALID_PORTAL_CURSOR = { kind: 'invalidCursor' } as const
+
 export function refusal(
   kind: (typeof TASTING_REFUSALS)[number],
 ): { kind: string } {

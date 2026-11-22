@@ -86,7 +86,10 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
 - **The account portal's blocker is a purge already running.**
   `accountPortal.deletionBlocker` returns `deletionInProgress`
   (`@gather/core/refusals`) while the caller's row has `deletedAt`; a shared
-  Group is left, never a blocker. Its `deleteAppData` follows APP-392.
+  Group is left, never a blocker. Only the whole-account purge keeps the
+  subject long enough to show it; "Gather data only" releases the subject, so
+  the portal sees a never-used caller at once. Its `deleteAppData` follows
+  APP-392.
 - **One purge behind every way in.** `purgeSubject` (`convex/accounts.ts`)
   starts the purge for every `users` row of a Clerk subject, duplicates
   included, and never twice for a row already being purged. `deleteAccount`
