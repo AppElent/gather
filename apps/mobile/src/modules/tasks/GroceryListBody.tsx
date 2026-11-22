@@ -75,16 +75,19 @@ export function GroceryListBody({
   )
   const sections = aisleSections(open, list.aisleOrder)
 
+  // Each checked item comes back as an open copy, so what was bought stays
+  // in the history the suggestions learn from (APP-427); its checked row
+  // then leaves Checked, which shows no name that is open.
   const putBackAll = () => {
     const ids = checked.map((task) => task.id)
     setBusy(true)
     actions
-      .setDoneInList(list.id, false, ids)
-      .then((changed) => {
+      .putBackChecked(list.id, ids)
+      .then((added) => {
         haptics.itemSaved()
-        onUndoable(plural(locale, changed.length, g.putBackDone), () => {
+        onUndoable(plural(locale, added.length, g.putBackDone), () => {
           void actions
-            .setDoneInList(list.id, true, changed)
+            .removePutBack(list.id, added)
             .catch(() => haptics.actionFailed())
         })
       })

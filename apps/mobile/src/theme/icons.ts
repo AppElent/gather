@@ -110,6 +110,7 @@ export const MODULE_ICONS = {
   Target: glyph(Target, 'target'),
   Users: glyph(Users, 'person.2.fill'),
   Wine: glyph(Wine, 'wineglass'),
+  Zap: glyph(Zap, 'bolt'),
 } satisfies Record<ModuleIconName, Glyph>
 
 export const UI_ICONS = {

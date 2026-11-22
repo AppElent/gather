@@ -2,6 +2,8 @@ import { describe, expect, test, vi } from 'vitest'
 import { alice, bob, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
+import { OPEN_ITEMS_SCAN_LIMIT } from './lib/groceryCategories'
+import { openKeysOn } from './lib/groceryStaples'
 
 /**
  * Groceries "In stock" (APP-314): staples in stock or running low, running
@@ -116,6 +118,29 @@ describe('staples', () => {
     const id = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'rijst' })
     await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true })
     expect(await itemsOn(t, groceries)).toHaveLength(1)
+  })
+
+  test('reads at most OPEN_ITEMS_SCAN_LIMIT open items of a list (APP-428)', async () => {
+    const { t, aliceId, groceries } = await seed()
+    const keys = await t.run(async (ctx) => {
+      for (let i = 0; i < OPEN_ITEMS_SCAN_LIMIT; i++)
+        await ctx.db.insert('tasks', {
+          listId: groceries,
+          title: 'Rijst',
+          done: false,
+          createdBy: aliceId,
+          order: i,
+        })
+      await ctx.db.insert('tasks', {
+        listId: groceries,
+        title: 'Melk',
+        done: false,
+        createdBy: aliceId,
+        order: OPEN_ITEMS_SCAN_LIMIT,
+      })
+      return [...(await openKeysOn(ctx, groceries))]
+    })
+    expect(keys).toEqual(['rijst'])
   })
 
   test('without a grocery list it is low but on no list', async () => {

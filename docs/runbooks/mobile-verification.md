@@ -180,3 +180,10 @@ Test the control itself, not only the link: it reaches the app through its
 user defaults rather than a URL (iOS drops a custom-scheme URL from a
 control), so check both a cold start (quit the app first) and a tap with the
 app in the background.
+
+To fake a press without Control Center, write the press time into the app's
+defaults as a plist `<real>`, in milliseconds:
+`xcrun simctl spawn booted defaults write <bundle id> GatherQuickActionsControlRequestedAt "<real>$(($(date +%s) * 1000))</real>"`.
+Not `-float`: it stores a 32-bit float, which rounds the time by up to about a
+minute, often into the future, so the app drops the request as not fresh and
+opens on Home (APP-459).

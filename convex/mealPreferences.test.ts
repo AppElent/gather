@@ -366,3 +366,131 @@ describe('the row goes with its Group', () => {
     expect((await rowOf(t, other))?.diets).toEqual(['halal'])
   })
 })
+
+describe('mealPreferences: per-item lists (APP-446)', () => {
+  const prefsOf = (t: Harness, who: typeof alice) =>
+    t.withIdentity(who).query(api.mealPreferences.get, { groupSlug: 'home' })
+
+  test('two cuisines added at once both stay', async () => {
+    const { t } = await seed()
+    await Promise.all([
+      t.withIdentity(alice).mutation(api.mealPreferences.setCuisine, {
+        groupSlug: 'home',
+        cuisine: 'italian',
+        on: true,
+      }),
+      t.withIdentity(bob).mutation(api.mealPreferences.setCuisine, {
+        groupSlug: 'home',
+        cuisine: 'indian',
+        on: true,
+      }),
+    ])
+    expect([...(await prefsOf(t, alice)).cuisines].sort()).toEqual([
+      'indian',
+      'italian',
+    ])
+  })
+
+  test('fish and leftover days: two at once both stay, days stay Monday first', async () => {
+    const { t } = await seed()
+    await Promise.all([
+      t.withIdentity(alice).mutation(api.mealPreferences.setFishDay, {
+        groupSlug: 'home',
+        day: 4,
+        on: true,
+      }),
+      t.withIdentity(bob).mutation(api.mealPreferences.setFishDay, {
+        groupSlug: 'home',
+        day: 1,
+        on: true,
+      }),
+      t.withIdentity(bob).mutation(api.mealPreferences.setLeftoverDay, {
+        groupSlug: 'home',
+        day: 6,
+        on: true,
+      }),
+      t.withIdentity(alice).mutation(api.mealPreferences.setLeftoverDay, {
+        groupSlug: 'home',
+        day: 2,
+        on: true,
+      }),
+    ])
+    const prefs = await prefsOf(t, alice)
+    expect(prefs.fishDays).toEqual([1, 4])
+    expect(prefs.leftoverDays).toEqual([2, 6])
+    await t.withIdentity(bob).mutation(api.mealPreferences.setFishDay, {
+      groupSlug: 'home',
+      day: 1,
+      on: false,
+    })
+    expect((await prefsOf(t, alice)).fishDays).toEqual([4])
+  })
+
+  test('a slot: another Member’s day and switch on a different slot survive', async () => {
+    const { t } = await seed()
+    await Promise.all([
+      t.withIdentity(alice).mutation(api.mealPreferences.setSlotEnabled, {
+        groupSlug: 'home',
+        slot: 'breakfast',
+        on: true,
+      }),
+      t.withIdentity(bob).mutation(api.mealPreferences.setSlotDay, {
+        groupSlug: 'home',
+        slot: 'lunch',
+        day: 2,
+        on: true,
+      }),
+      t.withIdentity(alice).mutation(api.mealPreferences.setSlotDay, {
+        groupSlug: 'home',
+        slot: 'dinner',
+        day: 0,
+        on: false,
+      }),
+    ])
+    const { slots } = await prefsOf(t, bob)
+    expect(slots.breakfast.enabled).toBe(true)
+    expect(slots.lunch.days).toEqual([2, 5, 6])
+    expect(slots.dinner.days).toEqual([1, 2, 3, 4, 5, 6])
+    expect(slots.dinner.enabled).toBe(true)
+  })
+
+  test('switching on twice keeps one; an outsider is refused', async () => {
+    const { t } = await seed()
+    for (let i = 0; i < 2; i++)
+      await t.withIdentity(alice).mutation(api.mealPreferences.setCuisine, {
+        groupSlug: 'home',
+        cuisine: 'dutch',
+        on: true,
+      })
+    expect((await prefsOf(t, alice)).cuisines).toEqual(['dutch'])
+    await expect(
+      t.withIdentity(carol).mutation(api.mealPreferences.setCuisine, {
+        groupSlug: 'home',
+        cuisine: 'dutch',
+        on: false,
+      }),
+    ).rejects.toThrow()
+  })
+
+  test('the whole-list `update` still works for a phone from before', async () => {
+    const { t } = await seed()
+    await t.withIdentity(alice).mutation(api.mealPreferences.update, {
+      groupSlug: 'home',
+      patch: {
+        cuisines: ['asian'],
+        fishDays: [3],
+        leftoverDays: [0],
+        slots: {
+          breakfast: { enabled: true, days: [0] },
+          lunch: { enabled: false, days: [] },
+          dinner: { enabled: true, days: [1, 2] },
+        },
+      },
+    })
+    const prefs = await prefsOf(t, bob)
+    expect(prefs.cuisines).toEqual(['asian'])
+    expect(prefs.fishDays).toEqual([3])
+    expect(prefs.leftoverDays).toEqual([0])
+    expect(prefs.slots.dinner.days).toEqual([1, 2])
+  })
+})

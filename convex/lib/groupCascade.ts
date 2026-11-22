@@ -392,6 +392,100 @@ const GROUP_CONTENT: {
         .collect(),
     ),
 
+  // Energy (APP-491), children before the sites they hang off. Every table
+  // has `by_group`, so no entry needs its parent to find its rows.
+  energyReadings: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energyReadings',
+      await ctx.db
+        .query('energyReadings')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  energyIntervals: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energyIntervals',
+      await ctx.db
+        .query('energyIntervals')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  energyChannels: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energyChannels',
+      await ctx.db
+        .query('energyChannels')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  // A source can hold a live token for somebody's Home Assistant.
+  energySources: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energySources',
+      await ctx.db
+        .query('energySources')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  energyAssets: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energyAssets',
+      await ctx.db
+        .query('energyAssets')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  energyContracts: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energyContracts',
+      await ctx.db
+        .query('energyContracts')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  // A feed holds the Member's own API key, and its account prices carry no
+  // Group id: they are found through the feed and go with it. Market prices
+  // (no `feedId`) are every Group's and stay.
+  energyPriceFeeds: async (ctx, groupId) => {
+    const feeds = await ctx.db
+      .query('energyPriceFeeds')
+      .withIndex('by_group', (q) => q.eq('groupId', groupId))
+      .collect()
+    for (const feed of feeds) {
+      await purge(
+        ctx,
+        'energyPrices',
+        await ctx.db
+          .query('energyPrices')
+          .withIndex('by_feed_carrier_start', (q) => q.eq('feedId', feed._id))
+          .collect(),
+      )
+    }
+    return purge(ctx, 'energyPriceFeeds', feeds)
+  },
+
+  energySites: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energySites',
+      await ctx.db
+        .query('energySites')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
   houses: async (ctx, groupId) =>
     purge(
       ctx,

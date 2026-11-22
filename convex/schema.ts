@@ -12,6 +12,20 @@ import {
   calendarViewValidator,
 } from './lib/calendar'
 import {
+  energyAssetKindValidator,
+  energyCarrierValidator,
+  energyChannelKindValidator,
+  energyContractKindValidator,
+  energyFixedTariffsValidator,
+  energyPriceFeedStatusValidator,
+  energyPriceProviderValidator,
+  energyPriceScopeValidator,
+  energySourceKindValidator,
+  energySourceStatusValidator,
+  energyTariffValidator,
+  energyUnitValidator,
+} from './lib/energy'
+import {
   buyingCostLinesValidator,
   holdingFields,
   holdingTransactionFields,
@@ -1011,6 +1025,176 @@ export default defineSchema({
     /** Attribution only. Confers no ownership and no access (GLOSSARY.md). */
     createdByUserId: v.id('users'),
   }).index('by_group', ['groupId']),
+
+  // -- Energy (APP-491, ADR-0051) -------------------------------------------
+  //
+  // Nine tables, as approved in `designs/energy/APP-491-data-model.md`.
+  // Everything is Group-scoped except market prices, which are the same for
+  // every Group. Money totals are cents; prices per kWh or m³ are euros as a
+  // decimal, because cents are too coarse there. Gather only reads a source;
+  // it never controls a device.
+  //
+  // Every Group-scoped table also has `by_group`, which the model does not
+  // list: the Group cascade and the data export reach a Group's rows by it,
+  // as they do for every other table with a `groupId`.
+
+  /** An address the Group measures: "Thuis", "Vakantiehuis". */
+  energySites: defineTable({
+    groupId: v.id('groups'),
+    name: v.string(),
+    /** A Finances House. Deleting the House clears it; the site stays. */
+    houseId: v.optional(v.id('houses')),
+    /** Attribution only. Confers no ownership and no access (GLOSSARY.md). */
+    createdByUserId: v.id('users'),
+    order: v.number(),
+  }).index('by_group', ['groupId']),
+
+  /** What a site's energy costs from `validFrom` on; amounts excl. VAT. */
+  energyContracts: defineTable({
+    groupId: v.id('groups'),
+    siteId: v.id('energySites'),
+    validFrom: v.string(), // YYYY-MM-DD
+    kind: energyContractKindValidator,
+    supplierName: v.optional(v.string()),
+    importMarkupEurPerKwh: v.number(),
+    /** Export compensation (+) or export cost (−). */
+    exportFeeEurPerKwh: v.number(),
+    energyTaxEurPerKwh: v.number(),
+    gasMarkupEurPerM3: v.optional(v.number()),
+    gasTaxEurPerM3: v.optional(v.number()),
+    fixedTariffs: v.optional(energyFixedTariffsValidator),
+    vatPercent: v.number(),
+    /** Standing charges and network costs. */
+    monthlyFixedCents: v.number(),
+    /** Vermindering energiebelasting. */
+    yearlyTaxCreditCents: v.optional(v.number()),
+    /** Salderen; treated as off from 2027-01-01. */
+    netMetering: v.boolean(),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_site_validFrom', ['siteId', 'validFrom']),
+
+  /** Where a site's readings come from (ADR-0020's cache model). */
+  energySources: defineTable({
+    groupId: v.id('groups'),
+    siteId: v.id('energySites'),
+    kind: energySourceKindValidator,
+    label: v.string(),
+    /** Home Assistant's external URL. */
+    baseUrl: v.optional(v.string()),
+    /** Token or OAuth refresh token. Server-only: never returned or exported. */
+    secret: v.optional(v.string()),
+    status: energySourceStatusValidator,
+    lastSyncedAt: v.optional(v.number()),
+    /** Shown to Members, in words. */
+    lastError: v.optional(v.string()),
+    connectedByUserId: v.id('users'),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_site', ['siteId'])
+    .index('by_kind_status', ['kind', 'status']),
+
+  /** One meter or sensor of a site, supplied by exactly one source. */
+  energyChannels: defineTable({
+    groupId: v.id('groups'),
+    siteId: v.id('energySites'),
+    sourceId: v.id('energySources'),
+    kind: energyChannelKindValidator,
+    /** Split meters only. */
+    tariff: v.optional(energyTariffValidator),
+    unit: energyUnitValidator,
+    /** HA statistic id, Enelogic measuring point, HomeWizard serial. */
+    externalRef: v.optional(v.string()),
+    /** The solar array or battery it belongs to. */
+    assetId: v.optional(v.id('energyAssets')),
+    /** A meter swap: the old channel stops, a new one starts. */
+    retiredAt: v.optional(v.number()),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_site', ['siteId'])
+    .index('by_source', ['sourceId']),
+
+  /** Solar panels or a home battery. */
+  energyAssets: defineTable({
+    groupId: v.id('groups'),
+    siteId: v.id('energySites'),
+    kind: energyAssetKindValidator,
+    name: v.string(),
+    /** Solar only. */
+    peakWatt: v.optional(v.number()),
+    /** Battery only. */
+    capacityKwh: v.optional(v.number()),
+    installedOn: v.optional(v.string()), // YYYY-MM-DD
+    /** For payback. */
+    purchaseCents: v.optional(v.number()),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_site', ['siteId']),
+
+  /** A cumulative meter reading, in the channel's unit. */
+  energyReadings: defineTable({
+    groupId: v.id('groups'),
+    channelId: v.id('energyChannels'),
+    at: v.number(),
+    value: v.number(),
+    /** Set for a reading somebody typed. */
+    enteredByUserId: v.optional(v.id('users')),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_channel_at', ['channelId', 'at']),
+
+  /**
+   * Usage per UTC hour (state of charge: the average %). About 8,800 rows per
+   * channel a year; day and month totals are computed in queries.
+   */
+  energyIntervals: defineTable({
+    groupId: v.id('groups'),
+    channelId: v.id('energyChannels'),
+    hourStart: v.number(),
+    amount: v.number(),
+    /** Spread from manual readings. */
+    estimated: v.boolean(),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_channel_hour', ['channelId', 'hourStart']),
+
+  /** Where a site's prices come from; bring your own key. */
+  energyPriceFeeds: defineTable({
+    groupId: v.id('groups'),
+    siteId: v.id('energySites'),
+    provider: energyPriceProviderValidator,
+    scope: energyPriceScopeValidator,
+    /** The Member's API key or token. Server-only: never returned or exported. */
+    secret: v.optional(v.string()),
+    /** All-in account prices skip the contract's markup and taxes. */
+    includesTaxes: v.boolean(),
+    status: energyPriceFeedStatusValidator,
+    lastFetchedAt: v.optional(v.number()),
+    lastError: v.optional(v.string()),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_site', ['siteId'])
+    .index('by_provider', ['provider']),
+
+  /**
+   * Prices per slot. A market price (no `feedId`) is the same for every Group
+   * and belongs to none; an account price belongs to its feed's Group and
+   * goes with the feed.
+   */
+  energyPrices: defineTable({
+    /** "energyzero", "entsoe", "tibber". */
+    provider: v.string(),
+    feedId: v.optional(v.id('energyPriceFeeds')),
+    carrier: energyCarrierValidator,
+    /** Start of the slot, UTC. */
+    start: v.number(),
+    /** 15 for electricity, 1440 for gas. */
+    minutes: v.number(),
+    /** Excl. tax for market feeds. */
+    eurPerUnit: v.number(),
+  })
+    .index('by_provider_carrier_start', ['provider', 'carrier', 'start'])
+    .index('by_feed_carrier_start', ['feedId', 'carrier', 'start']),
 
   /**
    * The Retailer catalog: Dutch stores a card can be picked from (APP-141).

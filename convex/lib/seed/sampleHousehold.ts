@@ -1683,6 +1683,15 @@ export interface SampleLoyaltyCard {
   author: SampleAuthor
 }
 
+/**
+ * Energy (APP-492): one address linked to the House, fed by meter readings.
+ * Readings, prices and the rest arrive with their own issues (APP-493..496).
+ */
+export const SAMPLE_ENERGY_SITE = {
+  name: 'Thuis',
+  sourceLabel: 'Meterstanden',
+}
+
 export const SAMPLE_LOYALTY_CARDS: SampleLoyaltyCard[] = [
   {
     storeName: 'Albert Heijn',

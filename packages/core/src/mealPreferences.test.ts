@@ -7,6 +7,7 @@ import {
   clashReasons,
   DEFAULT_MEAL_PREFERENCES,
   describeClash,
+  describeClashes,
   fitsPreferences,
   listChangePatch,
   type MatchableRecipe,
@@ -207,7 +208,17 @@ describe('the optimistic answer', () => {
 })
 
 describe('listChangePatch', () => {
-  const current = { allergens: ['milk' as const], diets: [], dislikes: ['Koriander'] }
+  const current = {
+    allergens: ['milk' as const],
+    diets: [],
+    dislikes: ['Koriander'],
+    cuisines: ['dutch' as const],
+    fishDays: [4 as const],
+    leftoverDays: [],
+    slots: DEFAULT_MEAL_PREFERENCES.slots as ReturnType<
+      typeof resolveMealPreferences
+    >['slots'],
+  }
 
   test('adds and removes one item, keeping the rest', () => {
     expect(
@@ -247,6 +258,61 @@ describe('listChangePatch', () => {
         on: true,
       }),
     ).toEqual({ ok: false, field: 'dislikes' })
+  })
+})
+
+describe('listChangePatch: cuisines, days and slots (APP-446)', () => {
+  const current = resolveMealPreferences(
+    { cuisines: ['dutch'], fishDays: [4], leftoverDays: [2] },
+    members,
+  )
+
+  test('a cuisine and a fish or leftover day, one item, order kept or Monday first', () => {
+    expect(
+      listChangePatch(current, { list: 'cuisines', value: 'indian', on: true }),
+    ).toEqual({ ok: true, patch: { cuisines: ['dutch', 'indian'] } })
+    expect(
+      listChangePatch(current, { list: 'cuisines', value: 'dutch', on: false }),
+    ).toEqual({ ok: true, patch: { cuisines: [] } })
+    expect(
+      listChangePatch(current, { list: 'fishDays', value: 1, on: true }),
+    ).toEqual({ ok: true, patch: { fishDays: [1, 4] } })
+    expect(
+      listChangePatch(current, { list: 'leftoverDays', value: 2, on: false }),
+    ).toEqual({ ok: true, patch: { leftoverDays: [] } })
+  })
+
+  test('on twice and off twice are no-ops', () => {
+    expect(
+      listChangePatch(current, { list: 'cuisines', value: 'dutch', on: true }),
+    ).toEqual({ ok: true, patch: { cuisines: ['dutch'] } })
+    expect(
+      listChangePatch(current, { list: 'fishDays', value: 0, on: false }),
+    ).toEqual({ ok: true, patch: { fishDays: [4] } })
+  })
+
+  test('a slot changes its own day or switch and leaves the others alone', () => {
+    const day = listChangePatch(current, {
+      list: 'slotDays',
+      slot: 'lunch',
+      value: 0,
+      on: true,
+    })
+    expect(day.ok && day.patch.slots).toEqual({
+      ...DEFAULT_MEAL_PREFERENCES.slots,
+      lunch: { enabled: true, days: [0, 5, 6] },
+    })
+    const off = listChangePatch(current, {
+      list: 'slotEnabled',
+      slot: 'breakfast',
+      on: true,
+    })
+    expect(off.ok && off.patch.slots?.breakfast.enabled).toBe(true)
+    expect(off.ok && off.patch.slots?.dinner).toEqual(
+      DEFAULT_MEAL_PREFERENCES.slots.dinner,
+    )
+    // The Group's resolved slots are never changed in place.
+    expect(current.slots.lunch.days).toEqual([5, 6])
   })
 })
 
@@ -996,10 +1062,7 @@ describe('recipeClashes: the final-check blockers', () => {
     ['500 g half om half', { diets: ['vegetarian'] }],
     ['500 g half-om-half', { diets: ['vegetarian'] }],
     ['200 ml half om half melk', { diets: ['vegetarian'] }],
-    ['500 g sukade', { diets: ['vegetarian'] }],
-    ['50 g sukade', { diets: ['vegetarian'] }],
     ['500 g wild', { diets: ['vegetarian'] }],
-    ['200 g wild mushrooms', { diets: ['vegetarian'] }],
     ['1 griet', { allergens: ['fish'] }],
     ['1 griet', { diets: ['vegetarian'] }],
     ['Oma Margriet’s soep', { allergens: ['fish'] }],
@@ -1007,5 +1070,225 @@ describe('recipeClashes: the final-check blockers', () => {
     const found = clashes(line, prefs)
     expect(found.length).toBeGreaterThan(0)
     expect(certain(found)).toEqual([])
+  })
+})
+
+describe('recipeClashes: the APP-446 follow-ups', () => {
+  type Prefs = Parameters<typeof recipeClashes>[1]
+  const clashes = (
+    line: string,
+    chosen: {
+      allergens?: readonly Prefs['allergens'][number][]
+      diets?: readonly Prefs['diets'][number][]
+      dislikes?: readonly string[]
+    },
+    title = 'Toetje',
+  ) =>
+    recipeClashes(
+      recipe(title, line ? [line] : []),
+      prefsWith({
+        allergens: [...(chosen.allergens ?? [])],
+        diets: [...(chosen.diets ?? [])],
+        dislikes: [...(chosen.dislikes ?? [])],
+      }),
+      0,
+    )
+  const m = nl.mealPreferences
+
+  describe('title-only recipes say it once', () => {
+    test('one combined line, never one per allergen', () => {
+      const found = clashes('', { allergens: ['gluten', 'milk', 'eggs'] })
+      expect(found).toHaveLength(3)
+      expect(found.every((clash) => clash.uncertain)).toBe(true)
+      expect(describeClashes(found, m)).toBe(
+        `Controleer zelf: ${m.allergies.names.gluten}, ${m.allergies.names.milk}, ${m.allergies.names.eggs}`,
+      )
+    })
+
+    test('allergens and diets share the line, a term from the recipe is named', () => {
+      const found = clashes('1 blokje bouillon', {
+        allergens: ['celery'],
+        diets: ['vegetarian'],
+      })
+      expect(describeClashes(found, m)).toBe(
+        `Controleer zelf: bouillon (${m.allergies.names.celery}), bouillon (${m.diet.names.vegetarian})`,
+      )
+    })
+
+    test('a certain clash is described on its own, over any "controleer zelf"', () => {
+      const found = clashes('200 g pindakaas', { allergens: ['peanuts', 'milk', 'gluten'] })
+      expect(describeClashes(found, m)).toBe('Bevat pindakaas')
+    })
+
+    test('nothing clashing is no line; the same allergen twice is named once', () => {
+      expect(describeClashes([], m)).toBeUndefined()
+      const twice: RecipeClash[] = [
+        { kind: 'allergen', id: 'milk', label: 'milk', uncertain: true },
+        { kind: 'allergen', id: 'milk', label: 'milk', uncertain: true },
+      ]
+      expect(describeClashes(twice, m)).toBe('Controleer zelf: Melk')
+    })
+
+    test('it is still never a hide', () => {
+      expect(
+        fitsPreferences(clashes('', { allergens: ['gluten', 'milk'], diets: ['vegan'] })),
+      ).toBe(true)
+    })
+  })
+
+  describe('the reason keeps the recipe’s own spelling', () => {
+    test('"Saté" with its accent, matched on "sate"', () => {
+      const found = clashes('', { allergens: ['peanuts'] }, 'Saté van kip')
+      expect(found).toEqual([{ kind: 'allergen', id: 'peanuts', label: 'saté' }])
+      expect(clashReasons(found, m)).toEqual(['saté'])
+    })
+
+    test('an ingredient line, a diet and a run of words', () => {
+      expect(clashes('2 kipfilets sauté', { diets: ['vegetarian'] })[0]?.label).toBe('kipfilets')
+      expect(clashes('1 bakje crème fraîche', { allergens: ['milk'] })[0]?.label).toBe(
+        'crème fraîche',
+      )
+    })
+
+    test('a plain word is unchanged; no match falls back to the normalised word', () => {
+      expect(clashes('200 g pindakaas', { allergens: ['peanuts'] })[0]?.label).toBe('pindakaas')
+    })
+  })
+
+  describe('a short dislike finds its compounds', () => {
+    test.each([
+      ['400 g kipfilet', 'kip'],
+      ['2 kippendijen', 'kip'],
+      ['1 l kippensoep', 'kip'],
+      ['kipsaus', 'kip'],
+      ['2 kippen', 'kip'],
+      ['300 g visfilet', 'vis'],
+      ['1 kom vissoep', 'vis'],
+      ['2 vissen', 'vis'],
+      ['1 eiersalade', 'ei'],
+    ])('%s is a %s dislike', (line, dislike) => {
+      expect(clashes(line, { dislikes: [dislike] })).toHaveLength(1)
+    })
+
+    test.each([
+      ['een visite', 'vis'],
+      ['1 visum', 'vis'],
+      ['4 hamburgerbroodjes', 'ham'],
+      ['1 blik kikkererwten, uitgelekt', 'ui'],
+      ['1 kipper', 'kip'],
+      ['500 g televisie-kaas', 'vis'],
+      ['eigengemaakte pesto', 'ei'],
+    ])('%s is not a %s dislike', (line, dislike) => {
+      expect(clashes(line, { dislikes: [dislike] })).toEqual([])
+    })
+
+    test('the other way round: a long dislike does not match its short stem', () => {
+      expect(clashes('400 g kip', { dislikes: ['kipfilet'] })).toEqual([])
+      expect(clashes('300 g vis', { dislikes: ['visfilet'] })).toEqual([])
+      expect(clashes('400 g kipfilet', { dislikes: ['kipfilet'] })).toHaveLength(1)
+    })
+  })
+
+  describe('rice and glass noodles are "controleer zelf", never a hide', () => {
+    test.each([
+      '200 g rice vermicelli noodles',
+      '200 g rice noodles',
+      '200 g glass noodles',
+      '200 g cellophane noodles',
+      '200 g rijstnoedels',
+      '200 g glasnoedels',
+      '200 g rijstvermicelli',
+      '200 g rijst vermicelli',
+    ])('%s', (line) => {
+      const found = clashes(line, { allergens: ['gluten'] })
+      expect(certain(found)).toEqual([])
+      expect(found).toHaveLength(1)
+      expect(found[0]?.uncertain).toBe(true)
+      expect(fitsPreferences(found)).toBe(true)
+    })
+
+    test.each(['200 g egg noodles', '200 g wheat noodles', '200 g noedels', '200 g noodles'])(
+      'still hidden: %s',
+      (line) => {
+        expect(certain(clashes(line, { allergens: ['gluten'] }))).toHaveLength(1)
+      },
+    )
+
+    test('the gluten-free diet reads the same way', () => {
+      const found = clashes('200 g rice vermicelli noodles', { diets: ['gluten-free'] })
+      expect(certain(found)).toEqual([])
+      expect(found).toHaveLength(1)
+    })
+  })
+
+  describe('the label is the whole word', () => {
+    test('koekenpannenkoek, not "nenkoek"', () => {
+      const found = clashes('', { allergens: ['gluten'] }, 'Koekenpannenkoek met spek')
+      expect(found).toEqual([
+        { kind: 'allergen', id: 'gluten', label: 'koekenpannenkoek' },
+      ])
+    })
+
+    test('a line with the pan itself is still quiet', () => {
+      expect(clashes('1 koekenpan', { allergens: ['gluten'] })).toEqual([])
+    })
+  })
+
+  describe('wild and sukade are no longer noise for vegetarians', () => {
+    test.each([
+      '1 bosje wild garlic',
+      '50 g wild rocket',
+      '250 g wild mushrooms',
+      '125 g wild blueberries',
+      '300 g wild rice',
+      '2 el candied peel',
+      '50 g sukadesnippers',
+      '50 g sukadeblokjes',
+      '2 el gekonfijte sukade',
+      '2 el sukade snippers',
+    ])('%s', (line) => {
+      expect(clashes(line, { diets: ['vegetarian'] })).toEqual([])
+      expect(clashes(line, { diets: ['vegan'] })).toEqual([])
+    })
+
+    test.each(['500 g sukade', '2 el sukade', 'sukade in blokjes'])(
+      'a bare sukade may be the beef cut: "controleer zelf", never silent, never a hide: %s',
+      (line) => {
+        for (const diet of ['vegetarian', 'vegan'] as const) {
+          const found = clashes(line, { diets: [diet] })
+          expect(found).toHaveLength(1)
+          expect(found[0]?.uncertain).toBe(true)
+          expect(fitsPreferences(found)).toBe(true)
+        }
+      },
+    )
+
+    test.each(['400 g venison', '2 hertenbiefstuk', '300 g reerug', '1 reebout', '2 reefilets'])(
+      'game meat hides for vegetarians: %s',
+      (line) => {
+        expect(certain(clashes(line, { diets: ['vegetarian'] }))).toHaveLength(1)
+        expect(certain(clashes(line, { diets: ['vegan'] }))).toHaveLength(1)
+      },
+    )
+
+    test('"wild rice and venison" hides; "wild garlic" stays quiet; "kreeft" is not game', () => {
+      expect(
+        certain(clashes('300 g wild rice and venison', { diets: ['vegetarian'] })),
+      ).toHaveLength(1)
+      expect(clashes('1 bosje wild garlic', { diets: ['vegetarian'] })).toEqual([])
+      // A lobster hides for its own reason (seafood); "ree" in it is not game.
+      expect(clashes('1 kreeft', { diets: ['vegetarian'] })).toEqual([
+        { kind: 'diet', id: 'vegetarian', label: 'kreeft' },
+      ])
+      expect(clashes('1 ree', { diets: ['vegetarian'] })[0]?.uncertain).toBeUndefined()
+    })
+
+    test('bare "wild" is still "controleer zelf"; game and the beef cut still hide', () => {
+      const bare = clashes('600 g wild', { diets: ['vegetarian'] })
+      expect(bare).toHaveLength(1)
+      expect(bare[0]?.uncertain).toBe(true)
+      expect(certain(clashes('500 g wildstoof', { diets: ['vegetarian'] }))).toHaveLength(1)
+      expect(certain(clashes('2 sukadelappen', { diets: ['vegetarian'] }))).toHaveLength(1)
+    })
   })
 })

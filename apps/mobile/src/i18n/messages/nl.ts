@@ -41,6 +41,7 @@ export const nl = {
   tastings: coreNl.tastings,
 
   finances: coreNl.finances,
+  energy: coreNl.energy,
 
   loyaltyCards: {
     ...coreNl.loyaltyCards,

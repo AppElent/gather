@@ -76,6 +76,7 @@ export const en = {
    * that rule names.
    */
   finances: coreEn.finances,
+  energy: coreEn.energy,
 
   /**
    * Loyalty cards: the shared tree, plus the words only the phone says —

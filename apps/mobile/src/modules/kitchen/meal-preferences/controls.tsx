@@ -321,6 +321,12 @@ export function Coin({ name }: { name: string }) {
   )
 }
 
+// Off-scale numbers below, left raw on purpose (APP-446): `SPACE` steps by 4 to
+// 24 and `SIZE` has no control height under `hitMin`, so there is no token for
+// them. 10 is the row's vertical rhythm between 8 and 12; 6 the chip's
+// check-to-label gap; 36 a chip or step button (44 with its hitSlop of 4); 56
+// the stepper value's width; 60 a cooking-time cell; 14 its radius; 2 a
+// hairline gap. `SIZE.tileM`/`tileL` equal 36/56 but are tiles, not controls.
 const styles = StyleSheet.create({
   section: { gap: SPACE[2] },
   footnote: { ...TYPE.footnote, paddingHorizontal: SPACE[1] },

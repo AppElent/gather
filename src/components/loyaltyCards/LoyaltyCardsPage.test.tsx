@@ -9,9 +9,17 @@ import { LoyaltyCardsPage } from './LoyaltyCardsPage'
  */
 
 const loaded = vi.hoisted(() => ({ value: undefined as unknown }))
+type Update = (
+  store: {
+    getQuery: (query: unknown, args: unknown) => unknown
+    setQuery: (query: unknown, args: unknown, value: unknown) => void
+  },
+  args: { groupSlug: string; ids: string[] },
+) => void
 const reorder = vi.hoisted(() => ({
   calls: [] as unknown[],
   result: Promise.resolve() as Promise<unknown>,
+  update: undefined as unknown,
 }))
 
 const CARDS = [
@@ -50,7 +58,12 @@ vi.mock('convex/react', () => ({
       reorder.calls.push(args)
       return reorder.result
     }
-    return Object.assign(run, { withOptimisticUpdate: () => run })
+    return Object.assign(run, {
+      withOptimisticUpdate: (update: unknown) => {
+        reorder.update = update
+        return run
+      },
+    })
   },
 }))
 
@@ -84,7 +97,29 @@ beforeEach(() => {
   loaded.value = CARDS
   reorder.calls = []
   reorder.result = Promise.resolve()
+  reorder.update = undefined
 })
+
+/** What Convex's client does with the updater: run it on the current result
+ * and show what it sets, until the mutation settles. */
+function applyOptimisticUpdate(ids: string[]) {
+  const before = loaded.value
+  ;(reorder.update as Update)(
+    {
+      getQuery: () => before,
+      setQuery: (_query, _args, value) => {
+        loaded.value = value
+      },
+    },
+    { groupSlug: 'home', ids },
+  )
+  return before
+}
+
+const shownStores = () =>
+  screen
+    .getAllByRole('listitem')
+    .map((item) => item.querySelector('.font-semibold')?.textContent)
 
 const cardLinks = () =>
   screen
@@ -157,6 +192,106 @@ describe('LoyaltyCardsPage', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Done' }))
       expect(cardLinks()).toHaveLength(3)
+    })
+
+    test('says where a card went, to a screen reader, after each move', () => {
+      renderInGroup(<LoyaltyCardsPage />)
+      fireEvent.click(screen.getByRole('button', { name: 'Reorder' }))
+      const region = screen.getByRole('status')
+      expect(region).toHaveAttribute('aria-live', 'polite')
+      expect(region).toBeEmptyDOMElement()
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Move Bakkerij De Graaf up' }),
+      )
+      expect(region).toHaveTextContent(
+        'Bakkerij De Graaf moved to position 2 of 3',
+      )
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Move Albert Heijn (Nora) down' }),
+      )
+      expect(region).toHaveTextContent(
+        'Albert Heijn (Nora) moved to position 2 of 3',
+      )
+    })
+
+    test('shows the new order before Convex answers, and the old one back when the save is refused', async () => {
+      let refuse: (reason: Error) => void = () => {}
+      reorder.result = new Promise((_resolve, reject) => {
+        refuse = reject
+      })
+      const { rerender } = renderInGroup(<LoyaltyCardsPage />)
+      fireEvent.click(screen.getByRole('button', { name: 'Reorder' }))
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Move Bakkerij De Graaf up' }),
+      )
+
+      const server = applyOptimisticUpdate(['c1', 'c3', 'c2'])
+      rerender(<LoyaltyCardsPage />)
+      expect(shownStores()).toEqual([
+        'Albert Heijn',
+        'Bakkerij De Graaf',
+        'Albert Heijn',
+      ])
+      expect(
+        screen.getByRole('button', { name: 'Move Bakkerij De Graaf up' }),
+      ).toBeEnabled()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      expect(
+        (loaded.value as { _id: string }[]).map((card) => card._id),
+      ).toEqual(['c1', 'c3', 'c2'])
+      // The updater builds a new list; the Convex result it read is untouched.
+      expect((server as { _id: string }[]).map((card) => card._id)).toEqual([
+        'c1',
+        'c2',
+        'c3',
+      ])
+
+      // Refused: Convex drops the optimistic layer, the page says so.
+      refuse(new Error('refused'))
+      loaded.value = server
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'That did not work',
+      )
+      rerender(<LoyaltyCardsPage />)
+      expect(shownStores()).toEqual([
+        'Albert Heijn',
+        'Albert Heijn',
+        'Bakkerij De Graaf',
+      ])
+      // Nothing is said as though the card had moved.
+      expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    })
+
+    test('while the save is still waiting for the connection, the new order stays and nothing is refused', async () => {
+      reorder.result = new Promise(() => {})
+      const { rerender } = renderInGroup(<LoyaltyCardsPage />)
+      fireEvent.click(screen.getByRole('button', { name: 'Reorder' }))
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Move Bakkerij De Graaf up' }),
+      )
+      applyOptimisticUpdate(['c1', 'c3', 'c2'])
+      rerender(<LoyaltyCardsPage />)
+      await Promise.resolve()
+      expect(shownStores()).toEqual([
+        'Albert Heijn',
+        'Bakkerij De Graaf',
+        'Albert Heijn',
+      ])
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    test('the optimistic update leaves a card list that is not loaded yet alone', () => {
+      renderInGroup(<LoyaltyCardsPage />)
+      const written: unknown[] = []
+      ;(reorder.update as Update)(
+        {
+          getQuery: () => undefined,
+          setQuery: (_query, _args, value) => written.push(value),
+        },
+        { groupSlug: 'home', ids: ['c3', 'c1'] },
+      )
+      expect(written).toEqual([])
     })
 
     test('keeps keyboard focus on the card when it reaches an end', () => {

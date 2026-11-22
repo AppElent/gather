@@ -245,6 +245,9 @@ export const DROP_TARGETS = {
   // A card is a number and a store; no share sheet carries both. Scanning is
   // the phone's capture verb for it (APP-142).
   'loyalty-cards': [],
+  // A meter reading is typed against the previous one (APP-494); a photo of
+  // the meter is not a reading until somebody types it.
+  energy: [],
   cheeses: [tastingPhoto('cheese-photo', 'cheeses', 'Grape', 'cheese')],
   wines: [tastingPhoto('wine-photo', 'wines', 'Wine', 'wine')],
   beers: [tastingPhoto('beer-photo', 'beers', 'Beer', 'beer')],

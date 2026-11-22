@@ -5,6 +5,7 @@ import {
 } from '@gather/core/data-export'
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
+import { ENERGY_SECRETS, insertEnergyHousehold } from '../test/energyFixture'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { PAGE_SIZE } from './lib/dataExport'
@@ -497,6 +498,9 @@ async function household(t: Harness): Promise<Household> {
       formatConfidence: 'sourced',
     })
 
+    // Energy (APP-492): a row in every table, with a token and a key.
+    await insertEnergyHousehold(ctx, household, bob)
+
     return { alice, bob, household, allotment }
   })
 }
@@ -558,6 +562,7 @@ describe('what the file contains', () => {
       { table: 'recipeShares', reason: 'bookkeeping' },
       { table: 'tastingCatalog', reason: 'reference-data' },
       { table: 'retailerCatalog', reason: 'reference-data' },
+      { table: 'energyPrices', reason: 'reference-data' },
       { table: 'seedRuns', reason: 'bookkeeping' },
     ])
     expect(data.omittedFields.integrationConnections).toEqual(['accessToken'])
@@ -699,6 +704,32 @@ describe('what the file holds back', () => {
       accountLabel: 'Todoist',
       connectedBy: 'Bob',
     })
+  })
+
+  test('energy: the address, its contract, meters and readings, without secrets', async () => {
+    const t = testConvex()
+    const { data, text } = await exported(t)
+    const household = groupOf(data, 'household')
+    expect(household.energySites).toEqual([
+      expect.objectContaining({ name: 'Thuis', createdByUserId: 'Bob' }),
+    ])
+    expect(household.energyContracts).toEqual([
+      expect.objectContaining({ kind: 'dynamic', validFrom: '2026-01-01' }),
+    ])
+    expect(household.energyChannels).toHaveLength(2)
+    expect(household.energyReadings).toEqual([
+      expect.objectContaining({ value: 12345.6, enteredByUserId: 'Bob' }),
+    ])
+    expect(household.energyIntervals).toHaveLength(1)
+    expect(household.energyAssets).toHaveLength(1)
+    expect(household.energySources[0]).not.toHaveProperty('secret')
+    expect(household.energyPriceFeeds[0]).not.toHaveProperty('secret')
+    expect(data.omittedFields.energySources).toEqual(['secret'])
+    expect(data.omittedFields.energyPriceFeeds).toEqual(['secret'])
+    expect(text).not.toContain(ENERGY_SECRETS.source)
+    expect(text).not.toContain(ENERGY_SECRETS.feed)
+    // Prices are reference data, the account's own included (`dataExport.ts`).
+    expect(household).not.toHaveProperty('energyPrices')
   })
 
   test('reference data, bookkeeping and legacy columns', async () => {

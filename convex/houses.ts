@@ -184,11 +184,32 @@ async function deleteHouseContents(ctx: MutationCtx, houseId: Id<'houses'>) {
 export const remove = mutation({
   args: { id: v.id('houses'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id)
+    const { group } = await requireInGroup(ctx, args.groupSlug, args.id)
     await deleteHouseContents(ctx, args.id)
+    await unlinkEnergySites(ctx, group._id, args.id)
     await ctx.db.delete(args.id)
   },
 })
+
+/**
+ * An Energy address linked to the House only loses the link (APP-491): its
+ * meter, prices and readings are the household's whatever the House was.
+ */
+async function unlinkEnergySites(
+  ctx: MutationCtx,
+  groupId: Id<'groups'>,
+  houseId: Id<'houses'>,
+) {
+  const sites = await ctx.db
+    .query('energySites')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .collect()
+  for (const site of sites) {
+    if (site.houseId === houseId) {
+      await ctx.db.patch(site._id, { houseId: undefined })
+    }
+  }
+}
 
 /**
  * The House's one Home-buying costs record, written whole.

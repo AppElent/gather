@@ -21,7 +21,7 @@ Design studies: [designs/](../designs/).
 
 ## Decisions
 
-A new ADR takes the number after the highest (0051 next).
+A new ADR takes the number after the highest (0052 next).
 
 | ID | Decision | Status | Domain | Key implementation references |
 | --- | --- | --- | --- | --- |
@@ -75,3 +75,4 @@ A new ADR takes the number after the highest (0051 next).
 | [0048](adr/0048-shared-costs-are-expense-pots-with-balances.md) | Shared costs are expense pots with balances | accepted | money modules | [GLOSSARY.md](../GLOSSARY.md), ADR-0025, `convex/lib/finance.ts` |
 | [0049](adr/0049-the-shared-aisle-cache-keeps-only-what-groups-still-back.md) | The shared aisle cache keeps only what Groups still back | accepted | groceries | `convex/lib/groceryCategories.ts`, `convex/crons.ts`, [account deletion](contracts/account-deletion.md) |
 | [0050](adr/0050-deleting-gather-data-keeps-the-appelent-login.md) | Deleting Gather's data keeps the AppElent login | accepted | identity | `convex/accounts.ts`, `convex/http.ts`, [account deletion](contracts/account-deletion.md) |
+| [0051](adr/0051-energy-reads-outside-sources-and-never-controls-the-home.md) | Energy reads outside sources, and never controls the home | accepted | energy | `convex/energy.ts`, `convex/schema.ts`, ADR-0020, ADR-0025 |

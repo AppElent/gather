@@ -37,6 +37,13 @@ export const loyaltyCards = {
     reorderDrag: 'Reorder {store}',
     moveUp: 'Move {store} up',
     moveDown: 'Move {store} down',
+    /** The phone's VoiceOver actions on a row in reorder mode. */
+    moveUpAction: 'Move up',
+    moveDownAction: 'Move down',
+    /** Said after a move, to a screen reader. Positions count from 1. */
+    moved: '{store} moved to position {position} of {total}',
+    /** The ⋯ button's name on the phone's header. */
+    more: 'More actions',
   },
   picker: {
     title: 'Add a card',
