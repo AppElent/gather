@@ -13,7 +13,7 @@
  */
 import { readIngredientLine } from '@gather/core/groceries'
 import { useAction } from 'convex/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../../../convex/api'
 import {
   type CachedLine,
@@ -117,47 +117,60 @@ export function useIngredientLines(recipes: readonly IngredientSource[]): {
   const unreadSet = useMemo(() => new Set(unread), [unread])
 
   const [ai, setAi] = useState<AiAnswer>(READING)
+  // What the AI has answered, whichever run of the effect asked: an answer
+  // that arrives after the lines changed is kept, not asked for again.
+  const answered = useRef<Set<string>>(new Set())
+  // Runs take turns, so a run starts after the call a former run left out.
+  const turn = useRef<Promise<unknown>>(Promise.resolve())
   useEffect(() => {
     if (!unreadKey) return
     let live = true
-    setAi(READING)
-    readInBatches(
-      unreadKey.split('\n'),
-      (lines) => readLines({ lines }),
-      ({ texts, lines, count }) => {
-        const seen: Record<string, CachedLine> = {}
-        texts.forEach((text, index) => {
-          seen[text] = lines[index]
-        })
-        // Plain-text answers are kept too, so the line is not asked again.
-        for (const { recipe, digest } of local) {
-          const own: Record<string, CachedLine> = {}
-          for (const text of recipe.ingredients)
-            if (text.trim() in seen) own[text.trim()] = seen[text.trim()]
-          if (Object.keys(own).length > 0) cacheLines(recipe.id, digest, own)
-        }
-        setAi((current) => ({
-          reads: {
-            ...current.reads,
-            ...Object.fromEntries(
-              texts.flatMap((text, index) => {
-                const read = lines[index]
-                return read ? [[text, read] as const] : []
-              }),
-            ),
-          },
-          answered: new Set([...current.answered, ...texts]),
-          done: false,
-          count,
-        }))
-      },
-      () => live,
-    )
-      .catch(() => undefined)
-      .then(() => {
+    setAi((current) => ({ ...current, done: false }))
+    const run = async () => {
+      // Only what no run has answered; when the former run's last call comes
+      // back it is in there, so it is not asked a second time.
+      const todo = unreadKey
+        .split('\n')
+        .filter((text) => !answered.current.has(text))
+      await readInBatches(
+        todo,
+        (lines) => readLines({ lines }),
+        ({ texts, lines, count }) => {
+          for (const text of texts) answered.current.add(text)
+          const seen: Record<string, CachedLine> = {}
+          texts.forEach((text, index) => {
+            seen[text] = lines[index]
+          })
+          // Plain-text answers are kept too, so the line is not asked again.
+          for (const { recipe, digest } of local) {
+            const own: Record<string, CachedLine> = {}
+            for (const text of recipe.ingredients)
+              if (text.trim() in seen) own[text.trim()] = seen[text.trim()]
+            if (Object.keys(own).length > 0) cacheLines(recipe.id, digest, own)
+          }
+          setAi((current) => ({
+            reads: {
+              ...current.reads,
+              ...Object.fromEntries(
+                texts.flatMap((text, index) => {
+                  const read = lines[index]
+                  return read ? [[text, read] as const] : []
+                }),
+              ),
+            },
+            answered: new Set([...current.answered, ...texts]),
+            done: false,
+            count,
+          }))
+        },
+        () => live,
+      ).catch(() => undefined)
       // Whatever is still unanswered (over the cap, offline) is plain text.
       if (live) setAi((current) => ({ ...current, done: true }))
-    })
+    }
+    turn.current = turn.current
+      .then(() => (live ? run() : undefined))
+      .catch(() => undefined)
     return () => {
       live = false
     }
@@ -193,6 +206,7 @@ export function useIngredientLines(recipes: readonly IngredientSource[]): {
   }
   return {
     lines,
-    aiCount: ai.done ? ai.count : null,
+    // As soon as a batch has answered, not only once all have (APP-479).
+    aiCount: ai.count,
   }
 }

@@ -341,6 +341,7 @@ export const tasks = {
       readWithAi: 'Read with AI · {used} of your {limit} today',
       readWithAiEarlier: 'Read with AI earlier',
       reading: 'Reading with AI…',
+      readingAsText: 'Reading with AI… · added as text if you add now',
       asText: 'Added as text',
       add: { one: 'Add {count} to the list', other: 'Add {count} to the list' },
       footnote:

@@ -195,33 +195,53 @@ export interface GroceryRecognition {
 }
 
 /**
+ * A list's recent items by grocery key, newest first, each with the aisle it
+ * was given (APP-479): the history `recogniseGroceryTitle` reads. Build it
+ * once and pass it to every title of a run; the keys are parsed here, once per
+ * item, instead of once per item per title.
+ */
+export type RecentHistory = ReadonlyMap<
+  string,
+  readonly { id: Id<'tasks'>; aisle: GroceryAisle }[]
+>
+
+/** The history of a list's recent items (`recentListItems`). */
+export function recentHistory(recentItems: readonly Doc<'tasks'>[]): RecentHistory {
+  const history = new Map<string, { id: Id<'tasks'>; aisle: GroceryAisle }[]>()
+  for (const task of recentItems) {
+    if (!task.category || task.category === 'other') continue
+    const key = groceryTitleKey(task.title)
+    const same = history.get(key)
+    if (same) same.push({ id: task._id, aisle: task.category })
+    else history.set(key, [{ id: task._id, aisle: task.category }])
+  }
+  return history
+}
+
+/**
  * The aisle for a title on a Group's grocery list. `recentItems` are the
- * list's newest rows, newest first (`recentListItems`); the first one with
- * the same name and an aisle is the Group's history for it.
+ * list's newest rows, newest first (`recentListItems`), or their
+ * `recentHistory` when many titles are asked about in one run; the first one
+ * with the same name and an aisle is the Group's history for it.
  */
 export async function recogniseGroceryTitle(
   ctx: QueryCtx,
   groupId: Id<'groups'>,
   title: string,
-  recentItems: readonly Doc<'tasks'>[],
+  recentItems: readonly Doc<'tasks'>[] | RecentHistory,
   exceptTaskId?: Id<'tasks'>,
 ): Promise<GroceryRecognition> {
   const key = groceryTitleKey(title)
   const override = key ? await findOverride(ctx, groupId, key) : null
   const cached = key ? await findGroceryCache(ctx, key) : null
-  let history: GroceryAisle | undefined
-  for (const task of recentItems) {
-    if (task._id === exceptTaskId || !task.category || task.category === 'other')
-      continue
-    if (groceryTitleKey(task.title) === key) {
-      history = task.category
-      break
-    }
-  }
+  const history = Array.isArray(recentItems)
+    ? recentHistory(recentItems)
+    : (recentItems as RecentHistory)
+  const known = history.get(key)?.find((entry) => entry.id !== exceptTaskId)?.aisle
 
   const result = recogniseGroceryLine(title, {
     override: () => override?.aisle,
-    history: () => history,
+    history: () => known,
     cache: () => cached?.aisle,
   })
   return {

@@ -29,6 +29,7 @@ import { anthropicApiKey } from './lib/anthropic'
 import {
   askAiOnce,
   isGroceryList,
+  recentHistory,
   recentListItems,
   recogniseGroceryTitle,
 } from './lib/groceryCategories'
@@ -89,6 +90,8 @@ export const read = action({
 
 /** Titles one `aisles` call may ask about: a week of lines, with room. */
 const AISLE_TITLES_MAX = 200
+/** Longest title `aisles` reads; the rest is cut, as `add` refuses a longer one. */
+const AISLE_TITLE_LENGTH_MAX = 500
 
 /**
  * The aisle each title would get if it were added to this grocery list now:
@@ -105,22 +108,28 @@ export const aisles = query({
   },
   returns: v.array(groceryAisleValidator),
   handler: async (ctx, args) => {
+    // Refuse before reading anything: the list and the Group are not looked up
+    // for a question that is too big.
+    if (args.titles.length > AISLE_TITLES_MAX)
+      throw new ConvexError('Too many titles at once')
     const {
       group,
       doc: list,
     } = await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
     if (!isGroceryList(group, list))
       throw new ConvexError('This is not a grocery list')
-    if (args.titles.length > AISLE_TITLES_MAX)
-      throw new ConvexError('Too many titles at once')
-    const recent = await recentListItems(ctx, args.listId)
-    const answers: GroceryAisle[] = []
-    for (const title of args.titles)
-      answers.push(
-        (await recogniseGroceryTitle(ctx, group._id, title.slice(0, 500), recent))
-          .aisle,
-      )
-    return answers
+    // Cut up front and ask each distinct title once; answers go back by
+    // position, so a repeated title costs one lookup.
+    const titles = args.titles.map((title) => title.slice(0, AISLE_TITLE_LENGTH_MAX))
+    const history = recentHistory(await recentListItems(ctx, args.listId))
+    const aisleOf = new Map<string, GroceryAisle>()
+    for (const title of titles)
+      if (!aisleOf.has(title))
+        aisleOf.set(
+          title,
+          (await recogniseGroceryTitle(ctx, group._id, title, history)).aisle,
+        )
+    return titles.map((title) => aisleOf.get(title) ?? 'other')
   },
 })
 
@@ -191,7 +200,7 @@ export const add = mutation({
       lines,
     )
 
-    const recent = await recentListItems(ctx, args.listId)
+    const recent = recentHistory(await recentListItems(ctx, args.listId))
     const last = await ctx.db
       .query('tasks')
       .withIndex('by_list_and_order', (q) => q.eq('listId', args.listId))

@@ -108,6 +108,12 @@ export interface PickInput {
    * `useInStock`. Such a row starts unticked.
    */
   inStock?: (name: string) => boolean
+  /**
+   * Lines still being read go on the list as written instead of holding the
+   * button back (APP-479): a long week is read in batches, and the person
+   * need not wait for the last one.
+   */
+  readingAsText?: boolean
 }
 
 /** A line retyped in the sheet, read the way the composer reads a line. */
@@ -186,7 +192,7 @@ function scaled(line: SourceLine, servings: number | undefined): GroceryAmount {
 export function pickRows(input: PickInput): {
   rows: PickRow[]
   lines: PickLine[]
-  /** Still waiting on the AI: the button waits too. */
+  /** Still waiting on the AI: the button waits too, unless `readingAsText`. */
   reading: boolean
 } {
   const base = input.lines.map((line) => {
@@ -204,8 +210,8 @@ export function pickRows(input: PickInput): {
     ...(row.line.detail ? { source: row.line.detail } : {}),
   })
 
-  // A top-up line the list already covers starts unticked; ticked by hand,
-  // it adds its whole amount on top, like a recipe's line.
+  // A top-up line the list already covers starts unticked; ticked by hand on
+  // that row, it adds its whole amount on top, like a recipe's line.
   const ready = base.filter((row) => row.line.read.kind !== 'reading')
   const before = planGroceryAdds(
     input.items,
@@ -223,12 +229,18 @@ export function pickRows(input: PickInput): {
   const withTicks = base.map((row) => {
     const own = byLineKey(input.ticks, row.line)
     const on = own ?? !(row.stocked || covered.has(row.line.key))
-    // Only a covered row ticked by hand stops topping up.
-    const topUp = row.line.topUp === true && !(own && covered.has(row.line.key))
+    // Only a covered row ticked by hand stops topping up, and only when the
+    // person ticked this row, which said it was covered. A tick made on an
+    // earlier key (`was`) was made on a line still being read, before anyone
+    // knew the list had enough of it: that row still tops up (APP-479).
+    const deliberate = input.ticks[row.line.key] !== undefined
+    const topUp =
+      row.line.topUp === true && !(deliberate && covered.has(row.line.key))
     return { ...row, on, topUp }
   })
   const adding = withTicks.filter(
-    (row) => row.on && row.line.read.kind !== 'reading',
+    (row) =>
+      row.on && (row.line.read.kind !== 'reading' || input.readingAsText),
   )
   const lines = adding.map((row) => toLine(row, row.topUp))
   const plans = planGroceryAdds(input.items, lines)
@@ -268,9 +280,11 @@ export function pickRows(input: PickInput): {
     rows,
     // A covered line changes nothing on the list: it is not counted.
     lines: lines.filter((_, index) => plans[index].kind !== 'covered'),
-    reading: input.lines.some(
-      (line, index) => line.read.kind === 'reading' && withTicks[index].on,
-    ),
+    reading:
+      !input.readingAsText &&
+      input.lines.some(
+        (line, index) => line.read.kind === 'reading' && withTicks[index].on,
+      ),
   }
 }
 

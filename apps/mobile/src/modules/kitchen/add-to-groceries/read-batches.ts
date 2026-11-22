@@ -31,9 +31,10 @@ export interface ReadBatch {
 
 /**
  * Ask for `texts` in batches. `onBatch` hears each answered batch as it
- * arrives; `live` is asked before every call and after every answer, so a
- * sheet that went away stops the loop. Resolves when every line is answered or
- * the AI stopped answering.
+ * arrives. `live` is asked before every call, so a sheet that went away, or
+ * lines that changed, stop the loop; a call already out is not thrown away
+ * (APP-479): it has counted against the cap, so its answer is still heard.
+ * Resolves when every line is answered or the AI stopped answering.
  */
 export async function readInBatches(
   texts: readonly string[],
@@ -50,7 +51,7 @@ export async function readInBatches(
     } catch {
       return
     }
-    if (!live() || answer.status !== 'read') return
+    if (answer.status !== 'read') return
     onBatch({
       texts: batch,
       lines: batch.map((_, index) => answer.lines[index] ?? null),

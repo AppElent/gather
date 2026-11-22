@@ -106,12 +106,17 @@ export function WeekGroceriesSheet({
         eatersOf(data, meal.date, meal.slot, meal.eaterIds).length,
       ),
     }))
-  const week = weekGroceryLines({
-    meals: countedMeals,
-    recipes: new Map((recipes ?? []).map((recipe) => [recipe._id, recipe])),
-    lines: read,
-    label,
-  })
+  const weekLines = (touched: ReadonlySet<string>) =>
+    weekGroceryLines({
+      meals: countedMeals,
+      recipes: new Map((recipes ?? []).map((recipe) => [recipe._id, recipe])),
+      lines: read,
+      label,
+      touched,
+    })
+
+  // Which meals have nothing to read does not depend on what is touched.
+  const { toCheck } = weekLines(new Set())
 
   const longDate = (date: string, month: boolean) =>
     localMidnight(date).toLocaleDateString(
@@ -145,7 +150,9 @@ export function WeekGroceriesSheet({
             : plural(locale, countedMeals.length, words.meals),
         glyph: UI_ICONS.Calendar,
       }}
-      lines={recipes === undefined ? [] : week.lines}
+      lines={(touched) =>
+        recipes === undefined ? [] : weekLines(touched).lines
+      }
       aiCount={aiCount}
       preferredListId={openedFrom ?? data.groceryListId ?? undefined}
       byAisle
@@ -159,9 +166,9 @@ export function WeekGroceriesSheet({
         />
       }
       after={(listId) =>
-        week.toCheck.length > 0 ? (
+        toCheck.length > 0 ? (
           <ToCheck
-            meals={week.toCheck}
+            meals={toCheck}
             onAdd={() => {
               onClose()
               router.push(
