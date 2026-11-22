@@ -24,7 +24,7 @@ progress fill is `ink`; no traffic-light colours.
 
 | File | Artboard | Issue |
 | --- | --- | --- |
-| `Main.dc.html` | Shared phone part; props `screen`, `theme`, `tested`. Default: home A, light | APP-492 |
+| `Main.dc.html` | Shared phone part; props `screen` (incl. `usage`), `theme`, `tested`, `charts` (`off`/`on`), `range` (`day`/`month`/`year`). Default: home A, light, charts off | APP-492 |
 | `Home-Dark.dc.html` | Home A, dark | APP-492 |
 | `Home-B.dc.html` | Home B, Costs first (not chosen) | — |
 | `Empty.dc.html` | Empty Module: add the first address, pick a source | APP-492 |
@@ -36,6 +36,13 @@ progress fill is `ink`; no traffic-light colours.
 | `Sources.dc.html` | Sources, channels, add a source | APP-495 |
 | `Connect.dc.html` | Connect Home Assistant (after a successful test) | APP-495 |
 | `Reading.dc.html` | Enter meter readings, with the lower-reading error | APP-494 |
+| `Home-Charts.dc.html` | Home A with the hourly usage and solar card and the Verbruik row | APP-493 |
+| `Usage-Day.dc.html` | Verbruik, day: per hour plus battery state of charge | APP-495 data, APP-494 screen |
+| `Usage-Day-Dark.dc.html` | Verbruik, day, dark | APP-494 |
+| `Usage-Month.dc.html` | Verbruik, month: per day | APP-494 |
+| `Usage-Year.dc.html` | Verbruik, year: each month of 2026 next to 2025, kWh or euro | APP-494 |
+| `Solar-Charts.dc.html` | Solar and battery with solar per hour and state of charge | APP-496 |
+| `Costs-Charts.dc.html` | Costs per month with the 2026 vs 2025 month chart | APP-494 |
 | `canvas.json` | Positions, titles, sticky notes (brief and rationale) | |
 
 The artboards are a visual reference. Build from this companion and the phone's
@@ -170,6 +177,49 @@ field. A lower value than the previous one is refused inline (`danger`, role
 alert): "Lager dan de vorige stand (x). Nieuwe meter? Voeg dan een nieuw kanaal
 toe onder Bronnen." Footnote: the difference is spread over the days between
 and those days count as estimated.
+
+## 11. Charts (APP-577)
+
+Approved by Eric on 22 November 2026, round 1, page `APP-577 Grafieken` on the
+canvas. Within direction A: same tokens, no new colours.
+
+Chart grammar, the same everywhere:
+
+- **Usage against solar** is one mirrored bar chart: usage above a
+  `hairStrong` baseline in `ink`, solar below it in `home-text` (light) /
+  `home-fill` (dark), on one shared scale. Hours or days still to come are a
+  4 pt dashed `hairStrong` outline, never a zero bar.
+- **Year comparison** pairs two bars per month: last year `muted`, this year
+  `ink`. The running month is an `ink` outline, not filled.
+- **State of charge** is a line (`ink`, 2.5 pt) over a light `home-fill` area,
+  0 / 50 / 100 gridlines, and under it a 24-cell strip: charging `ink`,
+  discharging `home-text`, idle `surface-2`, future dashed.
+- Every chart is a `figure` with an `aria-label` that says the answer in words
+  (peak, total, comparison); the bars themselves are hidden from VoiceOver. A
+  sentence under the chart says the same for everyone.
+
+Where:
+
+1. **Home**, after Vandaag tot nu: card "Verbruik en zon per uur" (56 pt up,
+   52 pt down), opens Verbruik. The nav rows gain **Verbruik** first ("Per uur,
+   dag, maand en jaar").
+2. **Verbruik** (new screen, back to Energie): segmented Dag / Maand / Jaar.
+   Wash card with the total and a comparison sentence. Dag: per hour (96 pt up),
+   then the state of charge card (only with a `batterySoc` channel), then 2×2
+   facts (from the grid, from solar and battery, exported, cost). Maand: per
+   day. Jaar: kWh / Euro segmented, the paired month chart, rows this year /
+   last year / difference for the same completed months. Row to Kosten per maand.
+3. **Zon en batterij**, Vandaag: "Opgewekt per uur" under the solar card and
+   "Laadstand vandaag" under the battery card. November: "Zelfvoorziening per
+   dag" with the month average as a dashed `ink` line.
+4. **Kosten**, under Per dag: "Per maand, 2026 en 2025" in euro, linking to
+   Verbruik › Jaar.
+
+Data: everything comes from `energyIntervals` (hourly, `batterySoc` as the
+average %) and readings for manual sites; no new table. If the year view is too
+slow from intervals, a monthly rollup table is a data-model deviation that goes
+back to Eric first. A manual-only site shows days and months (estimated, with
+a note) and no hour or state-of-charge chart.
 
 ## States to cover in the build
 
