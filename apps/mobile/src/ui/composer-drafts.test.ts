@@ -3,6 +3,7 @@ import { afterEach, expect, test } from 'vitest'
 import {
   draftKey,
   forgetDrafts,
+  forgetSavedDraft,
   holdDraft,
   keepDraft,
   keptDraft,
@@ -58,4 +59,15 @@ test('an older save settling does not release a newer hold', async () => {
   await older
   await Promise.resolve()
   expect(pendingSave(key)).toBe(newer)
+})
+
+test('a saved draft is forgotten; a newer one kept since stays', () => {
+  const key = draftKey('u1', 'g1', 'tasks:index')
+  keepDraft(key, { saveKey: 'composer-a', line: 'Bins' })
+  forgetSavedDraft(key, 'composer-a')
+  expect(keptDraft(key)).toBeUndefined()
+
+  keepDraft(key, { saveKey: 'composer-b', line: 'Rent' })
+  forgetSavedDraft(key, 'composer-a')
+  expect(keptDraft(key)).toEqual({ saveKey: 'composer-b', line: 'Rent' })
 })

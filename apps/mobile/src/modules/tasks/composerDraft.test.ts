@@ -80,6 +80,34 @@ describe('the task a draft saves', () => {
     expect(composedTask(drafted('A', { body: '   ' }), parse('A')).notes).toBeUndefined()
   })
 
+  test('a typed repeat takes its weekday from the date picked on the chip', () => {
+    const line = 'Bins every week'
+    // Today is a Wednesday; Friday the 20th is picked on the date chip.
+    const task = composedTask(
+      drafted(line, { choices: { dueDate: '2026-11-20', labels: [] } }),
+      parse(line),
+    )
+    expect(task.repeat).toMatchObject({ unit: 'week', every: 1, weekdays: [5] })
+  })
+
+  test('a typed monthly repeat takes its day from the date picked on the chip', () => {
+    const line = 'Rent every month'
+    const task = composedTask(
+      drafted(line, { choices: { dueDate: '2026-12-03', labels: [] } }),
+      parse(line),
+    )
+    expect(task.repeat).toMatchObject({ unit: 'month', monthDay: 3 })
+  })
+
+  test('a weekday typed in the repeat stays, whatever date is picked', () => {
+    const line = 'Gym every tuesday'
+    const task = composedTask(
+      drafted(line, { choices: { dueDate: '2026-11-20', labels: [] } }),
+      parse(line),
+    )
+    expect(task.repeat).toMatchObject({ unit: 'week', weekdays: [2] })
+  })
+
   test('priority comes from a tap only', () => {
     const task = composedTask(
       drafted('A', { choices: { priority: 2, labels: [] } }),

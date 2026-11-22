@@ -24,7 +24,7 @@ import type {
   QuickAddKind,
   QuickAddPart,
 } from '@gather/core/task-quick-add'
-import type { TaskRepeat } from '@gather/core/task-repeat'
+import { normalizeRepeat, type TaskRepeat } from '@gather/core/task-repeat'
 
 import type { Priority } from './types'
 
@@ -163,7 +163,7 @@ export function composedTask(draft: TaskDraft, parsed: QuickAdd): ComposedTask {
   )
   const labels = Array.from(new Set([...choices.labels, ...parsed.labels]))
   const notes = draft.body.trim()
-  const repeat = pick(choices.repeat, parsed.repeat)
+  const repeat = pick(choices.repeat, readRepeat(parsed, dueDate))
   const assigneeId = pick(choices.assigneeId, parsed.assigneeId)
   const priority = choices.priority ?? undefined
   return {
@@ -176,6 +176,17 @@ export function composedTask(draft: TaskDraft, parsed: QuickAdd): ComposedTask {
     ...(notes ? { notes } : {}),
     ...(reminder ? { reminder } : {}),
   }
+}
+
+/**
+ * The repeat the line read, anchored on the task's own due date: a date
+ * picked on the chip moves "every week" to that weekday and "every month" to
+ * that day. What was typed stays as typed ("every Tuesday" is Tuesday).
+ */
+function readRepeat(parsed: QuickAdd, dueDate: string | undefined) {
+  const typed = parsed.parts.find((part) => part.kind === 'repeat')
+  if (!typed || typed.kind !== 'repeat' || !dueDate) return parsed.repeat
+  return normalizeRepeat(typed.repeat, dueDate) ?? parsed.repeat
 }
 
 /** A quick-add line on its own, as the Add tab and a list's row save it. */

@@ -42,6 +42,7 @@ import { UI_ICONS } from '../../theme/icons'
 import { TYPE, useTokens } from '../../theme/tokens'
 import {
   draftKey,
+  forgetSavedDraft,
   holdDraft,
   keepDraft,
   keptDraft,
@@ -352,8 +353,17 @@ function TaskComposerCard({
     }))
   }
 
-  /** A saved task: the haptic, the wash, and the details that did not go in. */
-  const landed = (saved: { taskId: string } & ComposedDetails, saving: ComposedTask) => {
+  /**
+   * A saved task: the place's kept draft is forgotten if it was this one (a
+   * close mid-save kept it), then the haptic, the wash, and the details that
+   * did not go in.
+   */
+  const landed = (
+    saved: { taskId: string } & ComposedDetails,
+    saving: ComposedTask,
+    saveKey: string,
+  ) => {
+    forgetSavedDraft<TaskDraft>(place.current.draftId, saveKey)
     haptics.itemSaved()
     markFresh(saved.taskId)
     if (saved.notesFailed || saved.reminderFailed) reportDetails(saved)
@@ -377,27 +387,38 @@ function TaskComposerCard({
   /**
    * A save that failed once the composer had moved on to the next task, or
    * closed: asked about, never poured over what is being typed now. The same
-   * key goes again, so a create that did land is not made twice.
+   * key goes again, so a create that did land is not made twice. Answers
+   * whether it was saved in the end (false: discarded).
    */
   const offerRetry = (
     saving: ComposedTask,
+    saveKey: string,
     send: () => Promise<{ taskId: string } & ComposedDetails>,
-  ) => {
-    Alert.alert(fmt(words.notAdded, { title: saving.title }), undefined, [
-      { text: words.discard, style: 'destructive' },
-      {
-        text: words.tryAgain,
-        onPress: () =>
-          void send().then(
-            (saved) => landed(saved, saving),
-            () => {
-              haptics.actionFailed()
-              offerRetry(saving, send)
-            },
-          ),
-      },
-    ])
-  }
+  ): Promise<boolean> =>
+    new Promise((resolve) => {
+      Alert.alert(
+        fmt(words.notAdded, { title: saving.title }),
+        undefined,
+        [
+          { text: words.discard, style: 'destructive', onPress: () => resolve(false) },
+          {
+            text: words.tryAgain,
+            onPress: () =>
+              void send().then(
+                (saved) => {
+                  landed(saved, saving, saveKey)
+                  resolve(true)
+                },
+                () => {
+                  haptics.actionFailed()
+                  void offerRetry(saving, saveKey, send).then(resolve)
+                },
+              ),
+          },
+        ],
+        { cancelable: false },
+      )
+    })
 
   async function save(open = false) {
     if (!task.title || !target) {
@@ -406,21 +427,22 @@ function TaskComposerCard({
     }
     if (inFlight.current || waiting || submitted.current === draft.saveKey) return
     const snapshot = draft
-    submitted.current = snapshot.saveKey
+    const { saveKey } = snapshot
+    submitted.current = saveKey
     const saving = task
     const to = target._id
     const section = to === preset.listId ? sectionId : undefined
-    const send = () => actions.addComposedTask(to, saving, snapshot.saveKey, section)
+    const send = () => actions.addComposedTask(to, saving, saveKey, section)
     const request = send()
     // All details keeps the draft while it saves: a close now keeps it for
-    // the place, held until the answer comes.
+    // the place, held until the save, or the retry asked about it, settles.
+    let settle: (saved: boolean) => void = () => {}
     if (open)
       holdDraft(
         place.current.draftId,
-        request.then(
-          () => true,
-          () => false,
-        ),
+        new Promise<boolean>((resolve) => {
+          settle = resolve
+        }),
       )
     setNotice(null)
     onListUsed(to)
@@ -433,10 +455,8 @@ function TaskComposerCard({
     }
     try {
       const saved = await request
-      // Closed while saving, the place kept this draft: it is a task now.
-      const { draftId: key } = place.current
-      if (keptDraft<TaskDraft>(key)?.saveKey === snapshot.saveKey) keepDraft(key, undefined)
-      landed(saved, saving)
+      landed(saved, saving, saveKey)
+      settle(true)
       if (open && mounted.current) {
         load(nextDraft(snapshot, preset))
         onOpenTask(saved.taskId)
@@ -447,12 +467,14 @@ function TaskComposerCard({
       if (mounted.current && open) {
         // All details: the draft never left the composer.
         setNotice(t.tasks.quickAdd.failed)
+        settle(false)
       } else if (mounted.current && !isDirty(latest.current, preset)) {
         // Nothing typed since: the task comes back to finish or send again.
         setNotice(t.tasks.quickAdd.failed)
         load(snapshot)
+        settle(false)
       } else {
-        offerRetry(saving, send)
+        void offerRetry(saving, saveKey, send).then(settle)
       }
     } finally {
       if (open) {

@@ -35,6 +35,18 @@ export function keepDraft<T>(key: string, draft: T | undefined): void {
   else drafts.set(key, draft)
 }
 
+/**
+ * Forgets `key`'s draft once the draft sent under `saveKey` is saved: a close
+ * mid-save kept it, and reopening must not bring back a task already made.
+ * A newer draft kept since stays.
+ */
+export function forgetSavedDraft<T extends { saveKey: string }>(
+  key: string,
+  saveKey: string,
+): void {
+  if (keptDraft<T>(key)?.saveKey === saveKey) drafts.delete(key)
+}
+
 /** Marks `key`'s draft as being saved until `saving` settles. */
 export function holdDraft(key: string, saving: Promise<boolean>): void {
   pending.set(key, saving)
