@@ -3,7 +3,7 @@ import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { BABY_INPUT_CLASS as inputClass } from './babyEventFields'
 import type { EventValues } from './babyEventFormValues'
@@ -46,6 +46,7 @@ export function EventForm({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const { entry, validation } = messages.baby.log
   const typeName = messages.baby.eventTypes[type]
 
@@ -82,7 +83,7 @@ export function EventForm({
       }
       onDone()
     } catch (err) {
-      setError(errorMessage(err, entry.saveFailed))
+      setError(errorText(err, entry.saveFailed))
       setSubmitting(false)
     }
   }

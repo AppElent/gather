@@ -4,6 +4,8 @@ import {
   refusalSentence,
 } from '@gather/core/refusals'
 import { ConvexError } from 'convex/values'
+import { useCallback } from 'react'
+import { useMessages } from './i18n'
 
 /**
  * The readable half of something thrown by a call, and the only reader of one.
@@ -31,6 +33,34 @@ export function errorMessage(
   }
   if (error instanceof ConvexError) return refusalSentence(error) ?? fallback
   return error instanceof Error && error.message ? error.message : fallback
+}
+
+/**
+ * `errorMessage` with a refused Group (`groups:*`, APP-429) already in the
+ * reader's language, so no screen shows the English `message` it carries. A
+ * caller's own sentence for a `groups:*` kind still wins.
+ */
+export function useErrorMessage(): typeof errorMessage {
+  const groupRefusals = useMessages().common.errors.groupRefusals
+  return useCallback(
+    (error, fallback, refusals = {}) =>
+      errorMessage(error, fallback, {
+        ...groupRefusalKeys(groupRefusals),
+        ...refusals,
+      }),
+    [groupRefusals],
+  )
+}
+
+function groupRefusalKeys(
+  sentences: Readonly<Record<string, string>>,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(sentences).map(([code, sentence]) => [
+      `groups:${code}`,
+      sentence,
+    ]),
+  )
 }
 
 function refusalKey(error: unknown): string | null {

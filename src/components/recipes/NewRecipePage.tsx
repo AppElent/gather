@@ -4,7 +4,7 @@ import { useAction, useMutation, useQuery } from 'convex/react'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
@@ -43,6 +43,7 @@ export function NewRecipePage({ initialUrl }: NewRecipePageProps) {
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
   const navigate = useNavigate()
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const { create: createText, form } = messages.recipes
 
   /** Recipes → New recipe. */
@@ -100,7 +101,7 @@ export function NewRecipePage({ initialUrl }: NewRecipePageProps) {
       setImageUrl(result.imageUrl)
     } catch (err) {
       setImportError(
-        errorMessage(err, createText.importFailed, {
+        errorText(err, createText.importFailed, {
           [AI_LIMIT_KIND]: form.aiLimitReached,
         }),
       )
@@ -194,7 +195,7 @@ export function NewRecipePage({ initialUrl }: NewRecipePageProps) {
             })
             navigate(linkTo('recipe', { recipeId: id }))
           } catch (err) {
-            setError(errorMessage(err, form.saveFailed))
+            setError(errorText(err, form.saveFailed))
             setSubmitting(false)
           }
         }}

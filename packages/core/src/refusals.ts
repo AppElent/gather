@@ -242,6 +242,19 @@ export function readGroupRefusal(error: unknown): GroupRefusalCode | null {
   return GROUP_REFUSAL_CODES.find((code) => `groups:${code}` === kind) ?? null
 }
 
+/**
+ * A refused Group in the reader's own words: the sentence `sentences` holds
+ * for its kind (`messages.common.errors.groupRefusals`), or null when the
+ * thrown value is not a Group refusal.
+ */
+export function groupRefusalSentence(
+  error: unknown,
+  sentences: Readonly<Record<GroupRefusalCode, string>>,
+): string | null {
+  const code = readGroupRefusal(error)
+  return code === null ? null : sentences[code]
+}
+
 /** The `kind` a thrown value carries, whichever vocabulary it comes from. */
 export function refusalKind(error: unknown): string | null {
   const data = errorData(error)

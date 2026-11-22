@@ -2,7 +2,7 @@ import { SAMPLE_GROUP_NAME } from '@gather/core/groups'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, plural, useI18n } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
@@ -32,6 +32,7 @@ export function SampleDataSettings() {
   const resetSampleData = useMutation(api.seed.resetSampleData)
   const [busy, setBusy] = useState<Busy>(null)
   const { locale, messages } = useI18n()
+  const errorText = useErrorMessage()
   const { sampleData } = messages.settings
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<string | null>(null)
@@ -65,7 +66,7 @@ export function SampleDataSettings() {
         )
       }
     } catch (e) {
-      setError(errorMessage(e, sampleData.failed))
+      setError(errorText(e, sampleData.failed))
     } finally {
       setBusy(null)
     }

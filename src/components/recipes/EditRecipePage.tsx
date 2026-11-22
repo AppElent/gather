@@ -3,7 +3,7 @@ import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
@@ -78,6 +78,7 @@ function EditRecipeForm({
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
   const navigate = useNavigate()
   const { edit, form } = useMessages().recipes
+  const errorText = useErrorMessage()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [imageId, setImageId] = useState<Id<'_storage'> | undefined>(
@@ -136,7 +137,7 @@ function EditRecipeForm({
             })
             navigate(linkTo('recipe', { recipeId: recipe._id }))
           } catch (err) {
-            setError(errorMessage(err, form.saveFailed))
+            setError(errorText(err, form.saveFailed))
             setSubmitting(false)
           }
         }}

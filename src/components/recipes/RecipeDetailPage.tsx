@@ -5,7 +5,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
@@ -42,6 +42,7 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
   const setNutrition = useMutation(api.recipes.setNutrition)
   const [estimating, setEstimating] = useState(false)
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const { detail, form } = messages.recipes
 
   // Recipes → this recipe. A recipe read from a Group it was only shared into
@@ -187,7 +188,7 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
                     })
                   } catch (err) {
                     setError(
-                      errorMessage(err, form.estimateFailed, {
+                      errorText(err, form.estimateFailed, {
                         [AI_LIMIT_KIND]: form.aiLimitReached,
                       }),
                     )

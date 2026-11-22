@@ -11,7 +11,7 @@ import { X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { useModalFocus } from '../app/useModalFocus'
 import { TastingFieldRenderer, withAttribute } from './TastingFieldRenderer'
@@ -54,6 +54,7 @@ export function TastingDialog({
   onSaved,
 }: TastingDialogProps) {
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const copy = messages.tastings
   const words = copy.kinds[kind]
   const subjects = useQuery(
@@ -283,7 +284,7 @@ export function TastingDialog({
                 onClose()
               } catch (cause) {
                 setError(
-                  errorMessage(
+                  errorText(
                     cause,
                     messages.common.errors.somethingWentWrong,
                     copy.composer.problems,

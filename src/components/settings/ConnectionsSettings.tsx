@@ -5,7 +5,7 @@ import {
 import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { hrefTo } from '../../lib/links'
 import { PROVIDER_LABELS, useConnectProvider } from '../../lib/oauth'
@@ -35,6 +35,7 @@ export function ConnectionsSettings({
 }: ConnectionsSettingsProps) {
   const connections = useQuery(api.integrations.listConnections, { groupSlug })
   const { connections: connectionsText } = useMessages().settings
+  const errorText = useErrorMessage()
   const disconnect = useMutation(api.integrations.disconnect)
   const connect = useConnectProvider(groupSlug, hrefTo('groupSettings'))
   const { confirm, dialog } = useConfirmAction()
@@ -48,7 +49,7 @@ export function ConnectionsSettings({
       await connect(provider)
     } catch (e) {
       setBusy(null)
-      setError(errorMessage(e, connectionsText.startFailed))
+      setError(errorText(e, connectionsText.startFailed))
     }
   }
 

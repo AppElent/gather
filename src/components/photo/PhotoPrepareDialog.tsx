@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useModalFocus } from '../app/useModalFocus'
@@ -86,6 +86,7 @@ export function PhotoPrepareDialog({
   onConfirm,
 }: PhotoPrepareDialogProps) {
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const image = messages.common.image
   const cancelLabel = messages.common.actions.cancel
   const rules = photoPreset(preset)
@@ -123,7 +124,7 @@ export function PhotoPrepareDialog({
         setCrop(initialCrop(next, aspect))
       })
       .catch((e: unknown) => {
-        if (!abandoned) setError(errorMessage(e, PHOTO_DECODE_ERROR))
+        if (!abandoned) setError(errorText(e, PHOTO_DECODE_ERROR))
       })
     return () => {
       abandoned = true
@@ -266,7 +267,7 @@ export function PhotoPrepareDialog({
       onConfirm(prepared)
     } catch (e: unknown) {
       if (abandonedRef.current) return
-      setError(errorMessage(e, PHOTO_PREPARE_ERROR))
+      setError(errorText(e, PHOTO_PREPARE_ERROR))
       setPreparing(false)
     }
   }
