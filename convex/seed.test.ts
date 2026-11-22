@@ -252,6 +252,7 @@ const SAMPLE_CONTENT: Record<ModuleId, SampleContent> = {
   calendar: inGroup('calendars'),
   notes: inGroup('notes'),
   'loyalty-cards': inGroup('loyaltyCards'),
+  energy: inGroup('energySites'),
   cheeses: subjectsOf('cheese'),
   wines: subjectsOf('wine'),
   beers: subjectsOf('beer'),

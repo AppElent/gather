@@ -32,6 +32,7 @@ const MODULE_ROUTES = {
   calendar: '/calendar',
   notes: '/notes',
   'loyalty-cards': '/loyalty-cards',
+  energy: '/energy',
   cheeses: '/cheeses',
   wines: '/wines',
   beers: '/beers',

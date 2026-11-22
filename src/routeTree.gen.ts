@@ -23,6 +23,7 @@ import { Route as AppSplatRouteImport } from './routes/_app/$'
 import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AppAllRouteImport } from './routes/_app/all'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AppEnergyRouteImport } from './routes/_app/energy'
 import { Route as AppGroceriesRouteImport } from './routes/_app/groceries'
 import { Route as AppGroupSettingsRouteImport } from './routes/_app/group-settings'
 import { Route as AppGroupsRouteImport } from './routes/_app/groups'
@@ -125,6 +126,11 @@ const AppAllRoute = AppAllRouteImport.update({
 const AppCalendarRoute = AppCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEnergyRoute = AppEnergyRouteImport.update({
+  id: '/energy',
+  path: '/energy',
   getParentRoute: () => AppRoute,
 } as any)
 const AppGroceriesRoute = AppGroceriesRouteImport.update({
@@ -315,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AppAccountRoute
   '/all': typeof AppAllRoute
   '/calendar': typeof AppCalendarRoute
+  '/energy': typeof AppEnergyRoute
   '/groceries': typeof AppGroceriesRoute
   '/group-settings': typeof AppGroupSettingsRoute
   '/groups': typeof AppGroupsRoute
@@ -363,6 +370,7 @@ export interface FileRoutesByTo {
   '/account': typeof AppAccountRoute
   '/all': typeof AppAllRoute
   '/calendar': typeof AppCalendarRoute
+  '/energy': typeof AppEnergyRoute
   '/groceries': typeof AppGroceriesRoute
   '/group-settings': typeof AppGroupSettingsRoute
   '/groups': typeof AppGroupsRoute
@@ -414,6 +422,7 @@ export interface FileRoutesById {
   '/_app/account': typeof AppAccountRoute
   '/_app/all': typeof AppAllRoute
   '/_app/calendar': typeof AppCalendarRoute
+  '/_app/energy': typeof AppEnergyRoute
   '/_app/groceries': typeof AppGroceriesRoute
   '/_app/group-settings': typeof AppGroupSettingsRoute
   '/_app/groups': typeof AppGroupsRoute
@@ -466,6 +475,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/all'
     | '/calendar'
+    | '/energy'
     | '/groceries'
     | '/group-settings'
     | '/groups'
@@ -514,6 +524,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/all'
     | '/calendar'
+    | '/energy'
     | '/groceries'
     | '/group-settings'
     | '/groups'
@@ -564,6 +575,7 @@ export interface FileRouteTypes {
     | '/_app/account'
     | '/_app/all'
     | '/_app/calendar'
+    | '/_app/energy'
     | '/_app/groceries'
     | '/_app/group-settings'
     | '/_app/groups'
@@ -711,6 +723,13 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/energy': {
+      id: '/_app/energy'
+      path: '/energy'
+      fullPath: '/energy'
+      preLoaderRoute: typeof AppEnergyRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/groceries': {
@@ -959,6 +978,7 @@ interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
   AppAllRoute: typeof AppAllRoute
   AppCalendarRoute: typeof AppCalendarRoute
+  AppEnergyRoute: typeof AppEnergyRoute
   AppGroceriesRoute: typeof AppGroceriesRoute
   AppGroupSettingsRoute: typeof AppGroupSettingsRoute
   AppGroupsRoute: typeof AppGroupsRoute
@@ -1001,6 +1021,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAccountRoute: AppAccountRoute,
   AppAllRoute: AppAllRoute,
   AppCalendarRoute: AppCalendarRoute,
+  AppEnergyRoute: AppEnergyRoute,
   AppGroceriesRoute: AppGroceriesRoute,
   AppGroupSettingsRoute: AppGroupSettingsRoute,
   AppGroupsRoute: AppGroupsRoute,

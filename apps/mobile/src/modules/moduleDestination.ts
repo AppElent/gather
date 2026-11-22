@@ -39,6 +39,7 @@ export const NATIVE_MODULES = [
   'shared-costs',
   'savings-goals',
   'loyalty-cards',
+  'energy',
 ] as const satisfies readonly ModuleId[]
 
 export type NativeModuleId = (typeof NATIVE_MODULES)[number]

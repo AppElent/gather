@@ -826,6 +826,9 @@ const USER_REFERENCES: {
   tastingSubjects: { createdByUserId: 'repoint' },
   tastings: { createdByUserId: 'repoint' },
   loyaltyCards: { createdByUserId: 'repoint' },
+  energySites: { createdByUserId: 'repoint' },
+  energySources: { connectedByUserId: 'repoint' },
+  energyReadings: { enteredByUserId: 'repoint' },
   seedRuns: { restoreDefaultGroup: 'repoint' },
 }
 

@@ -49,6 +49,10 @@ export const byId = {
     label: 'Klantkaarten',
     description: 'Je klantkaarten, klaar bij de kassa.',
   },
+  energy: {
+    label: 'Energie',
+    description: 'Wat je huis verbruikt, opwekt en betaalt, per uur.',
+  },
   cheeses: {
     label: 'Kazen',
     description: 'Beoordeel de kazen die je proeft.',
