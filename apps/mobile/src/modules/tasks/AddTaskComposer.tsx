@@ -207,6 +207,10 @@ function TaskComposerCard({
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const inFlight = useRef(false)
+  // The draft last sent: a second Return before the cleared draft renders
+  // reaches save with the same draft, and must not add the task twice.
+  const submitted = useRef<TaskDraft | null>(null)
+  const mounted = useRef(true)
 
   const draft: TaskDraft = {
     line,
@@ -224,6 +228,7 @@ function TaskComposerCard({
   const place = useRef({ draftId, preset })
   useEffect(
     () => () => {
+      mounted.current = false
       const last = latest.current
       const { draftId: key, preset: base } = place.current
       keepDraft(key, isDirty(last, base) ? last : undefined)
@@ -311,8 +316,9 @@ function TaskComposerCard({
       haptics.actionFailed()
       return
     }
-    if (inFlight.current) return
+    if (inFlight.current || submitted.current === draft) return
     const snapshot = draft
+    submitted.current = snapshot
     const saving = task
     const to = target._id
     setNotice(null)
@@ -336,12 +342,21 @@ function TaskComposerCard({
       if (saved.notesFailed) Alert.alert(words.detailsFailed)
       else if (saved.reminderFailed) Alert.alert(t.tasks.quickAdd.reminderFailed)
       else if (saving.reminder) void ask('reminder')
-      if (open) {
+      if (open && mounted.current) {
         load(nextDraft(snapshot, preset))
         onOpenTask(saved.taskId)
       }
     } catch {
       haptics.actionFailed()
+      submitted.current = null
+      if (!mounted.current) {
+        // Closed while saving: keep the task as the place's draft, unless
+        // another one was kept since, and say it was not added.
+        const key = place.current.draftId
+        if (!keptDraft(key)) keepDraft(key, snapshot)
+        Alert.alert(t.tasks.quickAdd.failed)
+        return
+      }
       setNotice(t.tasks.quickAdd.failed)
       // The task comes back, unless the next one is already being typed.
       if (open || !latest.current.line.trim()) load(snapshot)
