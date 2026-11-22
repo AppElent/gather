@@ -40,7 +40,13 @@ import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { TYPE, useTokens } from '../../theme/tokens'
-import { draftKey, keepDraft, keptDraft } from '../../ui/composer-drafts'
+import {
+  draftKey,
+  holdDraft,
+  keepDraft,
+  keptDraft,
+  pendingSave,
+} from '../../ui/composer-drafts'
 import {
   ComposerAddButton,
   type ComposerChip,
@@ -219,6 +225,10 @@ function TaskComposerCard({
   const [panel, setPanel] = useState<Panel>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Reopened while this place's draft was still being saved (All details,
+  // then a close): locked until that save settles, so the draft cannot be
+  // edited and sent again under the key already in flight.
+  const [waiting, setWaiting] = useState(() => pendingSave(draftId))
   const inFlight = useRef(false)
   // The draft last sent: a second Return before the cleared draft renders
   // reaches save with the same draft. The server dedupes on the key as well.
@@ -259,6 +269,22 @@ function TaskComposerCard({
     setChoices(next.choices)
     setSaveKey(next.saveKey)
   }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: settles once per hold
+  useEffect(() => {
+    if (!waiting) return
+    let live = true
+    void waiting.then((saved) => {
+      if (!live) return
+      setWaiting(undefined)
+      // Saved: it is a task now, and this is the next one. Not saved: the
+      // closed card has asked about it; the draft stays to finish here.
+      if (saved) load(nextDraft(latest.current, preset))
+    })
+    return () => {
+      live = false
+    }
+  }, [waiting])
 
   // A part the line newly recognised replaces a value tapped for it.
   const partKeys = parsed.parts.map((part) => part.key).join('\n')
@@ -378,13 +404,24 @@ function TaskComposerCard({
       haptics.actionFailed()
       return
     }
-    if (inFlight.current || submitted.current === draft.saveKey) return
+    if (inFlight.current || waiting || submitted.current === draft.saveKey) return
     const snapshot = draft
     submitted.current = snapshot.saveKey
     const saving = task
     const to = target._id
     const section = to === preset.listId ? sectionId : undefined
     const send = () => actions.addComposedTask(to, saving, snapshot.saveKey, section)
+    const request = send()
+    // All details keeps the draft while it saves: a close now keeps it for
+    // the place, held until the answer comes.
+    if (open)
+      holdDraft(
+        place.current.draftId,
+        request.then(
+          () => true,
+          () => false,
+        ),
+      )
     setNotice(null)
     onListUsed(to)
     if (open) {
@@ -395,7 +432,7 @@ function TaskComposerCard({
       load(nextDraft(snapshot, preset))
     }
     try {
-      const saved = await send()
+      const saved = await request
       // Closed while saving, the place kept this draft: it is a task now.
       const { draftId: key } = place.current
       if (keptDraft<TaskDraft>(key)?.saveKey === snapshot.saveKey) keepDraft(key, undefined)
@@ -771,6 +808,7 @@ function TaskComposerCard({
         <QuickAddInput
           testID="composer-title"
           inputRef={field.inputRef}
+          editable={field.editable}
           autoFocus
           multiline
           scrollEnabled={false}
@@ -800,7 +838,7 @@ function TaskComposerCard({
       allChips={allChips}
       more={{ actions: moreActions, onPress: onMenu }}
       canSave={canSave}
-      busy={busy}
+      busy={busy || waiting !== undefined}
       onSave={() => void save()}
       notice={
         notice ??

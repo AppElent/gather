@@ -98,6 +98,8 @@ export interface ComposerTitleField {
   onSubmitEditing: () => void
   /** Return as a step to the description (a note's title), opening it. */
   focusBody: () => void
+  /** False while a save is answered: nothing in the card changes under it. */
+  editable: boolean
 }
 
 export interface KeyboardComposerProps {
@@ -126,7 +128,10 @@ export interface KeyboardComposerProps {
   /** The + button's menu, for the details not always shown. */
   more?: { actions: MenuAction[]; onPress: (actionId: string) => void }
   canSave: boolean
-  /** A save that waits for its answer (All details): the send spins. */
+  /**
+   * A save that waits for its answer (All details): the send spins, and the
+   * fields and chips hold still until it settles.
+   */
   busy?: boolean
   onSave: () => void
   /** A failure the person did not cause, under the chips. */
@@ -346,10 +351,12 @@ function ComposerCard({
                   placeholderTextColor: tokens.muted,
                   onSubmitEditing: submit,
                   focusBody,
+                  editable: !busy,
                 })}
                 {showBody ? (
                   <TextInput
                     ref={bodyRef}
+                    editable={!busy}
                     testID={testID ? `${testID}-body` : undefined}
                     value={body.value}
                     onChangeText={body.onChange}
@@ -378,7 +385,10 @@ function ComposerCard({
               </Pressable>
             </View>
 
-            <View style={[styles.chipRow, expanded && styles.chipRowExpanded]}>
+            <View
+              style={[styles.chipRow, expanded && styles.chipRowExpanded]}
+              pointerEvents={busy ? 'none' : 'auto'}
+            >
               {expanded ? (
                 <View style={styles.wrap}>
                   {plus}

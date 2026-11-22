@@ -9,6 +9,13 @@
  */
 const drafts = new Map<string, unknown>()
 
+/**
+ * A save still on its way for a place's kept draft, answering whether it
+ * landed. A composer reopened on that draft waits for it rather than letting
+ * the same draft be edited and sent again under the key already in flight.
+ */
+const pending = new Map<string, Promise<boolean>>()
+
 export function draftKey(
   account: string | null | undefined,
   group: string,
@@ -28,7 +35,22 @@ export function keepDraft<T>(key: string, draft: T | undefined): void {
   else drafts.set(key, draft)
 }
 
-/** Forgets every draft, for tests. */
+/** Marks `key`'s draft as being saved until `saving` settles. */
+export function holdDraft(key: string, saving: Promise<boolean>): void {
+  pending.set(key, saving)
+  const release = () => {
+    if (pending.get(key) === saving) pending.delete(key)
+  }
+  saving.then(release, release)
+}
+
+/** The save `key`'s draft is waiting on, if one is. */
+export function pendingSave(key: string): Promise<boolean> | undefined {
+  return pending.get(key)
+}
+
+/** Forgets every draft and every pending save, for tests. */
 export function forgetDrafts(): void {
   drafts.clear()
+  pending.clear()
 }

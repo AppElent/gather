@@ -1,6 +1,13 @@
 import { afterEach, expect, test } from 'vitest'
 
-import { draftKey, forgetDrafts, keepDraft, keptDraft } from './composer-drafts'
+import {
+  draftKey,
+  forgetDrafts,
+  holdDraft,
+  keepDraft,
+  keptDraft,
+  pendingSave,
+} from './composer-drafts'
 
 afterEach(forgetDrafts)
 
@@ -21,4 +28,34 @@ test('keeping nothing forgets it', () => {
 
 test('signed out is its own account', () => {
   expect(draftKey(null, 'home', 'x')).toBe('signed-out:home:x')
+})
+
+test('a draft being saved is held until the save settles, then released', async () => {
+  const key = draftKey('u1', 'g1', 'tasks:index')
+  let land: (saved: boolean) => void = () => {}
+  const saving = new Promise<boolean>((resolve) => {
+    land = resolve
+  })
+  holdDraft(key, saving)
+  expect(pendingSave(key)).toBe(saving)
+  expect(pendingSave(draftKey('u1', 'g1', 'tasks:smart:today'))).toBeUndefined()
+  land(true)
+  await expect(saving).resolves.toBe(true)
+  await Promise.resolve()
+  expect(pendingSave(key)).toBeUndefined()
+})
+
+test('an older save settling does not release a newer hold', async () => {
+  const key = draftKey('u1', 'g1', 'tasks:index')
+  let first: (saved: boolean) => void = () => {}
+  const older = new Promise<boolean>((resolve) => {
+    first = resolve
+  })
+  const newer = new Promise<boolean>(() => {})
+  holdDraft(key, older)
+  holdDraft(key, newer)
+  first(false)
+  await older
+  await Promise.resolve()
+  expect(pendingSave(key)).toBe(newer)
 })
