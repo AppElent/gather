@@ -45,8 +45,20 @@ import {
 } from './noteDraft'
 import { useNoteActions } from './store'
 
-/** The add button on Notes, and the composer while it is open. */
-export function AddNote() {
+/**
+ * Failed-save alerts, shown one after another: iOS draws one alert at a time,
+ * so a second asked while the first is up would be lost with its draft.
+ */
+let alerts: Promise<void> = Promise.resolve()
+function askInTurn(show: (done: () => void) => void): void {
+  alerts = alerts.then(() => new Promise<void>((done) => show(done)))
+}
+
+/**
+ * The add button on Notes, and the composer while it is open. `onSaved` runs
+ * after each note lands (the screen clears its search, so the note shows).
+ */
+export function AddNote({ onSaved }: { onSaved: () => void }) {
   const { t } = useI18n()
   const { group } = useGroup()
   const { userId } = useAuth()
@@ -64,7 +76,11 @@ export function AddNote() {
         />
       )}
       {open ? (
-        <NoteComposerCard draftId={key} onClose={() => setOpen(false)} />
+        <NoteComposerCard
+          draftId={key}
+          onClose={() => setOpen(false)}
+          onSaved={onSaved}
+        />
       ) : null}
     </>
   )
@@ -73,9 +89,11 @@ export function AddNote() {
 function NoteComposerCard({
   draftId,
   onClose,
+  onSaved,
 }: {
   draftId: string
   onClose: () => void
+  onSaved: () => void
 }) {
   const { t } = useI18n()
   const words = t.composer
@@ -120,35 +138,57 @@ function NoteComposerCard({
     haptics.itemSaved()
   }
 
+  /** Whether the open card still shows the draft sent under `saveKey`. */
+  const showing = (saveKey: string) =>
+    mounted.current && latest.current.saveKey === saveKey
+
   /**
-   * A save that failed once the composer had moved on to the next note, or
-   * closed: asked about, never poured over what is being typed now. The same
-   * key goes again, so a create that did land is not made twice.
+   * Every failed save is asked about, Try again or Discard, one alert at a
+   * time (`askInTurn`): two saves failing together must not lose one. The
+   * same key goes again, so a create that did land is not made twice. A note
+   * the card still shows is cleared once it is saved or discarded.
    */
-  const offerRetry = (saving: ComposedNote, saveKey: string) => {
-    Alert.alert(
-      fmt(words.noteNotSaved, { title: saving.title || t.notes.untitled }),
-      undefined,
-      [
-        {
-          text: words.discard,
-          style: 'destructive',
-          onPress: () => forgetSentDraft<NoteDraft>(draftId, saveKey),
-        },
-        {
-          text: words.tryAgain,
-          onPress: () =>
-            void actions.addComposedNote(saving, saveKey).then(
-              () => landed(saveKey),
-              () => {
-                haptics.actionFailed()
-                offerRetry(saving, saveKey)
+  const offerRetry = (saving: ComposedNote, saveKey: string) =>
+    askInTurn(
+      (done) =>
+        Alert.alert(
+          fmt(words.noteNotSaved, { title: saving.title || t.notes.untitled }),
+          undefined,
+          [
+            {
+              text: words.discard,
+              style: 'destructive',
+              onPress: () => {
+                forgetSentDraft<NoteDraft>(draftId, saveKey)
+                if (showing(saveKey)) clear()
+                done()
               },
-            ),
-        },
-      ],
-      { cancelable: false },
+            },
+            {
+              text: words.tryAgain,
+              onPress: () => {
+                done()
+                void actions.addComposedNote(saving, saveKey).then(
+                  () => {
+                    landed(saveKey)
+                    onSaved()
+                    if (showing(saveKey)) clear()
+                  },
+                  () => {
+                    haptics.actionFailed()
+                    offerRetry(saving, saveKey)
+                  },
+                )
+              },
+            },
+          ],
+          { cancelable: false },
+        ),
     )
+
+  const clear = () => {
+    setNotice(null)
+    load(emptyNoteDraft())
   }
 
   async function save() {
@@ -168,6 +208,7 @@ function NoteComposerCard({
     try {
       await request
       landed(saveKey)
+      onSaved()
     } catch {
       haptics.actionFailed()
       submitted.current = null
@@ -175,9 +216,8 @@ function NoteComposerCard({
         // Nothing typed since: the note comes back to finish or send again.
         setNotice(words.noteFailed)
         load(snapshot)
-      } else {
-        offerRetry(saving, saveKey)
       }
+      offerRetry(saving, saveKey)
     }
   }
 

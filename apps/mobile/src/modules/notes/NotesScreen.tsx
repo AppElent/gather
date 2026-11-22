@@ -197,7 +197,7 @@ export function Notes() {
           </>
         )}
       </ScrollView>
-      <AddNote />
+      <AddNote onSaved={() => setQuery('')} />
     </>
   )
 }
