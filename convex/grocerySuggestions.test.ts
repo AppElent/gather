@@ -51,20 +51,22 @@ async function seed() {
     await ctx.db.patch(groupId, { groceryListId: groceries })
     return { userId, groupId, groceries, market, chores }
   })
-  return { t, as: t.withIdentity(alice), ...ids }
+  // One clock for every purchase a test seeds: two `bought` calls a few
+  // milliseconds apart would stretch the gaps between them, and with them the
+  // usual interval, past the time since the last one on a slow runner.
+  return { t, as: t.withIdentity(alice), now: Date.now(), ...ids }
 }
 
 type Seeded = Awaited<ReturnType<typeof seed>>
 
 /** `title` checked on `listId` this many days ago, once per entry. */
 async function bought(
-  { t, userId }: Seeded,
+  { t, userId, now }: Seeded,
   listId: Id<'taskLists'>,
   title: string,
   daysAgo: number[],
   extra: { quantity?: number; unit?: 'pak'; category?: 'dairy' } = {},
 ) {
-  const now = Date.now()
   await t.run(async (ctx) => {
     for (const days of daysAgo)
       await ctx.db.insert('tasks', {
