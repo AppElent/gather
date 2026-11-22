@@ -249,6 +249,22 @@ export function afterTyping(
   return next
 }
 
+/**
+ * The choices once the line's parts change. A draft loaded whole (restored
+ * after a failed save, or the next one) brought its choices with its line, so
+ * nothing in it was typed: a repeat set through Custom… over "every week"
+ * stays. `loadedLine` is the line of the draft just loaded, if one was.
+ */
+export function afterLineChange(
+  choices: TaskChoices,
+  before: ReadonlySet<string>,
+  parts: readonly QuickAddPart[],
+  line: string,
+  loadedLine: string | null,
+): TaskChoices {
+  return line === loadedLine ? choices : afterTyping(choices, before, parts)
+}
+
 /** The date menu's shortcuts: today, tomorrow, the weekend, next Monday. */
 export function dateShortcuts(today: string, weekend: string) {
   return {

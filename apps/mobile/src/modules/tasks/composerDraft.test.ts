@@ -2,6 +2,7 @@ import { parseQuickAdd } from '@gather/core/task-quick-add'
 import { describe, expect, test } from 'vitest'
 
 import {
+  afterLineChange,
   afterTyping,
   composedTask,
   dateShortcuts,
@@ -135,6 +136,17 @@ describe('a tap and the line', () => {
     const next = afterTyping(choices, before, parse('Bins tomorrow').parts)
     expect(next.dueDate).toBeUndefined()
     expect(next.priority).toBe(1)
+  })
+
+  test('a draft loaded whole keeps a repeat chosen over the one it reads', () => {
+    // "every week" typed, then Custom… set monthly; the save failed after the
+    // line was cleared, so the restored line's parts all look new.
+    const line = 'Bins every week'
+    const choices = { repeat: QUICK_REPEATS.month, labels: [] }
+    const parts = parse(line).parts
+    expect(afterLineChange(choices, new Set(), parts, line, line)).toBe(choices)
+    // Typed, the same part does replace it.
+    expect(afterLineChange(choices, new Set(), parts, line, null).repeat).toBeUndefined()
   })
 
   test('a part already there replaces nothing', () => {

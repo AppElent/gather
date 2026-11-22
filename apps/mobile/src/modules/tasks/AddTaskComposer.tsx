@@ -55,7 +55,7 @@ import {
 } from '../../ui/keyboard-composer'
 import { useTaskPeople } from './assignee'
 import {
-  afterTyping,
+  afterLineChange,
   type ComposedTask,
   composedTask,
   dateShortcuts,
@@ -262,8 +262,11 @@ function TaskComposerCard({
     [],
   )
 
+  // The line of a draft just loaded whole: its parts were not typed.
+  const loadedLine = useRef<string | null>(null)
   const load = (next: TaskDraft) => {
     latest.current = next
+    loadedLine.current = next.line
     quick.load(next)
     setBody(next.body)
     setShowBody(next.showBody)
@@ -288,12 +291,16 @@ function TaskComposerCard({
     }
   }, [waiting])
 
-  // A part the line newly recognised replaces a value tapped for it.
+  // A part the line newly recognised replaces a value tapped for it; a draft
+  // loaded whole keeps the choices it came with.
   const partKeys = parsed.parts.map((part) => part.key).join('\n')
   const seen = useRef(new Set(parsed.parts.map((part) => part.key)))
   // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the parts' keys
   useEffect(() => {
-    setChoices((current) => afterTyping(current, seen.current, parsed.parts))
+    const before = seen.current
+    const loaded = loadedLine.current
+    loadedLine.current = null
+    setChoices((current) => afterLineChange(current, before, parsed.parts, line, loaded))
     seen.current = new Set(parsed.parts.map((part) => part.key))
   }, [partKeys])
 
