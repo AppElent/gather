@@ -39,9 +39,11 @@
 
 import type {
   ExportExclusion,
+  ExportManifest,
   ExportPage,
   ExportRow,
 } from '@gather/core/data-export'
+import { EXPORT_VERSION } from '@gather/core/data-export'
 import type { PaginationOptions } from 'convex/server'
 import type { DataModel, Doc, Id, TableNames } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
@@ -259,6 +261,7 @@ type Row = Record<string, unknown> & { _id: string; _creationTime: number }
  */
 interface RangeQuery {
   collect(): Promise<Row[]>
+  take(n: number): Promise<Row[]>
   paginate(options: PaginationOptions): Promise<{
     page: Row[]
     isDone: boolean
@@ -509,4 +512,74 @@ export async function readExportPage(
     rows.push(await project(ctx, table, treatment, s, refs, row))
   }
   return { rows, cursor: raw.isDone ? null : raw.cursor, isDone: raw.isDone }
+}
+
+/**
+ * What is in the person's export: the tables, in file order, and their Groups
+ * by name. `dataExport.manifest` returns it as is; the account portal walks the
+ * same steps (`convex/accountPortal.ts`).
+ */
+export async function exportManifest(
+  ctx: QueryCtx,
+  me: Doc<'users'>,
+): Promise<ExportManifest> {
+  const memberships = await ctx.db
+    .query('memberships')
+    .withIndex('by_user', (q) => q.eq('userId', me._id))
+    .collect()
+  const groups: ExportManifest['groups'] = []
+  for (const membership of memberships) {
+    const group = await ctx.db.get(membership.groupId)
+    if (group) groups.push({ slug: group.slug, name: group.name })
+  }
+  groups.sort((a, b) => a.name.localeCompare(b.name))
+  return { version: EXPORT_VERSION, ...exportLayout(), groups }
+}
+
+/**
+ * How many of one Group's rows of `table` the export would hold, reading at
+ * most `limit` of them, on the index the registry names. A child table is
+ * counted across its parents, as it is paged. For the account portal's
+ * `summary`, which caps every count rather than reading a whole table.
+ */
+export async function countGroupRows(
+  ctx: QueryCtx,
+  args: {
+    table: TableNames
+    me: Doc<'users'>
+    group: Doc<'groups'>
+    limit: number
+  },
+): Promise<number> {
+  const treatment = treatmentOf(args.table)
+  if (!isIncluded(treatment) || treatment.scope !== 'group') {
+    throw new Error(`${args.table} is not exported per Group`)
+  }
+  const s: Scope = { scope: 'group', me: args.me, group: args.group }
+  if ('self' in treatment) return 1
+  if (!('parent' in treatment)) {
+    const rows = await scopeRange(ctx, args.table, treatment.index, s).take(
+      args.limit,
+    )
+    return rows.length
+  }
+  const parentTreatment = treatmentOf(treatment.parent)
+  if (!isIncluded(parentTreatment) || !('index' in parentTreatment)) {
+    throw new Error(`Export parent ${treatment.parent} is not read by index`)
+  }
+  const parents = await scopeRange(
+    ctx,
+    treatment.parent,
+    parentTreatment.index,
+    s,
+  ).collect()
+  let count = 0
+  for (const parent of parents) {
+    if (count >= args.limit) break
+    const rows = await tableQuery(ctx, args.table)
+      .withIndex(treatment.index, (q) => q.eq(treatment.field, parent._id))
+      .take(args.limit - count)
+    count += rows.length
+  }
+  return count
 }

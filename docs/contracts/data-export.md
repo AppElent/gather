@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a Convex table, changing what "Export your data" contains, or changing who may see a row or column.
-version: 2.0.0
+version: 2.1.0
 status: current
 ---
 
@@ -81,6 +81,15 @@ everything user-owned belongs to a Group or to a person
   never skips a later parent's rows. `collectExport` in
   `@gather/core/data-export` drains them in order, so web and phone write the
   same file.
+- **The account portal reads the same pages.** `convex/accountPortal.ts`
+  (AppElent `standards/account-portal.md`) serves account.appelent.nl:
+  `exportPage` walks the manifest's steps one `readExportPage` at a time
+  behind an opaque cursor (table, Group slug, page cursor), keys a Group's
+  rows `groups/<slug>/<table>` and puts the file's header under `export` on
+  the first page; `summary` counts on the registry's indexes
+  (`countGroupRows`), at most 1,000 rows each. A caller with no account, or
+  one being deleted, gets `null` and an empty export; connected apps are
+  refused.
 - **The file is versioned.** It opens with `format: "gather.data-export"` and
   `version`, then `conventions`, `notIncluded`, `excludedTables` and
   `omittedFields`. Bump `EXPORT_VERSION` when a reader of the previous version

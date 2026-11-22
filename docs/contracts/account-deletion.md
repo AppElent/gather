@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.4.0
+version: 2.5.0
 status: current
 ---
 
@@ -83,6 +83,10 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   says the login still works elsewhere (the web's sign-in page at
   `?deleted=gather`, an alert on the phone). "Delete my whole AppElent
   account" is the run below and names the apps it takes with it.
+- **The account portal's blocker is a purge already running.**
+  `accountPortal.deletionBlocker` returns `deletionInProgress`
+  (`@gather/core/refusals`) while the caller's row has `deletedAt`; a shared
+  Group is left, never a blocker. Its `deleteAppData` follows APP-392.
 - **One purge behind every way in.** `purgeSubject` (`convex/accounts.ts`)
   starts the purge for every `users` row of a Clerk subject, duplicates
   included, and never twice for a row already being purged. `deleteAccount`
