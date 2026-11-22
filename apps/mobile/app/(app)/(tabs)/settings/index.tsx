@@ -16,7 +16,7 @@
  */
 import { useUser } from '@clerk/expo'
 import Constants from 'expo-constants'
-import { router } from 'expo-router'
+import { router, Stack } from 'expo-router'
 import * as Updates from 'expo-updates'
 import { openBrowserAsync } from 'expo-web-browser'
 import { useState } from 'react'
@@ -39,6 +39,7 @@ import { useAppearance } from '../../../../src/theme/appearance'
 import type { Glyph } from '../../../../src/theme/glyph'
 import { UI_ICONS } from '../../../../src/theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../../../src/theme/tokens'
+import { washScreenOptions } from '../../../../src/ui/screen-header'
 
 /** Decorative, and only ever next to the group's own title. */
 const SECTION_ICONS = {
@@ -78,22 +79,17 @@ export default function Settings() {
 
   return (
     <ScrollView
+      // The native large title, as on Home: the system draws it and collapses
+      // it inline on scroll, so the screen never paints its own (APP-610).
+      contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: tokens.ground }}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={[
         styles.content,
-        {
-          paddingTop: insets.top + 44,
-          paddingBottom: insets.bottom + 24,
-        },
+        { paddingBottom: insets.bottom + 24 },
       ]}
     >
-      <Text
-        accessibilityRole="header"
-        style={[styles.screenTitle, { color: tokens.ink }]}
-      >
-        {t.settings.title}
-      </Text>
+      <Stack.Screen options={washScreenOptions(t.settings.title)} />
 
       <SearchField
         value={query}
@@ -338,12 +334,7 @@ function Row({
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16 },
-  screenTitle: {
-    ...TYPE.title2,
-    letterSpacing: -0.8,
-    marginBottom: 14,
-  },
-  search: { marginBottom: 16 },
+  search: { marginTop: 8, marginBottom: 16 },
   identity: {
     flexDirection: 'row',
     alignItems: 'center',
