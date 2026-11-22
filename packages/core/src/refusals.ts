@@ -39,6 +39,21 @@ export type CalendarRefusalCode = (typeof CALENDAR_REFUSAL_CODES)[number]
  */
 export const ACCOUNT_DELETED = 'Account deleted'
 
+/**
+ * Why the account portal (account.appelent.nl) may not delete Gather's data
+ * now, as `accountPortal.deletionBlocker` returns it: the account is already
+ * being deleted, in the scheduled steps that follow `accounts.deleteAccount`.
+ * A stable code, because the portal owns the words.
+ */
+export const DELETION_IN_PROGRESS = 'deletionInProgress'
+
+/**
+ * The refusal for an export cursor this server did not hand out — not JSON,
+ * the wrong shape, or a step the export does not have — from
+ * `accountPortal.exportPage` and `dataExport.page` alike.
+ */
+export const INVALID_EXPORT_CURSOR = { kind: 'invalidCursor' } as const
+
 export function refusal(
   kind: (typeof TASTING_REFUSALS)[number],
 ): { kind: string } {

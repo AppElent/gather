@@ -14,10 +14,9 @@
  */
 
 import type { ExportManifest, ExportPage } from '@gather/core/data-export'
-import { EXPORT_VERSION } from '@gather/core/data-export'
 import { v } from 'convex/values'
 import { query } from './_generated/server'
-import { exportLayout, readExportPage } from './lib/dataExport'
+import { exportManifest, readExportPage } from './lib/dataExport'
 import { requireGroupBySlug } from './lib/groupAccess'
 import { getCurrentUser } from './lib/sharing'
 
@@ -26,19 +25,7 @@ export const manifest = query({
   handler: async (ctx): Promise<ExportManifest | null> => {
     const user = await getCurrentUser(ctx)
     if (!user || user.deletedAt) return null
-
-    const memberships = await ctx.db
-      .query('memberships')
-      .withIndex('by_user', (q) => q.eq('userId', user._id))
-      .collect()
-    const groups: ExportManifest['groups'] = []
-    for (const membership of memberships) {
-      const group = await ctx.db.get(membership.groupId)
-      if (group) groups.push({ slug: group.slug, name: group.name })
-    }
-    groups.sort((a, b) => a.name.localeCompare(b.name))
-
-    return { version: EXPORT_VERSION, ...exportLayout(), groups }
+    return exportManifest(ctx, user)
   },
 })
 
