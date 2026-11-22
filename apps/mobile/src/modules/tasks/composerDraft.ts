@@ -185,7 +185,7 @@ export function composedTask(draft: TaskDraft, parsed: QuickAdd): ComposedTask {
  */
 function readRepeat(parsed: QuickAdd, dueDate: string | undefined) {
   const typed = parsed.parts.find((part) => part.kind === 'repeat')
-  if (!typed || typed.kind !== 'repeat' || !dueDate) return parsed.repeat
+  if (typed?.kind !== 'repeat' || !dueDate) return parsed.repeat
   return normalizeRepeat(typed.repeat, dueDate) ?? parsed.repeat
 }
 
