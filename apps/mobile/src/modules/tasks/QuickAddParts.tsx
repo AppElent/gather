@@ -34,11 +34,17 @@ const pad = (value: number) => String(value).padStart(2, '0')
 /**
  * The line being typed, what it reads as, and the chips dismissed on it.
  * Without `recognise` (a grocery list, a subtask) the line is only a title.
+ * `initial` puts back a line kept from before (the keyboard composer's draft).
  */
-export function useQuickAddLine(recognise = true) {
+export function useQuickAddLine(
+  recognise = true,
+  initial?: { line: string; dismissed: readonly string[] },
+) {
   const { people } = useTaskPeople()
-  const [line, setLine] = useState('')
-  const [dismissed, setDismissed] = useState<readonly string[]>([])
+  const [line, setLine] = useState(initial?.line ?? '')
+  const [dismissed, setDismissed] = useState<readonly string[]>(
+    initial?.dismissed ?? [],
+  )
   const at = new Date()
   const today = localIsoDate(at)
   const now = `${pad(at.getHours())}:${pad(at.getMinutes())}`
@@ -53,6 +59,7 @@ export function useQuickAddLine(recognise = true) {
     line,
     parsed,
     today,
+    dismissed,
     setLine: (value: string) => {
       setLine(value)
       // A cleared line starts over: a dismissal was about the words it had.
@@ -64,6 +71,11 @@ export function useQuickAddLine(recognise = true) {
     reset: () => {
       setLine('')
       setDismissed([])
+    },
+    /** A whole kept line back, with what was dismissed on it. */
+    load: (kept: { line: string; dismissed: readonly string[] }) => {
+      setLine(kept.line)
+      setDismissed(kept.dismissed)
     },
   }
 }

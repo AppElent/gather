@@ -45,6 +45,7 @@ import {
 import { api, type Doc, type Id } from '../../convex/api'
 import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
+import { type ComposedTask, parsedTask } from './composerDraft'
 import { deviceTimeZone } from './reminder'
 import type { ListDisplay, ListSync, Priority, Task, TaskList } from './types'
 
@@ -661,6 +662,40 @@ export function useSmartLists(): SmartLists {
 }
 
 /** Every write Tasks makes, in the Current Group. */
+/** How the note and reminder written after a composed task went. */
+export interface ComposedDetails {
+  notesFailed: boolean
+  reminderFailed: boolean
+  /** A reminder went in with this write: the moment to ask to notify. */
+  reminderSet: boolean
+  /** Writes again only what failed, onto the same task; none when all went in. */
+  retry?: () => Promise<ComposedDetails>
+}
+
+/**
+ * What a task's note and reminder writes came to, each on its own: a reminder
+ * that went in is set even when the note failed, and what failed is what a
+ * retry writes again.
+ */
+export function settledDetails(
+  details: Pick<ComposedTask, 'notes' | 'reminder'>,
+  notes: PromiseSettledResult<unknown>,
+  reminder: PromiseSettledResult<unknown>,
+): Omit<ComposedDetails, 'retry'> & {
+  failed: Pick<ComposedTask, 'notes' | 'reminder'>
+} {
+  const failed = {
+    notes: notes.status === 'rejected' ? details.notes : undefined,
+    reminder: reminder.status === 'rejected' ? details.reminder : undefined,
+  }
+  return {
+    notesFailed: failed.notes !== undefined,
+    reminderFailed: failed.reminder !== undefined,
+    reminderSet: details.reminder !== undefined && reminder.status === 'fulfilled',
+    failed,
+  }
+}
+
 export function useTaskActions() {
   const { group } = useGroup()
   const groupSlug = group.slug
@@ -704,6 +739,59 @@ export function useTaskActions() {
     fields: Omit<Parameters<typeof update>[0], 'taskId' | 'groupSlug'>,
   ) => update({ taskId: id as Id<'tasks'>, groupSlug, ...fields })
 
+  /** The note and reminder `add` does not take, as writes of their own. */
+  const composedDetails = async (
+    taskId: string,
+    details: Pick<ComposedTask, 'notes' | 'reminder'>,
+  ): Promise<ComposedDetails> => {
+    const [notes, reminder] = await Promise.allSettled([
+      details.notes ? patch(taskId, { notes: details.notes }) : null,
+      details.reminder
+        ? setReminder({
+            taskId: taskId as Id<'tasks'>,
+            groupSlug,
+            reminder: { ...details.reminder, timeZone: deviceTimeZone() },
+          })
+        : null,
+    ])
+    const { failed, ...outcome } = settledDetails(details, notes, reminder)
+    return {
+      ...outcome,
+      retry:
+        outcome.notesFailed || outcome.reminderFailed
+          ? () => composedDetails(taskId, failed)
+          : undefined,
+    }
+  }
+
+  const addComposed = async (
+    listId: string,
+    task: ComposedTask,
+    saveKey: string | undefined,
+    sectionId?: string,
+  ): Promise<{ taskId: string } & ComposedDetails> => {
+    const taskId = await add({
+      listId: listId as Id<'taskLists'>,
+      groupSlug,
+      title: task.title,
+      today: localIsoDate(),
+      // The draft's own key: sent twice (a close and reopen mid-save, or a
+      // retry after a lost answer), it still makes one task.
+      ...(saveKey ? { idempotencyKey: saveKey } : {}),
+      ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+      ...(task.repeat ? { repeat: task.repeat } : {}),
+      ...(task.assigneeId
+        ? { assigneeId: task.assigneeId as Id<'users'> }
+        : {}),
+      ...(task.labels.length > 0 ? { labels: task.labels } : {}),
+      ...(task.priority ? { priority: task.priority } : {}),
+      ...(sectionId ? { sectionId } : {}),
+    })
+    // `add` takes no notes and no reminder: both are their own writes, so
+    // an installed server from before the composer is all this needs.
+    return { taskId, ...(await composedDetails(taskId, task)) }
+  }
+
   return {
     /**
      * A line onto a list. On a grocery list the amount is read off it first
@@ -733,38 +821,19 @@ export function useTaskActions() {
       listId: string,
       parsed: QuickAdd,
       sectionId?: string,
-    ): Promise<{ taskId: string; reminderFailed: boolean }> => {
-      const taskId = await add({
-        listId: listId as Id<'taskLists'>,
-        groupSlug,
-        title: parsed.title,
-        today: localIsoDate(),
-        ...(parsed.dueDate ? { dueDate: parsed.dueDate } : {}),
-        ...(parsed.repeat ? { repeat: parsed.repeat } : {}),
-        ...(parsed.assigneeId
-          ? { assigneeId: parsed.assigneeId as Id<'users'> }
-          : {}),
-        ...(parsed.labels.length > 0 ? { labels: parsed.labels } : {}),
-        ...(sectionId ? { sectionId } : {}),
-      })
-      if (!parsed.time || !parsed.dueDate) {
-        return { taskId, reminderFailed: false }
-      }
-      try {
-        await setReminder({
-          taskId,
-          groupSlug,
-          reminder: {
-            date: parsed.dueDate,
-            time: parsed.time,
-            timeZone: deviceTimeZone(),
-          },
-        })
-        return { taskId, reminderFailed: false }
-      } catch {
-        return { taskId, reminderFailed: true }
-      }
-    },
+    ): Promise<{ taskId: string; reminderFailed: boolean }> =>
+      addComposed(listId, parsedTask(parsed), undefined, sectionId),
+    /**
+     * A task from the keyboard composer (APP-587), every detail it was given
+     * at once. Notes and a reminder are written once the task exists; the
+     * task stays if either fails, and the answer says which.
+     */
+    addComposedTask: (
+      listId: string,
+      task: ComposedTask,
+      saveKey: string,
+      sectionId?: string,
+    ) => addComposed(listId, task, saveKey, sectionId),
     /**
      * Ticks a task, or completes a repeating one's open occurrence. The
      * phone's own day goes along, so "after done" counts from it.

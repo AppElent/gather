@@ -53,10 +53,12 @@ import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { CompletedSection } from '../../ui/completed-section'
 import { InsetList } from '../../ui/inset-list'
+import { ADD_BUTTON_CLEARANCE } from '../../ui/keyboard-composer'
 import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { useUndoToast } from '../../ui/undo-toast'
 import { WashHeader } from '../../ui/wash-header'
+import { AddTask } from './AddTaskComposer'
 import { Chip, priorityColor } from './components'
 import { GroceryAmount, useGroceryAmountText } from './GroceryFields'
 import { GroceryListBody } from './GroceryListBody'
@@ -165,6 +167,9 @@ export function TaskList({
   // A packing list keeps its checked items where they are: it is reset for
   // the next trip rather than worked through (APP-306).
   const inPlace = keepsCheckedInPlace(list.kind)
+  // A list of tasks adds from the keyboard composer; a grocery list keeps its
+  // inline row (APP-311).
+  const addsWithButton = list.writable && !list.grocery
   const listed = inPlace ? rows : active
   const finished = inPlace ? [] : completed
   const doneCount = rows.filter((task) => task.done).length
@@ -466,7 +471,9 @@ export function TaskList({
         // cover it and a grocery line's recognised chips (APP-309).
         automaticallyAdjustKeyboardInsets
         scrollEnabled={!dragging}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 24 + (addsWithButton ? ADD_BUTTON_CLEARANCE : 0),
+        }}
         refreshControl={
           // Only a provider-backed list has anything to fetch. Convex keeps
           // the rest live, and a spinner over live data is theatre.
@@ -626,8 +633,10 @@ export function TaskList({
               ) : (
                 <>
               {groups.map((section, index) => {
-                // The last section holds the composer, which adds to it.
-                const composer = list.writable && index === groups.length - 1
+                // On a grocery list the last section holds the composer, which
+                // adds to it. A list of tasks has the add button (APP-587).
+                const composer =
+                  grocery && list.writable && index === groups.length - 1
                 return (
                   <View key={section.id ?? 'none'} style={styles.section}>
                     {sectioned ? (
@@ -658,13 +667,8 @@ export function TaskList({
                       {composer ? (
                         <TaskComposer
                           listId={list.id}
-                          placeholder={
-                            addPlaceholder ??
-                            (grocery
-                              ? t.kitchen.addGroceryItem
-                              : t.tasks.list.addTask)
-                          }
-                          grocery={grocery}
+                          placeholder={addPlaceholder ?? t.kitchen.addGroceryItem}
+                          grocery
                           sectionId={section.id ?? undefined}
                           scrollRef={scrollRef}
                         />
@@ -693,6 +697,13 @@ export function TaskList({
         </View>
       </ScrollView>
 
+      {addsWithButton && !reordering ? (
+        <AddTask
+          place={`list:${list.id}`}
+          preset={{ listId: list.id }}
+          sectionId={groups[groups.length - 1]?.id ?? undefined}
+        />
+      ) : null}
       {undoToast.toast}
       {taskSheets.sheets}
       {renamingList ? (

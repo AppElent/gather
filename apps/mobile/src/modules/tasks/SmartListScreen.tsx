@@ -16,12 +16,16 @@ import {
 import { Stack } from 'expo-router'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { api } from '../../convex/api'
+import { useQuery } from '../../convex/queries'
 
 import { fmt, type Messages, plural, useI18n } from '../../i18n'
 import { SPACE, useTokens } from '../../theme/tokens'
 import { InsetList } from '../../ui/inset-list'
+import { ADD_BUTTON_CLEARANCE } from '../../ui/keyboard-composer'
 import { washScreenOptions } from '../../ui/screen-header'
 import { WashHeader } from '../../ui/wash-header'
+import { AddTask } from './AddTaskComposer'
 import { SMART_LIST_GLYPHS } from './icons'
 import {
   type SmartDate,
@@ -42,6 +46,14 @@ export function SmartList({ id }: { id: SmartListId }) {
   const taskSheets = useTaskSheets({ tasks: smart.tasks })
   const words = t.tasks.smart.lists[id]
   const tasks = smart.byList[id]
+  // A task added here belongs here: due today on Today, mine on Mine.
+  const me = useQuery(api.users.me, {})
+  const preset =
+    id === 'today'
+      ? { dueDate: smart.today }
+      : id === 'mine' && me
+        ? { assigneeId: me._id }
+        : {}
   const listOf = (task: Task) =>
     smart.lists.find((list) => list.id === task.listId)
 
@@ -63,7 +75,9 @@ export function SmartList({ id }: { id: SmartListId }) {
         testID={`smart-list-${id}`}
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 24 + ADD_BUTTON_CLEARANCE,
+        }}
       >
         <WashHeader
           group="home"
@@ -105,6 +119,7 @@ export function SmartList({ id }: { id: SmartListId }) {
           )}
         </View>
       </ScrollView>
+      <AddTask place={`smart:${id}`} preset={preset} />
       {taskSheets.sheets}
     </>
   )

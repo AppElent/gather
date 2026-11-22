@@ -167,6 +167,7 @@ vi.mock('../../ui/card', () => ({
 }))
 vi.mock('../../ui/completed-section', () => ({ CompletedSection: stub }))
 vi.mock('../../ui/inset-list', () => ({ InsetList: stub }))
+vi.mock('../../ui/keyboard-composer', () => ({ ADD_BUTTON_CLEARANCE: 84 }))
 vi.mock('../../ui/module-tile', () => ({ moduleTile: () => null }))
 vi.mock('../../ui/screen-header', () => ({ washScreenOptions: () => ({}) }))
 vi.mock('../../ui/undo-toast', () => ({ useUndoToast: () => ({ show: stub }) }))
@@ -186,6 +187,7 @@ vi.mock('./packing', () => ({ PackingProgress: stub, UncheckAll: stub }))
 vi.mock('./sections', () => ({ SectionHeading: stub, SectionsSheet: stub }))
 vi.mock('./sheets', () => ({ RenameSheet: stub }))
 vi.mock('./TaskRow', () => ({ TaskComposer: stub, TaskRow: stub }))
+vi.mock('./AddTaskComposer', () => ({ AddTask: stub }))
 vi.mock('./taskMenu', () => ({
   useTaskSheets: () => ({ onAction: () => {}, sheets: null }),
 }))

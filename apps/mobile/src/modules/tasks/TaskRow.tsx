@@ -32,6 +32,7 @@ import { useInsetSeparator } from '../../ui/inset-list'
 import { AssigneeCoin, useTaskPeople } from './assignee'
 import { useCompleteTask } from './completeTask'
 import { Checkbox } from './components'
+import { useFresh } from './freshTasks'
 import { GroceryPreview } from './GroceryFields'
 import { GroceryCompletions } from './GrocerySuggestions'
 import { TASK_ICONS } from './icons'
@@ -123,8 +124,17 @@ export function TaskRow({
 
   const box = <Checkbox checked={task.done} />
 
+  // Just saved from the keyboard composer: a moment on the wash (APP-587).
+  const fresh = useFresh(task.id)
   const row = (
-    <View style={[styles.row, { backgroundColor: tokens.surface }]}>
+    <View
+      style={[
+        styles.row,
+        {
+          backgroundColor: fresh ? tokens.tintOf('home').wash : tokens.surface,
+        },
+      ]}
+    >
       {bar === undefined ? null : (
         <View style={[styles.bar, { backgroundColor: bar }]} />
       )}
