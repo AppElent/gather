@@ -194,6 +194,39 @@ export function readTaskRefusal(error: unknown): TaskRefusalCode | null {
   return TASK_REFUSAL_CODES.find((code) => `tasks:${code}` === kind) ?? null
 }
 
+/**
+ * Why a Group-scoped call was refused at the Group itself (APP-429), before
+ * any row was read. `convex/lib/groupAccess.ts` is the only thrower.
+ *
+ * - `not-signed-in`: no caller, or a caller with no Gather account yet.
+ * - `unknown-slug`: no Group has that slug.
+ * - `not-a-member`: the Group exists and the caller is not in it.
+ *
+ * The data also carries the English sentence these refusals threw before they
+ * were keyed, as `message`. Clients that predate the kinds read nothing from an
+ * object (they fall back to their own wording); clients that know `message`
+ * keep showing the sentence they always showed until they get one of their own.
+ */
+export const GROUP_REFUSAL_CODES = [
+  'not-signed-in',
+  'unknown-slug',
+  'not-a-member',
+] as const
+export type GroupRefusalCode = (typeof GROUP_REFUSAL_CODES)[number]
+
+/** Namespaced on the wire, like the calendar's, so kinds cannot collide. */
+export function groupRefusal(
+  code: GroupRefusalCode,
+  message: string,
+): { kind: string; message: string } {
+  return { kind: `groups:${code}`, message }
+}
+
+export function readGroupRefusal(error: unknown): GroupRefusalCode | null {
+  const kind = refusalKind(error)
+  return GROUP_REFUSAL_CODES.find((code) => `groups:${code}` === kind) ?? null
+}
+
 /** The `kind` a thrown value carries, whichever vocabulary it comes from. */
 export function refusalKind(error: unknown): string | null {
   const data = errorData(error)
@@ -221,8 +254,18 @@ export function readCalendarRefusal(
   )
 }
 
-/** The sentence a server chose to show, when it threw one rather than a kind. */
+/**
+ * The sentence a server chose to show: the data itself when it threw a
+ * sentence, or the `message` a keyed refusal carries for readers that have no
+ * wording of their own for its kind. Only Group refusals carry a `message`
+ * today (`groupRefusal`); give another vocabulary one only to keep a sentence
+ * that installed readers already show.
+ */
 export function refusalSentence(error: unknown): string | null {
   const data = errorData(error)
-  return typeof data === 'string' ? data : null
+  if (typeof data === 'string') return data
+  if (typeof data === 'object' && data !== null && 'message' in data) {
+    return typeof data.message === 'string' ? data.message : null
+  }
+  return null
 }
