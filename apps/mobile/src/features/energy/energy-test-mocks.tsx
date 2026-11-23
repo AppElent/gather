@@ -28,6 +28,10 @@ export const energyState = {
   pushes: [] as unknown[],
   backs: 0,
   wash: null as unknown,
+  /** What an action resolves to, by its `module:fn` name. */
+  actions: {} as Record<string, unknown>,
+  dismissed: [] as unknown[],
+  confirms: [] as { title: string; onConfirm: () => void }[],
 }
 
 export function resetEnergyState() {
@@ -37,6 +41,9 @@ export function resetEnergyState() {
   energyState.pushes = []
   energyState.backs = 0
   energyState.wash = null
+  energyState.actions = {}
+  energyState.dismissed = []
+  energyState.confirms = []
 }
 
 /** The calls made to one mutation, by its `module:fn` name. */
@@ -152,7 +159,15 @@ const SectionLabel = ({ children }: { children: ReactNode }) =>
   createElement('h4', null, children)
 const InsetList = ({ children, ...props }: Props) =>
   createElement('div', common(props), children)
-const InsetRow = ({ title, subtitle, trailing, onPress, ...props }: Props) =>
+const InsetRow = ({
+  title,
+  subtitle,
+  subtitleTone,
+  trailing,
+  children,
+  onPress,
+  ...props
+}: Props) =>
   createElement(
     onPress ? 'button' : 'div',
     {
@@ -161,8 +176,15 @@ const InsetRow = ({ title, subtitle, trailing, onPress, ...props }: Props) =>
       onClick: onPress as (() => void) | undefined,
     },
     createElement('span', null, title as string),
-    subtitle ? createElement('span', null, subtitle as string) : null,
+    subtitle
+      ? createElement(
+          'span',
+          { 'data-tone': subtitleTone as string | undefined },
+          subtitle as string,
+        )
+      : null,
     trailing as ReactNode,
+    children,
   )
 const DateTimeChip = ({
   testID,
@@ -199,8 +221,10 @@ const MenuView = ({
   testID,
   actions,
   onPressAction,
+  children,
 }: {
   testID: string
+  children?: ReactNode
   actions: { id: string }[]
   onPressAction: (event: { nativeEvent: { event: string } }) => void
 }) =>
@@ -215,6 +239,7 @@ const MenuView = ({
         onClick: () => onPressAction({ nativeEvent: { event: action.id } }),
       }),
     ),
+    children,
   )
 
 const router = {
@@ -223,6 +248,7 @@ const router = {
     energyState.backs += 1
   },
   canGoBack: () => true,
+  dismissTo: (href: unknown) => energyState.dismissed.push(href),
 }
 
 const tokens = new Proxy(
@@ -260,14 +286,20 @@ export const safeAreaMock = () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 })
 export const routerMock = () => ({ Stack, useRouter: () => router })
+const recorded = (name: string) => async (args: unknown) => {
+  energyState.calls.push({ name, args })
+  if (energyState.refuse) {
+    throw Object.assign(new Error('refused'), { data: energyState.refuse })
+  }
+  return name in energyState.actions ? energyState.actions[name] : 'id1'
+}
 export const convexReactMock = () => ({
-  useMutation: (name: string) => async (args: unknown) => {
-    energyState.calls.push({ name, args })
-    if (energyState.refuse) {
-      throw Object.assign(new Error('refused'), { data: energyState.refuse })
-    }
-    return 'id1'
-  },
+  useMutation: recorded,
+  useAction: recorded,
+})
+export const confirmMock = () => ({
+  confirmDestructive: (options: { title: string; onConfirm: () => void }) =>
+    energyState.confirms.push(options),
 })
 export const apiMock = () => ({
   api: new Proxy(
@@ -294,8 +326,8 @@ export const groupMock = () => ({
 })
 export async function i18nMock() {
   const { en } = await import('../../i18n/messages/en')
-  const { fmt } = await import('@gather/core/i18n')
-  return { useI18n: () => ({ t: en, locale: 'en' }), fmt }
+  const { fmt, plural } = await import('@gather/core/i18n')
+  return { useI18n: () => ({ t: en, locale: 'en' }), fmt, plural }
 }
 export const iconsMock = () => ({
   UI_ICONS: new Proxy({}, { get: () => Nothing }),

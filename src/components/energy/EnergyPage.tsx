@@ -1,7 +1,14 @@
 import { checkEnergySiteName, ENERGY_LIMITS } from '@gather/core/energy'
-import { formatEnergyDate, formatEnergyEuro } from '@gather/core/energy-present'
+import {
+  type EnergySourceState,
+  energyHomeHasProblem,
+  energyHomeSourceLine,
+  energyHomeSources,
+  formatEnergyDate,
+  formatEnergyEuro,
+} from '@gather/core/energy-present'
 import { readEnergyRefusal } from '@gather/core/refusals'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { type FormEvent, useId, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -23,6 +30,7 @@ import {
   PRIMARY,
   RowList,
   readingDate,
+  SECONDARY,
   useEnergyToday,
 } from './energyShared'
 
@@ -34,13 +42,15 @@ type SourceChoice = 'homeAssistant' | 'manual'
  * Empty, it says what the Module is for and offers one step: adding an address
  * (ADR-0022). The form asks a name, an optional House from Finances and how the
  * data comes in, as `designs/energy/Main.dc.html` draws it. Choosing meter
- * readings saves that source with the address; Home Assistant is connected on
- * its own screen later (APP-495), so choosing it saves the address alone.
+ * readings saves that source with the address; choosing
+ * Home Assistant saves the address alone and goes on to connecting it
+ * (APP-495).
  *
  * With an address (APP-494), the page names it and its source, invites the
  * first meter readings while nothing is measured, shows usage per hour (an
  * hourly source) or per day (typed readings) and links to Usage, Costs,
- * Meter readings and Contract.
+ * Meter readings, Contract and Sources. A source with a problem says so in
+ * the summary's second line, with when its data is from (ADR-0020).
  */
 export function EnergyPage() {
   const group = useRequiredCurrentGroup()
@@ -85,7 +95,7 @@ function SiteHome({
 }: {
   overview: {
     site: { name: string }
-    sources: { kind: string; label: string }[]
+    sources: EnergySourceState[]
   }
   groupSlug: string
 }) {
@@ -99,19 +109,27 @@ function SiteHome({
     api.energyUsage.day,
     hourly ? { groupSlug, day: today, today } : 'skip',
   )
-  const manual = overview.sources.find((source) => source.kind === 'manual')
   const typedChannels = form?.channels.length ?? 0
 
-  const sourceLine = manual
-    ? form?.lastReadingAt
-      ? fmt(copy.site.lastReading, {
-          source: manual.label,
-          date: readingDate(form.lastReadingAt, locale),
-        })
-      : fmt(copy.site.noReadingYet, { source: manual.label })
-    : overview.sources.length === 0
+  const now = Date.now()
+  const shown = energyHomeSources(overview.sources, typedChannels)
+  const sourceLine =
+    overview.sources.length === 0
       ? copy.site.sourceNone
-      : overview.sources.map((source) => source.label).join(' · ')
+      : shown
+          .map((source) =>
+            source.kind !== 'manual'
+              ? energyHomeSourceLine(source, now, copy, locale)
+              : form?.lastReadingAt
+                ? fmt(copy.site.lastReading, {
+                    source: source.label,
+                    date: readingDate(form.lastReadingAt, locale),
+                  })
+                : fmt(copy.site.noReadingYet, { source: source.label }),
+          )
+          .join(' · ')
+  const problem = energyHomeHasProblem(shown)
+  const connected = shown.some((source) => source.kind !== 'manual')
 
   const monthCost = period?.totals.cost
   const contract = period?.contract
@@ -120,7 +138,11 @@ function SiteHome({
     <>
       <SurfaceCard className="grid gap-1">
         <h3 className="m-0 text-lg font-semibold">{overview.site.name}</h3>
-        <p className="m-0 text-sm text-[var(--muted)]">{sourceLine}</p>
+        <p
+          className={`m-0 text-sm ${problem ? 'font-semibold text-[var(--danger)]' : 'text-[var(--muted)]'}`}
+        >
+          {sourceLine}
+        </p>
       </SurfaceCard>
 
       {overview.sources.length === 0 ? (
@@ -129,13 +151,16 @@ function SiteHome({
           <p className="m-0 text-sm text-[var(--muted)]">
             {copy.site.nextHomeAssistant}
           </p>
-          <div>
-            <Link {...linkTo('energyReadings')} className={PRIMARY}>
+          <div className="flex flex-wrap gap-2">
+            <Link {...linkTo('energyConnect')} className={PRIMARY}>
+              {copy.site.nextConnect}
+            </Link>
+            <Link {...linkTo('energyReadings')} className={SECONDARY}>
               {copy.home.firstReadingAction}
             </Link>
           </div>
         </SurfaceCard>
-      ) : form && period && typedChannels === 0 && !hourly ? (
+      ) : form && period && typedChannels === 0 && !hourly && !connected ? (
         <SurfaceCard className="grid gap-2">
           <h3 className="m-0 text-lg font-semibold">
             {copy.home.firstReadingTitle}
@@ -196,6 +221,11 @@ function SiteHome({
               ? contractSummary(contract, messages, locale)
               : copy.home.contractSubNone
           }
+        />
+        <NavRow
+          link={linkTo('energySources')}
+          label={copy.sources.title}
+          sub={copy.sources.homeRowSub}
         />
       </RowList>
     </>
@@ -308,6 +338,7 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
   const copy = messages.energy
   const houses = useQuery(api.houses.list, { groupSlug })
   const createSite = useMutation(api.energy.createSite)
+  const navigate = useNavigate()
   const [name, setName] = useState(copy.form.defaultName)
   const [houseId, setHouseId] = useState('')
   const [source, setSource] = useState<SourceChoice>('homeAssistant')
@@ -334,6 +365,7 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
             ? { kind: 'manual', label: copy.site.manualSourceLabel }
             : { kind: 'homeAssistant' },
       })
+      if (source === 'homeAssistant') await navigate(linkTo('energyConnect'))
     } catch (caught) {
       const code = readEnergyRefusal(caught)
       setError(

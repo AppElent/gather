@@ -417,6 +417,35 @@ export function energyHomeSourceLine(
 }
 
 /**
+ * The sources Home's summary names. Not typed meters once Home Assistant
+ * measures them all, nor a Home Assistant an admin disconnected while the
+ * Group types its meters again.
+ */
+export function energyHomeSources<
+  S extends Pick<EnergySourceState, 'kind' | 'status' | 'lastError'>,
+>(sources: readonly S[], typedMeters: number): S[] {
+  const gone = (source: S) =>
+    source.status === 'needsReconnect' && source.lastError === 'disconnected'
+  const connected = sources.some(
+    (each) => each.kind !== 'manual' && !gone(each),
+  )
+  return sources.filter((each) =>
+    each.kind === 'manual'
+      ? typedMeters > 0 || !connected
+      : !gone(each) || typedMeters === 0,
+  )
+}
+
+/** Whether any source Home names needs attention. */
+export function energyHomeHasProblem(
+  sources: readonly Pick<EnergySourceState, 'status'>[],
+): boolean {
+  return sources.some(
+    (each) => each.status === 'error' || each.status === 'needsReconnect',
+  )
+}
+
+/**
  * The channels list: a split meter's two counters on one row, and a
  * battery's two directions, each with the source it comes from.
  */

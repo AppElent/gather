@@ -40,9 +40,11 @@ import { Route as AppBabyNewRouteImport } from './routes/_app/baby/new'
 import { Route as AppBeersIndexRouteImport } from './routes/_app/beers/index'
 import { Route as AppCheesesIndexRouteImport } from './routes/_app/cheeses/index'
 import { Route as AppEnergyIndexRouteImport } from './routes/_app/energy/index'
+import { Route as AppEnergyConnectRouteImport } from './routes/_app/energy/connect'
 import { Route as AppEnergyContractRouteImport } from './routes/_app/energy/contract'
 import { Route as AppEnergyCostsRouteImport } from './routes/_app/energy/costs'
 import { Route as AppEnergyReadingsRouteImport } from './routes/_app/energy/readings'
+import { Route as AppEnergySourcesRouteImport } from './routes/_app/energy/sources'
 import { Route as AppEnergyUsageRouteImport } from './routes/_app/energy/usage'
 import { Route as AppIntegrationsCallbackRouteImport } from './routes/_app/integrations.callback'
 import { Route as AppLoyaltyCardsIndexRouteImport } from './routes/_app/loyalty-cards/index'
@@ -217,6 +219,11 @@ const AppEnergyIndexRoute = AppEnergyIndexRouteImport.update({
   path: '/energy/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEnergyConnectRoute = AppEnergyConnectRouteImport.update({
+  id: '/energy/connect',
+  path: '/energy/connect',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEnergyContractRoute = AppEnergyContractRouteImport.update({
   id: '/energy/contract',
   path: '/energy/contract',
@@ -230,6 +237,11 @@ const AppEnergyCostsRoute = AppEnergyCostsRouteImport.update({
 const AppEnergyReadingsRoute = AppEnergyReadingsRouteImport.update({
   id: '/energy/readings',
   path: '/energy/readings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEnergySourcesRoute = AppEnergySourcesRouteImport.update({
+  id: '/energy/sources',
+  path: '/energy/sources',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEnergyUsageRoute = AppEnergyUsageRouteImport.update({
@@ -358,9 +370,11 @@ export interface FileRoutesByFullPath {
   '/shared-costs': typeof AppSharedCostsRoute
   '/tasks': typeof AppTasksRoute
   '/baby/new': typeof AppBabyNewRoute
+  '/energy/connect': typeof AppEnergyConnectRoute
   '/energy/contract': typeof AppEnergyContractRoute
   '/energy/costs': typeof AppEnergyCostsRoute
   '/energy/readings': typeof AppEnergyReadingsRoute
+  '/energy/sources': typeof AppEnergySourcesRoute
   '/energy/usage': typeof AppEnergyUsageRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
@@ -412,9 +426,11 @@ export interface FileRoutesByTo {
   '/tasks': typeof AppTasksRoute
   '/': typeof AppIndexRoute
   '/baby/new': typeof AppBabyNewRoute
+  '/energy/connect': typeof AppEnergyConnectRoute
   '/energy/contract': typeof AppEnergyContractRoute
   '/energy/costs': typeof AppEnergyCostsRoute
   '/energy/readings': typeof AppEnergyReadingsRoute
+  '/energy/sources': typeof AppEnergySourcesRoute
   '/energy/usage': typeof AppEnergyUsageRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
@@ -468,9 +484,11 @@ export interface FileRoutesById {
   '/_app/tasks': typeof AppTasksRoute
   '/_app/': typeof AppIndexRoute
   '/_app/baby/new': typeof AppBabyNewRoute
+  '/_app/energy/connect': typeof AppEnergyConnectRoute
   '/_app/energy/contract': typeof AppEnergyContractRoute
   '/_app/energy/costs': typeof AppEnergyCostsRoute
   '/_app/energy/readings': typeof AppEnergyReadingsRoute
+  '/_app/energy/sources': typeof AppEnergySourcesRoute
   '/_app/energy/usage': typeof AppEnergyUsageRoute
   '/_app/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/_app/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
@@ -524,9 +542,11 @@ export interface FileRouteTypes {
     | '/shared-costs'
     | '/tasks'
     | '/baby/new'
+    | '/energy/connect'
     | '/energy/contract'
     | '/energy/costs'
     | '/energy/readings'
+    | '/energy/sources'
     | '/energy/usage'
     | '/integrations/callback'
     | '/loyalty-cards/new'
@@ -578,9 +598,11 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/'
     | '/baby/new'
+    | '/energy/connect'
     | '/energy/contract'
     | '/energy/costs'
     | '/energy/readings'
+    | '/energy/sources'
     | '/energy/usage'
     | '/integrations/callback'
     | '/loyalty-cards/new'
@@ -633,9 +655,11 @@ export interface FileRouteTypes {
     | '/_app/tasks'
     | '/_app/'
     | '/_app/baby/new'
+    | '/_app/energy/connect'
     | '/_app/energy/contract'
     | '/_app/energy/costs'
     | '/_app/energy/readings'
+    | '/_app/energy/sources'
     | '/_app/energy/usage'
     | '/_app/integrations/callback'
     | '/_app/loyalty-cards/new'
@@ -892,6 +916,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEnergyIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/energy/connect': {
+      id: '/_app/energy/connect'
+      path: '/energy/connect'
+      fullPath: '/energy/connect'
+      preLoaderRoute: typeof AppEnergyConnectRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/energy/contract': {
       id: '/_app/energy/contract'
       path: '/energy/contract'
@@ -911,6 +942,13 @@ declare module '@tanstack/react-router' {
       path: '/energy/readings'
       fullPath: '/energy/readings'
       preLoaderRoute: typeof AppEnergyReadingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/energy/sources': {
+      id: '/_app/energy/sources'
+      path: '/energy/sources'
+      fullPath: '/energy/sources'
+      preLoaderRoute: typeof AppEnergySourcesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/energy/usage': {
@@ -1068,9 +1106,11 @@ interface AppRouteChildren {
   AppTasksRoute: typeof AppTasksRoute
   AppIndexRoute: typeof AppIndexRoute
   AppBabyNewRoute: typeof AppBabyNewRoute
+  AppEnergyConnectRoute: typeof AppEnergyConnectRoute
   AppEnergyContractRoute: typeof AppEnergyContractRoute
   AppEnergyCostsRoute: typeof AppEnergyCostsRoute
   AppEnergyReadingsRoute: typeof AppEnergyReadingsRoute
+  AppEnergySourcesRoute: typeof AppEnergySourcesRoute
   AppEnergyUsageRoute: typeof AppEnergyUsageRoute
   AppIntegrationsCallbackRoute: typeof AppIntegrationsCallbackRoute
   AppLoyaltyCardsNewRoute: typeof AppLoyaltyCardsNewRoute
@@ -1115,9 +1155,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppTasksRoute: AppTasksRoute,
   AppIndexRoute: AppIndexRoute,
   AppBabyNewRoute: AppBabyNewRoute,
+  AppEnergyConnectRoute: AppEnergyConnectRoute,
   AppEnergyContractRoute: AppEnergyContractRoute,
   AppEnergyCostsRoute: AppEnergyCostsRoute,
   AppEnergyReadingsRoute: AppEnergyReadingsRoute,
+  AppEnergySourcesRoute: AppEnergySourcesRoute,
   AppEnergyUsageRoute: AppEnergyUsageRoute,
   AppIntegrationsCallbackRoute: AppIntegrationsCallbackRoute,
   AppLoyaltyCardsNewRoute: AppLoyaltyCardsNewRoute,

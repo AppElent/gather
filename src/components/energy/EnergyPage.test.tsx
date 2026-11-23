@@ -18,6 +18,7 @@ const state = vi.hoisted(() => ({
   month: null as unknown,
   day: null as unknown,
   calls: [] as unknown[],
+  navigate: vi.fn(),
   result: Promise.resolve('site1') as Promise<unknown>,
 }))
 
@@ -37,6 +38,7 @@ vi.mock('convex/react', () => ({
 }))
 
 vi.mock('@tanstack/react-router', () => ({
+  useNavigate: () => state.navigate,
   Link: ({
     children,
     to,
@@ -70,6 +72,7 @@ beforeEach(() => {
   state.month = null
   state.day = null
   state.calls = []
+  state.navigate.mockClear()
   state.result = Promise.resolve('site1')
 })
 
@@ -122,6 +125,11 @@ describe('EnergyPage', () => {
       houseId: undefined,
       source: { kind: 'homeAssistant' },
     })
+    await waitFor(() =>
+      expect(state.navigate).toHaveBeenCalledWith(
+        expect.objectContaining({ to: '/energy/connect' }),
+      ),
+    )
   })
 
   test('an empty name is caught before anything is sent', () => {
@@ -146,13 +154,16 @@ describe('EnergyPage', () => {
     )
   })
 
-  test('an address chosen with Home Assistant alone says what is coming', () => {
+  test('an address without a source asks to connect Home Assistant or type a reading', () => {
     state.overview = { site: { _id: 's1', name: 'Thuis' }, sources: [] }
     state.form = { hasManualSource: false, lastReadingAt: null, channels: [] }
     state.month = monthPeriod('2026-11', '2026-11-20')
     renderInGroup(<EnergyPage />, { locale: 'nl' })
     expect(screen.getByRole('heading', { name: 'Thuis' })).toBeInTheDocument()
-    expect(screen.getByText('Binnenkort')).toBeInTheDocument()
+    const links = screen.getAllByRole('link').map((link) => link.getAttribute('href'))
+    expect(screen.getByRole('heading', { name: 'Nog één stap' })).toBeInTheDocument()
+    expect(links).toContain('/energy/connect')
+    expect(links).toContain('/energy/readings')
     expect(screen.getByText('Nog geen bron gekoppeld')).toBeInTheDocument()
   })
 
@@ -174,7 +185,7 @@ describe('EnergyPage', () => {
     expect(screen.queryByText('Binnenkort')).not.toBeInTheDocument()
   })
 
-  test('with readings, it shows the days of this month and the four rows', () => {
+  test('with readings, it shows the days of this month and the five rows', () => {
     state.overview = {
       site: { _id: 's1', name: 'Thuis' },
       sources: [{ _id: 'src1', kind: 'manual', label: 'Meter readings', status: 'ok' }],
@@ -206,6 +217,7 @@ describe('EnergyPage', () => {
       '/energy/costs',
       '/energy/readings',
       '/energy/contract',
+      '/energy/sources',
     ])
     expect(within(nav).getByText('Per day, month and year')).toBeInTheDocument()
     expect(within(nav).getByText('€60.00 so far in November')).toBeInTheDocument()
@@ -218,6 +230,31 @@ describe('EnergyPage', () => {
     expect(
       screen.queryByRole('heading', { name: 'Type your first meter readings' }),
     ).not.toBeInTheDocument()
+  })
+
+  test('a source in error is said in words with when its data is from, and its data stays', () => {
+    state.overview = {
+      site: { _id: 's1', name: 'Thuis' },
+      sources: [
+        {
+          _id: 'src1',
+          kind: 'homeAssistant',
+          label: 'Home Assistant',
+          status: 'error',
+          lastError: 'unreachable',
+          lastSyncedAt: Date.parse('2026-11-20T09:15:00Z'),
+        },
+      ],
+    }
+    state.form = { hasManualSource: false, lastReadingAt: null, channels: [] }
+    state.month = monthPeriod('2026-11', '2026-11-20')
+    renderInGroup(<EnergyPage />, { locale: 'nl' })
+    const line = screen.getByText(/Home Assistant antwoordt niet/)
+    expect(line).toHaveTextContent('10:15')
+    expect(screen.queryByText('Typ je eerste meterstanden')).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Verbruik per dag deze maand' }),
+    ).toBeInTheDocument()
   })
 
   test('an hourly site shows today per hour', () => {
