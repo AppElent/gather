@@ -133,6 +133,84 @@ describe('staples', () => {
     expect(await staple(t, bread)).toMatchObject({ low: true })
   })
 
+  describe('undo when another Member added it too (APP-681)', () => {
+    const add = (who: Seeded['as'], report?: true) =>
+      who.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'melk', report })
+    const undo = (who: Seeded['as'], id: Id<'groceryStaples'>) =>
+      who.mutation(api.groceryStaples.remove, { groupSlug: SLUG, id, unlessLow: true })
+
+    async function seedBoth() {
+      const seeded = await seed()
+      const { t, groupId, bobId } = seeded
+      await t.run((ctx) => seedMember(ctx, groupId, bobId, 'member'))
+      return seeded
+    }
+
+    // `undefined` is how an installed app, and In stock, add one.
+    for (const report of [true, undefined] as const)
+      test(`it stays for Bob (report: ${report})`, async () => {
+        const { t, as, asBob, aliceId, bobId } = await seedBoth()
+        const id = await addStaple(as, 'Melk')
+        await add(asBob, report)
+        await add(asBob, report)
+        await undo(as, id)
+        expect(await staple(t, id)).toMatchObject({
+          createdBy: aliceId,
+          keptBy: [bobId],
+        })
+      })
+
+    test('Alice adding it again herself does not keep it', async () => {
+      const { t, as } = await seedBoth()
+      const id = await addStaple(as, 'Melk')
+      await add(as, true)
+      expect((await staple(t, id))?.keptBy).toBeUndefined()
+      await undo(as, id)
+      expect(await staple(t, id)).toBeNull()
+    })
+
+    test('a Member who only could have added it does not keep it', async () => {
+      const { t, as, asBob } = await seedBoth()
+      const id = await addStaple(as, 'Melk')
+      await asBob.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Brood' })
+      await undo(as, id)
+      expect(await staple(t, id)).toBeNull()
+    })
+
+    test('In stock still removes it, without the undo’s condition', async () => {
+      const { t, as, asBob } = await seedBoth()
+      const id = await addStaple(as, 'Melk')
+      await add(asBob)
+      await as.mutation(api.groceryStaples.remove, { groupSlug: SLUG, id })
+      expect(await staple(t, id)).toBeNull()
+    })
+
+    test('a Member who left no longer keeps it', async () => {
+      const { t, as, asBob, groupId } = await seedBoth()
+      const id = await addStaple(as, 'Melk')
+      await add(asBob)
+      await asBob.mutation(api.groups.leaveGroup, { groupId })
+      expect((await staple(t, id))?.keptBy).toEqual([])
+      await undo(as, id)
+      expect(await staple(t, id)).toBeNull()
+    })
+
+    test('a deleted account is named on no staple', async () => {
+      vi.useFakeTimers()
+      try {
+        const { t, as, asBob, bobId } = await seedBoth()
+        const id = await addStaple(as, 'Melk')
+        await add(asBob)
+        await asBob.mutation(api.accounts.deleteAccount, {})
+        await t.finishAllScheduledFunctions(vi.runAllTimers)
+        expect(await t.run((ctx) => ctx.db.get(bobId))).toBeNull()
+        expect((await staple(t, id))?.keptBy).toEqual([])
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+  })
+
   test('a staple the Group had is reported as not made', async () => {
     const { as } = await seed()
     const id = await addStaple(as, 'Melk')

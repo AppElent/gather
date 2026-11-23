@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.5.0
+version: 2.6.0
 status: current
 ---
 
@@ -75,7 +75,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   they added to a household stays with the household. `detachFromGroup` takes
   them out of it the same way whether they left or deleted their account: a cost
   split naming them is cleared, a saved split scenario keeps their name
-  without their id, and a calendar event drops them from its assignees.
+  without their id, a calendar event drops them from its assignees, and a
+  staple they kept (`groceryStaples.keptBy`, APP-681) no longer names them.
 - **Two choices, Gather's data first** ([ADR-0050](../adr/0050-deleting-gather-data-keeps-the-appelent-login.md)).
   Gather shares its Clerk login with Foundry, Fairway and Arcade Club. "Delete
   Gather data only" runs the purge with `keepLogin`, never calls

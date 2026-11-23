@@ -176,6 +176,7 @@ async function household(t: Harness): Promise<Household> {
       aisle: 'pasta_world',
       low: false,
       createdBy: bob,
+      keptBy: [alice],
     })
 
     // Tasks, notes and the calendar.
@@ -600,7 +601,9 @@ describe('what the file contains', () => {
     // The Pantry folded into In stock (APP-314): both its rows and the
     // staples they became go out.
     expect(household.pantryEntries.map((r) => r.title)).toEqual(['Rice'])
-    expect(household.groceryStaples.map((r) => r.name)).toEqual(['Rice'])
+    expect(household.groceryStaples).toEqual([
+      expect.objectContaining({ name: 'Rice', createdBy: 'Bob', keptBy: ['Alice'] }),
+    ])
     expect(groupOf(data, 'allotment').notes.map((n) => n.title)).toEqual([
       'Seeds',
     ])
