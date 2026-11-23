@@ -494,3 +494,95 @@ describe('mealPreferences: per-item lists (APP-446)', () => {
     expect(prefs.slots.dinner.days).toEqual([1, 2])
   })
 })
+
+describe('mealPreferences: cooking minutes and smart switches per field (APP-573)', () => {
+  const prefsOf = (t: Harness, who: typeof alice) =>
+    t.withIdentity(who).query(api.mealPreferences.get, { groupSlug: 'home' })
+
+  test('two Members changing two days at once both keep theirs', async () => {
+    const { t } = await seed()
+    await Promise.all([
+      t.withIdentity(alice).mutation(api.mealPreferences.setCookingMinutes, {
+        groupSlug: 'home',
+        day: 0,
+        minutes: 15,
+      }),
+      t.withIdentity(bob).mutation(api.mealPreferences.setCookingMinutes, {
+        groupSlug: 'home',
+        day: 5,
+        minutes: null,
+      }),
+      t.withIdentity(bob).mutation(api.mealPreferences.setCookingMinutes, {
+        groupSlug: 'home',
+        day: 3,
+        minutes: 90,
+      }),
+    ])
+    expect((await prefsOf(t, alice)).cookingMinutes).toEqual([
+      15, 30, 30, 90, 30, null, 60,
+    ])
+  })
+
+  test('two Members flipping two smart switches at once both keep theirs', async () => {
+    const { t } = await seed()
+    await Promise.all([
+      t.withIdentity(alice).mutation(api.mealPreferences.setSmartSwitch, {
+        groupSlug: 'home',
+        key: 'useStock',
+        on: false,
+      }),
+      t.withIdentity(bob).mutation(api.mealPreferences.setSmartSwitch, {
+        groupSlug: 'home',
+        key: 'preferHighRated',
+        on: false,
+      }),
+    ])
+    expect((await prefsOf(t, bob)).smart).toEqual({
+      useStock: false,
+      useCalendar: true,
+      preferHighRated: false,
+    })
+  })
+
+  test('an outsider is refused and writes nothing', async () => {
+    const { t, home } = await seed()
+    await expect(
+      t.withIdentity(carol).mutation(api.mealPreferences.setCookingMinutes, {
+        groupSlug: 'home',
+        day: 1,
+        minutes: 15,
+      }),
+    ).rejects.toThrow('Not a member of that group')
+    await expect(
+      t.withIdentity(carol).mutation(api.mealPreferences.setSmartSwitch, {
+        groupSlug: 'home',
+        key: 'useStock',
+        on: false,
+      }),
+    ).rejects.toThrow('Not a member of that group')
+    expect(await rowOf(t, home)).toBeNull()
+  })
+
+  test('the whole-value `update` still works for a phone from before', async () => {
+    const { t } = await seed()
+    await t.withIdentity(alice).mutation(api.mealPreferences.update, {
+      groupSlug: 'home',
+      patch: {
+        cookingMinutes: [20, 20, 20, 20, 20, 45, null],
+        smart: { useStock: false, useCalendar: false, preferHighRated: true },
+      },
+    })
+    await t.withIdentity(bob).mutation(api.mealPreferences.setCookingMinutes, {
+      groupSlug: 'home',
+      day: 1,
+      minutes: 60,
+    })
+    const prefs = await prefsOf(t, bob)
+    expect(prefs.cookingMinutes).toEqual([20, 60, 20, 20, 20, 45, null])
+    expect(prefs.smart).toEqual({
+      useStock: false,
+      useCalendar: false,
+      preferHighRated: true,
+    })
+  })
+})
