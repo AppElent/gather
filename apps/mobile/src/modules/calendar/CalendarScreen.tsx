@@ -66,6 +66,8 @@ export interface CalendarScreenProps {
   onViewChange: (view: CalendarView) => void
   onOpenCalendars: () => void
   onOpenPeople: () => void
+  /** The header menu's Add event: opens the composer. */
+  onAddEvent: () => void
   hasDraft: boolean
   onResumeDraft: () => void
 }
@@ -81,6 +83,7 @@ export function CalendarScreen({
   onViewChange,
   onOpenCalendars,
   onOpenPeople,
+  onAddEvent,
   hasDraft,
   onResumeDraft,
 }: CalendarScreenProps) {
@@ -171,6 +174,7 @@ export function CalendarScreen({
           }}
           onOpenCalendars={onOpenCalendars}
           onOpenPeople={onOpenPeople}
+          onAddEvent={onAddEvent}
         />
         {/* box-none: the row itself never takes a touch, but the draft pill does. */}
         <View style={styles.status} pointerEvents="box-none">

@@ -1153,6 +1153,13 @@ export const en = {
     taskTitle: 'Task name',
     description: 'Description',
     taskBody: 'Description, links, what’s needed…',
+    /** The add button on Notes (APP-588), and the note's body field. */
+    addNote: 'New note',
+    noteBody: 'Start typing…',
+    /** A note's save failed while the composer still showed it. */
+    noteFailed: 'That note could not be saved. Try again.',
+    /** A note's save failed once the composer had moved on or closed. */
+    noteNotSaved: '“{title}” was not saved.',
     label: 'Label',
     /** Starts a #label in the field, where it is recognised as typed. */
     newLabel: 'New label…',
@@ -1390,7 +1397,6 @@ export const en = {
     pinned: 'Pinned',
     recent: 'Recent',
     empty: 'No notes yet.',
-    newNote: 'New note',
     untitled: 'Untitled note',
     titlePlaceholder: 'Title',
     bodyPlaceholder: 'Start writing…',

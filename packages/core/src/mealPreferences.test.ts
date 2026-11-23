@@ -218,7 +218,46 @@ describe('listChangePatch', () => {
     slots: DEFAULT_MEAL_PREFERENCES.slots as ReturnType<
       typeof resolveMealPreferences
     >['slots'],
+    cookingMinutes: [...DEFAULT_MEAL_PREFERENCES.cookingMinutes],
+    smart: { ...DEFAULT_MEAL_PREFERENCES.smart },
   }
+
+  test('one day’s cooking time changes, the other six stay (APP-573)', () => {
+    expect(
+      listChangePatch(current, { list: 'cookingMinutes', day: 2, minutes: 45 }),
+    ).toEqual({
+      ok: true,
+      patch: { cookingMinutes: [30, 30, 45, 30, 30, 60, 60] },
+    })
+    expect(
+      listChangePatch(current, { list: 'cookingMinutes', day: 6, minutes: null }),
+    ).toEqual({
+      ok: true,
+      patch: { cookingMinutes: [30, 30, 30, 30, 30, 60, null] },
+    })
+    expect(current.cookingMinutes).toEqual([30, 30, 30, 30, 30, 60, 60])
+  })
+
+  test('a cooking time off the cycle is refused by field', () => {
+    expect(
+      listChangePatch(current, {
+        list: 'cookingMinutes',
+        day: 0,
+        minutes: 25 as 30,
+      }),
+    ).toEqual({ ok: false, field: 'cookingMinutes' })
+  })
+
+  test('one smart switch changes, the other two stay (APP-573)', () => {
+    expect(
+      listChangePatch(current, { list: 'smart', key: 'useCalendar', on: false }),
+    ).toEqual({
+      ok: true,
+      patch: {
+        smart: { useStock: true, useCalendar: false, preferHighRated: true },
+      },
+    })
+  })
 
   test('adds and removes one item, keeping the rest', () => {
     expect(

@@ -21,6 +21,11 @@ export interface Neutrals {
   muted: string
   /** 0.5 pt separators. Decorative, never the only edge of a control. */
   hair: string
+  /**
+   * A stronger rule: a chart's baseline and the dashed outline of a slot
+   * still to come (designs/energy, section 11). Decorative like `hair`.
+   */
+  hairStrong: string
   /** Due or overdue words and destructive actions; always a word. */
   danger: string
   /** Text on an `ink` fill. */
@@ -35,6 +40,7 @@ export const NEUTRALS = {
     ink: '#1A1F1D',
     muted: '#5E6764',
     hair: '#DFE2DE',
+    hairStrong: '#9AA19D',
     danger: '#A4372C',
     onInk: '#FFFFFF',
   },
@@ -45,6 +51,7 @@ export const NEUTRALS = {
     ink: '#F1F3F1',
     muted: '#A0A8A4',
     hair: '#2E3331',
+    hairStrong: '#5A615E',
     danger: '#F0917F',
     onInk: '#0F1110',
   },

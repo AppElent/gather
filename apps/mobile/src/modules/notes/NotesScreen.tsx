@@ -8,6 +8,9 @@
  * of title + first line + when, in two groups: the ones somebody pinned, and
  * the rest by recency.
  *
+ * New notes start in the keyboard composer behind the add button (APP-588);
+ * the note screen is where one is read and edited.
+ *
  * Search is the header's magnifying glass: the one search screen with Notes
  * preset (APP-613), not a field of its own.
  *
@@ -23,10 +26,11 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { ModuleHeaderActions } from '../../search/ModuleSearchButton'
-import { UI_ICONS } from '../../theme/icons'
 import { TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
+import { ADD_BUTTON_CLEARANCE } from '../../ui/keyboard-composer'
 import { SectionLabel } from '../../ui/section-label'
+import { AddNote } from './AddNoteComposer'
 import { confirmDeleteNote } from './notesActions'
 import { noteWhen, preview } from './noteText'
 import { type Note, useNoteActions, useNotes } from './store'
@@ -120,24 +124,7 @@ export function Notes() {
         options={{
           headerShown: true,
           title: t.notes.title,
-          headerRight: () => (
-            <ModuleHeaderActions module="notes">
-              <Pressable
-                testID="note-new"
-                accessibilityRole="button"
-                accessibilityLabel={t.notes.newNote}
-                hitSlop={12}
-                onPress={async () => {
-                  const id = await actions.addNote()
-                  haptics.itemSaved()
-                  open(id)
-                }}
-                style={styles.headerButton}
-              >
-                <UI_ICONS.Plus size={22} color={tokens.ink} strokeWidth={2.2} />
-              </Pressable>
-            </ModuleHeaderActions>
-          ),
+          headerRight: () => <ModuleHeaderActions module="notes" />,
         }}
       />
       <ScrollView
@@ -145,7 +132,7 @@ export function Notes() {
         style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: insets.bottom + 24 },
+          { paddingBottom: insets.bottom + 24 + ADD_BUTTON_CLEARANCE },
         ]}
       >
         {notes.length === 0 ? (
@@ -169,13 +156,13 @@ export function Notes() {
           </>
         )}
       </ScrollView>
+      <AddNote />
     </>
   )
 }
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 16 },
-  headerButton: { paddingHorizontal: 6, paddingVertical: 6 },
   group: { gap: 8 },
   row: {
     flexDirection: 'row',

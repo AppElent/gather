@@ -120,6 +120,12 @@ export interface KeyboardComposerProps {
     visible: boolean
     placeholder: string
     accessibilityLabel: string
+    /**
+     * Several lines while collapsed too (a note's body): Return starts a new
+     * line rather than lowering the keyboard, and the field grows to a few
+     * lines before it scrolls.
+     */
+    multiline?: boolean
   }
   /** The row while collapsed: the always-shown chips and the ones set. */
   chips: readonly ComposerChip[]
@@ -363,10 +369,11 @@ function ComposerCard({
                     placeholder={body.placeholder}
                     placeholderTextColor={tokens.muted}
                     accessibilityLabel={body.accessibilityLabel}
-                    multiline={expanded}
+                    multiline={expanded || body.multiline}
                     textAlignVertical="top"
                     style={[
                       expanded ? styles.bodyExpanded : styles.bodyLine,
+                      !expanded && body.multiline && styles.bodyLines,
                       expanded && { borderTopColor: tokens.hair },
                       { color: expanded ? tokens.ink : tokens.muted },
                     ]}
@@ -587,6 +594,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   bodyLine: { ...TYPE.subhead, paddingVertical: 2, paddingHorizontal: 0 },
+  bodyLines: { maxHeight: 4 * 20 + 4 },
   bodyExpanded: {
     ...TYPE.body,
     flex: 1,

@@ -8,6 +8,7 @@ import {
   COOKING_MINUTES,
   CUISINES,
   DIETS,
+  SMART_SWITCHES,
   WEEKDAYS,
 } from '@gather/core/meal-preferences'
 import { v } from 'convex/values'
@@ -20,6 +21,7 @@ export const weekdayValidator = literals(WEEKDAYS)
 export const dietValidator = literals(DIETS)
 export const allergenValidator = literals(ALLERGENS)
 export const cuisineValidator = literals(CUISINES)
+export const smartSwitchValidator = literals(SMART_SWITCHES)
 export const cookingMinutesValidator = v.union(
   literals(COOKING_MINUTES),
   v.null(),
@@ -48,7 +50,9 @@ export const smartValidator = v.object({
  *
  * Diets, allergens and dislikes are not here: they change one item at a time
  * (`mealPreferences.setDiet` and friends), so a concurrent edit by another
- * Member is never overwritten by a stale whole list.
+ * Member is never overwritten by a stale whole list. The slots, cooking
+ * minutes, cuisines, fish and leftover days and smart switches have per-item
+ * functions too (APP-446, APP-573) and stay here only for phones from before.
  */
 export const mealPreferencesPatchValidator = v.object({
   servingsPerMeal: v.optional(v.union(v.number(), v.null())),
