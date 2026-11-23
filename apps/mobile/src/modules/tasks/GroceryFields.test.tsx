@@ -114,6 +114,7 @@ function open(item: Task = melk) {
     show: (task: Task) => act(() => show(task)),
     unit: (unit: string) => act(() => find(`grocery-unit-${unit}`).click()),
     clear: () => act(() => find('grocery-clear-amount').click()),
+    increase: () => find('grocery-increase').click(),
     more: () => act(() => find('grocery-increase').click()),
     shown: () => (find('grocery-quantity') as HTMLInputElement).value,
   }
@@ -249,4 +250,34 @@ test('Done on an emptied field clears the quantity', () => {
     expected: pak(1),
     to: { quantity: null, unit: 'pak' },
   })
+})
+
+/** After the refusal, before the field shows the other Member's amount. */
+const refusedThen = (tap: () => void) =>
+  act(async () => {
+    state.writes[0]!.fail()
+    for (let turn = 0; turn < 10; turn++) await Promise.resolve()
+    tap()
+  })
+
+test("Done at the refusal does not send text under another Member's unit", async () => {
+  const { unit, show, shown } = open()
+  unit('g')
+  act(() => state.type('500'))
+  show({ ...melk, unit: 'kg' })
+  await refusedThen(() => {
+    state.submit()
+    state.blur()
+  })
+  await settle()
+  expect(state.writes).toHaveLength(1)
+  expect(shown()).toBe('1')
+})
+
+test("a step at the refusal starts from another Member's amount", async () => {
+  const { more, increase, show } = open()
+  more()
+  show({ ...melk, ...pak(5) })
+  await refusedThen(increase)
+  expect(state.writes[1]).toMatchObject({ expected: pak(5), to: pak(6) })
 })

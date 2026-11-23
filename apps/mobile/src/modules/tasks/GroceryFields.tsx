@@ -141,6 +141,21 @@ export function GroceryFields({
   // is still the amount, and gives way to anybody's change of it.
   const typedOver = useRef<WholeAmount | null>(null)
 
+  /** The amount a change starts from: the last one written, or the row's. */
+  const latest = (): WholeAmount =>
+    sent.current?.to ?? {
+      quantity: task.quantity ?? null,
+      unit: task.unit ?? null,
+    }
+
+  /** Whether the field holds text typed over the amount there still is. */
+  const typedStands = (): boolean => {
+    const over = typedOver.current
+    if (!over) return false
+    const { quantity, unit } = latest()
+    return over.quantity === quantity && over.unit === unit
+  }
+
   // The row's amount goes into the field. Not while our own writes are on
   // their way: the row may show one before the last.
   useEffect(() => {
@@ -155,13 +170,6 @@ export function GroceryFields({
     typedOver.current = null
     setDraft(amountDraft(task.quantity, locale))
   }, [task.quantity, task.unit, locale, pending])
-
-  /** The amount a change starts from: the last one written, or the row's. */
-  const latest = (): WholeAmount =>
-    sent.current?.to ?? {
-      quantity: task.quantity ?? null,
-      unit: task.unit ?? null,
-    }
 
   /** Over the amount it was chosen from; another Member's change stands. */
   const write = (quantity: number | null, unit: GroceryUnit | null) => {
@@ -188,7 +196,11 @@ export function GroceryFields({
 
   // What the field holds now, typed but maybe not yet committed: a step or a
   // unit tapped while typing starts from what was typed, not from before it.
-  const current = () => parseAmount(draft) ?? latest().quantity ?? undefined
+  // Text typed over an amount that has changed since does not count.
+  const current = () =>
+    (typedStands() ? parseAmount(draft) : undefined) ??
+    latest().quantity ??
+    undefined
 
   const step = (direction: 1 | -1) => {
     const { unit } = latest()
@@ -210,8 +222,9 @@ export function GroceryFields({
   }
 
   const commitDraft = () => {
-    // Nothing typed: leaving the field changes nothing. A submit also blurs.
-    if (!typedOver.current) return
+    // Nothing typed (a submit also blurs), or over an amount that is gone: the
+    // field is about to show the new one.
+    if (!typedStands()) return
     typedOver.current = null
     const typed = draft.trim()
     if (!typed) {
