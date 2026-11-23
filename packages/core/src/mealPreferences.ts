@@ -484,9 +484,10 @@ export function toggleDay(days: readonly Weekday[], day: Weekday): Weekday[] {
 
 /**
  * One item switched on or off one of the lists (the safety lists first, APP-446
- * the cuisines, the fish and leftover days, and a slot's days and switch).
- * These are written per item, never as the whole list, so two Members adding
- * two allergens at the same moment both keep theirs.
+ * the cuisines, the fish and leftover days, and a slot's days and switch;
+ * APP-573 one day's cooking time and one smart switch). These are written per
+ * item, never as the whole list, so two Members adding two allergens at the
+ * same moment both keep theirs.
  */
 export type MealPreferencesListChange =
   | { list: 'allergens'; value: Allergen; on: boolean }
@@ -497,6 +498,8 @@ export type MealPreferencesListChange =
   | { list: 'leftoverDays'; value: Weekday; on: boolean }
   | { list: 'slotDays'; slot: MealSlot; value: Weekday; on: boolean }
   | { list: 'slotEnabled'; slot: MealSlot; on: boolean }
+  | { list: 'cookingMinutes'; day: Weekday; minutes: CookingMinutes | null }
+  | { list: 'smart'; key: SmartSwitch; on: boolean }
 
 /**
  * The patch that makes `change` on top of `current`, normalised, or the field
@@ -513,6 +516,8 @@ export function listChangePatch(
     | 'fishDays'
     | 'leftoverDays'
     | 'slots'
+    | 'cookingMinutes'
+    | 'smart'
   >,
   change: MealPreferencesListChange,
 ):
@@ -544,6 +549,16 @@ export function listChangePatch(
   if (change.list === 'fishDays' || change.list === 'leftoverDays')
     return normalizeMealPreferencesPatch({
       [change.list]: setIn(current[change.list], change.value, change.on),
+    })
+  if (change.list === 'cookingMinutes') {
+    // Seven entries are stored; only this day's changes.
+    const cookingMinutes = [...current.cookingMinutes]
+    cookingMinutes[change.day] = change.minutes
+    return normalizeMealPreferencesPatch({ cookingMinutes })
+  }
+  if (change.list === 'smart')
+    return normalizeMealPreferencesPatch({
+      smart: { ...current.smart, [change.key]: change.on },
     })
   if (change.list === 'slotDays' || change.list === 'slotEnabled') {
     // The whole `slots` object is what is stored, but it is built here from the

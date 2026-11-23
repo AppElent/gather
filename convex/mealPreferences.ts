@@ -27,9 +27,11 @@ import { requireGroupBySlug } from './lib/groupAccess'
 import { mealSlotValidator } from './lib/kitchen'
 import {
   allergenValidator,
+  cookingMinutesValidator,
   cuisineValidator,
   dietValidator,
   mealPreferencesPatchValidator,
+  smartSwitchValidator,
   weekdayValidator,
 } from './lib/mealPreferences'
 
@@ -272,6 +274,39 @@ export const setSlotEnabled = mutation({
     changeList(ctx, args.groupSlug, {
       list: 'slotEnabled',
       slot: args.slot,
+      on: args.on,
+    }),
+})
+
+/**
+ * One day's cooking time (APP-573): `null` is "no maximum". Only that day is
+ * written, so two Members changing two days at once both keep theirs. `update`
+ * still takes all seven, for a phone from before this function.
+ */
+export const setCookingMinutes = mutation({
+  args: {
+    groupSlug: v.string(),
+    day: weekdayValidator,
+    minutes: cookingMinutesValidator,
+  },
+  handler: (ctx, args) =>
+    changeList(ctx, args.groupSlug, {
+      list: 'cookingMinutes',
+      day: args.day,
+      minutes: args.minutes,
+    }),
+})
+
+/**
+ * One smart switch on or off (APP-573), the other two kept as they are in the
+ * row. `update` still takes the whole object, for a phone from before.
+ */
+export const setSmartSwitch = mutation({
+  args: { groupSlug: v.string(), key: smartSwitchValidator, on: v.boolean() },
+  handler: (ctx, args) =>
+    changeList(ctx, args.groupSlug, {
+      list: 'smart',
+      key: args.key,
       on: args.on,
     }),
 })
