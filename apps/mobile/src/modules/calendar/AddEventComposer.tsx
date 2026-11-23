@@ -100,6 +100,12 @@ export interface AddEventProps {
   /** Hides the add button while another editor is up. */
   hidden: boolean
   /**
+   * Whether the composer is open. Owned by the screen, so the header's ⋯ menu
+   * opens this same composer (APP-625) rather than a second one.
+   */
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /**
    * All details: the full editor takes the draft (`taken`), the person stays
    * in the composer (`stay`), or goes back to the editor's own unsaved draft
    * (`resumed`, the composer's draft kept for later).
@@ -115,12 +121,13 @@ export function AddEvent({
   people,
   date,
   hidden,
+  open,
+  onOpenChange: setOpen,
   onAllDetails,
 }: AddEventProps) {
   const { t } = useI18n()
   const { group } = useGroup()
   const { userId } = useAuth()
-  const [open, setOpen] = useState(false)
   const key = draftKey(userId, group._id, 'calendar:index')
   const lastKey = draftKey(userId, group._id, 'calendar')
   const preset: EventPreset = {

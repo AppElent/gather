@@ -32,6 +32,7 @@ import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { headingCase } from './calendarLabels'
+import { calendarMenuActions, pressCalendarMenu } from './calendarMenu'
 import { settleTarget } from './calendarNavigation'
 
 export interface CalendarHeaderProps {
@@ -49,6 +50,8 @@ export interface CalendarHeaderProps {
   onView: (view: CalendarView) => void
   onOpenCalendars: () => void
   onOpenPeople: () => void
+  /** Opens the add-event composer, the same one as the floating button. */
+  onAddEvent: () => void
   topInset?: number
 }
 
@@ -486,30 +489,10 @@ export function CalendarHeader(props: CalendarHeaderProps) {
         <View style={styles.actions}>
           <MenuView
             shouldOpenOnLongPress={false}
-            actions={[
-              {
-                id: 'month',
-                title: t.calendar.month,
-                state: props.presentation === 'month' ? 'on' : 'off',
-              },
-              {
-                id: 'week',
-                title: t.calendar.weekAgenda,
-                state: props.presentation === 'week' ? 'on' : 'off',
-              },
-              {
-                id: 'agenda',
-                title: t.calendar.agenda,
-                state: props.presentation === 'agenda' ? 'on' : 'off',
-              },
-              { id: 'calendars', title: t.calendar.calendars },
-              { id: 'people', title: t.calendar.people },
-            ]}
-            onPressAction={({ nativeEvent }) => {
-              if (nativeEvent.event === 'calendars') props.onOpenCalendars()
-              else if (nativeEvent.event === 'people') props.onOpenPeople()
-              else props.onView(nativeEvent.event as CalendarView)
-            }}
+            actions={calendarMenuActions(t, props.presentation)}
+            onPressAction={({ nativeEvent }) =>
+              pressCalendarMenu(nativeEvent.event, props)
+            }
           >
             <Pressable
               testID="calendar-view-menu"
