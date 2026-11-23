@@ -590,6 +590,8 @@ export const nl = {
       wishPlaceholder: 'Een wens? Bijvoorbeeld: met kip, snel',
       chips: { chickenQuick: 'Met kip, snel', meatFree: 'Vleesloos', faster: 'Sneller' },
       quickMeal: 'snel gerecht',
+      reasonStock: 'Met {names} uit huis',
+      reasonFits: 'Past in {minutes} min',
       choose: 'Kies',
       chosen: 'Gekozen',
       chooseLabel: 'Kies {title} voor {day}',

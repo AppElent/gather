@@ -153,6 +153,13 @@ type AskContext = {
   titles: string[]
 }
 
+/** Why the rules chose an alternative (`SwapRulesReason`). */
+const rulesReasonValidator = v.object({
+  low: v.array(v.string()),
+  inStock: v.array(v.string()),
+  fitsMinutes: v.optional(v.number()),
+})
+
 /** The alternatives as the phone shows them: with each recipe's photo. */
 export const view = internalQuery({
   args: {
@@ -162,6 +169,7 @@ export const view = internalQuery({
         recipeId: v.optional(v.string()),
         quickMealId: v.optional(v.string()),
         reason: v.optional(v.string()),
+        rulesReason: v.optional(rulesReasonValidator),
         source: v.union(v.literal('ai'), v.literal('rules')),
       }),
     ),
@@ -182,6 +190,7 @@ export const view = internalQuery({
             rating: recipe.rating,
             imageUrl: recipe.imageId ? await ctx.storage.getUrl(recipe.imageId) : null,
             reason: pick.reason,
+            rulesReason: pick.rulesReason,
             source: pick.source,
           }
         }
@@ -196,6 +205,7 @@ export const view = internalQuery({
           rating: undefined,
           imageUrl: null,
           reason: pick.reason,
+          rulesReason: pick.rulesReason,
           source: pick.source,
         }
       }),
@@ -230,6 +240,7 @@ const alternativeValidator = v.object({
   rating: v.optional(v.number()),
   imageUrl: v.union(v.string(), v.null()),
   reason: v.optional(v.string()),
+  rulesReason: v.optional(rulesReasonValidator),
   source: v.union(v.literal('ai'), v.literal('rules')),
 })
 
@@ -288,6 +299,7 @@ export const swap = action({
         recipeId: pick.recipeId,
         quickMealId: pick.quickMealId,
         reason: pick.reason,
+        rulesReason: pick.rulesReason,
         source: pick.source,
       })),
     })

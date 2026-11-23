@@ -236,6 +236,35 @@ export function draftReason(draft: Pick<Draft, 'reason' | 'prepMinutes'>, words:
   return [minutes, words.proposal.byRules].filter(Boolean).join(' · ')
 }
 
+/**
+ * An Iets anders alternative's reason line: the model's reason, or for a pick
+ * the rules made, what it uses from stock (running low first) and the
+ * evening's time it fits, else "volgens jullie regels". An answer from a
+ * server without `rulesReason` gets the last.
+ */
+export function swapReason(
+  alt: {
+    reason?: string
+    source: 'ai' | 'rules'
+    rulesReason?: { low: string[]; inStock: string[]; fitsMinutes?: number }
+  },
+  words: Words,
+  locale: Locale,
+): string | null {
+  if (alt.reason) return alt.reason
+  if (alt.source !== 'rules') return null
+  const why = alt.rulesReason
+  const lower = (name: string) => name.toLocaleLowerCase(locale)
+  const parts = [
+    ...(why?.low ?? []).map((name) => fmt(words.plan.runningLow, { name })),
+    why?.inStock.length
+      ? fmt(words.swap.reasonStock, { names: joinNames(why.inStock.map(lower), words) })
+      : null,
+    why?.fitsMinutes ? fmt(words.swap.reasonFits, { minutes: why.fitsMinutes }) : null,
+  ].filter((part): part is string => Boolean(part))
+  return parts.length > 0 ? parts.join(' · ') : words.proposal.byRules
+}
+
 /** The draft for one slot, if the open proposal has one. */
 export function draftIn(drafts: readonly Draft[], date: string, slot: MealSlot) {
   return drafts.find((draft) => draft.date === date && draft.slot === slot)

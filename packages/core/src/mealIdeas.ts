@@ -30,6 +30,7 @@ import {
   isMeatFree,
   quickMealKey,
   score,
+  stockUsed,
   targetLimit,
   type WeekPlanInput,
   type WeekPlanQuickMeal,
@@ -82,7 +83,51 @@ export interface SwapPick {
   title: string
   prepMinutes?: number
   rating?: number
+  /** The model's reason line, in the Group's language. */
   reason?: string
+  /** Why the rules chose it, for the phone to word (see `rulesReason`). */
+  rulesReason?: SwapRulesReason
+}
+
+/** Stock names a rules reason names at most. */
+export const REASON_STOCK_MAX = 2
+
+/**
+ * Why the rules offered an alternative, as facts the phone words: the stock it
+ * uses (running low first) and the evening's time it fits. Empty when the
+ * rules have nothing to say beyond "volgens jullie regels".
+ */
+export interface SwapRulesReason {
+  /** Running-low names its ingredient lines mention. */
+  low: string[]
+  /** In-stock names its ingredient lines mention, after `low`. */
+  inStock: string[]
+  /** The evening's limit in minutes, when it has one and the pick fits it. */
+  fitsMinutes?: number
+}
+
+/**
+ * The rules' reason for one alternative. Stock counts only when the Group
+ * plans with stock (`smart.useStock`), as `score` weighs it; time only when
+ * the evening has a limit and the minutes are known and fit.
+ */
+export function rulesReason(
+  pick: { ingredients?: readonly string[]; prepMinutes?: number },
+  input: SwapInput,
+): SwapRulesReason {
+  const limit = targetLimit(input.targets[0])
+  const fits =
+    limit !== null && pick.prepMinutes !== undefined && pick.prepMinutes <= limit
+  let low: string[] = []
+  let inStock: string[] = []
+  if (input.prefs.smart.useStock && pick.ingredients?.length) {
+    const recipe = { ingredients: pick.ingredients }
+    low = stockUsed(recipe, input.stock.low).slice(0, REASON_STOCK_MAX)
+    inStock = stockUsed(recipe, input.stock.inStock)
+      .filter((name) => !low.includes(name))
+      .slice(0, REASON_STOCK_MAX - low.length)
+  }
+  return { low, inStock, ...(fits ? { fitsMinutes: limit } : {}) }
 }
 
 /** "kip", "kipfilet", "kippendijen", "chicken": the chip's meat, in a title or line. */
@@ -191,7 +236,7 @@ export function rulesSwaps(
   const recipes = ranked(input, swapPool(input))
     .filter((recipe) => !exclude.has(recipe.id))
     .slice(0, count)
-    .map((recipe) => recipePick(recipe))
+    .map((recipe) => ({ ...recipePick(recipe), rulesReason: rulesReason(recipe, input) }))
   if (recipes.length >= count) return recipes
   const quick = quickPool(input)
     .filter((meal) => !exclude.has(meal.id))
@@ -200,7 +245,12 @@ export function rulesSwaps(
         (a.prepMinutes ?? 99) - (b.prepMinutes ?? 99) || a.title.localeCompare(b.title),
     )
     .slice(0, count - recipes.length)
-    .map((meal) => ({ quickMealId: meal.id, title: meal.title, prepMinutes: meal.prepMinutes }))
+    .map((meal) => ({
+      quickMealId: meal.id,
+      title: meal.title,
+      prepMinutes: meal.prepMinutes,
+      rulesReason: rulesReason(meal, input),
+    }))
   return [...recipes, ...quick]
 }
 
