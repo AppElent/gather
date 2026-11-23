@@ -37,6 +37,7 @@ import {
   View,
 } from 'react-native'
 
+import { useAvailability } from '../../availability/AvailabilityProvider'
 import { DateTimeWheel } from '../../components/DateTimeField'
 import { api, type Id } from '../../convex/api'
 import { haptics } from '../../feedback/haptics'
@@ -76,9 +77,6 @@ import {
 /** The iOS picker takes an underscore identifier; the app's locale is a language. */
 const PICKER_LOCALE = { en: 'en_GB', nl: 'nl_NL' } as const
 
-/** How long the composer's modal takes to close before another sheet opens. */
-const MODAL_CLOSE_MS = 350
-
 /**
  * The calendar each account last added to in each Group. Keyed like a draft,
  * on the Group's id.
@@ -102,11 +100,14 @@ export interface AddEventProps {
   /** Hides the add button while another editor is up. */
   hidden: boolean
   /**
-   * All details: the full editor takes the draft. Answers false when it did
-   * not (the person stayed), and the composer opens again on the draft.
+   * All details: the full editor takes the draft (`taken`), the person stays
+   * in the composer (`stay`), or goes back to the editor's own unsaved draft
+   * (`resumed`, the composer's draft kept for later).
    */
-  onAllDetails: (draft: EventDraft) => Promise<boolean>
+  onAllDetails: (draft: EventDraft) => Promise<HandOver>
 }
+
+export type HandOver = 'taken' | 'stay' | 'resumed'
 
 /** The add button on Calendar, and the composer while it is open. */
 export function AddEvent({
@@ -146,18 +147,14 @@ export function AddEvent({
           onCalendarUsed={(id) => lastCalendar.set(lastKey, id)}
           onClose={() => setOpen(false)}
           onAllDetails={(draft) => {
+            // Kept until the editor has it: a draft is never only in flight.
+            keepDraft(key, draft)
             Keyboard.dismiss()
             setOpen(false)
-            // The composer's modal must be gone before the editor's sheet is
-            // presented: iOS drops a sheet presented over a closing modal and
-            // leaves a blank one up.
-            setTimeout(() => {
-              void onAllDetails(draft).then((taken) => {
-                if (taken) return
-                keepDraft(key, draft)
-                setOpen(true)
-              })
-            }, MODAL_CLOSE_MS)
+            void onAllDetails(draft).then((outcome) => {
+              if (outcome === 'taken') forgetSentDraft<EventDraft>(key, draft.saveKey)
+              if (outcome === 'stay') setOpen(true)
+            })
           }}
         />
       ) : null}
@@ -189,6 +186,7 @@ function EventComposerCard({
   const calendarWords = t.calendar
   const { group } = useGroup()
   const addEvent = useMutation(api.calendar.addCalendarEvent)
+  const { serviceActionsEnabled } = useAvailability()
 
   const [kept] = useState(
     () => keptDraft<EventDraft>(draftId) ?? emptyEventDraft(preset),
@@ -260,20 +258,18 @@ function EventComposerCard({
       idempotencyKey: saveKey,
     })
 
-  const landed = (saveKey: string) => {
+  const landed = (saving: ComposedEvent, saveKey: string) => {
     // A close mid-save may have kept this draft for the place.
     forgetSentDraft<EventDraft>(place.current.draftId, saveKey)
+    onCalendarUsed(saving.calendarId)
     haptics.itemSaved()
   }
 
-  /** Whether the open card still shows the draft sent under `saveKey`. */
-  const showing = (saveKey: string) =>
-    mounted.current && latest.current.saveKey === saveKey
-
   /**
-   * Every failed save is asked about, Try again or Discard, one alert at a
-   * time. The same key goes again, so a create that did land is not made
-   * twice. A draft the card still shows is cleared once saved or discarded.
+   * A save that failed once the composer had moved on to the next event, or
+   * closed: asked about, Try again or Discard, one alert at a time, and never
+   * poured over what is being typed now. The same key goes again, so a create
+   * that did land is not made twice.
    */
   const offerRetry = (saving: ComposedEvent, saveKey: string) =>
     askInTurn((done) =>
@@ -286,7 +282,6 @@ function EventComposerCard({
             style: 'destructive',
             onPress: () => {
               forgetSentDraft<EventDraft>(place.current.draftId, saveKey)
-              if (showing(saveKey)) clear()
               done()
             },
           },
@@ -295,10 +290,7 @@ function EventComposerCard({
             onPress: () => {
               done()
               void send(saving, saveKey).then(
-                () => {
-                  landed(saveKey)
-                  if (showing(saveKey)) clear()
-                },
+                () => landed(saving, saveKey),
                 () => {
                   haptics.actionFailed()
                   offerRetry(saving, saveKey)
@@ -317,18 +309,23 @@ function EventComposerCard({
       return
     }
     if (submitted.current === draft.saveKey) return
+    if (!serviceActionsEnabled) {
+      // Not sent: a queued write would clear the card with no word of it.
+      haptics.actionFailed()
+      setNotice(calendarWords.errors.offline)
+      return
+    }
     const snapshot = draft
     const saving = event
     const { saveKey } = snapshot
     submitted.current = saveKey
     const request = send(saving, saveKey)
-    onCalendarUsed(saving.calendarId)
     setPanel(null)
     // Cleared first: the next event can be typed at once.
     clear()
     try {
       await request
-      landed(saveKey)
+      landed(saving, saveKey)
     } catch {
       haptics.actionFailed()
       submitted.current = null
@@ -337,8 +334,9 @@ function EventComposerCard({
         // Nothing typed since: the event comes back to finish or send again.
         setNotice(words.eventFailed)
         load(snapshot)
+      } else {
+        offerRetry(saving, saveKey)
       }
-      offerRetry(saving, saveKey)
     }
   }
 
@@ -745,6 +743,9 @@ function TimePanel({
   const { t, locale } = useI18n()
   const tokens = useTokens('home')
   const [androidStep, setAndroidStep] = useState<'start' | 'end'>('start')
+  // Android reports a close before the value it closed on, and a close alone
+  // for Cancel or Back: the start dialog moves on to End or closes the panel.
+  const startPicked = useRef(false)
 
   if (Platform.OS !== 'ios') {
     return androidStep === 'start' ? (
@@ -752,10 +753,15 @@ function TimePanel({
         mode="time"
         value={clockDate(date, start)}
         onChange={(next) => {
+          startPicked.current = true
           onStart(minutesOf(next))
           setAndroidStep('end')
         }}
-        onClose={() => undefined}
+        onClose={() =>
+          setTimeout(() => {
+            if (!startPicked.current) onDone()
+          }, 0)
+        }
       />
     ) : (
       <DateTimeWheel

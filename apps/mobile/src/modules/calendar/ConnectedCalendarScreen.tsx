@@ -13,7 +13,7 @@ import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
-import { AddEvent } from './AddEventComposer'
+import { AddEvent, type HandOver } from './AddEventComposer'
 import { CalendarEditor } from './CalendarEditor'
 import { CalendarEventSource } from './CalendarEventSource'
 import { CalendarFilters } from './CalendarFilters'
@@ -89,11 +89,11 @@ export function ConnectedCalendarScreen() {
    * editor still holds unsaved changes of its own and the person keeps them.
    */
   const openDetails = (draft: EventDraft) =>
-    new Promise<boolean>((resolve) => {
+    new Promise<HandOver>((resolve) => {
       const take = () => {
         editor.openDraft(toCalendarDraft(draft, me?._id ?? '', group._id))
         setEditorVisible(true)
-        resolve(true)
+        resolve('taken')
       }
       const held = editor.draft
       if (!held || !isDraftDirty(held)) return take()
@@ -103,7 +103,7 @@ export function ConnectedCalendarScreen() {
           onPress: () => {
             editor.resume()
             setEditorVisible(true)
-            resolve(false)
+            resolve('resumed')
           },
         },
         {
@@ -114,7 +114,7 @@ export function ConnectedCalendarScreen() {
             take()
           },
         },
-        { text: t.calendar.stay, style: 'cancel', onPress: () => resolve(false) },
+        { text: t.calendar.stay, style: 'cancel', onPress: () => resolve('stay') },
       ])
     })
   const openEvent = (event: CalendarEvent) =>
