@@ -24,7 +24,9 @@
  * `sequence` counts arrivals so the gate below the auth and Group screens can
  * tell a Drop it has already opened the chooser for from a new one. Without it,
  * every remount of the signed-in tree would re-push the chooser for a Drop the
- * person is halfway through answering.
+ * person is halfway through answering. It keeps counting after a Drop is
+ * cleared: restarting at 1 made the next share look like the one already
+ * opened, so it never showed the chooser.
  */
 
 import { useShareIntent } from 'expo-share-intent'
@@ -35,6 +37,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 
@@ -72,9 +75,11 @@ export function useDrop(): DropContextValue {
 
 export function DropProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState<PendingDrop | null>(null)
+  const arrivals = useRef(0)
 
   const offer = useCallback((drop: Drop) => {
-    setPending((current) => ({ drop, sequence: (current?.sequence ?? 0) + 1 }))
+    arrivals.current += 1
+    setPending({ drop, sequence: arrivals.current })
   }, [])
 
   const clear = useCallback(() => setPending(null), [])

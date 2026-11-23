@@ -8,6 +8,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
 import { type ModuleGroup, RADIUS, TYPE, useTokens } from '../theme/tokens'
+import { type OpenSheet, openSheet } from './openSheets'
 
 export interface NativeSheetProps {
   title: string
@@ -73,18 +74,28 @@ export function NativeSheet({
 }: NativeSheetProps) {
   const ref = useRef<BottomSheetModal>(null)
   const closed = useRef(false)
+  const registered = useRef<OpenSheet | null>(null)
   const tokens = useTokens()
   const { t } = useI18n()
   const Close = UI_ICONS.X
 
+  const dismiss = () => ref.current?.dismiss()
+
   useEffect(() => {
     const modal = ref.current
     modal?.present()
-    return () => modal?.dismiss()
+    // Listed while up, so a share can close it before the chooser (APP-618).
+    // Read the ref when asked: it can still be empty at mount on Android.
+    const sheet = openSheet(() => ref.current?.dismiss())
+    registered.current = sheet
+    return () => {
+      sheet.closed()
+      modal?.dismiss()
+    }
   }, [])
 
-  const dismiss = () => ref.current?.dismiss()
   const handleDismiss = () => {
+    registered.current?.closed()
     if (closed.current) return
     closed.current = true
     onClose()
