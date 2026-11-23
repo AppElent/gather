@@ -196,10 +196,10 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
       }
       return {
         key,
-        // What the person did to it while the AI was still reading it, then
-        // to a row its lines were in before (a day unticked, APP-590).
-        was: [
-          ...from.map((entry) => entry.unreadKey),
+        // What the person did to it while the AI was still reading it.
+        was: from.map((entry) => entry.unreadKey),
+        // Else to a row its lines were in before (a day unticked, APP-590).
+        former: [
           ...new Set(
             from.flatMap((entry) => [
               ...(input.formerRows?.get(entry.unreadKey) ?? []),
@@ -219,8 +219,8 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
   const shown = new Set(all.map((line) => line.key))
   return {
     lines: all.map((line) =>
-      line.was?.some((former) => shown.has(former))
-        ? { ...line, was: line.was.filter((former) => !shown.has(former)) }
+      line.former?.some((former) => shown.has(former))
+        ? { ...line, former: line.former.filter((former) => !shown.has(former)) }
         : line,
     ),
     toCheck,
@@ -238,7 +238,6 @@ export function rowsOfLines(
   for (const line of lines) {
     if (!line.key.startsWith('item:')) continue
     for (const source of line.was ?? []) {
-      if (source.startsWith('item:')) continue
       const seen = rows.get(source) ?? new Set<string>()
       seen.add(line.key)
       rows.set(source, seen)

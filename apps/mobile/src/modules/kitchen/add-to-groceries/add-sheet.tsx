@@ -62,6 +62,7 @@ import {
   type RowMeta,
   type SourceLine,
   sectionsByAisle,
+  settleLine,
   withEdits,
 } from './pick'
 import type { AiCount } from './read-batches'
@@ -247,7 +248,8 @@ export function AddToGroceriesSheet({
 
   const toggle = (row: PickRow) => {
     haptics.selectionChanged()
-    setTicks((current) => ({ ...current, [row.key]: !row.on }))
+    const line = shown.find((candidate) => candidate.key === row.key) ?? row
+    setTicks((current) => settleLine(current, line, !row.on))
   }
 
   const edit = (row: PickRow) => {
@@ -262,8 +264,9 @@ export function AddToGroceriesSheet({
           onPress: (value?: string) => {
             const text = value?.trim()
             if (!text) return
-            setEdits((current) => ({ ...current, [row.key]: editedRead(text) }))
-            setTicks((current) => ({ ...current, [row.key]: true }))
+            const line = shown.find((candidate) => candidate.key === row.key) ?? row
+            setEdits((current) => settleLine(current, line, editedRead(text)))
+            setTicks((current) => settleLine(current, line, true))
           },
         },
       ],

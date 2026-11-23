@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { editedRead, pickRows, type SourceLine, withEdits } from '../add-to-groceries/pick'
+import { editedRead, pickRows, type SourceLine, settleLine, withEdits } from '../add-to-groceries/pick'
 import type { PlannedMeal } from './week'
 import {
   defaultDays,
@@ -362,6 +362,22 @@ describe('a line being read when the person ticks it (APP-423)', () => {
       const ticks = { 'item:olijfoli:volume': false }
       const left = olie([0, 3], own, formerRows)
       const { rows } = pickRows({ lines: left, items: [], ticks })
+      expect(rows.filter((r) => r.title === 'Olijfolie').map((r) => [r.key, r.on])).toEqual([
+        ['item:olijfoli:el', true],
+      ])
+    })
+
+    test('the latest tick holds when a former row returns', () => {
+      const formerRows = new Map<string, Set<string>>()
+      const own = { pesto: read('0', 'Olijfolie', 2, 'el'), shakshuka: plain }
+      olie([0, 1], own, formerRows)
+      // Untick the el row; Monday leaves; tick Tuesday's row back on.
+      let ticks: Record<string, boolean> = { 'item:olijfoli:el': false }
+      const left = olie([1], own, formerRows)
+      ticks = settleLine(ticks, left[0], true)
+      // Monday returns: the row is on, as last left.
+      const back = olie([0, 1], own, formerRows)
+      const { rows } = pickRows({ lines: back, items: [], ticks })
       expect(rows.filter((r) => r.title === 'Olijfolie').map((r) => [r.key, r.on])).toEqual([
         ['item:olijfoli:el', true],
       ])

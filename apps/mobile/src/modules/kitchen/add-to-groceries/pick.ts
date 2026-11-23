@@ -60,6 +60,12 @@ export interface SourceLine {
    */
   was?: readonly string[]
   /**
+   * Keys of rows this line's sources were in before and that are gone (the
+   * week menu when a day leaves, APP-590). Asked after `was`; a new tick or
+   * retype on this row replaces what was done to them (`settleLine`).
+   */
+  former?: readonly string[]
+  /**
    * Bring the list up to this amount rather than add it (the week menu,
    * APP-321): an item the list already has enough of starts unticked.
    */
@@ -134,11 +140,26 @@ export function editedRead(typed: string): LineRead {
  */
 export function byLineKey<T>(
   byKey: Readonly<Record<string, T>>,
-  line: Pick<SourceLine, 'key' | 'was'>,
+  line: Pick<SourceLine, 'key' | 'was' | 'former'>,
 ): T | undefined {
   if (byKey[line.key] !== undefined) return byKey[line.key]
-  for (const key of line.was ?? []) if (byKey[key] !== undefined) return byKey[key]
+  for (const key of [...(line.was ?? []), ...(line.former ?? [])])
+    if (byKey[key] !== undefined) return byKey[key]
   return undefined
+}
+
+/**
+ * `byKey` with `value` for the line, and nothing left under its former rows'
+ * keys: what the person does now is what holds when such a row returns.
+ */
+export function settleLine<T>(
+  byKey: Readonly<Record<string, T>>,
+  line: Pick<SourceLine, 'key' | 'former'>,
+  value: T,
+): Record<string, T> {
+  const next = { ...byKey, [line.key]: value }
+  for (const key of line.former ?? []) delete next[key]
+  return next
 }
 
 /** The lines with the person's retypes in place of what was read. */
