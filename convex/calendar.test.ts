@@ -53,6 +53,26 @@ async function seed() {
 }
 
 describe('calendar backend', () => {
+  test('an app save sent twice under one key makes one event (APP-589)', async () => {
+    const { t, calendar } = await seed()
+    const asAlice = t.withIdentity(alice)
+    const event = {
+      groupSlug: 'calendar-home',
+      calendarId: calendar,
+      title: 'Zwemles',
+      date: '2026-11-28',
+      allDay: false,
+      startMinutes: 990,
+      endMinutes: 1035,
+      idempotencyKey: 'composer-key-twice',
+    }
+    const first = await asAlice.mutation(api.calendar.addCalendarEvent, event)
+    const second = await asAlice.mutation(api.calendar.addCalendarEvent, event)
+    expect(second).toBe(first)
+    const rows = await t.run((ctx) => ctx.db.query('calendarEvents').collect())
+    expect(rows.filter((row) => row.title === 'Zwemles')).toHaveLength(1)
+  })
+
   test('keeps legacy event creation readable with normalized fields', async () => {
     const { t, calendar } = await seed()
     const id = await t
