@@ -215,6 +215,21 @@ describe('searching notes', () => {
     expect(found).toMatchObject({ excerpt: 'Call Piet', pinned: false })
   })
 
+  test('earlier words match whole; only the last is completed', async () => {
+    const { t } = await seed()
+    await addNote(t, 'Boilerplate manual')
+    await addNote(t, 'Boiler manual')
+    expect(await titles(t, 'boiler manu')).toEqual(['Boiler manual'])
+  })
+
+  test('finds letters that change length when lowercased, and ignores words too long to index', async () => {
+    const { t } = await seed()
+    await addNote(t, 'İstanbul')
+    expect(await titles(t, 'İstanbul')).toEqual(['İstanbul'])
+    expect(await titles(t, `${'x'.repeat(40)} İstanbul`)).toEqual(['İstanbul'])
+    expect(await titles(t, 'x'.repeat(40))).toEqual([])
+  })
+
   test('a search with more words than Convex allows is cut, not refused', async () => {
     const { t } = await seed()
     await addNote(t, 'Boiler manual')

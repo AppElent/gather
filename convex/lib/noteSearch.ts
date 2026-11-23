@@ -10,12 +10,24 @@ const MAX_TERMS = 16
 const MATCHES_PER_INDEX = 100
 const MIN_QUERY = 2
 
-/** The words of a search, split where Convex's own tokenizer splits. */
+/** Convex leaves longer words (in UTF-8 bytes) out of its search indexes. */
+const MAX_TERM_BYTES = 31
+
+/**
+ * The words of a text, split where Convex's own tokenizer splits. Split before
+ * lowercasing, as it does: "İ" lowercases to a letter and a mark.
+ */
+function wordsOf(text: string): string[] {
+  return text.split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+}
+
+/** The words of a search that the indexes can match. */
 function termsOf(text: string): string[] {
-  return text
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter(Boolean)
+  const encoder = new TextEncoder()
+  return wordsOf(text)
+    .filter(
+      (word) => encoder.encode(word.toLowerCase()).length <= MAX_TERM_BYTES,
+    )
     .slice(0, MAX_TERMS)
 }
 
@@ -26,8 +38,13 @@ function termsOf(text: string): string[] {
  * A Convex search index covers one field, so there is one for the title and
  * one for the body; a combined field would need a backfill of every note.
  * Both filter on `groupId`. The indexes match notes with *any* word, so that
- * every word is there is checked here. Words match from their start: "kaart"
- * does not find "wijnkaart".
+ * every word is there is checked here, by their own rule: a word matches
+ * whole, and the last one, still being typed, from its start. So "kaart" does
+ * not find "wijnkaart".
+ *
+ * The check runs on each index's best `MATCHES_PER_INDEX`. A note with one
+ * word in its title and another in its body can be missed when more than that
+ * many notes match one word as well; that is the read budget, not a page size.
  */
 export async function findNotes(
   ctx: QueryCtx,
@@ -56,9 +73,16 @@ export async function findNotes(
   const notes = new Map(
     [...byTitle, ...byBody].map((note) => [note._id, note] as const),
   )
+  const whole = terms.slice(0, -1).map((term) => term.toLowerCase())
+  const typing = terms[terms.length - 1].toLowerCase()
   return [...notes.values()].filter((note) => {
-    const haystack = `${note.title}\n${note.body}`.toLowerCase()
-    return terms.every((term) => haystack.includes(term))
+    const words = new Set(
+      wordsOf(`${note.title}\n${note.body}`).map((word) => word.toLowerCase()),
+    )
+    return (
+      whole.every((term) => words.has(term)) &&
+      [...words].some((word) => word.startsWith(typing))
+    )
   })
 }
 
