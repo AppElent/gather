@@ -8,10 +8,10 @@
  * next occurrence whichever is chosen (`asksAboutSubtasks`).
  */
 import { asksAboutSubtasks } from '@gather/core/subtasks'
-import { Alert } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
 import { fmt, type Messages, useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { useTaskActions } from './store'
 import type { Task } from './types'
 
@@ -26,7 +26,7 @@ export function askCompleteSubtasks(
 ) {
   const words = t.tasks.subtasks
   const open = (task.subtasks?.total ?? 0) - (task.subtasks?.done ?? 0)
-  Alert.alert(
+  showAlert(
     words.askTitle,
     fmt(open === 1 ? words.askBodyOne : words.askBody, {
       title: task.title,

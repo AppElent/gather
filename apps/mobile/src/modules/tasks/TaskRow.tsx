@@ -14,7 +14,6 @@ import {
   useState,
 } from 'react'
 import {
-  Alert,
   type HostInstance,
   Keyboard,
   Platform,
@@ -32,6 +31,7 @@ import ReanimatedSwipeable, {
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import { SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { useInsetSeparator } from '../../ui/inset-list'
@@ -433,7 +433,7 @@ export function TaskComposer({
         haptics.itemSaved()
         keepInView()
         // A haptic is never the only word, and the task did go in.
-        if (reminderFailed) Alert.alert(t.tasks.quickAdd.reminderFailed)
+        if (reminderFailed) showAlert(t.tasks.quickAdd.reminderFailed)
       },
       () => {
         haptics.actionFailed()

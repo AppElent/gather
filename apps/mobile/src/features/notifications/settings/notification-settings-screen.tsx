@@ -12,13 +12,14 @@
  */
 import type { NotificationSwitch } from '@gather/core/notifications'
 import { useMutation } from 'convex/react'
-import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
+import { Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { SettingsCard } from '../../../components/SettingsCard'
 import { api, type Id } from '../../../convex/api'
 import { useQuery } from '../../../convex/queries'
 import { useGroup } from '../../../group/GroupProvider'
 import { fmt, useI18n } from '../../../i18n'
+import { showAlert } from '../../../observability/native-presentation'
 import { SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { Button } from '../../../ui/button'
 import { InsetList, InsetRow } from '../../../ui/inset-list'
@@ -72,7 +73,7 @@ export function NotificationSettingsScreen() {
     )
   })
 
-  const failed = () => Alert.alert(text.failed)
+  const failed = () => showAlert(text.failed)
   const muted = new Set<Id<'groups'>>(settings?.mutedGroupIds ?? [])
 
   return (

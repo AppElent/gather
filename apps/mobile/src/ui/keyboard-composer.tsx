@@ -38,7 +38,6 @@ import {
   ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -69,6 +68,7 @@ import { useI18n } from '../i18n'
 import type { Glyph } from '../theme/glyph'
 import { UI_ICONS } from '../theme/icons'
 import { type ModuleGroup, RADIUS, SPACE, TYPE, useTokens } from '../theme/tokens'
+import { Modal } from './modal'
 
 /** One detail on the chip row: its value when set, its name when not. */
 export interface ComposerChip {

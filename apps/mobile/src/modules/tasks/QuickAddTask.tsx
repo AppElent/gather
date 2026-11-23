@@ -25,7 +25,6 @@ import { MenuView } from '@expo/ui/community/menu'
 import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -35,6 +34,7 @@ import {
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import { TYPE, useTokens } from '../../theme/tokens'
 import { draftKey, keepDraft, keptDraft } from '../../ui/composer-drafts'
@@ -134,7 +134,7 @@ function QuickAddTaskForm({ onSaved, onOpenTask }: QuickAddTaskProps) {
       latest.current = { line: '', dismissed: [], pickedId }
       // An alert, not the notice: `onSaved` may close this form, and a
       // haptic is never the only word that the reminder did not go in.
-      if (saved.reminderFailed) Alert.alert(text.reminderFailed)
+      if (saved.reminderFailed) showAlert(text.reminderFailed)
       onSaved(title, target.name)
       // Closed while it saved (a share's chooser may be up): no screen on top.
       if (open && mounted.current) onOpenTask?.(saved.taskId)

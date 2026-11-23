@@ -513,6 +513,27 @@ export const en = {
   },
 
   /**
+   * Sentry's report form, opened by a shake or the Report a problem row in
+   * Settings (APP-439). Sentry draws the form; these are its words.
+   */
+  feedback: {
+    report: 'Report a problem',
+    message: 'What went wrong?',
+    placeholder: 'What happened, and what did you expect?',
+    required: '(required)',
+    submit: 'Send report',
+    cancel: 'Cancel',
+    add: 'Add a screenshot',
+    take: 'Take a screenshot',
+    remove: 'Remove screenshot',
+    error: 'The report could not be sent. Try again.',
+    success: 'Thanks. Your report was sent.',
+    /** The row's answer in a build that does not report to Sentry. */
+    unavailable:
+      'Reporting a problem is not available in this version of Gather.',
+  },
+
+  /**
    * Who you are, what can be changed about it, and the two ways out.
    *
    * An app that signs people up has to let them leave from the same place

@@ -27,7 +27,6 @@ import { addDays, localIsoDate } from '@gather/core/civil-date'
 import { useMutation } from 'convex/react'
 import { type ComponentRef, useEffect, useRef, useState } from 'react'
 import {
-  Alert,
   Keyboard,
   Platform,
   Pressable,
@@ -43,6 +42,7 @@ import { api, type Id } from '../../convex/api'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
+import { showAlert, showPrompt } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import {
@@ -280,7 +280,7 @@ function EventComposerCard({
    */
   const offerRetry = (saving: ComposedEvent, saveKey: string) =>
     askInTurn((done) =>
-      Alert.alert(
+      showAlert(
         fmt(words.eventNotSaved, { title: saving.title }),
         undefined,
         [
@@ -436,7 +436,7 @@ function EventComposerCard({
       setPanel('location')
       return
     }
-    Alert.prompt(
+    showPrompt(
       calendarWords.location,
       undefined,
       [

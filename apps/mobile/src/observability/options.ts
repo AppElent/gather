@@ -7,6 +7,9 @@
 import { sanitizeBreadcrumb, sanitizeEvent } from '@gather/core/sentry-privacy'
 import type { Breadcrumb, ErrorEvent } from '@sentry/react-native'
 
+import type { Messages } from '../i18n'
+import type { Neutrals } from '../theme/palette'
+
 export type SentryEnvironment = 'development' | 'preview' | 'production'
 
 /**
@@ -74,4 +77,63 @@ export function buildSentryOptions(config: {
  */
 export function routeName(segments: readonly string[]): string {
   return `/${segments.join('/')}`
+}
+
+/**
+ * The report form (APP-439): no name or email field, and the one screenshot a
+ * member may add is one they take themselves, so nothing is read from the
+ * photo library. Shake is started by `shake-to-report.ts` rather than by the
+ * SDK, because it pauses while a sheet, alert or picker is presented.
+ */
+export const FEEDBACK_OPTIONS = {
+  enableShakeToReport: false,
+  showName: false,
+  showEmail: false,
+  isNameRequired: false,
+  isEmailRequired: false,
+  enableScreenshot: false,
+  enableTakeScreenshot: true,
+  showBranding: false,
+} as const
+
+/**
+ * The form in Gather's neutrals instead of Sentry's purple. The form belongs to
+ * no Module, so its button is `ink`, the accent rule's answer for such a
+ * screen (ADR-0017).
+ */
+export function feedbackTheme(colors: Neutrals) {
+  return {
+    background: colors.surface,
+    foreground: colors.ink,
+    accentBackground: colors.ink,
+    accentForeground: colors.onInk,
+    border: colors.hair,
+    feedbackIcon: colors.ink,
+    sentryLogo: colors.muted,
+  }
+}
+
+/** The form's labels in the member's language. */
+export function feedbackLabels(text: Messages['feedback']) {
+  return {
+    formTitle: text.report,
+    messageLabel: text.message,
+    isRequiredLabel: text.required,
+    messagePlaceholder: text.placeholder,
+    submitButtonLabel: text.submit,
+    cancelButtonLabel: text.cancel,
+    addScreenshotButtonLabel: text.add,
+    captureScreenshotButtonLabel: text.take,
+    removeScreenshotButtonLabel: text.remove,
+    errorTitle: text.report,
+    formError: text.error,
+    genericError: text.error,
+    captureScreenshotError: text.error,
+    successMessageText: text.success,
+  }
+}
+
+/** The floating button the form shows while a screenshot is being taken. */
+export function screenshotButtonLabels(text: Messages['feedback']) {
+  return { triggerLabel: text.take, triggerAriaLabel: text.take }
 }

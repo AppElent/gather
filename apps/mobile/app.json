@@ -103,7 +103,8 @@
       "expo-sqlite",
       "@sentry/react-native/expo",
       "expo-status-bar",
-      "@bacons/apple-targets"
+      "@bacons/apple-targets",
+      "./plugins/disable-shake-to-edit"
     ],
     "locales": {
       "en": "./locales/en.json",
