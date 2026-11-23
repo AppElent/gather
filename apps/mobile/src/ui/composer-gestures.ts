@@ -5,6 +5,9 @@
  * Up expands the small card; down collapses an expanded one, and further down
  * closes it. A small card closes on a shorter drag down. Closing keeps the
  * draft: that is the kind's (`composer-drafts.ts`).
+ *
+ * A kind that does not expand (a grocery item, APP-664) has one size: up does
+ * nothing, and the card does not follow the finger up.
  */
 
 /** How far up a drag must travel to expand the card, in points. */
@@ -34,6 +37,7 @@ export function dragOutcome(
   { translationY, velocityY }: DragEnd,
   expanded: boolean,
   closeExpandedAt = DRAG_CLOSE_EXPANDED,
+  expandable = true,
 ): DragOutcome {
   const up = translationY < -DRAG_EXPAND || velocityY < FLICK_UP
   const down = translationY > DRAG_CLOSE || velocityY > FLICK_DOWN
@@ -41,7 +45,7 @@ export function dragOutcome(
     if (translationY > closeExpandedAt) return 'close'
     return down && !up ? 'collapse' : null
   }
-  if (up && !down) return 'expand'
+  if (up && !down) return expandable ? 'expand' : null
   if (down) return 'close'
   return null
 }
@@ -51,9 +55,13 @@ export function dragOutcome(
  * little for a small card (so the drag visibly answers), and not at all for
  * an expanded one, which already reaches the status bar.
  */
-export function dragOffset(translationY: number, expanded: boolean): number {
+export function dragOffset(
+  translationY: number,
+  expanded: boolean,
+  expandable = true,
+): number {
   if (translationY >= 0) return translationY
-  return expanded ? 0 : translationY * UP_RESISTANCE
+  return expanded || !expandable ? 0 : translationY * UP_RESISTANCE
 }
 
 /** The card's measured height at each size, 0 until it has been drawn so. */

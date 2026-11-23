@@ -18,6 +18,7 @@ import FileText from 'lucide-react-native/icons/file-text'
 import Files from 'lucide-react-native/icons/files'
 import Flag from 'lucide-react-native/icons/flag'
 import Gift from 'lucide-react-native/icons/gift'
+import Hash from 'lucide-react-native/icons/hash'
 import House from 'lucide-react-native/icons/house'
 import Link from 'lucide-react-native/icons/link'
 import List from 'lucide-react-native/icons/list'
@@ -27,6 +28,7 @@ import RotateCcw from 'lucide-react-native/icons/rotate-ccw'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
 import Sparkles from 'lucide-react-native/icons/sparkles'
 import Sun from 'lucide-react-native/icons/sun'
+import TableProperties from 'lucide-react-native/icons/table-properties'
 import Tag from 'lucide-react-native/icons/tag'
 import Text from 'lucide-react-native/icons/text'
 import Trash2 from 'lucide-react-native/icons/trash-2'
@@ -39,6 +41,9 @@ export const TASK_ICONS = {
   /** A task's reminder (APP-305). */
   Bell: glyph(Bell, 'bell'),
   Calendar: glyph(Calendar, 'calendar'),
+  /** A grocery item's amount and aisle chips (APP-664). */
+  Amount: glyph(Hash, 'number'),
+  Aisle: glyph(TableProperties, 'tablecells'),
   CircleCheck: glyph(CircleCheck, 'checkmark.circle'),
   FileText: glyph(FileText, 'doc.text'),
   Flag: glyph(Flag, 'flag'),

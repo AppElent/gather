@@ -624,7 +624,6 @@ export const en = {
   kitchen: {
     name: 'Name',
     quantity: 'Quantity (optional)',
-    addGroceryItem: 'Add an item…',
     deleteTitle: 'Delete “{title}”?',
     deleteBody: 'This cannot be undone.',
     /**
@@ -1188,6 +1187,8 @@ export const en = {
     save: 'Save',
     /** The dim scrim behind the composer, for VoiceOver. */
     close: 'Close',
+    /** The handle of a composer with one size (a grocery item's, APP-664). */
+    closeKeeping: 'Close, the draft is kept',
     /** The add button on the Tasks screens. */
     addTask: 'Add task',
     taskTitle: 'Task name',
@@ -1221,6 +1222,30 @@ export const en = {
     tryAgain: 'Try again',
     discard: 'Discard',
     ok: 'OK',
+    /** The grocery item composer (APP-664, designs/groceries/composer_final.md). */
+    grocery: {
+      /** The bar at the bottom of a grocery list, which opens the composer. */
+      bar: 'Add an item, e.g. 2 milk',
+      barLabel: 'Add an item',
+      title: 'Item, e.g. 2 milk',
+      titleLabel: 'Add an item to {list}',
+      note: 'Note',
+      notePlaceholder: 'Note, e.g. the large one',
+      /** Keeps the item in In stock too. */
+      staple: 'Staple',
+      unit: 'Unit',
+      send: 'Add',
+      /** The status line, for what this composer added since it opened. */
+      added: '{name} added',
+      addedMany: '{count} added: {names}',
+      /** A completion whose amount went onto an item already on the list. */
+      merged: '{name} updated: {amount}',
+      already: '{name} is already on the list',
+      undo: 'Undo',
+      undoFailed: 'Undo did not work. Try again.',
+      /** The item went in; its aisle, note or staple did not. */
+      detailsFailed: 'The item was added, but not all of its details.',
+    },
     /** The add button on Calendar (APP-589), and the event's fields. */
     addEvent: 'Add event',
     eventTitle: 'What’s happening?',

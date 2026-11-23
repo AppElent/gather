@@ -1,25 +1,28 @@
 /**
  * The task just saved from the keyboard composer (APP-587): its row shows on
- * the `home` wash for a moment, so the person sees where it went while the
+ * its group's wash for a moment, so the person sees where it went while the
  * composer stays open for the next one. Reduce Motion: no flash
  * (`TaskRow`).
  */
 import { useSyncExternalStore } from 'react'
 import { AccessibilityInfo } from 'react-native'
 
+import type { ModuleGroup } from '../../theme/tokens'
+
 /** How long a new row stays on the wash, in milliseconds. */
 const FRESH_FOR = 1600
 
-const fresh = new Set<string>()
+const fresh = new Map<string, ModuleGroup>()
 const listeners = new Set<() => void>()
 const notify = () => {
   for (const listener of listeners) listener()
 }
 
-export function markFresh(taskId: string): void {
+/** `group` is the wash it shows on: a grocery item's is `kitchen`. */
+export function markFresh(taskId: string, group: ModuleGroup = 'home'): void {
   void AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
     if (reduce) return
-    fresh.add(taskId)
+    fresh.set(taskId, group)
     notify()
     setTimeout(() => {
       fresh.delete(taskId)
@@ -35,11 +38,11 @@ const subscribe = (listener: () => void) => {
   }
 }
 
-/** Whether this task was saved a moment ago. */
-export function useFresh(taskId: string): boolean {
+/** The group whose wash this task shows on, when it was saved a moment ago. */
+export function useFresh(taskId: string): ModuleGroup | undefined {
   return useSyncExternalStore(
     subscribe,
-    () => fresh.has(taskId),
-    () => false,
+    () => fresh.get(taskId),
+    () => undefined,
   )
 }
