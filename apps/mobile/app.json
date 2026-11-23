@@ -104,6 +104,7 @@
       "@sentry/react-native/expo",
       "expo-status-bar",
       "@bacons/apple-targets",
+      "./plugins/with-extension-versions",
       "./plugins/disable-shake-to-edit"
     ],
     "locales": {
