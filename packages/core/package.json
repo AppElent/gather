@@ -17,6 +17,7 @@
     "./decimal": "./src/decimal.ts",
     "./domain": "./src/domain.ts",
     "./energy": "./src/energy.ts",
+    "./energy-present": "./src/energyPresent.ts",
     "./drop-rules": "./src/dropRules.ts",
     "./features": "./src/features.ts",
     "./finance": "./src/finance/index.ts",
