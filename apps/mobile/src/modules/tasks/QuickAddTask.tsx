@@ -14,9 +14,15 @@
  *
  * A failed save keeps the line and says so under it; the launcher is told
  * only about a save that happened.
+ *
+ * A line closed unsaved is kept, like the keyboard composer's draft
+ * (`ui/composer-drafts.ts`), and is back when the form opens again in the
+ * same account and Group. The sheet can close without being asked: a share
+ * from another app closes it to show the Drop chooser (APP-618).
  */
+import { useAuth } from '@clerk/expo'
 import { MenuView } from '@expo/ui/community/menu'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -27,13 +33,21 @@ import {
 } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
+import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { TYPE, useTokens } from '../../theme/tokens'
+import { draftKey, keepDraft, keptDraft } from '../../ui/composer-drafts'
 import { ListTile } from './listFace'
 import { QuickAddChips, QuickAddInput, useQuickAddLine } from './QuickAddParts'
 import { quickAddLists, quickAddTarget } from './quickAdd'
 import { listFace, useTaskActions, useTaskLists } from './store'
+
+/** The quick sheet's kept line (`useQuickAddLine`'s `initial`). */
+interface QuickLine {
+  line: string
+  dismissed: readonly string[]
+}
 
 export function QuickAddTask({
   onSaved,
@@ -60,8 +74,24 @@ export function QuickAddTask({
   const target = offered ? quickAddTarget(offered, pickedId) : undefined
   // A grocery list reads its own line: "2 pakken melk" is an amount (APP-309).
   const grocery = target?.grocery ?? false
-  const { line, parsed, today, setLine, dismiss, reset } =
-    useQuickAddLine(!grocery)
+  const { group } = useGroup()
+  const { userId } = useAuth()
+  // The place is fixed for the form's life; read at unmount, not tracked.
+  const [key] = useState(() => draftKey(userId, group._id, 'quick-sheet:task'))
+  const [kept] = useState(() => keptDraft<QuickLine>(key))
+  const { line, parsed, today, dismissed, setLine, dismiss, reset } =
+    useQuickAddLine(!grocery, kept)
+  // What a close would keep. Emptied by a save before its re-render, since
+  // `onSaved` may close the form first.
+  const latest = useRef<QuickLine>({ line, dismissed })
+  latest.current = { line, dismissed }
+  useEffect(
+    () => () => {
+      const last = latest.current
+      keepDraft(key, last.line.trim() ? last : undefined)
+    },
+    [key],
+  )
   const title = parsed.title
   const ready = Boolean(title && target && !saving)
 
@@ -72,6 +102,7 @@ export function QuickAddTask({
       return
     }
     inFlight.current = true
+    const sent = line
     setSaving(true)
     setNotice(null)
     try {
@@ -80,6 +111,9 @@ export function QuickAddTask({
         : await addParsedTask(target._id, parsed)
       haptics.itemSaved()
       reset()
+      latest.current = { line: '', dismissed: [] }
+      // Closed while it saved: the line kept then is this task, already made.
+      if (keptDraft<QuickLine>(key)?.line === sent) keepDraft(key, undefined)
       // An alert, not the notice: `onSaved` may close this form, and a
       // haptic is never the only word that the reminder did not go in.
       if (saved.reminderFailed) Alert.alert(text.reminderFailed)
