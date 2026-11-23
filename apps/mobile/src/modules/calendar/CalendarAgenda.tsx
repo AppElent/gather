@@ -173,46 +173,73 @@ export function CalendarAgenda({
     },
   ).current
 
-  /** The list's own height and offset, for the check below. */
+  /** The list's own height, for the checks below. */
   const viewport = useRef(0)
-  /** The rows an earlier month was last asked for, so each set asks once. */
+  /** The rows a month was last asked for, so each set of rows asks once. */
   const askedEarlierFor = useRef<AgendaListRow[] | null>(null)
+  const askedLaterFor = useRef<AgendaListRow[] | null>(null)
+  /** Where the list stood when it last asked for a month in each direction. */
+  const askedEarlierAt = useRef<number | null>(null)
+  const askedLaterAt = useRef<number | null>(null)
   const lastOffset = useRef(0)
   const lastContentHeight = useRef(0)
 
   /**
-   * Within a screen of the first row, ask for the month before. Not
-   * `onStartReached`: after a prepend the list waits for the scroll event
-   * that `maintainVisibleContentPosition` owes it and drops the check, so at
-   * the very top it stalled until the person scrolled away and back.
+   * Within reach of either end, ask for one more month that way. Only for a
+   * scroll the person makes, and at most one month per screen they travel.
+   *
+   * Not `onEndReached` or `onStartReached`: a month with no events is a
+   * single short row, so the month that lands is still inside the threshold
+   * and the list asks again by itself, month after month, and dropping the
+   * far month (`AGENDA_MAX_MONTHS`) keeps it there. That chain is what sent
+   * the agenda racing through years (APP-662). `onStartReached` also stalled
+   * at the very top, waiting for a scroll event `maintainVisibleContentPosition`
+   * owed it.
    */
-  const maybeLoadEarlier = (offset: number) => {
-    const towardEarlier = offset < lastOffset.current
-    lastOffset.current = offset
+  const maybeLoadMore = (offset: number, moved: number, height: number) => {
     // Not while a jump is under way: it is aiming at a row, and the list
-    // sits at its very start until the first layout. And only on the way
-    // toward earlier days, so a drag toward later ones keeps its collapse.
-    if (pendingJump.current || !viewport.current || !towardEarlier) return
-    if (offset > viewport.current) return
-    if (askedEarlierFor.current === rows) return
-    askedEarlierFor.current = rows
-    onLoadEarlier?.()
+    // sits at its very start until the first layout.
+    if (pendingJump.current || !viewport.current || moved === 0) return
+    const screen = viewport.current
+    if (moved < 0) {
+      if (offset > screen || askedEarlierFor.current === rows) return
+      if (askedEarlierAt.current !== null && askedEarlierAt.current - offset < screen)
+        return
+      askedEarlierFor.current = rows
+      askedEarlierAt.current = offset
+      onLoadEarlier?.()
+      return
+    }
+    if (offset + 2 * screen < height || askedLaterFor.current === rows) return
+    if (askedLaterAt.current !== null && offset - askedLaterAt.current < screen)
+      return
+    askedLaterFor.current = rows
+    askedLaterAt.current = offset
+    onLoadLater?.()
   }
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offset = event.nativeEvent.contentOffset.y
-    const grew = event.nativeEvent.contentSize.height - lastContentHeight.current
+    const height = event.nativeEvent.contentSize.height
+    const grew = height - lastContentHeight.current
     const moved = offset - lastOffset.current
-    lastContentHeight.current = event.nativeEvent.contentSize.height
-    // Rows that grow above the visible ones (a month landing, events arriving
-    // for one, cells measured late) move the offset by their height. That is
-    // the list holding its place, not the finger, so the drag's start moves
-    // with it instead of reading as a drag toward later days.
-    if (dragStart.current !== null && grew > 0 && moved > 0)
-      dragStart.current += Math.min(grew, moved)
-    maybeLoadEarlier(offset)
+    lastContentHeight.current = height
+    lastOffset.current = offset
+    if (grew !== 0) {
+      // Rows that grow or go above the visible ones (a month landing or
+      // dropped, events arriving for one, cells measured late) move the
+      // offset by their height. That is the list holding its place, not the
+      // finger: every mark of where the finger was moves with it, and it
+      // asks for nothing.
+      if (askedEarlierAt.current !== null) askedEarlierAt.current += moved
+      if (askedLaterAt.current !== null) askedLaterAt.current += moved
+      if (dragStart.current !== null && grew > 0 && moved > 0)
+        dragStart.current += Math.min(grew, moved)
+    } else {
+      maybeLoadMore(offset, moved, height)
+    }
     if (dragStart.current === null) return
-    if (event.nativeEvent.contentOffset.y - dragStart.current > COLLAPSE_AFTER) {
+    if (offset - dragStart.current > COLLAPSE_AFTER) {
       dragStart.current = null
       latest.current.onDragUp?.()
     }
@@ -394,8 +421,6 @@ export function CalendarAgenda({
       onLayout={(event) => {
         viewport.current = event.nativeEvent.layout.height
       }}
-      onEndReachedThreshold={1}
-      onEndReached={() => onLoadLater?.()}
       onScrollBeginDrag={(event) => {
         pendingJump.current = false
         draggedSince.current = jumpId
