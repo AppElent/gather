@@ -12,8 +12,10 @@
  * Diets, allergens, dislikes, cuisines, the fish and leftover days and a
  * slot's days and switch are written one item at a time (`setDiet`,
  * `setAllergen`, `setDislike`, `setCuisine`, `setFishDay`, `setLeftoverDay`,
- * `setSlotDay`, `setSlotEnabled`), never as a whole list, so another Member's
- * change made at the same moment is never lost. `update` keeps the rest.
+ * `setSlotDay`, `setSlotEnabled`), and so are one day's cooking time and one
+ * smart switch (`setCookingMinutes`, `setSmartSwitch`), never as a whole list,
+ * so another Member's change made at the same moment is never lost. `update`
+ * keeps the rest.
  */
 import {
   ALLERGENS,
@@ -194,6 +196,21 @@ export function MealPreferencesScreen() {
     optimisticList(store, { list: 'slotEnabled', slot: args.slot, on: args.on }),
   )
 
+  const setCookingMinutes = useMutation(
+    api.mealPreferences.setCookingMinutes,
+  ).withOptimisticUpdate((store, args) =>
+    optimisticList(store, {
+      list: 'cookingMinutes',
+      day: args.day,
+      minutes: args.minutes,
+    }),
+  )
+  const setSmartSwitch = useMutation(
+    api.mealPreferences.setSmartSwitch,
+  ).withOptimisticUpdate((store, args) =>
+    optimisticList(store, { list: 'smart', key: args.key, on: args.on }),
+  )
+
   const failedToSave = () => {
     haptics.actionFailed()
     setFailed(true)
@@ -245,6 +262,14 @@ export function MealPreferencesScreen() {
             slot: change.slot,
             on: change.on,
           })
+        case 'cookingMinutes':
+          return setCookingMinutes({
+            groupSlug,
+            day: change.day,
+            minutes: change.minutes,
+          })
+        case 'smart':
+          return setSmartSwitch({ groupSlug, key: change.key, on: change.on })
       }
     })()
     written.catch(failedToSave)
@@ -488,9 +513,11 @@ export function MealPreferencesScreen() {
                   : fmt(m.time.cellLabel, { day: m.dayLong[day], minutes })
               }
               onCycle={(day) => {
-                const next = [...prefs.cookingMinutes]
-                next[day] = nextCookingMinutes(next[day] ?? null)
-                save({ cookingMinutes: next })
+                saveItem({
+                  list: 'cookingMinutes',
+                  day,
+                  minutes: nextCookingMinutes(prefs.cookingMinutes[day] ?? null),
+                })
               }}
             />
           </BlockRow>
@@ -795,7 +822,7 @@ export function MealPreferencesScreen() {
                   trackColor={{ false: tokens.surface2 }}
                   onValueChange={(next) => {
                     haptics.selectionChanged()
-                    save({ smart: { ...prefs.smart, [key]: next } })
+                    saveItem({ list: 'smart', key, on: next })
                   }}
                 />
               }

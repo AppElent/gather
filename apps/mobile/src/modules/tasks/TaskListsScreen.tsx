@@ -113,6 +113,7 @@ export function TaskLists() {
           headerRight: () => (
             <ModuleHeaderButtons
               testID="tasks"
+              search="tasks"
               moduleLabel={t.tasks.title}
               settingsHref={moduleSettingsRoute('tasks', 'all')}
             />

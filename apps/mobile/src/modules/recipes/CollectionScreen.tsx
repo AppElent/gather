@@ -8,11 +8,9 @@
  *   which; a phone is one column wide, so the choice does not exist and the
  *   toggle would be chrome that only ever says the same thing. Full-width rows
  *   carrying a thumbnail, the title, its stars and its tags.
- * - **The search is here, not in the Search tab.** `recipes.list` is a live
- *   query that already holds the whole collection, so filtering it costs
- *   nothing and asking the server again would cost a spinner. The Search tab
- *   stays a stub on purpose: it should be designed against several Modules
- *   rather than reverse-engineered from this one.
+ * - **Search is the header's magnifying glass**, not a field over the list:
+ *   the one search screen with Recipes preset (APP-613), the same one the
+ *   Search tab and every other Module open.
  * - **The Group is ambient.** No Group chrome anywhere on this screen; the
  *   Group is what the shell already says it is (ADR-0015), and the only place
  *   it is named is the screen a save happens on.
@@ -36,14 +34,14 @@ import { useMemo, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
-import { SearchField } from '../../components/SearchField'
 import { api, type Id } from '../../convex/api'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
-import { RADIUS, SPACE, TYPE, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { InsetListItem, InsetRow } from '../../ui/inset-list'
+import { ModuleHeaderButtons } from '../../ui/module-header-buttons'
 import { moduleTile } from '../../ui/module-tile'
 import { RecordThumb } from '../../ui/record-thumb'
 import { washScreenOptions } from '../../ui/screen-header'
@@ -51,7 +49,6 @@ import { WashHeader } from '../../ui/wash-header'
 import { moduleHref } from '../moduleDestination'
 import { AddRecipeSheet } from './AddRecipeSheet'
 import { RECIPE_UI_ICONS } from './icons'
-import { recipeCollection } from './recipeFilter'
 import { StarRating } from './StarRating'
 import { type ListedRecipe, useRecipes } from './useRecipes'
 
@@ -64,12 +61,12 @@ export function CollectionScreen() {
   const { recipes, loading } = useRecipes()
   const remove = useMutation(api.recipes.remove)
 
-  const [query, setQuery] = useState('')
   const [adding, setAdding] = useState(false)
 
   const shown = useMemo(
-    () => recipeCollection(recipes ?? [], query),
-    [recipes, query],
+    () =>
+      [...(recipes ?? [])].sort((a, b) => a.title.localeCompare(b.title)),
+    [recipes],
   )
 
   const text = t.recipes.list
@@ -102,23 +99,30 @@ export function CollectionScreen() {
       options={{
         ...washScreenOptions(t.modules.byId.recipes.label),
         headerRight: () => (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={text.add}
-            testID="recipes-add"
-            hitSlop={12}
-            onPress={openAdd}
-            style={({ pressed }) => [
-              styles.headerButton,
-              pressed && styles.pressed,
-            ]}
-          >
-            <RECIPE_UI_ICONS.Plus
-              size={22}
-              color={tokens.ink}
-              strokeWidth={2.1}
-            />
-          </Pressable>
+          <ModuleHeaderButtons
+            testID="recipes"
+            moduleLabel={t.modules.byId.recipes.label}
+            search="recipes"
+            before={
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={text.add}
+                  testID="recipes-add"
+                  hitSlop={12}
+                  onPress={openAdd}
+                  style={({ pressed }) => [
+                    styles.headerButton,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <RECIPE_UI_ICONS.Plus
+                    size={22}
+                    color={tokens.ink}
+                    strokeWidth={2.1}
+                  />
+                </Pressable>
+            }
+          />
         ),
       }}
     />
@@ -149,33 +153,17 @@ export function CollectionScreen() {
         ]}
         data={shown}
         keyExtractor={(item) => item._id}
-        keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
-          <>
-            {tile ? (
-              <WashHeader
-                group={tile.group}
-                glyph={tile.glyph}
-                summary={{
-                  count: plural(locale, (recipes ?? []).length, text.count),
-                  scope: group.name,
-                }}
-              />
-            ) : null}
-            {/* Hidden while the collection is empty: a search field over
-                nothing is a control that cannot do anything, and the empty
-                state below already says what to do instead. */}
-            {collectionIsEmpty ? null : (
-              <SearchField
-                value={query}
-                onChangeText={setQuery}
-                placeholder={text.search}
-                clearAccessibilityLabel={text.clearSearch}
-                testID="recipes-search"
-                style={styles.search}
-              />
-            )}
-          </>
+          tile ? (
+            <WashHeader
+              group={tile.group}
+              glyph={tile.glyph}
+              summary={{
+                count: plural(locale, (recipes ?? []).length, text.count),
+                scope: group.name,
+              }}
+            />
+          ) : undefined
         }
         ListEmptyComponent={
           collectionIsEmpty ? (
@@ -206,35 +194,7 @@ export function CollectionScreen() {
                 </Text>
               </Pressable>
             </View>
-          ) : (
-            // *Nothing found*: about the words somebody typed, and it offers
-            // the way back out of them.
-            <View style={styles.empty} testID="recipes-no-results">
-              <Text style={[styles.emptyTitle, { color: tokens.ink }]}>
-                {text.noResultsTitle}
-              </Text>
-              <Text style={[styles.emptyBody, { color: tokens.muted }]}>
-                {fmt(text.noResultsBody, { query: query.trim() })}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={text.clearSearch}
-                testID="recipes-clear-search"
-                onPress={() => setQuery('')}
-                style={({ pressed }) => [
-                  styles.emptyButton,
-                  { backgroundColor: tokens.accent },
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text
-                  style={[styles.emptyButtonLabel, { color: tokens.onAccent }]}
-                >
-                  {text.clearSearch}
-                </Text>
-              </Pressable>
-            </View>
-          )
+          ) : undefined
         }
         renderItem={({ item, index }) => (
           <InsetListItem index={index} count={shown.length}>
@@ -365,7 +325,6 @@ function RecipeRow({
 const styles = StyleSheet.create({
   content: {},
   headerButton: { padding: 6 },
-  search: { marginHorizontal: SPACE[4], marginBottom: SPACE[3] },
   rowMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   badge: {
     ...TYPE.footnoteStrong,

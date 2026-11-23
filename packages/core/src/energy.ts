@@ -38,3 +38,5 @@ export function primaryEnergySite<
     (a, b) => a.order - b.order || a._creationTime - b._creationTime,
   )[0]
 }
+
+export * from './energyUsage'

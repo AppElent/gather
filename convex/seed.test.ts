@@ -3,6 +3,7 @@ import { MODULES, type ModuleId } from '@gather/core/modules'
 import type { TastingKind } from '@gather/core/tastings'
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
+import { api } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import type { GroupScopedTable } from './lib/groupAccess'
@@ -192,6 +193,66 @@ describe('the Sample household', () => {
     expect(scenarios[0].participants).toHaveLength(3)
     expect(scenarios[0].transfers).toHaveLength(2)
     expect(scenarios[0].totalCents).toBe(450_00)
+  })
+
+  test('reads its meters every month for two years, and Usage costs them (APP-494)', async () => {
+    const t = testConvex()
+    await buildSample(t)
+    const group = await sampleGroup(t)
+    if (!group) throw new Error('no sample group')
+    const now = Date.now()
+
+    const { channels, readings, contracts } = await t.run(async (ctx) => ({
+      channels: await groupRows(ctx, 'energyChannels', group._id),
+      readings: (await groupRows(
+        ctx,
+        'energyReadings',
+        group._id,
+      )) as Doc<'energyReadings'>[],
+      contracts: (await groupRows(
+        ctx,
+        'energyContracts',
+        group._id,
+      )) as Doc<'energyContracts'>[],
+    }))
+    expect(channels).toHaveLength(5)
+    expect(readings).toHaveLength(5 * 24)
+    for (const channel of channels as Doc<'energyChannels'>[]) {
+      const counts = readings
+        .filter((reading) => reading.channelId === channel._id)
+        .sort((a, b) => a.at - b.at)
+      expect(counts).toHaveLength(24)
+      for (let index = 1; index < counts.length; index++) {
+        expect(counts[index]?.value).toBeGreaterThan(counts[index - 1]?.value ?? 0)
+      }
+      // Up to two days ago, from about 23 months before that.
+      const last = counts.at(-1)?.at ?? 0
+      expect(now - last).toBeGreaterThan(1.4 * 86_400_000)
+      expect(now - last).toBeLessThan(2.6 * 86_400_000)
+      expect(last - (counts[0]?.at ?? 0)).toBeGreaterThan(690 * 86_400_000)
+    }
+    const firstDay = new Date(Math.min(...readings.map((r) => r.at)))
+    expect(contracts).toEqual([
+      expect.objectContaining({ kind: 'fixed', supplierName: 'Eneco' }),
+    ])
+    expect(contracts[0]?.validFrom.slice(0, 7)).toBe(
+      firstDay.toISOString().slice(0, 7),
+    )
+
+    // A month a year ago has a whole month of estimated usage and costs.
+    const ago = new Date(now)
+    const month = `${ago.getUTCFullYear() - 1}-${String(ago.getUTCMonth() + 1).padStart(2, '0')}`
+    const usage = await t
+      .withIdentity({ subject: owner.clerkId, name: owner.name, email: owner.email })
+      .query(api.energyUsage.month, {
+        groupSlug: group.slug,
+        month,
+        today: new Date(now).toISOString().slice(0, 10),
+      })
+    expect(usage?.totals.daysWithData).toBeGreaterThanOrEqual(28)
+    expect(usage?.totals.estimated).toBe(true)
+    expect(usage?.totals.costStatus).toBe('ok')
+    expect(usage?.totals.importKwh).toBeGreaterThan(100)
   })
 })
 

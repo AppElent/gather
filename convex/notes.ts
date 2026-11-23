@@ -37,6 +37,8 @@ export const create = mutation({
     groupSlug: v.string(),
     title: v.string(),
     body: v.string(),
+    /** Set by the phone's composer Pin chip (APP-588); unpinned when left out. */
+    pinned: v.optional(v.boolean()),
     idempotencyKey: idempotencyKeyValidator,
   },
   handler: async (ctx, args) => {
@@ -47,7 +49,7 @@ export const create = mutation({
         groupId: group._id,
         title: args.title,
         body: args.body,
-        pinned: false,
+        pinned: args.pinned ?? false,
         createdBy: user._id,
         updatedAt: now,
       }),

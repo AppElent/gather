@@ -162,6 +162,38 @@ export const en = {
       loyaltyCard: 'Loyalty card',
     },
     kinds: { cheese: 'Cheese', wine: 'Wine', beer: 'Beer' },
+    /** A search pushed from a Module (APP-613): its title and its header button. */
+    inModule: 'Search in {module}',
+    /** The field's placeholder there. */
+    placeholderModule: 'Search {module}',
+    /** The filter chips at the top of the results (APP-613). */
+    filters: {
+      label: 'Filters',
+      /** Every chip's VoiceOver label. */
+      chip: '{filter}: {value}. Tap to change.',
+      module: 'Module',
+      allModules: 'All Modules',
+      /** The selected Module chip's ✕. */
+      clearModule: 'Search all Modules',
+      /** The Module sheet's title. */
+      sheetTitle: 'Search in',
+      who: 'Who',
+      anyone: 'Anyone',
+      me: 'Me',
+      when: 'When',
+      anytime: 'Any time',
+      whenValues: {
+        today: 'Today',
+        week: 'This week',
+        month: 'This month',
+        earlier: 'Earlier',
+      },
+      status: 'Status',
+      anyStatus: 'Any',
+      statusValues: { open: 'Open', done: 'Done' },
+      noResults: 'Nothing found with these filters.',
+      clear: 'Clear filters',
+    },
   },
 
   /**
@@ -1140,6 +1172,13 @@ export const en = {
     taskTitle: 'Task name',
     description: 'Description',
     taskBody: 'Description, links, what’s needed…',
+    /** The add button on Notes (APP-588), and the note's body field. */
+    addNote: 'New note',
+    noteBody: 'Start typing…',
+    /** A note's save failed while the composer still showed it. */
+    noteFailed: 'That note could not be saved. Try again.',
+    /** A note's save failed once the composer had moved on or closed. */
+    noteNotSaved: '“{title}” was not saved.',
     label: 'Label',
     /** Starts a #label in the field, where it is recognised as typed. */
     newLabel: 'New label…',
@@ -1374,13 +1413,9 @@ export const en = {
   /** The Notes Module's own words, on the same terms as `tasks` above. */
   notes: {
     title: 'Notes',
-    search: 'Search notes',
     pinned: 'Pinned',
     recent: 'Recent',
     empty: 'No notes yet.',
-    /** Nothing matched the field — never an add button (mobile-interaction). */
-    noMatches: 'Nothing called “{query}”.',
-    newNote: 'New note',
     untitled: 'Untitled note',
     titlePlaceholder: 'Title',
     bodyPlaceholder: 'Start writing…',
