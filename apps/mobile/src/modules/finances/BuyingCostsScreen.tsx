@@ -61,12 +61,12 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
   const { groupSlug, format, text } = useFinances()
   const house = useQuery(api.houses.get, { id: houseId, groupSlug })
   const save = useMutation(api.houses.saveBuyingCosts)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, landed } = useFinanceWrite()
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
   // A share closed the sheet: open on what was typed (APP-622).
-  const resume = useSheetResume(editing)
+  const resume = useSheetResume(editing, landed)
 
   const Key = FINANCE_ICONS.Key
 

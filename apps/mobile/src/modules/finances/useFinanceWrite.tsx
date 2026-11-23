@@ -30,6 +30,8 @@ export function useFinanceWrite() {
   const { t } = useI18n()
   const [failed, setFailed] = useState(false)
   const inFlight = useRef(false)
+  /** How many guarded writes landed (`useSheetResume`). */
+  const landed = useRef(0)
 
   const attempt = useCallback(
     <T,>(write: () => Promise<T>, then?: (value: T) => void) => {
@@ -39,7 +41,10 @@ export function useFinanceWrite() {
       setFailed(false)
       write().then(
         (value) => {
-          if (guarded) inFlight.current = false
+          if (guarded) {
+            inFlight.current = false
+            landed.current += 1
+          }
           then?.(value)
         },
         () => {
@@ -54,6 +59,7 @@ export function useFinanceWrite() {
 
   return {
     attempt,
+    landed,
     failure: failed ? <StaleBanner text={t.common.errors.didNotWork} /> : null,
   }
 }

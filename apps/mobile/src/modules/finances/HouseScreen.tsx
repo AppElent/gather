@@ -53,12 +53,12 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
   const createCalculation = useMutation(api.mortgages.create)
   const updateHouse = useMutation(api.houses.update)
   const removeHouse = useMutation(api.houses.remove)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, landed } = useFinanceWrite()
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
   // A share closed the sheet: open on what was typed (APP-622).
-  const resume = useSheetResume(editing)
+  const resume = useSheetResume(editing, landed)
 
   const Key = FINANCE_ICONS.Key
   const Clock = FINANCE_ICONS.Clock

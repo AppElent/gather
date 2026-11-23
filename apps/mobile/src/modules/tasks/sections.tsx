@@ -99,6 +99,7 @@ export function SectionsSheet({
           style={[styles.row, { borderBottomColor: tokens.hair }]}
         >
           <SectionNameField
+            id={section.id}
             // A rename from another phone replaces what this field holds.
             key={section.name}
             name={section.name}
@@ -184,15 +185,20 @@ export function SectionsSheet({
 
 /** A section's name, renamed by typing; an emptied field puts it back. */
 function SectionNameField({
+  id,
   name,
   onRename,
 }: {
+  id: string
   name: string
   onRename: (name: string) => void
 }) {
   const tokens = useTokens('home')
   const { t } = useI18n()
-  const [draft, setDraft] = useState(name)
+  const kept = useSheetDraft<{ draft: string }>(`tasks:section-name:${id}`)
+  const [draft, setDraft] = useState(kept.kept?.draft ?? name)
+  // A rename the field committed as it closed is the saved name already.
+  kept.track({ draft }, { dirty: draft.trim() !== name })
   const commit = () => {
     const next = draft.trim()
     if (!next || next === name) {

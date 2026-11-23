@@ -165,6 +165,7 @@ export function PlanSheet({
       })
       .catch(() => {
         haptics.actionFailed()
+        draft.failed()
         setFailed(plan.failed)
       })
       .finally(() => setBusy(false))

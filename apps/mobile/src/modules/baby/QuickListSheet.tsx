@@ -84,6 +84,7 @@ export function QuickListSheet({
       await add({ listId: target, groupSlug, title: title.trim() })
       onClose()
     } catch {
+      draft.failed()
       setFailed(true)
       setSaving(false)
     }

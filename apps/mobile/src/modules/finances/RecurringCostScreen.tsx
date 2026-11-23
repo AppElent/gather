@@ -58,13 +58,13 @@ export function RecurringCostScreen({
   const members = useQuery(api.groups.members, { slug: groupSlug })
   const update = useMutation(api.recurringCosts.update)
   const remove = useMutation(api.recurringCosts.remove)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, landed } = useFinanceWrite()
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
   const [percents, setPercents] = useState<Record<string, string>>({})
   // A share closed the sheet: open on what was typed (APP-622).
-  const resume = useSheetResume(editing)
+  const resume = useSheetResume(editing, landed)
 
   if (cost === undefined) {
     return (

@@ -177,4 +177,19 @@ describe('openSheets', () => {
     await closeOpenSheets()
     expect(order).toEqual(['listener', 'dismiss'])
   })
+
+  it('tells its listeners about a sheet that opened mid-close', async () => {
+    vi.useFakeTimers()
+    const a = sheet()
+    const told = vi.fn()
+    const closing = closeOpenSheets()
+    const late = sheet()
+    const stop = onSheetsClosing(told)
+    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
+    expect(told).toHaveBeenCalledTimes(1)
+    a.later()
+    late.later()
+    await closing
+    stop()
+  })
 })

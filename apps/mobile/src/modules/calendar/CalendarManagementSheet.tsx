@@ -41,7 +41,8 @@ export function CalendarManagementSheet({
   // A share keeps the new calendar's name (APP-622).
   const draft = useSheetDraft<{ name: string }>('calendar:new-calendar')
   const [name, setName] = useState(draft.kept?.name ?? '')
-  draft.track({ name })
+  const [adding, setAdding] = useState(false)
+  draft.track({ name }, { holding: adding })
   const colors: CalendarEvent['color'][] = [
     'home',
     'kitchen',
@@ -132,12 +133,21 @@ export function CalendarManagementSheet({
             style={[styles.input, { color: tokens.ink }]}
           />
           <Pressable
-            disabled={!serviceActionsEnabled || !name.trim()}
+            disabled={!serviceActionsEnabled || !name.trim() || adding}
             onPress={() => {
-              void add({ groupSlug, name: name.trim() }).then((id) => {
-                onCreated?.(id)
-                setName('')
-              })
+              setAdding(true)
+              void add({ groupSlug, name: name.trim() })
+                .then(
+                  (id) => {
+                    onCreated?.(id)
+                    setName('')
+                  },
+                  (caught) => {
+                    draft.failed()
+                    throw caught
+                  },
+                )
+                .finally(() => setAdding(false))
             }}
           >
             <Text style={{ color: tokens.accentText }}>

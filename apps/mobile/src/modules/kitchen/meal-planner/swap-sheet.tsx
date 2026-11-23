@@ -144,7 +144,10 @@ export function SwapSheet({
   // answer is shown again rather than asked for again.
   const draft = useSheetDraft<SwapDraft>(`meal-planner:swap:${date}:${slot}`)
   const kept = draft.kept
-  const [view, setView] = useState<'swap' | 'idea'>(kept?.view ?? 'swap')
+  const [view, setView] = useState<'swap' | 'idea'>(
+    // An idea still being asked for is not kept: back to the swaps.
+    kept?.idea ? kept.view : 'swap',
+  )
   const [wish, setWish] = useState(kept?.wish ?? '')
   const [chip, setChip] = useState<SwapChip | null>(kept?.chip ?? null)
   const [swap, setSwap] = useState<SwapState>(kept?.swap ?? { kind: 'asking' })
@@ -245,7 +248,7 @@ export function SwapSheet({
   useEffect(() => {
     if (asked.current || !online) return
     asked.current = true
-    runSwap(null)
+    runSwap(chip)
   }, [online])
 
   const runIdea = () => {
@@ -324,6 +327,7 @@ export function SwapSheet({
         // alternatives stay, the message says nothing changed, and the week
         // query catches up on its own.
         haptics.actionFailed()
+        draft.failed()
         setChooseFailed(true)
       })
       .finally(() => setChoosing(null))
@@ -401,6 +405,7 @@ export function SwapSheet({
       .catch(() => {
         // Keep the draft: it cost a call, and saving again should not.
         haptics.actionFailed()
+        draft.failed()
         setSaveFailed(true)
       })
       .finally(() => setSaving(null))

@@ -304,6 +304,7 @@ export function AddToGroceriesSheet({
       onClose()
     } catch {
       haptics.actionFailed()
+      draft.failed()
       setFailed(true)
       setBusy(false)
     }

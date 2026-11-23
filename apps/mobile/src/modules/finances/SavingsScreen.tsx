@@ -45,14 +45,14 @@ export function SavingsScreen() {
   const { groupSlug, format, text, today } = useFinances()
   const goals = useQuery(api.savingsGoals.list, { groupSlug })
   const create = useMutation(api.savingsGoals.create)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, landed } = useFinanceWrite()
 
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [target, setTarget] = useState('')
   const [date, setDate] = useState('')
   // A share closed the sheet: open on what was typed (APP-622).
-  const resume = useSheetResume(adding)
+  const resume = useSheetResume(adding, landed)
 
   const Target = FINANCE_ICONS.Target
 
@@ -192,11 +192,11 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
   const goal = useQuery(api.savingsGoals.get, { id: goalId, groupSlug })
   const update = useMutation(api.savingsGoals.update)
   const remove = useMutation(api.savingsGoals.remove)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, landed } = useFinanceWrite()
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
-  const resume = useSheetResume(editing)
+  const resume = useSheetResume(editing, landed)
 
 
   if (goal === undefined) {

@@ -58,7 +58,7 @@ export function SplitScreen() {
   const members = useQuery(api.groups.members, { slug: groupSlug })
   const saved = useQuery(api.splitScenarios.list, { groupSlug })
   const saveScenario = useMutation(api.splitScenarios.save)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, landed } = useFinanceWrite()
 
   const [what, setWhat] = useState('')
   const [payments, setPayments] = useState<Payment[]>([])
@@ -76,8 +76,8 @@ export function SplitScreen() {
   const [label, setLabel] = useState('')
   const [name, setName] = useState('')
   // A share closed the sheet: open on what was typed (APP-622).
-  const resumeAdd = useSheetResume(adding)
-  const resumeSave = useSheetResume(saving)
+  const resumeAdd = useSheetResume(adding, landed)
+  const resumeSave = useSheetResume(saving, landed)
 
   const Users = FINANCE_ICONS.Users
 

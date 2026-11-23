@@ -118,6 +118,7 @@ export function NewListSheet({
       onCreated({ id: listId, kind })
     } catch {
       haptics.actionFailed()
+      draft.failed()
       setFailed(true)
       setBusy(false)
     }

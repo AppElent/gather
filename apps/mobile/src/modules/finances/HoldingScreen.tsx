@@ -53,7 +53,7 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
   const addTransaction = useMutation(api.holdings.addTransaction)
   const setPrice = useMutation(api.holdings.setPrice)
   const remove = useMutation(api.holdings.remove)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, landed } = useFinanceWrite()
 
   const [adding, setAdding] = useState(false)
   const [pricing, setPricing] = useState(false)
@@ -65,8 +65,11 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
   const [note, setNote] = useState('')
   const [newPrice, setNewPrice] = useState('')
   // A share closed the sheet: open on what was typed (APP-622).
-  const resumeAdd = useSheetResume(adding)
-  const resumePrice = useSheetResume(pricing)
+  const resumeAdd = useSheetResume(
+    adding && (kind === 'adjustment' ? 'adjustment' : 'trade'),
+    landed,
+  )
+  const resumePrice = useSheetResume(pricing, landed)
 
   const Target = FINANCE_ICONS.Target
   const Alert = FINANCE_ICONS.Alert
@@ -257,7 +260,7 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
           <AddRow
             label={text.portfolio.holding.addTransaction}
             onPress={() => {
-              if (resumeAdd() !== true) {
+              if (resumeAdd() !== 'trade') {
                 setKind('buy')
                 setDate(today)
               }
@@ -268,7 +271,7 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
           <AddRow
             label={text.portfolio.holding.recordAdjustment}
             onPress={() => {
-              if (resumeAdd() !== true) {
+              if (resumeAdd() !== 'adjustment') {
                 setKind('adjustment')
                 setDate(today)
               }

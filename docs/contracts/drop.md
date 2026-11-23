@@ -40,10 +40,10 @@ that already means making Group content visible to a second Group.
   draft store) and opens on the draft next time. A finance screen holds its
   sheet's state itself, so `useSheetResume` only stops the next open from
   seeding it again. A close the person chose (Cancel, Close, a swipe) still
-  discards, as before; nothing is kept while a save is on its way. No form
-  needed to ask instead. Covered:
+  discards, as before. Nothing is kept while a save is on its way, unless that
+  save then fails. No form needed to ask instead. Covered:
   - **Tasks:** quick sheet task line (`QuickAddTask`, APP-618), New list,
-    Rename task or list, Labels, Sections (new section), Reminder, Repeat.
+    Rename task or list, Labels, Sections (new section, rename), Reminder, Repeat.
   - **Baby log:** Quick log (types, fields, notes, time, photos), quick to-do
     or question.
   - **Calendar:** new calendar name; the event editor opened from an event

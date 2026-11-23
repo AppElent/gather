@@ -78,7 +78,7 @@ export function LoanPartScreen({
   )
   const updatePart = useMutation(api.mortgages.updatePart)
   const removePart = useMutation(api.mortgages.removePart)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, landed } = useFinanceWrite()
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
@@ -88,7 +88,7 @@ export function LoanPartScreen({
   const [repaymentDate, setRepaymentDate] = useState(today)
   const [freeAnnual, setFreeAnnual] = useState('10')
   // A share closed the sheet: open on what was typed (APP-622).
-  const resume = useSheetResume(editing)
+  const resume = useSheetResume(editing, landed)
 
   if (part === undefined || calculation === undefined) {
     return (

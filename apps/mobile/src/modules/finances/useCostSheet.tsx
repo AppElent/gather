@@ -34,7 +34,7 @@ export function useCostSheet(groupSlug: string): {
   const { t } = useI18n()
   const text = t.finances
   const create = useMutation(api.recurringCosts.create)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, landed } = useFinanceWrite()
 
   const [showing, setShowing] = useState(false)
   const [name, setName] = useState('')
@@ -42,7 +42,7 @@ export function useCostSheet(groupSlug: string): {
   const [frequency, setFrequency] = useState<CostFrequency>('monthly')
   const [category, setCategory] = useState<CostCategory>('housing')
   // A share closed the sheet: open on what was typed (APP-622).
-  const resume = useSheetResume(showing)
+  const resume = useSheetResume(showing, landed)
 
   function open() {
     if (resume() !== true) {

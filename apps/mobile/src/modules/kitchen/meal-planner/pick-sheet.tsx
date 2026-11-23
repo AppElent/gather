@@ -92,7 +92,11 @@ export function PickSheet({
     name: string
     minutes: string
   } | null>(kept?.composer ?? null)
-  draft.track({ search, matches, limit, composer })
+  const [savingQuick, setSavingQuick] = useState(false)
+  draft.track(
+    { search, matches, limit, composer },
+    { holding: savingQuick },
+  )
 
   const weekday = weekdayIndex(date)
   const weekdayWord = localMidnight(date).toLocaleDateString(locale, {
@@ -149,7 +153,8 @@ export function PickSheet({
   }
 
   const saveQuick = () => {
-    if (!composer?.name.trim()) return
+    if (!composer?.name.trim() || savingQuick) return
+    setSavingQuick(true)
     const prepMinutes = Number(composer.minutes) || undefined
     const write = composer.id
       ? updateQuick({
@@ -164,7 +169,11 @@ export function PickSheet({
         haptics.itemSaved()
         setComposer(null)
       })
-      .catch(() => haptics.actionFailed())
+      .catch(() => {
+        draft.failed()
+        haptics.actionFailed()
+      })
+      .finally(() => setSavingQuick(false))
   }
 
   const alreadyOn = (recipeId: string) =>

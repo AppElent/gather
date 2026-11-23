@@ -162,3 +162,54 @@ test('a screen whose sheet was closed resumes nothing', async () => {
   expect(resume()).toBeUndefined()
   view.unmount()
 })
+
+test('a save that fails after a share closed the form keeps it', async () => {
+  const view = mount(<Form name="" />)
+  view.rerender(<Form name="Kamperen" options={{ holding: true }} />)
+  await share(view)
+  seen?.failed()
+  expect(keptDraft(KEY)).toEqual({ name: 'Kamperen' })
+
+  // A newer draft stays.
+  keepDraft(KEY, { name: 'Nieuw' })
+  seen?.failed()
+  expect(keptDraft(KEY)).toEqual({ name: 'Nieuw' })
+})
+
+test('a failed save in a form the person closed keeps nothing', () => {
+  const view = mount(<Form name="Kamperen" />)
+  view.unmount()
+  seen?.failed()
+  expect(keptDraft(KEY)).toBeUndefined()
+})
+
+test('a save that lands after the close makes the kept input old', async () => {
+  const landed = { current: 0 }
+  let resume: () => string | undefined = () => undefined
+  function Saving({ open }: { open: string | null }) {
+    resume = useSheetResume(open, landed)
+    return null
+  }
+  const view = mount(<Saving open="saved" />)
+  const sheet = openSheet(() => sheet.closed())
+  await closeOpenSheets()
+  view.rerender(<Saving open={null} />)
+  landed.current += 1
+  expect(resume()).toBeUndefined()
+  view.unmount()
+})
+
+test('a sheet closed later does not make a screen forget its own', async () => {
+  let resume: () => string | undefined = () => undefined
+  const grab = (fn: typeof resume) => {
+    resume = fn
+  }
+  const view = mount(<Screen open="saved" onResume={grab} />)
+  const first = openSheet(() => first.closed())
+  await closeOpenSheets()
+  view.rerender(<Screen open={null} onResume={grab} />)
+  const second = openSheet(() => second.closed())
+  await closeOpenSheets()
+  expect(resume()).toBe('saved')
+  view.unmount()
+})

@@ -216,6 +216,7 @@ export function QuickLogSheet({
       onClose()
       return
     }
+    draft.failed({ included: failed, picks, notes, opened, timestamp, photos })
     haptics.actionFailed()
     // Stays open holding only what did not land, and says so. Closing on a
     // partial save would hide the half that is missing; keeping the half that

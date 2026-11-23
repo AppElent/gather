@@ -59,11 +59,11 @@ export function MortgageScreen({
   const addPart = useMutation(api.mortgages.addPart)
   const duplicate = useMutation(api.mortgages.duplicate)
   const remove = useMutation(api.mortgages.remove)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, landed } = useFinanceWrite()
 
   const [copyName, setCopyName] = useState<string | null>(null)
   // A share closed the sheet: open on the name that was typed (APP-622).
-  const resume = useSheetResume(copyName)
+  const resume = useSheetResume(copyName, landed)
   const Clock = FINANCE_ICONS.Clock
 
   if (calculation === undefined) {

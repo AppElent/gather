@@ -41,10 +41,20 @@ const sheets = new Set<Entry>()
 const waiters = new Set<() => void>()
 const closingListeners = new Set<() => void>()
 
+/** Tells the forms a share is closing sheets. */
+function tellClosing() {
+  for (const listener of [...closingListeners]) {
+    // A draft that cannot be kept must not keep the chooser away.
+    try {
+      listener()
+    } catch {}
+  }
+}
+
 /**
- * Calls `listener` each time `closeOpenSheets` starts, before any sheet is
- * asked to close, so a form can keep what was typed as a draft (APP-622).
- * Returns the unsubscribe.
+ * Calls `listener` each time a sheet is about to be asked to close for a
+ * share, including one that opened mid-close, so a form can keep what was
+ * typed as a draft (APP-622). Returns the unsubscribe.
  */
 export function onSheetsClosing(listener: () => void): () => void {
   closingListeners.add(listener)
@@ -61,6 +71,7 @@ function settle() {
 function ask(entry: Entry) {
   if (entry.asked) return
   entry.asked = true
+  tellClosing()
   entry.dismiss()
 }
 
@@ -103,12 +114,6 @@ export function closeOpenSheets(
   timeoutMs = CLOSE_SHEETS_TIMEOUT_MS,
 ): Promise<void> {
   if (sheets.size === 0) return Promise.resolve()
-  for (const listener of [...closingListeners]) {
-    // A draft that cannot be kept must not keep the chooser away.
-    try {
-      listener()
-    } catch {}
-  }
   return new Promise((resolve) => {
     const done = () => {
       clearTimeout(timer)
