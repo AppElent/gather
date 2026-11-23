@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'vitest'
 
-import { editedRead, pickRows, type SourceLine, withEdits } from '../add-to-groceries/pick'
+import { editedRead, pickRows, type SourceLine, settleLine, withEdits } from '../add-to-groceries/pick'
 import type { PlannedMeal } from './week'
 import {
   defaultDays,
+  rowsOfLines,
   type WeekRecipe,
   weekGroceryLines,
 } from './week-groceries'
@@ -238,7 +239,7 @@ describe('a line being read when the person ticks it (APP-423)', () => {
     const rows = tacos(answered, touched)
     // Shakshuka’s Koriander stays its own item row; Tacos’ is a row of its own.
     expect(rows.filter((l) => l.text === 'Koriander').map((l) => [l.key, l.detail])).toEqual([
-      ['item:koriander:0', 'Shakshuka 24'],
+      ['item:koriander:count', 'Shakshuka 24'],
       ['item:koriander:do:1', 'Tacos 26'],
     ])
     const { rows: shown, lines: adding } = pickRows({ lines: rows, items: [], ticks })
@@ -273,5 +274,131 @@ describe('a line being read when the person ticks it (APP-423)', () => {
       meta: { kind: 'covered' },
     })
     expect(adding).toEqual(expect.not.arrayContaining([expect.objectContaining({ title: 'Koriander' })]))
+  })
+
+  test('a row keeps its key when another line of that item is read or kept apart (APP-590)', () => {
+    // Two Koriander lines whose units do not add up: two rows of one item.
+    const keys = (shakshuka: SourceLine, touched: ReadonlySet<string> = new Set()) => {
+      const lines2 = new Map(lines)
+      lines2.set('shakshuka', [shakshuka])
+      lines2.set('tacos', [read('0', 'Koriander', 10, 'g')])
+      return weekGroceryLines({
+        meals: [
+          { meal: week[1], servings: 4 },
+          { meal: week[3], servings: 4 },
+        ],
+        recipes,
+        lines: lines2,
+        label,
+        touched,
+      })
+        .lines.filter((l) => l.text === 'Koriander')
+        .map((l) => [l.key, l.detail])
+    }
+    const reading: SourceLine = { key: '0', text: 'wat koriander', read: { kind: 'reading' } }
+    const answered = read('0', 'Koriander', 1)
+    // Shakshuka's line is still being read: Tacos' row is the only one.
+    expect(keys(reading)).toEqual([['item:koriander:mass', 'Tacos 26']])
+    // Read and joined, ahead of Tacos: Tacos' row keeps its key.
+    expect(keys(answered)).toEqual([
+      ['item:koriander:count', 'Shakshuka 24'],
+      ['item:koriander:mass', 'Tacos 26'],
+    ])
+    // Read after the person touched it: it stays apart, Tacos' key holds too.
+    expect(keys(answered, new Set(['di:0']))).toEqual([
+      ['item:koriander:mass', 'Tacos 26'],
+      ['item:koriander:di:0', 'Shakshuka 24'],
+    ])
+  })
+
+  describe('a row whose lines change keeps what was done to it (APP-590)', () => {
+    const olie = (
+      days: number[],
+      own: Record<string, SourceLine>,
+      formerRows: Map<string, Set<string>>,
+    ) => {
+      const lines2 = new Map(lines)
+      for (const [recipe, line] of Object.entries(own)) lines2.set(recipe, [line])
+      const shown = weekGroceryLines({
+        meals: days.map((day) => ({ meal: week[day], servings: 4 })),
+        recipes,
+        lines: lines2,
+        label,
+        formerRows,
+      }).lines
+      rowsOfLines(shown, formerRows)
+      return shown.filter((l) => l.text === 'Olijfolie')
+    }
+    const plain: SourceLine = {
+      key: '0',
+      text: 'olijfolie',
+      read: { kind: 'read', via: 'local', name: 'Olijfolie' },
+    }
+
+    test('a line without an amount left alone keeps its row’s untick', () => {
+      const formerRows = new Map<string, Set<string>>()
+      const own = { pesto: read('0', 'Olijfolie', 2, 'el'), shakshuka: plain }
+      expect(olie([0, 1], own, formerRows).map((l) => l.key)).toEqual(['item:olijfoli:el'])
+      // Unticked, then Monday leaves: Tuesday's row is still off.
+      const ticks = { 'item:olijfoli:el': false }
+      const left = olie([1], own, formerRows)
+      expect(left.map((l) => l.key)).toEqual(['item:olijfoli:count'])
+      const { rows } = pickRows({ lines: left, items: [], ticks })
+      expect(rows.find((r) => r.title === 'Olijfolie')?.on).toBe(false)
+    })
+
+    test('an untick on a row that leaves does not pass to another row of its name', () => {
+      const formerRows = new Map<string, Set<string>>()
+      // Monday in el, Tuesday in ml, Thursday without an amount (joins el).
+      const own = {
+        pesto: read('0', 'Olijfolie', 2, 'el'),
+        shakshuka: { ...read('0', 'Olijfolie', 100), read: { kind: 'read', via: 'local', name: 'Olijfolie', quantity: 100, unit: 'ml' } } as SourceLine,
+        tacos: plain,
+      }
+      expect(olie([0, 1, 3], own, formerRows).map((l) => l.key)).toEqual([
+        'item:olijfoli:el',
+        'item:olijfoli:volume',
+      ])
+      const ticks = { 'item:olijfoli:volume': false }
+      const left = olie([0, 3], own, formerRows)
+      const { rows } = pickRows({ lines: left, items: [], ticks })
+      expect(rows.filter((r) => r.title === 'Olijfolie').map((r) => [r.key, r.on])).toEqual([
+        ['item:olijfoli:el', true],
+      ])
+    })
+
+    test('the latest tick holds when a former row returns', () => {
+      const formerRows = new Map<string, Set<string>>()
+      const own = { pesto: read('0', 'Olijfolie', 2, 'el'), shakshuka: plain }
+      olie([0, 1], own, formerRows)
+      // Untick the el row; Monday leaves; tick Tuesday's row back on.
+      let ticks: Record<string, boolean> = { 'item:olijfoli:el': false }
+      const left = olie([1], own, formerRows)
+      ticks = settleLine(ticks, left[0], true)
+      // Monday returns: the row is on, as last left.
+      const back = olie([0, 1], own, formerRows)
+      const { rows } = pickRows({ lines: back, items: [], ticks })
+      expect(rows.filter((r) => r.title === 'Olijfolie').map((r) => [r.key, r.on])).toEqual([
+        ['item:olijfoli:el', true],
+      ])
+    })
+
+    test('a row that is still shown keeps its state to itself after a day leaves and returns', () => {
+      const formerRows = new Map<string, Set<string>>()
+      const own = {
+        pesto: read('0', 'Olijfolie', 2, 'el'),
+        shakshuka: { ...read('0', 'Olijfolie', 100), read: { kind: 'read', via: 'local', name: 'Olijfolie', quantity: 100, unit: 'ml' } } as SourceLine,
+        tacos: plain,
+      }
+      olie([0, 1, 3], own, formerRows)
+      // Monday leaves: Thursday's line joins Tuesday's ml row; then it returns.
+      olie([1, 3], own, formerRows)
+      const back = olie([0, 1, 3], own, formerRows)
+      const { rows } = pickRows({ lines: back, items: [], ticks: { 'item:olijfoli:volume': false } })
+      expect(rows.filter((r) => r.title === 'Olijfolie').map((r) => [r.key, r.on])).toEqual([
+        ['item:olijfoli:el', true],
+        ['item:olijfoli:volume', false],
+      ])
+    })
   })
 })

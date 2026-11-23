@@ -10,6 +10,7 @@ import { addDays } from '@gather/core/civil-date'
 import {
   combineGroceryLines,
   type GroceryAddLine,
+  type GroceryUnit,
   groceryKey,
   scaleGroceryQuantity,
 } from '@gather/core/groceries'
@@ -70,6 +71,13 @@ export interface WeekLinesInput {
    * what they did applies to that meal's amount only (APP-479).
    */
   touched?: ReadonlySet<string>
+  /**
+   * The item rows each line has been in, by the line's key while it is read
+   * (`rowsOfLines`). A row takes on what the person did to a row its lines
+   * were in before, so an untick holds when a day leaves and the row's
+   * measure changes (a line without an amount stays behind, APP-590).
+   */
+  formerRows?: ReadonlyMap<string, ReadonlySet<string>>
 }
 
 export interface WeekLines {
@@ -165,16 +173,20 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
     }
   })
 
-  const seen = new Map<string, number>()
+  const used = new Set<string>()
   const combined = combineGroceryLines(joining.map((entry) => entry.line)).map(
     (line): SourceLine => {
       const from = line.from.map((index) => joining[index])
       const meals = [...new Map(from.map(({ meal }) => [meal._id, meal])).values()]
-      // Stable while the days change, so a row keeps its tick: the item's
-      // name, and which of the lines with that name it is.
-      const key = groceryKey(line.title) || line.title
-      const nth = seen.get(key) ?? 0
-      seen.set(key, nth + 1)
+      // Stable while the days change, a line is read, or a touched line
+      // stays apart, so a row keeps its tick: the item's name and the measure
+      // its amount is in. Lines of one name and measure always combine, so
+      // no other line of that name can shift it (APP-590).
+      const name = groceryKey(line.title) || line.title
+      const base = `item:${name}:${measureOf(line.unit)}`
+      let key = base
+      for (let n = 1; used.has(key); n++) key = `${base}:${n}`
+      used.add(key)
       const readAs: LineRead = {
         kind: 'read',
         via: viaOf(from.map((entry) => entry.via)),
@@ -183,9 +195,17 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
         ...(line.unit !== undefined ? { unit: line.unit } : {}),
       }
       return {
-        key: `item:${key}:${nth}`,
+        key,
         // What the person did to it while the AI was still reading it.
         was: from.map((entry) => entry.unreadKey),
+        // Else to a row its lines were in before (a day unticked, APP-590).
+        former: [
+          ...new Set(
+            from.flatMap((entry) => [
+              ...(input.formerRows?.get(entry.unreadKey) ?? []),
+            ]),
+          ),
+        ].filter((former) => former !== key),
         text: line.title,
         read: readAs,
         detail: input.label(meals),
@@ -193,7 +213,47 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
       }
     },
   )
-  return { lines: [...combined, ...own, ...unread], toCheck }
+  // A row still shown keeps its own state: another row never takes it on,
+  // even when a line was in both at some point (APP-590).
+  const all = [...combined, ...own, ...unread]
+  const shown = new Set(all.map((line) => line.key))
+  return {
+    lines: all.map((line) =>
+      line.former?.some((former) => shown.has(former))
+        ? { ...line, former: line.former.filter((former) => !shown.has(former)) }
+        : line,
+    ),
+    toCheck,
+  }
+}
+
+/**
+ * Adds to `rows` the item row each line is in now, by the line's key while
+ * it is read, for `formerRows` on the next call.
+ */
+export function rowsOfLines(
+  lines: readonly SourceLine[],
+  rows: Map<string, Set<string>>,
+): void {
+  for (const line of lines) {
+    if (!line.key.startsWith('item:')) continue
+    for (const source of line.was ?? []) {
+      const seen = rows.get(source) ?? new Set<string>()
+      seen.add(line.key)
+      rows.set(source, seen)
+    }
+  }
+}
+
+/**
+ * The measure an amount is in, for a row key: lines of one name in the same
+ * measure add up (`addGroceryAmounts`), so it tells an item's rows apart.
+ */
+function measureOf(unit: GroceryUnit | undefined): string {
+  if (unit === undefined || unit === 'stuks') return 'count'
+  if (unit === 'g' || unit === 'kg') return 'mass'
+  if (unit === 'ml' || unit === 'cl' || unit === 'dl' || unit === 'l') return 'volume'
+  return unit
 }
 
 type Via = Extract<LineRead, { kind: 'read' }>['via']

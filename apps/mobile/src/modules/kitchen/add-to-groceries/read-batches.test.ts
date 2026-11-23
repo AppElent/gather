@@ -107,4 +107,33 @@ describe('readInBatches', () => {
     await readInBatches([], read, () => undefined)
     expect(read).not.toHaveBeenCalled()
   })
+
+  it('says why it ended: done, over the cap, or no answer (APP-590)', async () => {
+    expect(await readInBatches(texts(41), reader(), () => undefined)).toBe('done')
+    expect(
+      await readInBatches(texts(41), reader(() => ({ status: 'limit', limit: 30 })), () => undefined),
+    ).toBe('limit')
+    expect(
+      await readInBatches(texts(41), reader(() => new Error('offline')), () => undefined),
+    ).toBe('unavailable')
+  })
+
+  it('a call that never settles counts as no answer after the timeout (APP-590)', async () => {
+    vi.useFakeTimers()
+    try {
+      const onBatch = vi.fn()
+      const ended = readInBatches(
+        texts(50),
+        () => new Promise<ReadAnswer>(() => undefined),
+        onBatch,
+        () => true,
+        1_000,
+      )
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(await ended).toBe('unavailable')
+      expect(onBatch).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
