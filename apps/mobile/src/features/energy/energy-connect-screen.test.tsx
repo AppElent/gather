@@ -153,7 +153,11 @@ test('another sensor is picked from those that fit, and Connect sends what is on
       history: true,
     },
   ])
-  expect(energyState.dismissed).toEqual(['/all/energy/sources'])
+  // Emptied before the screen closes, so iOS offers to save nothing.
+  expect((byTestId('energy-connect-token') as HTMLInputElement).value).toBe('')
+  await vi.waitFor(() =>
+    expect(energyState.dismissed).toEqual(['/all/energy/sources']),
+  )
   view.unmount()
 })
 
