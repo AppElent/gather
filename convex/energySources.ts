@@ -582,7 +582,7 @@ export const startSyncs = internalMutation({
       : status
     if (next) {
       await ctx.scheduler.runAfter(
-        SOURCES_PER_STEP * SYNC_STAGGER_MS,
+        page.page.length * SYNC_STAGGER_MS,
         internal.energySources.startSyncs,
         page.isDone
           ? { status: next }

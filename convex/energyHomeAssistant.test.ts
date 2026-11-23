@@ -31,6 +31,15 @@ const target = vi.hoisted(() => ({ url: '' }))
 vi.mock('./lib/homeAssistantAddress', () => ({
   homeAssistantSocket: () => ({ url: target.url, options: {} }),
 }))
+/** How many rows each write was paced for; the pause itself is not waited. */
+const paced = vi.hoisted(() => [] as number[])
+vi.mock('./lib/energyWritePace', () => ({
+  writePauseMs: () => 0,
+  pacedWrite: async (rows: number, write: () => Promise<unknown>) => {
+    paced.push(rows)
+    return await write()
+  },
+}))
 
 const HOUR = 3_600_000
 const DAY = 24 * HOUR
@@ -359,8 +368,11 @@ describe('history', () => {
     const seeded = await seed()
     const from = THIS_HOUR - 365 * DAY
     fake.sums[IMPORT.statisticId] = counter(from, 365 * 24, 0.5)
+    paced.length = 0
     await connect(seeded, [IMPORT], true)
     const stored = await rows(seeded.t, 'energyIntervals')
+    expect(paced.reduce((sum, each) => sum + each, 0)).toBe(stored.length)
+    expect(Math.max(...paced)).toBeLessThanOrEqual(500)
     // The first hour is the baseline of the second.
     expect(stored).toHaveLength(365 * 24 - 1)
     expect(new Set(stored.map((each) => each.hourStart)).size).toBe(stored.length)

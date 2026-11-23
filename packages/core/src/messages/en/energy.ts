@@ -302,7 +302,7 @@ export const energy = {
     connectedNotYet: 'Connected · not read yet · {channels}',
     syncing: 'Fetching history · {channels}',
     problemLine: '{problem} Last updated {when}.',
-    problemNever: '{problem} Nothing read yet.',
+    problemNever: '{problem} Not fully read yet.',
     manualNone: 'No meters yet',
     manualLast: 'Last reading {date}',
     manualNever: '{channel}: no reading yet',

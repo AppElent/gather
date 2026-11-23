@@ -16,6 +16,7 @@ import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation } from './_generated/server'
+import { writePauseMs } from './lib/energyWritePace'
 import { destroyGroup, detachFromGroup } from './lib/groupCascade'
 import { deletePushData } from './lib/notifications'
 import { deleteStoredFile } from './lib/storedFiles'
@@ -64,7 +65,11 @@ export const purgeEnergyRows = internalMutation({
       .take(ENERGY_ROWS_PER_STEP)
     for (const row of rows) await ctx.db.delete(row._id)
     if (rows.length === ENERGY_ROWS_PER_STEP) {
-      await ctx.scheduler.runAfter(0, internal.cascade.purgeEnergyRows, args)
+      await ctx.scheduler.runAfter(
+        writePauseMs(rows.length),
+        internal.cascade.purgeEnergyRows,
+        args,
+      )
     }
   },
 })

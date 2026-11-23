@@ -28,6 +28,7 @@ import type { Id } from './_generated/dataModel'
 import { action, internalAction } from './_generated/server'
 import { rejectConnectedApps } from './lib/connectedApps'
 import { energyChannelKindValidator, energyTariffValidator } from './lib/energy'
+import { pacedWrite } from './lib/energyWritePace'
 import { connectHomeAssistant, HomeAssistantError } from './lib/homeAssistant'
 import { homeAssistantOrigin } from './lib/homeAssistantUrl'
 
@@ -356,12 +357,15 @@ export const syncSource = internalAction({
           batch.hours.push(hour)
           batches.set(channel.channelId, batch)
         }
+        const rows = write.length
         write = []
-        return await ctx.runMutation(internal.energySources.storeIntervals, {
-          sourceId: args.sourceId,
-          baseUrl: plan.baseUrl,
-          batches: [...batches.values()],
-        })
+        return await pacedWrite(rows, () =>
+          ctx.runMutation(internal.energySources.storeIntervals, {
+            sourceId: args.sourceId,
+            baseUrl: plan.baseUrl,
+            batches: [...batches.values()],
+          }),
+        )
       }
 
       let from = Math.min(end, ...channels.map((each) => each.from))

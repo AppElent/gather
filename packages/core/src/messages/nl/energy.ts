@@ -278,7 +278,7 @@ export const energy = {
     connectedNotYet: 'Verbonden · nog niet gelezen · {channels}',
     syncing: 'Geschiedenis wordt opgehaald · {channels}',
     problemLine: '{problem} Laatst bijgewerkt {when}.',
-    problemNever: '{problem} Nog niets gelezen.',
+    problemNever: '{problem} Nog niet volledig gelezen.',
     manualNone: 'Nog geen meters',
     manualLast: 'Laatste stand {date}',
     manualNever: '{channel}: nog geen stand',

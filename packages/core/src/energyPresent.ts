@@ -403,7 +403,10 @@ export function energyHomeSourceLine(
 ): string {
   const line = energySourceProblemLine(source, now, words, locale)
   if (line) {
-    return fmt(words.sources.homeProblem, { source: source.label, line })
+    // Most problems already name the source; the label is not said twice.
+    return line.includes(source.label)
+      ? line
+      : fmt(words.sources.homeProblem, { source: source.label, line })
   }
   if (source.status === 'syncing') {
     return fmt(words.sources.homeSyncing, { source: source.label })
