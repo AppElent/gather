@@ -28,6 +28,7 @@ export const common = {
       'not-signed-in': 'Je bent uitgelogd. Log opnieuw in om verder te gaan.',
       'unknown-slug':
         'Die groep bestaat niet. Controleer de link, of kies een van je groepen.',
+      'unknown-group': 'Die groep bestaat niet meer.',
       'not-a-member': 'Je bent geen lid van deze groep.',
     },
   },

@@ -91,6 +91,7 @@ describe('group refusals (APP-429)', () => {
     const sentences = {
       'not-signed-in': 'a',
       'unknown-slug': 'b',
+      'unknown-group': 'd',
       'not-a-member': 'c',
     } as const
     expect(

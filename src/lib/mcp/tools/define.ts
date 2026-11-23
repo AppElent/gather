@@ -142,10 +142,12 @@ export const GROUP_NOT_FOUND =
  */
 const GROUP_REFUSALS = new Set<string>([
   GROUP_REFUSAL_MESSAGES['unknown-slug'],
+  GROUP_REFUSAL_MESSAGES['unknown-group'],
   GROUP_REFUSAL_MESSAGES['not-a-member'],
 ])
 const GROUP_REFUSAL_KINDS = new Set<string>([
   'groups:unknown-slug',
+  'groups:unknown-group',
   'groups:not-a-member',
 ])
 

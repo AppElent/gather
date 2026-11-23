@@ -40,6 +40,7 @@ export const common = {
       'not-signed-in': 'You are signed out. Sign in again to continue.',
       'unknown-slug':
         'That group does not exist. Check the link, or pick one of your groups.',
+      'unknown-group': 'That group no longer exists.',
       'not-a-member': 'You are not a member of this group.',
     },
   },
