@@ -479,7 +479,7 @@ function ContractForm({
             onClick={() => set('netMetering', !draft.netMetering)}
             className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
               draft.netMetering
-                ? 'bg-[var(--accent)]'
+                ? 'bg-[var(--accent-text)]'
                 : 'bg-[var(--hair)]'
             }`}
           >

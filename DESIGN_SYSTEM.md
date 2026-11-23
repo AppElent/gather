@@ -47,8 +47,11 @@ declares them as custom properties for light and dark (`[data-theme]` and
 - `--accent`, `--on-accent` and `--accent-text`: ink outside a Module, the
   group's `fill`, `on` and `text` inside one. The shell sets `data-group` on a
   Module's `<main>`. A neutral action uses `ink`/`on-ink`, a Module's primary
-  action its `--accent`/`--on-accent`. Links take `--accent-text`. Group
-  colour never goes on navigation, rows or selection.
+  action its `--accent`/`--on-accent`. Links and graphics (chart lines,
+  bars, points, swatches, switch tracks) take `--accent-text` or
+  `--<group>-text`; a group `fill` is for filled buttons only, since it can be
+  below 3:1 on `surface`. Group colour never goes on navigation, rows or
+  selection.
 - Type: `--font-rounded` (`font-rounded`; `ui-rounded`, SF Pro Rounded,
   Nunito) at 700 for titles and numerals, the system stack for text; body 16px,
   subhead 15, footnote 13. No web font is loaded.

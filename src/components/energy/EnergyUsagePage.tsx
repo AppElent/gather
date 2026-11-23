@@ -349,7 +349,7 @@ function ChargeChart({
             <line x1="0" y1="1" x2="240" y2="1" stroke="var(--hair)" vectorEffect="non-scaling-stroke" />
             <line x1="0" y1="50" x2="240" y2="50" stroke="var(--hair)" vectorEffect="non-scaling-stroke" />
             <line x1="0" y1="99" x2="240" y2="99" stroke="var(--muted)" vectorEffect="non-scaling-stroke" />
-            <polygon points={area} fill="var(--home-fill)" fillOpacity="0.18" />
+            <polygon points={area} fill="var(--home-wash)" />
             <polyline
               points={line}
               fill="none"

@@ -95,14 +95,14 @@ export function TrendChart({ points, unit }: TrendChartProps) {
         <text x={4} y={toY(minY) + 4} fontSize="10" fill="var(--muted)">
           {minY.toFixed(1)}
         </text>
-        <path d={path} fill="none" stroke="var(--accent)" strokeWidth={2} />
+        <path d={path} fill="none" stroke="var(--accent-text)" strokeWidth={2} />
         {sorted.map((p) => (
           <circle
             key={p.x}
             cx={toX(p.x)}
             cy={toY(p.y)}
             r={2.5}
-            fill="var(--accent)"
+            fill="var(--accent-text)"
           />
         ))}
         <text

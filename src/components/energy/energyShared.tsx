@@ -30,7 +30,8 @@ import type { Crumb } from '../app/Breadcrumbs'
  *
  * Colours are the web palette's own tokens: ink is `--ink`, last year is
  * `--muted`, the baseline is `--hair`, and solar takes
- * `--home-fill`, Energy's group colour.
+ * `--home-text`, Energy's group colour at the strength a graphic needs on
+ * `surface` (3:1); `--home-fill` is too light for that in the light scheme.
  */
 
 /**
@@ -336,7 +337,7 @@ function Legend({
 }) {
   const swatch = {
     ink: 'bg-[var(--ink)]',
-    solar: 'bg-[var(--home-fill)]',
+    solar: 'bg-[var(--home-text)]',
     muted: 'bg-[var(--muted)]',
     future: FUTURE_BAR,
     outline: 'border-2 border-[var(--ink)]',
@@ -430,7 +431,7 @@ export function MirrorBars({
           {slots.map((slot) => (
             <span
               key={slot.key}
-              className="min-w-0 flex-1 rounded-b-[3px] bg-[var(--home-fill)]"
+              className="min-w-0 flex-1 rounded-b-[3px] bg-[var(--home-text)]"
               style={{
                 height: slot.future
                   ? 0

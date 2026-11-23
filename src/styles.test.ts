@@ -260,6 +260,41 @@ describe('the older looks stay gone', () => {
   })
 })
 
+/**
+ * A group's `fill` is a button colour: its label (`on`) carries the contrast,
+ * and on `surface` it can be as faint as 1.9:1 (home, light). A chart line,
+ * bar, point, swatch or switch track must reach 3:1 on its own, so graphics
+ * take the group's `text` (`--accent-text` inside a Module) and fills stay in
+ * the stylesheet's `--accent` (APP-637).
+ */
+describe('graphics take the group text, not its fill', () => {
+  test('group text reaches 3:1 on ground and surface where its fill may not', () => {
+    for (const scheme of ['light', 'dark'] as const) {
+      const t = theme(scheme)
+      for (const group of ['kitchen', 'home', 'tasting', 'money'])
+        for (const bg of ['--ground', '--surface'])
+          expect(ratio(rgb(t[`--${group}-text`]), rgb(t[bg])), `${scheme} ${group} text on ${bg}`).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  test('no component paints a graphic with a group fill', () => {
+    const offenders: string[] = []
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name)
+        if (entry.isDirectory()) walk(path)
+        else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) {
+          const text = readFileSync(path, 'utf8')
+          if (/var\(--(kitchen|home|tasting|money)-fill\)/.test(text)) offenders.push(`${path}: group fill`)
+          if (/(stroke|fill)=["{]+'?"?var\(--accent\)/.test(text)) offenders.push(`${path}: svg accent fill`)
+        }
+      }
+    }
+    for (const dir of ['components', 'lib', 'routes']) walk(join(__dirname, dir))
+    expect(offenders.filter((o) => !o.includes(join('lib', 'mcp', 'views')))).toEqual([])
+  })
+})
+
 const rgb = (hex: string) => {
   expect(hex, hex).toMatch(/^#[0-9a-f]{6}$/i)
   return [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16))
