@@ -4,7 +4,8 @@ import { MODULES as LITERAL_MODULES, type ModuleDef } from '@gather/core/modules
 import { describe, expect, test, vi } from 'vitest'
 
 import { targetsForDrop } from '../drop/dropTargets'
-import { recordShown, searchableTypes } from '../search/searchResults'
+import { typesFor } from '../search/searchFilters'
+import { recordShown } from '../search/searchResults'
 import { QUICK_ACTIONS } from '../shell/quickActions'
 import {
   isModuleShown,
@@ -168,12 +169,12 @@ describe('the store build', () => {
   })
 
   test('Search finds and remembers only records of live Modules', () => {
-    expect(searchableTypes(store)).not.toContain('note')
-    expect(searchableTypes(store)).not.toContain('calendarEvent')
-    expect(searchableTypes(store)).toEqual(
+    expect(typesFor(null, store)).not.toContain('note')
+    expect(typesFor(null, store)).not.toContain('calendarEvent')
+    expect(typesFor(null, store)).toEqual(
       expect.arrayContaining(['recipe', 'task', 'tasting', 'loyaltyCard']),
     )
-    expect(searchableTypes(development)).toContain('note')
+    expect(typesFor(null, development)).toContain('note')
 
     expect(recordShown({ type: 'note' }, store)).toBe(false)
     expect(recordShown({ type: 'calendarEvent' }, store)).toBe(false)

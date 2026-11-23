@@ -54,11 +54,8 @@ function askInTurn(show: (done: () => void) => void): void {
   alerts = alerts.then(() => new Promise<void>((done) => show(done)))
 }
 
-/**
- * The add button on Notes, and the composer while it is open. `onSaved` runs
- * after each note lands (the screen clears its search, so the note shows).
- */
-export function AddNote({ onSaved }: { onSaved: () => void }) {
+/** The add button on Notes, and the composer while it is open. */
+export function AddNote() {
   const { t } = useI18n()
   const { group } = useGroup()
   const { userId } = useAuth()
@@ -79,7 +76,6 @@ export function AddNote({ onSaved }: { onSaved: () => void }) {
         <NoteComposerCard
           draftId={key}
           onClose={() => setOpen(false)}
-          onSaved={onSaved}
         />
       ) : null}
     </>
@@ -89,11 +85,9 @@ export function AddNote({ onSaved }: { onSaved: () => void }) {
 function NoteComposerCard({
   draftId,
   onClose,
-  onSaved,
 }: {
   draftId: string
   onClose: () => void
-  onSaved: () => void
 }) {
   const { t } = useI18n()
   const words = t.composer
@@ -171,7 +165,6 @@ function NoteComposerCard({
                 void actions.addComposedNote(saving, saveKey).then(
                   () => {
                     landed(saveKey)
-                    onSaved()
                     if (showing(saveKey)) clear()
                   },
                   () => {
@@ -208,7 +201,6 @@ function NoteComposerCard({
     try {
       await request
       landed(saveKey)
-      onSaved()
     } catch {
       haptics.actionFailed()
       submitted.current = null
