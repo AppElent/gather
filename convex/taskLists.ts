@@ -1,7 +1,8 @@
+import { isIsoDate } from '@gather/core/civil-date'
 import type { ExternalProviderId } from '@gather/core/domain'
 import { aisleOrder, isDefaultAisleOrder } from '@gather/core/groceries'
 import { taskRefusal } from '@gather/core/refusals'
-import { ConvexError, v } from 'convex/values'
+import { ConvexError, type Infer, v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
@@ -19,6 +20,7 @@ import { deleteTaskList } from './lib/groupCascade'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
 import { nextOrder } from './lib/order'
 import {
+  linkedTaskWriteValidator,
   providerConfigValidator,
   taskListColorValidator,
   taskListDisplayValidator,
@@ -27,7 +29,14 @@ import {
   taskProviderValidator,
 } from './lib/taskFields'
 import { getAdapter } from './lib/taskProviders'
-import { ProviderAuthError, type UnifiedTask } from './lib/taskProviders/types'
+import {
+  ProviderAuthError,
+  ProviderTaskNotFoundError,
+  type SourceConfig,
+  type TaskProviderWriter,
+  type UnifiedTask,
+  type WriteOutcome,
+} from './lib/taskProviders/types'
 import {
   checkedSectionName,
   checkSectionCount,
@@ -69,12 +78,19 @@ export const list = query({
         aisleOrder: l.aisleOrder ?? null,
         // APP-311: whether the list's "Maybe needed" strip is switched off.
         suggestionsOff: l.suggestionsOff ?? false,
-        // Whether this list can be added to from Gather: only a local list
-        // has `tasks` rows, and no provider write path exists (ADR-0021).
+        // Whether this list's tasks are Gather's own rows, which the `tasks`
+        // mutations write. Installed phones write to every `writable` list
+        // through those, so a linked list stays false here whatever its
+        // provider can do; `capabilities` says that.
         // Callers that offer a list as somewhere to write — the baby log's
         // checklist cards, for one — need this before the person picks, not
         // after they try.
         writable: l.provider === 'local',
+        // APP-448: whether `taskLists.writeTask` can write to it (ADR-0021).
+        capabilities: {
+          write:
+            l.provider !== 'local' && getAdapter(l.provider).capabilities.write,
+        },
       }))
   },
 })
@@ -584,6 +600,113 @@ export const getTasks = action({
       return {
         status: 'error',
         message: `Could not load tasks from ${list.provider} — try refreshing`,
+      }
+    }
+  },
+})
+
+export type LinkedTaskWrite = Infer<typeof linkedTaskWriteValidator>
+
+export type WriteTaskResult =
+  | ({ status: 'ok' } & WriteOutcome)
+  | { status: 'reconnect'; provider: ExternalProviderId }
+  | { status: 'error'; reason: 'not-found' | 'failed' }
+
+const MAX_TITLE = 500
+const REQUEST_KEY = /^[\w-]{1,64}$/
+
+/** A write as the provider may be sent it; throws on one that makes no sense. */
+function checkedWrite(write: LinkedTaskWrite): LinkedTaskWrite {
+  if (write.kind === 'create' || write.kind === 'update') {
+    if (write.dueDate && !isIsoDate(write.dueDate)) {
+      throw new ConvexError('Date must be YYYY-MM-DD')
+    }
+    if (write.title !== undefined) {
+      const title = write.title.trim()
+      if (!title || title.length > MAX_TITLE) {
+        throw new ConvexError('A task needs a title of at most 500 characters')
+      }
+      return { ...write, title }
+    }
+  }
+  if (write.kind === 'move' && write.parentId === write.taskId) {
+    throw new ConvexError('A task cannot be its own subtask')
+  }
+  return write
+}
+
+function runWrite(
+  writer: TaskProviderWriter,
+  accessToken: string,
+  config: SourceConfig,
+  write: LinkedTaskWrite,
+): Promise<WriteOutcome> {
+  switch (write.kind) {
+    case 'create': {
+      const { kind: _, requestKey, ...task } = write
+      return writer.createTask(accessToken, config, {
+        ...task,
+        ...(requestKey && REQUEST_KEY.test(requestKey) ? { requestKey } : {}),
+      })
+    }
+    case 'update': {
+      const { kind: _, taskId, ...changes } = write
+      return writer.updateTask(accessToken, config, taskId, changes)
+    }
+    case 'setDone':
+      return write.done
+        ? writer.closeTask(accessToken, config, write.taskId, {
+            withSubtasks: write.withSubtasks ?? false,
+          })
+        : writer.reopenTask(accessToken, config, write.taskId)
+    case 'delete':
+      return writer.deleteTask(accessToken, config, write.taskId)
+    case 'move':
+      return writer.moveTask(accessToken, config, write.taskId, write.parentId)
+  }
+}
+
+/**
+ * One write to a linked list, made in its provider first (ADR-0020): Gather
+ * stores none of it, and answers `ok` only once the provider accepted it.
+ * Local lists are written by the `tasks` mutations, and a provider without a
+ * write path is refused.
+ */
+export const writeTask = action({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    write: linkedTaskWriteValidator,
+  },
+  handler: async (ctx, args): Promise<WriteTaskResult> => {
+    await getGatedIdentity(ctx)
+    const list = await ctx.runQuery(internal.taskLists.getList, {
+      listId: args.listId,
+      groupSlug: args.groupSlug,
+    })
+    const writer =
+      list.provider === 'local' ? undefined : getAdapter(list.provider).writer
+    if (list.provider === 'local' || !writer) {
+      throw new ConvexError(taskRefusal('read-only'))
+    }
+    const write = checkedWrite(args.write)
+    const config = list.providerConfig
+    if (!config) return { status: 'error', reason: 'failed' }
+    const conn = await ctx.runQuery(internal.integrations.getConnection, {
+      connectionId: config.connectionId,
+    })
+    if (!conn) return { status: 'reconnect', provider: list.provider }
+    try {
+      const outcome = await runWrite(writer, conn.accessToken, config, write)
+      return { status: 'ok', ...outcome }
+    } catch (error) {
+      if (error instanceof ProviderAuthError) {
+        return { status: 'reconnect', provider: list.provider }
+      }
+      return {
+        status: 'error',
+        reason:
+          error instanceof ProviderTaskNotFoundError ? 'not-found' : 'failed',
       }
     }
   },

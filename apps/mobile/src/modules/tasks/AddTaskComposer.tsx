@@ -16,7 +16,8 @@
  *   (`ui/composer-drafts.ts`).
  *
  * Grocery lists have a composer of their own (`GroceryComposer.tsx`, APP-664)
- * and are not offered here; linked lists are never offered (ADR-0021).
+ * and are not offered here. A linked list that can be written to (APP-448) is
+ * offered on its own screen only, with the details its provider can hold.
  */
 import { useAuth } from '@clerk/expo'
 import { DateTimePicker } from '@expo/ui/community/datetime-picker'
@@ -66,7 +67,9 @@ import {
   draftAfterHold,
   emptyDraft,
   isDirty,
+  LINKED_KINDS,
   lineAfterChoice,
+  linkedTask,
   nextDraft,
   QUICK_REPEATS,
   type ReminderPick,
@@ -98,6 +101,7 @@ import {
 } from './store'
 import { dueLabel, weekendFrom } from './taskDates'
 import { type Priority, SUGGESTED_LABELS } from './types'
+import { linkedFailureWords } from './writeFailed'
 
 /**
  * The list each account last added to in each Group, for the places that are
@@ -107,6 +111,9 @@ const lastList = new Map<string, string>()
 
 /** The iOS picker takes an underscore identifier; the app's locale is a language. */
 const PICKER_LOCALE = { en: 'en_GB', nl: 'nl_NL' } as const
+
+/** The chips for what a linked list's provider holds (APP-448). */
+const LINKED_DETAILS = ['date', 'priority', 'label']
 
 const PRIORITIES: Priority[] = [1, 2, 3, 4]
 
@@ -154,8 +161,11 @@ export function AddTask({ place, preset, sectionId }: AddTaskProps) {
         <TaskComposerCard
           draftId={key}
           preset={withLast}
+          placeListId={preset.listId}
           sectionId={sectionId}
-          onListUsed={(listId) => lastList.set(lastKey, listId)}
+          onListUsed={(listId) => {
+            lastList.set(lastKey, listId)
+          }}
           onClose={() => setOpen(false)}
           onCustomRepeat={(dueDate, repeat) => {
             setOpen(false)
@@ -196,6 +206,7 @@ type Panel = 'date' | 'reminder' | null
 function TaskComposerCard({
   draftId,
   preset,
+  placeListId,
   sectionId,
   onListUsed,
   onClose,
@@ -204,6 +215,8 @@ function TaskComposerCard({
 }: {
   draftId: string
   preset: TaskPreset
+  /** The list this place is, when it is one. */
+  placeListId?: string
   sectionId?: string
   onListUsed: (listId: string) => void
   onClose: () => void
@@ -222,11 +235,26 @@ function TaskComposerCard({
   const state = useLocalTaskState()
 
   const [kept] = useState(() => keptDraft<TaskDraft>(draftId) ?? emptyDraft(preset))
-  const quick = useQuickAddLine(true, kept)
+  const [listId, setListId] = useState(kept.listId)
+  const offered = useMemo(() => {
+    if (!lists) return undefined
+    // Its own screen's linked list stays offered while the composer is open,
+    // also when it goes stale: a task typed for it lands in no other list.
+    const own = lists.find(
+      (list) =>
+        list._id === placeListId &&
+        list.provider !== 'local' &&
+        list.capabilities?.write,
+    )
+    const local = quickAddLists(lists).filter((list) => !list.grocery)
+    return own ? [own, ...local] : local
+  }, [lists, placeListId])
+  const target = offered ? quickAddTarget(offered, listId) : undefined
+  const linked = target !== undefined && target.provider !== 'local'
+  const quick = useQuickAddLine(true, kept, linked ? LINKED_KINDS : undefined)
   const { line, parsed, today } = quick
   const [body, setBody] = useState(kept.body)
   const [showBody, setShowBody] = useState(kept.showBody)
-  const [listId, setListId] = useState(kept.listId)
   const [choices, setChoices] = useState<TaskChoices>(kept.choices)
   const [saveKey, setSaveKey] = useState(kept.saveKey)
   const [panel, setPanel] = useState<Panel>(null)
@@ -309,12 +337,8 @@ function TaskComposerCard({
     seen.current = new Set(parsed.parts.map((part) => part.key))
   }, [partKeys])
 
-  const offered = useMemo(
-    () => (lists ? quickAddLists(lists).filter((list) => !list.grocery) : undefined),
-    [lists],
-  )
-  const target = offered ? quickAddTarget(offered, listId) : undefined
-  const task = composedTask(draft, parsed)
+  const composed = composedTask(draft, parsed)
+  const task = linked ? linkedTask(composed) : composed
   const canSave = Boolean(task.title && target)
   const anchor = task.dueDate ?? today
   const repeatRule = task.repeat
@@ -406,11 +430,12 @@ function TaskComposerCard({
     saving: ComposedTask,
     saveKey: string,
     send: () => Promise<{ taskId: string } & ComposedDetails>,
+    error: unknown,
   ): Promise<boolean> =>
     new Promise((resolve) => {
       showAlert(
         fmt(words.notAdded, { title: saving.title }),
-        undefined,
+        linkedFailureWords(error, lists, t)?.body,
         [
           {
             text: words.discard,
@@ -429,9 +454,9 @@ function TaskComposerCard({
                   landed(saved, saveKey)
                   resolve(true)
                 },
-                () => {
+                (error: unknown) => {
                   haptics.actionFailed()
-                  void offerRetry(saving, saveKey, send).then(resolve)
+                  void offerRetry(saving, saveKey, send, error).then(resolve)
                 },
               ),
           },
@@ -465,7 +490,8 @@ function TaskComposerCard({
         }),
       )
     setNotice(null)
-    onListUsed(to)
+    // Only a local list is offered anywhere else.
+    if (!linked) onListUsed(to)
     if (open) {
       inFlight.current = true
       setBusy(true)
@@ -481,20 +507,21 @@ function TaskComposerCard({
         load(nextDraft(snapshot, preset))
         onOpenTask(saved.taskId)
       }
-    } catch {
+    } catch (error) {
       haptics.actionFailed()
       submitted.current = null
+      const failure = linkedFailureWords(error, lists, t)
       if (mounted.current && open) {
         // All details: the draft never left the composer.
-        setNotice(t.tasks.quickAdd.failed)
+        setNotice(failure?.body ?? t.tasks.quickAdd.failed)
         settle(false)
       } else if (mounted.current && !isDirty(latest.current, preset)) {
         // Nothing typed since: the task comes back to finish or send again.
-        setNotice(t.tasks.quickAdd.failed)
+        setNotice(failure?.body ?? t.tasks.quickAdd.failed)
         load(snapshot)
         settle(false)
       } else {
-        void offerRetry(saving, saveKey, send).then(settle)
+        void offerRetry(saving, saveKey, send, error).then(settle)
       }
     } finally {
       if (open) {
@@ -717,7 +744,7 @@ function TaskComposerCard({
     ? describeRepeat(repeatRule, t.tasks.repeat.summary, locale)
     : undefined
 
-  const details: (ComposerChip & { always?: boolean })[] = [
+  const everyDetail: (ComposerChip & { always?: boolean })[] = [
     {
       id: 'date',
       always: true,
@@ -786,6 +813,9 @@ function TaskComposerCard({
       testID: 'composer-chip-repeat',
     },
   ]
+  const details = linked
+    ? everyDetail.filter((chip) => LINKED_DETAILS.includes(chip.id))
+    : everyDetail
   const head = listChip ? [listChip] : []
   const chips = [...head, ...details.filter((chip) => chip.always || chip.set)]
   const allChips = [...head, ...details]
@@ -806,7 +836,7 @@ function TaskComposerCard({
       subactions,
     }
   }
-  const moreItems: ComposerMoreItem[] = [
+  const everyItem: ComposerMoreItem[] = [
     {
       id: 'more:description',
       title: words.description,
@@ -819,6 +849,11 @@ function TaskComposerCard({
     submenu('label', words.label, 'tag', labelMenu),
     submenu('repeat', t.tasks.repeat.title, 'repeat', repeatMenu),
   ]
+  const moreItems = linked
+    ? everyItem.filter((item) =>
+        LINKED_DETAILS.includes(item.id.replace('more:', '')),
+      )
+    : everyItem
   const allDetailsItem: ComposerMoreItem = {
     id: 'more:all',
     title: words.allDetails,
@@ -875,7 +910,7 @@ function TaskComposerCard({
       body={{
         value: body,
         onChange: setBody,
-        visible: showBody || Boolean(body.trim()),
+        visible: !linked && (showBody || Boolean(body.trim())),
         placeholder: words.taskBody,
         accessibilityLabel: words.description,
       }}

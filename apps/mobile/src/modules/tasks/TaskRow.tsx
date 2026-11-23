@@ -28,12 +28,14 @@ import { useInsetSeparator } from '../../ui/inset-list'
 import { AssigneeCoin, useTaskPeople } from './assignee'
 import { useCompleteTask } from './completeTask'
 import { Checkbox } from './components'
+import { LINKED_KINDS } from './composerDraft'
 import { useFresh } from './freshTasks'
 import { TASK_ICONS } from './icons'
 import { QuickAddChips, QuickAddInput, useQuickAddLine } from './QuickAddParts'
-import { useTaskActions } from './store'
+import { LinkedWriteError, useTaskActions } from './store'
 import { taskMenuActions } from './taskMenu'
 import type { Task } from './types'
+import { useWriteFailed } from './writeFailed'
 
 /** The check ring's diameter (`components/InsetList`). */
 const CHECK_RING = 24
@@ -124,6 +126,8 @@ export function TaskRow({
         {
           backgroundColor: fresh ? tokens.tintOf(fresh).wash : tokens.surface,
         },
+        // On its way to the list's provider, which has to take it first.
+        task.pending && styles.pending,
       ]}
     >
       {bar === undefined ? null : (
@@ -295,6 +299,7 @@ export function TaskComposer({
   placeholder,
   sectionId,
   parent,
+  linked = false,
   onFailed,
 }: {
   listId: string
@@ -303,6 +308,8 @@ export function TaskComposer({
   sectionId?: string
   /** Adds a subtask of this task instead (APP-304). */
   parent?: Pick<Task, 'id' | 'listId'>
+  /** The list is linked: the line reads only what its provider can hold. */
+  linked?: boolean
   /** Hears a line that could not be added, which is put back in the field. */
   onFailed?: () => void
 }) {
@@ -320,8 +327,9 @@ export function TaskComposer({
     restore,
     dismiss,
     reset,
-  } = useQuickAddLine(recognise)
+  } = useQuickAddLine(recognise, undefined, linked ? LINKED_KINDS : undefined)
   const { t } = useI18n()
+  const writeFailed = useWriteFailed()
 
   const add = () => {
     const title = parsed.title
@@ -343,11 +351,11 @@ export function TaskComposer({
         // A haptic is never the only word, and the task did go in.
         if (reminderFailed) showAlert(t.tasks.quickAdd.reminderFailed)
       },
-      () => {
-        haptics.actionFailed()
+      (error: unknown) => {
+        writeFailed(error)
         if (parent) {
           restore(title)
-          onFailed?.()
+          if (!(error instanceof LinkedWriteError)) onFailed?.()
         } else {
           // The whole line, so what was recognised is recognised again.
           restore(line)
@@ -411,6 +419,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingLeft: SPACE[4],
   },
+  pending: { opacity: 0.5 },
   whole: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   bar: {
     position: 'absolute',

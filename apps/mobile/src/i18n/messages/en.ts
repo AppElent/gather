@@ -1277,6 +1277,7 @@ export const en = {
     packing: coreEn.tasks.packing,
     /** APP-304: subtasks, shared with the web. */
     subtasks: coreEn.tasks.subtasks,
+    linkedWrite: coreEn.tasks.linkedWrite,
     repeat: coreEn.tasks.repeat,
     wishlist: coreEn.tasks.wishlist,
     grocery: coreEn.tasks.grocery,

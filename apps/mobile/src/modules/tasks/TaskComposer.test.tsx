@@ -114,6 +114,8 @@ vi.mock('./components', () => ({ Checkbox: () => null }))
 vi.mock('./icons', () => ({ TASK_ICONS: {} }))
 vi.mock('./taskMenu', () => ({ taskMenuActions: vi.fn() }))
 vi.mock('./store', () => ({
+  LinkedWriteError: class extends Error {},
+  useTaskLists: () => [],
   useTaskActions: () => ({
     addTask: (...args: unknown[]) => {
       state.added.push(args)

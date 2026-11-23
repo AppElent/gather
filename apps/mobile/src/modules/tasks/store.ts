@@ -6,7 +6,9 @@
  * from Notion or Todoist through an action, so the last answer for each list is
  * kept here, once for the app, and fetched again only when someone asks
  * (ADR-0021: first open, then manual refresh). A failed fetch keeps the last
- * rows readable and says so through the list's `sync`.
+ * rows readable and says so through the list's `sync`. A write to one goes to
+ * the provider first and changes these rows only once it was accepted
+ * (`writeLinkedTask`, ADR-0020).
  */
 import { localIsoDate } from '@gather/core/civil-date'
 import {
@@ -14,6 +16,7 @@ import {
   type GroceryUnit,
   groceryAddFields,
 } from '@gather/core/groceries'
+import { applyLinkedWrite } from '@gather/core/linked-tasks'
 import {
   bySmartOrder,
   inSmartList,
@@ -33,7 +36,7 @@ import type { ReminderClock } from '@gather/core/task-reminders'
 import { nextDueDate, type TaskRepeat } from '@gather/core/task-repeat'
 import type { OptimisticLocalStore } from 'convex/browser'
 import { useAction, useMutation } from 'convex/react'
-import type { FunctionReturnType } from 'convex/server'
+import type { FunctionArgs, FunctionReturnType } from 'convex/server'
 import {
   useCallback,
   useEffect,
@@ -57,11 +60,55 @@ type FetchTasks = (listId: string) => Promise<FetchResult>
 interface ExternalEntry {
   sync: Exclude<ListSync, 'live'>
   tasks: Task[]
+  /**
+   * Whether the rows are what the provider last answered, so they may be
+   * written to: kept while they load again, lost when that fails.
+   */
+  fresh?: boolean
+}
+
+type LinkedTaskWrite = FunctionArgs<typeof api.taskLists.writeTask>['write']
+type WriteResult = FunctionReturnType<typeof api.taskLists.writeTask>
+type SendWrite = (
+  listId: string,
+  write: LinkedTaskWrite,
+) => Promise<WriteResult>
+
+export type LinkedWriteFailure =
+  /** The connection may not write (any more): nothing was changed. */
+  | 'reconnect'
+  /** The task is not in the provider's list (any more). */
+  | 'not-found'
+  /** The rows on screen are not the provider's; they have to load first. */
+  | 'stale'
+  /** The provider or the network did not answer, or refused. */
+  | 'failed'
+
+/** A write to a linked list that its provider did not take. */
+export class LinkedWriteError extends Error {
+  constructor(
+    readonly reason: LinkedWriteFailure,
+    readonly listId: string,
+  ) {
+    super(`A linked list's write was not taken: ${reason}`)
+    this.name = 'LinkedWriteError'
+  }
 }
 
 let external: ReadonlyMap<string, ExternalEntry> = new Map()
 const inFlight = new Map<string, Promise<ListSync>>()
 const listeners = new Set<() => void>()
+/** Each linked list's fetches and writes run one after another. */
+const queues = new Map<string, Promise<unknown>>()
+
+function enqueue<T>(listId: string, job: () => Promise<T>): Promise<T> {
+  const run = (queues.get(listId) ?? Promise.resolve()).then(job)
+  queues.set(
+    listId,
+    run.catch(() => {}),
+  )
+  return run
+}
 
 function put(listId: string, entry: ExternalEntry) {
   external = new Map(external).set(listId, entry)
@@ -94,19 +141,115 @@ export function externalEntry(
   }
   return {
     sync: 'synced',
-    tasks: result.tasks.map((task, order) => ({
-      id: task.externalId,
-      listId,
-      title: task.title,
-      done: task.done,
-      dueDate: task.dueDate,
-      priority: task.priority,
-      labels: task.labels ?? [],
-      repeatText: task.repeatText,
-      order,
-      // Todoist's and Notion's subtasks (APP-304), read only.
-      ...(task.parentExternalId ? { parentTaskId: task.parentExternalId } : {}),
-    })),
+    fresh: true,
+    tasks: result.tasks.map((task, order) => linkedTask(listId, task, order)),
+  }
+}
+
+type ProviderTask = Extract<FetchResult, { status: 'ok' }>['tasks'][number]
+
+function linkedTask(listId: string, task: ProviderTask, order: number): Task {
+  return {
+    id: task.externalId,
+    listId,
+    linked: true,
+    title: task.title,
+    done: task.done,
+    dueDate: task.dueDate,
+    priority: task.priority,
+    labels: task.labels ?? [],
+    repeatText: task.repeatText,
+    order,
+    // Todoist's and Notion's subtasks (APP-304).
+    ...(task.parentExternalId ? { parentTaskId: task.parentExternalId } : {}),
+  }
+}
+
+/** The held rows after the provider took `write` and answered `answered`. */
+export function afterLinkedWrite(
+  listId: string,
+  tasks: readonly Task[],
+  write: LinkedTaskWrite,
+  answered: readonly ProviderTask[],
+): Task[] {
+  const orders = new Map(tasks.map((task) => [task.id, task.order]))
+  let next = tasks.reduce((most, task) => Math.max(most, task.order + 1), 0)
+  const row = (task: Task) => ({
+    externalId: task.id,
+    done: task.done,
+    parentExternalId: task.parentTaskId,
+    task,
+  })
+  return applyLinkedWrite(
+    tasks.map(row),
+    write,
+    answered.map((task) =>
+      row(linkedTask(listId, task, orders.get(task.externalId) ?? next++)),
+    ),
+  ).map(({ task, done }) => (task.done === done ? task : { ...task, done }))
+}
+
+/** Marks or unmarks one row as having a write on its way. */
+function markPending(listId: string, taskId: string | undefined, on: boolean) {
+  const entry = external.get(listId)
+  if (!entry || !taskId) return
+  put(listId, {
+    ...entry,
+    tasks: entry.tasks.map((task) => {
+      if (task.id !== taskId) return task
+      const { pending: _, ...rest } = task
+      return on ? { ...rest, pending: true as const } : rest
+    }),
+  })
+}
+
+/**
+ * A write to a linked list, made in its provider first (ADR-0020). Nothing
+ * changes here until the provider took it; a refusal leaves the rows as they
+ * are and rejects. After an unclear failure the list is fetched again, so it
+ * shows what the provider has, or goes stale and read-only if that fails too.
+ */
+export async function writeLinkedTask(
+  listId: string,
+  write: LinkedTaskWrite,
+  send: SendWrite,
+  fetchTasks: FetchTasks,
+): Promise<{ taskId?: string }> {
+  const taskId = 'taskId' in write ? write.taskId : undefined
+  if (!external.get(listId)?.fresh) throw new LinkedWriteError('stale', listId)
+  markPending(listId, taskId, true)
+  let refresh = false
+  try {
+    return await enqueue(listId, async () => {
+      if (!external.get(listId)?.fresh) {
+        throw new LinkedWriteError('stale', listId)
+      }
+      let result: WriteResult
+      try {
+        result = await send(listId, write)
+      } catch {
+        refresh = true
+        throw new LinkedWriteError('failed', listId)
+      }
+      const entry = external.get(listId) ?? { sync: 'synced', tasks: [] }
+      if (result.status === 'reconnect') {
+        put(listId, { sync: 'reconnect', tasks: entry.tasks })
+        throw new LinkedWriteError('reconnect', listId)
+      }
+      if (result.status === 'error') {
+        refresh = true
+        throw new LinkedWriteError(result.reason, listId)
+      }
+      refresh = result.refresh
+      put(listId, {
+        ...entry,
+        tasks: afterLinkedWrite(listId, entry.tasks, write, result.tasks),
+      })
+      return { taskId: result.tasks[0]?.externalId }
+    })
+  } finally {
+    markPending(listId, taskId, false)
+    if (refresh) void syncExternalList(listId, fetchTasks)
   }
 }
 
@@ -117,18 +260,21 @@ export function syncExternalList(
 ): Promise<ListSync> {
   const running = inFlight.get(listId)
   if (running) return running
-  const previous = external.get(listId)?.tasks ?? []
-  put(listId, { sync: 'loading', tasks: previous })
-  const run = fetchTasks(listId)
-    .then(
-      (result) => externalEntry(listId, result, previous),
-      (): ExternalEntry => ({ sync: 'failed', tasks: previous }),
-    )
-    .then((entry) => {
-      put(listId, entry)
-      return entry.sync
-    })
-    .finally(() => inFlight.delete(listId))
+  put(listId, {
+    tasks: [],
+    ...external.get(listId),
+    sync: 'loading',
+  })
+  // A write on its way finishes first, so the answer already holds it.
+  const run = enqueue(listId, async () => {
+    const result = await fetchTasks(listId).catch(() => null)
+    const previous = external.get(listId)?.tasks ?? []
+    const entry: ExternalEntry = result
+      ? externalEntry(listId, result, previous)
+      : { sync: 'failed', tasks: previous }
+    put(listId, entry)
+    return entry.sync
+  }).finally(() => inFlight.delete(listId))
   inFlight.set(listId, run)
   return run
 }
@@ -212,13 +358,24 @@ export function withProgress(tasks: readonly Task[]): Task[] {
   })
 }
 
-/** A list row as the screens draw it, with where its tasks stand. */
-function listView(list: ListRow, sync: ListSync): TaskList {
+/**
+ * A list row as the screens draw it, with where its tasks stand. A linked one
+ * can be written when its provider can (a server before APP-448 does not say)
+ * and its rows are the provider's own; grocery items are Gather's alone.
+ */
+function listView(
+  list: ListRow,
+  sync: ListSync,
+  entry?: ExternalEntry,
+): TaskList {
+  const linkedWritable = Boolean(
+    list.capabilities?.write && entry?.fresh && !list.grocery,
+  )
   return {
     id: list._id,
     name: list.name,
     provider: list.provider,
-    writable: list.writable,
+    writable: list.provider === 'local' ? list.writable : linkedWritable,
     display: list.display,
     order: list.order,
     sync,
@@ -240,6 +397,7 @@ export function mergeTasks(
   const tasks: Task[] = []
   const views = lists.map((list): TaskList => {
     let sync: ListSync
+    let entry: ExternalEntry | undefined
     if (list.provider === 'local') {
       const rows = local[list._id]
       // `useQueries` hands back the Error a failed subscription threw.
@@ -252,11 +410,11 @@ export function mergeTasks(
         for (const row of rows as Doc<'tasks'>[]) tasks.push(taskFromRow(row))
       }
     } else {
-      const entry = linked.get(list._id)
+      entry = linked.get(list._id)
       sync = entry?.sync ?? 'loading'
       tasks.push(...(entry?.tasks ?? []))
     }
-    return listView(list, sync)
+    return listView(list, sync, entry)
   })
   return { lists: views, tasks: withProgress(tasks) }
 }
@@ -599,7 +757,7 @@ export function indexModel(
         total: rows.length,
       })
     }
-    return listView(list, entry?.sync ?? 'loading')
+    return listView(list, entry?.sync ?? 'loading', entry)
   })
   let openTotal = 0
   for (const count of counts.values()) openTotal += count.open
@@ -659,6 +817,7 @@ export function smartModel(
           ? 'live'
           : 'loading'
         : (linked.get(list._id)?.sync ?? 'loading'),
+      linked.get(list._id),
     ),
   )
   const byId = new Map(views.map((view) => [view.id, view]))
@@ -819,6 +978,45 @@ export function useTaskActions() {
   const reorderSections = useMutation(api.taskSections.reorder)
   const removeSection = useMutation(api.taskSections.remove)
 
+  const getTasks = useAction(api.taskLists.getTasks)
+  const sendWrite = useAction(api.taskLists.writeTask)
+
+  /** The linked list whose last answer holds the task, read at call time. */
+  const linkedListOf = (taskId: string) => {
+    for (const [listId, entry] of external) {
+      if (entry.tasks.some((task) => task.id === taskId)) return listId
+    }
+    return undefined
+  }
+  const write = (listId: string, change: LinkedTaskWrite) =>
+    writeLinkedTask(
+      listId,
+      change,
+      (id, sent) =>
+        sendWrite({
+          listId: id as Id<'taskLists'>,
+          groupSlug,
+          write: sent,
+        }),
+      (id) => getTasks({ listId: id as Id<'taskLists'>, groupSlug }),
+    )
+
+  /** A linked task's fields in its provider, or a local one's in Convex. */
+  const edit = (
+    id: string,
+    fields: {
+      title?: string
+      dueDate?: string | null
+      priority?: Priority | null
+      labels?: string[]
+    },
+  ): Promise<unknown> => {
+    const listId = linkedListOf(id)
+    return listId
+      ? write(listId, { kind: 'update', taskId: id, ...fields })
+      : patch(id, fields)
+  }
+
   const patch = (
     id: string,
     fields: Omit<Parameters<typeof update>[0], 'taskId' | 'groupSlug'>,
@@ -855,6 +1053,23 @@ export function useTaskActions() {
     saveKey: string | undefined,
     sectionId?: string,
   ): Promise<{ taskId: string } & ComposedDetails> => {
+    if (external.has(listId)) {
+      // The composer offers only what the provider can hold (APP-448).
+      const { taskId } = await write(listId, {
+        kind: 'create',
+        title: task.title,
+        ...(saveKey ? { requestKey: saveKey } : {}),
+        ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+        ...(task.labels.length > 0 ? { labels: task.labels } : {}),
+        ...(task.priority ? { priority: task.priority } : {}),
+      })
+      return {
+        taskId: taskId ?? '',
+        notesFailed: false,
+        reminderFailed: false,
+        reminderSet: false,
+      }
+    }
     const taskId = await add({
       listId: listId as Id<'taskLists'>,
       groupSlug,
@@ -951,6 +1166,19 @@ export function useTaskActions() {
       task: Pick<Task, 'id' | 'title'>,
       options: { withSubtasks?: boolean } = {},
     ) => {
+      const linkedId = linkedListOf(task.id)
+      if (linkedId) {
+        const row = external
+          .get(linkedId)
+          ?.tasks.find((each) => each.id === task.id)
+        await write(linkedId, {
+          kind: 'setDone',
+          taskId: task.id,
+          done: !row?.done,
+          ...(options.withSubtasks ? { withSubtasks: true } : {}),
+        })
+        return null
+      }
       const completion = await toggle({
         taskId: task.id as Id<'tasks'>,
         groupSlug,
@@ -969,15 +1197,22 @@ export function useTaskActions() {
     /** A rule, or null for no repeat; the server anchors it on the date. */
     setRepeat: (id: string, repeat: TaskRepeat | null) =>
       patch(id, { repeat, today: localIsoDate() }),
-    renameTask: (id: string, title: string) => patch(id, { title }),
+    renameTask: (id: string, title: string) => edit(id, { title }),
     setDue: (id: string, value: string | undefined) =>
-      patch(id, { dueDate: value ?? null }),
+      edit(id, { dueDate: value ?? null }),
     setPriority: (id: string, value: Priority | undefined) =>
-      patch(id, { priority: value ?? null }),
-    setLabels: (id: string, labels: string[]) => patch(id, { labels }),
+      edit(id, { priority: value ?? null }),
+    setLabels: (id: string, labels: string[]) => edit(id, { labels }),
     setNotes: (id: string, notes: string) => patch(id, { notes }),
-    deleteTask: (id: string) =>
-      remove({ taskId: id as Id<'tasks'>, groupSlug }),
+    deleteTask: (id: string): Promise<unknown> => {
+      const listId = linkedListOf(id)
+      return listId
+        ? write(listId, { kind: 'delete', taskId: id })
+        : remove({ taskId: id as Id<'tasks'>, groupSlug })
+    },
+    /** A linked task under another on its list, or out of it with null. */
+    moveUnder: (task: Pick<Task, 'id' | 'listId'>, parentId: string | null) =>
+      write(task.listId, { kind: 'move', taskId: task.id, parentId }),
     moveTask: (id: string, listId: string) =>
       moveToList({
         taskId: id as Id<'tasks'>,
@@ -1183,13 +1418,18 @@ export function useTaskActions() {
     unhideSuggestion: (listId: string, title: string) =>
       unhideSuggestion({ listId: listId as Id<'taskLists'>, groupSlug, title }),
     /** A step of a task, on its list and in its section (APP-304). */
-    addSubtask: (parent: Pick<Task, 'id' | 'listId'>, title: string) =>
-      add({
-        listId: parent.listId as Id<'taskLists'>,
-        groupSlug,
-        title,
-        parentTaskId: parent.id as Id<'tasks'>,
-      }),
+    addSubtask: (
+      parent: Pick<Task, 'id' | 'listId'>,
+      title: string,
+    ): Promise<unknown> =>
+      external.has(parent.listId)
+        ? write(parent.listId, { kind: 'create', title, parentId: parent.id })
+        : add({
+            listId: parent.listId as Id<'taskLists'>,
+            groupSlug,
+            title,
+            parentTaskId: parent.id as Id<'tasks'>,
+          }),
     /** A task's subtasks in their new order; every one, once. */
     reorderSubtasks: (parentId: string, ids: string[]) =>
       reorderSubtasks({

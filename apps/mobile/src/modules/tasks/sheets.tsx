@@ -20,6 +20,7 @@ import {
   monthGrid,
   monthStart,
 } from '@gather/core/civil-date'
+import { possibleParents } from '@gather/core/linked-tasks'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
@@ -37,6 +38,7 @@ import { TASK_ICONS } from './icons'
 import { useGroupLabels, useTaskActions, useTaskLists } from './store'
 import { weekendFrom } from './taskDates'
 import { type Priority, SUGGESTED_LABELS, type Task } from './types'
+import { useWriteFailed } from './writeFailed'
 
 const PRIORITIES: Priority[] = [1, 2, 3, 4]
 
@@ -59,6 +61,7 @@ export function DueDateSheet({
   const tokens = useTokens('home')
   const { t, locale } = useI18n()
   const actions = useTaskActions()
+  const writeFailed = useWriteFailed()
   const today = localIsoDate()
   const [month, setMonth] = useState(() => monthStart(task.dueDate ?? today))
 
@@ -66,7 +69,7 @@ export function DueDateSheet({
   const selected = task.dueDate
 
   const pick = (iso: string | undefined) => {
-    actions.setDue(task.id, iso)
+    actions.setDue(task.id, iso).catch(writeFailed)
     haptics.selectionChanged()
     onClose()
   }
@@ -160,10 +163,11 @@ export function PrioritySheet({
   const tokens = useTokens('home')
   const { t } = useI18n()
   const actions = useTaskActions()
+  const writeFailed = useWriteFailed()
   const current = task.priority
 
   const choose = (priority: Priority | undefined) => {
-    actions.setPriority(task.id, priority)
+    actions.setPriority(task.id, priority).catch(writeFailed)
     haptics.selectionChanged()
     onClose()
   }
@@ -249,6 +253,7 @@ export function LabelsSheet({
   // than every list's rows (APP-565). Mounted only while the sheet is open.
   const typed = useGroupLabels()
   const actions = useTaskActions()
+  const writeFailed = useWriteFailed()
   // A grocery item is an item, not a task (APP-557): the sheet asks the lists
   // which kind its task is on.
   const lists = useTaskLists()
@@ -279,11 +284,24 @@ export function LabelsSheet({
     .filter((label) => !labels.includes(label))
     .sort()
 
-  const setOwn = (next: string[]) => actions.setLabels(task.id, next)
+  const setOwn = (next: string[]) => {
+    // A linked list's labels change once its provider took the last change,
+    // and each change sends them all: one at a time.
+    if (task.pending) {
+      haptics.actionFailed()
+      return false
+    }
+    actions.setLabels(task.id, next).catch(writeFailed)
+    return true
+  }
 
   const submit = () => {
     const value = draft.trim().toLowerCase()
     if (!value) return
+    if (task.pending && !renaming) {
+      haptics.actionFailed()
+      return
+    }
     setDraft('')
     if (renaming) {
       actions.renameLabel(renaming, value)
@@ -489,6 +507,86 @@ export function MoveToListSheet({
             </Pressable>
           )
         })}
+    </NativeSheet>
+  )
+}
+
+/**
+ * A linked task under another one on its list, or back out (APP-448). One
+ * level deep, as Gather draws subtasks.
+ */
+export function MoveUnderSheet({
+  task,
+  tasks,
+  onClose,
+}: {
+  task: Task
+  /** The screen's tasks; only the task's own list is offered. */
+  tasks: readonly Task[]
+  onClose: () => void
+}) {
+  const tokens = useTokens('home')
+  const { t } = useI18n()
+  const actions = useTaskActions()
+  const writeFailed = useWriteFailed()
+  const parents = possibleParents(
+    tasks
+      .filter((each) => each.listId === task.listId)
+      .map((each) => ({
+        externalId: each.id,
+        done: each.done,
+        parentExternalId: each.parentTaskId,
+        title: each.title,
+      })),
+    task.id,
+  )
+  const move = (parentId: string | null) => {
+    onClose()
+    if (parentId === (task.parentTaskId ?? null)) return
+    actions.moveUnder(task, parentId).then(() => haptics.itemSaved(), writeFailed)
+  }
+  const options = [
+    { id: null, title: t.tasks.linkedWrite.topLevel },
+    ...parents.map(({ externalId, title }) => ({ id: externalId, title })),
+  ]
+  return (
+    <NativeSheet title={t.tasks.linkedWrite.moveUnder} onClose={onClose}>
+      {options.map(({ id, title }, index) => {
+        const selected = id === (task.parentTaskId ?? null)
+        return (
+          <Pressable
+            key={id ?? 'top'}
+            testID={`under-${id ?? 'top'}`}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            accessibilityLabel={title}
+            onPress={() => move(id)}
+            style={({ pressed }) => [
+              styles.optionRow,
+              index === options.length - 1 && styles.lastOption,
+              { borderBottomColor: tokens.hair },
+              pressed && { backgroundColor: tokens.surface2 },
+            ]}
+          >
+            <Text
+              style={[
+                styles.optionText,
+                { color: id === null ? tokens.muted : tokens.ink },
+              ]}
+            >
+              {title}
+            </Text>
+            {selected ? (
+              <UI_ICONS.Check size={18} color={tokens.ink} strokeWidth={2.6} />
+            ) : null}
+          </Pressable>
+        )
+      })}
+      {parents.length === 0 ? (
+        <Text style={[styles.groupEmpty, { color: tokens.muted }]}>
+          {t.tasks.linkedWrite.noParents}
+        </Text>
+      ) : null}
     </NativeSheet>
   )
 }

@@ -14,6 +14,7 @@ import Banknote from 'lucide-react-native/icons/banknote'
 import Bell from 'lucide-react-native/icons/bell'
 import Calendar from 'lucide-react-native/icons/calendar'
 import CircleCheck from 'lucide-react-native/icons/circle-check'
+import CornerDownRight from 'lucide-react-native/icons/corner-down-right'
 import FileText from 'lucide-react-native/icons/file-text'
 import Files from 'lucide-react-native/icons/files'
 import Flag from 'lucide-react-native/icons/flag'
@@ -45,6 +46,8 @@ export const TASK_ICONS = {
   Amount: glyph(Hash, 'number'),
   Aisle: glyph(TableProperties, 'tablecells'),
   CircleCheck: glyph(CircleCheck, 'checkmark.circle'),
+  /** A task that goes under another one (APP-448). */
+  CornerDownRight: glyph(CornerDownRight, 'arrow.turn.down.right'),
   FileText: glyph(FileText, 'doc.text'),
   Flag: glyph(Flag, 'flag'),
   /** A list that lives in Notion or Todoist rather than in Gather. */
