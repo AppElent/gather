@@ -354,6 +354,50 @@ describe('when the Group goes', () => {
     const left = await limited.run((ctx) => energyRowsOf(ctx, ids.homeId))
     expect(Object.values(left).every((count) => count === 0)).toBe(true)
   }, 120_000)
+
+  test('a year of account prices goes a page at a time (APP-493)', async () => {
+    const limited = convexTest({ schema, modules, transactionLimits: true })
+    const ids = await limited.run(async (ctx) => {
+      const aliceId = await ctx.db.insert('users', {
+        clerkId: alice.subject,
+        name: alice.name,
+        email: alice.email,
+      })
+      const homeId = await seedGroup(ctx, { name: 'Home', slug: 'home' })
+      await seedMember(ctx, homeId, aliceId, 'admin')
+      return { homeId, ...(await insertEnergyHousehold(ctx, homeId, aliceId)) }
+    })
+    const QUARTERS = 365 * 96
+    const CHUNK = 5_000
+    for (let start = 0; start < QUARTERS; start += CHUNK) {
+      await limited.run(async (ctx) => {
+        for (let at = start; at < Math.min(QUARTERS, start + CHUNK); at += 1) {
+          await ctx.db.insert('energyPrices', {
+            provider: 'tibber',
+            feedId: ids.feedId,
+            carrier: 'electricity',
+            start: at * 900_000,
+            minutes: 15,
+            eurPerUnit: 0.3,
+          })
+        }
+      })
+    }
+    await limited
+      .withIdentity(alice)
+      .mutation(api.groups.deleteGroup, { groupId: ids.homeId })
+    // The key goes with the Group, before the prices do.
+    expect(await limited.run((ctx) => ctx.db.get(ids.feedId))).toBeNull()
+    await limited.finishAllScheduledFunctions(vi.runAllTimers)
+    const steps = await limited.run((ctx) =>
+      ctx.db.system.query('_scheduled_functions').collect(),
+    )
+    const purges = steps.filter((each) => each.name.includes('purgeAccountPrices'))
+    expect(purges.length).toBeGreaterThanOrEqual(36)
+    expect(purges.every((each) => each.state.kind === 'success')).toBe(true)
+    const prices = await limited.run((ctx) => ctx.db.query('energyPrices').collect())
+    expect(prices.map((price) => price._id)).toEqual([ids.marketPriceId])
+  }, 120_000)
 })
 
 describe('when a Member deletes their account', () => {

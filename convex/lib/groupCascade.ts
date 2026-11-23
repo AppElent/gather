@@ -452,23 +452,21 @@ const GROUP_CONTENT: {
         .collect(),
     ),
 
-  // A feed holds the Member's own API key, and its account prices carry no
-  // Group id: they are found through the feed and go with it. Market prices
-  // (no `feedId`) are every Group's and stay.
+  // A feed holds the Member's own API key, so the feed goes at once. Its
+  // account prices carry no Group id and are some 35,000 rows a year: they are
+  // found through the feed's id and deleted a page at a time by
+  // `cascade.purgeAccountPrices`. Nothing writes new ones meanwhile, because a
+  // fetch checks that its feed still exists. Market prices (no `feedId`) are
+  // every Group's and stay.
   energyPriceFeeds: async (ctx, groupId) => {
     const feeds = await ctx.db
       .query('energyPriceFeeds')
       .withIndex('by_group', (q) => q.eq('groupId', groupId))
       .collect()
     for (const feed of feeds) {
-      await purge(
-        ctx,
-        'energyPrices',
-        await ctx.db
-          .query('energyPrices')
-          .withIndex('by_feed_carrier_start', (q) => q.eq('feedId', feed._id))
-          .collect(),
-      )
+      await ctx.scheduler.runAfter(0, internal.cascade.purgeAccountPrices, {
+        feedId: feed._id,
+      })
     }
     return purge(ctx, 'energyPriceFeeds', feeds)
   },

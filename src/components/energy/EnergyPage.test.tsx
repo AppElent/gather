@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { renderInGroup } from '../app/testing'
 import { EnergyPage } from './EnergyPage'
-import { monthPeriod } from './testing'
+import { monthPeriod, priceView } from './testing'
 
 /**
  * The empty Energy Module offers one step, adding an address, and the form
@@ -17,6 +17,7 @@ const state = vi.hoisted(() => ({
   form: null as unknown,
   month: null as unknown,
   day: null as unknown,
+  prices: null as unknown,
   calls: [] as unknown[],
   navigate: vi.fn(),
   result: Promise.resolve('site1') as Promise<unknown>,
@@ -29,6 +30,7 @@ vi.mock('convex/react', () => ({
     if (name === 'energyReadings:form') return state.form
     if (name === 'energyUsage:month') return state.month
     if (name === 'energyUsage:day') return state.day
+    if (name === 'energyPrices:view') return state.prices
     return state.houses
   },
   useMutation: () => (args: unknown) => {
@@ -59,6 +61,7 @@ vi.mock('../../../convex/_generated/api', () => ({
     energy: { overview: 'energy:overview', createSite: 'energy:createSite' },
     energyReadings: { form: 'energyReadings:form' },
     energyUsage: { month: 'energyUsage:month', day: 'energyUsage:day' },
+    energyPrices: { view: 'energyPrices:view' },
     houses: { list: 'houses:list' },
   },
 }))
@@ -71,6 +74,7 @@ beforeEach(() => {
   state.form = null
   state.month = null
   state.day = null
+  state.prices = null
   state.calls = []
   state.navigate.mockClear()
   state.result = Promise.resolve('site1')
@@ -185,7 +189,7 @@ describe('EnergyPage', () => {
     expect(screen.queryByText('Binnenkort')).not.toBeInTheDocument()
   })
 
-  test('with readings, it shows the days of this month and the five rows', () => {
+  test('with readings, it shows the days of this month and the six rows', () => {
     state.overview = {
       site: { _id: 's1', name: 'Thuis' },
       sources: [{ _id: 'src1', kind: 'manual', label: 'Meter readings', status: 'ok' }],
@@ -214,6 +218,7 @@ describe('EnergyPage', () => {
     const rows = within(nav).getAllByRole('link')
     expect(rows.map((row) => row.getAttribute('href'))).toEqual([
       '/energy/usage',
+      '/energy/prices',
       '/energy/costs',
       '/energy/readings',
       '/energy/contract',
@@ -296,5 +301,64 @@ describe('EnergyPage', () => {
     expect(
       screen.queryByRole('heading', { name: 'Type your first meter readings' }),
     ).not.toBeInTheDocument()
+  })
+
+  describe('prices', () => {
+    beforeEach(() => {
+      state.overview = {
+        site: { _id: 's1', name: 'Thuis' },
+        sources: [
+          { _id: 'src1', kind: 'manual', label: 'Meter readings', status: 'ok' },
+        ],
+      }
+      state.form = { hasManualSource: true, lastReadingAt: null, channels: [] }
+      state.month = monthPeriod('2026-11', '2026-11-20')
+      state.prices = priceView()
+    })
+
+    test('the Now card says the price, what it is against today, and when it is cheap', () => {
+      renderInGroup(<EnergyPage />)
+      const card = screen.getByRole('region', {
+        name: 'Power price now: €0.40 per kWh. Expensive: 34% above today’s average. Cheapest tomorrow: 13:00–16:00, on average €0.10',
+      })
+      expect(within(card).getByText('Power now, 19:00–20:00')).toBeInTheDocument()
+      expect(within(card).getByText('€0.40')).toBeInTheDocument()
+      expect(within(card).getByText('Expensive').tagName).toBe('STRONG')
+    })
+
+    test('the price card opens Prices and says its answer', () => {
+      renderInGroup(<EnergyPage />)
+      const figure = screen.getByRole('figure', {
+        name: 'Price per hour today. Now 40 cents. Cheapest 02:00 to 05:00, on average 20 cents. Most expensive at 19:00, 40 cents.',
+      })
+      expect(figure.closest('a')).toHaveAttribute('href', '/energy/prices')
+      expect(figure.querySelectorAll('[data-bar]')).toHaveLength(24)
+      expect(figure.querySelectorAll('[data-bar="marked"]')).toHaveLength(1)
+      // Home leaves the cheapest hours uncoloured.
+      expect(figure.querySelectorAll('[data-bar="cheapest"]')).toHaveLength(0)
+      expect(
+        screen.getByText(
+          'Prices from EnergyZero with your contract from Frank Energie. Amounts include VAT and energy tax.',
+        ),
+      ).toBeInTheDocument()
+    })
+
+    test('in Dutch', () => {
+      renderInGroup(<EnergyPage />, { locale: 'nl' })
+      expect(screen.getByText('Duur')).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: 'Prijs per uur vandaag' }),
+      ).toBeInTheDocument()
+    })
+
+    test('without prices for today there are no cards, and the row says why', () => {
+      state.prices = priceView({ today: null, tomorrow: null })
+      renderInGroup(<EnergyPage />)
+      expect(screen.queryByText('Price per hour today')).not.toBeInTheDocument()
+      const nav = screen.getByRole('navigation', { name: 'More about energy' })
+      expect(
+        within(nav).getByText(/EnergyZero has not given all prices yet\./),
+      ).toBeInTheDocument()
+    })
   })
 })

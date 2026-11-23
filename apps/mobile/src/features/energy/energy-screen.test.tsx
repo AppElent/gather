@@ -18,6 +18,7 @@ import {
   byTestId,
   callsTo,
   energyState,
+  priceView,
   resetEnergyState,
   usagePeriod,
 } from './energy-test-mocks'
@@ -76,7 +77,7 @@ const meter = {
 beforeEach(() => {
   resetEnergyState()
   vi.useFakeTimers({ toFake: ['Date'] })
-  vi.setSystemTime(new Date('2026-11-23T12:00:00Z'))
+  vi.setSystemTime(new Date('2026-11-23T12:10:00Z'))
   energyState.queries['energy:overview'] = null
   energyState.queries['houses:list'] = []
   energyState.queries['energyContracts:list'] = []
@@ -241,5 +242,42 @@ test('a source in error is said in words with when its data is from, and its dat
   )
   expect(byTestId('energy-usage-card')).not.toBeNull()
   expect(byTestId('energy-first-reading')).toBeNull()
+  view.unmount()
+})
+
+test('the Now card and the price card say what power costs, and open Prices', () => {
+  energyState.queries['energy:overview'] = withAddress
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: true,
+    lastReadingAt: null,
+    channels: [meter],
+  }
+  energyState.queries['energyPrices:view'] = priceView()
+  const view = mount(createElement(EnergyScreen))
+  expect(byTestId('energy-price-now')?.getAttribute('aria-label')).toBe(
+    'Power price now: €0.40 per kWh. Expensive: 37% above today’s average. Cheapest tomorrow: 12:00–15:00, on average €0.10',
+  )
+  expect(byTestId('energy-home-prices')?.getAttribute('aria-label')).toMatch(
+    /^Price per hour today\. Now 40 cents\./,
+  )
+  byTestId('energy-price-card')?.click()
+  byTestId('energy-row-prices')?.click()
+  expect(energyState.pushes).toEqual(['/all/energy/prices', '/all/energy/prices'])
+  view.unmount()
+})
+
+test('a price fetch that failed is said on its row, and there are no cards', () => {
+  energyState.queries['energy:overview'] = withAddress
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: true,
+    lastReadingAt: null,
+    channels: [meter],
+  }
+  energyState.queries['energyPrices:view'] = priceView({ today: null, tomorrow: null })
+  const view = mount(createElement(EnergyScreen))
+  expect(byTestId('energy-price-now')).toBeNull()
+  expect(byTestId('energy-row-prices')?.querySelector('[data-tone="danger"]')?.textContent).toContain(
+    'EnergyZero has not given all prices yet.',
+  )
   view.unmount()
 })

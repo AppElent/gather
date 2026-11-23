@@ -15,10 +15,12 @@ import {
   addEnergyCosts,
   amsterdamDayOf,
   amsterdamDayStart,
+  DEFAULT_ENERGY_PRICE_PROVIDER,
   type EnergyByTariff,
   type EnergyContractTerms,
   type EnergyCost,
   type EnergyDayUse,
+  type EnergyElectricityPrice,
   energyContractOn,
   energyDayCost,
   energyNetMetering,
@@ -29,9 +31,9 @@ import {
 import { v } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
+import { accountPrices, marketPrices, priceFeedOf } from './energyPriceRows'
 
 const HOUR_MS = 3_600_000
-const DEFAULT_PRICE_PROVIDER = 'energyzero'
 
 export const energyCostValidator = v.object({
   importCents: v.number(),
@@ -230,57 +232,92 @@ function consumption(bucket: Bucket, hasSolar: boolean) {
 
 type PriceSlot = { start: number; eurPerUnit: number }
 
+type SitePrices = {
+  /** The prices over [from, to) of one day. */
+  electricity: (from: number, to: number) => EnergyElectricityPrice
+  gas: PriceSlot[]
+}
+
+const NO_PRICES: SitePrices = {
+  electricity: () => ({ marketEurPerKwh: null }),
+  gas: [],
+}
+
 /**
- * The prices a site is priced at in [start, end): its account feed's when it
- * has one, otherwise the market prices of its feed's provider (EnergyZero by
- * default). Read only when a dynamic contract needs them.
+ * The prices a site is priced at in [start, end), whole days. Read only when a
+ * dynamic contract needs them.
+ *
+ * A day with account prices is priced at those; every other day at the market
+ * price of the feed's provider, and at EnergyZero's, the same auction, where
+ * that has none. Account days stay account days when the feed is given
+ * another provider later, so it rewrites no month. Export always earns the
+ * market price: an account price holds tax. Gas is always EnergyZero's, for
+ * the contract to price.
  */
 async function loadPrices(
   ctx: QueryCtx,
   siteId: Id<'energySites'>,
+  days: readonly string[],
   start: number,
   end: number,
-) {
-  const feed = await ctx.db
-    .query('energyPriceFeeds')
-    .withIndex('by_site', (q) => q.eq('siteId', siteId))
-    .first()
-  const read = async (carrier: 'electricity' | 'gas', from: number) => {
-    if (feed && feed.scope === 'account') {
-      return ctx.db
-        .query('energyPrices')
-        .withIndex('by_feed_carrier_start', (q) =>
-          q
-            .eq('feedId', feed._id)
-            .eq('carrier', carrier)
-            .gte('start', from)
-            .lt('start', end),
-        )
-        .collect()
-    }
-    const rows = await ctx.db
-      .query('energyPrices')
-      .withIndex('by_provider_carrier_start', (q) =>
-        q
-          .eq('provider', feed?.provider ?? DEFAULT_PRICE_PROVIDER)
-          .eq('carrier', carrier)
-          .gte('start', from)
-          .lt('start', end),
+): Promise<SitePrices> {
+  const feed = await priceFeedOf(ctx, siteId)
+  const account = feed ? await accountPrices(ctx, feed._id, start, end) : []
+  const firstAccount =
+    feed?.scope === 'account'
+      ? await ctx.db
+          .query('energyPrices')
+          .withIndex('by_feed_carrier_start', (q) =>
+            q.eq('feedId', feed._id).eq('carrier', 'electricity'),
+          )
+          .first()
+      : null
+
+  const own =
+    feed?.provider === 'entsoe'
+      ? await marketPrices(ctx, 'entsoe', 'electricity', start, end)
+      : []
+  const bounds = days.map((day) => ({
+    from: amsterdamDayStart(day),
+    to: amsterdamDayStart(addDays(day, 1)),
+  }))
+  const within = (slots: readonly PriceSlot[], at: { from: number; to: number }) =>
+    slots.some((slot) => slot.start >= at.from && slot.start < at.to)
+  // Only the stretch the feed's own provider leaves open.
+  const open = bounds.filter((day) => !within(own, day))
+  const fallback = open.length
+    ? await marketPrices(
+        ctx,
+        DEFAULT_ENERGY_PRICE_PROVIDER,
+        'electricity',
+        open[0]?.from ?? start,
+        open[open.length - 1]?.to ?? end,
       )
-      .collect()
-    return rows.filter((row) => row.feedId === undefined)
-  }
-  const [electricity, gas] = await Promise.all([
-    read('electricity', start),
-    read('gas', start),
-  ])
+    : []
+  const market: PriceSlot[] = [
+    ...own,
+    ...fallback.filter((slot) =>
+      open.some((day) => slot.start >= day.from && slot.start < day.to),
+    ),
+  ]
+  const allInDays = new Set(
+    bounds
+      .filter(
+        (day) =>
+          within(account, day) ||
+          (firstAccount !== null && firstAccount.start <= day.from),
+      )
+      .map((day) => day.from),
+  )
   return {
-    allIn: Boolean(feed && feed.scope === 'account' && feed.includesTaxes),
-    electricity: electricity.map(({ start, eurPerUnit }) => ({
-      start,
-      eurPerUnit,
-    })),
-    gas: gas.map(({ start, eurPerUnit }) => ({ start, eurPerUnit })),
+    electricity: (from, to) => {
+      const marketEurPerKwh = average(market, from, to)
+      const day = bounds.find((each) => from >= each.from && from < each.to)
+      return day && allInDays.has(day.from)
+        ? { marketEurPerKwh, allInEurPerKwh: average(account, from, to) }
+        : { marketEurPerKwh }
+    },
+    gas: await marketPrices(ctx, DEFAULT_ENERGY_PRICE_PROVIDER, 'gas', start, end),
   }
 }
 
@@ -529,8 +566,8 @@ export async function computeEnergyRange(
     (day) => energyContractOn(contracts, day)?.kind === 'dynamic',
   )
   const prices = needsPrices
-    ? await loadPrices(ctx, site._id, start, end)
-    : { allIn: false, electricity: [], gas: [] }
+    ? await loadPrices(ctx, site._id, days, start, end)
+    : NO_PRICES
 
   const hourlyChannels = channels.some(
     (each) => !each.manual && each.channel.kind === 'gridImport',
@@ -572,7 +609,7 @@ export async function computeEnergyRange(
         priced.push({
           importKwh: hour ? sum(hour.importKwh) : 0,
           exportKwh: hour ? sum(hour.exportKwh) : 0,
-          marketEurPerKwh: average(prices.electricity, at, at + HOUR_MS),
+          ...prices.electricity(at, at + HOUR_MS),
         })
       }
       hours = priced
@@ -585,9 +622,8 @@ export async function computeEnergyRange(
       exportKwh: bucket.exportKwh,
       gasM3: bucket.gas,
       hours,
-      marketEurPerKwh: average(prices.electricity, dayStart, dayEnd),
+      ...prices.electricity(dayStart, dayEnd),
       gasMarketEurPerM3: average(prices.gas, dayStart, dayEnd),
-      allInPrices: prices.allIn,
     }
     const costWithoutNet = energyDayCost(use, contract as EnergyContractTerms)
     return {

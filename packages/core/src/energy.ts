@@ -40,4 +40,5 @@ export function primaryEnergySite<
 }
 
 export * from './energyHomeAssistant'
+export * from './energyPrices'
 export * from './energyUsage'

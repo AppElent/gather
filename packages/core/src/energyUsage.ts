@@ -292,27 +292,36 @@ export function totalByTariff(amounts: EnergyByTariff): number {
   return amounts.t1 + amounts.t2 + amounts.single
 }
 
-/** What one day used, and the prices it was used at. */
-export interface EnergyDayUse {
+/** Electricity's prices over an hour or a day; null is not in yet. */
+export interface EnergyElectricityPrice {
+  /** The market price, excl. markup, taxes and VAT. */
+  marketEurPerKwh: number | null
+  /**
+   * Set when the site has account prices (APP-493): what a kWh from the grid
+   * costs with everything included, so the contract's markup and taxes are
+   * skipped. Export still earns the market price.
+   */
+  allInEurPerKwh?: number | null
+}
+
+/**
+ * What one day used, and the prices it was used at: the day's averages, for a
+ * day without hours.
+ */
+export interface EnergyDayUse extends EnergyElectricityPrice {
   day: string
   importKwh: EnergyByTariff
   exportKwh: EnergyByTariff
   /** Null when the site measures no gas. */
   gasM3: number | null
   /**
-   * Per hour, for a source with hourly data: kWh and that hour's market
-   * price excl. tax (null when the price is not in yet).
+   * Per hour, for a source with hourly data: kWh and that hour's prices.
    */
-  hours?: readonly {
+  hours?: readonly ({
     importKwh: number
     exportKwh: number
-    marketEurPerKwh: number | null
-  }[]
-  /** The day's average market price, for a day without hours. */
-  marketEurPerKwh: number | null
+  } & EnergyElectricityPrice)[]
   gasMarketEurPerM3: number | null
-  /** Account prices that already include the markup, taxes and VAT. */
-  allInPrices?: boolean
 }
 
 /** A day's or a month's costs in cents, VAT included. Credits are negative. */
@@ -379,26 +388,36 @@ export function energyDayCost(
       vat
     exportEurPerKwh = tariffs.export
   } else {
-    const allIn = (market: number) =>
-      use.allInPrices
-        ? market
-        : (market + contract.importMarkupEurPerKwh + contract.energyTaxEurPerKwh) *
-          vat
+    const importPrice = (price: EnergyElectricityPrice) =>
+      price.allInEurPerKwh !== undefined
+        ? price.allInEurPerKwh
+        : price.marketEurPerKwh === null
+          ? null
+          : (price.marketEurPerKwh +
+              contract.importMarkupEurPerKwh +
+              contract.energyTaxEurPerKwh) *
+            vat
     const priced = use.hours ?? [
       {
         importKwh: importTotal,
         exportKwh: exportTotal,
         marketEurPerKwh: use.marketEurPerKwh,
+        allInEurPerKwh: use.allInEurPerKwh,
       },
     ]
     importEur = 0
     let exportValue = 0
     for (const hour of priced) {
-      if (hour.importKwh === 0 && hour.exportKwh === 0) continue
-      if (hour.marketEurPerKwh === null) return null
-      importEur += hour.importKwh * allIn(hour.marketEurPerKwh)
-      exportValue +=
-        hour.exportKwh * (hour.marketEurPerKwh + contract.exportFeeEurPerKwh)
+      if (hour.importKwh !== 0) {
+        const price = importPrice(hour)
+        if (price === null) return null
+        importEur += hour.importKwh * price
+      }
+      if (hour.exportKwh !== 0) {
+        if (hour.marketEurPerKwh === null) return null
+        exportValue +=
+          hour.exportKwh * (hour.marketEurPerKwh + contract.exportFeeEurPerKwh)
+      }
     }
     exportEurPerKwh = exportTotal > 0 ? exportValue / exportTotal : 0
   }
@@ -412,11 +431,10 @@ export function energyDayCost(
       gasEur = use.gasM3 * ((contract.fixedTariffs?.gas ?? 0) + gasTax) * vat
     } else {
       if (use.gasMarketEurPerM3 === null) return null
-      gasEur = use.allInPrices
-        ? use.gasM3 * use.gasMarketEurPerM3
-        : use.gasM3 *
-          (use.gasMarketEurPerM3 + (contract.gasMarkupEurPerM3 ?? 0) + gasTax) *
-          vat
+      gasEur =
+        use.gasM3 *
+        (use.gasMarketEurPerM3 + (contract.gasMarkupEurPerM3 ?? 0) + gasTax) *
+        vat
     }
   }
 

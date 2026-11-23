@@ -11,10 +11,11 @@
  *
  * With an address, the wash names it and its sources, with when the last
  * meter reading was typed so stale figures never look current, and a source's
- * problem in words with when its data is from (ADR-0020). Then the
- * usage card (hours from an hourly source, estimated days from readings, or
- * the first step towards either) and the rows to Usage, Costs per month,
- * Meter readings, Contract and Sources (designs/energy, sections 1 and 11).
+ * problem in words with when its data is from (ADR-0020). Then what power
+ * costs now and per hour today (APP-493), the usage card (hours from an hourly
+ * source, estimated days from readings, or the first step towards either) and
+ * the rows to Usage, Prices, Costs per month, Meter readings, Contract and
+ * Sources (designs/energy, sections 1 and 11).
  */
 import { MenuView } from '@expo/ui/community/menu'
 import { amsterdamIsoDate } from '@gather/core/civil-date'
@@ -28,6 +29,8 @@ import {
 import {
   energyHomeSourceLine,
   energyHomeSources,
+  energyPriceFootnote,
+  energyPriceStateLine,
   formatEnergyDate,
   formatEnergyEuro,
 } from '@gather/core/energy-present'
@@ -63,6 +66,10 @@ import {
   energySolarColour,
 } from './components/energy-mirror-chart'
 import {
+  EnergyPriceNowCard,
+  EnergyPriceTodayCard,
+} from './components/energy-price-cards'
+import {
   daySlots,
   type EnergyHourRow,
   hourSlots,
@@ -74,6 +81,7 @@ import {
   hourChartSentence,
 } from './energy-chart-text'
 import { contractSummary } from './energy-summary-text'
+import { useEnergyMinute } from './use-energy-minute'
 
 type SourceChoice = 'homeAssistant' | 'manual'
 
@@ -214,6 +222,14 @@ function SiteHome({
     usage?.hasHourly ? { groupSlug, day: today, today } : 'skip',
   )
   const contracts = useQuery(api.energyContracts.list, { groupSlug })
+  const now = useEnergyMinute()
+  const prices = useQuery(api.energyPrices.view, {
+    groupSlug,
+    day: amsterdamDayOf(now),
+  })
+  const priceState = prices
+    ? energyPriceStateLine(prices, now, words, locale)
+    : null
 
   if (usage === undefined || typedMeters === null) {
     return <LoadingSkeleton rows={3} label={t.actions.loading} />
@@ -223,7 +239,7 @@ function SiteHome({
   const needsFirstReading =
     hasSources && typedMeters === 0 && !hourly && !connected
   const open = (
-    path: `/all/energy/${'usage' | 'costs' | 'readings' | 'contract' | 'sources' | 'connect'}`,
+    path: `/all/energy/${'usage' | 'costs' | 'readings' | 'contract' | 'sources' | 'connect' | 'prices'}`,
   ) => router.push(moduleHref(path))
 
   const cost = usage?.totals.cost
@@ -255,6 +271,15 @@ function SiteHome({
             testID="energy-first-reading"
           />
         </Card>
+      ) : null}
+
+      {prices ? <EnergyPriceNowCard view={prices} now={now} /> : null}
+      {prices?.today ? (
+        <EnergyPriceTodayCard
+          prices={prices.today}
+          now={now}
+          onPress={() => open('/all/energy/prices')}
+        />
       ) : null}
 
       {needsFirstReading ? (
@@ -295,6 +320,17 @@ function SiteHome({
           }
           chevron
           onPress={() => open('/all/energy/usage')}
+        />
+        <InsetRow
+          key="prices"
+          testID="energy-row-prices"
+          title={words.home.prices}
+          subtitle={
+            priceState?.problem ? priceState.text : words.home.pricesSub
+          }
+          subtitleTone={priceState?.problem ? 'danger' : 'muted'}
+          chevron
+          onPress={() => open('/all/energy/prices')}
         />
         <InsetRow
           key="costs"
@@ -344,6 +380,11 @@ function SiteHome({
           onPress={() => open('/all/energy/sources')}
         />
       </InsetList>
+      {prices?.today ? (
+        <Text style={[TYPE.footnote, styles.hint, { color: tokens.muted }]}>
+          {energyPriceFootnote(prices.today, words)}
+        </Text>
+      ) : null}
     </>
   )
 }
@@ -628,6 +669,9 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
         onPress={submit}
         testID="energy-submit"
       />
+      <Text style={[TYPE.footnote, styles.hint, { color: tokens.muted }]}>
+        {words.form.footnote}
+      </Text>
     </View>
   )
 }

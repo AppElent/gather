@@ -85,6 +85,21 @@ export function useEnergyToday() {
   return clock
 }
 
+/** The same, moving with the minute: for what is said about this hour. */
+export function useEnergyMinute() {
+  const [clock, setClock] = useState(readEnergyClock)
+  useEffect(() => {
+    const refresh = () => setClock(readEnergyClock())
+    const timer = setInterval(refresh, 60_000)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [])
+  return clock
+}
+
 /** The trail from Energy to a page below it. */
 export function energyTrail(messages: Messages, label: string): Crumb[] {
   return [
