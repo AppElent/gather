@@ -5,10 +5,14 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
-import { expect, test } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
+import phoneConfig from '../apps/mobile/app.config'
+import tvConfig from '../apps/tv/app.config'
 
 const repo = path.resolve(__dirname, '..')
 const lockfile = fs.readFileSync(path.join(repo, 'pnpm-lock.yaml'), 'utf8')
+
+afterEach(() => vi.unstubAllEnvs())
 
 /** The lockfile's `importers` block for one workspace package. */
 function importer(name: string): string {
@@ -35,10 +39,15 @@ test('the TV app resolves the tvOS fork', () => {
   ])
 })
 
-test('the TV app takes the phone app\'s identity per variant', () => {
-  const identity = (app: string) =>
-    fs
-      .readFileSync(path.join(repo, app, 'app.config.ts'), 'utf8')
-      .match(/(suffix: '[^']*'|name: '[^']*'|scheme: '[^']*'|TEAM_ID = '\w+')/g)
-  expect(identity('apps/tv')).toEqual(identity('apps/mobile'))
-})
+test.each(['production', 'preview', 'development'])(
+  "the TV app takes the phone app's identity for %s",
+  (variant) => {
+    vi.stubEnv('APP_VARIANT', variant)
+    const identity = (appConfig: typeof tvConfig) => {
+      const { name, scheme, ios } = appConfig({ config: {} } as Parameters<typeof tvConfig>[0])
+      return { name, scheme, id: ios?.bundleIdentifier, team: ios?.appleTeamId }
+    }
+    expect(identity(tvConfig).id).toMatch(/^com\.appelent\.gather/)
+    expect(identity(tvConfig)).toEqual(identity(phoneConfig))
+  },
+)

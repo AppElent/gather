@@ -52,7 +52,7 @@ newest copy in the graph, so the TV's newer copy moved the phone's fingerprint.
 `scripts/tv-isolation.test.ts` reads the lockfile: the phone resolves stock
 `react-native` 0.88.1 and the TV resolves the fork. The `Mobile runtime`
 workflow compares the phone's fingerprint on every pull request that touches the
-lockfile.
+lockfile, but it is informational: read its comment before merging.
 
 ## Reopen when
 

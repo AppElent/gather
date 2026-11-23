@@ -11,6 +11,12 @@ pnpm --filter @gather/tv run prebuild   # writes ios/ (git-ignored)
 pnpm --filter @gather/tv run ios        # builds and starts Metro on port 8094
 ```
 
+## EAS profiles
+
+`development` is a simulator build. `preview` is a store build under the phone's
+preview bundle ID. Neither can build yet: the app has no EAS project. Decide that
+first, including whether it shares the phone's remote build number.
+
 ## Before changing a dependency
 
 A dependency here can move the phone's runtime fingerprint and cut installed
