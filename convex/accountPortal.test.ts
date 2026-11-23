@@ -293,6 +293,7 @@ describe('a caller who never used Gather', () => {
     expect(users).toEqual([])
   })
 
+  // Bare on purpose: the portal client matches the string (APP-620).
   test('without a token is refused, not shown as never used', async () => {
     const t = testConvex()
     expect(await refusalOf(t.query(api.accountPortal.summary, {}))).toBe(

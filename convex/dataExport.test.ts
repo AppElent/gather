@@ -540,7 +540,9 @@ describe('the export registry', () => {
     expect(await t.query(api.dataExport.manifest, {})).toBeNull()
     await expect(
       t.query(api.dataExport.page, { table: 'users', cursor: null }),
-    ).rejects.toThrow('Not authenticated')
+    ).rejects.toMatchObject({
+      data: { kind: 'groups:not-signed-in', message: 'Not authenticated' },
+    })
   })
 })
 

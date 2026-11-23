@@ -76,7 +76,7 @@ import {
   getCurrentUser,
   getMyGroupIds,
   getUserByClerkId,
-  NOT_SIGNED_IN,
+  notSignedInError,
   requireCurrentUser,
   requireIdentity,
 } from './lib/sharing'
@@ -380,7 +380,7 @@ export const revokeAppleSignIn = action({
     // Deleting the account stays in the app (ADR-0046).
     await rejectConnectedApps(ctx)
     const identity = await getGatedIdentity(ctx)
-    if (!identity) throw new ConvexError(NOT_SIGNED_IN)
+    if (!identity) throw notSignedInError()
     if (expectedSubject !== undefined && identity.subject !== expectedSubject)
       throw new ConvexError(ACCOUNT_CHANGED)
     if (!authorizationCode || authorizationCode.length > MAX_AUTHORIZATION_CODE)
@@ -404,7 +404,7 @@ export const revokeAppleSignIn = action({
         clerkId: identity.subject,
       })
       // The same refusal the whole-account `deleteAccount` would give.
-      if (!check.hasAccount) throw new ConvexError(NOT_SIGNED_IN)
+      if (!check.hasAccount) throw notSignedInError()
       if (check.appleUserIds.length === 0)
         throw new ConvexError(APPLE_REVOCATION.mismatch)
       appleUserIds = check.appleUserIds
