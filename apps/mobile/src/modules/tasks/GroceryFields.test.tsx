@@ -114,6 +114,7 @@ function open(item: Task = melk) {
     show: (task: Task) => act(() => show(task)),
     unit: (unit: string) => act(() => find(`grocery-unit-${unit}`).click()),
     clear: () => act(() => find('grocery-clear-amount').click()),
+    find,
     increase: () => find('grocery-increase').click(),
     more: () => act(() => find('grocery-increase').click()),
     shown: () => (find('grocery-quantity') as HTMLInputElement).value,
@@ -305,4 +306,51 @@ test('Done before the row shows the unit that landed leaves no unsent text', asy
   await settle()
   expect(state.writes).toHaveLength(1)
   expect(shown()).toBe('1')
+})
+
+/** Taps handled before the field renders again, then the first write lands. */
+const atOnce = async (taps: () => void) => {
+  act(taps)
+  await act(async () => state.writes[0]!.land())
+  await settle()
+}
+
+test('two steps before a render both count', async () => {
+  const { increase } = open()
+  await atOnce(() => {
+    increase()
+    increase()
+  })
+  expect(state.writes[1]).toMatchObject({ expected: pak(2), to: pak(3) })
+})
+
+test('a unit before the render of a step keeps the step', async () => {
+  const { increase, find } = open()
+  await atOnce(() => {
+    increase()
+    find('grocery-unit-g').click()
+  })
+  expect(state.writes[1]).toMatchObject({ to: { quantity: 2, unit: 'g' } })
+})
+
+test('a step before the render of a clear starts from nothing', async () => {
+  const { increase, find } = open({ ...melk, ...pak(5) } as Task)
+  await atOnce(() => {
+    find('grocery-clear-amount').click()
+    increase()
+  })
+  expect(state.writes[1]).toMatchObject({
+    expected: { quantity: null, unit: null },
+    to: { quantity: 2, unit: null },
+  })
+})
+
+test('Done before the render of what was typed sends it', () => {
+  open()
+  act(() => {
+    state.type('5')
+    state.submit()
+    state.blur()
+  })
+  expect(state.writes.map(({ to }) => to)).toEqual([pak(5)])
 })

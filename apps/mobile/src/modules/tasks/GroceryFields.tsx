@@ -137,14 +137,15 @@ export function GroceryFields({
   const sent = useRef<{ to: WholeAmount; done: Promise<unknown> } | null>(null)
   const [pending, setPending] = useState(false)
 
-  // The amount the field's text belongs to, and whether it was typed and not
-  // committed yet. Typing never moves the text to another amount: it stays
-  // while that amount stands, and gives way to anybody's change of it.
+  // The amount the field's text belongs to, and the text while it is typed and
+  // not committed yet. Typing never moves the text to another amount: it stays
+  // while that amount stands, and gives way to anybody's change of it. Refs: a
+  // quick tap may come before the render of what it follows.
   const draftOf = useRef<WholeAmount>({
     quantity: task.quantity ?? null,
     unit: task.unit ?? null,
   })
-  const typing = useRef(false)
+  const typed = useRef<string | null>(null)
 
   /** The amount a change starts from: the last one written, or the row's. */
   const latest = (): WholeAmount =>
@@ -162,7 +163,7 @@ export function GroceryFields({
   /** Puts an amount in the field, in place of what it holds. */
   const show = (amount: WholeAmount) => {
     draftOf.current = amount
-    typing.current = false
+    typed.current = null
     setDraft(amountDraft(amount.quantity ?? undefined, locale))
   }
 
@@ -173,9 +174,9 @@ export function GroceryFields({
     const row = { quantity: task.quantity ?? null, unit: task.unit ?? null }
     const of = draftOf.current
     const same = of.quantity === row.quantity && of.unit === row.unit
-    if (typing.current && same) return
+    if (typed.current !== null && same) return
     draftOf.current = row
-    typing.current = false
+    typed.current = null
     setDraft(amountDraft(task.quantity, locale))
   }, [task.quantity, task.unit, locale, pending])
 
@@ -202,11 +203,13 @@ export function GroceryFields({
       })
   }
 
-  // What the field holds now, typed but maybe not yet committed: a step or a
+  // What was typed and not committed yet, or the amount there is: a step or a
   // unit tapped while typing starts from what was typed, not from before it.
   // Text that belongs to an amount that is gone does not count.
   const current = () =>
-    (draftStands() ? parseAmount(draft) : undefined) ??
+    (typed.current !== null && draftStands()
+      ? parseAmount(typed.current)
+      : undefined) ??
     latest().quantity ??
     undefined
 
@@ -220,16 +223,16 @@ export function GroceryFields({
   const chooseUnit = (unit: GroceryUnit) => write(current() ?? 1, unit)
 
   const type = (text: string) => {
-    typing.current = true
+    typed.current = text
     setDraft(text)
   }
 
   const commitDraft = () => {
     // Nothing typed: leaving the field changes nothing. A submit also blurs.
-    if (!typing.current) return
+    if (typed.current === null) return
     const { quantity, unit } = latest()
-    const typed = draft.trim()
-    const value = typed ? parseAmount(typed) : null
+    const text = typed.current.trim()
+    const value = text ? parseAmount(text) : null
     if (value === undefined || !draftStands()) {
       // Not an amount, or typed for one that is gone: show the one there is.
       show(latest())
