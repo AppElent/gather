@@ -101,7 +101,16 @@ export function useCalendarEditor() {
   useEffect(() => {
     try {
       const restored = readCalendarDraft(userId, groupId)
-      if (restored) dispatch({ type: 'open', draft: restored })
+      if (restored)
+        dispatch({
+          type: 'open',
+          // Stored mid-save: no save of this screen's will end it, so it must
+          // not come back locked.
+          draft:
+            restored.status === 'saving'
+              ? { ...restored, status: 'editing' }
+              : restored,
+        })
     } catch {
       // A stored draft that cannot be read is no draft.
     }

@@ -125,6 +125,12 @@ export function PhotoField({
   // `value === null` is an explicit removal and beats whatever is stored.
   const shown = value === null ? null : (preview ?? photoUrl ?? null)
 
+  const mounted = useRef(true)
+  // Told when an upload's row goes: the next row uploads the kept preview
+  // itself, and this upload, landing late, must not replace that one's photo.
+  // A form that keeps no preview still gets its photo.
+  const stale = () => !mounted.current && onPreviewChange !== undefined
+
   async function choose(source: PhotoSource) {
     setProblem(null)
     const picked = await pickPhoto(source, preset).catch(
@@ -144,6 +150,7 @@ export function PhotoField({
   }
 
   async function upload(uri: string) {
+    if (stale()) return
     // Shown before it is uploaded: the file is already on the phone, and a
     // second of blank space while the bytes go up reads as nothing happening.
     setPreview(uri)
@@ -152,15 +159,19 @@ export function PhotoField({
     onBusyChange?.(true)
     try {
       const storageId = await uploadPhoto(uri, await generateUploadUrl())
+      if (stale()) return
       onChange(storageId)
       onPreviewChange?.({ uri, uploaded: true })
     } catch {
+      if (stale()) return
       setPreview(null)
       onPreviewChange?.(null)
       setProblem(labels.failed)
     } finally {
-      setBusy(false)
-      onBusyChange?.(false)
+      if (!stale()) {
+        setBusy(false)
+        onBusyChange?.(false)
+      }
     }
   }
 
@@ -172,7 +183,13 @@ export function PhotoField({
   useEffect(() => {
     const uri = unfinished.current
     unfinished.current = null
+    mounted.current = true
     if (uri) void upload(uri)
+    return () => {
+      mounted.current = false
+      // Its upload no longer answers, so it holds the form no longer.
+      if (stale()) onBusyChange?.(false)
+    }
   }, [])
 
   function remove() {

@@ -262,13 +262,16 @@ export function AddToGroceriesSheet({
     [byAisle, pick.rows, aisleOf],
   )
 
+  // Nothing changes while the lines are being sent: it would not be sent.
   const toggle = (row: PickRow) => {
+    if (busy) return
     haptics.selectionChanged()
     const line = shown.find((candidate) => candidate.key === row.key) ?? row
     setTicks((current) => settleLine(current, line, !row.on))
   }
 
   const edit = (row: PickRow) => {
+    if (busy) return
     const typed = [amountText(row.amount), row.title].filter(Boolean).join(' ')
     showPrompt(
       words.editTitle,
@@ -292,7 +295,7 @@ export function AddToGroceriesSheet({
   }
 
   const submit = async () => {
-    if (!listId || count === 0) return
+    if (busy || !listId || count === 0) return
     setBusy(true)
     onSending?.('sending')
     setFailed(false)
@@ -359,6 +362,7 @@ export function AddToGroceriesSheet({
               candidate._id === listId ? ('on' as const) : ('off' as const),
           }))}
           onPressAction={(event) => {
+            if (busy) return
             haptics.selectionChanged()
             setChosenListId(event.nativeEvent.event)
           }}
@@ -432,6 +436,7 @@ export function AddToGroceriesSheet({
                   { name: 'decrement' },
                 ]}
                 onAccessibilityAction={(event) => {
+                  if (busy) return
                   const step = event.nativeEvent.actionName === 'increment' ? 1 : -1
                   servings.onChange(Math.max(1, servings.value + step))
                 }}
@@ -441,7 +446,7 @@ export function AddToGroceriesSheet({
                   testID="servings-fewer"
                   label={words.fewer}
                   glyph="minus"
-                  disabled={servings.value <= 1}
+                  disabled={busy || servings.value <= 1}
                   onPress={() => {
                     haptics.selectionChanged()
                     servings.onChange(Math.max(1, servings.value - 1))
@@ -457,7 +462,7 @@ export function AddToGroceriesSheet({
                   testID="servings-more"
                   label={words.more}
                   glyph="plus"
-                  disabled={servings.value >= 99}
+                  disabled={busy || servings.value >= 99}
                   onPress={() => {
                     haptics.selectionChanged()
                     servings.onChange(Math.min(99, servings.value + 1))

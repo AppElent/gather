@@ -159,6 +159,7 @@ export function WeekGroceriesSheet({
   })
 
   const toggle = (date: string) => {
+    if (sending) return
     haptics.selectionChanged()
     setCounted((current) => {
       const next = new Set(current)
@@ -193,6 +194,7 @@ export function WeekGroceriesSheet({
           days={days}
           meals={meals}
           counted={counted}
+          locked={sending}
           onToggle={toggle}
         />
       }
@@ -224,11 +226,14 @@ function DayGrid({
   days,
   meals,
   counted,
+  locked,
   onToggle,
 }: {
   days: readonly string[]
   meals: readonly PlannedMeal[]
   counted: ReadonlySet<string>
+  /** The lines are being sent: the days stay as they were sent. */
+  locked: boolean
   onToggle: (date: string) => void
 }) {
   const { t, locale } = useI18n()
@@ -255,7 +260,7 @@ function DayGrid({
               key={date}
               testID={`week-groceries-day-${date}`}
               accessibilityRole="button"
-              accessibilityState={{ selected: on, disabled: !planned }}
+              accessibilityState={{ selected: on, disabled: locked || !planned }}
               accessibilityLabel={
                 !planned
                   ? fmt(words.dayEmpty, { day })
@@ -264,7 +269,7 @@ function DayGrid({
                       meals: titles.join(', '),
                     })
               }
-              disabled={!planned}
+              disabled={locked || !planned}
               onPress={() => onToggle(date)}
               style={({ pressed }) => [
                 styles.cell,

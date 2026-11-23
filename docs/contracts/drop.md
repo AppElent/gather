@@ -48,7 +48,8 @@ that already means making Group content visible to a second Group.
     or question.
   - **Calendar:** new calendar name; the event editor opened from an event
     resumes its kept draft, a copy or a failed save included (it was already
-    kept from the calendar screen).
+    kept from the calendar screen). The calendar keeps one draft per Group: an
+    event edited next replaces it. A draft being saved is locked.
   - **Kitchen:** Add to groceries (ticks, retyped lines, list, servings or
     days), Pick (search, filters, quick meal), Plan my week, Swap (wish, chip,
     and the answers already paid for), a planned meal's changes (a share saves

@@ -36,6 +36,7 @@ export function useFinanceWrite() {
   const { t } = useI18n()
   const [failed, setFailed] = useState(false)
   const inFlight = useRef(false)
+  const started = useRef(new Set<() => void>())
   const settled = useRef(new Set<(landed: boolean) => void>())
   /** How many sheets a share has closed. */
   const closings = useRef(0)
@@ -49,7 +50,12 @@ export function useFinanceWrite() {
   )
 
   const [writes] = useState<SheetWrites>(() => ({
-    busy: () => inFlight.current,
+    onStart: (listener) => {
+      started.current.add(listener)
+      return () => {
+        started.current.delete(listener)
+      }
+    },
     onSettled: (listener) => {
       settled.current.add(listener)
     },
@@ -59,7 +65,10 @@ export function useFinanceWrite() {
     <T,>(write: () => Promise<T>, then?: (value: T) => void) => {
       const guarded = then !== undefined
       if (guarded && inFlight.current) return
-      if (guarded) inFlight.current = true
+      if (guarded) {
+        inFlight.current = true
+        for (const listener of [...started.current]) listener()
+      }
       const closingsThen = closings.current
       const settle = (landed: boolean) => {
         if (!guarded) return

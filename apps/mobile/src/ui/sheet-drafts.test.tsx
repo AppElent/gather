@@ -195,10 +195,11 @@ function Screen({
 }
 
 /** Opens `on` seeded with "1", types "2", and a share closes it. */
-async function typeAndShare(writes?: SheetWrites) {
+async function typeAndShare(writes?: SheetWrites, beforeShare?: () => void) {
   const view = mount(<Screen open={null} value="" writes={writes} />)
   view.rerender(<Screen open="saved" value="1" writes={writes} />)
   view.rerender(<Screen open="saved" value="2" writes={writes} />)
+  beforeShare?.()
   const sheet = openSheet(() => sheet.closed())
   await closeOpenSheets()
   view.rerender(<Screen open={null} value="2" writes={writes} />)
@@ -207,12 +208,19 @@ async function typeAndShare(writes?: SheetWrites) {
 
 function pendingWrites() {
   const listeners: ((landed: boolean) => void)[] = []
+  const starts: (() => void)[] = []
   const writes: SheetWrites = {
-    busy: () => true,
+    onStart: (listener) => {
+      starts.push(listener)
+      return () => {}
+    },
     onSettled: (listener) => listeners.push(listener),
   }
   return {
     writes,
+    start: () => {
+      for (const listener of starts) listener()
+    },
     settle: (landed: boolean) => {
       for (const listener of listeners) listener(landed)
     },
@@ -267,16 +275,45 @@ test('a later sheet does not make a screen forget its own', async () => {
 
 test('a write on its way at the share is kept only if it fails, screen or no screen', async () => {
   const landed = pendingWrites()
-  ;(await typeAndShare(landed.writes)).unmount()
+  ;(await typeAndShare(landed.writes, landed.start)).unmount()
   landed.settle(true)
   const one = mount(<Screen open={null} value="" />)
   expect(resume('saved')).toBe(false)
   one.unmount()
 
   const failed = pendingWrites()
-  ;(await typeAndShare(failed.writes)).unmount()
+  ;(await typeAndShare(failed.writes, failed.start)).unmount()
   failed.settle(false)
   const two = mount(<Screen open={null} value="" />)
   expect(resume('saved')).toBe(true)
   two.unmount()
+})
+
+test("another sheet's save on its way does not take this one's draft with it", async () => {
+  const other = pendingWrites()
+  const view = mount(<Screen open="trade" value="a" writes={other.writes} />)
+  other.start()
+  view.rerender(<Screen open={null} value="a" writes={other.writes} />)
+  view.rerender(<Screen open="price" value="1" writes={other.writes} />)
+  view.rerender(<Screen open="price" value="2" writes={other.writes} />)
+  const sheet = openSheet(() => sheet.closed())
+  await closeOpenSheets()
+  other.settle(true)
+  expect(resume('price')).toBe(true)
+  view.unmount()
+})
+
+test('what was typed after the save started is kept, even if it lands', async () => {
+  const save = pendingWrites()
+  const view = mount(<Screen open="saved" value="1" writes={save.writes} />)
+  view.rerender(<Screen open="saved" value="2" writes={save.writes} />)
+  save.start()
+  view.rerender(<Screen open="saved" value="3" writes={save.writes} />)
+  const sheet = openSheet(() => sheet.closed())
+  await closeOpenSheets()
+  save.settle(true)
+  restored.mockClear()
+  expect(resume('saved')).toBe(true)
+  expect(restored).toHaveBeenCalledWith('3')
+  view.unmount()
 })

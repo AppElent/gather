@@ -82,3 +82,24 @@ test('an unfinished upload is done again, holding the form meanwhile', async () 
   expect(onBusyChange.mock.calls).toEqual([[true], [false]])
   view.unmount()
 })
+
+test('an upload whose row went is ignored, and releases the form at once', async () => {
+  let land = (_: string) => {}
+  upload.mockImplementationOnce(
+    () =>
+      new Promise<string>((done) => {
+        land = done
+      }),
+  )
+  const { view, onChange, onPreviewChange, onBusyChange } = field(false)
+  await settle()
+  view.unmount()
+  expect(onBusyChange).toHaveBeenLastCalledWith(false)
+  onPreviewChange.mockClear()
+  onBusyChange.mockClear()
+  land('stored_old')
+  await settle()
+  expect(onChange).not.toHaveBeenCalled()
+  expect(onPreviewChange).not.toHaveBeenCalled()
+  expect(onBusyChange).not.toHaveBeenCalled()
+})

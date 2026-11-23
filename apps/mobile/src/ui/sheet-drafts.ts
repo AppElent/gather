@@ -119,8 +119,8 @@ export function useSheetDraft<T>(place: string): SheetDraft<T> {
 
 /** A screen's guarded writes, as `useSheetResume` needs them. */
 export interface SheetWrites {
-  /** A save is on its way. */
-  busy: () => boolean
+  /** Calls `listener` as each save starts. Returns the unsubscribe. */
+  onStart: (listener: () => void) => () => void
   /** Calls `listener` once, when the save on its way settles. */
   onSettled: (listener: (landed: boolean) => void) => void
 }
@@ -144,8 +144,9 @@ interface ResumeOptions<O, V> {
  * open on.
  *
  * The returned `resume(want)` puts the kept values back and answers `true`, or
- * `false` when there are none and the screen seeds. A save on its way when the
- * share came keeps nothing unless it fails.
+ * `false` when there are none and the screen seeds. What this sheet already
+ * sent, unchanged since, is kept only if that save fails; another sheet's save
+ * on the same screen does not count.
  */
 export function useSheetResume<O, V>({
   place,
@@ -174,13 +175,31 @@ export function useSheetResume<O, V>({
   const latest = useRef({ json, values, writes })
   latest.current = { json, values, writes }
 
+  // What the open sheet sent, until that save settles.
+  const sent = useRef<{ sheet: unknown; json: string } | null>(null)
+  useEffect(
+    () =>
+      writes?.onStart(() => {
+        const sheet = opened.current
+        if (!sheet) return
+        const mine = { sheet, json: latest.current.json }
+        sent.current = mine
+        writes.onSettled(() => {
+          if (sent.current === mine) sent.current = null
+        })
+      }),
+    [writes],
+  )
+
   useEffect(
     () =>
       onSheetsClosing(() => {
         const sheet = opened.current
         const now = latest.current
         if (!sheet || sheet.baseline === now.json) return
-        if (!now.writes?.busy()) {
+        const waiting =
+          sent.current?.sheet === sheet && sent.current.json === now.json
+        if (!now.writes || !waiting) {
           keepDraft(sheet.key, now.values)
           return
         }

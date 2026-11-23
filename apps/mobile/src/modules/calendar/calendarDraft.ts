@@ -150,6 +150,12 @@ export function reduceCalendarDraft(
   if (action.type === 'expand') return { ...state, presentation: 'sheet' }
   if (action.type === 'discard') return { ...state, draft: null }
   const draft = state.draft!
+  // Being saved: a change or a copy made now would go when the save lands.
+  if (
+    draft.status === 'saving' &&
+    (action.type === 'change' || action.type === 'duplicate')
+  )
+    return state
   switch (action.type) {
     case 'change':
       return {
