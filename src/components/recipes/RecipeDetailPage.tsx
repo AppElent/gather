@@ -86,7 +86,7 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
     })
 
   return (
-    <article className="mx-auto grid max-w-3xl gap-5">
+    <article className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-5">
       <Breadcrumbs trail={trail} className="-mb-2" />
       <WashHeader
         group="kitchen"

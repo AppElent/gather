@@ -60,7 +60,7 @@ export function RecipesPage() {
       : [shown]
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-4">
+    <div className="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] gap-4">
       <WashHeader
         group="kitchen"
         icon={RECIPES_ICON}
