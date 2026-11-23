@@ -19,11 +19,12 @@
  */
 import { useAuth } from '@clerk/expo'
 import { useEffect, useRef, useState } from 'react'
-import { Alert, TextInput } from 'react-native'
+import { TextInput } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import {
   draftKey,
@@ -145,7 +146,7 @@ function NoteComposerCard({
   const offerRetry = (saving: ComposedNote, saveKey: string) =>
     askInTurn(
       (done) =>
-        Alert.alert(
+        showAlert(
           fmt(words.noteNotSaved, { title: saving.title || t.notes.untitled }),
           undefined,
           [

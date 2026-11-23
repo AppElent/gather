@@ -31,13 +31,14 @@ import {
 } from '@gather/core/task-repeat'
 import { useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { DateTimeWheel } from '../../components/DateTimeField'
 import { usePushPermission } from '../../features/notifications/use-push-permission'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import { TYPE, useTokens } from '../../theme/tokens'
 import {
@@ -381,7 +382,7 @@ function TaskComposerCard({
     if (details.reminderSet) void ask('reminder')
     const retry = details.retry
     if (!retry) return
-    Alert.alert(
+    showAlert(
       details.notesFailed ? words.detailsFailed : t.tasks.quickAdd.reminderFailed,
       undefined,
       [
@@ -403,7 +404,7 @@ function TaskComposerCard({
     send: () => Promise<{ taskId: string } & ComposedDetails>,
   ): Promise<boolean> =>
     new Promise((resolve) => {
-      Alert.alert(
+      showAlert(
         fmt(words.notAdded, { title: saving.title }),
         undefined,
         [
@@ -962,7 +963,7 @@ function ReminderPanel({
       onDone={() => {
         const clock = clockOfDate(picked)
         if (reminderPassed(clock, new Date(Date.now() - 60_000))) {
-          Alert.alert(passed)
+          showAlert(passed)
           return
         }
         onPick({ date: clock.date, time: clock.time })

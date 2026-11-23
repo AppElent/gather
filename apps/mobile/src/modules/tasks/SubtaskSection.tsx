@@ -10,11 +10,12 @@
 import { subtasksOf } from '@gather/core/subtasks'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { LegacyScrollView as GestureScrollView } from 'react-native-gesture-handler'
 
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { TYPE, useTokens } from '../../theme/tokens'
 import { InsetList } from '../../ui/inset-list'
 import { TASK_ICONS } from './icons'
@@ -128,7 +129,7 @@ export function SubtaskSection({
               listId={list.id}
               placeholder={words.add}
               parent={task}
-              onFailed={() => Alert.alert(words.failed)}
+              onFailed={() => showAlert(words.failed)}
             />
           ) : null}
         </InsetList>

@@ -121,7 +121,8 @@
         "!**/*.test.*",
         "!apps/mobile/src/convex/queries.ts",
         "!apps/mobile/src/auth/useViewer.ts",
-        "!apps/mobile/src/convex/api.ts"
+        "!apps/mobile/src/convex/api.ts",
+        "!apps/mobile/src/observability/native-presentation.ts"
       ],
       "linter": {
         "enabled": true,
@@ -144,7 +145,13 @@
                       "usePaginatedQuery"
                     ],
                     "message": "Import query hooks from apps/mobile/src/convex/queries (docs/standards/convex-query-caching.md)."
-                  }
+                  },
+                  "react-native": {
+                    "importNames": ["Modal", "Alert", "ActionSheetIOS"],
+                    "message": "Import Modal from src/ui/modal, and showAlert / showPrompt / showActionSheet from src/observability/native-presentation: they pause shake-to-report while visible (APP-439)."
+                  },
+                  "expo-image-picker": "Import the pickers from src/observability/native-presentation: they pause shake-to-report while open (APP-439).",
+                  "expo-web-browser": "Import openBrowserAsync from src/observability/native-presentation: it pauses shake-to-report while the browser is open (APP-439)."
                 }
               }
             }

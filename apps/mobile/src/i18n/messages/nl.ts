@@ -339,6 +339,22 @@ export const nl = {
     identity: 'Account: {name}',
   },
 
+  feedback: {
+    report: 'Probleem melden',
+    message: 'Wat ging er mis?',
+    placeholder: 'Wat gebeurde er, en wat verwachtte je?',
+    required: '(verplicht)',
+    submit: 'Melding versturen',
+    cancel: 'Annuleren',
+    add: 'Schermafbeelding toevoegen',
+    take: 'Schermafbeelding maken',
+    remove: 'Schermafbeelding verwijderen',
+    error: 'De melding kon niet worden verstuurd. Probeer het opnieuw.',
+    success: 'Bedankt. Je melding is verstuurd.',
+    unavailable:
+      'Een probleem melden kan niet in deze versie van Gather.',
+  },
+
   account: {
     title: coreNl.shell.routes.account.title,
     name: 'Naam',

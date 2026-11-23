@@ -32,6 +32,7 @@ import { ClerkProvider, useAuth, useClerk } from '@clerk/expo'
 import { resourceCache } from '@clerk/expo/resource-cache'
 import { tokenCache } from '@clerk/expo/token-cache'
 import { BottomSheetModalProvider } from '@expo/ui/community/bottom-sheet'
+import * as Sentry from '@sentry/react-native'
 import type { ErrorBoundaryProps } from 'expo-router'
 import { ErrorBoundary as RouterErrorBoundary, Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
@@ -56,7 +57,8 @@ import {
 import { useOfflineCards } from '../src/features/loyalty-cards/offline/use-offline-cards'
 import { PushReleaseRetry } from '../src/features/notifications/push/push-release-retry'
 import { PushTapLinks } from '../src/features/notifications/push/push-tap-links'
-import { LocaleProvider } from '../src/i18n'
+import { LocaleProvider, useI18n } from '../src/i18n'
+import { sentryEnabled, setFeedbackLocale } from '../src/observability/init'
 import { useNavigationBreadcrumbs } from '../src/observability/navigation'
 import { reportError } from '../src/observability/report'
 import { HomeScreenActionLinks } from '../src/shell/HomeScreenActionLinks'
@@ -87,7 +89,14 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
   return <RouterErrorBoundary {...props} />
 }
 
-export default function RootLayout() {
+/**
+ * `Sentry.wrap` mounts the report form's provider (APP-439), so it wraps only a
+ * bundle that reports. Its touch breadcrumbs never leave the phone: the
+ * scrubber drops every category but navigation and network.
+ */
+export default sentryEnabled ? Sentry.wrap(RootLayout) : RootLayout
+
+function RootLayout() {
   return (
     // Both outside Clerk on purpose, and the nesting is the enforcement rather
     // than a comment about it: appearance and language are properties of this
@@ -141,7 +150,13 @@ function RootNavigator() {
   const { mode, retry, retrying } = useAvailability()
   const { userId } = useAuth()
   const { status } = useClerk()
+  const { locale } = useI18n()
   useNavigationBreadcrumbs()
+
+  // The report form speaks the language the app is showing.
+  useEffect(() => {
+    setFeedbackLocale(locale)
+  }, [locale])
 
   // Confirmed sign-out, however it happened (here, another device, an expired
   // session): the saved copy and the confirmed-account marker go with it.

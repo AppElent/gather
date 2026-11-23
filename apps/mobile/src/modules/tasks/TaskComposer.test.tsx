@@ -73,6 +73,10 @@ vi.mock('react-native', async () => {
 })
 
 // The native menu as a row of buttons, one per action.
+vi.mock('../../observability/native-presentation', () => ({
+  showAlert: vi.fn(),
+  showPrompt: vi.fn(),
+}))
 vi.mock('@expo/ui/community/menu', async () => {
   const React = await import('react')
   const h = React.createElement

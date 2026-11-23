@@ -7,12 +7,12 @@ import type {
 import { localIsoDate } from '@gather/core/civil-date'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
-import { Alert } from 'react-native'
 import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { AddEvent, type HandOver } from './AddEventComposer'
 import { CalendarEditor } from './CalendarEditor'
 import { CalendarEventSource } from './CalendarEventSource'
@@ -66,7 +66,7 @@ export function ConnectedCalendarScreen() {
     const draft = editor.draft
     if (!draft || !isDraftDirty(draft) || draft.status === 'dismissed')
       return continueWith()
-    Alert.alert(t.calendar.unsavedChanges, undefined, [
+    showAlert(t.calendar.unsavedChanges, undefined, [
       {
         text: t.calendar.resumeDraft,
         onPress: () => {
@@ -98,7 +98,7 @@ export function ConnectedCalendarScreen() {
       }
       const held = editor.draft
       if (!held || !isDraftDirty(held)) return take()
-      Alert.alert(t.calendar.unsavedChanges, undefined, [
+      showAlert(t.calendar.unsavedChanges, undefined, [
         {
           text: t.calendar.resumeDraft,
           onPress: () => {

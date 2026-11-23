@@ -29,10 +29,11 @@ import {
   useRef,
   useState,
 } from 'react'
-import { Alert, AppState } from 'react-native'
+import { AppState } from 'react-native'
 
 import { api } from '../../../convex/api'
 import { useI18n } from '../../../i18n'
+import { showAlert } from '../../../observability/native-presentation'
 import {
   PREFERENCE_KEYS,
   readPreference,
@@ -151,7 +152,7 @@ export function PushPermissionProvider({ children }: { children: ReactNode }) {
         writePreference(PREFERENCE_KEYS.pushExplained, '1')
         const text = t.notifications.permission
         const proceed = await new Promise<boolean>((resolve) =>
-          Alert.alert(text.askTitle, text.ask[reason], [
+          showAlert(text.askTitle, text.ask[reason], [
             {
               text: text.notNow,
               style: 'cancel',
