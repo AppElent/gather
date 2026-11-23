@@ -211,10 +211,14 @@ export function readTaskRefusal(error: unknown): TaskRefusalCode | null {
 
 /**
  * Why a Group-scoped call was refused at the Group itself (APP-429), before
- * any row was read. `convex/lib/groupAccess.ts` is the only thrower.
+ * any row was read. `convex/lib/groupAccess.ts` builds them.
  *
- * - `not-signed-in`: no caller, or a caller with no Gather account yet.
+ * - `not-signed-in`: no caller, or a caller with no Gather account yet. The
+ *   sign-in helpers in `convex/lib/sharing.ts` throw it too (APP-581), so every
+ *   signed-out refusal reads the same, Group or not.
  * - `unknown-slug`: no Group has that slug.
+ * - `unknown-group`: no Group has that id (APP-581), from the Group mutations
+ *   in `convex/groups.ts` that name a Group by id.
  * - `not-a-member`: the Group exists and the caller is not in it.
  *
  * The data also carries the English sentence these refusals threw before they
@@ -225,6 +229,7 @@ export function readTaskRefusal(error: unknown): TaskRefusalCode | null {
 export const GROUP_REFUSAL_CODES = [
   'not-signed-in',
   'unknown-slug',
+  'unknown-group',
   'not-a-member',
 ] as const
 export type GroupRefusalCode = (typeof GROUP_REFUSAL_CODES)[number]

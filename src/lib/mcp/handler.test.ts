@@ -286,7 +286,7 @@ describe('Gather MCP endpoint', () => {
   })
 
   it('reads a keyed Group refusal as the same missing Group (APP-429)', async () => {
-    for (const reason of ['unknown-slug', 'not-a-member'] as const) {
+    for (const reason of ['unknown-slug', 'unknown-group', 'not-a-member'] as const) {
       const out = await callTool(
         fakeBackend({
           'notes:list': () => {
@@ -314,7 +314,11 @@ describe('Gather MCP endpoint', () => {
   })
 
   it('reads a Group refusal sentence from an older deployment the same way', async () => {
-    for (const refusal of ['Not a member of that group', 'No group has that slug']) {
+    for (const refusal of [
+      'Not a member of that group',
+      'No group has that slug',
+      'Group not found',
+    ]) {
       const out = await callTool(
         fakeBackend({
           'notes:list': () => {
