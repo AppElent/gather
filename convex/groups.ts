@@ -42,8 +42,29 @@ function isAdmin(membership: Doc<'memberships'>): boolean {
   return membership.role === 'admin'
 }
 
+/**
+ * A Group as `myGroups` lists it: the row without its invite code, plus the
+ * caller's role and the icon's URL. The validator is the boundary: connected
+ * apps (MCP, the TV) read this query too, and the code is a capability they
+ * never get. Screens that show it ask `groups.inviteCode`, which refuses
+ * connected apps (ADR-0046).
+ */
+const listedGroupValidator = v.object({
+  _id: v.id('groups'),
+  _creationTime: v.number(),
+  name: v.string(),
+  slug: v.string(),
+  isPersonal: v.optional(v.boolean()),
+  icon: v.optional(v.string()),
+  imageId: v.optional(v.id('_storage')),
+  groceryListId: v.optional(v.id('taskLists')),
+  imageUrl: v.union(v.string(), v.null()),
+  role: groupRoleValidator,
+})
+
 export const myGroups = query({
   args: {},
+  returns: v.array(listedGroupValidator),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx)
     if (!user) return []
@@ -67,11 +88,16 @@ export const myGroups = query({
             role: 'admin' | 'member'
           } => row.group !== null,
         )
-        // Never the invite code: it is a capability, and connected apps (MCP,
-        // the TV) read this query too. Screens that show it ask
-        // `groups.inviteCode`, which refuses connected apps (ADR-0046).
-        .map(async ({ group: { inviteCode: _inviteCode, ...group }, role }) => ({
-          ...group,
+        // Field by field, never the whole row: see `listedGroupValidator`.
+        .map(async ({ group, role }) => ({
+          _id: group._id,
+          _creationTime: group._creationTime,
+          name: group.name,
+          slug: group.slug,
+          isPersonal: group.isPersonal,
+          icon: group.icon,
+          imageId: group.imageId,
+          groceryListId: group.groceryListId,
           imageUrl: group.imageId
             ? await ctx.storage.getUrl(group.imageId)
             : null,
