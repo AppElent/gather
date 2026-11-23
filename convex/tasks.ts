@@ -1,5 +1,6 @@
 import { isIsoDate } from '@gather/core/civil-date'
 import {
+  addGroceryAmounts,
   type GroceryPurchase,
   type GroceryUnit,
   groceryAddFields,
@@ -36,6 +37,7 @@ import {
 } from './lib/groceryCategories'
 import {
   groceryAisleValidator,
+  groceryAmountValidator,
   groceryUnitValidator,
 } from './lib/groceryFields'
 import { restockCheckedStaples } from './lib/groceryStaples'
@@ -681,6 +683,9 @@ export const update = mutation({
     // A grocery item's amount and unit (APP-309); null clears either.
     quantity: v.optional(v.union(v.number(), v.null())),
     unit: v.optional(v.union(groceryUnitValidator, v.null())),
+    // The amount this write replaces (APP-671): refused when another Member
+    // changed it since. Absent, as installed apps send it, writes regardless.
+    expectedAmount: v.optional(groceryAmountValidator),
     // How it repeats (APP-303); null stops it. A moved due date carries a
     // monthly, yearly or one-weekday rule along with it.
     repeat: v.optional(v.union(taskRepeatValidator, v.null())),
@@ -706,6 +711,13 @@ export const update = mutation({
       doc: list,
     } = await requireEditableTaskInGroup(ctx, args.groupSlug, args.taskId)
     const { taskId, title, dueDate, priority, labels, notes, done } = args
+    const { expectedAmount } = args
+    if (
+      expectedAmount &&
+      ((task.quantity ?? null) !== expectedAmount.quantity ||
+        (task.unit ?? null) !== expectedAmount.unit)
+    )
+      throw new ConvexError(taskRefusal('amount-changed'))
     const parent = await parentChange(ctx, task, list, args.parentTaskId)
     const isSubtask =
       args.parentTaskId === undefined
@@ -831,6 +843,45 @@ export const update = mutation({
       }
     }
     return null
+  },
+})
+
+/**
+ * More of a grocery item (APP-671): added to the amount it has when this runs,
+ * so two Members adding at once both count. Answers what it was and what it
+ * became, for an undo through `update`'s `expectedAmount`.
+ */
+export const addAmount = mutation({
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    quantity: v.optional(v.number()),
+    unit: v.optional(groceryUnitValidator),
+  },
+  returns: v.object({
+    from: groceryAmountValidator,
+    to: groceryAmountValidator,
+  }),
+  handler: async (ctx, args) => {
+    const { task, group, doc: list } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
+    if (!isGroceryList(group, list))
+      throw new ConvexError(taskRefusal('not-grocery-list'))
+    const to = addGroceryAmounts(task, {
+      quantity:
+        args.quantity === undefined ? undefined : checkedQuantity(args.quantity),
+      unit: args.unit,
+    })
+    // Its unit changed since to one these do not add up in.
+    if (!to) throw new ConvexError(taskRefusal('amount-changed'))
+    await ctx.db.patch(task._id, { quantity: to.quantity, unit: to.unit })
+    return {
+      from: { quantity: task.quantity ?? null, unit: task.unit ?? null },
+      to: { quantity: to.quantity ?? null, unit: to.unit ?? null },
+    }
   },
 })
 
