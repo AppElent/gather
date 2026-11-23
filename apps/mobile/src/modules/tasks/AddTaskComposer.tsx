@@ -31,7 +31,7 @@ import {
 } from '@gather/core/task-repeat'
 import { useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Platform } from 'react-native'
 
 import { DateTimeWheel } from '../../components/DateTimeField'
 import { usePushPermission } from '../../features/notifications/use-push-permission'
@@ -40,7 +40,7 @@ import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
-import { TYPE, useTokens } from '../../theme/tokens'
+import { useTokens } from '../../theme/tokens'
 import {
   draftKey,
   forgetSentDraft,
@@ -49,9 +49,12 @@ import {
   keptDraft,
   pendingSave,
 } from '../../ui/composer-drafts'
+import type { ComposerMoreIcon } from '../../ui/composer-menu'
+import { ComposerDatePanel, ComposerPanel } from '../../ui/composer-panel'
 import {
   ComposerAddButton,
   type ComposerChip,
+  type ComposerMoreItem,
   KeyboardComposer,
 } from '../../ui/keyboard-composer'
 import { useTaskPeople } from './assignee'
@@ -786,51 +789,54 @@ function TaskComposerCard({
   const chips = [...head, ...details.filter((chip) => chip.always || chip.set)]
   const allChips = [...head, ...details]
 
-  const submenu = (id: string, title: string, subactions: MenuAction[]): MenuAction => {
+  // Each item wears its chip's icon, in SF Symbols (`TASK_ICONS`).
+  const submenu = (
+    id: string,
+    title: string,
+    image: ComposerMoreIcon,
+    subactions: MenuAction[],
+  ): ComposerMoreItem => {
     const chip = details.find((each) => each.id === id)
     return {
       id: `more:${id}`,
       title,
+      image,
       state: chip?.set ? 'on' : 'off',
       subactions,
     }
   }
-  const moreActions: MenuAction[] = [
+  const moreItems: ComposerMoreItem[] = [
     {
       id: 'more:description',
       title: words.description,
       image: 'text.alignleft',
       state: showBody || body.trim() ? 'on' : 'off',
     },
-    submenu('priority', taskWords.priority, priorityMenu),
-    submenu('who', t.tasks.assignee.who, whoMenu),
-    submenu('reminder', taskWords.reminder, reminderMenu),
-    submenu('label', words.label, labelMenu),
-    submenu('repeat', t.tasks.repeat.title, repeatMenu),
-    inline('more:end', [{ id: 'more:all', title: words.allDetails, image: 'arrow.up.forward.square' }]),
+    submenu('priority', taskWords.priority, 'flag', priorityMenu),
+    submenu('who', t.tasks.assignee.who, 'person', whoMenu),
+    submenu('reminder', taskWords.reminder, 'bell', reminderMenu),
+    submenu('label', words.label, 'tag', labelMenu),
+    submenu('repeat', t.tasks.repeat.title, 'repeat', repeatMenu),
   ]
+  const allDetailsItem: ComposerMoreItem = {
+    id: 'more:all',
+    title: words.allDetails,
+    image: 'arrow.up.forward.square',
+  }
 
   // ---------------------------------------------------------------- panels
 
   const panelView =
     panel === 'date' ? (
-      <PickerPanel
-        onDone={() => setPanel(null)}
-        doneLabel={t.actions.done}
-        ios={Platform.OS === 'ios'}
-      >
-        <DateTimeWheel
-          mode="date"
-          value={task.dueDate ? dateOfClock({ date: task.dueDate, time: '12:00' }) : now}
-          onChange={(next) => choose('dueDate', localIsoDate(next), 'date')}
-          onClose={() => setPanel(null)}
-        />
-      </PickerPanel>
+      <ComposerDatePanel
+        value={task.dueDate ? dateOfClock({ date: task.dueDate, time: '12:00' }) : now}
+        onPick={(day) => choose('dueDate', localIsoDate(day), 'date')}
+        onClose={() => setPanel(null)}
+      />
     ) : panel === 'reminder' ? (
       <ReminderPanel
         value={task.reminder}
         dueDate={task.dueDate}
-        doneLabel={t.actions.done}
         passed={taskWords.reminderSheet.passed}
         onPick={(pick) => choose('reminder', pick, 'time')}
         onClose={() => setPanel(null)}
@@ -874,7 +880,7 @@ function TaskComposerCard({
       }}
       chips={chips}
       allChips={allChips}
-      more={{ actions: moreActions, onPress: onMenu }}
+      more={{ items: moreItems, allDetails: allDetailsItem, onPress: onMenu }}
       canSave={canSave}
       busy={busy || waiting !== undefined}
       onSave={() => void save()}
@@ -887,37 +893,6 @@ function TaskComposerCard({
   )
 }
 
-/** A wheel in the keyboard's place, with Done to bring the keyboard back. */
-function PickerPanel({
-  children,
-  onDone,
-  doneLabel,
-  ios,
-}: {
-  children: React.ReactNode
-  onDone: () => void
-  doneLabel: string
-  ios: boolean
-}) {
-  const tokens = useTokens('home')
-  // Android's picker is a dialog that reports its own close.
-  if (!ios) return <>{children}</>
-  return (
-    <View style={styles.panel}>
-      {children}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={doneLabel}
-        onPress={onDone}
-        hitSlop={12}
-        style={({ pressed }) => [styles.done, pressed && styles.pressed]}
-      >
-        <Text style={[styles.doneText, { color: tokens.accentText }]}>{doneLabel}</Text>
-      </Pressable>
-    </View>
-  )
-}
-
 /**
  * A reminder of your own: iOS's date-and-time wheel, set on Done; on Android
  * a time on the task's day (or today), from the system dialog.
@@ -925,14 +900,12 @@ function PickerPanel({
 function ReminderPanel({
   value,
   dueDate,
-  doneLabel,
   passed,
   onPick,
   onClose,
 }: {
   value: ReminderPick | undefined
   dueDate: string | undefined
-  doneLabel: string
   passed: string
   onPick: (pick: ReminderPick) => void
   onClose: () => void
@@ -957,9 +930,7 @@ function ReminderPanel({
   }
 
   return (
-    <PickerPanel
-      ios
-      doneLabel={doneLabel}
+    <ComposerPanel
       onDone={() => {
         const clock = clockOfDate(picked)
         if (reminderPassed(clock, new Date(Date.now() - 60_000))) {
@@ -980,7 +951,7 @@ function ReminderPanel({
         accentColor={tokens.ink}
         onValueChange={(_, next) => setPicked(next)}
       />
-    </PickerPanel>
+    </ComposerPanel>
   )
 }
 
@@ -990,11 +961,5 @@ function splitOnce(id: string): [string, string?] {
   return at === -1 ? [id] : [id.slice(0, at), id.slice(at + 1)]
 }
 
-const styles = StyleSheet.create({
-  panel: { alignSelf: 'stretch' },
-  done: { alignSelf: 'flex-end', minHeight: 44, justifyContent: 'center' },
-  doneText: { ...TYPE.bodyStrong },
-  pressed: { opacity: 0.6 },
-})
 
 export type { TaskRepeat }

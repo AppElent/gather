@@ -29,7 +29,6 @@ import { type ComponentRef, useEffect, useRef, useState } from 'react'
 import {
   Keyboard,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -51,9 +50,11 @@ import {
   keepDraft,
   keptDraft,
 } from '../../ui/composer-drafts'
+import { ComposerDatePanel, ComposerPanel } from '../../ui/composer-panel'
 import {
   ComposerAddButton,
   type ComposerChip,
+  type ComposerMoreItem,
   KeyboardComposer,
 } from '../../ui/keyboard-composer'
 import { ModuleTile } from '../../ui/module-tile'
@@ -588,7 +589,7 @@ function EventComposerCard({
   const chips = [...head, ...details.filter((chip) => chip.always || chip.set)]
   const allChips = [...head, ...details]
 
-  const moreActions: MenuAction[] = [
+  const moreItems: ComposerMoreItem[] = [
     {
       id: 'more:who',
       title: calendarWords.who,
@@ -608,28 +609,23 @@ function EventComposerCard({
       image: 'text.alignleft',
       state: notesSet ? 'on' : 'off',
     },
-    {
-      id: 'more:end',
-      title: '',
-      displayInline: true,
-      subactions: [
-        { id: 'more:all', title: words.allDetails, image: 'arrow.up.forward.square' },
-      ],
-    },
   ]
+  const allDetailsItem: ComposerMoreItem = {
+    id: 'more:all',
+    title: words.allDetails,
+    image: 'arrow.up.forward.square',
+  }
 
   // ---------------------------------------------------------------- panels
 
   const panelView =
     panel === 'date' ? (
-      <PickerPanel onDone={() => setPanel(null)}>
-        <DateTimeWheel
-          mode="date"
-          value={new Date(`${draft.date}T12:00:00`)}
-          onChange={(next) => pick({ date: localIsoDate(next) })}
-          onClose={() => setPanel(null)}
-        />
-      </PickerPanel>
+      <ComposerDatePanel
+        testID="event-composer-done"
+        value={new Date(`${draft.date}T12:00:00`)}
+        onPick={(day) => pick({ date: localIsoDate(day) })}
+        onClose={() => setPanel(null)}
+      />
     ) : panel === 'time' && timed ? (
       <TimePanel
         date={draft.date}
@@ -680,43 +676,12 @@ function EventComposerCard({
       }}
       chips={chips}
       allChips={allChips}
-      more={{ actions: moreActions, onPress: onMenu }}
+      more={{ items: moreItems, allDetails: allDetailsItem, onPress: onMenu }}
       canSave={event !== null}
       onSave={() => void save()}
       notice={notice}
       panel={panelView}
     />
-  )
-}
-
-/** A wheel in the keyboard's place, with Done to bring the keyboard back. */
-function PickerPanel({
-  children,
-  onDone,
-}: {
-  children: React.ReactNode
-  onDone: () => void
-}) {
-  const { t } = useI18n()
-  const tokens = useTokens('home')
-  // Android's picker is a dialog that reports its own close.
-  if (Platform.OS !== 'ios') return <>{children}</>
-  return (
-    <View style={styles.panel}>
-      {children}
-      <Pressable
-        testID="event-composer-done"
-        accessibilityRole="button"
-        accessibilityLabel={t.actions.done}
-        onPress={onDone}
-        hitSlop={12}
-        style={({ pressed }) => [styles.done, pressed && styles.pressed]}
-      >
-        <Text style={[styles.doneText, { color: tokens.accentText }]}>
-          {t.actions.done}
-        </Text>
-      </Pressable>
-    </View>
   )
 }
 
@@ -801,12 +766,12 @@ function TimePanel({
   )
 
   return (
-    <PickerPanel onDone={onDone}>
+    <ComposerPanel onDone={onDone} testID="event-composer-done">
       <View style={styles.wheels}>
         {wheel(t.calendar.startTime, start, onStart, 'event-composer-start')}
         {wheel(t.calendar.endTime, end, onEnd, 'event-composer-end')}
       </View>
-    </PickerPanel>
+    </ComposerPanel>
   )
 }
 
@@ -851,12 +816,9 @@ function LocationPanel({
 }
 
 const styles = StyleSheet.create({
-  panel: { alignSelf: 'stretch' },
   wheels: { flexDirection: 'row', gap: SPACE[2] },
   wheel: { flex: 1, alignItems: 'stretch' },
   wheelLabel: { ...TYPE.footnote, textAlign: 'center' },
-  done: { alignSelf: 'flex-end', minHeight: 44, justifyContent: 'center' },
-  doneText: { ...TYPE.bodyStrong },
   location: {
     ...TYPE.body,
     minHeight: 44,
