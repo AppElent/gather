@@ -23,7 +23,7 @@ export function dayTicks(count: number): string[] {
   return ['1', '10', '20', String(count)]
 }
 
-/** "Usage and solar per hour on 20 November. Usage highest at 18:00, …". */
+/** "Usage per hour on 20 November. Usage highest at 18:00, …". */
 export function hourChartSentence(
   slots: readonly (MirrorSlot & { hourStart: number })[],
   day: string,
@@ -47,7 +47,7 @@ export function hourChartSentence(
     : sentence
 }
 
-/** "Usage and solar per day in November. Most usage on 12 November, …". */
+/** "Usage per day in November. Most usage on 12 November, …". */
 export function dayChartSentence(
   slots: readonly (MirrorSlot & { day: string })[],
   month: string,

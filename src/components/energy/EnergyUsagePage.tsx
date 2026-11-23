@@ -7,6 +7,7 @@ import {
   formatEnergyEuro,
   formatEnergyNumber,
   monthName,
+  signedDifference,
   yearComparisonNote,
   yearPairHeights,
 } from '@gather/core/energy-present'
@@ -183,7 +184,8 @@ function factsOf(period: EnergyPeriod, messages: Messages, locale: string) {
       ? [{ label: copy.factExported, value: kwh(period.totals.exportKwh) }]
       : []),
     {
-      label: copy.factCost,
+      // The total holds gas too once the site has a gas meter.
+      label: period.channels.gas ? copy.factCostWithGas : copy.factCost,
       value: cost
         ? formatEnergyEuro(cost.totalCents, locale)
         : copy.costNotAvailable,
@@ -220,20 +222,26 @@ function DayView({
   const date = capitalise(formatEnergyDate(day, locale, 'weekdayDayMonth'))
   const showSolar = period.channels.solar
   const hourly = period.hasHourly
+  // A day no reading reaches yet has no figure: a dash, never 0.0 kWh.
+  const hasData = period.totals.daysWithData > 0
   return (
     <>
       <TotalCard
         caption={fmt(day === today ? copy.todayCaption : copy.dayCaption, {
           date,
         })}
-        total={formatEnergyNumber(period.totals.consumptionKwh, locale)}
-        unit={copy.used}
+        total={
+          hasData ? formatEnergyNumber(period.totals.consumptionKwh, locale) : '—'
+        }
+        unit={hasData ? copy.used : undefined}
         note={
-          showSolar
-            ? fmt(copy.noteDaySolar, {
-                kwh: formatEnergyNumber(fromSolarKwh(period), locale),
-              })
-            : null
+          !hasData
+            ? copy.chartEmpty
+            : showSolar
+              ? fmt(copy.noteDaySolar, {
+                  kwh: formatEnergyNumber(fromSolarKwh(period), locale),
+                })
+              : null
         }
       />
       {hourly ? (
@@ -244,7 +252,7 @@ function DayView({
       {hourly && period.channels.batterySoc ? (
         <ChargeChart period={period} isToday={day === today} />
       ) : null}
-      <Facts facts={factsOf(period, messages, locale)} />
+      {hasData ? <Facts facts={factsOf(period, messages, locale)} /> : null}
       {period.totals.estimated ? (
         <p className="m-0 text-sm text-[var(--app-muted)]">
           {copy.estimatedNote}
@@ -592,7 +600,7 @@ function YearView({
               yearComparisonNote(compared.percent, year - 1, messages.energy) ??
               undefined
             }
-            value={`${compared.difference > 0 ? '+' : compared.difference < 0 ? '−' : ''}${show(Math.abs(compared.difference))}`}
+            value={signedDifference(compared.difference, show)}
           />
         </RowList>
       ) : null}

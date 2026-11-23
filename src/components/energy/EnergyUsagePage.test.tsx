@@ -126,7 +126,7 @@ describe('EnergyUsagePage', () => {
     expect(screen.getByText('Friday, November 20, so far')).toBeInTheDocument()
     expect(
       screen.getByRole('figure', {
-        name: 'Usage and solar per hour on November 20. Usage highest at 18:00, 2.0 kWh. Solar highest at 12:00, 1.2 kWh.',
+        name: 'Usage per hour on November 20. Usage highest at 18:00, 2.0 kWh. Solar highest at 12:00, 1.2 kWh.',
       }),
     ).toBeInTheDocument()
     expect(
@@ -154,13 +154,27 @@ describe('EnergyUsagePage', () => {
     expect(screen.queryByText('From solar and battery')).not.toBeInTheDocument()
   })
 
+  test('a day no reading reaches yet shows a dash, not zero', () => {
+    const base = manualDay()
+    state.day = {
+      ...base,
+      days: [day('2026-11-20', { hasData: false })],
+      totals: { ...base.totals, consumptionKwh: 0, daysWithData: 0 },
+    }
+    renderInGroup(<EnergyUsagePage />)
+    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.getByText('No usage in this period yet.')).toBeInTheDocument()
+    expect(screen.queryByText('0.0')).not.toBeInTheDocument()
+    expect(screen.queryByText('From the grid')).not.toBeInTheDocument()
+  })
+
   test('a month per day', () => {
     renderInGroup(<EnergyUsagePage />)
     fireEvent.click(screen.getByRole('tab', { name: 'Month' }))
     expect(screen.getByText('November 2026')).toBeInTheDocument()
     expect(
       screen.getByRole('figure', {
-        name: 'Usage and solar per day in November. Most usage on November 1, 10.0 kWh.',
+        name: 'Usage per day in November. Most usage on November 1, 10.0 kWh.',
       }),
     ).toBeInTheDocument()
     expect(

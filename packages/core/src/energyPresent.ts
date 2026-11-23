@@ -236,6 +236,20 @@ export function compareYears(
   }
 }
 
+/**
+ * A difference with its sign, "+12 kWh" or "−€ 3,20", from how `format`
+ * writes the size. A difference that rounds to nothing has no sign, so float
+ * noise never reads as "−0".
+ */
+export function signedDifference(
+  value: number,
+  format: (size: number) => string,
+): string {
+  const text = format(Math.abs(value))
+  if (text === format(0)) return text
+  return `${value > 0 ? '+' : '−'}${text}`
+}
+
 /** "7% less than the same months in 2025", or the same in other words. */
 export function yearComparisonNote(
   percent: number | null,

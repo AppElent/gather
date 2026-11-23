@@ -395,7 +395,7 @@ export function MirrorBars({
             }`}
             style={{
               height: slot.future
-                ? '100%'
+                ? '4px' // designs/energy §11: a 4 pt dashed stub, never a bar
                 : `${Math.round(slot.up * upHeight)}px`,
             }}
           />

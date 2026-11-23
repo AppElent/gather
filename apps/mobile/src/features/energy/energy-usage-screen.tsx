@@ -25,6 +25,7 @@ import {
   formatEnergyEuro,
   formatEnergyNumber,
   monthName,
+  signedDifference,
   yearComparisonNote,
 } from '@gather/core/energy-present'
 import type { FunctionReturnType } from 'convex/server'
@@ -208,16 +209,20 @@ function periodFacts(
       unit,
     })
   }
+  // The total holds gas too once the site has a gas meter.
+  const costLabel = period.channels.gas
+    ? words.usage.factCostWithGas
+    : words.usage.factCost
   facts.push(
     totals.cost && totals.costStatus === 'ok'
       ? {
           key: 'cost',
-          label: words.usage.factCost,
+          label: costLabel,
           value: formatEnergyEuro(totals.cost.totalCents, locale),
         }
       : {
           key: 'cost',
-          label: words.usage.factCost,
+          label: costLabel,
           value: words.usage.costNotAvailable,
         },
   )
@@ -613,7 +618,9 @@ function YearView({
             key="difference"
             title={words.usage.rowDifference}
             subtitle={comparison ?? undefined}
-            value={`${compared.difference > 0 ? '+' : compared.difference < 0 ? '−' : ''}${figure(Math.abs(compared.difference))}${unitWord ? ` ${unitWord}` : ''}`}
+            value={signedDifference(compared.difference, (size) =>
+              unitWord ? `${figure(size)} ${unitWord}` : figure(size),
+            )}
           />
         </InsetList>
       ) : null}

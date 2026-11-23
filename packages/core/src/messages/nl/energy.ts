@@ -215,9 +215,9 @@ export const energy = {
     legendFuture: 'Nog niet',
     legendRunning: 'Lopende maand',
     hourLabel:
-      'Verbruik en zon per uur op {date}. Verbruik het hoogst om {hour}, {kwh} kWh.',
+      'Verbruik per uur op {date}. Verbruik het hoogst om {hour}, {kwh} kWh.',
     hourLabelSolar: ' Zon het hoogst om {hour}, {kwh} kWh.',
-    dayLabel: 'Verbruik en zon per dag in {month}. Meeste verbruik op {day}, {kwh} kWh.',
+    dayLabel: 'Verbruik per dag in {month}. Meeste verbruik op {day}, {kwh} kWh.',
     dayLabelSolar: ' Meeste zon op {day}, {kwh} kWh.',
     chartEmpty: 'Nog geen verbruik in deze periode.',
     yearLabelKwh:
@@ -244,6 +244,7 @@ export const energy = {
     factFromSolar: 'Uit zon en batterij',
     factExported: 'Teruggeleverd',
     factCost: 'Stroom kostte',
+    factCostWithGas: 'Energie kostte',
     factUsed: 'Verbruikt',
     factProduced: 'Opgewekt',
     factGas: 'Gas',

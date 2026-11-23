@@ -101,9 +101,13 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
     const totals = data.totals
     const cost = pick(totals.cost, totals.costWithoutNet)
     const status = totals.costStatus
-    const lastDay = month === thisMonth ? today : energyMonthDays(month).at(-1)
+    // The days the figure covers: to the last day a reading reaches, as on
+    // the web, not to today.
+    const lastDay =
+      totals.lastDay ??
+      (month === thisMonth ? today : energyMonthDays(month).at(-1))
     const caption = fmt(words.costs.range, {
-      from: formatEnergyDate(`${month}-01`, locale, 'dayMonth'),
+      from: formatEnergyDate(totals.firstDay ?? `${month}-01`, locale, 'dayMonth'),
       to: formatEnergyDate(lastDay ?? `${month}-01`, locale, 'dayMonth'),
     })
 

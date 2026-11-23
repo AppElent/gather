@@ -330,7 +330,7 @@ function PerDayChart({
                 }`}
                 style={{
                   height: future
-                    ? '100%'
+                    ? '4px' // designs/energy §11: a 4 pt dashed stub, never a bar
                     : bar
                       ? `${Math.max(2, Math.round(((value as number) / max) * height))}px`
                       : 0,

@@ -195,7 +195,7 @@ describe('EnergyPage', () => {
     ).toBeInTheDocument()
     expect(
       screen.getByRole('figure', {
-        name: /Usage and solar per day in November/,
+        name: /Usage per day in November/,
       }),
     ).toBeInTheDocument()
 
@@ -252,7 +252,7 @@ describe('EnergyPage', () => {
     ).toBeInTheDocument()
     expect(
       screen.getByRole('figure', {
-        name: 'Usage and solar per hour on November 20. Usage highest at 18:00, 2.0 kWh.',
+        name: 'Usage per hour on November 20. Usage highest at 18:00, 2.0 kWh.',
       }),
     ).toBeInTheDocument()
     expect(screen.getByText('Per hour, day, month and year')).toBeInTheDocument()

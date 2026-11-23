@@ -238,9 +238,9 @@ export const energy = {
     legendFuture: 'Not yet',
     legendRunning: 'Running month',
     hourLabel:
-      'Usage and solar per hour on {date}. Usage highest at {hour}, {kwh} kWh.',
+      'Usage per hour on {date}. Usage highest at {hour}, {kwh} kWh.',
     hourLabelSolar: ' Solar highest at {hour}, {kwh} kWh.',
-    dayLabel: 'Usage and solar per day in {month}. Most usage on {day}, {kwh} kWh.',
+    dayLabel: 'Usage per day in {month}. Most usage on {day}, {kwh} kWh.',
     dayLabelSolar: ' Most solar on {day}, {kwh} kWh.',
     chartEmpty: 'No usage in this period yet.',
     yearLabelKwh:
@@ -267,6 +267,7 @@ export const energy = {
     factFromSolar: 'From solar and battery',
     factExported: 'Returned',
     factCost: 'Electricity cost',
+    factCostWithGas: 'Energy cost',
     factUsed: 'Used',
     factProduced: 'Produced',
     factGas: 'Gas',
