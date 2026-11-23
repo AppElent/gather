@@ -118,7 +118,7 @@ the provider and Clerk language sync copied from the
 [i18n examples](docs/standards/i18n/examples/index.tsx), with the pure helpers
 taken from `@gather/core/i18n`; `src/lib/i18n/` holds the web wiring and the
 `renderWithI18n` test helper (`useI18n` throws outside `LocaleProvider`); the
-language controls are `LanguageToggle` (topbar) and `LanguageSettings` (`/settings`).
+language controls are the account menu's language item (`AccountMenu`) and `LanguageSettings` (`/settings`).
 The English and Dutch trees live in `packages/core/src/messages/`; English is
 the source and `nl` `satisfies` it, so a missing key fails `pnpm typecheck` and
 `packages/core/src/__tests__/core.test.ts` catches empty strings and drifted

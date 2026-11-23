@@ -38,8 +38,9 @@ vi.mock('@tanstack/react-router', () => ({
 
 // The chrome around the page is not what is under test.
 vi.mock('./Sidebar', () => ({ Sidebar: () => null }))
-vi.mock('./Topbar', () => ({ Topbar: () => null }))
 vi.mock('./MobileDock', () => ({ MobileDock: () => null }))
+vi.mock('./AccountMenu', () => ({ AccountMenu: () => null }))
+vi.mock('./GroupSwitcher', () => ({ GroupSwitcher: () => null }))
 vi.mock('./GatherPanel', () => ({ GatherPanel: () => null }))
 vi.mock('./CommandPalette', () => ({ CommandPalette: () => null }))
 vi.mock('./IssueReporterModal', () => ({ IssueReporterModal: () => null }))
@@ -127,4 +128,43 @@ test.each([
 
   expect(screen.getByText('Your own page')).toBeInTheDocument()
   expect(redirects).toEqual([])
+})
+
+/**
+ * There is no topbar (APP-638): the page draws its own title, once, so the
+ * shell around it draws no heading of its own and gives the page its `main`.
+ */
+test('draws no title of its own around the page', () => {
+  state.groups = [HOUSEHOLD]
+
+  renderWithI18n(
+    <AppShell>
+      <h1>Baby log</h1>
+    </AppShell>,
+  )
+
+  expect(screen.getAllByRole('heading')).toHaveLength(1)
+  expect(screen.getByRole('main')).toContainElement(
+    screen.getByRole('heading', { name: 'Baby log' }),
+  )
+})
+
+test('wears the Module’s group on its page, and none on the shell’s own', () => {
+  state.groups = [HOUSEHOLD]
+  state.pathname = '/recipes/r1'
+  const { unmount } = renderWithI18n(
+    <AppShell>
+      <p>Recipe</p>
+    </AppShell>,
+  )
+  expect(screen.getByRole('main').getAttribute('data-group')).toBe('kitchen')
+  unmount()
+
+  state.pathname = '/settings'
+  renderWithI18n(
+    <AppShell>
+      <p>Settings</p>
+    </AppShell>,
+  )
+  expect(screen.getByRole('main').getAttribute('data-group')).toBeNull()
 })

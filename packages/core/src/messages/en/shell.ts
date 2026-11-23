@@ -1,5 +1,5 @@
 /**
- * The app around the app: navigation, the topbar, the Group switcher, the
+ * The app around the app: navigation, the account menu, the Group switcher, the
  * pages that are not a Module, and the words Home puts around an activity
  * entry.
  *
@@ -8,28 +8,41 @@
  * true the first time the layout moves.
  */
 export const shell = {
-  topbar: {
-    openNavigation: 'Open navigation',
-    jumpTo: 'Jump to',
+  /**
+   * The menu behind the account button at the bottom of the sidebar, and the
+   * round one at the top of a phone-width page. There is no topbar: what it
+   * used to carry besides the page title lives here.
+   */
+  accountMenu: {
+    label: 'Account menu',
+    account: 'Account',
     askGather: 'Ask Gather',
-    reportIssue: 'Report an issue',
+    reportIssue: 'Report a problem',
     switchLanguage: 'Switch to {language}',
   },
 
   sidebar: {
     label: 'Gather navigation',
     primary: 'Primary',
-    footer: 'Settings and groups',
+    footer: 'Settings and account',
     noGroup: 'Pick a group to see its modules.',
+    /** The field that opens the jump-to palette; ⌘K is drawn beside it. */
+    search: 'Search Gather',
+    pinned: 'Pinned',
   },
 
-  dock: {
-    label: 'Mobile navigation',
+  /** The phone's destinations, drawn as a floating bar below 768 px. */
+  tabBar: {
+    label: 'Tabs',
   },
 
-  drawer: {
-    label: 'Navigation',
-    close: 'Close navigation',
+  /**
+   * The Add destination: create actions for the Current Group's pinned
+   * Modules, each going to that Module's own create flow.
+   */
+  addMenu: {
+    label: 'Add',
+    empty: 'Pin a module to add to it from here.',
   },
 
   /**
@@ -70,12 +83,15 @@ export const shell = {
   nav: {
     home: 'Home',
     all: 'All',
+    allModules: 'All modules',
+    add: 'Add',
+    search: 'Search',
     groups: 'Groups',
     settings: 'Settings',
     groupSettings: 'Group settings',
   },
 
-  /** What the topbar says it is showing you, per surface. */
+  /** What each shell surface is, per surface (the palette, Ask Gather's context). */
   routes: {
     home: {
       title: 'Home',
@@ -211,7 +227,7 @@ export const shell = {
     tagline: 'Household plans, shared',
   },
 
-  /** The panel the topbar's Ask Gather button opens. */
+  /** The panel the account menu's Ask Gather item opens. */
   gatherPanel: {
     title: 'Ask Gather',
     close: 'Close Ask Gather',
@@ -228,7 +244,7 @@ export const shell = {
     placeholder: 'Ask Gather to help with this group...',
   },
 
-  /** The modal behind the topbar's bug button and Ctrl+Shift+I. */
+  /** The modal behind the account menu's Report a problem and Ctrl+Shift+I. */
   issueReporter: {
     title: 'Report an issue',
     types: {

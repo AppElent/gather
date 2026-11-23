@@ -1,54 +1,69 @@
-import { Link } from '@tanstack/react-router'
-import { dockNavItems } from '../../lib/appNavigation'
+import { Link, useLocation } from '@tanstack/react-router'
+import { Search } from 'lucide-react'
+import { activeTab, type Tab } from '../../lib/appNavigation'
 import { useMessages } from '../../lib/i18n'
+import { type AppLink, linkTo } from '../../lib/links'
+import { AddMenu } from './AddMenu'
 import { Icon } from './Icon'
 import { useNavigation } from './useNavigation'
 
 /**
- * The same navigation as the sidebar, cut to what a phone has room for.
+ * The phone's destinations, below 768 px: Start, Add, Settings and All in a
+ * floating bar, and Search as a separate round button (ADR-0018). The web
+ * draws this bar itself — there is no Liquid Glass in a browser — and the
+ * current tab sits on the neutral selected pill, never a group colour.
  *
- * Home and All keep their ends and the pins in between lose their tail, so the
- * shape is recognisably the same on both devices. Which item is active is
- * decided against the *full* list, not this one — a pin the dock had no room
- * for must not make the two surfaces disagree.
+ * It replaced a dock of pinned Modules and a hamburger drawer. The bar has no
+ * room for pins, so a Module page belongs to All (`activeTab`). Group
+ * switching and the account menu are the round buttons at the top of the page.
  *
- * On pages that belong to no Module — Groups, Settings — the dock keeps
- * pointing at the Current Group, so the bottom of the phone is not taken away
- * and given back. With no Current Group there is no navigation to show and the
- * dock is not there — a bar of nothing pinned to the bottom of a phone is a
- * bar that still takes the space. Settings, Groups and Account are reached from
- * the topbar either way, through its navigation button and its user menu, which
- * do not depend on a Group.
+ * With no Current Group there is nothing for Start, Add or All to point at, so
+ * the bar is not drawn; those round buttons still are.
  */
-export function MobileDock() {
-  const { dock } = useMessages().shell
-  const { items, activeId } = useNavigation()
-  const shown = dockNavItems(items, activeId)
+export function MobileDock({ onOpenPalette }: { onOpenPalette: () => void }) {
+  const { tabBar, nav } = useMessages().shell
+  const { pathname } = useLocation()
+  const { items } = useNavigation()
+  const current = activeTab(pathname)
 
-  if (shown.length === 0) return null
+  if (items.length === 0) return null
+
+  const tab = (id: Exclude<Tab, 'add'>, link: AppLink, label: string, icon: string) => (
+    <Link
+      {...link}
+      // The router also sets `aria-current` by prefix; no tab's address is a
+      // prefix of a page another tab claims, so the two agree.
+      aria-current={current === id ? 'page' : undefined}
+      className="flex h-[50px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[var(--ink)] no-underline aria-[current=page]:bg-[var(--surface-2)]"
+    >
+      <Icon name={icon} className="h-5 w-5" />
+      <span className="max-w-full truncate px-1 text-[10px] leading-3 font-semibold">
+        {label}
+      </span>
+    </Link>
+  )
 
   return (
     <nav
-      aria-label={dock.label}
-      className="fixed inset-x-2 bottom-2 z-30 grid gap-1 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] p-1 md:hidden"
-      // Someone who has pinned nothing gets two items, not four empty columns.
-      style={{
-        gridTemplateColumns: `repeat(${shown.length}, minmax(0, 1fr))`,
-      }}
+      aria-label={tabBar.label}
+      className="fixed inset-x-4 bottom-[calc(20px+env(safe-area-inset-bottom))] z-30 flex items-center gap-2.5 md:hidden"
     >
-      {shown.map((item) => (
-        <Link
-          key={item.id}
-          {...item.link}
-          // This bar colours itself from `aria-current`, which the router also
-          // sets by prefix; see `activeNavItemId` for why the two agree.
-          aria-current={item.id === activeId ? 'page' : undefined}
-          className="grid min-h-11 place-items-center rounded-[7px] text-xs text-[var(--muted)] no-underline aria-[current=page]:bg-[var(--surface-2)] aria-[current=page]:text-[var(--ink)]"
-        >
-          <Icon name={item.icon} className="h-4 w-4" />
-          <span>{item.label}</span>
-        </Link>
-      ))}
+      <div className="tab-bar-glass flex h-[62px] min-w-0 flex-1 items-center rounded-full px-1.5">
+        {tab('home', linkTo('home'), nav.home, 'Home')}
+        <div className="min-w-0 flex-1">
+          <AddMenu variant="tab" />
+        </div>
+        {tab('settings', linkTo('settings'), nav.settings, 'Settings')}
+        {tab('all', linkTo('all'), nav.all, 'Grid2X2')}
+      </div>
+      <button
+        type="button"
+        onClick={onOpenPalette}
+        aria-label={nav.search}
+        className="tab-bar-glass grid h-[62px] w-[62px] shrink-0 place-items-center rounded-full text-[var(--ink)]"
+      >
+        <Search className="h-[22px] w-[22px]" aria-hidden="true" />
+      </button>
     </nav>
   )
 }
