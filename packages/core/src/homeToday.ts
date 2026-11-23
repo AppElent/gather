@@ -1,6 +1,6 @@
 /**
- * What Home's "Today" shows, decided without React (Tiles & Today, Step 0
- * inventory): which tasks are overdue or due today, which of today's baby log
+ * What Home's "Today" shows on both clients (the phone's Home, the web's
+ * Start), decided without React (Tiles & Today, Step 0 inventory): which tasks are overdue or due today, which of today's baby log
  * entries go on the rail, and how the date and times read.
  *
  * Pure, and messages arrive as parameters (ADR-0011's third rule), so a test
@@ -10,14 +10,13 @@
  * never on the rail; baby log entries are the only timed items, and all of
  * them are in the past, so the rail has no upcoming section.
  */
-import { summarizeBabyEvent } from '@gather/core/baby-events'
-import type { BabyEventType } from '@gather/core/domain'
-import { fmt } from '@gather/core/i18n'
-
-import type { Messages } from '../i18n'
+import { summarizeBabyEvent } from './babyEvents'
+import type { BabyEventType } from './domain'
+import { fmt } from './i18n'
+import type { Messages } from './messages'
 
 type BabyLogMessages = Parameters<typeof summarizeBabyEvent>[1]
-type TodayWords = Messages['shell']['home']['today']
+type TodayWords = Messages['shell']['today']
 
 interface DatedTask {
   done: boolean

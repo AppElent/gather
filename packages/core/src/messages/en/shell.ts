@@ -282,21 +282,10 @@ export const shell = {
   },
 
   home: {
-    sharedSubtitle: 'What everyone in this group has been up to.',
-    whoIsHere: 'Who is here',
-    admin: 'Admin',
-    /**
-     * Split around the link it contains rather than assembled from one string,
-     * so a translation can put the sentence in its own order without either
-     * half having to carry markup.
-     */
-    sharedNote: {
-      before:
-        'Everyone here sees everything in {group}. To invite somebody else, or to leave, go to',
-      link: 'Groups',
-      after: '.',
-    },
     recentActivity: 'Recent activity',
+    /** Under the five newest entries, when the stream holds more. */
+    seeAll: 'See all',
+    showFewer: 'Show fewer',
     nothingYet: 'Nothing has happened in {group} yet.',
     nothingYetShared:
       'Whatever anybody here adds appears in this list, with their name on it.',

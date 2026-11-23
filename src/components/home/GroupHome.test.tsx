@@ -1,30 +1,60 @@
-import { screen, within } from '@testing-library/react'
-import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { fireEvent, screen, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import type { GroupActivityEntry } from '../../../convex/activity'
 import { renderInGroup, TEST_GROUP } from '../app/testing'
-import { GroupHome } from './GroupHome'
+import { ACTIVITY_PREVIEW, GroupHome } from './GroupHome'
+import { type RailItem, railRows } from './StartParts'
 
 /**
- * A Group's Home, which has to be worth opening on the very first visit and
- * has to stay honest about which Group it is describing.
+ * Start: the Group's day, as the phone's Home shows it (APP-640).
  *
- * The test that matters most is the empty one: the closed #10 branch shipped a
- * Home that read "nothing here" for everybody, permanently, and the way that
- * gets shipped again is an empty state nobody asserts anything about. So the
- * empty state is held to naming the Group, naming its Members and saying what
- * to do next — it fails if any of the three quietly goes away.
+ * The rules (overdue, due today, which baby log entries are on the rail) are
+ * `@gather/core/home-today`'s and tested there; these hold the page to drawing
+ * them: an empty day is quiet rather than broken, an overdue task brings the
+ * Now card, and the rail runs oldest first into the Now capsule.
  */
 
-const members = vi.hoisted(() => ({ value: undefined as unknown }))
-const activity = vi.hoisted(() => ({ value: undefined as unknown }))
-const queryArgs = vi.hoisted(() => ({
-  value: [] as Array<{ name: string; args: unknown }>,
+type Rows = Record<string, unknown>
+const state = vi.hoisted(() => ({
+  members: undefined as unknown,
+  activity: undefined as unknown,
+  lists: [] as unknown,
+  tasks: {} as Rows,
+  babies: [] as unknown,
+  events: {} as Rows,
+  pins: null as unknown,
+  names: [] as string[],
 }))
 
 vi.mock('convex/react', () => ({
-  useQuery: (name: string, args: unknown) => {
-    queryArgs.value = [...queryArgs.value, { name, args }]
-    return name === 'groups:members' ? members.value : activity.value
+  useQuery: (name: string) => {
+    state.names.push(name)
+    switch (name) {
+      case 'groups:members':
+        return state.members
+      case 'activity:forGroup':
+        return state.activity
+      case 'taskLists:list':
+        return state.lists
+      case 'babies:list':
+        return state.babies
+      case 'users:myPins':
+        return state.pins
+      default:
+        throw new Error(`unexpected query ${name}`)
+    }
+  },
+  useQueries: (
+    requests: Record<string, { query: string; args: Record<string, string> }>,
+  ) =>
+    Object.fromEntries(
+      Object.entries(requests).map(([key, { query }]) => {
+        state.names.push(query)
+        return [key, query === 'tasks:listByList' ? state.tasks[key] : state.events[key]]
+      }),
+    ),
+  useMutation: () => {
+    throw new Error('Start never writes')
   },
 }))
 
@@ -32,6 +62,11 @@ vi.mock('../../../convex/_generated/api', () => ({
   api: {
     groups: { members: 'groups:members' },
     activity: { forGroup: 'activity:forGroup' },
+    taskLists: { list: 'taskLists:list' },
+    tasks: { listByList: 'tasks:listByList' },
+    babies: { list: 'babies:list' },
+    babyEvents: { listByBaby: 'babyEvents:listByBaby' },
+    users: { myPins: 'users:myPins' },
   },
 }))
 
@@ -58,290 +93,374 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-const HOUSEHOLD = { ...TEST_GROUP, name: 'Jansen Household' }
+/** Monday 23 November 2026, 14:14 local time. */
+const NOW = new Date(2026, 10, 23, 14, 14)
+const at = (hours: number, minutes: number) =>
+  new Date(2026, 10, 23, hours, minutes).getTime()
+
+const HOUSEHOLD = { ...TEST_GROUP, name: 'Willow Street' }
 
 const MEMBERS = [
-  { userId: 'u_alice', name: 'Alice', role: 'admin' },
-  { userId: 'u_bob', name: 'Bob', role: 'member' },
+  { userId: 'u_sam', name: 'Sam', role: 'admin' },
+  { userId: 'u_nora', name: 'Nora', role: 'member' },
+  { userId: 'u_test', name: 'Test User', role: 'member' },
 ]
 
-type RecipeEntry = Extract<GroupActivityEntry, { kind: 'recipe' }>
+const HOUSE = { _id: 'list_house', name: 'House', provider: 'local' }
+const WEEKEND = { _id: 'list_weekend', name: 'Weekend', provider: 'local' }
 
+const task = (
+  id: string,
+  listId: string,
+  fields: { dueDate?: string; done?: boolean } = {},
+) => ({ _id: id, listId, title: id, done: false, ...fields })
+
+type RecipeEntry = Extract<GroupActivityEntry, { kind: 'recipe' }>
 const entry = (over: Partial<RecipeEntry> = {}): RecipeEntry => ({
   id: 'r1',
   kind: 'recipe',
-  at: Date.now(),
-  byName: 'Bob',
-  title: 'Roast chicken',
+  at: NOW.getTime(),
+  byName: 'Test User',
+  title: 'Shakshuka',
   context: null,
   targetId: 'recipe_1',
   ...over,
 })
 
 beforeEach(() => {
-  members.value = MEMBERS
-  activity.value = []
-  queryArgs.value = []
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(NOW)
+  state.members = MEMBERS
+  state.activity = []
+  state.lists = []
+  state.tasks = {}
+  state.babies = []
+  state.events = {}
+  state.pins = null
+  state.names = []
 })
 
-describe('the very first visit, before anything has happened', () => {
-  test('names the Group, says who is in it, and says what to do next', () => {
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+describe('the header', () => {
+  test('names the Group, then the date and how many Members', () => {
     renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
-    // The Group. Named as a heading, not buried in a sentence.
     expect(
-      screen.getByRole('heading', { name: 'Jansen Household', level: 1 }),
+      screen.getByRole('heading', { name: 'Willow Street', level: 1 }),
     ).toBeDefined()
-
-    // Who is in it — every Member, by name.
-    const who = screen.getByRole('region', { name: 'Who is here' })
-    expect(within(who).getByText('Alice')).toBeDefined()
-    expect(within(who).getByText('Bob')).toBeDefined()
-
-    // What to do next.
-    const activityCard = screen.getByRole('region', { name: 'Recent activity' })
-    expect(
-      within(activityCard).getByText(/nothing has happened in/i).textContent,
-    ).toContain('Jansen Household')
-    for (const label of ['Recipes', 'Tasks', 'Baby log']) {
-      expect(
-        within(activityCard).getByRole('link', { name: label }),
-      ).toBeDefined()
-    }
+    expect(screen.getByTestId('start-byline').textContent).toBe(
+      'Monday 23 November · 3 members',
+    )
   })
 
-  test('the starters point into this Group and not at a bare module path', () => {
+  test('the Members are not listed here: they stay on the Group page', () => {
     renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
-    const recipes = screen.getByRole('link', { name: 'Recipes' })
-    expect(recipes.getAttribute('href')).toBe('/recipes')
-  })
-
-  test('a Group points to its management page', () => {
-    members.value = [{ userId: 'u_alice', name: 'Alice', role: 'admin' }]
-    renderInGroup(<GroupHome />, {
-      group: { ...TEST_GROUP, slug: 'me-alice', name: "Alice's things" },
-    })
-
-    const who = screen.getByRole('region', { name: 'Who is here' })
-    expect(within(who).getByRole('link', { name: /groups/i })).toBeDefined()
-    // Inviting lives on /groups. The invite code is a capability and Home
-    // never shows one.
-    expect(
-      within(who).getByRole('link', { name: 'Groups' }).getAttribute('href'),
-    ).toBe('/groups')
-    expect(
-      within(who).getByText(/everyone here sees everything/i),
-    ).toBeDefined()
-  })
-
-  test('a shared group says everyone here sees everything', () => {
-    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
-
-    const who = screen.getByRole('region', { name: 'Who is here' })
-    expect(
-      within(who).getByText(/everyone here sees everything/i),
-    ).toBeDefined()
-    expect(within(who).getByRole('link', { name: 'Groups' })).toBeDefined()
-  })
-
-  test('the Members are shown whether or not anything has happened', () => {
-    activity.value = [entry()]
-    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
-
-    const who = screen.getByRole('region', { name: 'Who is here' })
-    expect(within(who).getByText('Alice')).toBeDefined()
-    expect(within(who).getByText('Bob')).toBeDefined()
+    expect(screen.queryByText('Nora')).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Who is here' })).toBeNull()
   })
 })
 
-describe('the stream', () => {
-  test('asks for this Group and no other', () => {
+describe('an empty day', () => {
+  test('keeps the two-column grid, so a late Now card does not move the page', () => {
     renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
-    expect(queryArgs.value).toContainEqual({
-      name: 'activity:forGroup',
-      args: { groupSlug: 'jansen-household' },
-    })
-    expect(queryArgs.value).toContainEqual({
-      name: 'groups:members',
-      args: { slug: 'jansen-household' },
-    })
+    const day = screen.getByTestId('start-day')
+    expect(day.childElementCount).toBe(0)
+    expect(day.parentElement?.className).toContain(
+      'lg:grid-cols-[minmax(0,1fr)_360px]',
+    )
   })
 
-  test('says who did what, and in which module', () => {
-    activity.value = [entry()]
+  test('has no Now card, no rail and no Anytime list, and says what to do next', () => {
+    state.lists = [HOUSE]
+    state.tasks = { list_house: [task('Later', 'list_house', { dueDate: '2026-12-05' })] }
+    state.babies = [{ _id: 'baby_juno', name: 'Juno' }]
+    state.events = { baby_juno: [] }
     renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
-    const card = screen.getByRole('region', { name: 'Recent activity' })
-    expect(within(card).getByText('Bob')).toBeDefined()
-    expect(within(card).getByText(/added the recipe/i)).toBeDefined()
+    expect(screen.queryByTestId('start-now')).toBeNull()
+    expect(screen.queryByTestId('start-rail')).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Today' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Anytime today' })).toBeNull()
+    expect(screen.getByText(/nothing has happened in willow street/i)).toBeDefined()
+    const activity = screen.getByRole('region', { name: 'Recent activity' })
     expect(
-      within(card).getByRole('link', { name: 'Roast chicken' }),
-    ).toBeDefined()
-    expect(within(card).getByText('Recipes')).toBeDefined()
-  })
-
-  test('links a recipe to its page inside this Group', () => {
-    activity.value = [entry()]
-    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
-
-    expect(
-      screen.getByRole('link', { name: 'Roast chicken' }).getAttribute('href'),
-    ).toBe('/recipes/recipe_1')
-  })
-
-  test('links a log entry to the child it is about', () => {
-    activity.value = [
-      {
-        id: 'e1',
-        kind: 'babyEvent',
-        eventType: 'feeding',
-        at: Date.now(),
-        context: 'Noor',
-        targetId: 'baby_1',
-        byName: 'Alice',
-      },
-    ]
-    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
-
-    expect(
-      screen.getByRole('link', { name: 'Feeding' }).getAttribute('href'),
-    ).toBe('/baby/baby_1')
-    expect(screen.getByText(/for Noor/)).toBeDefined()
-    expect(screen.getByText('Baby log')).toBeDefined()
-  })
-
-  test('links a task to the Group’s Tasks page, and names its list', () => {
-    activity.value = [
-      {
-        ...entry({
-          id: 't1',
-          title: 'Buy nappies',
-          context: 'Shopping',
-          targetId: null,
-        }),
-        kind: 'task',
-      },
-    ]
-    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
-
-    expect(
-      screen.getByRole('link', { name: 'Buy nappies' }).getAttribute('href'),
-    ).toBe('/tasks')
-    expect(screen.getByText(/to Shopping/)).toBeDefined()
-  })
-
-  test('an entry whose person has gone still says what happened', () => {
-    activity.value = [entry({ byName: null })]
-    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
-
-    expect(screen.getByText('Someone')).toBeDefined()
-    expect(screen.getByRole('link', { name: 'Roast chicken' })).toBeDefined()
-  })
-
-  test('renders the stream in the order it arrived, newest first', () => {
-    activity.value = [
-      entry({ id: 'r2', title: 'Newest' }),
-      entry({ id: 'r1', title: 'Oldest' }),
-    ]
-    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
-
-    const items = screen
-      .getByRole('region', { name: 'Recent activity' })
-      .querySelectorAll('li')
-    expect([...items].map((li) => li.textContent)).toHaveLength(2)
-    expect(items[0].textContent).toContain('Newest')
-    expect(items[1].textContent).toContain('Oldest')
+      within(activity).getByRole('link', { name: 'Recipes' }).getAttribute('href'),
+    ).toBe('/recipes')
   })
 
   test('says it is still loading rather than that nothing has happened', () => {
-    activity.value = undefined
+    state.activity = undefined
     renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     expect(screen.queryByText(/nothing has happened/i)).toBeNull()
   })
 })
 
-describe('nothing is stored per person, and nothing is editable', () => {
-  test('there is no layout editor on the page', () => {
-    activity.value = [entry()]
+describe('the Now card', () => {
+  test('counts the overdue tasks and opens the one list they are on', () => {
+    state.lists = [HOUSE, WEEKEND]
+    state.tasks = {
+      list_house: [
+        task('Bleed the radiators', 'list_house', { dueDate: '2026-11-20' }),
+        task('Done late', 'list_house', { dueDate: '2026-11-01', done: true }),
+        task('Due today', 'list_house', { dueDate: '2026-11-23' }),
+      ],
+      list_weekend: [task('Later', 'list_weekend', { dueDate: '2026-11-28' })],
+    }
     renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
-    // A configurable Home would need at least one control to configure it
-    // with. There is none: Home is one owned surface, the same for everybody
-    // in the Group.
-    expect(screen.queryAllByRole('button')).toEqual([])
-    expect(screen.queryAllByRole('checkbox')).toEqual([])
-    expect(screen.queryAllByRole('combobox')).toEqual([])
+    const card = screen.getByTestId('start-now')
+    expect(within(card).getByText('Overdue tasks')).toBeDefined()
+    expect(within(card).getByText('1')).toBeDefined()
+    expect(within(card).getByText('in House')).toBeDefined()
+    const open = within(card).getByRole('link', { name: 'Open House' })
+    expect(open.getAttribute('href')).toBe('/tasks')
+    expect(open.dataset.group).toBe('home')
+
+    // Due today is Anytime today, never the Now card.
+    const anytime = screen.getByRole('region', { name: 'Anytime today' })
+    expect(within(anytime).getByText('Due today')).toBeDefined()
+    expect(within(anytime).getByText('in House')).toBeDefined()
   })
 
-  test('nothing about the page is written back', () => {
-    activity.value = [entry()]
+  test('spread over lists, it opens Tasks itself', () => {
+    state.lists = [HOUSE, WEEKEND]
+    state.tasks = {
+      list_house: [task('A', 'list_house', { dueDate: '2026-11-20' })],
+      list_weekend: [task('B', 'list_weekend', { dueDate: '2026-11-22' })],
+    }
     renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
-    // `useMutation` is not even imported — the mock would throw if it were
-    // called, and this asserts the page only ever reads.
+    const card = screen.getByTestId('start-now')
+    expect(within(card).getByText('2')).toBeDefined()
+    expect(within(card).getByText('across 2 lists')).toBeDefined()
+    expect(within(card).getByRole('link', { name: 'Open tasks' })).toBeDefined()
+  })
+
+  test('a linked list is never asked for its tasks', () => {
+    state.lists = [{ _id: 'list_notion', name: 'Notion', provider: 'notion' }]
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    expect(state.names).not.toContain('tasks:listByList')
+  })
+})
+
+describe('the Today rail', () => {
+  test('runs oldest first into the Now capsule, past items muted', () => {
+    state.babies = [{ _id: 'baby_juno', name: 'Juno' }]
+    state.events = {
+      baby_juno: [
+        { _id: 'e3', type: 'note', timestamp: at(12, 0), data: { text: 'Bottle' } },
+        { _id: 'e1', type: 'note', timestamp: at(8, 10), data: { text: 'Woke' } },
+        { _id: 'e2', type: 'note', timestamp: at(10, 15), data: { text: 'Nap' } },
+        // Typed ahead for tonight: not on the rail until it has happened.
+        { _id: 'e4', type: 'note', timestamp: at(19, 0), data: { text: 'Bath' } },
+      ],
+    }
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    const rail = screen.getByTestId('start-rail')
+    const rows = [...rail.querySelectorAll('li')]
+    expect(rows.map((row) => row.dataset.rail)).toEqual([
+      'past',
+      'past',
+      'past',
+      'now',
+    ])
+    expect(rows.map((row) => row.querySelector('time')?.textContent)).toEqual([
+      '08:10',
+      '10:15',
+      '12:00',
+      undefined,
+    ])
+    expect(rows[0].className).toContain('text-[var(--muted)]')
+    expect(rows[0].textContent).toContain('Juno')
+    expect(rows[3].textContent).toBe('Now · 14:14')
+    expect(rows[3].getAttribute('aria-hidden')).toBe('true')
+    expect(rail.textContent).not.toContain('Bath')
+  })
+
+  test('an entry logged inside the current minute is past, never upcoming', () => {
+    state.babies = [{ _id: 'baby_juno', name: 'Juno' }]
+    state.events = { baby_juno: [] }
+    const { rerender } = renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    // The minute clock still says 14:14:00; the entry is from 14:14:30.
+    vi.setSystemTime(NOW.getTime() + 31_000)
+    state.events = {
+      baby_juno: [
+        {
+          _id: 'e1',
+          type: 'note',
+          timestamp: NOW.getTime() + 30_000,
+          data: { text: 'Just now' },
+        },
+      ],
+    }
+    rerender(<GroupHome />)
+
+    const rows = [...screen.getByTestId('start-rail').querySelectorAll('li')]
+    expect(rows.map((row) => row.dataset.rail)).toEqual(['past', 'now'])
+  })
+
+  test('puts upcoming items after the capsule, in ink 600 on their group tile', () => {
+    const item = (id: string, hours: number): RailItem => ({
+      id,
+      timestamp: at(hours, 0),
+      time: `${hours}:00`,
+      group: 'kitchen',
+      icon: 'ChefHat',
+      title: id,
+    })
+    const rows = railRows(
+      [item('dinner', 18), item('breakfast', 8), item('lunch', 12)],
+      NOW.getTime(),
+    )
     expect(
-      queryArgs.value.every(
-        ({ name }) => name === 'groups:members' || name === 'activity:forGroup',
-      ),
-    ).toBe(true)
+      rows.map((row) => (row.kind === 'now' ? 'now' : row.item.id)),
+    ).toEqual(['breakfast', 'lunch', 'now', 'dinner'])
+    expect(rows.flatMap((row) => (row.kind === 'item' ? [row.past] : []))).toEqual([
+      true,
+      true,
+      false,
+    ])
+  })
+})
+
+describe('Pinned', () => {
+  test('draws each Pin as a group-fill card that opens its Module', () => {
+    state.pins = ['recipes', 'tasks']
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    const pinned = screen.getByRole('region', { name: 'Pinned' })
+    const recipes = within(pinned).getByRole('link', { name: 'Recipes' })
+    expect(recipes.getAttribute('href')).toBe('/recipes')
+    expect(recipes.dataset.group).toBe('kitchen')
+    expect(
+      within(pinned).getByRole('link', { name: 'Tasks' }).dataset.group,
+    ).toBe('home')
+  })
+
+  test('a long Module name hyphenates rather than breaking mid-word', () => {
+    state.pins = ['recipes']
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    const label = within(screen.getByRole('region', { name: 'Pinned' }))
+      .getByText('Recipes')
+    expect(label.className).toContain('hyphens-auto')
+    expect(label.className).not.toContain('wrap-anywhere')
+  })
+
+  test('is absent when nothing is pinned', () => {
+    state.pins = []
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    expect(screen.queryByRole('region', { name: 'Pinned' })).toBeNull()
+  })
+})
+
+describe('recent activity', () => {
+  test('asks for this Group and no other', () => {
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+    expect(state.names).toContain('activity:forGroup')
+  })
+
+  test('says who did what, in which Module, linked to its page', () => {
+    state.activity = [entry()]
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    const list = screen.getByRole('list', { name: 'Recent activity' })
+    expect(within(list).getByText('Test User')).toBeDefined()
+    expect(within(list).getByText(/added the recipe/i)).toBeDefined()
+    expect(
+      within(list).getByRole('link', { name: 'Shakshuka' }).getAttribute('href'),
+    ).toBe('/recipes/recipe_1')
+    expect(within(list).getByText('Recipes')).toBeDefined()
+  })
+
+  test('links a log entry to its child and a task to Tasks', () => {
+    state.activity = [
+      {
+        id: 'e1',
+        kind: 'babyEvent',
+        eventType: 'feeding',
+        at: NOW.getTime(),
+        context: 'Juno',
+        targetId: 'baby_1',
+        byName: 'Nora',
+      },
+      { ...entry({ id: 't1', title: 'Descale the kettle', context: 'House', targetId: null }), kind: 'task' },
+    ]
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    expect(screen.getByRole('link', { name: 'Feeding' }).getAttribute('href')).toBe(
+      '/baby/baby_1',
+    )
+    expect(
+      screen.getByRole('link', { name: 'Descale the kettle' }).getAttribute('href'),
+    ).toBe('/tasks')
+  })
+
+  test('an entry whose person has gone still says what happened', () => {
+    state.activity = [entry({ byName: null })]
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    expect(screen.getByText('Someone')).toBeDefined()
+  })
+
+  test(`shows the ${ACTIVITY_PREVIEW} newest, and the rest behind See all`, () => {
+    state.activity = Array.from({ length: 7 }, (_, index) =>
+      entry({ id: `r${index}`, title: `Recipe ${index}` }),
+    )
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    const list = screen.getByRole('list', { name: 'Recent activity' })
+    expect(list.querySelectorAll(':scope > li')).toHaveLength(ACTIVITY_PREVIEW)
+    expect(list.textContent).toContain('Recipe 0')
+    expect(list.textContent).not.toContain('Recipe 5')
+
+    fireEvent.click(screen.getByRole('button', { name: 'See all' }))
+    expect(list.querySelectorAll(':scope > li')).toHaveLength(7)
+    expect(screen.getByRole('button', { name: 'Show fewer' })).toBeDefined()
+  })
+
+  test('has no See all when everything fits', () => {
+    state.activity = [entry()]
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    expect(screen.queryByRole('button')).toBeNull()
   })
 })
 
 describe('what a phone has to survive', () => {
-  // Every name here is one unbroken word on purpose. A long name *with spaces*
-  // wraps by itself and proves nothing; the case that broke this page is the
-  // one the browser cannot break for you.
   test('a long name and a long title wrap instead of setting a width', () => {
-    activity.value = [
-      entry({
-        title: 'Slowroastedlambshoulderwithanchovyrosemaryandflatbreads',
-      }),
-    ]
-    members.value = [
-      {
-        userId: 'u_long',
-        name: 'Annabelle-Charlotte Van Der Meer-Jansen',
-        role: 'admin',
-      },
+    state.activity = [
+      entry({ title: 'Slowroastedlambshoulderwithanchovyrosemaryandflatbreads' }),
     ]
     renderInGroup(<GroupHome />, {
       group: { ...TEST_GROUP, name: 'Vandenbergenhuishoudenoverdewintermaanden' },
     })
 
-    // jsdom does no layout, so these are assertions about the two properties
-    // that decide whether a long word can overflow — not about the width of
-    // anything. Both are needed and neither is enough on its own: the track has
-    // to be allowed to shrink, and the word has to be willing to break.
-    //
-    // `wrap-anywhere` and not `break-words`, which is the trap this page fell
-    // into: `overflow-wrap: break-word` breaks the word when it is *drawn* but
-    // still reports the unbroken word as its minimum size, so the grid track is
-    // already too wide. Only `anywhere` lowers the minimum. The page overflowed
-    // a 375px viewport with these tests passing.
     const heading = screen.getByRole('heading', { level: 1 })
     expect(heading.className).toContain('wrap-anywhere')
-    expect(heading.closest('div')?.className).toContain('minmax(0,1fr)')
-
+    expect(heading.closest('header')?.parentElement?.className).toContain(
+      'minmax(0,1fr)',
+    )
     const row = screen
-      .getByRole('region', { name: 'Recent activity' })
-      .querySelector('li')
+      .getByRole('list', { name: 'Recent activity' })
+      .querySelector('li > div')
     expect(row?.className).toContain('minmax(0,1fr)')
-    expect(row?.querySelector('div')?.className).toContain('min-w-0')
     expect(row?.querySelector('p')?.className).toContain('wrap-anywhere')
-
-    const name = screen.getByText('Annabelle-Charlotte Van Der Meer-Jansen')
-    expect(name.className).toContain('wrap-anywhere')
   })
 
   test('the page never lays anything out in a table', () => {
-    activity.value = [entry(), entry({ id: 'r2', title: 'Second' })]
+    state.activity = [entry(), entry({ id: 'r2', title: 'Second' })]
     const { container } = renderInGroup(<GroupHome />, { group: HOUSEHOLD })
-
-    // A table is the one layout that cannot be made to shrink below the sum of
-    // its columns, which is how a page starts scrolling sideways on a phone.
     expect(container.querySelector('table')).toBeNull()
   })
 })
