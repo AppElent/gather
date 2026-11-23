@@ -219,12 +219,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 14,
   },
+  // 44 pt square, pulled left under the label's padding so the ✕ keeps its
+  // place 3 pt after the label and the chip only grows by its last 3 pt.
   moduleClear: {
     minHeight: 44,
+    minWidth: 44,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingLeft: 2,
-    paddingRight: 12,
-    marginLeft: -6,
+    marginLeft: -19,
   },
   label: { ...TYPE.subhead, fontWeight: '600' },
   pressed: { opacity: 0.6 },

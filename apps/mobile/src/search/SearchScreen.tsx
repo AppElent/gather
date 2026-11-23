@@ -96,6 +96,14 @@ function useDebouncedQuery(query: string) {
  * a name computed at runtime — are both awkward against a `NavigationProp` keyed
  * to the root param list.
  */
+/**
+ * Whether the bottom toolbar can hold the search field: `SearchBarSlot` is
+ * iOS 26 and later only, and the toolbar would otherwise be an empty bar.
+ */
+const TOOLBAR_SEARCH =
+  Platform.OS === 'ios' &&
+  Number.parseInt(String(Platform.Version).split('.')[0], 10) >= 26
+
 type Navigator = {
   getState: () => { type?: string } | undefined
   getParent: () => Navigator | undefined
@@ -235,11 +243,15 @@ export function SearchScreen({
 
   // A pushed search was asked for with the magnifying glass, so it opens
   // typing too. Its field lives in the bottom toolbar, which `autoFocus` does
-  // not reach, so it is focused once the push has landed.
+  // not reach, so it is focused once the push has landed — the first time
+  // only: coming Back from a result is not asking to type again.
+  const arrived = useRef(false)
   useEffect(() => {
     if (!pushed) return
     return navigation.addListener('transitionEnd', (event) => {
-      if (!event.data.closing) searchRef.current?.focus()
+      if (event.data.closing || arrived.current) return
+      arrived.current = true
+      searchRef.current?.focus()
     })
   }, [navigation, pushed])
 
@@ -532,7 +544,7 @@ export function SearchScreen({
       {/* Pushed in another tab there is no tab bar to hold the field, so the
           screen gets a bottom toolbar with the search bar's slot in it: the
           same docked field, above the keyboard (`S613-2-InTaken`). */}
-      {pushed ? (
+      {pushed && TOOLBAR_SEARCH ? (
         <Stack.Toolbar placement="bottom">
           <Stack.Toolbar.SearchBarSlot />
         </Stack.Toolbar>
@@ -548,6 +560,9 @@ export function SearchScreen({
         autoFocus
         autoCapitalize="none"
         hideNavigationBar={false}
+        // Without the toolbar slot (Android, iOS before 26), `automatic` would
+        // draw no field on a pushed screen, so it sits under the title.
+        placement={pushed && !TOOLBAR_SEARCH ? 'stacked' : undefined}
         onChangeText={(event) => setText(event.nativeEvent.text)}
         onCancelButtonPress={() => {
           setText('')

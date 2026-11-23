@@ -311,7 +311,7 @@ describe('Group search narrowed to one Module (APP-613)', () => {
     expect(wines).toMatchObject([{ title: 'Rouge wine', kind: 'wine' }])
   })
 
-  test('reads past the shared budget when one Module is searched', async () => {
+  test('reads newest first, so a recent match past the budget is found', async () => {
     const t = testConvex()
     await t.run(async (ctx) => {
       const carolId = await ctx.db.insert('users', {
@@ -325,13 +325,6 @@ describe('Group search narrowed to one Module (APP-613)', () => {
         inviteCode: 'search-many-notes',
       })
       await seedMember(ctx, groupId, carolId, 'admin')
-      await ctx.db.insert('notes', {
-        groupId,
-        title: 'Boiler manual',
-        body: '',
-        createdBy: carolId,
-        updatedAt: 1,
-      })
       for (let index = 0; index < 220; index += 1)
         await ctx.db.insert('notes', {
           groupId,
@@ -340,6 +333,13 @@ describe('Group search narrowed to one Module (APP-613)', () => {
           createdBy: carolId,
           updatedAt: 1,
         })
+      await ctx.db.insert('notes', {
+        groupId,
+        title: 'Boiler manual',
+        body: '',
+        createdBy: carolId,
+        updatedAt: 1,
+      })
     })
 
     const results = await t.withIdentity(carol).query(api.search.group, {

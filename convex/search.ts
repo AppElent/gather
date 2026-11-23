@@ -6,14 +6,14 @@ import { tastingKindValidator } from './lib/tastings'
 
 const RESULT_LIMIT = 30
 const GROUP_RECORD_LIMIT = 200
+/**
+ * Recipes Shared into the Group come out of the recipe budget rather than on
+ * top of it, so the bytes this query can read stay what they were. Rows, not
+ * bytes, are what the budgets bound, and a recipe or note can be large.
+ */
+const SHARED_RECIPE_LIMIT = 50
 const PARENT_LIMIT = 20
 const CHILD_RECORD_LIMIT = 50
-/**
- * A search narrowed to one Module (APP-613) reads only that Module's table, so
- * it spends the budget the others would have used on its own records.
- */
-const MODULE_RECORD_LIMIT = 500
-const MODULE_CHILD_RECORD_LIMIT = 150
 
 const resultTypeValidator = v.union(
   v.literal('recipe'),
@@ -117,9 +117,6 @@ export const group = query({
 
     // Only the tables a type the caller asked for lives in are read, newest
     // first, so the bound drops the oldest records rather than the newest.
-    const only = accepts.size === 1
-    const recordLimit = only ? MODULE_RECORD_LIMIT : GROUP_RECORD_LIMIT
-    const childLimit = only ? MODULE_CHILD_RECORD_LIMIT : CHILD_RECORD_LIMIT
     const groupId = group._id
     const none = Promise.resolve([])
 
@@ -130,7 +127,7 @@ export const group = query({
               .query('recipes')
               .withIndex('by_group', (q) => q.eq('groupId', groupId))
               .order('desc')
-              .take(recordLimit)
+              .take(GROUP_RECORD_LIMIT - SHARED_RECIPE_LIMIT)
           : none,
         // Recipes Shared into the Group are in its collection too, so they
         // are found here as well (`lib/recipeShares.ts`).
@@ -139,14 +136,14 @@ export const group = query({
               .query('recipeShares')
               .withIndex('by_group', (q) => q.eq('groupId', groupId))
               .order('desc')
-              .take(recordLimit)
+              .take(SHARED_RECIPE_LIMIT)
           : none,
         accepts.has('note')
           ? ctx.db
               .query('notes')
               .withIndex('by_group', (q) => q.eq('groupId', groupId))
               .order('desc')
-              .take(recordLimit)
+              .take(GROUP_RECORD_LIMIT)
           : none,
         accepts.has('tasting')
           ? args.kind
@@ -156,12 +153,12 @@ export const group = query({
                   q.eq('groupId', groupId).eq('kind', args.kind!),
                 )
                 .order('desc')
-                .take(recordLimit)
+                .take(GROUP_RECORD_LIMIT)
             : ctx.db
                 .query('tastingSubjects')
                 .withIndex('by_group', (q) => q.eq('groupId', groupId))
                 .order('desc')
-                .take(recordLimit)
+                .take(GROUP_RECORD_LIMIT)
           : none,
         accepts.has('calendarEvent')
           ? ctx.db
@@ -180,7 +177,7 @@ export const group = query({
               .query('loyaltyCards')
               .withIndex('by_group', (q) => q.eq('groupId', groupId))
               .order('desc')
-              .take(recordLimit)
+              .take(GROUP_RECORD_LIMIT)
           : none,
       ])
 
@@ -207,7 +204,7 @@ export const group = query({
             .query('tasks')
             .withIndex('by_list', (q) => q.eq('listId', list._id))
             .order('desc')
-            .take(childLimit)
+            .take(CHILD_RECORD_LIMIT)
             .then((tasks) => ({ list, tasks })),
         ),
       ),
@@ -217,7 +214,7 @@ export const group = query({
             .query('calendarEvents')
             .withIndex('by_calendar', (q) => q.eq('calendarId', calendar._id))
             .order('desc')
-            .take(childLimit)
+            .take(CHILD_RECORD_LIMIT)
             .then((events) => ({ calendar, events })),
         ),
       ),
