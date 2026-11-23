@@ -397,7 +397,7 @@ function GroceryComposerCard({
             key: saveKey,
             name: capitalise(saving.title),
             undo: async () => {
-              if (!deleted) await actions.deleteTask(saved.taskId)
+              if (!deleted) await actions.deleteTask({ id: saved.taskId })
               deleted = true
               if (made) await dropStaple(made)
             },

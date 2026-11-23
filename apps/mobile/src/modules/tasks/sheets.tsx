@@ -69,7 +69,7 @@ export function DueDateSheet({
   const selected = task.dueDate
 
   const pick = (iso: string | undefined) => {
-    actions.setDue(task.id, iso).catch(writeFailed)
+    actions.setDue(task, iso).catch(writeFailed)
     haptics.selectionChanged()
     onClose()
   }
@@ -167,7 +167,7 @@ export function PrioritySheet({
   const current = task.priority
 
   const choose = (priority: Priority | undefined) => {
-    actions.setPriority(task.id, priority).catch(writeFailed)
+    actions.setPriority(task, priority).catch(writeFailed)
     haptics.selectionChanged()
     onClose()
   }
@@ -291,7 +291,7 @@ export function LabelsSheet({
       haptics.actionFailed()
       return false
     }
-    actions.setLabels(task.id, next).catch(writeFailed)
+    actions.setLabels(task, next).catch(writeFailed)
     return true
   }
 

@@ -35,7 +35,7 @@ export const mcpViews = {
     markDone: 'Mark “{title}” done',
     markOpen: 'Mark “{title}” open',
     saveFailed: 'That change was not saved. Try again.',
-    external: 'This list mirrors Notion or Todoist; change it there.',
+    external: 'This list lives in Notion or Todoist; change it there.',
     priority: { 1: 'Priority 1', 2: 'Priority 2', 3: 'Priority 3', 4: 'Priority 4' },
   },
   recipe: {

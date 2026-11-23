@@ -35,7 +35,7 @@ import type { QuickAdd } from '@gather/core/task-quick-add'
 import type { ReminderClock } from '@gather/core/task-reminders'
 import { nextDueDate, type TaskRepeat } from '@gather/core/task-repeat'
 import type { OptimisticLocalStore } from 'convex/browser'
-import { useAction, useMutation } from 'convex/react'
+import { useAction, useConvex, useMutation } from 'convex/react'
 import type { FunctionArgs, FunctionReturnType } from 'convex/server'
 import {
   useCallback,
@@ -81,6 +81,8 @@ export type LinkedWriteFailure =
   | 'not-found'
   /** The rows on screen are not the provider's; they have to load first. */
   | 'stale'
+  /** There is no connection, so nothing was sent. */
+  | 'offline'
   /** The provider or the network did not answer, or refused. */
   | 'failed'
 
@@ -100,6 +102,25 @@ const inFlight = new Map<string, Promise<ListSync>>()
 const listeners = new Set<() => void>()
 /** Each linked list's fetches and writes run one after another. */
 const queues = new Map<string, Promise<unknown>>()
+/**
+ * How many writes are on their way to each task, per list: kept beside the
+ * rows, because a refresh replaces those.
+ */
+const onTheirWay = new Map<string, Map<string, number>>()
+
+/**
+ * How long a write or fetch may take, waiting its turn included. Convex holds
+ * an action that lost its connection until it is back, and an answer by then
+ * is no use: the list would wait for it, and a write would land unasked.
+ */
+export const PROVIDER_WAIT_MS = 30_000
+
+function within<T>(promise: Promise<T>, ms = PROVIDER_WAIT_MS): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('No answer in time')), ms)
+    promise.then(resolve, reject).finally(() => clearTimeout(timer))
+  })
+}
 
 function enqueue<T>(listId: string, job: () => Promise<T>): Promise<T> {
   const run = (queues.get(listId) ?? Promise.resolve()).then(job)
@@ -111,7 +132,13 @@ function enqueue<T>(listId: string, job: () => Promise<T>): Promise<T> {
 }
 
 function put(listId: string, entry: ExternalEntry) {
-  external = new Map(external).set(listId, entry)
+  const busy = onTheirWay.get(listId)
+  const tasks = entry.tasks.map((task) => {
+    if (Boolean(task.pending) === Boolean(busy?.has(task.id))) return task
+    const { pending: _, ...rest } = task
+    return busy?.has(task.id) ? { ...rest, pending: true as const } : rest
+  })
+  external = new Map(external).set(listId, { ...entry, tasks })
   for (const listener of listeners) listener()
 }
 
@@ -191,16 +218,14 @@ export function afterLinkedWrite(
 
 /** Marks or unmarks one row as having a write on its way. */
 function markPending(listId: string, taskId: string | undefined, on: boolean) {
+  if (!taskId) return
+  const busy = onTheirWay.get(listId) ?? new Map<string, number>()
+  const count = (busy.get(taskId) ?? 0) + (on ? 1 : -1)
+  if (count > 0) busy.set(taskId, count)
+  else busy.delete(taskId)
+  onTheirWay.set(listId, busy)
   const entry = external.get(listId)
-  if (!entry || !taskId) return
-  put(listId, {
-    ...entry,
-    tasks: entry.tasks.map((task) => {
-      if (task.id !== taskId) return task
-      const { pending: _, ...rest } = task
-      return on ? { ...rest, pending: true as const } : rest
-    }),
-  })
+  if (entry) put(listId, entry)
 }
 
 /**
@@ -214,9 +239,19 @@ export async function writeLinkedTask(
   write: LinkedTaskWrite,
   send: SendWrite,
   fetchTasks: FetchTasks,
+  isOnline: () => boolean = () => true,
 ): Promise<{ taskId?: string }> {
   const taskId = 'taskId' in write ? write.taskId : undefined
+  // Convex would keep an unsent action and send it once back online.
+  const refuseOffline = () => {
+    if (isOnline()) return
+    const entry = external.get(listId)
+    if (entry) put(listId, { sync: 'failed', tasks: entry.tasks })
+    throw new LinkedWriteError('offline', listId)
+  }
   if (!external.get(listId)?.fresh) throw new LinkedWriteError('stale', listId)
+  refuseOffline()
+  const asked = Date.now()
   markPending(listId, taskId, true)
   let refresh = false
   try {
@@ -224,9 +259,14 @@ export async function writeLinkedTask(
       if (!external.get(listId)?.fresh) {
         throw new LinkedWriteError('stale', listId)
       }
+      refuseOffline()
+      // Waited behind something that hung: too late to act on unasked.
+      if (Date.now() - asked >= PROVIDER_WAIT_MS) {
+        throw new LinkedWriteError('stale', listId)
+      }
       let result: WriteResult
       try {
-        result = await send(listId, write)
+        result = await within(send(listId, write))
       } catch {
         refresh = true
         throw new LinkedWriteError('failed', listId)
@@ -267,7 +307,7 @@ export function syncExternalList(
   })
   // A write on its way finishes first, so the answer already holds it.
   const run = enqueue(listId, async () => {
-    const result = await fetchTasks(listId).catch(() => null)
+    const result = await within(fetchTasks(listId)).catch(() => null)
     const previous = external.get(listId)?.tasks ?? []
     const entry: ExternalEntry = result
       ? externalEntry(listId, result, previous)
@@ -938,6 +978,14 @@ export interface GroceryDetails {
   retry?: () => Promise<GroceryDetails>
 }
 
+/** A task as a write names it: a linked one by its own list. */
+type TaskRef = Pick<Task, 'id'> & Partial<Pick<Task, 'listId' | 'linked'>>
+
+/** A linked task's list. Two lists can show the same provider task. */
+function linkedListOf(task: TaskRef) {
+  return task.linked ? task.listId : undefined
+}
+
 export function useTaskActions() {
   const { group } = useGroup()
   const groupSlug = group.slug
@@ -980,14 +1028,8 @@ export function useTaskActions() {
 
   const getTasks = useAction(api.taskLists.getTasks)
   const sendWrite = useAction(api.taskLists.writeTask)
+  const convex = useConvex()
 
-  /** The linked list whose last answer holds the task, read at call time. */
-  const linkedListOf = (taskId: string) => {
-    for (const [listId, entry] of external) {
-      if (entry.tasks.some((task) => task.id === taskId)) return listId
-    }
-    return undefined
-  }
   const write = (listId: string, change: LinkedTaskWrite) =>
     writeLinkedTask(
       listId,
@@ -999,11 +1041,12 @@ export function useTaskActions() {
           write: sent,
         }),
       (id) => getTasks({ listId: id as Id<'taskLists'>, groupSlug }),
+      () => convex.connectionState().isWebSocketConnected,
     )
 
   /** A linked task's fields in its provider, or a local one's in Convex. */
   const edit = (
-    id: string,
+    task: TaskRef,
     fields: {
       title?: string
       dueDate?: string | null
@@ -1011,10 +1054,10 @@ export function useTaskActions() {
       labels?: string[]
     },
   ): Promise<unknown> => {
-    const listId = linkedListOf(id)
+    const listId = linkedListOf(task)
     return listId
-      ? write(listId, { kind: 'update', taskId: id, ...fields })
-      : patch(id, fields)
+      ? write(listId, { kind: 'update', taskId: task.id, ...fields })
+      : patch(task.id, fields)
   }
 
   const patch = (
@@ -1163,10 +1206,10 @@ export function useTaskActions() {
      * phone's own day goes along, so "after done" counts from it.
      */
     toggleTask: async (
-      task: Pick<Task, 'id' | 'title'>,
+      task: TaskRef & Pick<Task, 'title'>,
       options: { withSubtasks?: boolean } = {},
     ) => {
-      const linkedId = linkedListOf(task.id)
+      const linkedId = linkedListOf(task)
       if (linkedId) {
         const row = external
           .get(linkedId)
@@ -1197,18 +1240,18 @@ export function useTaskActions() {
     /** A rule, or null for no repeat; the server anchors it on the date. */
     setRepeat: (id: string, repeat: TaskRepeat | null) =>
       patch(id, { repeat, today: localIsoDate() }),
-    renameTask: (id: string, title: string) => edit(id, { title }),
-    setDue: (id: string, value: string | undefined) =>
-      edit(id, { dueDate: value ?? null }),
-    setPriority: (id: string, value: Priority | undefined) =>
-      edit(id, { priority: value ?? null }),
-    setLabels: (id: string, labels: string[]) => edit(id, { labels }),
+    renameTask: (task: TaskRef, title: string) => edit(task, { title }),
+    setDue: (task: TaskRef, value: string | undefined) =>
+      edit(task, { dueDate: value ?? null }),
+    setPriority: (task: TaskRef, value: Priority | undefined) =>
+      edit(task, { priority: value ?? null }),
+    setLabels: (task: TaskRef, labels: string[]) => edit(task, { labels }),
     setNotes: (id: string, notes: string) => patch(id, { notes }),
-    deleteTask: (id: string): Promise<unknown> => {
-      const listId = linkedListOf(id)
+    deleteTask: (task: TaskRef): Promise<unknown> => {
+      const listId = linkedListOf(task)
       return listId
-        ? write(listId, { kind: 'delete', taskId: id })
-        : remove({ taskId: id as Id<'tasks'>, groupSlug })
+        ? write(listId, { kind: 'delete', taskId: task.id })
+        : remove({ taskId: task.id as Id<'tasks'>, groupSlug })
     },
     /** A linked task under another on its list, or out of it with null. */
     moveUnder: (task: Pick<Task, 'id' | 'listId'>, parentId: string | null) =>

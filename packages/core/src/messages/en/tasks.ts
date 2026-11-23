@@ -69,6 +69,8 @@ export const tasks = {
   linkedWrite: {
     failedTitle: 'Not saved in {provider}',
     failed: {
+      offline:
+        'You are offline, so nothing was changed. Refresh the list once you are back online.',
       reconnect:
         'Gather is not allowed to change this list. Reconnect {provider} in the group’s settings on the web, then refresh the list. Nothing was changed.',
       'not-found':

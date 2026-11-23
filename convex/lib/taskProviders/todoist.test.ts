@@ -187,6 +187,7 @@ const syncCommands = (call: Call) =>
   JSON.parse(new URLSearchParams(call.body).get('commands') ?? '[]') as {
     type: string
     uuid: string
+    temp_id?: string
     args: Record<string, unknown>
   }[]
 
@@ -235,31 +236,48 @@ describe('Todoist writes (APP-448)', () => {
   test('creates on the project, under a parent, with every field and the key', async () => {
     const todoist = fakeTodoist({
       'GET /tasks/p1': apiTask({ id: 'p1' }),
-      'POST /tasks': apiTask({ id: 'new', parent_id: 'p1', priority: 4 }),
+      'POST /sync': (call: Call) => ({
+        ...syncOk(call),
+        temp_id_mapping: { [syncCommands(call)[0].temp_id ?? '']: 'new' },
+      }),
+      'GET /tasks/new': apiTask({ id: 'new', parent_id: 'p1', priority: 4 }),
     })
-    const outcome = await writer.createTask(
-      'tok',
-      config,
-      {
-        title: 'Buy soil',
-        parentId: 'p1',
-        dueDate: '2026-12-01',
-        priority: 1,
-        labels: ['home'],
-        requestKey: 'key-1',
-      },
-      todoist.fetchImpl,
-    )
+    const create = (requestKey: string) =>
+      writer.createTask(
+        'tok',
+        config,
+        {
+          title: 'Buy soil',
+          parentId: 'p1',
+          dueDate: '2026-12-01',
+          priority: 1,
+          labels: ['home'],
+          requestKey,
+        },
+        todoist.fetchImpl,
+      )
+    const outcome = await create('key-1')
     const [write] = todoist.writes()
-    expect(JSON.parse(write.body ?? '')).toEqual({
-      content: 'Buy soil',
-      project_id: 'proj',
-      parent_id: 'p1',
-      due_date: '2026-12-01',
-      priority: 4,
-      labels: ['home'],
+    const [command] = syncCommands(write)
+    expect(command).toMatchObject({
+      type: 'item_add',
+      args: {
+        content: 'Buy soil',
+        project_id: 'proj',
+        parent_id: 'p1',
+        due: { date: '2026-12-01' },
+        priority: 4,
+        labels: ['home'],
+      },
     })
-    expect(write.headers['X-Request-Id']).toBe('key-1')
+    expect(command.uuid).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-8[0-9a-f]{3}-[0-9a-f]{12}$/,
+    )
+    await create('key-1')
+    await create('key-2')
+    const uuids = todoist.writes().map((call) => syncCommands(call)[0].uuid)
+    expect(uuids[1]).toBe(uuids[0])
+    expect(uuids[2]).not.toBe(uuids[0])
     expect(write.headers.Authorization).toBe('Bearer tok')
     expect(outcome.tasks[0]).toMatchObject({
       externalId: 'new',
@@ -402,13 +420,47 @@ describe('Todoist writes (APP-448)', () => {
         todoist.fetchImpl,
       )
       expect(outcome.refresh).toBe(true)
-      return syncCommands(todoist.writes()[0]).map((c) => [c.type, c.args.id])
+      return todoist
+        .writes()
+        .map((call) => syncCommands(call).map((c) => [c.type, c.args.id]))
     }
+    // One request after the other: the task only once its subtasks are done.
     expect(await run(true)).toEqual([
-      ['item_close', 'c1'],
-      ['item_close', 't1'],
+      [['item_close', 'c1']],
+      [['item_close', 't1']],
     ])
-    expect(await run(false)).toEqual([['item_close', 't1']])
+    expect(await run(false)).toEqual([[['item_close', 't1']]])
+  })
+
+  test('a refused subtask leaves its recurring task where it was', async () => {
+    const todoist = fakeTodoist({
+      'GET /tasks/t1': apiTask({
+        due: { date: '2026-11-24', is_recurring: true, string: 'every day' },
+      }),
+      'GET /tasks': {
+        results: [apiTask({ id: 'c1' }), apiTask({ id: 'c2' })],
+        next_cursor: null,
+      },
+      'POST /sync': (call: Call) => {
+        const [first, second] = syncCommands(call)
+        return {
+          sync_status: {
+            [first.uuid]: 'ok',
+            ...(second ? { [second.uuid]: { http_code: 500 } } : {}),
+          },
+        }
+      },
+    })
+    await expect(
+      writer.closeTask(
+        'tok',
+        config,
+        't1',
+        { withSubtasks: true },
+        todoist.fetchImpl,
+      ),
+    ).rejects.toThrow(/refused/)
+    expect(todoist.writes()).toHaveLength(1)
   })
 
   test('reopens a completed task of the project', async () => {
@@ -475,6 +527,17 @@ describe('Todoist writes (APP-448)', () => {
     ])
   })
 
+  test('moving out keeps the section', async () => {
+    const todoist = fakeTodoist({
+      'GET /tasks/t1': apiTask({ parent_id: 'p1', section_id: 'sec' }),
+      'POST /tasks/t1/move': apiTask({ section_id: 'sec' }),
+    })
+    await writer.moveTask('tok', config, 't1', null, todoist.fetchImpl)
+    expect(JSON.parse(todoist.writes()[0].body ?? '')).toEqual({
+      section_id: 'sec',
+    })
+  })
+
   const everyWrite: [string, (f: typeof fetch) => Promise<unknown>][] = [
     ['create', (f) => writer.createTask('tok', config, { title: 'x', parentId: 't1' }, f)],
     ['update', (f) => writer.updateTask('tok', config, 't1', { title: 'x' }, f)],
@@ -515,6 +578,35 @@ describe('Todoist writes (APP-448)', () => {
 
   test.each(everyWrite)('%s fails when Todoist is down', async (_, run) => {
     await expect(run(refusing(503).fetchImpl)).rejects.toThrow(/503/)
+  })
+
+  test('a task this person may not change is not a lost connection', async () => {
+    const forbidden = () =>
+      new Response(JSON.stringify({ error_tag: 'FORBIDDEN' }), { status: 403 })
+    const todoist = fakeTodoist({
+      'GET /tasks/t1': apiTask(),
+      'DELETE /tasks/t1': forbidden,
+    })
+    await expect(
+      writer.deleteTask('tok', config, 't1', todoist.fetchImpl),
+    ).rejects.toThrow(/403/)
+  })
+
+  test('a task gone before its Sync command is not found', async () => {
+    const todoist = fakeTodoist({
+      'GET /tasks/t1': apiTask(),
+      'POST /sync': (call: Call) => ({
+        sync_status: {
+          [syncCommands(call)[0].uuid]: {
+            http_code: 400,
+            error_tag: 'ITEM_NOT_FOUND',
+          },
+        },
+      }),
+    })
+    await expect(
+      writer.updateTask('tok', config, 't1', { title: 'x' }, todoist.fetchImpl),
+    ).rejects.toBeInstanceOf(ProviderTaskNotFoundError)
   })
 
   test('a Sync command refused for its scope asks to reconnect', async () => {

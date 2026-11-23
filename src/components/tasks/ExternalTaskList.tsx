@@ -1,7 +1,7 @@
 import type { ExternalProviderId } from '@gather/core/domain'
 import { applyLinkedWrite, possibleParents } from '@gather/core/linked-tasks'
 import { Link } from '@tanstack/react-router'
-import { useAction } from 'convex/react'
+import { useAction, useConvex } from 'convex/react'
 import type { FunctionArgs } from 'convex/server'
 import { CornerDownRight, Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -16,6 +16,22 @@ import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import { QuickAddForm } from './QuickAddForm'
 import { TaskEditor, type TaskEditorValues } from './TaskEditor'
 import { TaskRow } from './TaskRow'
+
+/**
+ * How long a write may take. Convex holds an action that lost its connection
+ * until it is back, so without a limit nothing would say it did not land.
+ */
+const WRITE_WAIT_MS = 30_000
+
+function within<T>(promise: Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error('No answer in time')),
+      WRITE_WAIT_MS,
+    )
+    promise.then(resolve, reject).finally(() => clearTimeout(timer))
+  })
+}
 
 type LinkedTaskWrite = FunctionArgs<typeof api.taskLists.writeTask>['write']
 
@@ -53,6 +69,7 @@ export function ExternalTaskList({
 }: ExternalTaskListProps) {
   const getTasks = useAction(api.taskLists.getTasks)
   const writeTask = useAction(api.taskLists.writeTask)
+  const convex = useConvex()
   const [state, setState] = useState<LoadState>('loading')
   const [rows, setRows] = useState<UnifiedTask[]>([])
   const [problem, setProblem] = useState<string | null>(null)
@@ -68,7 +85,7 @@ export function ExternalTaskList({
   const load = useCallback(async () => {
     setState('loading')
     try {
-      const result = await getTasks({ listId, groupSlug })
+      const result = await within(getTasks({ listId, groupSlug }))
       if (result.status === 'ok') setRows(result.tasks)
       setState(result.status)
     } catch {
@@ -94,11 +111,19 @@ export function ExternalTaskList({
       failed('stale')
       return false
     }
+    // Convex would keep an unsent action and send it once back online.
+    if (!convex.connectionState().isWebSocketConnected) {
+      failed('offline')
+      setState('error')
+      return false
+    }
     writing.current = true
     setBusy(true)
     setProblem(null)
     try {
-      const result = await writeTask({ listId, groupSlug, write: change })
+      const result = await within(
+        writeTask({ listId, groupSlug, write: change }),
+      )
       if (result.status === 'reconnect') {
         setState('reconnect')
         return false
@@ -195,6 +220,9 @@ export function ExternalTaskList({
   function renderTask(task: UnifiedTask) {
     const children = childrenOf(task.externalId)
     const parents = possibleParents(rows, task.externalId)
+    const parent = rows.find((row) => row.externalId === task.parentExternalId)
+    // Where it is now is always a choice, so that "not under a task" is one.
+    if (parent && !parents.includes(parent)) parents.push(parent)
     return (
       <div key={task.externalId}>
         {editingId === task.externalId ? (

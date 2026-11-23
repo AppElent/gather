@@ -50,6 +50,8 @@ export const tasks = {
   linkedWrite: {
     failedTitle: 'Niet bewaard in {provider}',
     failed: {
+      offline:
+        'Je bent offline, dus er is niets gewijzigd. Ververs de lijst zodra je weer online bent.',
       reconnect:
         'Gather mag deze lijst niet wijzigen. Verbind {provider} opnieuw in de Groepsinstellingen op het web en ververs daarna de lijst. Er is niets gewijzigd.',
       'not-found':

@@ -95,7 +95,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
     (next) => {
       if (!task) return
       if (!task.linked) {
-        actions.renameTask(task.id, next)
+        actions.renameTask(task, next)
         return
       }
       if (!next.trim()) {
@@ -103,7 +103,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         return
       }
       if (next.trim() === task.title) return
-      actions.renameTask(task.id, next).catch((error: unknown) => {
+      actions.renameTask(task, next).catch((error: unknown) => {
         title.reset()
         writeFailed(error)
       })

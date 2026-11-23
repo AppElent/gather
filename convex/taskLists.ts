@@ -618,7 +618,7 @@ const REQUEST_KEY = /^[\w-]{1,64}$/
 /** A write as the provider may be sent it; throws on one that makes no sense. */
 function checkedWrite(write: LinkedTaskWrite): LinkedTaskWrite {
   if (write.kind === 'create' || write.kind === 'update') {
-    if (write.dueDate && !isIsoDate(write.dueDate)) {
+    if (write.dueDate != null && !isIsoDate(write.dueDate)) {
       throw new ConvexError('Date must be YYYY-MM-DD')
     }
     if (write.title !== undefined) {

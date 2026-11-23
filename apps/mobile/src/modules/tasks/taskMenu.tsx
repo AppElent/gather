@@ -190,10 +190,10 @@ export function useTaskSheets({
         const gone = () => onDeleted?.(task)
         if (task.linked) {
           // The provider first: the screen leaves once the task is gone there.
-          actions.deleteTask(task.id).then(gone, writeFailed)
+          actions.deleteTask(task).then(gone, writeFailed)
           return
         }
-        actions.deleteTask(task.id)
+        actions.deleteTask(task)
         gone()
       },
     })
@@ -257,7 +257,7 @@ export function useTaskSheets({
           value={task.title}
           place={`tasks:rename-task:${task.id}`}
           onSave={(next) => {
-            actions.renameTask(task.id, next).catch(writeFailed)
+            actions.renameTask(task, next).catch(writeFailed)
           }}
           onClose={close}
         />

@@ -1,4 +1,5 @@
 import type { OptimisticLocalStore } from 'convex/browser'
+import { useAction } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { describe, expect, test, vi } from 'vitest'
 
@@ -13,6 +14,9 @@ vi.mock('../../group/GroupProvider', () => ({
 }))
 vi.mock('convex/react', () => ({
   useAction: vi.fn(),
+  useConvex: () => ({
+    connectionState: () => ({ isWebSocketConnected: true }),
+  }),
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
     const run = (args: unknown) => {
       const name = getFunctionName(reference)
@@ -36,6 +40,7 @@ import {
   localTaskQueries,
   mergeTasks,
   onOccurrenceCompleted,
+  PROVIDER_WAIT_MS,
   settledDetails,
   smartModel,
   syncExternalList,
@@ -1049,6 +1054,91 @@ describe('a linked list is written to in its provider first (APP-448)', () => {
       syncExternalList('queue', fetchTasks),
     ])
     expect(order).toEqual(['write', 'write', 'fetch'])
+  })
+
+  test('offline nothing is sent, now or later', async () => {
+    const fetchTasks = answering(row('a'))
+    await syncExternalList('offline', fetchTasks)
+    const send = taken()
+    await expect(
+      writeLinkedTask(
+        'offline',
+        { kind: 'delete', taskId: 'a' },
+        send,
+        fetchTasks,
+        () => false,
+      ),
+    ).rejects.toMatchObject({ reason: 'offline' })
+    expect(send).not.toHaveBeenCalled()
+    expect(rows('offline')).toEqual(['a'])
+    expect(writable('offline')).toBe(false)
+    expect(externalSnapshot().get('offline')?.tasks[0].pending).toBeUndefined()
+  })
+
+  test('a write that never answers fails, and what waited is not sent', async () => {
+    await syncExternalList('hung', answering(row('a')))
+    vi.useFakeTimers()
+    try {
+      const hung = () => new Promise<never>(() => {})
+      const second = taken()
+      const change = { kind: 'update', taskId: 'a', title: 'b' } as const
+      const outcomes = Promise.allSettled([
+        writeLinkedTask('hung', change, hung, hung),
+        writeLinkedTask('hung', change, second, hung),
+      ])
+      await vi.advanceTimersByTimeAsync(PROVIDER_WAIT_MS)
+      expect(await outcomes).toMatchObject([
+        { reason: { reason: 'failed' } },
+        { reason: { reason: 'stale' } },
+      ])
+      expect(second).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(PROVIDER_WAIT_MS)
+    } finally {
+      vi.useRealTimers()
+    }
+    expect(externalSnapshot().get('hung')).toMatchObject({ sync: 'failed' })
+    expect(rows('hung')).toEqual(['a'])
+  })
+
+  test('a refresh already running keeps a task pending', async () => {
+    await syncExternalList('refreshing', answering(row('a')))
+    let answer = (_: Awaited<ReturnType<ReturnType<typeof answering>>>) => {}
+    const refresh = syncExternalList(
+      'refreshing',
+      () => new Promise((resolve) => (answer = resolve)),
+    )
+    await Promise.resolve()
+    let take = (_: Awaited<ReturnType<ReturnType<typeof taken>>>) => {}
+    const request = writeLinkedTask(
+      'refreshing',
+      { kind: 'setDone', taskId: 'a', done: true },
+      () => new Promise((resolve) => (take = resolve)),
+      answering(row('a')),
+    )
+    await vi.waitFor(async () => {
+      answer(await answering(row('a'))())
+      await refresh
+    })
+    expect(externalSnapshot().get('refreshing')?.tasks[0].pending).toBe(true)
+    await vi.waitFor(() => {
+      take({ status: 'ok', tasks: [], refresh: false })
+      expect(externalSnapshot().get('refreshing')?.tasks[0].pending).toBeUndefined()
+    })
+    await request
+  })
+
+  test('a task in two lists is written through the list it was opened on', async () => {
+    const send = vi.fn(taken([row('a')]))
+    vi.mocked(useAction).mockReturnValue(send as never)
+    await syncExternalList('one', answering(row('a')))
+    await syncExternalList('two', answering(row('a')))
+    await useTaskActions().setDue(
+      { id: 'a', listId: 'two', linked: true },
+      undefined,
+    )
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ listId: 'two' }),
+    )
   })
 
   test('Notion stays read-only', async () => {

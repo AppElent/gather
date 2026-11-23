@@ -31,6 +31,7 @@ export interface TodoistApiTask {
   labels?: string[]
   url?: string
   project_id?: string
+  section_id?: string | null
   /** Whether it is completed; absent or false on an active task. */
   checked?: boolean
   /** The task this one is a subtask of; null or absent at the top. */
@@ -43,6 +44,24 @@ class TodoistHttpError extends Error {
   }
 }
 
+function errorTag(body: string): string | undefined {
+  try {
+    const tag: unknown = JSON.parse(body)?.error_tag
+    return typeof tag === 'string' ? tag : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Whether reconnecting is the answer. A 403 is what a write on an old
+ * `data:read` connection gets, and also, tagged FORBIDDEN, what a task this
+ * person may not change gets, which reconnecting does not help.
+ */
+function isAuthRefusal(status: number | undefined, tag?: string): boolean {
+  return status === 401 || (status === 403 && tag !== 'FORBIDDEN')
+}
+
 async function todoistRequest<T>(
   accessToken: string,
   path: string,
@@ -51,12 +70,10 @@ async function todoistRequest<T>(
     method?: 'POST' | 'DELETE'
     json?: unknown
     form?: Record<string, string>
-    headers?: Record<string, string>
   } = {},
 ): Promise<T> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
-    ...init.headers,
   }
   let body: string | undefined
   if (init.json !== undefined) {
@@ -71,12 +88,13 @@ async function todoistRequest<T>(
     headers,
     ...(body === undefined ? {} : { body }),
   })
-  // 403 is also what a write on an old `data:read` connection answers.
-  if (res.status === 401 || res.status === 403) {
-    throw new ProviderAuthError('todoist')
-  }
-  if (!res.ok) throw new TodoistHttpError(res.status)
   const text = await res.text()
+  if (!res.ok) {
+    if (isAuthRefusal(res.status, errorTag(text))) {
+      throw new ProviderAuthError('todoist')
+    }
+    throw new TodoistHttpError(res.status)
+  }
   return (text ? JSON.parse(text) : null) as T
 }
 
@@ -241,6 +259,7 @@ async function requireTask(
 interface SyncCommand {
   type: string
   uuid: string
+  temp_id?: string
   args: Record<string, unknown>
 }
 
@@ -249,9 +268,13 @@ async function sync(
   accessToken: string,
   commands: SyncCommand[],
   fetchImpl: typeof fetch,
-): Promise<void> {
+): Promise<Record<string, string>> {
   const answer = await todoistRequest<{
-    sync_status?: Record<string, 'ok' | { http_code?: number; error?: string }>
+    sync_status?: Record<
+      string,
+      'ok' | { http_code?: number; error_tag?: string }
+    >
+    temp_id_mapping?: Record<string, string>
   }>(accessToken, '/sync', fetchImpl, {
     method: 'POST',
     form: { commands: JSON.stringify(commands) },
@@ -259,11 +282,25 @@ async function sync(
   for (const { uuid } of commands) {
     const status = answer.sync_status?.[uuid]
     if (status === 'ok') continue
-    const code = typeof status === 'object' ? status.http_code : undefined
-    if (code === 401 || code === 403) throw new ProviderAuthError('todoist')
-    if (code === 404) throw new ProviderTaskNotFoundError('todoist')
+    const refusal = typeof status === 'object' ? status : {}
+    const { http_code: code, error_tag: tag } = refusal
+    if (isAuthRefusal(code, tag)) throw new ProviderAuthError('todoist')
+    if (code === 404 || tag === 'ITEM_NOT_FOUND') throw new ProviderTaskNotFoundError('todoist')
     throw new Error(`Todoist refused a change (${code ?? 'no status'})`)
   }
+  return answer.temp_id_mapping ?? {}
+}
+
+/** One UUID per key and project: Todoist runs a command's UUID once. */
+async function uuidOf(key: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(key),
+  )
+  const hex = Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`
 }
 
 const apiPriority = (priority: 1 | 2 | 3 | 4) => 5 - priority
@@ -310,24 +347,32 @@ const writer: TaskProviderWriter = {
       )
       if (parent.checked) throw new ProviderTaskNotFoundError('todoist')
     }
-    const created = await todoistRequest<TodoistApiTask>(
+    const uuid = task.requestKey
+      ? await uuidOf(`${projectId}:${task.requestKey}`)
+      : crypto.randomUUID()
+    // Sync rather than REST: its UUID is Todoist's documented retry key.
+    const ids = await sync(
       accessToken,
-      '/tasks',
-      fetchImpl,
-      {
-        method: 'POST',
-        json: {
-          content: task.title,
-          project_id: projectId,
-          ...(task.parentId ? { parent_id: task.parentId } : {}),
-          ...(task.dueDate ? { due_date: task.dueDate } : {}),
-          ...(task.priority ? { priority: apiPriority(task.priority) } : {}),
-          ...(task.labels?.length ? { labels: task.labels } : {}),
+      [
+        {
+          type: 'item_add',
+          uuid,
+          temp_id: uuid,
+          args: {
+            content: task.title,
+            project_id: projectId,
+            ...(task.parentId ? { parent_id: task.parentId } : {}),
+            ...(task.dueDate ? { due: { date: task.dueDate } } : {}),
+            ...(task.priority ? { priority: apiPriority(task.priority) } : {}),
+            ...(task.labels?.length ? { labels: task.labels } : {}),
+          },
         },
-        headers: task.requestKey ? { 'X-Request-Id': task.requestKey } : {},
-      },
+      ],
+      fetchImpl,
     )
-    return { tasks: [mapTodoistTask(created)], refresh: false }
+    // A repeated command may be answered without the id it made.
+    if (!ids[uuid]) return { tasks: [], refresh: true }
+    return await readBack(accessToken, ids[uuid], fetchImpl)
   },
 
   async updateTask(accessToken, config, taskId, changes, fetchImpl = fetch) {
@@ -363,6 +408,18 @@ const writer: TaskProviderWriter = {
       return { tasks: [], refresh: false }
     }
     // A recurring one only moves to its next date and leaves its subtasks.
+    // Subtasks go first, so that one refused leaves the task where it was: a
+    // retry must not move it on twice.
+    const close = (tasks: TodoistApiTask[]) =>
+      sync(
+        accessToken,
+        tasks.map(({ id }) => ({
+          type: 'item_close',
+          uuid: crypto.randomUUID(),
+          args: { id },
+        })),
+        fetchImpl,
+      )
     const children = options.withSubtasks
       ? await allPages<TodoistApiTask>(
           accessToken,
@@ -372,15 +429,8 @@ const writer: TaskProviderWriter = {
           fetchImpl,
         )
       : []
-    await sync(
-      accessToken,
-      [...children, task].map(({ id }) => ({
-        type: 'item_close',
-        uuid: crypto.randomUUID(),
-        args: { id },
-      })),
-      fetchImpl,
-    )
+    if (children.length > 0) await close(children)
+    await close([task])
     const outcome = await readBack(accessToken, task.id, fetchImpl)
     return { ...outcome, refresh: true }
   },
@@ -426,7 +476,12 @@ const writer: TaskProviderWriter = {
         fetchImpl,
         {
           method: 'POST',
-          json: parentId ? { parent_id: parentId } : { project_id: projectId },
+          json: parentId
+            ? { parent_id: parentId }
+            : // Out of its parent, and still in its section.
+              task.section_id
+              ? { section_id: task.section_id }
+              : { project_id: projectId },
         },
       ),
     )

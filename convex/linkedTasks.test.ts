@@ -66,9 +66,9 @@ async function seed() {
   return { t, ...ids }
 }
 
-function todoistAnswers(answer: (method: string, path: string) => Response) {
+function todoistAnswers(answer: (method: string, path: string, body: string) => Response) {
   const fetchMock = vi.fn(async (input: string, init: RequestInit = {}) =>
-    answer(init.method ?? 'GET', new URL(input).pathname.replace('/api/v1', '')),
+    answer(init.method ?? 'GET', new URL(input).pathname.replace('/api/v1', ''), String(init.body ?? '')),
   )
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
@@ -83,9 +83,18 @@ afterEach(() => vi.unstubAllGlobals())
 describe('taskLists.writeTask', () => {
   test('sends the write with the Group’s token and answers the task', async () => {
     const { t, todoist } = await seed()
-    const fetchMock = todoistAnswers(() =>
-      json({ id: 'n1', content: 'Buy soil', priority: 1, project_id: 'proj' }),
-    )
+    const commands = (body: string) =>
+      JSON.parse(new URLSearchParams(body).get('commands') ?? '[]')
+    const fetchMock = todoistAnswers((method, _, body) => {
+      if (method === 'GET') {
+        return json({ id: 'n1', content: 'Buy soil', priority: 1, project_id: 'proj' })
+      }
+      const [{ uuid, temp_id }] = commands(body)
+      return json({
+        sync_status: { [uuid]: 'ok' },
+        temp_id_mapping: { [temp_id]: 'n1' },
+      })
+    })
     const result = await t.withIdentity(alice).action(api.taskLists.writeTask, {
       listId: todoist.listId,
       groupSlug: HOME,
@@ -98,7 +107,7 @@ describe('taskLists.writeTask', () => {
     })
     const [, init] = fetchMock.mock.calls[0]
     expect(init?.headers).toMatchObject({ Authorization: 'Bearer todoist-token' })
-    expect(JSON.parse(init?.body as string).content).toBe('Buy soil')
+    expect(commands(init?.body as string)[0].args.content).toBe('Buy soil')
     expect(
       await t.run((ctx) => ctx.db.query('tasks').collect()),
     ).toEqual([])
@@ -272,6 +281,8 @@ test('a new Todoist connection asks to read and write', async () => {
     redirectUri: 'https://gather.example/integrations/callback',
     state: 's',
   })
-  expect(new URL(url).searchParams.get('scope')).toBe('data:read_write')
+  expect(new URL(url).searchParams.get('scope')).toBe(
+    'data:read_write,data:delete',
+  )
   vi.unstubAllEnvs()
 })
