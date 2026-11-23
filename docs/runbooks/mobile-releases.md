@@ -76,6 +76,14 @@ exactly those inputs, so a native change produces a different fingerprint and
 installed builds simply never see the update. They stay on the bundle they
 shipped with rather than loading one their native code cannot run.
 
+The fingerprint also hashes everything under `apps/mobile/targets/` (the
+widgets and other Apple targets that `@bacons/apple-targets` generates at
+prebuild), through `extraSources` in `apps/mobile/fingerprint.config.js`.
+Expo's defaults only see each target's `expo-target.config.js`, so without it
+a Swift, plist or string-catalog edit there would keep the runtime version and
+reach installed builds over the air without its native code. A new Apple
+target goes under `targets/` so that it is covered too.
+
 Every PR from a branch of this repository (Dependabot's included) that touches
 `apps/mobile/`, `packages/`, `patches/`, the root `package.json`, the lockfile
 or `pnpm-workspace.yaml` gets a **Mobile runtime** comment
