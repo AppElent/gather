@@ -12,6 +12,7 @@ import {
   planSlotChoices,
   planUses,
   slotChipLabel,
+  swapReason,
 } from './week-plan'
 
 const members = [
@@ -116,5 +117,32 @@ describe('draftReason', () => {
     expect(draftReason({ reason: undefined, prepMinutes: undefined }, en.mealPlanner)).toBe(
       'following your rules',
     )
+  })
+})
+
+describe('swapReason', () => {
+  test('the model’s reason as it is', () => {
+    expect(swapReason({ reason: 'Spinazie in huis', source: 'ai' }, nl.mealPlanner, 'nl')).toBe(
+      'Spinazie in huis',
+    )
+    expect(swapReason({ source: 'ai' }, nl.mealPlanner, 'nl')).toBeNull()
+  })
+
+  test('a rules pick says what it uses and the time it fits', () => {
+    const rulesReason = { low: ['Kipdij'], inStock: ['Rijst', 'Spinazie'], fitsMinutes: 30 }
+    expect(swapReason({ source: 'rules', rulesReason }, nl.mealPlanner, 'nl')).toBe(
+      'Kipdij bijna op · Met rijst en spinazie uit huis · Past in 30 min',
+    )
+    expect(swapReason({ source: 'rules', rulesReason }, en.mealPlanner, 'en')).toBe(
+      'Kipdij running low · Uses your rijst and spinazie · Fits in 30 min',
+    )
+  })
+
+  test('with nothing to say, or from an older server, the rules line', () => {
+    const empty = { low: [], inStock: [] }
+    expect(swapReason({ source: 'rules', rulesReason: empty }, nl.mealPlanner, 'nl')).toBe(
+      'volgens jullie regels',
+    )
+    expect(swapReason({ source: 'rules' }, en.mealPlanner, 'en')).toBe('following your rules')
   })
 })

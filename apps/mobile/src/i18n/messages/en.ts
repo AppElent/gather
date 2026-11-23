@@ -774,6 +774,8 @@ export const en = {
       wishPlaceholder: 'Any wish? For example: chicken, quick',
       chips: { chickenQuick: 'Chicken, quick', meatFree: 'Meat-free', faster: 'Quicker' },
       quickMeal: 'quick meal',
+      reasonStock: 'Uses your {names}',
+      reasonFits: 'Fits in {minutes} min',
       choose: 'Choose',
       chosen: 'Chosen',
       chooseLabel: 'Choose {title} for {day}',
