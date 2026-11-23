@@ -72,6 +72,10 @@ export const energyHourValidator = v.object({
   importKwh: v.number(),
   exportKwh: v.number(),
   solarKwh: v.union(v.number(), v.null()),
+  batteryChargeKwh: v.union(v.number(), v.null()),
+  batteryDischargeKwh: v.union(v.number(), v.null()),
+  /** What the home used that hour, by the same rule as a day's. */
+  consumptionKwh: v.number(),
   /** Average state of charge in that hour, in percent. */
   socPercent: v.union(v.number(), v.null()),
 })
@@ -460,6 +464,9 @@ export async function computeEnergyRange(
       importKwh: sum(bucket.importKwh),
       exportKwh: sum(bucket.exportKwh),
       solarKwh: bucket.solar,
+      batteryChargeKwh: bucket.charge,
+      batteryDischargeKwh: bucket.discharge,
+      consumptionKwh: consumption(bucket, hasSolar),
       socPercent: bucket.socCount ? bucket.socSum / bucket.socCount : null,
     }),
   )

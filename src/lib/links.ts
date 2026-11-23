@@ -68,6 +68,11 @@ export const ROUTES = {
   loyaltyCard: '/loyalty-cards/$cardId',
   editLoyaltyCard: '/loyalty-cards/$cardId/edit',
 
+  energyUsage: '/energy/usage',
+  energyCosts: '/energy/costs',
+  energyReadings: '/energy/readings',
+  energyContract: '/energy/contract',
+
   cheese: '/cheeses/$subjectId',
   editCheese: '/cheeses/$subjectId/edit',
   wine: '/wines/$subjectId',

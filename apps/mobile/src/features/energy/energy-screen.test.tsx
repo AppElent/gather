@@ -1,186 +1,97 @@
 // @vitest-environment jsdom
 /**
- * The empty Energy Module (APP-492): its one step opens the address form in
- * place, and Continue sends what the person chose. With an address, the wash
- * names it. React Native is mocked down to plain elements, as in the loyalty
- * card list's test.
+ * The Energy Module's home (APP-492, APP-494). Empty, its one step opens the
+ * address form in place, and Continue sends what the person chose. With an
+ * address, the wash names it and when the meters were last read, the first
+ * step is a reading until there is one, and rows lead to every Energy screen.
  */
-import { createElement, type ReactNode } from 'react'
-import { beforeEach, expect, test, vi } from 'vitest'
+import { energyMonthDays } from '@gather/core/energy'
+import { formatEnergyDate } from '@gather/core/energy-present'
+import { fmt } from '@gather/core/i18n'
+import { createElement } from 'react'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
+import { en } from '../../i18n/messages/en'
 import { mount, settle } from '../../testing/dom'
 import { EnergyScreen } from './energy-screen'
+import {
+  byTestId,
+  callsTo,
+  energyState,
+  resetEnergyState,
+  usagePeriod,
+} from './energy-test-mocks'
 
-const state = vi.hoisted(() => ({
-  overview: null as unknown,
-  houses: [] as { _id: string; name: string }[],
-  creates: [] as unknown[],
-  refuse: null as null | { kind: string },
-  wash: null as unknown,
-}))
+vi.mock('react-native', async () => (await import('./energy-test-mocks')).reactNativeMock())
+vi.mock('react-native-svg', async () => (await import('./energy-test-mocks')).svgMock())
+vi.mock('react-native-safe-area-context', async () =>
+  (await import('./energy-test-mocks')).safeAreaMock(),
+)
+vi.mock('expo-router', async () => (await import('./energy-test-mocks')).routerMock())
+vi.mock('convex/react', async () => (await import('./energy-test-mocks')).convexReactMock())
+vi.mock('../../convex/api', async () => (await import('./energy-test-mocks')).apiMock())
+vi.mock('../../convex/queries', async () => (await import('./energy-test-mocks')).queriesMock())
+vi.mock('../../group/GroupProvider', async () => (await import('./energy-test-mocks')).groupMock())
+vi.mock('../../i18n', async () => (await import('./energy-test-mocks')).i18nMock())
+vi.mock('../../theme/icons', async () => (await import('./energy-test-mocks')).iconsMock())
+vi.mock('../../theme/tokens', async () => (await import('./energy-test-mocks')).tokensMock())
+vi.mock('../../feedback/haptics', async () => (await import('./energy-test-mocks')).hapticsMock())
+vi.mock('../../components/LoadingSkeleton', async () =>
+  (await import('./energy-test-mocks')).skeletonMock(),
+)
+vi.mock('../../components/DateTimeField', async () =>
+  (await import('./energy-test-mocks')).dateTimeMock(),
+)
+vi.mock('../../ui/button', async () => (await import('./energy-test-mocks')).buttonMock())
+vi.mock('../../ui/card', async () => (await import('./energy-test-mocks')).cardMock())
+vi.mock('../../ui/section-label', async () =>
+  (await import('./energy-test-mocks')).sectionLabelMock(),
+)
+vi.mock('../../ui/inset-list', async () => (await import('./energy-test-mocks')).insetListMock())
+vi.mock('../../ui/text-scale', async () => (await import('./energy-test-mocks')).textScaleMock())
+vi.mock('../../modules/moduleDestination', async () =>
+  (await import('./energy-test-mocks')).moduleDestinationMock(),
+)
+vi.mock('../../ui/field', async () => (await import('./energy-test-mocks')).fieldMock())
+vi.mock('../../ui/module-tile', async () => (await import('./energy-test-mocks')).moduleTileMock())
+vi.mock('../../ui/screen-header', async () =>
+  (await import('./energy-test-mocks')).screenHeaderMock(),
+)
+vi.mock('../../ui/wash-header', async () => (await import('./energy-test-mocks')).washHeaderMock())
+vi.mock('@expo/ui/community/menu', async () => (await import('./energy-test-mocks')).menuMock())
 
-vi.mock('react-native', async () => {
-  const React = await import('react')
-  const h = React.createElement
-  type Props = Record<string, unknown> & { children?: ReactNode }
-  const dom =
-    (tag: string) =>
-    ({ children, testID, accessibilityLabel }: Props) =>
-      h(
-        tag,
-        {
-          'data-testid': testID as string | undefined,
-          'aria-label': accessibilityLabel as string | undefined,
-        },
-        children,
-      )
-  const Pressable = ({ children, testID, onPress, accessibilityState }: Props) =>
-    h(
-      'button',
-      {
-        'data-testid': testID as string | undefined,
-        'aria-checked': (accessibilityState as { checked?: boolean } | undefined)
-          ?.checked,
-        onClick: () => (onPress as (() => void) | undefined)?.(),
-      },
-      typeof children === 'function' ? null : children,
-    )
-  return {
-    View: dom('div'),
-    Text: dom('span'),
-    ScrollView: dom('div'),
-    Pressable,
-    StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 1 },
-  }
-})
-vi.mock('react-native-safe-area-context', () => ({
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-}))
-vi.mock('expo-router', () => {
-  const Stack = () => null
-  Stack.Screen = () => null
-  return { Stack }
-})
-vi.mock('convex/react', () => ({
-  useMutation: () => async (args: unknown) => {
-    state.creates.push(args)
-    if (state.refuse) throw Object.assign(new Error('refused'), { data: state.refuse })
-    return 'site1'
-  },
-}))
-vi.mock('../../convex/api', () => ({
-  api: {
-    energy: { overview: 'energy:overview', createSite: 'energy:createSite' },
-    houses: { list: 'houses:list' },
-  },
-}))
-vi.mock('../../convex/queries', () => ({
-  useQuery: (name: string) =>
-    name === 'energy:overview' ? state.overview : state.houses,
-}))
-vi.mock('../../group/GroupProvider', () => ({
-  useGroup: () => ({ group: { slug: 'home', name: 'Home' } }),
-}))
-vi.mock('../../i18n', async () => {
-  const { en } = await import('../../i18n/messages/en')
-  return { useI18n: () => ({ t: en, locale: 'en' }) }
-})
-vi.mock('../../theme/icons', () => ({
-  UI_ICONS: new Proxy({}, { get: () => () => null }),
-}))
-vi.mock('../../theme/tokens', () => ({
-  SPACE: [0, 4, 8, 12, 16, 20],
-  RADIUS: { card: 12 },
-  TYPE: {},
-  useTokens: () => ({}),
-}))
-vi.mock('../../feedback/haptics', () => ({
-  haptics: new Proxy({}, { get: () => () => {} }),
-}))
-vi.mock('../../components/LoadingSkeleton', () => ({
-  LoadingSkeleton: () => null,
-}))
-vi.mock('../../ui/button', () => ({
-  Button: ({ label, onPress, testID }: { label: string; onPress: () => void; testID: string }) =>
-    createElement(
-      'button',
-      { type: 'button', 'data-testid': testID, onClick: onPress },
-      label,
-    ),
-}))
-vi.mock('../../ui/card', () => ({
-  Card: ({ children }: { children: ReactNode }) =>
-    createElement('section', null, children),
-}))
-vi.mock('../../ui/section-label', () => ({
-  SectionLabel: ({ children }: { children: ReactNode }) =>
-    createElement('h4', null, children),
-}))
-vi.mock('../../ui/field', () => ({
-  Field: ({
-    value,
-    onChangeText,
-    testID,
-  }: {
-    value: string
-    onChangeText: (text: string) => void
-    testID: string
-  }) =>
-    createElement('input', {
-      'data-testid': testID,
-      value,
-      onChange: (event: { target: { value: string } }) =>
-        onChangeText(event.target.value),
-    }),
-}))
-vi.mock('../../ui/module-tile', () => ({
-  moduleTile: () => ({ group: 'home', glyph: {} }),
-}))
-vi.mock('../../ui/screen-header', () => ({ washScreenOptions: () => ({}) }))
-vi.mock('../../ui/wash-header', () => ({
-  WashHeader: ({ summary }: { summary: unknown }) => {
-    state.wash = summary
-    return null
-  },
-}))
-vi.mock('@expo/ui/community/menu', () => ({
-  MenuView: ({
-    testID,
-    actions,
-    onPressAction,
-  }: {
-    testID: string
-    actions: { id: string }[]
-    onPressAction: (event: { nativeEvent: { event: string } }) => void
-  }) =>
-    createElement(
-      'div',
-      { 'data-testid': testID },
-      actions.map((action) =>
-        createElement('button', {
-          type: 'button',
-          key: action.id || 'none',
-          'data-testid': `${testID}-${action.id || 'none'}`,
-          onClick: () => onPressAction({ nativeEvent: { event: action.id } }),
-        }),
-      ),
-    ),
-}))
-
-const byTestId = (id: string) =>
-  document.querySelector<HTMLElement>(`[data-testid="${id}"]`)
+const withAddress = {
+  site: { _id: 's1', name: 'Thuis' },
+  sources: [{ _id: 'src1', kind: 'manual', label: 'Meterstanden', status: 'ok' }],
+}
+const meter = {
+  _id: 'c1',
+  kind: 'gridImport',
+  unit: 'kWh',
+  previous: null,
+  onDay: null,
+  next: null,
+}
 
 beforeEach(() => {
-  state.overview = null
-  state.houses = []
-  state.creates = []
-  state.refuse = null
-  state.wash = null
+  resetEnergyState()
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-11-23T12:00:00Z'))
+  energyState.queries['energy:overview'] = null
+  energyState.queries['houses:list'] = []
+  energyState.queries['energyContracts:list'] = []
+  energyState.queries['energyUsage:month'] = usagePeriod({
+    days: energyMonthDays('2026-11'),
+    lastDay: '2026-11-22',
+  })
+})
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 test('empty, the wash says there is no address and the step opens the form', async () => {
   const view = mount(createElement(EnergyScreen))
-  expect(state.wash).toEqual({
+  expect(energyState.wash).toEqual({
     count: 'No address yet',
     sub: 'Usage, costs and prices per hour',
   })
@@ -195,7 +106,7 @@ test('empty, the wash says there is no address and the step opens the form', asy
 })
 
 test('Continue sends meter readings and the chosen House', async () => {
-  state.houses = [{ _id: 'house1', name: 'Dorpsstraat 1' }]
+  energyState.queries['houses:list'] = [{ _id: 'house1', name: 'Dorpsstraat 1' }]
   const view = mount(createElement(EnergyScreen))
   byTestId('energy-add-first')?.click()
   await settle()
@@ -204,7 +115,7 @@ test('Continue sends meter readings and the chosen House', async () => {
   await settle()
   byTestId('energy-submit')?.click()
   await settle()
-  expect(state.creates).toEqual([
+  expect(callsTo('energy:createSite')).toEqual([
     {
       groupSlug: 'home',
       name: 'Home',
@@ -216,7 +127,7 @@ test('Continue sends meter readings and the chosen House', async () => {
 })
 
 test('a refusal is said in words', async () => {
-  state.refuse = { kind: 'energy:houseNotFound' }
+  energyState.refuse = { kind: 'energy:houseNotFound' }
   const view = mount(createElement(EnergyScreen))
   byTestId('energy-add-first')?.click()
   await settle()
@@ -228,13 +139,51 @@ test('a refusal is said in words', async () => {
   view.unmount()
 })
 
-test('with an address, the wash names it and its source', () => {
-  state.overview = {
-    site: { _id: 's1', name: 'Thuis' },
-    sources: [{ _id: 'src1', kind: 'manual', label: 'Meterstanden', status: 'ok' }],
+test('with an address and no meters yet, the first step is a reading', () => {
+  energyState.queries['energy:overview'] = withAddress
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: true,
+    lastReadingAt: null,
+    channels: [],
   }
   const view = mount(createElement(EnergyScreen))
-  expect(state.wash).toEqual({ count: 'Thuis', sub: 'Meterstanden' })
-  expect(document.body.textContent).toContain('Coming next')
+  expect(energyState.wash).toEqual({
+    count: 'Thuis',
+    sub: fmt(en.energy.site.noReadingYet, { source: 'Meterstanden' }),
+  })
+  expect(byTestId('energy-first-reading')).not.toBeNull()
+  expect(byTestId('energy-usage-card')).toBeNull()
+  view.unmount()
+})
+
+test('with readings, the home shows the month and rows to every Energy screen', () => {
+  energyState.queries['energy:overview'] = withAddress
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: true,
+    lastReadingAt: Date.parse('2026-11-22T10:00:00Z'),
+    channels: [meter],
+  }
+  const view = mount(createElement(EnergyScreen))
+  expect(energyState.wash).toEqual({
+    count: 'Thuis',
+    sub: fmt(en.energy.site.lastReading, {
+      source: 'Meterstanden',
+      date: formatEnergyDate('2026-11-22', 'en', 'dayMonth'),
+    }),
+  })
+  expect(byTestId('energy-first-reading')).toBeNull()
+  expect(byTestId('energy-home-days')?.getAttribute('role')).toBe('image')
+  expect(byTestId('energy-nav')?.getAttribute('aria-label')).toBe(
+    en.energy.home.navLabel,
+  )
+  for (const [row, path] of [
+    ['usage', '/all/energy/usage'],
+    ['costs', '/all/energy/costs'],
+    ['readings', '/all/energy/readings'],
+    ['contract', '/all/energy/contract'],
+  ] as const) {
+    byTestId(`energy-row-${row}`)?.click()
+    expect(energyState.pushes.at(-1)).toBe(path)
+  }
   view.unmount()
 })

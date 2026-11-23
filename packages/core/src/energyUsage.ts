@@ -434,12 +434,14 @@ export function energyDayCost(
   const daysThisMonth = daysInMonth(parts.year, parts.month)
   const daysThisYear = parts.year % 4 === 0 && (parts.year % 100 !== 0 || parts.year % 400 === 0) ? 366 : 365
   const fixedCents = roundCents((contract.monthlyFixedCents / daysThisMonth) * vat)
-  const creditCents = -roundCents(
+  // Credits are negative, and a credit of nothing is 0, never −0 (which
+  // formats as "€ -0,00").
+  const creditCents = negativeCents(
     ((contract.yearlyTaxCreditCents ?? 0) / daysThisYear) * vat,
   )
 
   const importCents = roundCents(importEur * 100)
-  const exportCents = -roundCents(exportEur * 100)
+  const exportCents = negativeCents(exportEur * 100)
   const gasCents = roundCents(gasEur * 100)
   return {
     importCents,
@@ -449,6 +451,10 @@ export function energyDayCost(
     creditCents,
     totalCents: importCents + exportCents + gasCents + fixedCents + creditCents,
   }
+}
+
+function negativeCents(value: number): number {
+  return -roundCents(value) || 0
 }
 
 /** A month's expected total from the days so far, or null with none. */

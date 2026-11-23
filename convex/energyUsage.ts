@@ -24,6 +24,7 @@ import { energyContractKindValidator } from './lib/energy'
 import {
   channelsPresent,
   computeEnergyRange,
+  type EnergyHour,
   energyChannelsPresentValidator,
   energyCostStatusValidator,
   energyCostValidator,
@@ -160,11 +161,11 @@ export const month = query({
       },
       netMeteringChoice:
         netMeteringPossibleIn(args.month) &&
-        range.contracts.some(
-          (each) => each.netMetering && each.validFrom <= lastDay,
+        energyMonthDays(args.month).some(
+          (day) => energyContractOn(range.contracts, day)?.netMetering === true,
         ),
       days: [...range.days, ...future],
-      hours: [],
+      hours: [] as EnergyHour[],
       totals: totalsOf(range.days),
     }
   },
