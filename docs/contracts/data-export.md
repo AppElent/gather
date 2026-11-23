@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a Convex table, changing what "Export your data" contains, or changing who may see a row or column.
-version: 2.0.0
+version: 2.1.0
 status: current
 ---
 
@@ -53,8 +53,15 @@ everything user-owned belongs to a Group or to a person
   contract step drops that table. Its per-day question count
   (`groceryAiGroupUsage`) is spend bookkeeping, excluded like the global one,
   and deleted with the Group.
-- **No secrets.** `integrationConnections.accessToken` and `groups.inviteCode`
-  are omitted columns, listed in the file's `omittedFields`.
+- **No secrets.** `integrationConnections.accessToken`, `groups.inviteCode`
+  and the Energy tokens and keys (`energySources.secret`,
+  `energyPriceFeeds.secret`) are omitted columns, listed in the file's
+  `omittedFields`.
+- **Energy goes out with its Group, prices stay in** (ADR-0051). Addresses,
+  contracts, sources, channels, assets, readings and hourly intervals are
+  Group content. `energyPrices` is excluded as reference data: a market price
+  belongs to no Group, and an account price is the provider's published
+  tariff, fetchable again with the Group's key.
 - **Photos as links, not bytes.** A column registered in `FILE_HOLDERS`
   ([stored files](stored-files.md)) becomes `…Url` with `ctx.storage.getUrl`.
   Those links need no sign-in and do not expire, and the screen says so.
@@ -69,11 +76,22 @@ everything user-owned belongs to a Group or to a person
   Todoist-backed list live in that service and are not in the file.
 - **Bounded reads, assembled on the client.** `dataExport.manifest` names the
   tables and Groups; `dataExport.page` returns at most `PAGE_SIZE` rows of one
-  table from one index range. A child table is paged across its parents with a
+  table from one index range, and stops early at `PAGE_BYTES` (4 MiB) so a
+  table of large rows stays inside a query's read limit. A child table is paged across its parents with a
   compound cursor that names the parent by id, so a parent deleted mid-export
   never skips a later parent's rows. `collectExport` in
   `@gather/core/data-export` drains them in order, so web and phone write the
   same file.
+- **The account portal reads the same pages.** `convex/accountPortal.ts`
+  (AppElent `standards/account-portal.md`) serves account.appelent.nl:
+  `exportPage` walks the manifest's steps one `readExportPage` at a time
+  behind an opaque cursor (table, Group by id with its slug at the start,
+  page cursor), rechecks the membership on every page, keys a Group's rows
+  `groups/<slug>/<table>` and puts the file's header under `export` on the
+  first page; `summary` counts on the registry's indexes
+  (`countGroupRows`), at most 1,000 rows each. A caller with no account, or
+  one being deleted, gets `null` and an empty export; connected apps are
+  refused.
 - **The file is versioned.** It opens with `format: "gather.data-export"` and
   `version`, then `conventions`, `notIncluded`, `excludedTables` and
   `omittedFields`. Bump `EXPORT_VERSION` when a reader of the previous version

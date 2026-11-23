@@ -42,11 +42,12 @@ import { Card } from '../../ui/card'
 import { useDebouncedText } from '../../ui/use-debounced-text'
 import { AssigneeRow } from './assignee'
 import { Checkbox, Chip, priorityColor } from './components'
+import { detailWords } from './detailWords'
 import { GroceryFields } from './GroceryFields'
 import { TASK_ICONS } from './icons'
 import { reminderLabel } from './reminder'
 import { SubtaskSection } from './SubtaskSection'
-import { useTaskActions, useTaskState } from './store'
+import { useTaskActions, useTaskOf } from './store'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
 import { WishlistFields } from './WishlistFields'
@@ -56,7 +57,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
   const router = useRouter()
-  const state = useTaskState()
+  // The task's own list only, never every list in the Group (APP-565).
+  const state = useTaskOf(taskId)
   const actions = useTaskActions()
   const taskSheets = useTaskSheets({
     tasks: state.tasks,
@@ -68,7 +70,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const scrollRef = useRef<ScrollView>(null)
   const [dragging, setDragging] = useState(false)
 
-  const task = state.tasks.find((each) => each.id === taskId)
+  const task = state.task
   const list = state.lists.find((each) => each.id === task?.listId)
 
   useRecordRecent(
@@ -105,6 +107,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const overdue = Boolean(task.dueDate && isOverdue(task.dueDate, state.today))
   const open = (action: string) => taskSheets.onAction(task, action)
   const repeatWords = t.tasks.repeat
+  const words = detailWords(t, Boolean(list?.grocery))
   // A linked list is read-only in Gather, so its repeat is its provider's to
   // set: shown in the provider's words, with the row switched off (APP-303).
   const canRepeat = Boolean(list?.writable && list.provider === 'local')
@@ -155,10 +158,10 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             value={title.draft}
             onChangeText={title.change}
             onBlur={title.flush}
-            placeholder={t.tasks.task.titlePlaceholder}
+            placeholder={words.titlePlaceholder}
             placeholderTextColor={tokens.muted}
             multiline
-            accessibilityLabel={t.tasks.task.titlePlaceholder}
+            accessibilityLabel={words.titlePlaceholder}
             style={[
               styles.title,
               {
@@ -344,7 +347,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         <Pressable
           testID="detail-delete"
           accessibilityRole="button"
-          accessibilityLabel={t.tasks.task.delete}
+          accessibilityLabel={words.delete}
           onPress={() => open('delete')}
           style={({ pressed }) => [
             styles.delete,
@@ -360,7 +363,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             importantForAccessibility="no"
           />
           <Text style={[styles.deleteText, { color: tokens.danger }]}>
-            {t.tasks.task.delete}
+            {words.delete}
           </Text>
         </Pressable>
       </ScrollView>

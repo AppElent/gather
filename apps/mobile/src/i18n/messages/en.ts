@@ -76,6 +76,7 @@ export const en = {
    * that rule names.
    */
   finances: coreEn.finances,
+  energy: coreEn.energy,
 
   /**
    * Loyalty cards: the shared tree, plus the words only the phone says —
@@ -161,6 +162,38 @@ export const en = {
       loyaltyCard: 'Loyalty card',
     },
     kinds: { cheese: 'Cheese', wine: 'Wine', beer: 'Beer' },
+    /** A search pushed from a Module (APP-613): its title and its header button. */
+    inModule: 'Search in {module}',
+    /** The field's placeholder there. */
+    placeholderModule: 'Search {module}',
+    /** The filter chips at the top of the results (APP-613). */
+    filters: {
+      label: 'Filters',
+      /** Every chip's VoiceOver label. */
+      chip: '{filter}: {value}. Tap to change.',
+      module: 'Module',
+      allModules: 'All Modules',
+      /** The selected Module chip's ✕. */
+      clearModule: 'Search all Modules',
+      /** The Module sheet's title. */
+      sheetTitle: 'Search in',
+      who: 'Who',
+      anyone: 'Anyone',
+      me: 'Me',
+      when: 'When',
+      anytime: 'Any time',
+      whenValues: {
+        today: 'Today',
+        week: 'This week',
+        month: 'This month',
+        earlier: 'Earlier',
+      },
+      status: 'Status',
+      anyStatus: 'Any',
+      statusValues: { open: 'Open', done: 'Done' },
+      noResults: 'Nothing found with these filters.',
+      clear: 'Clear filters',
+    },
   },
 
   /**
@@ -297,6 +330,11 @@ export const en = {
         'Drag a handle to rearrange. A module stays in its own category.',
       dragModule: 'Reorder {module}',
       dragSection: 'Reorder {section}',
+      /** VoiceOver's actions on a row in Edit mode, which cannot drag a grip. */
+      moveUpAction: 'Move up',
+      moveDownAction: 'Move down',
+      /** Said after one of them. `{item}` is a module or a category; positions count from 1. */
+      moved: '{item} moved to position {position} of {total}',
     },
 
     placeholder: coreEn.shell.placeholder,
@@ -431,6 +469,16 @@ export const en = {
     dataSources: coreEn.shell.about.dataSources.title,
 
     /**
+     * The line at the foot of Settings. The update is `update <label>`, where
+     * the label is the release standard's, or `no update` on the embedded bundle.
+     */
+    buildInfo: {
+      line: 'Version {version} ({build}) · {update} · {channel}',
+      update: 'update {label}',
+      noUpdate: 'no update',
+    },
+
+    /**
      * The field above the list. It is the way through for somebody who knows
      * the word and not the group, so its own words have to be the plainest
      * ones available.
@@ -443,6 +491,27 @@ export const en = {
 
     /** The card at the top of the list; `{name}` is a name or an email. */
     identity: 'Account: {name}',
+  },
+
+  /**
+   * Sentry's report form, opened by a shake or the Report a problem row in
+   * Settings (APP-439). Sentry draws the form; these are its words.
+   */
+  feedback: {
+    report: 'Report a problem',
+    message: 'What went wrong?',
+    placeholder: 'What happened, and what did you expect?',
+    required: '(required)',
+    submit: 'Send report',
+    cancel: 'Cancel',
+    add: 'Add a screenshot',
+    take: 'Take a screenshot',
+    remove: 'Remove screenshot',
+    error: 'The report could not be sent. Try again.',
+    success: 'Thanks. Your report was sent.',
+    /** The row's answer in a build that does not report to Sentry. */
+    unavailable:
+      'Reporting a problem is not available in this version of Gather.',
   },
 
   /**
@@ -716,6 +785,7 @@ export const en = {
       cost: 'Costs 1 smart action · {left} of {limit} left today',
       offline: 'Offline, try again later',
       empty: 'Everything on these days is already planned.',
+      nothingFits: 'No proposal fits these days. Nothing in your week menu changed.',
       failed: 'That did not work. Nothing in your week menu changed.',
       limitTitle: 'Your smart actions for today are used up',
       limitBody: 'You used {used} of {limit} today. Tomorrow you can again. Nothing in your week menu changed.',
@@ -757,6 +827,8 @@ export const en = {
       wishPlaceholder: 'Any wish? For example: chicken, quick',
       chips: { chickenQuick: 'Chicken, quick', meatFree: 'Meat-free', faster: 'Quicker' },
       quickMeal: 'quick meal',
+      reasonStock: 'Uses your {names}',
+      reasonFits: 'Fits in {minutes} min',
       choose: 'Choose',
       chosen: 'Chosen',
       chooseLabel: 'Choose {title} for {day}',
@@ -784,7 +856,7 @@ export const en = {
       fewer: 'One person fewer',
       more: 'One person more',
       inStock: 'in stock',
-      footnote: 'Made by AI. Check for allergies yourself. Gather gives no nutrition values for this recipe.',
+      footnote: 'Made by AI. Check for allergies yourself. This idea has no nutrition values; once saved, you can add or estimate them on the recipe.',
       savePlan: 'Save and put on {weekday}',
       saveOnly: 'Save only',
       another: 'Another idea',
@@ -966,6 +1038,7 @@ export const en = {
       'That password has turned up in a data breach. Please pick another.',
     codeIncorrect: 'That code is not right.',
     codeExpired: coreEn.auth.errors.codeExpired,
+    codeAttemptsExceeded: coreEn.auth.errors.codeAttemptsExceeded,
     emailCodeUnavailable: coreEn.auth.signIn.emailCode.unavailable,
     needsExtraStep: coreEn.auth.errors.needsExtraStep,
     noSecondFactor: coreEn.auth.errors.noSecondFactor,
@@ -1079,6 +1152,68 @@ export const en = {
   },
 
   /**
+   * The keyboard composer (APP-587): one shell, pinned to the top of the
+   * keyboard, for a new task now and a new note or event later. Its own
+   * chrome and the task's chips; the field names are the task form's.
+   */
+  composer: {
+    /** The drag handle and the button top right, both ways. */
+    expand: 'Expand',
+    collapse: 'Collapse',
+    /** The + button: the details not always shown. */
+    more: 'More details',
+    /** The + menu's last entry: the task form, with everything kept. */
+    allDetails: 'All details',
+    /** The last entry in a set chip's menu. */
+    remove: 'Remove',
+    save: 'Save',
+    /** The dim scrim behind the composer, for VoiceOver. */
+    close: 'Close',
+    /** The add button on the Tasks screens. */
+    addTask: 'Add task',
+    taskTitle: 'Task name',
+    description: 'Description',
+    taskBody: 'Description, links, what’s needed…',
+    /** The add button on Notes (APP-588), and the note's body field. */
+    addNote: 'New note',
+    noteBody: 'Start typing…',
+    /** A note's save failed while the composer still showed it. */
+    noteFailed: 'That note could not be saved. Try again.',
+    /** A note's save failed once the composer had moved on or closed. */
+    noteNotSaved: '“{title}” was not saved.',
+    label: 'Label',
+    /** Starts a #label in the field, where it is recognised as typed. */
+    newLabel: 'New label…',
+    /** The Repeat menu's last entry: the Repeat sheet. */
+    customRepeat: 'Custom…',
+    date: {
+      label: 'Date',
+      weekend: 'This weekend',
+      nextWeek: 'Next week',
+      pick: 'Pick a date…',
+    },
+    time: {
+      pick: 'Pick a time…',
+    },
+    /** The task went in; a note or a reminder chosen with it did not. */
+    detailsFailed: 'The task was added, but not all of its details.',
+    /** A save that failed once the composer had moved on or closed. */
+    notAdded: '“{title}” was not added.',
+    tryAgain: 'Try again',
+    discard: 'Discard',
+    ok: 'OK',
+    /** The add button on Calendar (APP-589), and the event's fields. */
+    addEvent: 'Add event',
+    eventTitle: 'What’s happening?',
+    eventNote: 'Note',
+    eventBody: 'Note: what to bring, address…',
+    /** An event's save failed while the composer still showed it. */
+    eventFailed: 'That event could not be saved. Try again.',
+    /** An event's save failed once the composer had moved on or closed. */
+    eventNotSaved: '“{title}” was not saved.',
+  },
+
+  /**
    * The Tasks Module's own words: the phone's, not `coreEn.tasks`. The web's
    * tree for the same Module is a different shape, and merging the two is
    * ADR-0017 work; until then a second `tasks` key here is a duplicate-key
@@ -1113,6 +1248,16 @@ export const en = {
       save: 'Add task',
       noList: 'This group has no list Gather can add a task to yet.',
       failed: 'That task could not be added. Try again.',
+      /** APP-307: under the field; dates and the rest are read as typed. */
+      hint: 'Dates, repeats, @Member and #label are recognised',
+      /** Adds the task and opens it, for what the line cannot say. */
+      moreDetails: 'More details',
+      /** A recognised part's ×, for VoiceOver: "Remove Tomorrow, Thu 19 Nov". */
+      remove: 'Remove {part}',
+      /** The list chip, for VoiceOver. */
+      listChip: 'List: {list}, change',
+      /** A typed time is the task's reminder; the task went in without it. */
+      reminderFailed: 'The task was added, but not its reminder.',
     },
     today: 'Today',
     todayEmpty: 'Nothing due today.',
@@ -1143,6 +1288,18 @@ export const en = {
         'Drag to rearrange. Completing, editing and swiping are off until you tap Done.',
       /** Completed rows have no order anyone arranges, so the mode hides them. */
       reorderCompleted: 'Completed tasks are hidden while you rearrange.',
+      /** Reorder mode's banner on a grocery list, arranged in its aisles (APP-522). */
+      reorderAislesHint:
+        'Drag an item under another aisle to move it there. Checking, editing and swiping are off until you tap Done.',
+      reorderChecked: 'Checked items are hidden while you rearrange.',
+      /** Reorder mode put back to the saved order after a refused drop (APP-534). */
+      reorderReset: "That move didn't save. This is the list as it is now.",
+      /** VoiceOver's actions on a row in reorder mode, which cannot drag a grip (APP-572). */
+      moveUpAction: 'Move up',
+      moveDownAction: 'Move down',
+      /** Said after one of them. Positions count from 1, within the section. */
+      movedTo: '{task} moved to position {position} of {total}',
+      movedToSection: '{task} moved to {section}, position {position} of {total}',
       /** A list Gather may read and not write (ADR-0021). */
       readOnly:
         'This list lives in {provider}. Gather can read it, but not write to it — so there is no composer here.',
@@ -1258,13 +1415,9 @@ export const en = {
   /** The Notes Module's own words, on the same terms as `tasks` above. */
   notes: {
     title: 'Notes',
-    search: 'Search notes',
     pinned: 'Pinned',
     recent: 'Recent',
     empty: 'No notes yet.',
-    /** Nothing matched the field — never an add button (mobile-interaction). */
-    noMatches: 'Nothing called “{query}”.',
-    newNote: 'New note',
     untitled: 'Untitled note',
     titlePlaceholder: 'Title',
     bodyPlaceholder: 'Start writing…',

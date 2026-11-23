@@ -144,6 +144,23 @@ describe('calendar model', () => {
     ).toBe(1)
   })
 
+  test('a day cell draws one mark and counts the rest as overflow', () => {
+    const events = [
+      event({ id: 'a', assigneeIds: ['1', '2'] }),
+      event({ id: 'b', assigneeIds: [] }),
+    ]
+    const shown = visibleMarksForDate('2026-09-12', events, [
+      { id: '1', name: 'Eric' },
+      { id: '2', name: 'Sanne' },
+    ])
+    expect(shown.marks).toHaveLength(1)
+    expect(shown.overflow).toBe(2)
+    expect(
+      visibleMarksForDate('2026-09-12', [event({ id: 'a', assigneeIds: [] })], [])
+        .overflow,
+    ).toBe(0)
+  })
+
   test('filters calendars and people with intersection semantics', () => {
     const events = [
       event({ id: 'a', assigneeIds: ['u1'] }),

@@ -16,6 +16,7 @@
  *   render either way.
  */
 
+import { type GroupRefusalCode, groupRefusal } from '@gather/core/refusals'
 import { ConvexError, type Value, v } from 'convex/values'
 import type { Doc, Id, TableNames } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
@@ -64,7 +65,7 @@ export function isVisibleToGroups<G>(
  * "not yours" would tell a stranger that a slug exists; collapsing the other
  * way would show a member of nothing a permission error for a typo.
  */
-export type GroupRefusal = 'not-signed-in' | 'unknown-slug' | 'not-a-member'
+export type GroupRefusal = GroupRefusalCode
 
 export interface ResolvedGroup {
   user: Doc<'users'>
@@ -78,14 +79,27 @@ export type GroupResolution =
   | { ok: false; reason: GroupRefusal }
 
 /**
- * The message `requireGroupBySlug` throws for each refusal. Exported so that a
- * caller — or a test — can tell the cases apart by something more stable than
- * prose, and so the two never drift into the same string.
+ * The English sentence each refusal threw before it was keyed (APP-429). It
+ * still rides along as the refusal's `message`, so a reader with no wording of
+ * its own for the kind shows what it always showed. Never compare against it:
+ * read the kind with `readGroupRefusal`.
  */
 export const GROUP_REFUSAL_MESSAGES: Record<GroupRefusal, string> = {
   'not-signed-in': NOT_SIGNED_IN,
   'unknown-slug': 'No group has that slug',
+  'unknown-group': 'Group not found',
   'not-a-member': 'Not a member of that group',
+}
+
+/**
+ * The keyed error for a refused Group: `{ kind: 'groups:<reason>', message }`.
+ * Every refusal of a Group, in a query, a mutation or an action, throws this.
+ */
+export function groupRefusalError(reason: GroupRefusal): ConvexError<{
+  kind: string
+  message: string
+}> {
+  return new ConvexError(groupRefusal(reason, GROUP_REFUSAL_MESSAGES[reason]))
 }
 
 /**
@@ -154,8 +168,7 @@ export async function requireGroupBySlug(
   slug: string,
 ): Promise<ResolvedGroup> {
   const resolution = await resolveGroupBySlug(ctx, slug)
-  if (!resolution.ok)
-    throw new ConvexError(GROUP_REFUSAL_MESSAGES[resolution.reason])
+  if (!resolution.ok) throw groupRefusalError(resolution.reason)
   const { user, group, membership, role } = resolution
   return { user, group, membership, role }
 }

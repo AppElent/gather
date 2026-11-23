@@ -14,6 +14,7 @@ export type ScrubbableBreadcrumb = {
 
 /** The slice of a Sentry event this module reads or removes. */
 export type ScrubbableEvent = {
+  type?: string
   user?: { id?: string | number } | undefined
   request?: { method?: string; url?: string } | undefined
   extra?: unknown
@@ -163,4 +164,27 @@ function scrub(event: ScrubbableEvent): void {
         (breadcrumb): breadcrumb is ScrubbableBreadcrumb => breadcrumb !== null,
       )
   }
+}
+
+/**
+ * A report a person sent from the phone's feedback form. Feedback events skip
+ * Sentry's `beforeSend`, so the phone registers this as a global event
+ * processor: the typed text gets the same redaction as an error message, the
+ * contact fields go (the form never asks for them, but the SDK fills them from
+ * a scope user), the page URL loses its query string, and then the rest of the
+ * event is scrubbed like any other. Other events pass through untouched; their
+ * own `beforeSend` does the work.
+ */
+export function sanitizeFeedbackEvent<T extends ScrubbableEvent>(event: T): T {
+  if (event.type !== 'feedback') return event
+  const feedback = event.contexts?.feedback as
+    | { message?: string; url?: string; contact_email?: string; name?: string }
+    | undefined
+  if (feedback) {
+    if (feedback.message) feedback.message = sanitizeText(feedback.message)
+    if (feedback.url) feedback.url = sanitizeText(stripUrl(feedback.url))
+    delete feedback.contact_email
+    delete feedback.name
+  }
+  return sanitizeEvent(event)
 }

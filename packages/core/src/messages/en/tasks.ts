@@ -176,8 +176,23 @@ export const tasks = {
     clearAmount: 'No amount',
     unit: 'Unit',
     aisle: 'Aisle',
+    /** An item's own screen says item, not task (APP-387). */
+    itemPlaceholder: 'What do you need?',
+    deleteItem: 'Delete item',
+    /**
+     * The Labels sheet on a grocery item (APP-557). A label is shared by every
+     * task and item in the Group, so removing one everywhere names no kind.
+     */
+    labelsOnItem: 'On this item',
+    removeLabelEverywhere: 'Remove everywhere',
     /** Under the composer while a line is typed. */
-    recognised: 'Recognised without AI, also offline',
+    recognised: 'Amount and aisle filled in from what you type',
+    /** The same, when only the amount was read: the aisle was chosen, or not known. */
+    recognisedAmount: 'Amount filled in from what you type',
+    /** The same, when only the aisle was filled in. */
+    recognisedAisle: 'Aisle filled in from what you type',
+    /** Read out for the composer's aisle chip, which opens the aisle menu. */
+    changeAisleHint: 'Choose the aisle it is added in',
     // The list in aisle sections, the Checked row and Recent (APP-310;
     // `designs/groceries/README.md` sections 1 and 4).
     /** Read out for an aisle section's heading: the aisle and its count. */
@@ -268,7 +283,7 @@ export const tasks = {
       /** Autocomplete rows' footnotes. */
       often: 'Often bought · {cadence}',
       history: 'Your history',
-      dictionary: 'Dictionary',
+      dictionary: 'Known product',
       /** Appended to a row's footnote when the name is already open. */
       onList: 'already on the list',
       onListAmount: 'already on the list ({amount})',
@@ -277,6 +292,21 @@ export const tasks = {
     },
     /** The undo of Clear checked, refused: the list was cleared since (APP-403). */
     undoSuperseded: 'The list was cleared again since. Nothing was undone.',
+    /**
+     * Shopping mode (APP-315, designs/groceries section 8): large rows in
+     * aisle order, the screen kept on, one tap to check.
+     */
+    shopping: {
+      /** The list's action-row pill that starts it. */
+      start: 'Shop',
+      title: 'Shopping',
+      progress: '{done} of {total}',
+      progressLabel: '{done} of {total} checked',
+      awake: '{list} · screen stays on until you are done',
+      checked: '{name} checked',
+      finish: 'Done shopping',
+      empty: 'Nothing left to buy on this list.',
+    },
     recent: {
       title: 'Recent',
       count: { one: '{count} item', other: '{count} items' },
@@ -321,6 +351,7 @@ export const tasks = {
       readWithAi: 'Read with AI · {used} of your {limit} today',
       readWithAiEarlier: 'Read with AI earlier',
       reading: 'Reading with AI…',
+      readingAsText: 'Reading with AI… · added as text if you add now',
       asText: 'Added as text',
       add: { one: 'Add {count} to the list', other: 'Add {count} to the list' },
       footnote:

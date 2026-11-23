@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as accountPortal from "../accountPortal.js";
 import type * as accounts from "../accounts.js";
 import type * as activity from "../activity.js";
 import type * as aiUsage from "../aiUsage.js";
@@ -17,6 +18,10 @@ import type * as calendar from "../calendar.js";
 import type * as cascade from "../cascade.js";
 import type * as crons from "../crons.js";
 import type * as dataExport from "../dataExport.js";
+import type * as energy from "../energy.js";
+import type * as energyContracts from "../energyContracts.js";
+import type * as energyReadings from "../energyReadings.js";
+import type * as energyUsage from "../energyUsage.js";
 import type * as groceryCategories from "../groceryCategories.js";
 import type * as groceryLines from "../groceryLines.js";
 import type * as groceryPrune from "../groceryPrune.js";
@@ -35,6 +40,8 @@ import type * as lib_calendar from "../lib/calendar.js";
 import type * as lib_clerkUsers from "../lib/clerkUsers.js";
 import type * as lib_connectedApps from "../lib/connectedApps.js";
 import type * as lib_dataExport from "../lib/dataExport.js";
+import type * as lib_energy from "../lib/energy.js";
+import type * as lib_energyUsage from "../lib/energyUsage.js";
 import type * as lib_finance from "../lib/finance.js";
 import type * as lib_groceryAi from "../lib/groceryAi.js";
 import type * as lib_groceryCategories from "../lib/groceryCategories.js";
@@ -115,6 +122,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  accountPortal: typeof accountPortal;
   accounts: typeof accounts;
   activity: typeof activity;
   aiUsage: typeof aiUsage;
@@ -124,6 +132,10 @@ declare const fullApi: ApiFromModules<{
   cascade: typeof cascade;
   crons: typeof crons;
   dataExport: typeof dataExport;
+  energy: typeof energy;
+  energyContracts: typeof energyContracts;
+  energyReadings: typeof energyReadings;
+  energyUsage: typeof energyUsage;
   groceryCategories: typeof groceryCategories;
   groceryLines: typeof groceryLines;
   groceryPrune: typeof groceryPrune;
@@ -142,6 +154,8 @@ declare const fullApi: ApiFromModules<{
   "lib/clerkUsers": typeof lib_clerkUsers;
   "lib/connectedApps": typeof lib_connectedApps;
   "lib/dataExport": typeof lib_dataExport;
+  "lib/energy": typeof lib_energy;
+  "lib/energyUsage": typeof lib_energyUsage;
   "lib/finance": typeof lib_finance;
   "lib/groceryAi": typeof lib_groceryAi;
   "lib/groceryCategories": typeof lib_groceryCategories;

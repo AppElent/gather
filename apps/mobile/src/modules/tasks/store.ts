@@ -20,7 +20,7 @@ import {
   SMART_LISTS,
   type SmartListId,
 } from '@gather/core/smart-lists'
-import { subtaskProgress } from '@gather/core/subtasks'
+import { subtaskProgress, topLevelTasks } from '@gather/core/subtasks'
 import {
   asTaskListKind,
   type TaskListColor,
@@ -28,15 +28,25 @@ import {
   type TaskListKind,
   taskListFace,
 } from '@gather/core/task-lists'
+import type { QuickAdd } from '@gather/core/task-quick-add'
 import type { ReminderClock } from '@gather/core/task-reminders'
 import { nextDueDate, type TaskRepeat } from '@gather/core/task-repeat'
 import type { OptimisticLocalStore } from 'convex/browser'
 import { useAction, useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { api, type Doc, type Id } from '../../convex/api'
 import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
+import { type ComposedTask, parsedTask } from './composerDraft'
+import { deviceTimeZone } from './reminder'
 import type { ListDisplay, ListSync, Priority, Task, TaskList } from './types'
 
 type ListRow = FunctionReturnType<typeof api.taskLists.list>[number]
@@ -367,13 +377,12 @@ export function announceCompletion(done: CompletedOccurrence) {
 
 const NO_LISTS: readonly ListRow[] = []
 
-function useListsOf(lists: readonly ListRow[]) {
+/**
+ * The linked lists' last answers, and a way to ask for one again. A linked
+ * list is fetched once when first seen (ADR-0021); a local list is never asked.
+ */
+function useLinkedLists(lists: readonly ListRow[]) {
   const { group } = useGroup()
-  const localQueries = useMemo(
-    () => localTaskQueries(lists, group.slug),
-    [lists, group.slug],
-  )
-  const local = useQueries(localQueries)
   const linked = useSyncExternalStore(subscribe, externalSnapshot)
   const getTasks = useAction(api.taskLists.getTasks)
   const fetchTasks = useCallback(
@@ -392,6 +401,17 @@ function useListsOf(lists: readonly ListRow[]) {
     (listId: string) => syncExternalList(listId, fetchTasks),
     [fetchTasks],
   )
+  return { linked, refresh }
+}
+
+function useListsOf(lists: readonly ListRow[]) {
+  const { group } = useGroup()
+  const localQueries = useMemo(
+    () => localTaskQueries(lists, group.slug),
+    [lists, group.slug],
+  )
+  const local = useQueries(localQueries)
+  const { linked, refresh } = useLinkedLists(lists)
   return { ...mergeTasks(lists, local, linked), refresh }
 }
 
@@ -445,12 +465,160 @@ export function useTaskList(listId: string) {
   }
 }
 
+/** The linked list among `lists` whose last answer holds the task, if any. */
+export function linkedHomeOf(
+  lists: readonly ListRow[] | undefined,
+  linked: ReadonlyMap<string, ExternalEntry>,
+  taskId: string,
+): string | undefined {
+  return (lists ?? NO_LISTS).find(
+    (list) =>
+      list.provider !== 'local' &&
+      linked.get(list._id)?.tasks.some((task) => task.id === taskId),
+  )?._id
+}
+
+/**
+ * One task's list and its tasks (APP-565: the task's detail screen), without
+ * subscribing to the rest of the Group's lists. A linked task is found in its
+ * list's last answer; any other is placed by `tasks.listOf`. Only a task
+ * neither knows (a linked one nobody has fetched yet, say from Recents) asks
+ * the Group's linked lists, as opening them would. `task` stays the last row
+ * seen while the server still places it, so moving it to another list does
+ * not blank the screen while that list's rows arrive.
+ */
+export function useTaskOf(taskId: string) {
+  const { group } = useGroup()
+  const lists = useTaskLists()
+  const linked = useSyncExternalStore(subscribe, externalSnapshot)
+  const linkedHome = linkedHomeOf(lists, linked, taskId)
+  const localHome = useQuery(
+    api.tasks.listOf,
+    linkedHome ? 'skip' : { groupSlug: group.slug, taskId },
+  )
+  const home = linkedHome ?? localHome ?? undefined
+  const unknown = !linkedHome && localHome === null
+  const only = useMemo(() => {
+    const all = lists ?? NO_LISTS
+    if (home) return all.filter((list) => list._id === home)
+    if (unknown) return all.filter((list) => list.provider !== 'local')
+    return NO_LISTS
+  }, [lists, home, unknown])
+  const state = useListsOf(only)
+  const found = state.tasks.find((task) => task.id === taskId)
+  const last = useRef<Task | undefined>(undefined)
+  if (found) last.current = found
+  else if (!home) last.current = undefined
+  return {
+    today: localIsoDate(),
+    lists: state.lists,
+    tasks: state.tasks,
+    task: found ?? last.current,
+  }
+}
+
+/**
+ * Every label typed in the Current Group (APP-565: the Labels sheet's
+ * suggestions): one `tasks.labels` subscription for the local lists, and the
+ * last fetched rows of its linked lists, without asking any provider.
+ */
+export function useGroupLabels(): readonly string[] {
+  const { group } = useGroup()
+  const lists = useTaskLists()
+  const local = useQuery(api.tasks.labels, { groupSlug: group.slug })
+  const linked = useSyncExternalStore(subscribe, externalSnapshot)
+  return useMemo(() => {
+    const found = new Set(local ?? [])
+    for (const list of lists ?? NO_LISTS) {
+      if (list.provider === 'local') continue
+      for (const task of linked.get(list._id)?.tasks ?? []) {
+        for (const label of task.labels) found.add(label)
+      }
+    }
+    return Array.from(found).sort()
+  }, [local, lists, linked])
+}
+
 /**
  * The tasks of the given lists only (APP-313: the Grocery lists sheet's
  * counts). `lists` must be memoised by the caller, as `useQueries` needs.
  */
 export function useTasksOf(lists: readonly ListRow[]) {
   return useListsOf(lists)
+}
+
+type OpenCountsRow = FunctionReturnType<typeof api.tasks.openCounts>[number]
+
+/** How a list's tasks stand, top-level tasks only (APP-304). */
+export interface ListCount {
+  open: number
+  /** Only a list that keeps checked items in place (packing) reports these. */
+  done?: number
+  total?: number
+}
+
+/**
+ * The Tasks index's lists and how many tasks each holds, from Convex's counts
+ * for local lists and the provider's last rows for linked ones (APP-430). A
+ * list whose count is not known yet has none.
+ */
+export function indexModel(
+  lists: readonly ListRow[] | undefined,
+  answer: readonly OpenCountsRow[] | undefined,
+  linked: ReadonlyMap<string, ExternalEntry>,
+): {
+  lists: TaskList[]
+  counts: ReadonlyMap<string, ListCount>
+  openTotal: number
+} {
+  const local = answer && new Map(answer.map((row) => [row.listId, row]))
+  const counts = new Map<string, ListCount>()
+  const views = (lists ?? NO_LISTS).map((list) => {
+    if (list.provider === 'local') {
+      // Counts for the whole Group arrive together; a list they do not name
+      // yet (just made) has nothing in it.
+      if (local) {
+        const row = local.get(list._id)
+        counts.set(
+          list._id,
+          row
+            ? { open: row.open, done: row.done, total: row.total }
+            : { open: 0 },
+        )
+      }
+      return listView(list, local ? 'live' : 'loading')
+    }
+    const entry = linked.get(list._id)
+    if (entry && !(entry.sync === 'loading' && entry.tasks.length === 0)) {
+      const rows = topLevelTasks(entry.tasks)
+      const done = rows.filter((task) => task.done).length
+      counts.set(list._id, {
+        open: rows.length - done,
+        done,
+        total: rows.length,
+      })
+    }
+    return listView(list, entry?.sync ?? 'loading')
+  })
+  let openTotal = 0
+  for (const count of counts.values()) openTotal += count.open
+  return { lists: views, counts, openTotal }
+}
+
+/**
+ * The Tasks index's lists and counts: one Convex subscription for every local
+ * list's counts, never a subscription to a list's rows. A linked list is
+ * fetched from its provider once, as anywhere else (ADR-0021).
+ */
+export function useTaskIndex() {
+  const { group } = useGroup()
+  const lists = useTaskLists()
+  const answer = useQuery(api.tasks.openCounts, { groupSlug: group.slug })
+  const { linked } = useLinkedLists(lists ?? NO_LISTS)
+  return useMemo(
+    () => indexModel(lists, answer, linked),
+    [lists, answer, linked],
+  )
 }
 
 type SmartAnswerRow = FunctionReturnType<typeof api.tasks.smartLists>
@@ -568,6 +736,40 @@ export function useSmartLists(): SmartLists {
 }
 
 /** Every write Tasks makes, in the Current Group. */
+/** How the note and reminder written after a composed task went. */
+export interface ComposedDetails {
+  notesFailed: boolean
+  reminderFailed: boolean
+  /** A reminder went in with this write: the moment to ask to notify. */
+  reminderSet: boolean
+  /** Writes again only what failed, onto the same task; none when all went in. */
+  retry?: () => Promise<ComposedDetails>
+}
+
+/**
+ * What a task's note and reminder writes came to, each on its own: a reminder
+ * that went in is set even when the note failed, and what failed is what a
+ * retry writes again.
+ */
+export function settledDetails(
+  details: Pick<ComposedTask, 'notes' | 'reminder'>,
+  notes: PromiseSettledResult<unknown>,
+  reminder: PromiseSettledResult<unknown>,
+): Omit<ComposedDetails, 'retry'> & {
+  failed: Pick<ComposedTask, 'notes' | 'reminder'>
+} {
+  const failed = {
+    notes: notes.status === 'rejected' ? details.notes : undefined,
+    reminder: reminder.status === 'rejected' ? details.reminder : undefined,
+  }
+  return {
+    notesFailed: failed.notes !== undefined,
+    reminderFailed: failed.reminder !== undefined,
+    reminderSet: details.reminder !== undefined && reminder.status === 'fulfilled',
+    failed,
+  }
+}
+
 export function useTaskActions() {
   const { group } = useGroup()
   const groupSlug = group.slug
@@ -592,6 +794,8 @@ export function useTaskActions() {
   const restoreCheckedCleared = useMutation(api.taskLists.restoreCheckedCleared)
   const setAisleOrder = useMutation(api.taskLists.setAisleOrder)
   const putBack = useMutation(api.tasks.putBack)
+  const putBackChecked = useMutation(api.tasks.putBackChecked)
+  const removePutBack = useMutation(api.tasks.removePutBack)
   const setSuggestions = useMutation(api.taskLists.setSuggestions)
   const hideSuggestion = useMutation(api.taskLists.hideSuggestion)
   const unhideSuggestion = useMutation(api.taskLists.unhideSuggestion)
@@ -608,6 +812,59 @@ export function useTaskActions() {
     id: string,
     fields: Omit<Parameters<typeof update>[0], 'taskId' | 'groupSlug'>,
   ) => update({ taskId: id as Id<'tasks'>, groupSlug, ...fields })
+
+  /** The note and reminder `add` does not take, as writes of their own. */
+  const composedDetails = async (
+    taskId: string,
+    details: Pick<ComposedTask, 'notes' | 'reminder'>,
+  ): Promise<ComposedDetails> => {
+    const [notes, reminder] = await Promise.allSettled([
+      details.notes ? patch(taskId, { notes: details.notes }) : null,
+      details.reminder
+        ? setReminder({
+            taskId: taskId as Id<'tasks'>,
+            groupSlug,
+            reminder: { ...details.reminder, timeZone: deviceTimeZone() },
+          })
+        : null,
+    ])
+    const { failed, ...outcome } = settledDetails(details, notes, reminder)
+    return {
+      ...outcome,
+      retry:
+        outcome.notesFailed || outcome.reminderFailed
+          ? () => composedDetails(taskId, failed)
+          : undefined,
+    }
+  }
+
+  const addComposed = async (
+    listId: string,
+    task: ComposedTask,
+    saveKey: string | undefined,
+    sectionId?: string,
+  ): Promise<{ taskId: string } & ComposedDetails> => {
+    const taskId = await add({
+      listId: listId as Id<'taskLists'>,
+      groupSlug,
+      title: task.title,
+      today: localIsoDate(),
+      // The draft's own key: sent twice (a close and reopen mid-save, or a
+      // retry after a lost answer), it still makes one task.
+      ...(saveKey ? { idempotencyKey: saveKey } : {}),
+      ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+      ...(task.repeat ? { repeat: task.repeat } : {}),
+      ...(task.assigneeId
+        ? { assigneeId: task.assigneeId as Id<'users'> }
+        : {}),
+      ...(task.labels.length > 0 ? { labels: task.labels } : {}),
+      ...(task.priority ? { priority: task.priority } : {}),
+      ...(sectionId ? { sectionId } : {}),
+    })
+    // `add` takes no notes and no reminder: both are their own writes, so
+    // an installed server from before the composer is all this needs.
+    return { taskId, ...(await composedDetails(taskId, task)) }
+  }
 
   return {
     /**
@@ -628,6 +885,29 @@ export function useTaskActions() {
         ...(grocery ? groceryAddFields(title) : { title }),
         ...(sectionId ? { sectionId } : {}),
       }),
+    /**
+     * A quick-add line onto a list (APP-307): the title with what was
+     * recognised in it as the task's fields. A time becomes the caller's
+     * reminder, written once the task exists; if that write fails the task
+     * stays, without it, and the answer says so.
+     */
+    addParsedTask: async (
+      listId: string,
+      parsed: QuickAdd,
+      sectionId?: string,
+    ): Promise<{ taskId: string; reminderFailed: boolean }> =>
+      addComposed(listId, parsedTask(parsed), undefined, sectionId),
+    /**
+     * A task from the keyboard composer (APP-587), every detail it was given
+     * at once. Notes and a reminder are written once the task exists; the
+     * task stays if either fails, and the answer says which.
+     */
+    addComposedTask: (
+      listId: string,
+      task: ComposedTask,
+      saveKey: string,
+      sectionId?: string,
+    ) => addComposed(listId, task, saveKey, sectionId),
     /**
      * Ticks a task, or completes a repeating one's open occurrence. The
      * phone's own day goes along, so "after done" counts from it.
@@ -803,6 +1083,23 @@ export function useTaskActions() {
         groupSlug,
       }),
     /**
+     * A grocery list's "Put back all" (APP-427): open copies of its checked
+     * items, which stay in the history. Answers the copies, for the undo.
+     */
+    putBackChecked: (listId: string, taskIds: string[]) =>
+      putBackChecked({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        taskIds: taskIds as Id<'tasks'>[],
+      }),
+    /** The undo of `putBackChecked`: its copies still open leave the list. */
+    removePutBack: (listId: string, taskIds: string[]) =>
+      removePutBack({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        taskIds: taskIds as Id<'tasks'>[],
+      }),
+    /**
      * A grocery item with a known amount onto a grocery list: a suggestion or
      * an autocomplete row (APP-311). The server picks its aisle as for any
      * typed line.
@@ -859,15 +1156,49 @@ export function useRecentGroceries() {
   return useQuery(api.tasks.recentGroceries, { groupSlug: group.slug })
 }
 
+const HOUR_MS = 60 * 60_000
+
+/** The start of the hour `now` falls in. */
+export function hourOf(now: number): number {
+  return now - (now % HOUR_MS)
+}
+
+/**
+ * The start of the current hour, moving on at each hour while mounted: often
+ * enough for a strip measured in days, rare enough that every phone of the
+ * Group asks the server the same question within the hour.
+ */
+function useHourClock(): number {
+  const [hour, setHour] = useState(() => hourOf(Date.now()))
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setHour(hourOf(Date.now())),
+      hour + HOUR_MS - Date.now(),
+    )
+    return () => clearTimeout(timer)
+  }, [hour])
+  return hour
+}
+
+type GroceryHabits = FunctionReturnType<typeof api.tasks.groceryHabits>
+
 /**
  * What the Current Group usually buys, for one grocery list (APP-311): its
  * habits, most bought first, for the composer, and the "Maybe needed"
- * suggestions, computed on the server. `undefined` until Convex answers.
+ * suggestions, computed on the server from the hour it is, so the strip moves
+ * on while the list stays open (APP-427). `undefined` until Convex first
+ * answers for this list; on the hour, the last answer stays until the next.
  */
-export function useGroceryHabits(listId: string) {
+export function useGroceryHabits(listId: string): GroceryHabits | undefined {
   const { group } = useGroup()
-  return useQuery(api.tasks.groceryHabits, {
+  const now = useHourClock()
+  const live = useQuery(api.tasks.groceryHabits, {
     groupSlug: group.slug,
     listId: listId as Id<'taskLists'>,
+    now,
   })
+  const last = useRef<{ key: string; value: GroceryHabits } | null>(null)
+  const key = `${group.slug}:${listId}`
+  if (live !== undefined) last.current = { key, value: live }
+  return live ?? (last.current?.key === key ? last.current.value : undefined)
 }

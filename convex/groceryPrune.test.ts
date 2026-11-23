@@ -168,7 +168,10 @@ describe('the kept count', () => {
   })
 })
 
-describe('pruning checked groceries', () => {
+// These tests seed hundreds of rows through convex-test, which takes about
+// 1 s on an idle Mac and over 6 s on a busy one, past Vitest's 5 s default
+// (APP-535). 30 s matches the screen tests in Foundry (APP-530).
+describe('pruning checked groceries', { timeout: 30_000 }, () => {
   test('keeps the newest per grocery list and leaves Recent and the habits as they were', async () => {
     const s = await seed()
     const over = 300
@@ -209,6 +212,37 @@ describe('pruning checked groceries', () => {
     // A second run finds nothing more to delete.
     await prune(s)
     expect((await rows(s, s.groceries)).all.length).toBe(after.all.length)
+    expect(await readers(s)).toEqual(before)
+  })
+
+  test('after the doneAt backfill it deletes only the oldest backfilled items, which nothing reads (APP-445)', async () => {
+    const s = await seed()
+    await fill(s, s.groceries, {
+      legacy: CHECKED_GROCERIES_KEPT + 50,
+      stamped: 30,
+      open: 5,
+    })
+    const stampedBefore = (await rows(s, s.groceries)).all
+      .filter((row) => row.doneAt !== undefined)
+      .map((row) => row._id)
+    let cursor: string | null = null
+    do {
+      const page: { more: boolean; cursor: string } = await s.t.mutation(
+        internal.maintenance.backfillDoneAt,
+        { apply: true, cursor },
+      )
+      cursor = page.more ? page.cursor : null
+    } while (cursor)
+    const before = await readers(s)
+
+    await prune(s)
+
+    const after = await rows(s, s.groceries)
+    expect(after.all.length).toBeLessThan(CHECKED_GROCERIES_KEPT + 85)
+    expect(after.stamped).toBeGreaterThanOrEqual(CHECKED_GROCERIES_KEPT)
+    expect(after.open).toBe(5)
+    const kept = new Set(after.all.map((row) => row._id))
+    expect(stampedBefore.every((id) => kept.has(id))).toBe(true)
     expect(await readers(s)).toEqual(before)
   })
 

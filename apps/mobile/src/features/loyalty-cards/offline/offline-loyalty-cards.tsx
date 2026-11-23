@@ -18,8 +18,8 @@ import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../../theme/tokens'
 import { Button } from '../../../ui/button'
 import { Card } from '../../../ui/card'
+import { useKeepAwakeWhile } from '../../../ui/use-keep-awake-while'
 import { useHideSplash } from '../../../useHideSplash'
-import { useKeepAwakeWhile } from '../card/use-keep-awake-while'
 import { useTillBrightness } from '../card/use-till-brightness'
 import { CardBarcode } from '../components/card-barcode'
 import { StoreTile } from '../components/store-tile'
@@ -146,7 +146,7 @@ function OfflineCardView({ card }: { card: OfflineCard }) {
   const { t } = useI18n()
   const words = t.loyaltyCards
   const formatName = words.formats[card.barcodeFormat]
-  useKeepAwakeWhile(true)
+  useKeepAwakeWhile(true, 'loyalty-card-till')
   useTillBrightness(true)
   return (
     <View style={styles.card} testID="loyalty-card-offline-card">

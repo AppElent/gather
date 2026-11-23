@@ -90,10 +90,12 @@ that the web accepts in a browser and the phone claims with
 
 **Old `/g/<slug>/…` links.** [ADR-0031](0031-the-current-group-is-ambient-on-web-and-mobile.md)
 made the web answer not-found for them and asked deep-link behavior to move to
-the ambient model. The phone still consumes `gather://g/<slug>/…`
-(`app/g/[groupSlug]/[...rest].tsx` → `(app)/deep-link.tsx`), a scheme nothing
-produces any more and the web cannot open. That handler is retired ([APP-81](https://linear.app/appelent/issue/APP-81)), not
-mirrored on the web.
+the ambient model. The phone's handler for `gather://g/<slug>/…` is retired
+([APP-81](https://linear.app/appelent/issue/APP-81)), not mirrored on the web:
+`+native-intent.tsx` opens such a link at Home and leaves the current Group as
+it was. A push notification still names its Group and record with a
+`/g/<slug>/…` path, but as data the phone hands to `(app)/open-notification`,
+not as a route.
 
 ## How this sits with earlier decisions
 

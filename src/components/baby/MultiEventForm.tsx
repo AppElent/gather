@@ -8,7 +8,7 @@ import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, plural, useI18n } from '../../lib/i18n'
 import { BABY_INPUT_CLASS as inputClass } from './babyEventFields'
 import type { EventValues } from './babyEventFormValues'
@@ -91,6 +91,7 @@ export function MultiEventForm({
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const { locale, messages } = useI18n()
+  const errorText = useErrorMessage()
   const { multi, validation } = messages.baby.log
   const eventTypes = messages.baby.eventTypes
 
@@ -152,7 +153,7 @@ export function MultiEventForm({
       // Keep only what still needs saving on screen, so a retry doesn't
       // duplicate the entries that already went through.
       setSelected((prev) => prev.filter((t) => !saved.includes(t)))
-      const detail = errorMessage(err, messages.baby.log.entry.saveFailed)
+      const detail = errorText(err, messages.baby.log.entry.saveFailed)
       setError(
         saved.length > 0
           ? fmt(multi.partial, {

@@ -2,7 +2,7 @@ import { AI_LIMIT_KIND } from '@gather/core/ai-limit'
 import { parseDecimal } from '@gather/core/decimal'
 import type { NutritionFacts, NutritionSource } from '@gather/core/domain'
 import { useState } from 'react'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { inputClass } from './fields'
 import { NutrientInputGrid } from './NutrientInputGrid'
@@ -79,6 +79,7 @@ export function RecipeForm({
   const [estimating, setEstimating] = useState(false)
   const [estimateError, setEstimateError] = useState<string | null>(null)
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const { form, rating: ratingText } = messages.recipes
 
   return (
@@ -181,7 +182,7 @@ export function RecipeForm({
                   nutrition.fill(facts, 'ai')
                 } catch (err) {
                   setEstimateError(
-                    errorMessage(err, form.estimateFailed, {
+                    errorText(err, form.estimateFailed, {
                       [AI_LIMIT_KIND]: form.aiLimitReached,
                     }),
                   )

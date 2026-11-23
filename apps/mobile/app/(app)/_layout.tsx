@@ -13,8 +13,7 @@
  */
 import { useAuth } from '@clerk/expo'
 import { Redirect, Stack, useNavigationContainerRef } from 'expo-router'
-import { useCallback } from 'react'
-import { Alert } from 'react-native'
+import { type ReactNode, useCallback } from 'react'
 
 import { ConvexSessionGate } from '../../src/auth/ConvexSessionGate'
 import { useSignOut } from '../../src/auth/useSignOut'
@@ -28,9 +27,26 @@ import { PushTaskDone } from '../../src/features/notifications/push/push-task-do
 import { GroupProvider } from '../../src/group/GroupProvider'
 import { groupUnwindActions, type NavState } from '../../src/group/groupUnwind'
 import { useI18n } from '../../src/i18n'
+import { showAlert } from '../../src/observability/native-presentation'
+import {
+  hasPresentedRoute,
+  useShakeToReportBlocker,
+} from '../../src/observability/shake-to-report'
 import { useTokens } from '../../src/theme/tokens'
 
 export const unstable_settings = { anchor: '(tabs)' }
+
+// A shake must not open the report form under a presented route (APP-439).
+function ShakeToReportGate({
+  blocked,
+  children,
+}: {
+  blocked: boolean
+  children: ReactNode
+}) {
+  useShakeToReportBlocker(blocked)
+  return children
+}
 
 export default function AppLayout() {
   const { isSignedIn } = useAuth()
@@ -49,7 +65,7 @@ export default function AppLayout() {
   // outlives it and lands on the welcome screen (APP-397).
   const sayGatherDataDeleted = useCallback(() => {
     const words = t.account.deleteAccount.dataOnly
-    Alert.alert(words.doneTitle, words.doneBody)
+    showAlert(words.doneTitle, words.doneBody)
   }, [t])
 
   if (!isSignedIn) return <Redirect href="/" />
@@ -79,6 +95,13 @@ export default function AppLayout() {
               stack to be pushed onto. The Drop itself was captured further up. */}
           <DropGate />
           <Stack
+            layout={({ state, descriptors, children }) => (
+              <ShakeToReportGate
+                blocked={hasPresentedRoute(state, descriptors)}
+              >
+                {children}
+              </ShakeToReportGate>
+            )}
             screenOptions={{
               headerShown: false,
               headerBackButtonDisplayMode: 'minimal',
@@ -86,7 +109,7 @@ export default function AppLayout() {
             }}
           >
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="deep-link" />
+            <Stack.Screen name="open-notification" />
             <Stack.Screen name="drop" />
           </Stack>
         </GroupProvider>

@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when changing web or phone error reporting, the privacy scrubber, source-map upload, or the Sentry variables.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Sentry (web and phone)
@@ -21,13 +21,14 @@ the Expo phone app, and Convex through a log forwarder (see [Convex forwarder](#
 | Release | `SENTRY_RELEASE`, else `gather@<version>+<short sha>` (version from `apps/mobile/app.json`, [ADR-0044](../adr/0044-every-merge-ships-and-the-app-updates-daily.md)), inlined as `VITE_SENTRY_RELEASE`; the same string names the source-map upload and appears on `/version` |
 | Project | Browser and Worker share one Sentry project, told apart by the `app` tag |
 | Phone | `apps/mobile/src/observability/` (`init.ts` imported first by `app/_layout.tsx`; `options.ts` is the policy as plain data). Initialises only with `EXPO_PUBLIC_SENTRY_DSN` in a release bundle (`__DEV__` is off unless `EXPO_PUBLIC_SENTRY_DEBUG=1`). Tag `app=gather-mobile`; environment is the update channel (`preview` / `production`), `development` otherwise. Release is the SDK default (`com.appelent.gather@<version>+<build>`) plus the OTA runtime version and update id; maps match by Metro debug ID (`apps/mobile/metro.config.js`), not by release |
-| Phone errors | The root `ErrorBoundary` in `app/_layout.tsx` renders Expo Router's own error screen and reports once (`report.ts`, once per error object); the Search tab's boundary reports the same way. Anything no boundary catches reaches the SDK's global handler. `Sentry.wrap` is **not** used: errors-only needs nothing from it, and its touch boundary would create the `ui.*` breadcrumbs the scrubber exists to drop |
+| Phone errors | The root `ErrorBoundary` in `app/_layout.tsx` renders Expo Router's own error screen and reports once (`report.ts`, once per error object); the Search tab's boundary reports the same way. Anything no boundary catches reaches the SDK's global handler. `Sentry.wrap` wraps the root layout only in a bundle that reports (`sentryEnabled`), because it mounts the report form's provider; its touch breadcrumbs never leave the phone, since `beforeBreadcrumb` drops every category but navigation and network |
+| Phone problem reports | Sentry's own feedback form (APP-439), opened by shaking the phone or by Settings > About > Report a problem (a localized "not available" alert in a bundle that does not report). `init.ts` configures it: no name or email fields, an optional screenshot the member takes (never one from the photo library), Gather's neutrals in light and dark, labels in the app's language. Shake is started by `shake-to-report.ts`, not the SDK, and pauses while a `NativeSheet`, a presented route, a React Native `Modal`, an alert, a prompt, an action sheet, an image picker (or its permission prompt) or the in-app browser is up, then for 600 ms after; the wrappers are `src/observability/native-presentation.ts` and `src/ui/modal.tsx`, and `biome.json` bans the raw imports elsewhere. A config plugin (`plugins/disable-shake-to-edit.js`) turns off iOS shake-to-undo, which would otherwise put its Undo Typing alert over the form |
 | Convex | `scripts/convex-sentry.mjs` (`pnpm sentry:convex`) forwards failed executions from `convex logs --jsonl`. Tag `app=gather-convex` (from the package name). Test: `scripts/convex-sentry.test.mjs` |
 | Variables | `VITE_SENTRY_DSN`, `VITE_SENTRY_ORG`, `VITE_SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`, and for the phone `EXPO_PUBLIC_SENTRY_DSN` (EAS `preview`/`production`) plus `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` on EAS for native builds ([environment](environment.md), `env.manifest.ts`). The phone shares the web's Sentry project, told apart by the `app` tag |
 
 ## What is sent, and what never is
 
-Errors only. Tracing, replay, logs, profiling, screenshots and release-health sessions are off. On the web,
+Errors, plus the problem reports a member chooses to send from the phone. Tracing, replay, logs, profiling, automatic screenshots and release-health sessions are off. On the web,
 Sentry 11's `dataCollection` (`SENTRY_BASE_OPTIONS`) turns off every automatic
 source of user data; the phone's SDK still uses `sendDefaultPii: false`. The
 scrubber removes request bodies, headers, cookies, query strings and
@@ -41,6 +42,7 @@ Convex arguments are never captured.
 | Convex errors | `[CONVEX M(fn)] [Request ID: x] Server Error: <ErrorClass> (message withheld)`. The function and class find the throw site; the message and any `ConvexError` data are withheld |
 | Other errors | The thrown message, redacted and cut to 500 characters, plus the stack. **Never interpolate user content into an `Error` message** — a message authored in code is sent as written |
 | Request | Method and URL without query or fragment. URL paths can hold opaque ids (a recipe id), never names |
+| Phone problem reports | Sent only when the member taps Send report: the typed message (redacted like an error message), the screenshot they took if any, and the route. Feedback skips `beforeSend`, so `sanitizeFeedbackEvent` runs as a global event processor: no contact email or name, the URL without its query string, then the same scrub as an error |
 | Tags / release | `app`, `environment`, release SHA, HTTP status on SSR 5xx | Adding a field to `BREADCRUMB_DATA_KEYS` or turning on replay is a
 privacy change: update this table and the privacy statement.
 
@@ -100,28 +102,30 @@ pnpm env:exec local -- pnpm sentry:convex --deployment <dev-deployment-name>
 value as `VITE_SENTRY_DSN`) and `CONVEX_DEPLOYMENT`, which the script uses when no
 `--deployment` is given. The environment tag is `development`.
 
-**Production** (`eric-jansen:gather`, deployment `limitless-bulldog-972`) with a
-logged-in Convex CLI (`pnpm exec convex login`):
+### Production
 
-```sh
-pnpm env:exec production --only github -- sh -c 'unset CONVEX_DEPLOY_KEY; SENTRY_CONVEX_DSN="$VITE_SENTRY_DSN" SENTRY_ENVIRONMENT=production pnpm sentry:convex --deployment eric-jansen:gather:prod'
-```
+Production failures are forwarded by the shared
+[incident inbox](https://github.com/AppElent/developer-home/blob/main/services/incident-inbox/README.md) in `AppElent/developer-home`, not by this repo's
+script (since 17 Nov 2026). One launchd agent on Eric's always-on Mac,
+`com.appelent.incident-inbox` (run from `~/Developer/.services/developer-home`),
+reads `eric-jansen:gather:prod` with the logged-in Convex CLI and sends failed executions to this
+app's Sentry project with the same `app=gather-convex` tag and
+`environment=production`. Its incident poll then files each new Sentry issue in
+Linear (team `APP`, labels `app:gather` and Source `convex`). Events are grouped
+by throwing function and message, so one helper failing under several queries
+is one Sentry issue; the `func` tag still names the query.
 
-- **Deploy-key permission gap:** the production `CONVEX_DEPLOY_KEY` may lack
-  `deployment:logs:view`, and the Convex CLI prefers a deploy key over the login
-  when both exist. The command unsets it so `convex logs` uses your login. Never
-  copy the deploy key onto the forwarder host.
-- `SENTRY_ENVIRONMENT=production` is needed because only `--prod` implies it;
-  `--deployment` alone tags `development`.
-- The DSN is not a secret, but the command still reads it at run time rather than
-  writing it to a file.
+- Log: `~/Library/Logs/incident-inbox.log`. A healthy start logs
+  `convex gather: reading eric-jansen:gather:prod`.
+- Restart: `launchctl kickstart -k "gui/$(id -u)/com.appelent.incident-inbox"`.
+- Deployment, tag and DSN (`SENTRY_DSN_GATHER`) are set in the inbox's `config.mjs` and
+  its env file; change them there, not here.
 
-**Always-on host (later):** like the other apps, the forwarder will run from a
-dedicated always-on clone under `~/Developer/.services` through the
-`convex-sentry-run` wrapper, as the launchd unit `com.appelent.convex-sentry.gather`
-logging to `~/Library/Logs/convex-sentry-gather.log`. That unit is installed after
-the forwarder lands on `main`; until then production failures reach Sentry only
-while someone runs the command above.
+Do not run `pnpm sentry:convex` against production while the inbox runs:
+Sentry would get each failure twice. The old per-app agent
+`com.appelent.convex-sentry.gather`, its clone `~/Developer/.services/gather`
+and the `convex-sentry-run` wrapper are retired
+([APP-98](https://linear.app/appelent/issue/APP-98), [APP-222](https://linear.app/appelent/issue/APP-222)).
 
 ## Local reporting is off
 
@@ -142,8 +146,8 @@ listener. A Metro-served bundle also attaches the source lines around each frame
   already swallowed the exception.
 - **Convex:** failed executions, including scheduled functions, while the
   forwarder runs ([Convex forwarder](#convex-forwarder)). Best effort: no durable
-  queue, and production is covered only once the launchd unit is installed (or
-  while someone runs it by hand). Console output and successful calls are never sent.
+  queue. Production is covered by the shared incident inbox
+  ([Production](#production)). Console output and successful calls are never sent.
 - **Phone:** active once `EXPO_PUBLIC_SENTRY_DSN` is set in an EAS environment
   and a build containing the SDK is installed. The SDK is **native**: it moves
   the `fingerprint` runtime version, so it ships only with the next native build

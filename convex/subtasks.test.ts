@@ -460,6 +460,93 @@ describe("a repeating parent's dated subtasks (APP-451)", () => {
     expect(done?.dueDate).toBe('2026-12-03')
     expect((await row(s.t, step))?.dueDate).toBe('2026-11-20')
   })
+
+  describe('when the parent’s due date is moved by hand (APP-468)', () => {
+    type Seeded = Pick<Awaited<ReturnType<typeof seed>>, 't' | 'as'>
+    const remindAt = (
+      p: Seeded,
+      taskId: Id<'tasks'>,
+      date: string,
+    ) =>
+      p.as.mutation(api.tasks.setReminder, {
+        taskId,
+        groupSlug: JANSEN,
+        reminder: { date, time: '09:00', timeZone: 'Europe/Amsterdam' },
+      })
+    const moveTo = (
+      p: Seeded,
+      taskId: Id<'tasks'>,
+      dueDate: string | null,
+    ) =>
+      p.as.mutation(api.tasks.update, {
+        taskId,
+        groupSlug: JANSEN,
+        dueDate,
+        today: TODAY,
+      })
+    const queuedAt = (p: Seeded) =>
+      p.t.run(async (ctx) =>
+        (await ctx.db.query('scheduledNotifications').collect())
+          .map((n) => n.at)
+          .sort(),
+      )
+
+    test('a repeating parent takes its dated steps and their reminders along', async () => {
+      const p = await parentWith('2026-11-21', weekly, [
+        '2026-11-20',
+        null,
+        '2026-11-21',
+      ])
+      const [step] = p.steps
+      if (!step) throw new Error('expected a step')
+      await remindAt(p, p.parent, '2026-11-21')
+      await remindAt(p, step, '2026-11-20')
+
+      await moveTo(p, p.parent, '2026-11-24')
+      expect(await p.datesOf()).toEqual(['2026-11-23', undefined, '2026-11-24'])
+      expect((await row(p.t, p.parent))?.reminder).toMatchObject({
+        date: '2026-11-24',
+      })
+      expect((await row(p.t, step))?.reminder).toMatchObject({
+        date: '2026-11-23',
+      })
+      // 09:00 in Amsterdam is 08:00 UTC in November.
+      expect(await queuedAt(p)).toEqual([
+        Date.parse('2026-11-23T08:00:00Z'),
+        Date.parse('2026-11-24T08:00:00Z'),
+      ])
+
+      // Back again, by fewer days than it went.
+      await moveTo(p, p.parent, '2026-11-22')
+      expect(await p.datesOf()).toEqual(['2026-11-21', undefined, '2026-11-22'])
+    })
+
+    test('a one-off parent leaves its steps’ dates alone; its own reminder still moves', async () => {
+      const s = await seed()
+      const parent = await s.add('Verhuizen', { dueDate: '2026-11-21' })
+      const step = await s.add('Dozen halen', {
+        parentTaskId: parent,
+        dueDate: '2026-11-20',
+      })
+      await remindAt(s, parent, '2026-11-21')
+      await remindAt(s, step, '2026-11-20')
+
+      await moveTo(s, parent, '2026-11-24')
+      expect(await row(s.t, step)).toMatchObject({
+        dueDate: '2026-11-20',
+        reminder: { date: '2026-11-20' },
+      })
+      expect((await row(s.t, parent))?.reminder).toMatchObject({
+        date: '2026-11-24',
+      })
+    })
+
+    test('clearing a repeating parent’s due date moves no step', async () => {
+      const p = await parentWith('2026-11-21', weekly, ['2026-11-20'])
+      await moveTo(p, p.parent, null)
+      expect(await p.datesOf()).toEqual(['2026-11-20'])
+    })
+  })
 })
 
 describe('deleting', () => {

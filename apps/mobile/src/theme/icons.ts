@@ -56,6 +56,8 @@ import Grid from 'lucide-react-native/icons/layout-grid'
 import ListChecks from 'lucide-react-native/icons/list-checks'
 import Mail from 'lucide-react-native/icons/mail'
 import MapPin from 'lucide-react-native/icons/map-pin'
+import Maximize2 from 'lucide-react-native/icons/maximize-2'
+import Minimize2 from 'lucide-react-native/icons/minimize-2'
 import Minus from 'lucide-react-native/icons/minus'
 import NotebookPen from 'lucide-react-native/icons/notebook-pen'
 import Pencil from 'lucide-react-native/icons/pencil'
@@ -71,6 +73,7 @@ import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
 import Smartphone from 'lucide-react-native/icons/smartphone'
 import Sparkles from 'lucide-react-native/icons/sparkles'
 import Store from 'lucide-react-native/icons/store'
+import Sun from 'lucide-react-native/icons/sun'
 import Target from 'lucide-react-native/icons/target'
 import Trash2 from 'lucide-react-native/icons/trash-2'
 import TriangleAlert from 'lucide-react-native/icons/triangle-alert'
@@ -109,6 +112,7 @@ export const MODULE_ICONS = {
   Target: glyph(Target, 'target'),
   Users: glyph(Users, 'person.2.fill'),
   Wine: glyph(Wine, 'wineglass'),
+  Zap: glyph(Zap, 'bolt'),
 } satisfies Record<ModuleIconName, Glyph>
 
 export const UI_ICONS = {
@@ -151,6 +155,9 @@ export const UI_ICONS = {
    * three dots.
    */
   CircleEllipsis: glyph(CircleEllipsis, 'ellipsis.circle'),
+  /** The keyboard composer's expand and collapse (APP-587). */
+  Expand: glyph(Maximize2, 'arrow.up.left.and.arrow.down.right'),
+  Collapse: glyph(Minimize2, 'arrow.down.right.and.arrow.up.left'),
   /** A time on a form, never a duration. */
   Clock: glyph(Clock, 'clock'),
   /** A row that leaves the app for a web page, where a chevron would lie. */
@@ -209,6 +216,8 @@ export const UI_ICONS = {
   Cart: glyph(ShoppingCart, 'cart'),
   /** Groceries' In stock: what the house keeps (APP-314). */
   House: glyph(House, 'house'),
+  /** Shopping mode's note that the screen stays on (APP-315). */
+  Sun: glyph(Sun, 'sun.max'),
   /** A staple running low (APP-314). */
   TriangleAlert: glyph(TriangleAlert, 'exclamationmark.triangle'),
   /** A stepper's take-one-away. */

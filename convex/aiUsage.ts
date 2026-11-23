@@ -31,14 +31,29 @@ export const takeCounted = internalMutation({
   handler: async (ctx, args) => await takeOne(ctx, args.clerkId),
 })
 
+/**
+ * As `takeCounted`, also answering the day the call was counted against, so
+ * a refund gives it back to that day even after UTC midnight (APP-460). The
+ * meal planner's AI actions use it through `takeRefundableAiCall`.
+ */
+export const takeDated = internalMutation({
+  args: { clerkId: v.string() },
+  returns: v.union(v.object({ used: v.number(), day: v.string() }), v.null()),
+  handler: async (ctx, args) => {
+    const day = utcDay(Date.now())
+    const used = await takeOne(ctx, args.clerkId, day)
+    return used === null ? null : { used, day }
+  },
+})
+
 async function takeOne(
   ctx: MutationCtx,
   clerkId: string,
+  day = utcDay(Date.now()),
 ): Promise<number | null> {
   const user = await getUserByClerkId(ctx, clerkId)
   if (!user) throw new ConvexError(NOT_SIGNED_IN)
 
-  const day = utcDay(Date.now())
   const row = await ctx.db
     .query('aiUsage')
     .withIndex('by_user_and_day', (q) =>
@@ -58,10 +73,11 @@ async function takeOne(
  * Only the meal planner's AI actions refund (Plan mijn week, and APP-320's
  * Iets anders and Nieuw idee): their fallback promises the person it cost
  * nothing, and what they get is made without the provider. Never below
- * zero, and only today's row.
+ * zero. `day` is the day `takeDated` counted the call against; without it,
+ * today's row.
  */
 export const refund = internalMutation({
-  args: { clerkId: v.string() },
+  args: { clerkId: v.string(), day: v.optional(v.string()) },
   returns: v.null(),
   handler: async (ctx, args) => {
     const user = await getUserByClerkId(ctx, args.clerkId)
@@ -69,7 +85,7 @@ export const refund = internalMutation({
     const row = await ctx.db
       .query('aiUsage')
       .withIndex('by_user_and_day', (q) =>
-        q.eq('userId', user._id).eq('day', utcDay(Date.now())),
+        q.eq('userId', user._id).eq('day', args.day ?? utcDay(Date.now())),
       )
       .unique()
     if (row && row.count > 0) await ctx.db.patch(row._id, { count: row.count - 1 })

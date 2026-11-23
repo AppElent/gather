@@ -10,6 +10,7 @@ import {
 } from './lib/observability/config'
 import { setErrorSink } from './lib/observability/report'
 import { versionResponse } from './lib/release/version'
+import { probeResponse } from './server/probe'
 
 const dsn = import.meta.env.VITE_SENTRY_DSN
 
@@ -59,6 +60,9 @@ export default {
     // What this Worker runs (release standard); answered before the app and Sentry.
     const version = versionResponse(request)
     if (version) return version
+    // Scanner probes get a plain 404 without rendering the app (APP-466).
+    const probe = probeResponse(request)
+    if (probe) return probe
     // Wrangler hands a local `wrangler dev` its production bindings, so the
     // hostname — not the bindings — decides. Bypass before any span or capture.
     if (!dsn || isLocalReportingUrl(request.url)) return handler.fetch(request)

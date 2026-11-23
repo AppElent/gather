@@ -141,11 +141,10 @@ jobs:
       - name: Publish
         if: steps.gate.outputs.platforms != ''
         run: |
-          message="$(git log -1 --format=%s) ($(git rev-parse --short HEAD))"
           published=0
           for platform in ${{ steps.gate.outputs.platforms }}; do
             node apps/mobile/scripts/publish-update.mjs production \
-              --platform "$platform" --non-interactive --message "$message"
+              --platform "$platform" --non-interactive
             # Per platform, so publishing one never marks the other as current.
             git tag -f "ota-production-$platform"
             git push -f origin "refs/tags/ota-production-$platform"

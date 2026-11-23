@@ -39,6 +39,11 @@ import { Route as AppBabyIndexRouteImport } from './routes/_app/baby/index'
 import { Route as AppBabyNewRouteImport } from './routes/_app/baby/new'
 import { Route as AppBeersIndexRouteImport } from './routes/_app/beers/index'
 import { Route as AppCheesesIndexRouteImport } from './routes/_app/cheeses/index'
+import { Route as AppEnergyIndexRouteImport } from './routes/_app/energy/index'
+import { Route as AppEnergyContractRouteImport } from './routes/_app/energy/contract'
+import { Route as AppEnergyCostsRouteImport } from './routes/_app/energy/costs'
+import { Route as AppEnergyReadingsRouteImport } from './routes/_app/energy/readings'
+import { Route as AppEnergyUsageRouteImport } from './routes/_app/energy/usage'
 import { Route as AppIntegrationsCallbackRouteImport } from './routes/_app/integrations.callback'
 import { Route as AppLoyaltyCardsIndexRouteImport } from './routes/_app/loyalty-cards/index'
 import { Route as AppLoyaltyCardsNewRouteImport } from './routes/_app/loyalty-cards/new'
@@ -207,6 +212,31 @@ const AppCheesesIndexRoute = AppCheesesIndexRouteImport.update({
   path: '/cheeses/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEnergyIndexRoute = AppEnergyIndexRouteImport.update({
+  id: '/energy/',
+  path: '/energy/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEnergyContractRoute = AppEnergyContractRouteImport.update({
+  id: '/energy/contract',
+  path: '/energy/contract',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEnergyCostsRoute = AppEnergyCostsRouteImport.update({
+  id: '/energy/costs',
+  path: '/energy/costs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEnergyReadingsRoute = AppEnergyReadingsRouteImport.update({
+  id: '/energy/readings',
+  path: '/energy/readings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEnergyUsageRoute = AppEnergyUsageRouteImport.update({
+  id: '/energy/usage',
+  path: '/energy/usage',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppIntegrationsCallbackRoute = AppIntegrationsCallbackRouteImport.update({
   id: '/integrations/callback',
   path: '/integrations/callback',
@@ -328,12 +358,17 @@ export interface FileRoutesByFullPath {
   '/shared-costs': typeof AppSharedCostsRoute
   '/tasks': typeof AppTasksRoute
   '/baby/new': typeof AppBabyNewRoute
+  '/energy/contract': typeof AppEnergyContractRoute
+  '/energy/costs': typeof AppEnergyCostsRoute
+  '/energy/readings': typeof AppEnergyReadingsRoute
+  '/energy/usage': typeof AppEnergyUsageRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/baby/': typeof AppBabyIndexRoute
   '/beers/': typeof AppBeersIndexRoute
   '/cheeses/': typeof AppCheesesIndexRoute
+  '/energy/': typeof AppEnergyIndexRoute
   '/loyalty-cards/': typeof AppLoyaltyCardsIndexRoute
   '/recipes/': typeof AppRecipesIndexRoute
   '/wines/': typeof AppWinesIndexRoute
@@ -377,12 +412,17 @@ export interface FileRoutesByTo {
   '/tasks': typeof AppTasksRoute
   '/': typeof AppIndexRoute
   '/baby/new': typeof AppBabyNewRoute
+  '/energy/contract': typeof AppEnergyContractRoute
+  '/energy/costs': typeof AppEnergyCostsRoute
+  '/energy/readings': typeof AppEnergyReadingsRoute
+  '/energy/usage': typeof AppEnergyUsageRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/baby': typeof AppBabyIndexRoute
   '/beers': typeof AppBeersIndexRoute
   '/cheeses': typeof AppCheesesIndexRoute
+  '/energy': typeof AppEnergyIndexRoute
   '/loyalty-cards': typeof AppLoyaltyCardsIndexRoute
   '/recipes': typeof AppRecipesIndexRoute
   '/wines': typeof AppWinesIndexRoute
@@ -428,12 +468,17 @@ export interface FileRoutesById {
   '/_app/tasks': typeof AppTasksRoute
   '/_app/': typeof AppIndexRoute
   '/_app/baby/new': typeof AppBabyNewRoute
+  '/_app/energy/contract': typeof AppEnergyContractRoute
+  '/_app/energy/costs': typeof AppEnergyCostsRoute
+  '/_app/energy/readings': typeof AppEnergyReadingsRoute
+  '/_app/energy/usage': typeof AppEnergyUsageRoute
   '/_app/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/_app/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
   '/_app/recipes/new': typeof AppRecipesNewRoute
   '/_app/baby/': typeof AppBabyIndexRoute
   '/_app/beers/': typeof AppBeersIndexRoute
   '/_app/cheeses/': typeof AppCheesesIndexRoute
+  '/_app/energy/': typeof AppEnergyIndexRoute
   '/_app/loyalty-cards/': typeof AppLoyaltyCardsIndexRoute
   '/_app/recipes/': typeof AppRecipesIndexRoute
   '/_app/wines/': typeof AppWinesIndexRoute
@@ -479,12 +524,17 @@ export interface FileRouteTypes {
     | '/shared-costs'
     | '/tasks'
     | '/baby/new'
+    | '/energy/contract'
+    | '/energy/costs'
+    | '/energy/readings'
+    | '/energy/usage'
     | '/integrations/callback'
     | '/loyalty-cards/new'
     | '/recipes/new'
     | '/baby/'
     | '/beers/'
     | '/cheeses/'
+    | '/energy/'
     | '/loyalty-cards/'
     | '/recipes/'
     | '/wines/'
@@ -528,12 +578,17 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/'
     | '/baby/new'
+    | '/energy/contract'
+    | '/energy/costs'
+    | '/energy/readings'
+    | '/energy/usage'
     | '/integrations/callback'
     | '/loyalty-cards/new'
     | '/recipes/new'
     | '/baby'
     | '/beers'
     | '/cheeses'
+    | '/energy'
     | '/loyalty-cards'
     | '/recipes'
     | '/wines'
@@ -578,12 +633,17 @@ export interface FileRouteTypes {
     | '/_app/tasks'
     | '/_app/'
     | '/_app/baby/new'
+    | '/_app/energy/contract'
+    | '/_app/energy/costs'
+    | '/_app/energy/readings'
+    | '/_app/energy/usage'
     | '/_app/integrations/callback'
     | '/_app/loyalty-cards/new'
     | '/_app/recipes/new'
     | '/_app/baby/'
     | '/_app/beers/'
     | '/_app/cheeses/'
+    | '/_app/energy/'
     | '/_app/loyalty-cards/'
     | '/_app/recipes/'
     | '/_app/wines/'
@@ -825,6 +885,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCheesesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/energy/': {
+      id: '/_app/energy/'
+      path: '/energy'
+      fullPath: '/energy/'
+      preLoaderRoute: typeof AppEnergyIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/energy/contract': {
+      id: '/_app/energy/contract'
+      path: '/energy/contract'
+      fullPath: '/energy/contract'
+      preLoaderRoute: typeof AppEnergyContractRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/energy/costs': {
+      id: '/_app/energy/costs'
+      path: '/energy/costs'
+      fullPath: '/energy/costs'
+      preLoaderRoute: typeof AppEnergyCostsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/energy/readings': {
+      id: '/_app/energy/readings'
+      path: '/energy/readings'
+      fullPath: '/energy/readings'
+      preLoaderRoute: typeof AppEnergyReadingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/energy/usage': {
+      id: '/_app/energy/usage'
+      path: '/energy/usage'
+      fullPath: '/energy/usage'
+      preLoaderRoute: typeof AppEnergyUsageRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/integrations/callback': {
       id: '/_app/integrations/callback'
       path: '/integrations/callback'
@@ -973,12 +1068,17 @@ interface AppRouteChildren {
   AppTasksRoute: typeof AppTasksRoute
   AppIndexRoute: typeof AppIndexRoute
   AppBabyNewRoute: typeof AppBabyNewRoute
+  AppEnergyContractRoute: typeof AppEnergyContractRoute
+  AppEnergyCostsRoute: typeof AppEnergyCostsRoute
+  AppEnergyReadingsRoute: typeof AppEnergyReadingsRoute
+  AppEnergyUsageRoute: typeof AppEnergyUsageRoute
   AppIntegrationsCallbackRoute: typeof AppIntegrationsCallbackRoute
   AppLoyaltyCardsNewRoute: typeof AppLoyaltyCardsNewRoute
   AppRecipesNewRoute: typeof AppRecipesNewRoute
   AppBabyIndexRoute: typeof AppBabyIndexRoute
   AppBeersIndexRoute: typeof AppBeersIndexRoute
   AppCheesesIndexRoute: typeof AppCheesesIndexRoute
+  AppEnergyIndexRoute: typeof AppEnergyIndexRoute
   AppLoyaltyCardsIndexRoute: typeof AppLoyaltyCardsIndexRoute
   AppRecipesIndexRoute: typeof AppRecipesIndexRoute
   AppWinesIndexRoute: typeof AppWinesIndexRoute
@@ -1015,12 +1115,17 @@ const AppRouteChildren: AppRouteChildren = {
   AppTasksRoute: AppTasksRoute,
   AppIndexRoute: AppIndexRoute,
   AppBabyNewRoute: AppBabyNewRoute,
+  AppEnergyContractRoute: AppEnergyContractRoute,
+  AppEnergyCostsRoute: AppEnergyCostsRoute,
+  AppEnergyReadingsRoute: AppEnergyReadingsRoute,
+  AppEnergyUsageRoute: AppEnergyUsageRoute,
   AppIntegrationsCallbackRoute: AppIntegrationsCallbackRoute,
   AppLoyaltyCardsNewRoute: AppLoyaltyCardsNewRoute,
   AppRecipesNewRoute: AppRecipesNewRoute,
   AppBabyIndexRoute: AppBabyIndexRoute,
   AppBeersIndexRoute: AppBeersIndexRoute,
   AppCheesesIndexRoute: AppCheesesIndexRoute,
+  AppEnergyIndexRoute: AppEnergyIndexRoute,
   AppLoyaltyCardsIndexRoute: AppLoyaltyCardsIndexRoute,
   AppRecipesIndexRoute: AppRecipesIndexRoute,
   AppWinesIndexRoute: AppWinesIndexRoute,
@@ -1054,12 +1159,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

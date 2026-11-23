@@ -15,15 +15,11 @@
 import { MenuView } from '@expo/ui/community/menu'
 import {
   formatGroceryAmount,
-  GROCERY_AISLES,
-  type GroceryAisle,
   type GroceryAmount,
-  recogniseGroceryLine,
 } from '@gather/core/groceries'
 import { useMutation } from 'convex/react'
 import { type ReactNode, useMemo, useState } from 'react'
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -37,6 +33,7 @@ import { api, type Id } from '../../../convex/api'
 import { haptics } from '../../../feedback/haptics'
 import { useGroup } from '../../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../../i18n'
+import { showPrompt } from '../../../observability/native-presentation'
 import {
   lastGroceryListKey,
   readPreference,
@@ -64,8 +61,12 @@ import {
   pickRows,
   type RowMeta,
   type SourceLine,
+  sectionsByAisle,
+  settleLine,
+  withEdits,
 } from './pick'
-import type { AiCount } from './use-recipe-lines'
+import type { AiCount } from './read-batches'
+import { useAisleOf } from './use-aisles'
 
 export interface AddSheetSource {
   /** "Shakshuka met feta": the card's title, and the note on the list. */
@@ -79,6 +80,7 @@ export function AddToGroceriesSheet({
   lines,
   servings,
   aiCount,
+  readingAsText = false,
   preferredListId,
   days,
   byAisle = false,
@@ -87,10 +89,20 @@ export function AddToGroceriesSheet({
   onClose,
 }: {
   source: AddSheetSource
-  lines: readonly SourceLine[]
+  /**
+   * The lines, or a function of the keys of the rows the person has ticked,
+   * unticked or retyped: the week menu keeps a line they touched while it was
+   * being read apart from the item it merges into (APP-479).
+   */
+  lines: readonly SourceLine[] | ((touched: ReadonlySet<string>) => readonly SourceLine[])
   /** The stepper, when the source scales (a recipe; not the week menu). */
   servings?: { value: number; onChange: (value: number) => void }
   aiCount: AiCount | null
+  /**
+   * Whether a line still being read may go on as text, so the button need not
+   * wait (`useIngredientLines`): its row says so.
+   */
+  readingAsText?: boolean
   /** The list the sheet was opened from, if any. */
   preferredListId?: string
   /**
@@ -142,15 +154,23 @@ export function AddToGroceriesSheet({
   const [failed, setFailed] = useState(false)
   const [rowWidth, setRowWidth] = useState<number>()
 
-  const shown = lines.map((line) =>
-    edits[line.key] ? { ...line, read: edits[line.key] } : line,
-  )
+  const sourceLines =
+    typeof lines === 'function'
+      ? lines(new Set([...Object.keys(ticks), ...Object.keys(edits)]))
+      : lines
+  // A retype made while a line was still being read stays with its row.
+  const shown = withEdits(sourceLines, edits)
+  // A week over one call's lines is read in batches: once the first answer is
+  // in, the button does not wait for the rest, which go on as written. A line
+  // that starts a new reading waits for it (APP-590).
+  const addNow = readingAsText
   const pick = pickRows({
     lines: shown,
     servings: servings?.value,
     items: tasks,
     ticks,
     inStock,
+    readingAsText: addNow,
   })
   const count = pick.lines.length
 
@@ -164,7 +184,7 @@ export function AddToGroceriesSheet({
   // "10", not nothing: the merge line names both amounts.
   const amountOrOne = (amount: GroceryAmount) => amountText(amount) ?? '1'
 
-  const detailed = lines.some((line) => line.detail)
+  const detailed = sourceLines.some((line) => line.detail)
   const metaText = (meta: RowMeta | null): string | null => {
     if (!meta) return null
     switch (meta.kind) {
@@ -192,7 +212,7 @@ export function AddToGroceriesSheet({
               limit: String(aiCount.limit),
             })
       case 'reading':
-        return words.reading
+        return addNow ? words.readingAsText : words.reading
       case 'text':
         return words.asText
     }
@@ -206,32 +226,35 @@ export function AddToGroceriesSheet({
     return [row.detail, why].filter(Boolean).join(' · ') || null
   }
 
-  // One section per aisle, in walking order; a line still being read waits
-  // under Other.
-  const sections = useMemo(() => {
-    if (!byAisle) return [{ id: null, rows: pick.rows }]
-    const byId = new Map<GroceryAisle, PickRow[]>()
-    for (const row of pick.rows) {
-      const aisle =
-        row.meta?.kind === 'reading' || row.meta?.kind === 'text'
-          ? 'other'
-          : recogniseGroceryLine(row.title).aisle
-      byId.set(aisle, [...(byId.get(aisle) ?? []), row])
-    }
-    return GROCERY_AISLES.filter((aisle) => byId.has(aisle)).map((aisle) => ({
-      id: aisle,
-      rows: byId.get(aisle) ?? [],
-    }))
-  }, [byAisle, pick.rows])
+  // One section per aisle, in walking order, by the aisle the list itself
+  // would give the item; a line still being read waits under Other.
+  const aisleTitles = useMemo(
+    () =>
+      byAisle
+        ? pick.rows
+            .filter((row) => row.meta?.kind !== 'reading' && row.meta?.kind !== 'text')
+            .map((row) => row.title)
+        : [],
+    [byAisle, pick.rows],
+  )
+  const aisleOf = useAisleOf(group.slug, listId, aisleTitles)
+  const sections = useMemo(
+    () =>
+      byAisle
+        ? sectionsByAisle(pick.rows, aisleOf)
+        : [{ id: null, rows: pick.rows }],
+    [byAisle, pick.rows, aisleOf],
+  )
 
   const toggle = (row: PickRow) => {
     haptics.selectionChanged()
-    setTicks((current) => ({ ...current, [row.key]: !row.on }))
+    const line = shown.find((candidate) => candidate.key === row.key) ?? row
+    setTicks((current) => settleLine(current, line, !row.on))
   }
 
   const edit = (row: PickRow) => {
     const typed = [amountText(row.amount), row.title].filter(Boolean).join(' ')
-    Alert.prompt(
+    showPrompt(
       words.editTitle,
       undefined,
       [
@@ -241,8 +264,9 @@ export function AddToGroceriesSheet({
           onPress: (value?: string) => {
             const text = value?.trim()
             if (!text) return
-            setEdits((current) => ({ ...current, [row.key]: editedRead(text) }))
-            setTicks((current) => ({ ...current, [row.key]: true }))
+            const line = shown.find((candidate) => candidate.key === row.key) ?? row
+            setEdits((current) => settleLine(current, line, editedRead(text)))
+            setTicks((current) => settleLine(current, line, true))
           },
         },
       ],

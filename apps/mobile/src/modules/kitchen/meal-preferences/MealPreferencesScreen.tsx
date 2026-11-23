@@ -9,9 +9,13 @@
  * the screen says it did not save. The only typed value, the weekly budget,
  * commits on blur (docs/standards/number-fields.md).
  *
- * Diets, allergens and dislikes are written one item at a time
- * (`setDiet`/`setAllergen`/`setDislike`), never as a whole list, so another
- * Member's change made at the same moment is never lost.
+ * Diets, allergens, dislikes, cuisines, the fish and leftover days and a
+ * slot's days and switch are written one item at a time (`setDiet`,
+ * `setAllergen`, `setDislike`, `setCuisine`, `setFishDay`, `setLeftoverDay`,
+ * `setSlotDay`, `setSlotEnabled`), and so are one day's cooking time and one
+ * smart switch (`setCookingMinutes`, `setSmartSwitch`), never as a whole list,
+ * so another Member's change made at the same moment is never lost. `update`
+ * keeps the rest.
  */
 import {
   ALLERGENS,
@@ -30,8 +34,6 @@ import {
   normalizeDislike,
   parseBudgetCents,
   SMART_SWITCHES,
-  toggleDay,
-  toggleIn,
 } from '@gather/core/meal-preferences'
 import type { OptimisticLocalStore } from 'convex/browser'
 import { useMutation } from 'convex/react'
@@ -54,7 +56,7 @@ import { haptics } from '../../../feedback/haptics'
 import { useGroup } from '../../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
-import { RADIUS, SPACE, TYPE, useTokens } from '../../../theme/tokens'
+import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { InsetList, InsetRow } from '../../../ui/inset-list'
 import {
   BlockRow,
@@ -155,6 +157,60 @@ export function MealPreferencesScreen() {
     }),
   )
 
+  const setCuisine = useMutation(
+    api.mealPreferences.setCuisine,
+  ).withOptimisticUpdate((store, args) =>
+    optimisticList(store, {
+      list: 'cuisines',
+      value: args.cuisine,
+      on: args.on,
+    }),
+  )
+  const setFishDay = useMutation(
+    api.mealPreferences.setFishDay,
+  ).withOptimisticUpdate((store, args) =>
+    optimisticList(store, { list: 'fishDays', value: args.day, on: args.on }),
+  )
+  const setLeftoverDay = useMutation(
+    api.mealPreferences.setLeftoverDay,
+  ).withOptimisticUpdate((store, args) =>
+    optimisticList(store, {
+      list: 'leftoverDays',
+      value: args.day,
+      on: args.on,
+    }),
+  )
+  const setSlotDay = useMutation(
+    api.mealPreferences.setSlotDay,
+  ).withOptimisticUpdate((store, args) =>
+    optimisticList(store, {
+      list: 'slotDays',
+      slot: args.slot,
+      value: args.day,
+      on: args.on,
+    }),
+  )
+  const setSlotEnabled = useMutation(
+    api.mealPreferences.setSlotEnabled,
+  ).withOptimisticUpdate((store, args) =>
+    optimisticList(store, { list: 'slotEnabled', slot: args.slot, on: args.on }),
+  )
+
+  const setCookingMinutes = useMutation(
+    api.mealPreferences.setCookingMinutes,
+  ).withOptimisticUpdate((store, args) =>
+    optimisticList(store, {
+      list: 'cookingMinutes',
+      day: args.day,
+      minutes: args.minutes,
+    }),
+  )
+  const setSmartSwitch = useMutation(
+    api.mealPreferences.setSmartSwitch,
+  ).withOptimisticUpdate((store, args) =>
+    optimisticList(store, { list: 'smart', key: args.key, on: args.on }),
+  )
+
   const failedToSave = () => {
     haptics.actionFailed()
     setFailed(true)
@@ -167,12 +223,55 @@ export function MealPreferencesScreen() {
 
   function saveItem(change: MealPreferencesListChange) {
     setFailed(false)
-    const written =
-      change.list === 'diets'
-        ? setDiet({ groupSlug, diet: change.value, on: change.on })
-        : change.list === 'allergens'
-          ? setAllergen({ groupSlug, allergen: change.value, on: change.on })
-          : setDislike({ groupSlug, dislike: change.value, on: change.on })
+    const written = (() => {
+      switch (change.list) {
+        case 'diets':
+          return setDiet({ groupSlug, diet: change.value, on: change.on })
+        case 'allergens':
+          return setAllergen({
+            groupSlug,
+            allergen: change.value,
+            on: change.on,
+          })
+        case 'dislikes':
+          return setDislike({
+            groupSlug,
+            dislike: change.value,
+            on: change.on,
+          })
+        case 'cuisines':
+          return setCuisine({
+            groupSlug,
+            cuisine: change.value,
+            on: change.on,
+          })
+        case 'fishDays':
+          return setFishDay({ groupSlug, day: change.value, on: change.on })
+        case 'leftoverDays':
+          return setLeftoverDay({ groupSlug, day: change.value, on: change.on })
+        case 'slotDays':
+          return setSlotDay({
+            groupSlug,
+            slot: change.slot,
+            day: change.value,
+            on: change.on,
+          })
+        case 'slotEnabled':
+          return setSlotEnabled({
+            groupSlug,
+            slot: change.slot,
+            on: change.on,
+          })
+        case 'cookingMinutes':
+          return setCookingMinutes({
+            groupSlug,
+            day: change.day,
+            minutes: change.minutes,
+          })
+        case 'smart':
+          return setSmartSwitch({ groupSlug, key: change.key, on: change.on })
+      }
+    })()
     written.catch(failedToSave)
   }
 
@@ -373,9 +472,7 @@ export function MealPreferencesScreen() {
                     trackColor={{ false: tokens.surface2 }}
                     onValueChange={(enabled) => {
                       haptics.selectionChanged()
-                      save({
-                        slots: { ...prefs.slots, [slot]: { ...plan, enabled } },
-                      })
+                      saveItem({ list: 'slotEnabled', slot, on: enabled })
                     }}
                   />
                 }
@@ -387,11 +484,11 @@ export function MealPreferencesScreen() {
                     short={m.dayShort}
                     long={m.dayLong}
                     onToggle={(day) =>
-                      save({
-                        slots: {
-                          ...prefs.slots,
-                          [slot]: { ...plan, days: toggleDay(plan.days, day) },
-                        },
+                      saveItem({
+                        list: 'slotDays',
+                        slot,
+                        value: day,
+                        on: !plan.days.includes(day),
                       })
                     }
                   />
@@ -416,9 +513,11 @@ export function MealPreferencesScreen() {
                   : fmt(m.time.cellLabel, { day: m.dayLong[day], minutes })
               }
               onCycle={(day) => {
-                const next = [...prefs.cookingMinutes]
-                next[day] = nextCookingMinutes(next[day] ?? null)
-                save({ cookingMinutes: next })
+                saveItem({
+                  list: 'cookingMinutes',
+                  day,
+                  minutes: nextCookingMinutes(prefs.cookingMinutes[day] ?? null),
+                })
               }}
             />
           </BlockRow>
@@ -611,7 +710,11 @@ export function MealPreferencesScreen() {
               short={m.dayShort}
               long={m.dayLong}
               onToggle={(day) =>
-                save({ fishDays: toggleDay(prefs.fishDays, day) })
+                saveItem({
+                  list: 'fishDays',
+                  value: day,
+                  on: !prefs.fishDays.includes(day),
+                })
               }
             />
           </BlockRow>
@@ -630,7 +733,11 @@ export function MealPreferencesScreen() {
               short={m.dayShort}
               long={m.dayLong}
               onToggle={(day) =>
-                save({ leftoverDays: toggleDay(prefs.leftoverDays, day) })
+                saveItem({
+                  list: 'leftoverDays',
+                  value: day,
+                  on: !prefs.leftoverDays.includes(day),
+                })
               }
             />
           </BlockRow>
@@ -687,7 +794,11 @@ export function MealPreferencesScreen() {
                   label={m.extra.cuisineNames[cuisine]}
                   selected={prefs.cuisines.includes(cuisine)}
                   onPress={() =>
-                    save({ cuisines: toggleIn(prefs.cuisines, cuisine) })
+                    saveItem({
+                      list: 'cuisines',
+                      value: cuisine,
+                      on: !prefs.cuisines.includes(cuisine),
+                    })
                   }
                 />
               ))}
@@ -711,7 +822,7 @@ export function MealPreferencesScreen() {
                   trackColor={{ false: tokens.surface2 }}
                   onValueChange={(next) => {
                     haptics.selectionChanged()
-                    save({ smart: { ...prefs.smart, [key]: next } })
+                    saveItem({ list: 'smart', key, on: next })
                   }}
                 />
               }
@@ -727,6 +838,11 @@ export function MealPreferencesScreen() {
   )
 }
 
+// Off-scale numbers below, left raw on purpose (APP-446): no `SPACE` or `SIZE`
+// step exists for them, and `RADIUS` has no 12. 36 is a tag's height (a
+// chip's, see controls.tsx), 32 its remove target inside it, 10 the add
+// field's text inset between 8 and 12, 72 the budget field's width, 2 a
+// hairline gap. The add field's 44 is `SIZE.hitMin`.
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: SPACE[4],
@@ -755,7 +871,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addField: {
-    minHeight: 44,
+    minHeight: SIZE.hitMin,
     paddingHorizontal: SPACE[3],
     borderRadius: 12,
     flexDirection: 'row',

@@ -30,10 +30,12 @@ import {
   ensureExternalLists,
   externalEntry,
   externalSnapshot,
+  indexModel,
   listFace,
   localTaskQueries,
   mergeTasks,
   onOccurrenceCompleted,
+  settledDetails,
   smartModel,
   syncExternalList,
   taskSections,
@@ -799,5 +801,112 @@ describe('subtasks (APP-304)', () => {
     ])
     toggleInPlace(store, { taskId: 'bins' as Id<'tasks'>, today })
     expect(doneOf(written[0])).toEqual({ bins: false, rinse: false })
+  })
+})
+
+describe('the Tasks index model (APP-430)', () => {
+  const counts = [
+    { listId: 'house' as Id<'taskLists'>, open: 3 },
+    { listId: 'trip' as Id<'taskLists'>, open: 3, done: 1, total: 4 },
+  ]
+  const lists = [
+    listRow('house', 'local'),
+    { ...listRow('trip', 'local'), kind: 'packing' as const },
+    listRow('fresh', 'local'),
+    listRow('work', 'todoist'),
+  ]
+  const linkedEntry = (
+    sync: 'synced' | 'loading' | 'failed',
+    rows: { id: string; done: boolean; parent?: string }[],
+  ) => ({
+    sync,
+    tasks: rows.map((row, order) => ({
+      id: row.id,
+      listId: 'work',
+      title: row.id,
+      done: row.done,
+      labels: [],
+      order,
+      ...(row.parent ? { parentTaskId: row.parent } : {}),
+    })),
+  })
+
+  test('local counts come from Convex, a list it does not name yet is empty', () => {
+    const model = indexModel(lists, counts, new Map())
+    expect(model.counts.get('house')).toMatchObject({ open: 3 })
+    expect(model.counts.get('trip')).toEqual({ open: 3, done: 1, total: 4 })
+    expect(model.counts.get('fresh')).toEqual({ open: 0 })
+    expect(model.lists.map((list) => list.sync)).toEqual([
+      'live',
+      'live',
+      'live',
+      'loading',
+    ])
+  })
+
+  test('nothing is counted before Convex answers', () => {
+    const model = indexModel(lists, undefined, new Map())
+    expect(model.counts.size).toBe(0)
+    expect(model.lists.slice(0, 3).map((list) => list.sync)).toEqual([
+      'loading',
+      'loading',
+      'loading',
+    ])
+  })
+
+  test('a linked list is counted from its provider rows, subtasks left out', () => {
+    const linked = new Map([
+      [
+        'work',
+        linkedEntry('synced', [
+          { id: 'a', done: false },
+          { id: 'b', done: true },
+          { id: 'step', done: false, parent: 'a' },
+        ]),
+      ],
+    ])
+    const model = indexModel(lists, counts, linked)
+    expect(model.counts.get('work')).toEqual({ open: 1, done: 1, total: 2 })
+    expect(model.openTotal).toBe(3 + 3 + 0 + 1)
+  })
+
+  test('a linked list not yet answered has no count; a failed one keeps its last rows', () => {
+    expect(
+      indexModel(lists, counts, new Map([['work', linkedEntry('loading', [])]]))
+        .counts.has('work'),
+    ).toBe(false)
+    const failed = indexModel(
+      lists,
+      counts,
+      new Map([['work', linkedEntry('failed', [{ id: 'a', done: false }])]]),
+    )
+    expect(failed.lists[3].sync).toBe('failed')
+    expect(failed.counts.get('work')?.open).toBe(1)
+  })
+})
+
+describe('what a composed task’s note and reminder came to', () => {
+  const reminder = { date: '2026-11-23', time: '09:00' }
+  const ok: PromiseSettledResult<unknown> = { status: 'fulfilled', value: null }
+  const no: PromiseSettledResult<unknown> = { status: 'rejected', reason: new Error() }
+
+  test('a reminder that went in is set even when the note failed', () => {
+    expect(settledDetails({ notes: 'keys', reminder }, no, ok)).toEqual({
+      notesFailed: true,
+      reminderFailed: false,
+      reminderSet: true,
+      failed: { notes: 'keys', reminder: undefined },
+    })
+  })
+
+  test('a reminder written again on a retry is set', () => {
+    expect(settledDetails({ reminder }, ok, ok).reminderSet).toBe(true)
+  })
+
+  test('no reminder, or a failed one, is not set', () => {
+    expect(settledDetails({ notes: 'keys' }, ok, ok).reminderSet).toBe(false)
+    const failed = settledDetails({ reminder }, ok, no)
+    expect(failed).toMatchObject({ reminderSet: false, reminderFailed: true })
+    expect(failed.failed.reminder).toEqual(reminder)
   })
 })

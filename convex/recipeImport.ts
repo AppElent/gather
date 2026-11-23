@@ -5,7 +5,7 @@ import { internal } from './_generated/api'
 import { action } from './_generated/server'
 import { takeAiCall } from './lib/aiUsage'
 import { anthropicApiKey } from './lib/anthropic'
-import { GROUP_REFUSAL_MESSAGES } from './lib/groupAccess'
+import { groupRefusalError } from './lib/groupAccess'
 import { extractRecipeWithAi } from './lib/recipeAiExtract'
 import { extractJsonLdRecipe, htmlToText } from './lib/recipeParsing'
 import { isUrlSafeToFetch, safeFetch, storeRemoteImage } from './lib/safeFetch'
@@ -39,7 +39,7 @@ export const importFromUrl = action({
     const group = await ctx.runQuery(internal.groups.bySlug, {
       slug: args.groupSlug,
     })
-    if (!group.ok) throw new ConvexError(GROUP_REFUSAL_MESSAGES[group.reason])
+    if (!group.ok) throw groupRefusalError(group.reason)
 
     if (!isUrlSafeToFetch(args.url)) throw new ConvexError(BLOCKED_MESSAGE)
 

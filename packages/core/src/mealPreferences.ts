@@ -483,7 +483,9 @@ export function toggleDay(days: readonly Weekday[], day: Weekday): Weekday[] {
 }
 
 /**
- * One item switched on or off one of the safety lists. These are written per
+ * One item switched on or off one of the lists (the safety lists first, APP-446
+ * the cuisines, the fish and leftover days, and a slot's days and switch;
+ * APP-573 one day's cooking time and one smart switch). These are written per
  * item, never as the whole list, so two Members adding two allergens at the
  * same moment both keep theirs.
  */
@@ -491,6 +493,13 @@ export type MealPreferencesListChange =
   | { list: 'allergens'; value: Allergen; on: boolean }
   | { list: 'diets'; value: Diet; on: boolean }
   | { list: 'dislikes'; value: string; on: boolean }
+  | { list: 'cuisines'; value: Cuisine; on: boolean }
+  | { list: 'fishDays'; value: Weekday; on: boolean }
+  | { list: 'leftoverDays'; value: Weekday; on: boolean }
+  | { list: 'slotDays'; slot: MealSlot; value: Weekday; on: boolean }
+  | { list: 'slotEnabled'; slot: MealSlot; on: boolean }
+  | { list: 'cookingMinutes'; day: Weekday; minutes: CookingMinutes | null }
+  | { list: 'smart'; key: SmartSwitch; on: boolean }
 
 /**
  * The patch that makes `change` on top of `current`, normalised, or the field
@@ -498,7 +507,18 @@ export type MealPreferencesListChange =
  * already on, or off what is already off, is a no-op patch.
  */
 export function listChangePatch(
-  current: Pick<ResolvedMealPreferences, 'allergens' | 'diets' | 'dislikes'>,
+  current: Pick<
+    ResolvedMealPreferences,
+    | 'allergens'
+    | 'diets'
+    | 'dislikes'
+    | 'cuisines'
+    | 'fishDays'
+    | 'leftoverDays'
+    | 'slots'
+    | 'cookingMinutes'
+    | 'smart'
+  >,
   change: MealPreferencesListChange,
 ):
   | { ok: true; patch: MealPreferencesPatch }
@@ -522,6 +542,37 @@ export function listChangePatch(
     return normalizeMealPreferencesPatch({
       allergens: setIn(current.allergens, change.value, change.on),
     })
+  if (change.list === 'cuisines')
+    return normalizeMealPreferencesPatch({
+      cuisines: setIn(current.cuisines, change.value, change.on),
+    })
+  if (change.list === 'fishDays' || change.list === 'leftoverDays')
+    return normalizeMealPreferencesPatch({
+      [change.list]: setIn(current[change.list], change.value, change.on),
+    })
+  if (change.list === 'cookingMinutes') {
+    // Seven entries are stored; only this day's changes.
+    const cookingMinutes = [...current.cookingMinutes]
+    cookingMinutes[change.day] = change.minutes
+    return normalizeMealPreferencesPatch({ cookingMinutes })
+  }
+  if (change.list === 'smart')
+    return normalizeMealPreferencesPatch({
+      smart: { ...current.smart, [change.key]: change.on },
+    })
+  if (change.list === 'slotDays' || change.list === 'slotEnabled') {
+    // The whole `slots` object is what is stored, but it is built here from the
+    // row read in the same transaction, so only this slot's item changes.
+    const slots = copySlots(current.slots)
+    if (change.list === 'slotDays')
+      slots[change.slot].days = setIn(
+        slots[change.slot].days,
+        change.value,
+        change.on,
+      )
+    else slots[change.slot].enabled = change.on
+    return normalizeMealPreferencesPatch({ slots })
+  }
   return normalizeMealPreferencesPatch({
     diets: setIn(current.diets, change.value, change.on),
   })
@@ -544,6 +595,7 @@ export type { MatchableRecipe, RecipeClash } from './mealPreferenceMatching'
 export {
   clashReasons,
   describeClash,
+  describeClashes,
   fitsPreferences,
   recipeClashes,
 } from './mealPreferenceMatching'

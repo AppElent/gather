@@ -3,7 +3,7 @@ import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
@@ -21,6 +21,7 @@ export function NewBabyPage() {
   const [error, setError] = useState<string | null>(null)
   const [photoId, setPhotoId] = useState<Id<'_storage'> | undefined>()
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const { form } = messages.baby.log
 
   /** Baby log → Add a child. */
@@ -60,7 +61,7 @@ export function NewBabyPage() {
             const id = await create({ ...values, photoId, groupSlug })
             navigate(linkTo('child', { babyId: id }))
           } catch (err) {
-            setError(errorMessage(err, form.saveFailed))
+            setError(errorText(err, form.saveFailed))
             setSubmitting(false)
           }
         }}

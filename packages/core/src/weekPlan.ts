@@ -22,6 +22,7 @@ import { daysBetween } from './civilDate'
 import { MEAL_SLOTS, type MealSlot, weekdayIndex } from './mealPlanner'
 import {
   normalizeText,
+  type RecipeClash,
   recipeClashes,
 } from './mealPreferenceMatching'
 import type { ResolvedMealPreferences } from './mealPreferences'
@@ -30,6 +31,8 @@ import type { ResolvedMealPreferences } from './mealPreferences'
 export const BUSY_EVENING_MINUTES = 20
 /** A quick meal's name as the model or a person may give it. */
 export const QUICK_MEAL_NAME_MAX = 60
+/** How much of a made-up quick meal's name the diet and allergy check reads. */
+const QUICK_MEAL_CHECK_MAX = 400
 /** A reason line: one short sentence. */
 export const REASON_MAX = 90
 /** A wish typed on the start sheet. */
@@ -172,6 +175,32 @@ function nameClashes(
     { title: name, ingredients: [], tags: [] },
     { ...prefs, cookingMinutes: NO_TIME },
     0,
+  )
+}
+
+/**
+ * The "controleer zelf" a draft shows (APP-460): the first clash the matcher
+ * can't rule out. A recipe is read from its title and ingredients, allergens
+ * before diets. A quick meal has only its name, so only an allergy is named:
+ * with any allergy set, every quick meal says to check it yourself, while a
+ * diet would flag every name for lack of ingredients. Undefined when nothing
+ * is unsure; a certain clash never reaches a draft (`plannableRecipes`).
+ */
+export function draftCheck(
+  meal: { recipe: Pick<WeekPlanRecipe, 'title' | 'ingredients' | 'tags'> } | { quickMeal: string },
+  prefs: Pick<ResolvedMealPreferences, 'allergens' | 'diets' | 'dislikes'>,
+): Extract<RecipeClash, { kind: 'allergen' | 'diet' }> | undefined {
+  const clashes =
+    'recipe' in meal
+      ? recipeClashes(meal.recipe, { ...prefs, cookingMinutes: NO_TIME }, 0)
+      : nameClashes(meal.quickMeal, prefs)
+  const unsure = clashes.filter(
+    (clash): clash is Extract<RecipeClash, { kind: 'allergen' | 'diet' }> =>
+      clash.uncertain === true && (clash.kind === 'allergen' || clash.kind === 'diet'),
+  )
+  return (
+    unsure.find((clash) => clash.kind === 'allergen') ??
+    ('recipe' in meal ? unsure.find((clash) => clash.kind === 'diet') : undefined)
   )
 }
 
@@ -454,12 +483,14 @@ export function acceptAiPicks(
       })
       continue
     }
+    // The whole name is checked: a clash past the cut still counts.
+    const fullName = cleanText(item.quickMeal, QUICK_MEAL_CHECK_MAX)
     const name = cleanText(item.quickMeal, QUICK_MEAL_NAME_MAX)
-    if (!name) continue
+    if (!name || !fullName) continue
     const nameKey = quickMealKey(name)
     if (!nameKey || namedQuick.has(nameKey)) continue
     const known = quickByName.get(nameKey)
-    if (!known && !inventedQuickMealFits(name, input.prefs)) continue
+    if (!known && !inventedQuickMealFits(fullName, input.prefs)) continue
     namedQuick.add(nameKey)
     const minutes =
       known?.prepMinutes ??

@@ -22,6 +22,7 @@ export type ModuleIconName =
   | 'Target'
   | 'Users'
   | 'Wine'
+  | 'Zap'
 
 export interface ModuleDef {
   id: string
@@ -117,6 +118,21 @@ export const MODULES = [
   {
     id: 'loyalty-cards',
     icon: 'CreditCard',
+    group: 'home',
+    status: 'live',
+    mobileStatus: 'live',
+  },
+  /**
+   * What the home uses, produces and pays for electricity and gas (APP-491,
+   * ADR-0051). In `home` because it is about the house, not about a budget:
+   * the money it shows is a reading of the meter, not a record somebody keeps.
+   * Live on both platforms from its shell (APP-492): it has screens on each,
+   * and a phone Module with screens is live (APP-374). Until usage arrives
+   * (APP-494) those screens only add the Group's address.
+   */
+  {
+    id: 'energy',
+    icon: 'Zap',
     group: 'home',
     status: 'live',
     mobileStatus: 'live',

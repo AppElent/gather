@@ -50,6 +50,7 @@ import {
   type WeekData,
   weekdayInText,
 } from './week'
+import { swapReason } from './week-plan'
 
 type SwapAnswer = FunctionReturnType<typeof api.mealIdeas.swap>
 type Alternative = Extract<SwapAnswer, { alternatives: unknown }>['alternatives'][number]
@@ -483,6 +484,7 @@ export function SwapSheet({
                 <View style={styles.cards}>
                   {swap.alternatives.map((alt) => {
                     const key = altKey(alt)
+                    const reason = swapReason(alt, words, locale)
                     const isChosen = chosen?.key === key
                     const meta = [
                       alt.prepMinutes ? fmt(words.minutes, { minutes: alt.prepMinutes }) : null,
@@ -512,8 +514,10 @@ export function SwapSheet({
                           {meta ? (
                             <Text style={[styles.meta, { color: tokens.muted }]}>{meta}</Text>
                           ) : null}
-                          {alt.reason ? (
-                            <Text style={[styles.meta, { color: tokens.ink }]}>{alt.reason}</Text>
+                          {reason ? (
+                            <Text testID={`swap-reason-${key}`} style={[styles.meta, { color: tokens.ink }]}>
+                              {reason}
+                            </Text>
                           ) : null}
                         </View>
                         <Pressable

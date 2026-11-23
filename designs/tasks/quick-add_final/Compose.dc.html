@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Snel toevoegen aan het toetsenbord</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.85}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+input,textarea{font:inherit;color:inherit;border:0;background:transparent;outline:none;padding:0;margin:0;width:100%}
+.chips{scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: {{w}}px; height: {{h}}px; position: relative; overflow: hidden; background: {{c.ground}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: {{c.ink}}">
+
+  <div style="background: {{c.homeWash}}; padding: {{topPad}}px 16px 18px 16px; display: flex; flex-direction: column; gap: 6px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <sc-if value="{{noBack}}" hint-placeholder-val="{{ false }}"><span></span></sc-if>
+      <sc-if value="{{hasBack}}" hint-placeholder-val="{{ true }}">
+      <a href="#" aria-label="Terug naar Taken" style="height: 44px; padding: 0 16px 0 8px; border-radius: 999px; display: flex; align-items: center; gap: 2px; text-decoration: none; color: {{c.ink}}; background: {{c.glass}}; box-shadow: {{c.glassShadow}}">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+        <span style="font-size: 17px; line-height: 22px">Taken</span>
+      </a>
+      </sc-if>
+      <button aria-label="Lijstmenu" style="width: 44px; height: 44px; border-radius: 999px; background: {{c.glass}}; box-shadow: {{c.glassShadow}}; display: flex; align-items: center; justify-content: center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="1.7"></circle><circle cx="19" cy="12" r="1.7"></circle><circle cx="5" cy="12" r="1.7"></circle></svg>
+      </button>
+    </div>
+    <h1 style="margin: 4px 4px 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 34px; line-height: 41px; font-weight: 700">{{screenTitle}}</h1>
+    <span style="margin: 0 4px; font-size: 15px; line-height: 20px; color: {{c.muted}}">{{screenSub}}</span>
+  </div>
+
+  <div style="padding: 16px 16px 0 16px">
+    <div style="background: {{c.surface}}; border-radius: 22px">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 12px; padding-left: 14px">
+          <span aria-hidden="true" style="width: 24px; height: 24px; flex: 0 0 24px; border-radius: 999px; border: 2px solid {{c.muted}}; box-sizing: border-box"></span>
+          <div style="flex-grow: 1; min-width: 0; min-height: 56px; padding: 8px 14px 8px 0; box-sizing: border-box; border-top: {{r.sep}}; display: flex; flex-direction: column; justify-content: center">
+            <span style="font-size: 17px; line-height: 22px; background: {{r.flash}}; border-radius: 6px">{{r.title}}</span>
+            <sc-if value="{{r.hasMeta}}" hint-placeholder-val="{{ true }}">
+              <span style="font-size: 13px; line-height: 18px; color: {{r.metaColor}}">{{r.meta}}</span>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <sc-if value="{{closed}}" hint-placeholder-val="{{ false }}">
+    <button aria-label="Taak toevoegen" onClick="{{openComposer}}" style="position: absolute; right: 20px; bottom: {{fabBottom}}px; width: 60px; height: 60px; border-radius: 999px; background: {{c.homeFill}}; box-shadow: 0 8px 24px rgba(16,32,30,0.22); display: flex; align-items: center; justify-content: center">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="{{c.homeOn}}" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+    </button>
+  </sc-if>
+
+  <sc-if value="{{isOpen}}" hint-placeholder-val="{{ true }}">
+    <button aria-label="Sluiten" onClick="{{closeComposer}}" style="position: absolute; inset: 0; background: {{c.dim}}; cursor: default"></button>
+
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column">
+      <div style="position: relative; margin: 0 8px 8px 8px">
+
+        <sc-if value="{{menuOpen}}" hint-placeholder-val="{{ false }}">
+          <div role="menu" aria-label="Details toevoegen" style="position: absolute; left: 4px; bottom: calc(100% + 8px); width: 252px; background: {{c.menu}}; border-radius: 18px; box-shadow: 0 12px 40px rgba(0,0,0,0.22); padding: 6px 0; display: flex; flex-direction: column">
+            <sc-for list="{{menuItems}}" as="m" hint-placeholder-count="6">
+              <button role="menuitem" onClick="{{m.pick}}" style="min-height: 44px; padding: 0 16px; display: flex; align-items: center; gap: 12px; font-size: 17px">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.icon}}"></path></svg>
+                <span style="flex-grow: 1">{{m.label}}</span>
+                <sc-if value="{{m.on}}" hint-placeholder-val="{{ false }}">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.homeText}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                </sc-if>
+              </button>
+            </sc-for>
+            <div style="height: 0.5px; background: {{c.hair}}; margin: 6px 0"></div>
+            <a href="Detail.dc.html" role="menuitem" style="min-height: 44px; padding: 0 16px; display: flex; align-items: center; gap: 12px; font-size: 17px; text-decoration: none; color: {{c.ink}}">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+              Alle details
+            </a>
+          </div>
+        </sc-if>
+
+        <section aria-label="{{sectionLabel}}" style="position: relative; height: {{secH}}; box-sizing: border-box; background: {{c.surface}}; border-radius: 24px; box-shadow: 0 10px 30px rgba(16,32,30,0.18); padding: 20px 12px 12px 16px; display: flex; flex-direction: column; gap: 10px">
+          <button aria-label="{{handleLabel}}" onClick="{{toggleExpand}}" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 88px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: grab"><span aria-hidden="true" style="width: 36px; height: 5px; border-radius: 999px; background: {{c.hair}}"></span></button>
+          <div style="display: flex; align-items: flex-start; gap: 6px; flex-grow: {{rowGrow}}; min-height: 0">
+            <div style="flex-grow: 1; min-width: 0; align-self: stretch; display: flex; flex-direction: column; gap: 2px">
+              <input type="text" aria-label="{{placeholder}}" placeholder="{{placeholder}}" value="{{title}}" onChange="{{typeTitle}}" style="font-size: 18px; line-height: 26px; font-weight: 600">
+              <sc-if value="{{showNotes}}" hint-placeholder-val="{{ false }}">
+                <input type="text" aria-label="Beschrijving" placeholder="{{bodyPh}}" style="font-size: 15px; line-height: 20px; color: {{c.muted}}">
+              </sc-if>
+              <sc-if value="{{expanded}}" hint-placeholder-val="{{ false }}">
+                <textarea aria-label="Beschrijving" placeholder="{{bigPh}}" style="flex-grow: 1; margin-top: 8px; padding-top: 10px; border-top: 0.5px solid {{c.hair}}; font-size: 16px; line-height: 22px; resize: none"></textarea>
+              </sc-if>
+            </div>
+            <button aria-label="{{expandLabel}}" onClick="{{toggleExpand}}" style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: {{c.muted}}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{expandIcon}}"></path></svg>
+            </button>
+            <sc-if value="{{sendTop}}" hint-placeholder-val="{{ false }}">
+              <button aria-label="Bewaar" onClick="{{send}}" style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 999px; background: {{sendBg}}; display: flex; align-items: center; justify-content: center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{sendFg}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+              </button>
+            </sc-if>
+          </div>
+
+          <div style="display: flex; align-items: {{rowAlign}}; gap: 8px">
+            <sc-if value="{{isB}}" hint-placeholder-val="{{ true }}">
+              <button aria-label="Meer details" aria-expanded="{{menuOpen}}" onClick="{{toggleMenu}}" style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 999px; border: 1px solid {{c.hair}}; box-sizing: border-box; background: {{plusBg}}; display: flex; align-items: center; justify-content: center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+              </button>
+            </sc-if>
+            <div class="chips" style="flex-grow: 1; min-width: 0; display: flex; flex-wrap: {{chipWrap}}; gap: 8px; overflow-x: auto">
+              <sc-if value="{{hasListChip}}" hint-placeholder-val="{{ true }}">
+              <button aria-label="{{listAria}}" style="min-height: 36px; padding: 0 12px 0 8px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; gap: 6px; font-size: 15px; white-space: nowrap; flex: 0 0 auto">
+                <span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 6px; background: {{listFill}}; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{listOn}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="{{listGlyph}}"></path></svg></span>
+                {{listName}}
+              </button>
+              </sc-if>
+              <sc-for list="{{chips}}" as="ch" hint-placeholder-count="2">
+                <button aria-label="{{ch.aria}}" onClick="{{ch.toggle}}" style="min-height: 36px; padding: 0 12px 0 10px; border-radius: 999px; background: {{ch.bg}}; border: {{ch.border}}; box-sizing: border-box; display: flex; align-items: center; gap: 6px; font-size: 15px; white-space: nowrap; flex: 0 0 auto; color: {{ch.fg}}">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{ch.iconColor}}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ch.icon}}"></path></svg>
+                  {{ch.label}}
+                </button>
+              </sc-for>
+            </div>
+            <sc-if value="{{sendRow}}" hint-placeholder-val="{{ true }}">
+              <button aria-label="Bewaar" onClick="{{send}}" style="width: 40px; height: 40px; flex: 0 0 40px; border-radius: 999px; background: {{sendBg}}; display: flex; align-items: center; justify-content: center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{sendFg}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+              </button>
+            </sc-if>
+          </div>
+        </section>
+      </div>
+
+      <sc-if value="{{isC}}" hint-placeholder-val="{{ false }}">
+        <div role="toolbar" aria-label="Details" style="background: {{c.bar}}; border-top: 0.5px solid {{c.hair}}; height: 48px; display: flex; align-items: center; justify-content: space-around; padding: 0 6px">
+          <sc-for list="{{tools}}" as="t" hint-placeholder-count="7">
+            <button aria-label="{{t.label}}" aria-pressed="{{t.on}}" onClick="{{t.toggle}}" style="width: 44px; height: 44px; border-radius: 12px; background: {{t.bg}}; display: flex; align-items: center; justify-content: center">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{t.color}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <div aria-hidden="true" style="height: {{kbH}}px; background: {{c.keyboard}}; display: flex; align-items: center; justify-content: center; font-size: 13px; color: {{c.muted}}">Toetsenbord</div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["task","note","event"],"default":"task"},"dir":{"editor":"enum","options":["A","B","C"],"default":"B"},"start":{"editor":"enum","options":["closed","open","menu","filled","expanded"],"default":"open"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"size":{"editor":"enum","options":["iphone","se"],"default":"iphone"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const dir = p.dir || 'B';
+    const start = p.start || 'open';
+    const dark = (p.theme || 'light') === 'dark';
+    const se = (p.size || 'iphone') === 'se';
+    const kind = p.kind || 'task';
+    const st = this.state || {};
+    const set = (o) => this.setState(Object.assign({}, this.state || {}, o));
+
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#3A403D', danger: '#F0917F',
+      homeFill: '#D99B2B', homeOn: '#2B1F06', homeText: '#F2C060', homeWash: '#2E2611', moneyFill: '#2F6BD8',
+      glass: 'rgba(44,46,45,0.55)', glassShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 8px 24px rgba(0,0,0,0.45)',
+      keyboard: '#2B2F2D', bar: '#222624', menu: '#2A2E2C', dim: 'rgba(0,0,0,0.45)', flash: 'rgba(217,155,43,0.28)'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', muted: '#5E6764', hair: '#D5D9D4', danger: '#A4372C',
+      homeFill: '#F2B233', homeOn: '#2B1F06', homeText: '#8A5C08', homeWash: '#FBEBC6', moneyFill: '#2F6BD8',
+      glass: 'rgba(255,255,255,0.62)', glassShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 8px 24px rgba(16,32,30,0.14)',
+      keyboard: '#D3D6D2', bar: '#F7F8F6', menu: '#FBFBFA', dim: 'rgba(26,31,29,0.28)', flash: '#FBEBC6'
+    };
+
+    const g = {
+      date: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+      who: 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8a4 4 0 1 0 0-8',
+      prio: 'M4 22V4M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1',
+      bell: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0',
+      label: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l8.59-8.59a1 1 0 0 0 0-1.41zM7 7h.01',
+      repeat: 'M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3',
+      notes: 'M4 6h16M4 12h16M4 18h10',
+      time: 'M12 22a10 10 0 1 0 0-20a10 10 0 1 0 0 20M12 6v6l4 2',
+      place: 'M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0M12 7a3 3 0 1 0 0 6a3 3 0 1 0 0-6',
+      pin: 'M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z',
+      chores: 'M9.5 2l1.5 4.5L15.5 8 11 9.5 9.5 14 8 9.5 3.5 8 8 6.5zM18 13l.9 2.1L21 16l-2.1.9L18 19l-.9-2.1L15 16l2.1-.9z'
+    };
+    const meta = {
+      date: ['Datum', 'Morgen'], who: ['Wie', 'Daan'], prio: ['Prioriteit', 'Hoog'], bell: ['Herinnering', 'Morgen 09:00'],
+      label: ['Label', '#badkamer'], repeat: ['Herhalen', 'Elke week'], notes: ['Beschrijving', 'Beschrijving'],
+      time: ['Tijd', '12:30–15:00'], place: ['Locatie', 'Bij oma'], pin: ['Vastpinnen', 'Vastgepind']
+    };
+    if (kind === 'event') { meta.date = ['Datum', 'za 28 nov']; meta.who = ['Wie', 'Iedereen']; meta.notes = ['Notitie', 'Notitie']; }
+    const K = {
+      task: { all: ['date', 'who', 'prio', 'bell', 'label', 'repeat', 'notes'], always: ['date'], menu: ['notes', 'prio', 'who', 'bell', 'label', 'repeat'],
+        filled: { date: true, who: true, prio: true }, title: 'Badkamer schoonmaken', ph: 'Taaknaam', bodyPh: 'Beschrijving',
+        screen: 'Huishouden', back: true, section: 'Taak toevoegen aan Huishouden', list: ['Huishouden', c.homeFill, c.homeOn, 'chores', 'Lijst'] },
+      event: { all: ['date', 'time', 'who', 'place', 'notes'], always: ['date', 'time'], menu: ['who', 'place', 'notes'],
+        filled: { date: true, time: true, who: true }, title: 'Verjaardag oma', ph: 'Wat ga je doen?', bodyPh: 'Notitie',
+        screen: 'Agenda', back: false, section: 'Afspraak toevoegen', list: ['Gezin', c.moneyFill, '#FFFFFF', 'date', 'Agenda'] },
+      note: { all: ['pin'], always: ['pin'], menu: [],
+        filled: { pin: true }, title: 'Wifi en router', ph: 'Titel', bodyPh: 'Begin met typen…',
+        screen: 'Notities', back: false, section: 'Notitie maken', list: null }
+    }[kind];
+
+    const startOpen = start !== 'closed';
+    const filled = start === 'filled' || start === 'expanded';
+    const isOpen = st.open === undefined ? startOpen : st.open;
+    const menuOpen = dir === 'B' && (st.menu === undefined ? start === 'menu' : st.menu);
+    const on = st.on || (filled ? K.filled : {});
+    const title = st.title === undefined ? (filled ? K.title : '') : st.title;
+    const added = st.added || [];
+    const expanded = st.exp === undefined ? start === 'expanded' : st.exp;
+
+    const toggle = (k) => () => {
+      const next = Object.assign({}, on);
+      next[k] = !next[k];
+      set({ on: next, menu: false });
+    };
+
+    const ready = title.trim().length > 0;
+    const send = () => {
+      if (!ready) return;
+      const parts = kind === 'note' ? ['Net bewerkt'] : K.all.filter((k) => on[k] && k !== 'notes').map((k) => meta[k][1]);
+      set({ added: added.concat([{ title: title.trim(), meta: parts.join(' · ') }]), title: '', on: {}, menu: false });
+    };
+
+    const bases = {
+      note: [
+        { title: 'Wifi-code', meta: 'Vastgepind · 3 nov' },
+        { title: 'Instructies cv-ketel', meta: 'Vastgepind · 12 okt' },
+        { title: 'Cadeau-ideeën Daan', meta: 'gisteren' },
+        { title: 'Paklijst Ardennen', meta: 'ma 16 nov' },
+        { title: 'Klusjesman nummers', meta: '2 nov' }
+      ],
+      event: [
+        { title: 'Zwemles Daan', meta: 'Vandaag · 16:30–17:15' },
+        { title: 'Tandarts Sanne', meta: 'Morgen · 09:00' },
+        { title: 'Ouderavond school', meta: 'wo 25 nov · 19:30' },
+        { title: 'Etentje bij Eva en Tom', meta: 'vr 27 nov · 18:30' },
+        { title: 'Kliko aan de straat', meta: 'do 26 nov · hele dag' }
+      ]
+    };
+    const base = bases[kind] || [
+      { title: 'Stofzuigen', meta: 'Vandaag · Sanne' },
+      { title: 'Planten water geven', meta: 'Morgen · elke week' },
+      { title: 'Kliko aan de straat', meta: 'do 26 nov' },
+      { title: 'Filter afzuigkap vervangen', meta: '' },
+      { title: 'Ramen wassen', meta: 'za 28 nov · Daan' }
+    ];
+    const all = (kind === 'note' ? added.slice().reverse() : []).concat(base).concat(kind === 'note' ? [] : added);
+    const shown = se ? all.slice(Math.max(0, all.length - 4)) : all;
+    const rows = shown.map((r, i) => ({
+      title: r.title, meta: r.meta, hasMeta: !!r.meta, metaColor: c.muted,
+      sep: i === 0 ? 'none' : '0.5px solid ' + c.hair,
+      flash: added.length && ((kind === 'note' && i === 0) || (kind !== 'note' && i === shown.length - 1)) ? c.flash : 'transparent'
+    }));
+
+    const chipFor = (k, emptyStyle) => {
+      const isOn = !!on[k];
+      return {
+        icon: g[k], label: isOn ? meta[k][1] : meta[k][0],
+        aria: meta[k][0] + (isOn ? ': ' + meta[k][1] + ', wijzigen' : ', kiezen'),
+        bg: isOn ? c.homeWash : (emptyStyle ? 'transparent' : c.surface2),
+        border: isOn ? '1px solid transparent' : (emptyStyle ? '1px solid ' + c.hair : '1px solid transparent'),
+        fg: isOn ? c.ink : (emptyStyle ? c.muted : c.ink),
+        iconColor: isOn ? c.homeText : c.muted,
+        toggle: toggle(k)
+      };
+    };
+
+    const chipKeys = kind === 'note' ? K.all : K.all.filter((k) => k !== 'notes');
+    let chips = [];
+    if (dir === 'A' || (expanded && dir === 'B')) {
+      chips = chipKeys.map((k) => chipFor(k, true));
+    } else if (dir === 'B') {
+      chips = K.always.map((k) => chipFor(k, false)).concat(chipKeys.filter((k) => K.always.indexOf(k) < 0 && on[k]).map((k) => chipFor(k, false)));
+    } else {
+      chips = chipKeys.filter((k) => on[k]).map((k) => chipFor(k, false));
+    }
+
+    const menuItems = K.menu.map((k) => ({
+      icon: g[k], label: meta[k][0], on: !!on[k], pick: toggle(k)
+    }));
+    const tools = K.all.map((k) => ({
+      icon: g[k], label: meta[k][0], on: !!on[k],
+      bg: on[k] ? c.homeWash : 'transparent', color: on[k] ? c.homeText : c.ink, toggle: toggle(k)
+    }));
+
+    const h = se ? 667 : 844;
+    return {
+      c, w: se ? 375 : 390, h, topPad: se ? 24 : 54,
+      kbH: se ? 216 : 291, fabBottom: se ? 24 : 42,
+      openCount: all.length,
+      screenTitle: K.screen, screenSub: kind === 'note' ? all.length + ' notities' : kind === 'event' ? 'Komende 7 dagen' : all.length + ' open',
+      bigPh: kind === 'note' ? 'Begin met typen…' : kind === 'event' ? 'Notitie: wat mee te nemen, adres…' : 'Beschrijving, links, wat er nodig is…', hasBack: K.back, noBack: !K.back, sectionLabel: K.section, placeholder: K.ph, bodyPh: K.bodyPh,
+      hasListChip: !!K.list, listName: K.list ? K.list[0] : '', listFill: K.list ? K.list[1] : '', listOn: K.list ? K.list[2] : '',
+      listGlyph: K.list ? g[K.list[3]] : '', listAria: K.list ? K.list[4] + ': ' + K.list[0] + ', wijzigen' : '',
+      rows, closed: !isOpen, isOpen, menuOpen,
+      isB: dir === 'B' && kind !== 'note', isC: dir === 'C',
+      sendTop: dir !== 'B', sendRow: dir === 'B',
+      sendBg: ready ? c.homeFill : c.surface2, sendFg: ready ? c.homeOn : c.muted,
+      plusBg: menuOpen ? c.surface2 : 'transparent',
+      title, showNotes: (kind === 'note' || !!on.notes) && !expanded, expanded,
+      secH: expanded ? (h - (se ? 216 : 291) - (dir === 'C' ? 48 : 0) - (se ? 28 : 62)) + 'px' : 'auto',
+      rowGrow: expanded ? 1 : 0, chipWrap: expanded ? 'wrap' : 'nowrap', rowAlign: expanded ? 'flex-end' : 'center',
+      handleLabel: expanded ? 'Kleiner maken' : 'Groter maken', expandLabel: expanded ? 'Kleiner maken' : 'Groter maken',
+      expandIcon: expanded ? 'M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7' : 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7',
+      toggleExpand: () => set({ exp: !expanded, menu: false }), chips, menuItems, tools,
+      typeTitle: (e) => set({ title: e && e.target ? e.target.value : '' }),
+      openComposer: () => set({ open: true }),
+      closeComposer: () => set({ open: false, menu: false, exp: false }),
+      toggleMenu: () => set({ menu: !menuOpen }),
+      send
+    };
+  }
+}
+</script>
+</body>
+</html>

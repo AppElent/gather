@@ -3,7 +3,7 @@ import { useAction } from 'convex/react'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { SurfaceCard } from '../../components/app/ShellPrimitives'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { consumeOAuthState, oauthRedirectUri } from '../../lib/oauth'
@@ -33,6 +33,7 @@ function OAuthCallback() {
   const navigate = useNavigate()
   const [failure, setFailure] = useState<Failure | null>(null)
   const { oauthCallback } = useMessages().shell
+  const errorText = useErrorMessage()
   const started = useRef(false)
 
   useEffect(() => {
@@ -62,7 +63,7 @@ function OAuthCallback() {
       redirectUri: oauthRedirectUri(),
     })
       .then(() => navigate({ to: consumed.returnTo as '/settings' }))
-      .catch((e) => setFailure({ kind: 'error', message: errorMessage(e, '') }))
+      .catch((e) => setFailure({ kind: 'error', message: errorText(e, '') }))
   }, [code, state, error, completeOAuth, navigate])
 
   return (

@@ -42,7 +42,7 @@ import {
   internalQuery,
   mutation,
 } from './_generated/server'
-import { DAILY_AI_CALLS } from './lib/aiUsage'
+import { DAILY_AI_CALLS, takeRefundableAiCall } from './lib/aiUsage'
 import { anthropicApiKey } from './lib/anthropic'
 import { rejectConnectedApps } from './lib/connectedApps'
 import {
@@ -153,6 +153,13 @@ type AskContext = {
   titles: string[]
 }
 
+/** Why the rules chose an alternative (`SwapRulesReason`). */
+const rulesReasonValidator = v.object({
+  low: v.array(v.string()),
+  inStock: v.array(v.string()),
+  fitsMinutes: v.optional(v.number()),
+})
+
 /** The alternatives as the phone shows them: with each recipe's photo. */
 export const view = internalQuery({
   args: {
@@ -162,6 +169,7 @@ export const view = internalQuery({
         recipeId: v.optional(v.string()),
         quickMealId: v.optional(v.string()),
         reason: v.optional(v.string()),
+        rulesReason: v.optional(rulesReasonValidator),
         source: v.union(v.literal('ai'), v.literal('rules')),
       }),
     ),
@@ -182,6 +190,7 @@ export const view = internalQuery({
             rating: recipe.rating,
             imageUrl: recipe.imageId ? await ctx.storage.getUrl(recipe.imageId) : null,
             reason: pick.reason,
+            rulesReason: pick.rulesReason,
             source: pick.source,
           }
         }
@@ -196,6 +205,7 @@ export const view = internalQuery({
           rating: undefined,
           imageUrl: null,
           reason: pick.reason,
+          rulesReason: pick.rulesReason,
           source: pick.source,
         }
       }),
@@ -218,10 +228,8 @@ async function begin(ctx: ActionCtx, args: Infer<typeof askArgsObject>) {
     ...args,
     wish: cleanWish(args.wish),
   })
-  const used: number | null = await ctx.runMutation(internal.aiUsage.takeCounted, {
-    clerkId: identity.subject,
-  })
-  return { identity, context, used }
+  const taken = await takeRefundableAiCall(ctx, identity.subject)
+  return { context, taken }
 }
 
 const alternativeValidator = v.object({
@@ -232,6 +240,7 @@ const alternativeValidator = v.object({
   rating: v.optional(v.number()),
   imageUrl: v.union(v.string(), v.null()),
   reason: v.optional(v.string()),
+  rulesReason: v.optional(rulesReasonValidator),
   source: v.union(v.literal('ai'), v.literal('rules')),
 })
 
@@ -256,8 +265,9 @@ export const swap = action({
   returns: swapResult,
   handler: async (ctx, args): Promise<SwapResult> => {
     await rejectConnectedApps(ctx)
-    const { identity, context, used } = await begin(ctx, args)
-    if (used === null) return { status: 'limit', limit: DAILY_AI_CALLS }
+    const { context, taken } = await begin(ctx, args)
+    if (taken === null) return { status: 'limit', limit: DAILY_AI_CALLS }
+    const { used } = taken
     const input: SwapInput = {
       ...context.input,
       current: context.current ?? undefined,
@@ -279,7 +289,7 @@ export const swap = action({
     let picks: (SwapPick & { source: 'ai' | 'rules' })[]
     let spent = used
     if (aiPicks === null) {
-      await ctx.runMutation(internal.aiUsage.refund, { clerkId: identity.subject })
+      await taken.refund()
       spent = used - 1
       picks = rulesSwaps(input).map((pick) => ({ ...pick, source: 'rules' as const }))
     } else picks = completeSwaps(aiPicks, input)
@@ -289,6 +299,7 @@ export const swap = action({
         recipeId: pick.recipeId,
         quickMealId: pick.quickMealId,
         reason: pick.reason,
+        rulesReason: pick.rulesReason,
         source: pick.source,
       })),
     })
@@ -344,8 +355,9 @@ export const idea = action({
   handler: async (ctx, args): Promise<IdeaResult> => {
     await rejectConnectedApps(ctx)
     const { avoidTitles, ...ask } = args
-    const { identity, context, used } = await begin(ctx, ask)
-    if (used === null) return { status: 'limit', limit: DAILY_AI_CALLS }
+    const { context, taken } = await begin(ctx, ask)
+    if (taken === null) return { status: 'limit', limit: DAILY_AI_CALLS }
+    const { used } = taken
     const apiKey = anthropicApiKey()
     const answer = apiKey
       ? await askIdea(
@@ -363,7 +375,7 @@ export const idea = action({
         )
       : ({ kind: 'unreached' } as const)
     if (answer.kind === 'unreached') {
-      await ctx.runMutation(internal.aiUsage.refund, { clerkId: identity.subject })
+      await taken.refund()
       return { status: 'unavailable', left: DAILY_AI_CALLS - used + 1, limit: DAILY_AI_CALLS }
     }
     if (answer.kind === 'none')

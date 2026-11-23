@@ -61,6 +61,26 @@ export function AllEditMode({
   const dragModule = (label: string) =>
     t.shell.all.dragModule.replace('{module}', label)
 
+  // VoiceOver cannot drag a grip, so every list here also moves a row one
+  // place at a time, and says where it went (APP-572).
+  const moveActions = {
+    up: t.shell.all.moveUpAction,
+    down: t.shell.all.moveDownAction,
+    moved: (item: string, position: number, total: number) =>
+      t.shell.all.moved
+        .replace('{item}', item)
+        .replace('{position}', String(position))
+        .replace('{total}', String(total)),
+  }
+  /** A row button's job, for the row that hides it from a screen reader. */
+  const action = (label: string, run: () => void) => ({
+    label,
+    run: () => {
+      run()
+      haptics.itemSaved()
+    },
+  })
+
   /** Takes a Module out of the screen, or a Pin off the top. */
   const roundButton = (
     kind: 'remove' | 'add',
@@ -118,6 +138,13 @@ export function AllEditMode({
             onDragging={onDragging}
             onCommit={state.setPinnedOrder}
             dragLabel={dragModule}
+            moveActions={moveActions}
+            rowAction={(item) =>
+              action(
+                t.shell.all.unpinModule.replace('{module}', item.label),
+                () => state.togglePinned(item.id),
+              )
+            }
             trailing={(item) =>
               roundButton(
                 'remove',
@@ -144,6 +171,7 @@ export function AllEditMode({
           dragLabel={(label) =>
             t.shell.all.dragSection.replace('{section}', label)
           }
+          moveActions={moveActions}
         />
       </View>
 
@@ -160,6 +188,13 @@ export function AllEditMode({
               onDragging={onDragging}
               onCommit={(ids) => state.setModuleOrder(entry.group, ids)}
               dragLabel={dragModule}
+              moveActions={moveActions}
+              rowAction={(item) =>
+                action(
+                  t.shell.all.hideModule.replace('{module}', item.label),
+                  () => state.toggleHide(item.id),
+                )
+              }
               trailing={(item) =>
                 roundButton(
                   'remove',

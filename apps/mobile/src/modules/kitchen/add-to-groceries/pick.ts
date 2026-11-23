@@ -11,7 +11,9 @@
  */
 import {
   capitalise,
+  GROCERY_AISLES,
   type GroceryAddLine,
+  type GroceryAisle,
   type GroceryAmount,
   type GroceryListItem,
   groceryAddFields,
@@ -50,6 +52,19 @@ export interface SourceLine {
    * a recipe's lines share the sheet's source instead.
    */
   detail?: string
+  /**
+   * Keys this line had before it became this one (the week menu, APP-423): a
+   * line still being read is its own row, and once read it merges into an
+   * item's row. A tick or a retype made on the earlier row carries over
+   * (`byLineKey`).
+   */
+  was?: readonly string[]
+  /**
+   * Keys of rows this line's sources were in before and that are gone (the
+   * week menu when a day leaves, APP-590). Asked after `was`; a new tick or
+   * retype on this row replaces what was done to them (`settleLine`).
+   */
+  former?: readonly string[]
   /**
    * Bring the list up to this amount rather than add it (the week menu,
    * APP-321): an item the list already has enough of starts unticked.
@@ -99,6 +114,12 @@ export interface PickInput {
    * `useInStock`. Such a row starts unticked.
    */
   inStock?: (name: string) => boolean
+  /**
+   * Lines still being read go on the list as written instead of holding the
+   * button back (APP-479): a long week is read in batches, and the person
+   * need not wait for the last one.
+   */
+  readingAsText?: boolean
 }
 
 /** A line retyped in the sheet, read the way the composer reads a line. */
@@ -111,6 +132,68 @@ export function editedRead(typed: string): LineRead {
     ...(fields.quantity !== undefined ? { quantity: fields.quantity } : {}),
     ...(fields.unit !== undefined ? { unit: fields.unit } : {}),
   }
+}
+
+/**
+ * What the person did to a line, by key: under its own key, else under the
+ * first earlier key (`SourceLine.was`) they did something to.
+ */
+export function byLineKey<T>(
+  byKey: Readonly<Record<string, T>>,
+  line: Pick<SourceLine, 'key' | 'was' | 'former'>,
+): T | undefined {
+  if (byKey[line.key] !== undefined) return byKey[line.key]
+  for (const key of [...(line.was ?? []), ...(line.former ?? [])])
+    if (byKey[key] !== undefined) return byKey[key]
+  return undefined
+}
+
+/**
+ * `byKey` with `value` for the line, and nothing left under its former rows'
+ * keys: what the person does now is what holds when such a row returns.
+ */
+export function settleLine<T>(
+  byKey: Readonly<Record<string, T>>,
+  line: Pick<SourceLine, 'key' | 'former'>,
+  value: T,
+): Record<string, T> {
+  const next = { ...byKey, [line.key]: value }
+  for (const key of line.former ?? []) delete next[key]
+  return next
+}
+
+/** The lines with the person's retypes in place of what was read. */
+export function withEdits(
+  lines: readonly SourceLine[],
+  edits: Readonly<Record<string, LineRead>>,
+): SourceLine[] {
+  return lines.map((line) => {
+    const edit = byLineKey(edits, line)
+    return edit ? { ...line, read: edit } : line
+  })
+}
+
+/**
+ * Rows in sections, one per aisle in walking order. A row still being read,
+ * or only readable as text, waits under Other; `aisleOf` answers for the
+ * rest (the Group's own aisles, `groceryLines.aisles`).
+ */
+export function sectionsByAisle(
+  rows: readonly PickRow[],
+  aisleOf: (title: string) => GroceryAisle,
+): Array<{ id: GroceryAisle; rows: PickRow[] }> {
+  const byId = new Map<GroceryAisle, PickRow[]>()
+  for (const row of rows) {
+    const aisle =
+      row.meta?.kind === 'reading' || row.meta?.kind === 'text'
+        ? 'other'
+        : aisleOf(row.title)
+    byId.set(aisle, [...(byId.get(aisle) ?? []), row])
+  }
+  return GROCERY_AISLES.filter((aisle) => byId.has(aisle)).map((aisle) => ({
+    id: aisle,
+    rows: byId.get(aisle) ?? [],
+  }))
 }
 
 function scaled(line: SourceLine, servings: number | undefined): GroceryAmount {
@@ -130,7 +213,7 @@ function scaled(line: SourceLine, servings: number | undefined): GroceryAmount {
 export function pickRows(input: PickInput): {
   rows: PickRow[]
   lines: PickLine[]
-  /** Still waiting on the AI: the button waits too. */
+  /** Still waiting on the AI: the button waits too, unless `readingAsText`. */
   reading: boolean
 } {
   const base = input.lines.map((line) => {
@@ -148,8 +231,8 @@ export function pickRows(input: PickInput): {
     ...(row.line.detail ? { source: row.line.detail } : {}),
   })
 
-  // A top-up line the list already covers starts unticked; ticked by hand,
-  // it adds its whole amount on top, like a recipe's line.
+  // A top-up line the list already covers starts unticked; ticked by hand on
+  // that row, it adds its whole amount on top, like a recipe's line.
   const ready = base.filter((row) => row.line.read.kind !== 'reading')
   const before = planGroceryAdds(
     input.items,
@@ -165,14 +248,20 @@ export function pickRows(input: PickInput): {
   )
 
   const withTicks = base.map((row) => {
-    const own = input.ticks[row.line.key]
+    const own = byLineKey(input.ticks, row.line)
     const on = own ?? !(row.stocked || covered.has(row.line.key))
-    // Only a covered row ticked by hand stops topping up.
-    const topUp = row.line.topUp === true && !(own && covered.has(row.line.key))
+    // Only a covered row ticked by hand stops topping up, and only when the
+    // person ticked this row, which said it was covered. A tick made on an
+    // earlier key (`was`) was made on a line still being read, before anyone
+    // knew the list had enough of it: that row still tops up (APP-479).
+    const deliberate = input.ticks[row.line.key] !== undefined
+    const topUp =
+      row.line.topUp === true && !(deliberate && covered.has(row.line.key))
     return { ...row, on, topUp }
   })
   const adding = withTicks.filter(
-    (row) => row.on && row.line.read.kind !== 'reading',
+    (row) =>
+      row.on && (row.line.read.kind !== 'reading' || input.readingAsText),
   )
   const lines = adding.map((row) => toLine(row, row.topUp))
   const plans = planGroceryAdds(input.items, lines)
@@ -212,9 +301,11 @@ export function pickRows(input: PickInput): {
     rows,
     // A covered line changes nothing on the list: it is not counted.
     lines: lines.filter((_, index) => plans[index].kind !== 'covered'),
-    reading: input.lines.some(
-      (line, index) => line.read.kind === 'reading' && withTicks[index].on,
-    ),
+    reading:
+      !input.readingAsText &&
+      input.lines.some(
+        (line, index) => line.read.kind === 'reading' && withTicks[index].on,
+      ),
   }
 }
 

@@ -39,6 +39,7 @@ export const NATIVE_MODULES = [
   'shared-costs',
   'savings-goals',
   'loyalty-cards',
+  'energy',
 ] as const satisfies readonly ModuleId[]
 
 export type NativeModuleId = (typeof NATIVE_MODULES)[number]
@@ -81,10 +82,11 @@ export type ModulePath =
   | `/all/recipes${'' | '/recipe' | '/import' | '/new' | '/edit'}`
   | `/all/tasting/${TastingKind}${'' | '/subject' | '/compose'}`
   | `/all/meal-planner${'' | '/preferences'}`
-  | `/all/groceries${'' | '/in-stock' | '/recent'}`
+  | `/all/groceries${'' | '/in-stock' | '/recent' | '/shop'}`
   | `/all/recurring-costs${'' | '/cost'}`
   | `/all/savings-goals${'' | '/goal'}`
   | `/all/loyalty-cards${'' | '/card' | '/new' | '/edit'}`
+  | `/all/energy${'' | '/usage' | '/costs' | '/readings' | '/contract'}`
   | `/settings/labs/finance${
       | ''
       | '/house'

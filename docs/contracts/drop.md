@@ -26,8 +26,13 @@ that already means making Group content visible to a second Group.
 - Confirming switches the app's Group to the chosen one and, once that Group
   is on screen, lands the person on what they made: the screen changing is the
   confirmation. The switch and the landing go through `useOpenInGroup`, the
-  same path an old `/g/<slug>` link takes; navigating in the same tick as the
+  same path a tapped notification takes; navigating in the same tick as the
   switch would be undone by the switch's unwind of the tab stacks.
+- **Every arrival opens the chooser on top.** A share closes any open
+  `NativeSheet` first, the way its Close does (`onClose` runs once), because a
+  sheet is presented above the stack and would hide the chooser
+  (`src/components/openSheets.ts`). Arrivals are counted for the whole session,
+  so a share after a finished or abandoned one opens the chooser again.
 - **The commit clears the Drop.** A target that has not written by the time it
   navigates declares `keepsDrop` (today only `recipe-import`): its screen is
   pushed over the chooser with the Drop still pending, so Back still has
@@ -47,3 +52,6 @@ that already means making Group content visible to a second Group.
 - The share sheet cannot be driven by `agent-device`: link and text Drops are
   verified through the `gather://drop` harness, image Drops by sharing a photo
   by hand ([mobile verification](../runbooks/mobile-verification.md#verifying-a-drop)).
+  On the iOS simulator, Safari's share sheet can be reached with coordinate
+  taps (its refs report stale frames), which is how a Drop over an open sheet
+  was checked.

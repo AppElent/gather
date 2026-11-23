@@ -22,7 +22,11 @@ export function CalendarEventSource({
   color: CalendarEvent['color']
   month: string
   sourceKey: string
-  onEvents: (sourceKey: string, events: CalendarEvent[]) => void
+  onEvents: (
+    sourceKey: string,
+    events: CalendarEvent[],
+    complete: boolean,
+  ) => void
 }) {
   const from = monthStart(month)
   const toExclusive = addMonths(from, 1)
@@ -50,8 +54,10 @@ export function CalendarEventSource({
         revision: event.revision,
       }),
     )
-    onEvents(sourceKey, events)
-  }, [calendarName, color, onEvents, result.results, sourceKey])
+    // Complete only once every page is in: a month still loading must not
+    // read as a month without events.
+    onEvents(sourceKey, events, result.status === 'Exhausted')
+  }, [calendarName, color, onEvents, result.results, result.status, sourceKey])
 
   useEffect(() => {
     if (result.status === 'CanLoadMore') result.loadMore(100)

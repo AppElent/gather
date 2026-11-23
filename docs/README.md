@@ -21,7 +21,7 @@ Design studies: [designs/](../designs/).
 
 ## Decisions
 
-A new ADR takes the number after the highest (0051 next).
+A new ADR takes the number after the highest (0052 next).
 
 | ID | Decision | Status | Domain | Key implementation references |
 | --- | --- | --- | --- | --- |
@@ -39,7 +39,7 @@ A new ADR takes the number after the highest (0051 next).
 | [0012](adr/0012-a-combo-is-a-personal-shortcut-and-not-a-recipe.md) | A Combo is a Personal shortcut, and not a kind of Recipe | superseded | nutrition | — |
 | [0013](adr/0013-staging-deploys-on-merge-production-deploys-on-a-click.md) | Staging deploys on merge, production deploys on a click | superseded by 0044 (the click) | deployment | `.github/workflows/deploy.yml` |
 | [0014](adr/0014-a-variable-declares-its-consumer-not-its-destination.md) | A variable declares its consumer, not its destination | accepted | environment | `env.manifest.ts`, `scripts/env.mjs` |
-| [0015](adr/0015-the-group-is-addressed-on-the-web-and-ambient-on-the-phone.md) | The Group is addressed on the web and ambient on the phone | superseded | mobile navigation | `apps/mobile/src/group/GroupProvider.tsx`, `apps/mobile/app/g/` |
+| [0015](adr/0015-the-group-is-addressed-on-the-web-and-ambient-on-the-phone.md) | The Group is addressed on the web and ambient on the phone | superseded | mobile navigation | `apps/mobile/src/group/GroupProvider.tsx` |
 | [0016](adr/0016-shared-code-crosses-as-a-package-with-no-dependencies.md) | Shared code crosses as a package with no dependencies | accepted | workspace boundary | `packages/core/package.json`, `packages/core/tsconfig.json` |
 | [0017](adr/0017-the-phone-owns-its-look-and-shares-its-words.md) | The phone owns its look and shares its words | accepted | mobile design | `apps/mobile/src/theme/`, `packages/core/src/moduleTints.ts` |
 | [0018](adr/0018-mobile-tabs-are-app-destinations-and-one-of-them-is-a-verb.md) | Mobile tabs are app destinations, and one of them is a verb | accepted | mobile navigation | `apps/mobile/app/(app)/(tabs)/`, `apps/mobile/src/components/QuickActionSheet.tsx` |
@@ -75,3 +75,4 @@ A new ADR takes the number after the highest (0051 next).
 | [0048](adr/0048-shared-costs-are-expense-pots-with-balances.md) | Shared costs are expense pots with balances | accepted | money modules | [GLOSSARY.md](../GLOSSARY.md), ADR-0025, `convex/lib/finance.ts` |
 | [0049](adr/0049-the-shared-aisle-cache-keeps-only-what-groups-still-back.md) | The shared aisle cache keeps only what Groups still back | accepted | groceries | `convex/lib/groceryCategories.ts`, `convex/crons.ts`, [account deletion](contracts/account-deletion.md) |
 | [0050](adr/0050-deleting-gather-data-keeps-the-appelent-login.md) | Deleting Gather's data keeps the AppElent login | accepted | identity | `convex/accounts.ts`, `convex/http.ts`, [account deletion](contracts/account-deletion.md) |
+| [0051](adr/0051-energy-reads-outside-sources-and-never-controls-the-home.md) | Energy reads outside sources, and never controls the home | accepted | energy | `convex/energy.ts`, `convex/schema.ts`, ADR-0020, ADR-0025 |

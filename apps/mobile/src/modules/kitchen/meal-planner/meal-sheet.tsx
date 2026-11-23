@@ -32,6 +32,7 @@ import {
   mealIn,
   type PlannedMeal,
   servingsOf,
+  shortNames,
   type WeekData,
   weekdayInText,
   weekdayName,
@@ -124,12 +125,15 @@ function MealSheetBody({
   const eaters = eatersOf(data, moveTo, meal.slot, eaterIds)
   const shownServings = servingsOf(data, servings, eaters.length)
   const away = awayAt(data.events, moveTo, meal.slot)
+  const names = shortNames(data.members)
+  const nameOf = (member: (typeof data.members)[number]) =>
+    names.get(member.userId) || member.name
   const fromCalendar = data.members.flatMap((member) => {
     const event = away.get(member.userId)
     return event
       ? [
           fmt(mealWords.calendarItem, {
-            name: member.name,
+            name: nameOf(member),
             title: event.title,
             time: clock(event.startMinutes),
           }),
@@ -286,7 +290,7 @@ function MealSheetBody({
                   <Pressable
                     key={member.userId}
                     accessibilityRole="button"
-                    accessibilityLabel={member.name}
+                    accessibilityLabel={nameOf(member)}
                     accessibilityState={{ selected: on }}
                     testID={`meal-eater-${member.name}`}
                     onPress={() => toggle(member.userId)}
@@ -313,7 +317,7 @@ function MealSheetBody({
                         !on && styles.struck,
                       ]}
                     >
-                      {member.name}
+                      {nameOf(member)}
                     </Text>
                   </Pressable>
                 )

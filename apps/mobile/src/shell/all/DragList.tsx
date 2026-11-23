@@ -18,7 +18,7 @@
  * weighed and turned down.
  */
 import { useMemo, useRef, useState } from 'react'
-import { Animated, StyleSheet, Text, View } from 'react-native'
+import { AccessibilityInfo, Animated, StyleSheet, Text, View } from 'react-native'
 import {
   Gesture,
   GestureDetector,
@@ -68,6 +68,9 @@ export function DragList({
   leading,
   testID,
   rowTestID = 'all',
+  arrivals = 'last',
+  moveActions,
+  rowAction,
 }: {
   items: DragItem[]
   scrollRef: React.RefObject<GestureScrollView | null>
@@ -82,6 +85,29 @@ export function DragList({
   testID?: string
   /** Rows are `<rowTestID>-edit-<id>`, grips `<rowTestID>-grip-<id>`. */
   rowTestID?: string
+  /**
+   * Where a row the caller adds while the list is open lands. `'first'` suits
+   * a list the server puts new rows on top of, so the row shows where it will
+   * be once the next drop saves the order.
+   */
+  arrivals?: 'first' | 'last'
+  /**
+   * Gives each row "Move up" and "Move down" for a screen reader, which
+   * cannot drag a grip. A move is a drop of one place: it saves the whole
+   * order the same way and says where the row went.
+   */
+  moveActions?: {
+    up: string
+    down: string
+    /** Said after a move; positions count from 1. */
+    moved: (label: string, position: number, total: number) => string
+  }
+  /**
+   * What `trailing`'s button does, as one more action on the row. With
+   * `moveActions` the row is one stop for a screen reader, which hides the
+   * button inside it, so the row has to offer the same thing itself.
+   */
+  rowAction?: (item: DragItem) => { label: string; run: () => void }
 }) {
   const tokens = useTokens()
 
@@ -92,10 +118,9 @@ export function DragList({
   const byId = new Map(items.map((item) => [item.id, item]))
   // Reconciled against the caller on every render, so hiding a Module from
   // inside the mode removes its row instead of stranding it.
-  const ids = [
-    ...order.filter((id) => byId.has(id)),
-    ...items.map((item) => item.id).filter((id) => !order.includes(id)),
-  ]
+  const kept = order.filter((id) => byId.has(id))
+  const arrived = items.map((item) => item.id).filter((id) => !order.includes(id))
+  const ids = arrivals === 'first' ? [...arrived, ...kept] : [...kept, ...arrived]
   const rows = ids.flatMap((id) => {
     const item = byId.get(id)
     return item ? [item] : []
@@ -155,6 +180,19 @@ export function DragList({
     },
   }
 
+  const moveBy = (index: number, step: -1 | 1) => {
+    const to = index + step
+    const item = rows[index]
+    if (!moveActions || !item || to < 0 || to >= ids.length) return
+    const next = movedTo(ids, index, to)
+    setOrder(next)
+    onCommit(next)
+    haptics.itemSaved()
+    AccessibilityInfo.announceForAccessibility(
+      moveActions.moved(item.label, to + 1, ids.length),
+    )
+  }
+
   return (
     // Not clipped: a card that hides its overflow cuts the lifted row in half
     // the moment it passes the first or the last one.
@@ -171,10 +209,36 @@ export function DragList({
           ? shiftFor(index, drag.from, drag.to, heightOf(rows[drag.from]?.id))
           : 0
         const Icon = item.icon
+        const extra = moveActions ? rowAction?.(item) : undefined
         return (
           <Animated.View
             key={item.id}
             testID={`${rowTestID}-edit-${item.id}`}
+            {...(moveActions
+              ? {
+                  accessible: true,
+                  accessibilityLabel: item.detail
+                    ? `${item.label}, ${item.detail}`
+                    : item.label,
+                  accessibilityActions: [
+                    ...(index > 0
+                      ? [{ name: 'moveUp', label: moveActions.up }]
+                      : []),
+                    ...(index < rows.length - 1
+                      ? [{ name: 'moveDown', label: moveActions.down }]
+                      : []),
+                    ...(extra ? [{ name: 'row', label: extra.label }] : []),
+                  ],
+                  onAccessibilityAction: (event: {
+                    nativeEvent: { actionName: string }
+                  }) => {
+                    const action = event.nativeEvent.actionName
+                    if (action === 'moveUp') moveBy(index, -1)
+                    if (action === 'moveDown') moveBy(index, 1)
+                    if (action === 'row') extra?.run()
+                  },
+                }
+              : {})}
             onLayout={(event) => {
               heights.current.set(item.id, event.nativeEvent.layout.height)
             }}

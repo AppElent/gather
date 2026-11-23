@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
+import { en } from '../i18n/messages/en'
+import { nl } from '../i18n/messages/nl'
+import { NEUTRALS } from '../theme/palette'
 import {
   buildSentryOptions,
   environmentFromChannel,
+  FEEDBACK_OPTIONS,
+  feedbackLabels,
+  feedbackTheme,
   routeName,
   shouldInitSentry,
 } from './options'
@@ -166,5 +172,44 @@ describe('routeName', () => {
       routeName(['(app)', '(tabs)', 'all', 'tasting', '[kind]', 'subject']),
     ).toBe('/(app)/(tabs)/all/tasting/[kind]/subject')
     expect(routeName([])).toBe('/')
+  })
+})
+
+describe('the report form', () => {
+  it('asks for no name or email, and shake is left to shake-to-report', () => {
+    expect(FEEDBACK_OPTIONS).toMatchObject({
+      showName: false,
+      showEmail: false,
+      enableShakeToReport: false,
+      // A screenshot the member takes, never one read from the library.
+      enableScreenshot: false,
+      enableTakeScreenshot: true,
+    })
+  })
+
+  it('speaks the member\'s language', () => {
+    expect(feedbackLabels(en.feedback)).toMatchObject({
+      formTitle: 'Report a problem',
+      submitButtonLabel: 'Send report',
+    })
+    expect(feedbackLabels(nl.feedback)).toMatchObject({
+      formTitle: 'Probleem melden',
+      cancelButtonLabel: 'Annuleren',
+    })
+    for (const text of [en.feedback, nl.feedback]) {
+      for (const label of Object.values(feedbackLabels(text))) {
+        expect(label.trim()).not.toBe('')
+      }
+    }
+  })
+
+  it('wears Gather\'s neutrals in both schemes, with ink as its button', () => {
+    expect(feedbackTheme(NEUTRALS.light)).toMatchObject({
+      background: NEUTRALS.light.surface,
+      foreground: NEUTRALS.light.ink,
+      accentBackground: NEUTRALS.light.ink,
+      accentForeground: NEUTRALS.light.onInk,
+    })
+    expect(feedbackTheme(NEUTRALS.dark).background).toBe(NEUTRALS.dark.surface)
   })
 })

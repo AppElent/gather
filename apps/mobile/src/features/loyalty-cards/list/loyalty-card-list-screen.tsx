@@ -3,17 +3,18 @@
  * (`compareLoyaltyCards`): cards nobody arranged on top, last used first, so
  * the card shown at the till last week is near the top; then the Group's own
  * arrangement (APP-440). A tap opens the card for the till; holding a row
- * offers Edit, Reorder and Delete. The filter matches the store and whose card
- * it is, the way the web's does.
+ * offers Edit, Reorder and Delete. Search is the header's magnifying glass:
+ * the one search screen with Loyalty cards preset (APP-613), which finds a
+ * card by its store and by whose card it is.
  *
  * Reorder is a mode (`apps/mobile/DESIGN_SYSTEM.md`), entered from the ⋯ menu
- * or a row's hold menu: grips on the shared `DragList`, no filter, no
+ * or a row's hold menu: grips on the shared `DragList`, no search, no
  * tap-to-open, Done in the bar. Every drop saves the whole order at once and
  * shows it before Convex answers; a refused write puts the old order back and
  * says so.
  */
 import { MenuView } from '@expo/ui/community/menu'
-import { cardsInArrangement, foldForSearch } from '@gather/core/loyalty-cards'
+import { cardsInArrangement } from '@gather/core/loyalty-cards'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { type ComponentProps, useRef, useState } from 'react'
@@ -23,13 +24,13 @@ import { LegacyScrollView as ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { LoadingSkeleton } from '../../../components/LoadingSkeleton'
-import { SearchField } from '../../../components/SearchField'
 import { api, type Id } from '../../../convex/api'
 import { useQuery } from '../../../convex/queries'
 import { haptics } from '../../../feedback/haptics'
 import { useGroup } from '../../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../../i18n'
 import { moduleHref } from '../../../modules/moduleDestination'
+import { ModuleSearchButton } from '../../../search/ModuleSearchButton'
 import { DragList } from '../../../shell/all/DragList'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, SPACE, TYPE, useTokens } from '../../../theme/tokens'
@@ -66,7 +67,6 @@ export function LoyaltyCardListScreen() {
       )
     },
   )
-  const [query, setQuery] = useState('')
   const [problem, setProblem] = useState<string | null>(null)
   const [reordering, setReordering] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -80,7 +80,6 @@ export function LoyaltyCardListScreen() {
   // Down to one card, the mode ends, so a card added later doesn't reopen it.
   if (reordering && cards !== undefined && !canReorder) setReordering(false)
   const startReorder = () => {
-    setQuery('')
     setProblem(null)
     setReordering(true)
   }
@@ -94,14 +93,6 @@ export function LoyaltyCardListScreen() {
       },
     )
   }
-
-  const needle = foldForSearch(query.trim())
-  const matching = (cards ?? []).filter(
-    (card) =>
-      !needle ||
-      foldForSearch(card.storeName).includes(needle) ||
-      foldForSearch(card.holder ?? '').includes(needle),
-  )
 
   const add = () => router.push(moduleHref('/all/loyalty-cards/new'))
   const tile = moduleTile('loyalty-cards')
@@ -128,7 +119,8 @@ export function LoyaltyCardListScreen() {
               </Pressable>
             ) : (
               <View style={styles.headerButtons}>
-                {canReorder && !needle ? (
+                <ModuleSearchButton module="loyalty-cards" />
+                {canReorder ? (
                   <MenuView
                     testID="loyalty-card-list-menu"
                     actions={[
@@ -142,7 +134,12 @@ export function LoyaltyCardListScreen() {
                       if (event.nativeEvent.event === 'reorder') startReorder()
                     }}
                   >
-                    <View style={styles.headerButton}>
+                    <View
+                      style={styles.headerButton}
+                      accessible
+                      accessibilityRole="button"
+                      accessibilityLabel={words.index.more}
+                    >
                       <UI_ICONS.Ellipsis
                         size={22}
                         color={tokens.ink}
@@ -245,18 +242,18 @@ export function LoyaltyCardListScreen() {
                 scrollRef={scrollRef}
                 onDragging={setDragging}
                 onCommit={saveOrder}
+                arrivals="first"
+                moveActions={{
+                  up: words.index.moveUpAction,
+                  down: words.index.moveDownAction,
+                  moved: (store, position, total) =>
+                    fmt(words.index.moved, { store, position, total }),
+                }}
                 dragLabel={(label) => fmt(words.index.reorderDrag, { store: label })}
               />
             </>
           ) : (
             <>
-              <SearchField
-                value={query}
-                onChangeText={setQuery}
-                placeholder={words.index.filter}
-                clearAccessibilityLabel={words.index.clearFilter}
-                testID="loyalty-card-filter"
-              />
               {problem ? (
                 <Text
                   accessibilityRole="alert"
@@ -265,23 +262,8 @@ export function LoyaltyCardListScreen() {
                   {problem}
                 </Text>
               ) : null}
-              {matching.length === 0 ? (
-                <View style={styles.notFound}>
-                  <Text
-                    style={[TYPE.body, styles.center, { color: tokens.muted }]}
-                  >
-                    {words.index.filterEmpty}
-                  </Text>
-                  <Button
-                    label={t.actions.showAll}
-                    variant="secondary"
-                    onPress={() => setQuery('')}
-                    testID="loyalty-card-clear-filter"
-                  />
-                </View>
-              ) : (
                 <InsetList>
-                  {matching.map((card) => (
+                  {cards.map((card) => (
                     <CardRow
                       key={card._id}
                       card={card}
@@ -304,7 +286,7 @@ export function LoyaltyCardListScreen() {
                             title: words.till.edit,
                             image: 'pencil',
                           },
-                          ...(canReorder && !needle
+                          ...(canReorder
                             ? [
                                 {
                                   id: 'reorder',
@@ -338,7 +320,6 @@ export function LoyaltyCardListScreen() {
                     />
                   ))}
                 </InsetList>
-              )}
             </>
           )}
         </View>
@@ -383,7 +364,6 @@ function CardRow({
 const styles = StyleSheet.create({
   content: { paddingHorizontal: SPACE[4], gap: SPACE[4] },
   empty: { gap: 14, paddingTop: 48, paddingHorizontal: 8 },
-  notFound: { gap: 14, paddingVertical: 20 },
   center: { textAlign: 'center' },
   headerButtons: { flexDirection: 'row', alignItems: 'center', gap: SPACE[2] },
   headerButton: { paddingHorizontal: 6, paddingVertical: 6 },

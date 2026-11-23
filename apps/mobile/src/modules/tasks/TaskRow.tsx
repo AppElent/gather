@@ -5,15 +5,24 @@
  * checklist inside another Module — so a tick, a swipe and a hold mean the same
  * thing wherever the task appears.
  */
-import { type ReactNode, useRef, useState } from 'react'
+import type { GroceryAisle } from '@gather/core/groceries'
 import {
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
+import {
+  type HostInstance,
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native'
+import type { LegacyScrollView as GestureScrollView } from 'react-native-gesture-handler'
 import ReanimatedSwipeable, {
   type SwipeableMethods,
   SwipeDirection,
@@ -22,18 +31,24 @@ import ReanimatedSwipeable, {
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import { SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { useInsetSeparator } from '../../ui/inset-list'
 import { AssigneeCoin, useTaskPeople } from './assignee'
 import { useCompleteTask } from './completeTask'
 import { Checkbox } from './components'
+import { useFresh } from './freshTasks'
 import { GroceryPreview } from './GroceryFields'
 import { GroceryCompletions } from './GrocerySuggestions'
 import { TASK_ICONS } from './icons'
+import { QuickAddChips, QuickAddInput, useQuickAddLine } from './QuickAddParts'
 import { useTaskActions } from './store'
 import { taskMenuActions } from './taskMenu'
 import type { Task } from './types'
+
+/** Room kept between the composer and the keyboard after an add. */
+const KEEP_CLEAR = SPACE[4]
 
 /** The check ring's diameter (`components/InsetList`). */
 const CHECK_RING = 24
@@ -115,8 +130,17 @@ export function TaskRow({
 
   const box = <Checkbox checked={task.done} />
 
+  // Just saved from the keyboard composer: a moment on the wash (APP-587).
+  const fresh = useFresh(task.id)
   const row = (
-    <View style={[styles.row, { backgroundColor: tokens.surface }]}>
+    <View
+      style={[
+        styles.row,
+        {
+          backgroundColor: fresh ? tokens.tintOf('home').wash : tokens.surface,
+        },
+      ]}
+    >
       {bar === undefined ? null : (
         <View style={[styles.bar, { backgroundColor: bar }]} />
       )}
@@ -280,6 +304,15 @@ export function TaskRow({
   )
 }
 
+/**
+ * A grocery composer's half-typed line and the aisle chosen for it, kept by
+ * the screen while the composer is away, as in Reorder mode (APP-536).
+ */
+export interface KeptGroceryLine {
+  line: string
+  choice?: { line: string; aisle: GroceryAisle }
+}
+
 /** The line at the bottom of a writable list that adds to it. */
 export function TaskComposer({
   listId,
@@ -289,6 +322,8 @@ export function TaskComposer({
   tasks,
   parent,
   onFailed,
+  scrollRef,
+  keep,
 }: {
   listId: string
   placeholder: string
@@ -305,35 +340,116 @@ export function TaskComposer({
   parent?: Pick<Task, 'id' | 'listId'>
   /** Hears a line that could not be added, which is put back in the field. */
   onFailed?: () => void
+  /**
+   * The list's scroll view: each added row pushes the composer down, and
+   * with the keyboard kept open it would slide under it (APP-521).
+   */
+  scrollRef?: RefObject<GestureScrollView | null>
+  /**
+   * Where a grocery composer keeps its line while it is unmounted: it starts
+   * from what is kept there and writes back as it changes.
+   */
+  keep?: RefObject<KeptGroceryLine | undefined>
 }) {
   const tokens = useTokens('home')
   const actions = useTaskActions()
   const separator = useInsetSeparator()
-  const [draft, setDraft] = useState('')
+  // Dates, repeats, @Member and #label are read off the line (APP-307),
+  // except on a grocery list, whose line is an amount, and for a subtask.
+  const recognise = !grocery && !parent
+  const {
+    line: draft,
+    parsed,
+    today,
+    setLine: setDraft,
+    restore,
+    dismiss,
+    reset,
+  } = useQuickAddLine(
+    recognise,
+    keep?.current ? { line: keep.current.line, dismissed: [] } : undefined,
+  )
+  const { t } = useI18n()
+  // The aisle a Member chose in the preview, for the line it was chosen for
+  // (APP-524): a line typed differently since has not been given one.
+  const [choice, setChoice] = useState<KeptGroceryLine['choice']>(
+    () => keep?.current?.choice,
+  )
+  const aisle = choice?.line === draft.trim() ? choice.aisle : undefined
+  useEffect(() => {
+    if (keep) keep.current = { line: draft, ...(choice ? { choice } : {}) }
+  }, [keep, draft, choice])
+  const fieldRef = useRef<HostInstance>(null)
+
+  // Brings the field back above the keyboard once the new row has pushed it
+  // down, and leaves the list alone while it is still in view.
+  const keepInView = () => {
+    requestAnimationFrame(() => {
+      const field = fieldRef.current
+      const scroll = scrollRef?.current
+      if (!field || !scroll) return
+      field.measureInWindow((_x, y, _width, height) => {
+        const keyboard = Keyboard.metrics()
+        if (!keyboard || y + height + KEEP_CLEAR <= keyboard.screenY) return
+        scroll.scrollResponderScrollNativeHandleToKeyboard(
+          field,
+          KEEP_CLEAR,
+          true,
+        )
+      })
+    })
+  }
 
   const add = () => {
-    const title = draft.trim()
+    const title = parsed.title
     if (!title) return
+    const line = draft
+    const read = parsed
     // Cleared first: the row appears the moment it is accepted, and a second
     // tap cannot submit the same line twice while the write is in flight.
-    setDraft('')
-    const write = parent
-      ? actions.addSubtask(parent, title)
-      : actions.addTask(listId, title, grocery, sectionId)
+    reset()
+    setChoice(undefined)
+    // Answers whether a typed time could not become the reminder.
+    const write: Promise<boolean> = parent
+      ? actions.addSubtask(parent, title).then(() => false)
+      : recognise
+        ? actions
+            .addParsedTask(listId, read, sectionId)
+            .then((saved) => saved.reminderFailed)
+        : actions.addTask(listId, title, grocery, sectionId).then((taskId) => {
+            // Then moved to the chosen aisle the way the item screen moves
+            // it, so the Group keeps the choice for the name. Untouched, the
+            // server's aisle stands. If only the move fails, the item is
+            // still added.
+            if (grocery && aisle && taskId) {
+              actions
+                .setAisle(taskId, aisle)
+                .catch(() => haptics.actionFailed())
+            }
+            return false
+          })
     write.then(
-      () => haptics.itemSaved(),
+      (reminderFailed) => {
+        haptics.itemSaved()
+        keepInView()
+        // A haptic is never the only word, and the task did go in.
+        if (reminderFailed) showAlert(t.tasks.quickAdd.reminderFailed)
+      },
       () => {
         haptics.actionFailed()
         if (parent) {
-          setDraft((now) => now || title)
+          restore(title)
           onFailed?.()
+        } else if (recognise) {
+          // The whole line, so what was recognised is recognised again.
+          restore(line)
         }
       },
     )
   }
 
   const field = (
-    <View style={styles.row}>
+    <View ref={fieldRef} style={styles.row}>
       <View style={styles.box}>
         <UI_ICONS.Plus
           size={20}
@@ -343,20 +459,43 @@ export function TaskComposer({
           importantForAccessibility="no"
         />
       </View>
-      <TextInput
+      <QuickAddInput
         testID={parent ? 'subtask-composer' : 'task-composer'}
-        value={draft}
+        line={draft}
+        parsed={parsed}
         onChangeText={setDraft}
         onSubmitEditing={add}
+        // Stays focused after adding, so the next line can be typed at once
+        // and the keyboard does not close and reopen under the list (APP-521).
+        submitBehavior="submit"
         placeholder={placeholder}
         placeholderTextColor={tokens.muted}
         returnKeyType="done"
         accessibilityLabel={placeholder}
-        style={[styles.composerInput, separator, { color: tokens.ink }]}
+        style={[
+          styles.composerInput,
+          parsed.parts.length === 0 && separator,
+          { color: tokens.ink },
+        ]}
       />
     </View>
   )
-  if (!grocery) return field
+  if (!grocery) {
+    // The chips sit under the line, where the hairline then goes. The field
+    // keeps its place in the tree as they come and go: a remounted input
+    // would drop its focus, and the keyboard, mid-word.
+    const chips = parsed.parts.length > 0
+    return (
+      <View>
+        {field}
+        {chips ? (
+          <View style={[styles.composerChips, separator]}>
+            <QuickAddChips parsed={parsed} today={today} onDismiss={dismiss} />
+          </View>
+        ) : null}
+      </View>
+    )
+  }
   // The completions sit above the field: the list scrolls the field to just
   // above the keyboard, so anything under it would be covered.
   return (
@@ -365,12 +504,21 @@ export function TaskComposer({
         <GroceryCompletions
           listId={listId}
           line={draft}
+          aisle={aisle}
           tasks={tasks}
-          onPicked={() => setDraft('')}
+          onPicked={() => {
+            setDraft('')
+            setChoice(undefined)
+          }}
         />
       ) : null}
       {field}
-      <GroceryPreview line={draft} />
+      <GroceryPreview
+        listId={listId}
+        line={draft}
+        aisle={aisle}
+        onAisle={(next) => setChoice({ line: draft.trim(), aisle: next })}
+      />
     </View>
   )
 }
@@ -424,6 +572,14 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   actionText: { ...TYPE.footnoteStrong },
+  composerChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACE[2],
+    marginLeft: SPACE[4] + CHECK_RING + SPACE[3],
+    paddingRight: SPACE[4],
+    paddingBottom: SPACE[3],
+  },
   composerInput: {
     ...TYPE.body,
     flex: 1,

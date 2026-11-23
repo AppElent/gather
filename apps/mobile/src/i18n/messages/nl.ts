@@ -41,6 +41,7 @@ export const nl = {
   tastings: coreNl.tastings,
 
   finances: coreNl.finances,
+  energy: coreNl.energy,
 
   loyaltyCards: {
     ...coreNl.loyaltyCards,
@@ -120,6 +121,32 @@ export const nl = {
       loyaltyCard: 'Klantkaart',
     },
     kinds: { cheese: 'Kaas', wine: 'Wijn', beer: 'Bier' },
+    inModule: 'Zoeken in {module}',
+    placeholderModule: '{module} doorzoeken',
+    filters: {
+      label: 'Filters',
+      chip: '{filter}: {value}. Tik om te wijzigen.',
+      module: 'Module',
+      allModules: 'Alle modules',
+      clearModule: 'In alle modules zoeken',
+      sheetTitle: 'Zoeken in',
+      who: 'Wie',
+      anyone: 'Iedereen',
+      me: 'Ik',
+      when: 'Wanneer',
+      anytime: 'Altijd',
+      whenValues: {
+        today: 'Vandaag',
+        week: 'Deze week',
+        month: 'Deze maand',
+        earlier: 'Eerder',
+      },
+      status: 'Status',
+      anyStatus: 'Alle',
+      statusValues: { open: 'Open', done: 'Gedaan' },
+      noResults: 'Niets gevonden met deze filters.',
+      clear: 'Filters wissen',
+    },
   },
 
   shell: {
@@ -212,6 +239,9 @@ export const nl = {
         'Sleep aan een greep om te herschikken. Een module blijft in zijn eigen categorie.',
       dragModule: '{module} herschikken',
       dragSection: '{section} herschikken',
+      moveUpAction: 'Omhoog verplaatsen',
+      moveDownAction: 'Omlaag verplaatsen',
+      moved: '{item} verplaatst naar positie {position} van {total}',
     },
 
     placeholder: coreNl.shell.placeholder,
@@ -291,12 +321,38 @@ export const nl = {
     privacy: coreNl.privacy.title,
     dataSources: coreNl.shell.about.dataSources.title,
 
+    /**
+     * The line at the foot of Settings. The update is `update <label>`, where
+     * the label is the release standard's, or `geen update` on the embedded bundle.
+     */
+    buildInfo: {
+      line: 'Versie {version} ({build}) · {update} · {channel}',
+      update: 'update {label}',
+      noUpdate: 'geen update',
+    },
+
     search: {
       placeholder: 'Instellingen zoeken',
       empty: 'Niets dat “{query}” heet.',
     },
 
     identity: 'Account: {name}',
+  },
+
+  feedback: {
+    report: 'Probleem melden',
+    message: 'Wat ging er mis?',
+    placeholder: 'Wat gebeurde er, en wat verwachtte je?',
+    required: '(verplicht)',
+    submit: 'Melding versturen',
+    cancel: 'Annuleren',
+    add: 'Schermafbeelding toevoegen',
+    take: 'Schermafbeelding maken',
+    remove: 'Schermafbeelding verwijderen',
+    error: 'De melding kon niet worden verstuurd. Probeer het opnieuw.',
+    success: 'Bedankt. Je melding is verstuurd.',
+    unavailable:
+      'Een probleem melden kan niet in deze versie van Gather.',
   },
 
   account: {
@@ -534,6 +590,7 @@ export const nl = {
       cost: 'Kost 1 slimme actie · nog {left} van {limit} vandaag',
       offline: 'Offline, probeer het straks',
       empty: 'Op deze dagen staat alles al gepland.',
+      nothingFits: 'Er past geen voorstel op deze dagen. Er is niets aan je weekmenu veranderd.',
       failed: 'Dat lukte niet. Er is niets aan je weekmenu veranderd.',
       limitTitle: 'Je slimme acties voor vandaag zijn op',
       limitBody: 'Je hebt er vandaag {used} van {limit} gebruikt. Morgen kan het weer. Er is niets aan je weekmenu veranderd.',
@@ -575,6 +632,8 @@ export const nl = {
       wishPlaceholder: 'Een wens? Bijvoorbeeld: met kip, snel',
       chips: { chickenQuick: 'Met kip, snel', meatFree: 'Vleesloos', faster: 'Sneller' },
       quickMeal: 'snel gerecht',
+      reasonStock: 'Met {names} uit huis',
+      reasonFits: 'Past in {minutes} min',
       choose: 'Kies',
       chosen: 'Gekozen',
       chooseLabel: 'Kies {title} voor {day}',
@@ -602,7 +661,7 @@ export const nl = {
       fewer: 'Een persoon minder',
       more: 'Een persoon meer',
       inStock: 'in huis',
-      footnote: 'Door AI bedacht. Controleer zelf op allergieën. Gather geeft bij dit recept geen voedingswaarden.',
+      footnote: 'Door AI bedacht. Controleer zelf op allergieën. Dit idee heeft geen voedingswaarden; na bewaren kun je ze bij het recept invullen of laten schatten.',
       savePlan: 'Bewaar en zet op {weekday}',
       saveOnly: 'Alleen bewaren',
       another: 'Ander idee',
@@ -749,6 +808,7 @@ export const nl = {
       'Dat wachtwoord is opgedoken in een datalek. Kies er een andere.',
     codeIncorrect: 'Die code klopt niet.',
     codeExpired: coreNl.auth.errors.codeExpired,
+    codeAttemptsExceeded: coreNl.auth.errors.codeAttemptsExceeded,
     emailCodeUnavailable: coreNl.auth.signIn.emailCode.unavailable,
     needsExtraStep: coreNl.auth.errors.needsExtraStep,
     noSecondFactor: coreNl.auth.errors.noSecondFactor,
@@ -839,6 +899,47 @@ export const nl = {
       'Dat kon niet worden opgeslagen. Probeer opnieuw of kies iets anders.',
   },
 
+  composer: {
+    expand: 'Groter maken',
+    collapse: 'Kleiner maken',
+    more: 'Meer details',
+    allDetails: 'Alle details',
+    remove: 'Weghalen',
+    save: 'Bewaar',
+    close: 'Sluiten',
+    addTask: 'Taak toevoegen',
+    taskTitle: 'Taaknaam',
+    description: 'Beschrijving',
+    taskBody: 'Beschrijving, links, wat er nodig is…',
+    addNote: 'Notitie maken',
+    noteBody: 'Begin met typen…',
+    noteFailed: 'Die notitie kon niet worden bewaard. Probeer het opnieuw.',
+    noteNotSaved: '“{title}” is niet bewaard.',
+    label: 'Label',
+    newLabel: 'Nieuw label…',
+    customRepeat: 'Aangepast…',
+    date: {
+      label: 'Datum',
+      weekend: 'Dit weekend',
+      nextWeek: 'Volgende week',
+      pick: 'Kies datum…',
+    },
+    time: {
+      pick: 'Kies tijd…',
+    },
+    detailsFailed: 'De taak is toegevoegd, maar niet al haar details.',
+    notAdded: '“{title}” is niet toegevoegd.',
+    tryAgain: 'Opnieuw proberen',
+    discard: 'Weggooien',
+    ok: 'OK',
+    addEvent: 'Afspraak toevoegen',
+    eventTitle: 'Wat ga je doen?',
+    eventNote: 'Notitie',
+    eventBody: 'Notitie: wat mee te nemen, adres…',
+    eventFailed: 'Die afspraak kon niet worden bewaard. Probeer het opnieuw.',
+    eventNotSaved: '“{title}” is niet bewaard.',
+  },
+
   tasks: {
     count: coreNl.tasks.count,
     /** APP-306: the New list sheet, list kinds and their faces, shared with the web. */
@@ -864,6 +965,11 @@ export const nl = {
       noList:
         'Deze Groep heeft nog geen lijst waar Gather een taak aan kan toevoegen.',
       failed: 'Die taak kon niet worden toegevoegd. Probeer het opnieuw.',
+      hint: 'Datum, herhalen, @lid en #label worden herkend',
+      moreDetails: 'Meer details',
+      remove: '{part} weghalen',
+      listChip: 'Lijst: {list}, wijzigen',
+      reminderFailed: 'De taak is toegevoegd, maar de herinnering niet.',
     },
     today: 'Vandaag',
     todayEmpty: 'Niets wat vandaag af moet.',
@@ -887,6 +993,14 @@ export const nl = {
       reorderHint:
         'Sleep om te ordenen. Afvinken, bewerken en vegen staan uit tot je op Klaar tikt.',
       reorderCompleted: 'Afgeronde taken zijn verborgen terwijl je ordent.',
+      reorderAislesHint:
+        'Sleep een item onder een andere afdeling om het daarheen te verplaatsen. Afvinken, bewerken en vegen staan uit tot je op Klaar tikt.',
+      reorderChecked: 'Afgevinkte items zijn verborgen terwijl je ordent.',
+      reorderReset: 'Die verplaatsing is niet bewaard. Zo staat de lijst er nu bij.',
+      moveUpAction: 'Omhoog verplaatsen',
+      moveDownAction: 'Omlaag verplaatsen',
+      movedTo: '{task} verplaatst naar positie {position} van {total}',
+      movedToSection: '{task} verplaatst naar {section}, positie {position} van {total}',
       readOnly:
         'Deze lijst staat in {provider}. Gather kan hem lezen, maar er niet in schrijven — dus hier is geen invoerregel.',
       refreshed: 'Zojuist gesynchroniseerd',
@@ -971,12 +1085,9 @@ export const nl = {
 
   notes: {
     title: 'Notities',
-    search: 'Notities zoeken',
     pinned: 'Vastgezet',
     recent: 'Recent',
     empty: 'Nog geen notities.',
-    noMatches: 'Niets dat “{query}” heet.',
-    newNote: 'Nieuwe notitie',
     untitled: 'Notitie zonder titel',
     titlePlaceholder: 'Titel',
     bodyPlaceholder: 'Begin met schrijven…',

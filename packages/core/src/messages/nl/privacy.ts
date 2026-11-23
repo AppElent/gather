@@ -2,7 +2,7 @@ import type { privacy as enPrivacy } from '../en/privacy'
 
 export const privacy = {
   title: 'Privacyverklaring',
-  updated: 'Laatst bijgewerkt: 9 november 2026',
+  updated: 'Laatst bijgewerkt: 20 november 2026',
   intro: {
     title: 'Wie we zijn',
     body: {
@@ -75,7 +75,7 @@ export const privacy = {
       github:
         'GitHub: probleemmeldingen uit de webapp worden als issue vastgelegd in de openbare coderepository van Gather. Het bericht en het paginaadres zijn daar dus openbaar zichtbaar. Zet geen persoonlijke gegevens in een melding.',
       sentry:
-        'We gebruiken Sentry (Functional Software, Inc.) als verwerker voor foutrapporten uit de webapp, de bijbehorende server en de mobiele app, ook als de mobiele app crasht. Een rapport bevat de foutmelding en stacktrace (foutmeldingen van de backend van Gather worden weggelaten), de pagina-URL zonder querystring, browser/besturingssysteem en app-versie, een kort spoor van de pagina’s die je bezocht en de netwerkverzoeken die vlak voor de fout werden gedaan (alleen adressen zonder querystring, verzoekmethoden en statuscodes), en een anonieme gebeurtenis-ID. Een rapport uit de mobiele app bevat daarnaast gegevens over het toestel en het besturingssysteem (zoals het toestelmodel, de OS-versie, de taalinstelling en het geheugen) en een ID dat Sentry voor die installatie van de app aanmaakt. Het bevat geen request bodies, cookies, headers, je naam of e-mailadres, of de inhoud die je invoert, en sessie-opnames worden niet gebruikt.',
+        'We gebruiken Sentry (Functional Software, Inc.) als verwerker voor foutrapporten uit de webapp, de bijbehorende server en de mobiele app, ook als de mobiele app crasht. Een rapport bevat de foutmelding en stacktrace (foutmeldingen van de backend van Gather worden weggelaten), de pagina-URL zonder querystring, browser/besturingssysteem en app-versie, een kort spoor van de pagina’s die je bezocht en de netwerkverzoeken die vlak voor de fout werden gedaan (alleen adressen zonder querystring, verzoekmethoden en statuscodes), en een anonieme gebeurtenis-ID. Een rapport uit de mobiele app bevat daarnaast gegevens over het toestel en het besturingssysteem (zoals het toestelmodel, de OS-versie, de taalinstelling en het geheugen) en een ID dat Sentry voor die installatie van de app aanmaakt. Het bevat geen request bodies, cookies, headers, je naam of e-mailadres, of de inhoud die je in Gather invoert (behalve wat je in een probleemmelding typt, zie hieronder), en sessie-opnames worden niet gebruikt. Als je zelf een probleem meldt vanuit de mobiele app, door je telefoon te schudden of via Instellingen, bevat de melding ook het bericht dat je typt en, als je er een maakt, een schermafbeelding van de app; die wordt pas verstuurd als je op Melding versturen tikt, en het formulier vraagt niet om je naam of e-mailadres.',
       googleFonts:
         'Google Fonts: de webapp laadt zijn lettertypen bij Google, dat je IP-adres ontvangt als een pagina laadt.',
     },
