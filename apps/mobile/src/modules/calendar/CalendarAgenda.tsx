@@ -37,6 +37,11 @@ export interface CalendarAgendaProps {
   jumpId?: number
   today: string
   events: readonly CalendarEvent[]
+  /**
+   * Whether a month's events are all in. A month still loading says so
+   * instead of "No events". Left out, every month counts as loaded.
+   */
+  monthLoaded?: (month: string) => boolean
   people: readonly CalendarPerson[]
   onSelectDate: (date: string) => void
   onEvent: (event: CalendarEvent) => void
@@ -62,8 +67,11 @@ export interface CalendarAgendaProps {
 /** Points the list must travel up in one drag before the header collapses. */
 const COLLAPSE_AFTER = 16
 
+/** An agenda row, marked when its month's events have not all arrived yet. */
+type AgendaListRow = AgendaRow & { loading?: boolean }
+
 type ViewableChange = Parameters<
-  NonNullable<FlatListProps<AgendaRow>['onViewableItemsChanged']>
+  NonNullable<FlatListProps<AgendaListRow>['onViewableItemsChanged']>
 >[0]
 
 function rowDate(row: AgendaRow) {
@@ -82,6 +90,7 @@ export function CalendarAgenda({
   jumpId = 0,
   today,
   events,
+  monthLoaded,
   people,
   onSelectDate,
   onEvent,
@@ -100,17 +109,23 @@ export function CalendarAgenda({
   // either end then leaves every row already on screen, and its key, alone,
   // which is what lets the list hold its place while it grows.
   const rows = useMemo(() => {
-    return agendaMonths({ from, toExclusive }).flatMap((month) =>
-      agendaRows(
-        events,
-        month,
-        addMonths(month, 1),
-        today,
-        selectedDate,
-        expandedDates,
-      ),
+    return agendaMonths({ from, toExclusive }).flatMap(
+      (month): AgendaListRow[] => {
+        const monthRows = agendaRows(
+          events,
+          month,
+          addMonths(month, 1),
+          today,
+          selectedDate,
+          expandedDates,
+        )
+        // Same rows and keys either way, so a month whose events land holds
+        // its place in the list; only the empty rows' words change.
+        if (!monthLoaded || monthLoaded(month)) return monthRows
+        return monthRows.map((row) => ({ ...row, loading: true }))
+      },
     )
-  }, [events, expandedDates, from, selectedDate, toExclusive, today])
+  }, [events, expandedDates, from, monthLoaded, selectedDate, toExclusive, today])
   const peopleById = useMemo(
     () => new Map(people.map((person) => [person.id, person.name])),
     [people],
@@ -161,7 +176,7 @@ export function CalendarAgenda({
   /** The list's own height and offset, for the check below. */
   const viewport = useRef(0)
   /** The rows an earlier month was last asked for, so each set asks once. */
-  const askedEarlierFor = useRef<AgendaRow[] | null>(null)
+  const askedEarlierFor = useRef<AgendaListRow[] | null>(null)
   const lastOffset = useRef(0)
   const lastContentHeight = useRef(0)
 
@@ -287,7 +302,19 @@ export function CalendarAgenda({
       month: 'short',
     })
 
-  function renderRow({ item }: { item: AgendaRow }) {
+  function renderRow({ item }: { item: AgendaListRow }) {
+    if (item.kind === 'gap' && item.loading) {
+      return (
+        <View
+          testID={`calendar-gap-${item.from}`}
+          style={[styles.gap, { borderColor: tokens.hair }]}
+        >
+          <Text style={[styles.gapText, { color: tokens.muted }]}>
+            {t.calendar.loadingEvents}
+          </Text>
+        </View>
+      )
+    }
     if (item.kind === 'gap') {
       return (
         <Pressable
@@ -336,7 +363,9 @@ export function CalendarAgenda({
         </Pressable>
         {item.events.length === 0 ? (
           <Text style={[styles.empty, { color: tokens.muted }]}>
-            {t.calendar.nothingPlanned}
+            {item.loading
+              ? t.calendar.loadingEvents
+              : t.calendar.nothingPlanned}
           </Text>
         ) : (
           item.events.map(renderEvent)
