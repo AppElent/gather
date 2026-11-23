@@ -588,6 +588,7 @@ export async function exportGroups(
  * most `limit` of them, on the index the registry names. A child table is
  * counted across its parents, as it is paged. For the account portal's
  * `summary`, which caps every count rather than reading a whole table.
+ * `mayRead` is asked before each index range; on false the count stops there.
  */
 export async function countGroupRows(
   ctx: QueryCtx,
@@ -596,6 +597,7 @@ export async function countGroupRows(
     me: Doc<'users'>
     group: Doc<'groups'>
     limit: number
+    mayRead: () => Promise<boolean>
   },
 ): Promise<number> {
   const treatment = treatmentOf(args.table)
@@ -604,6 +606,7 @@ export async function countGroupRows(
   }
   const s: Scope = { scope: 'group', me: args.me, group: args.group }
   if ('self' in treatment) return 1
+  if (!(await args.mayRead())) return 0
   if (!('parent' in treatment)) {
     const rows = await scopeRange(ctx, args.table, treatment.index, s).take(
       args.limit,
@@ -622,7 +625,7 @@ export async function countGroupRows(
   ).collect()
   let count = 0
   for (const parent of parents) {
-    if (count >= args.limit) break
+    if (count >= args.limit || !(await args.mayRead())) break
     const rows = await tableQuery(ctx, args.table)
       .withIndex(treatment.index, (q) => q.eq(treatment.field, parent._id))
       .take(args.limit - count)
