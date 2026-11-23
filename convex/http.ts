@@ -20,6 +20,7 @@ import { internal } from './_generated/api'
 import { httpAction } from './_generated/server'
 import { verifiedAppleUserIds } from './lib/clerkUsers'
 import { svixHeaders, verifySvix } from './lib/svix'
+import { barcodes as watchBarcodes, groceries as watchGroceries } from './watchSpike'
 
 /** Far above any Clerk event; a bigger body is not one, and is not hashed. */
 const MAX_BODY_BYTES = 256 * 1024
@@ -94,5 +95,9 @@ http.route({
   method: 'POST',
   handler: clerkWebhook,
 })
+
+// SPIKE (APP-652, do not merge)
+http.route({ path: '/watch/v1/spike/groceries', method: 'GET', handler: watchGroceries })
+http.route({ path: '/watch/v1/spike/barcodes', method: 'GET', handler: watchBarcodes })
 
 export default http

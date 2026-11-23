@@ -114,6 +114,7 @@ import type * as taskSections from "../taskSections.js";
 import type * as tasks from "../tasks.js";
 import type * as tastings from "../tastings.js";
 import type * as users from "../users.js";
+import type * as watchSpike from "../watchSpike.js";
 
 import type {
   ApiFromModules,
@@ -228,6 +229,7 @@ declare const fullApi: ApiFromModules<{
   tasks: typeof tasks;
   tastings: typeof tastings;
   users: typeof users;
+  watchSpike: typeof watchSpike;
 }>;
 
 /**

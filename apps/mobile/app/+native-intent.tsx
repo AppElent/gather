@@ -30,6 +30,8 @@ export function redirectSystemPath({
   initial: boolean
 }) {
   if (isOldGroupLink(path)) return '/'
+  // SPIKE (APP-652, do not merge): read by src/watch-spike.ts, not a route.
+  if (path.includes('watch-spike')) return initial ? '/' : null
   if (!path.includes(`dataUrl=${getShareExtensionKey()}`)) return path
   return initial ? '/' : null
 }

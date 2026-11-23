@@ -27,6 +27,8 @@
 
 // First, so a crash while the rest of the module graph loads is still reported.
 import '../src/observability/init'
+// SPIKE (APP-652, do not merge)
+import '../src/watch-spike'
 
 import { ClerkProvider, useAuth, useClerk } from '@clerk/expo'
 import { resourceCache } from '@clerk/expo/resource-cache'
