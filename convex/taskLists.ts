@@ -7,7 +7,7 @@ import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { action, internalQuery, mutation, query } from './_generated/server'
-import { getGatedIdentity } from './lib/connectedApps'
+import { getGatedIdentity, isConnectedApp } from './lib/connectedApps'
 import {
   groceryTitleKey,
   isGroceryList,
@@ -17,7 +17,7 @@ import {
 import { groceryAisleValidator } from './lib/groceryFields'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { deleteTaskList } from './lib/groupCascade'
-import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
+import { createOnce, IDEMPOTENCY_KEY_REQUIRED, idempotencyKeyValidator } from './lib/idempotency'
 import { nextOrder } from './lib/order'
 import {
   linkedTaskWriteValidator,
@@ -690,6 +690,14 @@ export const writeTask = action({
       throw new ConvexError(taskRefusal('read-only'))
     }
     const write = checkedWrite(args.write)
+    // A connected app retries, so its create must carry a key (ADR-0046).
+    if (
+      write.kind === 'create' &&
+      !REQUEST_KEY.test(write.requestKey ?? '') &&
+      (await isConnectedApp(ctx))
+    ) {
+      throw new ConvexError(IDEMPOTENCY_KEY_REQUIRED)
+    }
     const config = list.providerConfig
     if (!config) return { status: 'error', reason: 'failed' }
     const conn = await ctx.runQuery(internal.integrations.getConnection, {

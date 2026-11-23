@@ -13,6 +13,7 @@ import {
 } from '../test/convexHarness'
 import { api } from './_generated/api'
 import { CONNECTED_APP_READ_ONLY } from './lib/connectedApps'
+import { IDEMPOTENCY_KEY_REQUIRED } from './lib/idempotency'
 
 const HOME = 'linked-home'
 const AWAY = 'linked-away'
@@ -145,6 +146,25 @@ describe('taskLists.writeTask', () => {
           write: create,
         }),
     ).rejects.toThrow(CONNECTED_APP_READ_ONLY)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  test('a connected app’s create needs a request key (ADR-0046)', async () => {
+    const { t, todoist } = await seed()
+    const fetchMock = todoistAnswers(() => json({}))
+    await expect(
+      t
+        .withIdentity({
+          ...alice,
+          client_id: 'client_claude',
+          scope: 'gather:write',
+        })
+        .action(api.taskLists.writeTask, {
+          listId: todoist.listId,
+          groupSlug: HOME,
+          write: create,
+        }),
+    ).rejects.toThrow(IDEMPOTENCY_KEY_REQUIRED)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
