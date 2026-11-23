@@ -8,8 +8,8 @@
  * ingredients, and only what is still left goes to the AI, in one call for
  * all the recipes together (in batches when there are more than one call
  * carries, `readInBatches`) that counts against the person's daily cap. Over
- * the cap, offline, or without an answer, the lines not yet read are added as
- * plain text.
+ * the cap, offline, or without an answer in time, the lines not yet read are
+ * added as plain text; once over the cap, later runs do not ask again.
  */
 import { readIngredientLine } from '@gather/core/groceries'
 import { useAction } from 'convex/react'
@@ -41,6 +41,11 @@ interface AiAnswer {
   answered: ReadonlySet<string>
   done: boolean
   count: AiCount | null
+  /**
+   * The unread lines (`unreadKey`) of the run that has answered a batch: only
+   * then may what that run is still reading go on as text (APP-590).
+   */
+  run: string | null
 }
 
 const READING: AiAnswer = {
@@ -48,6 +53,7 @@ const READING: AiAnswer = {
   answered: new Set(),
   done: false,
   count: null,
+  run: null,
 }
 
 type OwnRead =
@@ -60,6 +66,7 @@ type OwnRead =
 export function useRecipeLines(recipe: IngredientSource): {
   lines: SourceLine[]
   aiCount: AiCount | null
+  readingAsText: boolean
 } {
   const { id, ingredients, servings } = recipe
   // A new array per render would read again; the fields are what matter.
@@ -67,14 +74,20 @@ export function useRecipeLines(recipe: IngredientSource): {
     () => [{ id, ingredients, servings }],
     [id, ingredients, servings],
   )
-  const { lines, aiCount } = useIngredientLines(recipes)
-  return { lines: lines.get(recipe.id) ?? [], aiCount }
+  const { lines, aiCount, readingAsText } = useIngredientLines(recipes)
+  return { lines: lines.get(recipe.id) ?? [], aiCount, readingAsText }
 }
 
 /** Several recipes' ingredients as sheet lines, by recipe id. */
 export function useIngredientLines(recipes: readonly IngredientSource[]): {
   lines: Map<string, SourceLine[]>
   aiCount: AiCount | null
+  /**
+   * Whether the lines still being read may be added as text: the run reading
+   * them has answered a batch, so the rest of a long week need not hold up
+   * the button (APP-479). A line that started a new run waits (APP-590).
+   */
+  readingAsText: boolean
 } {
   const readLines = useAction(api.groceryLines.read)
 
@@ -122,17 +135,24 @@ export function useIngredientLines(recipes: readonly IngredientSource[]): {
   const answered = useRef<Set<string>>(new Set())
   // Runs take turns, so a run starts after the call a former run left out.
   const turn = useRef<Promise<unknown>>(Promise.resolve())
+  // Over the daily cap: a later run (a servings change, another day) does not
+  // ask again, and what it would have asked is plain text (APP-590).
+  const capped = useRef(false)
   useEffect(() => {
     if (!unreadKey) return
     let live = true
     setAi((current) => ({ ...current, done: false }))
     const run = async () => {
+      if (capped.current) {
+        if (live) setAi((current) => ({ ...current, done: true }))
+        return
+      }
       // Only what no run has answered; when the former run's last call comes
       // back it is in there, so it is not asked a second time.
       const todo = unreadKey
         .split('\n')
         .filter((text) => !answered.current.has(text))
-      await readInBatches(
+      const end = await readInBatches(
         todo,
         (lines) => readLines({ lines }),
         ({ texts, lines, count }) => {
@@ -161,10 +181,12 @@ export function useIngredientLines(recipes: readonly IngredientSource[]): {
             answered: new Set([...current.answered, ...texts]),
             done: false,
             count,
+            run: unreadKey,
           }))
         },
         () => live,
-      ).catch(() => undefined)
+      ).catch(() => 'unavailable' as const)
+      if (end === 'limit') capped.current = true
       // Whatever is still unanswered (over the cap, offline) is plain text.
       if (live) setAi((current) => ({ ...current, done: true }))
     }
@@ -208,5 +230,6 @@ export function useIngredientLines(recipes: readonly IngredientSource[]): {
     lines,
     // As soon as a batch has answered, not only once all have (APP-479).
     aiCount: ai.count,
+    readingAsText: ai.run === unreadKey,
   }
 }

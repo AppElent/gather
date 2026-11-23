@@ -165,16 +165,23 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
     }
   })
 
-  const seen = new Map<string, number>()
+  // Stable while the days change, so a row keeps its tick: the item's name,
+  // and which of the lines with that name it is, counted as if nothing were
+  // touched, so a line leaving the combine does not shift the others' keys
+  // (APP-590).
+  const keyOf = itemKeys(read.map((entry) => entry.line))
+  const joiningAt = read.flatMap((entry, index) =>
+    input.touched?.has(entry.unreadKey) ? [] : [index],
+  )
+  const used = new Set<string>()
   const combined = combineGroceryLines(joining.map((entry) => entry.line)).map(
     (line): SourceLine => {
       const from = line.from.map((index) => joining[index])
       const meals = [...new Map(from.map(({ meal }) => [meal._id, meal])).values()]
-      // Stable while the days change, so a row keeps its tick: the item's
-      // name, and which of the lines with that name it is.
-      const key = groceryKey(line.title) || line.title
-      const nth = seen.get(key) ?? 0
-      seen.set(key, nth + 1)
+      let key = keyOf[joiningAt[line.from[0]]]
+      // Two rows of one item (units that do not add up, split by a touch).
+      for (let n = 1; used.has(key); n++) key = `${keyOf[joiningAt[line.from[0]]]}~${n}`
+      used.add(key)
       const readAs: LineRead = {
         kind: 'read',
         via: viaOf(from.map((entry) => entry.via)),
@@ -183,7 +190,7 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
         ...(line.unit !== undefined ? { unit: line.unit } : {}),
       }
       return {
-        key: `item:${key}:${nth}`,
+        key,
         // What the person did to it while the AI was still reading it.
         was: from.map((entry) => entry.unreadKey),
         text: line.title,
@@ -194,6 +201,22 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
     },
   )
   return { lines: [...combined, ...own, ...unread], toCheck }
+}
+
+/**
+ * Each line's row key when every line joins: `item:<name>:<n>`, the n-th line
+ * of that name `combineGroceryLines` makes, by the index of the lines given.
+ */
+function itemKeys(lines: readonly GroceryAddLine[]): string[] {
+  const keys: string[] = []
+  const seen = new Map<string, number>()
+  for (const line of combineGroceryLines(lines)) {
+    const name = groceryKey(line.title) || line.title
+    const nth = seen.get(name) ?? 0
+    seen.set(name, nth + 1)
+    for (const index of line.from) keys[index] = `item:${name}:${nth}`
+  }
+  return keys
 }
 
 type Via = Extract<LineRead, { kind: 'read' }>['via']

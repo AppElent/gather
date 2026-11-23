@@ -79,6 +79,7 @@ export function AddToGroceriesSheet({
   lines,
   servings,
   aiCount,
+  readingAsText = false,
   preferredListId,
   days,
   byAisle = false,
@@ -96,6 +97,11 @@ export function AddToGroceriesSheet({
   /** The stepper, when the source scales (a recipe; not the week menu). */
   servings?: { value: number; onChange: (value: number) => void }
   aiCount: AiCount | null
+  /**
+   * Whether a line still being read may go on as text, so the button need not
+   * wait (`useIngredientLines`): its row says so.
+   */
+  readingAsText?: boolean
   /** The list the sheet was opened from, if any. */
   preferredListId?: string
   /**
@@ -154,8 +160,9 @@ export function AddToGroceriesSheet({
   // A retype made while a line was still being read stays with its row.
   const shown = withEdits(sourceLines, edits)
   // A week over one call's lines is read in batches: once the first answer is
-  // in, the button does not wait for the rest, which go on as written.
-  const addNow = aiCount !== null
+  // in, the button does not wait for the rest, which go on as written. A line
+  // that starts a new reading waits for it (APP-590).
+  const addNow = readingAsText
   const pick = pickRows({
     lines: shown,
     servings: servings?.value,

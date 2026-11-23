@@ -78,7 +78,7 @@ export function WeekGroceriesSheet({
       })),
     [recipes],
   )
-  const { lines: read, aiCount } = useIngredientLines(sources)
+  const { lines: read, aiCount, readingAsText } = useIngredientLines(sources)
 
   const shortDay = (date: string) =>
     localMidnight(date).toLocaleDateString(locale, { weekday: 'short' })
@@ -154,6 +154,7 @@ export function WeekGroceriesSheet({
         recipes === undefined ? [] : weekLines(touched).lines
       }
       aiCount={aiCount}
+      readingAsText={readingAsText}
       preferredListId={openedFrom ?? data.groceryListId ?? undefined}
       byAisle
       footnote={words.footnote}

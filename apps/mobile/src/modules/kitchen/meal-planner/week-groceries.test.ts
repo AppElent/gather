@@ -274,4 +274,34 @@ describe('a line being read when the person ticks it (APP-423)', () => {
     })
     expect(adding).toEqual(expect.not.arrayContaining([expect.objectContaining({ title: 'Koriander' })]))
   })
+
+  test('a touched line leaving the combine does not shift the other rows’ keys (APP-590)', () => {
+    const lines2 = new Map(lines)
+    // Two Koriander lines whose units do not add up: two rows of one item.
+    lines2.set('shakshuka', [read('0', 'Koriander', 1)])
+    lines2.set('tacos', [read('0', 'Koriander', 10, 'g')])
+    const keys = (touched: ReadonlySet<string>) =>
+      weekGroceryLines({
+        meals: [
+          { meal: week[1], servings: 4 },
+          { meal: week[3], servings: 4 },
+        ],
+        recipes,
+        lines: lines2,
+        label,
+        touched,
+      })
+        .lines.filter((l) => l.text === 'Koriander')
+        .map((l) => [l.key, l.detail])
+    expect(keys(new Set())).toEqual([
+      ['item:koriander:0', 'Shakshuka 24'],
+      ['item:koriander:1', 'Tacos 26'],
+    ])
+    // Shakshuka's line was touched while it was being read: Tacos' row keeps
+    // its key, so a tick on it stays on it.
+    expect(keys(new Set(['di:0']))).toEqual([
+      ['item:koriander:1', 'Tacos 26'],
+      ['item:koriander:di:0', 'Shakshuka 24'],
+    ])
+  })
 })

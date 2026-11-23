@@ -170,4 +170,75 @@ describe('useIngredientLines', () => {
     expect(result.current.aiCount).toEqual({ used: 7, limit: 30 })
     expect(kinds(result, 'a').filter((kind) => kind === 'reading')).toHaveLength(50)
   })
+
+  test('a line added after a reading waits for its own, not as text (APP-590)', async () => {
+    let call = 0
+    server.read = ({ lines }) => {
+      call++
+      if (call === 2) return new Promise(() => undefined)
+      return Promise.resolve({
+        status: 'read',
+        used: 1,
+        limit: 30,
+        lines: lines.map((line) => ({ name: line.slice(0, 20) })),
+      })
+    }
+    const result = { current: undefined as unknown as ReturnType<typeof useIngredientLines> }
+    function Probe({ recipes }: { recipes: IngredientSource[] }) {
+      result.current = useIngredientLines(recipes)
+      return null
+    }
+    const view = mount(<Probe recipes={[{ id: 'a', ingredients: unreadable(3) }]} />)
+    expect(result.current.readingAsText).toBe(false)
+    await settle()
+    expect(result.current.aiCount).toEqual({ used: 1, limit: 30 })
+    // A new line: the count carries over, but the new line's reading has not
+    // answered yet, so it may not go on as text.
+    view.rerender(<Probe recipes={[{ id: 'a', ingredients: unreadable(4) }]} />)
+    await settle()
+    expect(kinds(result, 'a')).toEqual(['read', 'read', 'read', 'reading'])
+    expect(result.current.aiCount).toEqual({ used: 1, limit: 30 })
+    expect(result.current.readingAsText).toBe(false)
+  })
+
+  test('a week still being read lets the rest go as text once a batch answered', async () => {
+    let call = 0
+    server.read = ({ lines }) => {
+      call++
+      if (call === 2) return new Promise(() => undefined)
+      return Promise.resolve({
+        status: 'read',
+        used: 1,
+        limit: 30,
+        lines: lines.map((line) => ({ name: line.slice(0, 20) })),
+      })
+    }
+    const result = renderLines([{ id: 'a', ingredients: unreadable(41) }])
+    await settle()
+    expect(result.current.readingAsText).toBe(true)
+  })
+
+  test('over the cap, a later run does not ask again (APP-590)', async () => {
+    const calls: string[][] = []
+    server.read = async ({ lines }) => {
+      calls.push(lines)
+      return { status: 'limit', limit: 30 }
+    }
+    const result = { current: undefined as unknown as ReturnType<typeof useIngredientLines> }
+    function Probe({ recipes }: { recipes: IngredientSource[] }) {
+      result.current = useIngredientLines(recipes)
+      return null
+    }
+    const view = mount(<Probe recipes={[{ id: 'a', ingredients: unreadable(3), servings: 2 }]} />)
+    await settle()
+    expect(calls).toHaveLength(1)
+    expect(kinds(result, 'a')).toEqual(['text', 'text', 'text'])
+    // A servings change, then another line: neither asks over the cap.
+    view.rerender(<Probe recipes={[{ id: 'a', ingredients: unreadable(3), servings: 4 }]} />)
+    await settle()
+    view.rerender(<Probe recipes={[{ id: 'a', ingredients: unreadable(4), servings: 4 }]} />)
+    await settle()
+    expect(calls).toHaveLength(1)
+    expect(kinds(result, 'a')).toEqual(['text', 'text', 'text', 'text'])
+  })
 })
