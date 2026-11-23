@@ -167,18 +167,22 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
   })
 
   const used = new Set<string>()
+  const amountless: Array<{ name: string; row: number }> = []
   const combined = combineGroceryLines(joining.map((entry) => entry.line)).map(
-    (line): SourceLine => {
+    (line, index): SourceLine => {
       const from = line.from.map((index) => joining[index])
       const meals = [...new Map(from.map(({ meal }) => [meal._id, meal])).values()]
       // Stable while the days change, a line is read, or a touched line
       // stays apart, so a row keeps its tick: the item's name and the measure
       // its amount is in. Lines of one name and measure always combine, so
       // no other line of that name can shift it (APP-590).
-      const base = `item:${groceryKey(line.title) || line.title}:${measureOf(line.unit)}`
+      const name = groceryKey(line.title) || line.title
+      const base = `item:${name}:${measureOf(line.unit)}`
       let key = base
       for (let n = 1; used.has(key); n++) key = `${base}:${n}`
       used.add(key)
+      if (from.some(({ line: own }) => own.quantity === undefined && own.unit === undefined))
+        amountless.push({ name, row: index })
       const readAs: LineRead = {
         kind: 'read',
         via: viaOf(from.map((entry) => entry.via)),
@@ -197,6 +201,20 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
       }
     },
   )
+  // A line without an amount ("olijfolie") joins a row of its name in any
+  // measure. When that row's other lines leave (a day is unticked), the row
+  // it is left in has another measure's key: it takes on what the person did
+  // to a row of its name that is gone, so their untick or retype holds.
+  if (input.touched && amountless.length > 0) {
+    const present = new Set([...combined, ...own].map((line) => line.key))
+    for (const { name, row } of amountless) {
+      const gone = [...input.touched].filter(
+        (key) => key.startsWith(`item:${name}:`) && !present.has(key),
+      )
+      if (gone.length > 0)
+        combined[row] = { ...combined[row], was: [...(combined[row].was ?? []), ...gone] }
+    }
+  }
   return { lines: [...combined, ...own, ...unread], toCheck }
 }
 

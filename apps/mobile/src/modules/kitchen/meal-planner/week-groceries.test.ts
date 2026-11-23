@@ -309,4 +309,27 @@ describe('a line being read when the person ticks it (APP-423)', () => {
       ['item:koriander:di:0', 'Shakshuka 24'],
     ])
   })
+
+  test('a row left with only a line without an amount keeps the untick it had (APP-590)', () => {
+    const olie = (days: number[], touched: ReadonlySet<string>) => {
+      const lines2 = new Map(lines)
+      lines2.set('pesto', [read('0', 'Olijfolie', 2, 'el')])
+      lines2.set('shakshuka', [{ key: '0', text: 'olijfolie', read: { kind: 'read', via: 'local', name: 'Olijfolie' } }])
+      return weekGroceryLines({
+        meals: days.map((day) => ({ meal: week[day], servings: 4 })),
+        recipes,
+        lines: lines2,
+        label,
+        touched,
+      }).lines.filter((l) => l.text === 'Olijfolie')
+    }
+    const both = olie([0, 1], new Set())
+    expect(both.map((l) => l.key)).toEqual(['item:olijfoli:el'])
+    // Unticked, then Monday is unticked as a day: Tuesday's row is still off.
+    const ticks = { 'item:olijfoli:el': false }
+    const left = olie([1], new Set(Object.keys(ticks)))
+    expect(left.map((l) => l.key)).toEqual(['item:olijfoli:count'])
+    const { rows } = pickRows({ lines: left, items: [], ticks })
+    expect(rows.find((r) => r.title === 'Olijfolie')?.on).toBe(false)
+  })
 })
