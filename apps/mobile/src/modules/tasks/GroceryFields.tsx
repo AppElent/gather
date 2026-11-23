@@ -137,10 +137,17 @@ export function GroceryFields({
   const sent = useRef<{ to: WholeAmount; done: Promise<unknown> } | null>(null)
   const [pending, setPending] = useState(false)
 
-  // Somebody else's edit arrives while the field is not being typed in. Not
-  // while our own writes are on their way: the row may show one before the last.
+  // The amount text was typed over and not committed yet: it stays while that
+  // is still the amount, and gives way to anybody's change of it.
+  const typedOver = useRef<{ quantity: number | null } | null>(null)
+
+  // The row's amount goes into the field. Not while our own writes are on
+  // their way: the row may show one before the last.
   useEffect(() => {
-    if (!pending) setDraft(amountDraft(task.quantity, locale))
+    if (pending) return
+    if (typedOver.current?.quantity === (task.quantity ?? null)) return
+    typedOver.current = null
+    setDraft(amountDraft(task.quantity, locale))
   }, [task.quantity, locale, pending])
 
   /** The amount a change starts from: the last one written, or the row's. */
@@ -153,6 +160,7 @@ export function GroceryFields({
   /** Over the amount it was chosen from; another Member's change stands. */
   const write = (quantity: number | null, unit: GroceryUnit | null) => {
     haptics.selectionChanged()
+    typedOver.current = null
     const to = { quantity, unit }
     const before = sent.current
     const expected = latest()
@@ -184,7 +192,13 @@ export function GroceryFields({
     write(next, unit)
   }
 
+  const type = (text: string) => {
+    typedOver.current = { quantity: latest().quantity }
+    setDraft(text)
+  }
+
   const commitDraft = () => {
+    typedOver.current = null
     const typed = draft.trim()
     if (!typed) {
       const { quantity, unit } = latest()
@@ -251,7 +265,7 @@ export function GroceryFields({
           <TextInput
             testID="grocery-quantity"
             value={draft}
-            onChangeText={setDraft}
+            onChangeText={type}
             onBlur={commitDraft}
             onSubmitEditing={commitDraft}
             editable={writable}

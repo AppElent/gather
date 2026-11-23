@@ -12,6 +12,7 @@ import { GroceryFields } from './GroceryFields'
 import type { Task } from './types'
 
 const state = vi.hoisted(() => ({
+  type: (_text: string) => {},
   writes: [] as { to: unknown; expected: unknown; land: () => void; fail: () => void }[],
 }))
 
@@ -30,12 +31,14 @@ vi.mock('react-native', async () => {
     View: dom('div'),
     Text: dom('span'),
     Pressable: dom('button'),
-    TextInput: ({ testID, value }: Props) =>
-      React.createElement('input', {
+    TextInput: ({ testID, value, onChangeText }: Props) => {
+      state.type = onChangeText as (text: string) => void
+      return React.createElement('input', {
         'data-testid': testID as string,
         value: value as string,
         readOnly: true,
-      }),
+      })
+    },
     StyleSheet: { create: <T,>(styles: T) => styles },
   }
 })
@@ -165,4 +168,20 @@ test('a step after a new unit keeps that unit', async () => {
     expected: { quantity: 1, unit: 'fles' },
     to: { quantity: 2, unit: 'fles' },
   })
+})
+
+test('text typed while a unit is on its way stays', async () => {
+  const { unit, shown } = open()
+  unit('fles')
+  act(() => state.type('5'))
+  await act(async () => state.writes[0]!.land())
+  await settle()
+  expect(shown()).toBe('5')
+})
+
+test("another Member's amount replaces text not committed yet", async () => {
+  const { show, shown } = open()
+  act(() => state.type('5'))
+  show({ ...melk, ...pak(3) })
+  expect(shown()).toBe('3')
 })
