@@ -35,10 +35,10 @@ import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
-import { ModuleHeaderActions } from '../../search/ModuleSearchButton'
 import { searchModuleOfKind } from '../../search/searchFilters'
 import { RADIUS, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, InsetRow } from '../../ui/inset-list'
+import { ModuleHeaderButtons } from '../../ui/module-header-buttons'
 import { ModuleTile, moduleTile } from '../../ui/module-tile'
 import { RecordThumb } from '../../ui/record-thumb'
 import { washScreenOptions } from '../../ui/screen-header'
@@ -115,16 +115,21 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
       options={{
         ...washScreenOptions(title),
         headerRight: () => (
-          <ModuleHeaderActions module={searchModuleOfKind(kind)}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.tastings.index.add}
-              onPress={capture.open}
-              hitSlop={12}
-            >
-              <Plus size={24} color={tokens.accentText} strokeWidth={2} />
-            </Pressable>
-          </ModuleHeaderActions>
+          <ModuleHeaderButtons
+            testID={searchModuleOfKind(kind)}
+            moduleLabel={title}
+            search={searchModuleOfKind(kind)}
+            before={
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.tastings.index.add}
+                  onPress={capture.open}
+                  hitSlop={12}
+                >
+                  <Plus size={24} color={tokens.accentText} strokeWidth={2} />
+                </Pressable>
+            }
+          />
         ),
       }}
     />

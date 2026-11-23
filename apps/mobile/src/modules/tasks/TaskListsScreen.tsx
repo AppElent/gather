@@ -6,7 +6,8 @@
  *
  * - **Smart lists are rows, Today is a section.** My tasks, Upcoming and
  *   Unassigned open their own screen; Today is not repeated among them. A
- *   Member hides any of the four from the ⋯ menu, on this phone only.
+ *   Member hides any of the four on Tasks settings (the gear, APP-611), on
+ *   this phone only.
  * - **Today is a strip, not a list.** Tasks due today come from every list at
  *   once and are tickable where they stand, because "what do I have to do
  *   today" is the question this screen is opened with, and answering it by
@@ -23,7 +24,6 @@
  *   differs is what you may do to it — and that difference belongs on the list
  *   itself (ADR-0021), which is where the next screen puts it.
  */
-import { MenuView } from '@expo/ui/community/menu'
 import { SMART_LISTS, type SmartListId } from '@gather/core/smart-lists'
 import { keepsCheckedInPlace } from '@gather/core/task-lists'
 import { Stack, useRouter } from 'expo-router'
@@ -33,11 +33,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { fmt, type Messages, plural, useI18n } from '../../i18n'
 import { useHiddenSmartLists } from '../../prefs/hiddenSmartLists'
-import { ModuleHeaderActions } from '../../search/ModuleSearchButton'
-import { UI_ICONS } from '../../theme/icons'
+import { moduleSettingsRoute } from '../../settings/module-pages'
 import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetAddRow, InsetList, InsetRow } from '../../ui/inset-list'
 import { ADD_BUTTON_CLEARANCE } from '../../ui/keyboard-composer'
+import { ModuleHeaderButtons } from '../../ui/module-header-buttons'
 import { ModuleTile, moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
@@ -72,7 +72,7 @@ export function TaskLists() {
   // Every row this screen draws is a smart row: the Today strip and the
   // notices below are both read from it, so its sheets need no more.
   const taskSheets = useTaskSheets({ tasks: smart.tasks })
-  const { hidden, toggle: toggleHidden } = useHiddenSmartLists()
+  const { hidden } = useHiddenSmartLists()
   const shown = (id: SmartListId) => !hidden.includes(id)
   const due = smart.byList.today
   const late = due.filter(
@@ -111,42 +111,12 @@ export function TaskLists() {
         options={{
           ...washScreenOptions(t.tasks.title),
           headerRight: () => (
-            <ModuleHeaderActions module="tasks">
-              <MenuView
-                testID="tasks-menu"
-                actions={[
-                  {
-                    id: 'smart',
-                    title: t.tasks.smart.menu,
-                    displayInline: true,
-                    subactions: SMART_LISTS.map((id) => ({
-                      id,
-                      title: t.tasks.smart.lists[id].title,
-                      state: shown(id) ? ('on' as const) : ('off' as const),
-                    })),
-                  },
-                ]}
-                onPressAction={(event) => {
-                  const id = event.nativeEvent.event
-                  if (SMART_LISTS.some((each) => each === id)) {
-                    toggleHidden(id as SmartListId)
-                  }
-                }}
-              >
-                <View
-                  style={styles.headerButton}
-                  accessible
-                  accessibilityRole="button"
-                  accessibilityLabel={t.tasks.smart.menu}
-                >
-                  <UI_ICONS.Ellipsis
-                    size={22}
-                    color={tokens.ink}
-                    strokeWidth={2.2}
-                  />
-                </View>
-              </MenuView>
-            </ModuleHeaderActions>
+            <ModuleHeaderButtons
+              testID="tasks"
+              search="tasks"
+              moduleLabel={t.tasks.title}
+              settingsHref={moduleSettingsRoute('tasks', 'all')}
+            />
           ),
         }}
       />
@@ -385,7 +355,6 @@ function openCount(
 const styles = StyleSheet.create({
   content: { paddingHorizontal: SPACE[4], gap: SPACE[5] },
   group: { gap: SPACE[2] },
-  headerButton: { paddingHorizontal: 6, paddingVertical: 6 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   badgeText: { ...TYPE.footnoteStrong },
   count: { ...TYPE.footnote, ...TABULAR },

@@ -78,11 +78,12 @@ type TastingModuleId = (typeof TASTING_KIND_SPECS)[TastingKind]['moduleId']
  */
 export type ModulePath =
   | `/all/${Exclude<NativeModuleId, TastingModuleId>}`
-  | `/all/baby-log${'' | '/new' | '/settings' | '/timeline' | '/trends' | '/lists' | '/entry'}`
+  | `/all/baby-log${'' | '/new' | '/settings' | '/child' | '/timeline' | '/trends' | '/lists' | '/entry'}`
   | `/all/recipes${'' | '/recipe' | '/import' | '/new' | '/edit'}`
   | `/all/tasting/${TastingKind}${'' | '/subject' | '/compose'}`
-  | `/all/meal-planner${'' | '/preferences'}`
-  | `/all/groceries${'' | '/in-stock' | '/recent' | '/shop'}`
+  | `/all/meal-planner${'' | '/preferences' | '/settings'}`
+  | `/all/groceries${'' | '/in-stock' | '/recent' | '/shop' | '/settings'}`
+  | '/all/tasks/settings'
   | `/all/recurring-costs${'' | '/cost'}`
   | `/all/savings-goals${'' | '/goal'}`
   | `/all/loyalty-cards${'' | '/card' | '/new' | '/edit'}`

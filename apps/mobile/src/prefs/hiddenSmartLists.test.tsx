@@ -43,3 +43,29 @@ test('hiding and showing again is kept on the phone', () => {
   expect(hook.current.hidden).toEqual([])
   expect(stored.get('gather:tasks:hidden-smart-lists')).toBe('[]')
 })
+
+test('a second screen showing the same choice follows the first (APP-611)', () => {
+  type Hook = ReturnType<typeof useHiddenSmartLists>
+  const index = { current: undefined as unknown as Hook }
+  const page = { current: undefined as unknown as Hook }
+  function Index() {
+    index.current = useHiddenSmartLists()
+    return null
+  }
+  function Page() {
+    page.current = useHiddenSmartLists()
+    return null
+  }
+  mount(
+    <>
+      <Index />
+      <Page />
+    </>,
+  )
+
+  act(() => page.current.toggle('mine'))
+  expect(index.current.hidden).toEqual(['mine'])
+
+  act(() => index.current.toggle('mine'))
+  expect(page.current.hidden).toEqual([])
+})

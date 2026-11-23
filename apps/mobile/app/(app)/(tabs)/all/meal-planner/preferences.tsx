@@ -1,25 +1,10 @@
-import { Stack } from 'expo-router'
-import { useI18n } from '../../../../../src/i18n'
-import { MealPreferencesScreen } from '../../../../../src/modules/kitchen/meal-preferences/MealPreferencesScreen'
+import { Redirect } from 'expo-router'
+import { moduleHref } from '../../../../../src/modules/moduleDestination'
 
 /**
- * Eetvoorkeuren, pushed from the meal planner. APP-317's week screen links
- * here by this path (`/all/meal-planner/preferences`).
+ * Meal preferences became the Meal planner's settings page (APP-611). A link
+ * from before lands there.
  */
-export default function MealPreferencesRoute() {
-  const { t } = useI18n()
-  return (
-    <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: t.mealPreferences.title,
-          headerLargeTitle: true,
-          headerShadowVisible: false,
-          headerLargeTitleShadowVisible: false,
-        }}
-      />
-      <MealPreferencesScreen />
-    </>
-  )
+export default function MealPreferencesRedirect() {
+  return <Redirect href={moduleHref('/all/meal-planner/settings')} />
 }

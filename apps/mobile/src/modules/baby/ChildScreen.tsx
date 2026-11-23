@@ -39,9 +39,11 @@ import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { api, type Id } from '../../convex/api'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt, useI18n } from '../../i18n'
+import { moduleSettingsRoute } from '../../settings/module-pages'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, InsetRow } from '../../ui/inset-list'
+import { ModuleHeaderButtons } from '../../ui/module-header-buttons'
 import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
@@ -142,7 +144,18 @@ export function ChildScreen() {
 
   return (
     <>
-      <Stack.Screen options={washScreenOptions(moduleLabel)} />
+      <Stack.Screen
+        options={{
+          ...washScreenOptions(moduleLabel),
+          headerRight: () => (
+            <ModuleHeaderButtons
+              testID="baby-log"
+              moduleLabel={moduleLabel}
+              settingsHref={moduleSettingsRoute('baby-log', 'all')}
+            />
+          ),
+        }}
+      />
       {/* First view in the screen, deliberately: UIKit only honours
         `contentInsetAdjustmentBehavior="automatic"` — and so only collapses the
         large title against a scroll view — when that scroll view is the *first*
@@ -343,7 +356,7 @@ export function ChildScreen() {
           }}
           onEdit={(id) => {
             setSwitching(false)
-            router.push(moduleHref('/all/baby-log/settings', { childId: id }))
+            router.push(moduleHref('/all/baby-log/child', { childId: id }))
           }}
           onDelete={(id) => {
             const childToDelete = log.children?.find((item) => item._id === id)

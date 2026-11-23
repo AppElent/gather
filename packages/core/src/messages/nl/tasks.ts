@@ -353,7 +353,6 @@ export const tasks = {
 
   smart: {
     section: 'Slimme lijsten',
-    menu: 'Slimme lijsten tonen of verbergen',
     lists: {
       today: { title: 'Vandaag', subtitle: 'Vandaag of te laat' },
       mine: { title: 'Mijn taken', subtitle: 'Aan jou toegewezen' },
