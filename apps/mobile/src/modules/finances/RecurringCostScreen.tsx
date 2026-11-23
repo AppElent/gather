@@ -27,6 +27,7 @@ import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import {
   Card,
   Chip,
@@ -62,6 +63,8 @@ export function RecurringCostScreen({
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
   const [percents, setPercents] = useState<Record<string, string>>({})
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resume = useSheetResume(editing)
 
   if (cost === undefined) {
     return (
@@ -187,7 +190,9 @@ export function RecurringCostScreen({
             emphasis
             chevron
             onPress={() => {
-              setDraft(String(cost.amountCents / 100))
+              if (resume() !== 'amount') {
+                setDraft(String(cost.amountCents / 100))
+              }
               setEditing('amount')
             }}
           />
@@ -209,7 +214,9 @@ export function RecurringCostScreen({
             chevron
             last
             onPress={() => {
-              setDraft(cost.note ?? '')
+              if (resume() !== 'note') {
+                setDraft(cost.note ?? '')
+              }
               setEditing('note')
             }}
           />
@@ -234,17 +241,19 @@ export function RecurringCostScreen({
             chevron
             last
             onPress={() => {
-              setPercents(
-                Object.fromEntries(
-                  (members ?? []).map((member) => [
-                    member.userId,
-                    String(
-                      split.find((row) => row.memberId === member.userId)
-                        ?.percent ?? 0,
-                    ),
-                  ]),
-                ),
-              )
+              if (resume() !== 'split') {
+                setPercents(
+                  Object.fromEntries(
+                    (members ?? []).map((member) => [
+                      member.userId,
+                      String(
+                        split.find((row) => row.memberId === member.userId)
+                          ?.percent ?? 0,
+                      ),
+                    ]),
+                  ),
+                )
+              }
               setEditing('split')
             }}
           />

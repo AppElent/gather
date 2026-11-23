@@ -27,6 +27,10 @@
  *
  * The frame — drag-to-dismiss, close button, scrim — is `NativeSheet`'s; this
  * file is only what the sheet asks.
+ *
+ * A share that closes the sheet keeps everything in it, photos included, as a
+ * draft that the same button on the same Child opens on (APP-622,
+ * `ui/sheet-drafts.ts`). A photo still uploading is not kept.
  */
 import { missingRequiredField } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
@@ -48,6 +52,7 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, plural, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 import { DateTimeField } from './DateTimeField'
 import { EntryFields, fieldLabel } from './EntryFields'
 import { EntryPhotoField } from './EntryPhotoField'
@@ -76,6 +81,16 @@ export interface QuickLogSheetProps {
 
 type Picks = Record<string, string>
 
+/** What a share keeps of the sheet (`useSheetDraft`). */
+interface QuickLogDraft {
+  included: BabyEventType[]
+  picks: Record<string, Picks>
+  notes: Record<string, string>
+  opened: number
+  timestamp: number
+  photos: Partial<Record<BabyEventType, string | null>>
+}
+
 export function QuickLogSheet({
   babyId,
   childName,
@@ -89,11 +104,19 @@ export function QuickLogSheet({
   const { t, locale } = useI18n()
   const add = useMutation(api.babyEvents.add)
 
-  const [included, setIncluded] = useState<BabyEventType[]>([type])
-  const [picks, setPicks] = useState<Record<string, Picks>>(() => ({
-    [type]: initialPicks(type, latestOf(previous, type)),
-  }))
-  const [notes, setNotes] = useState<Record<string, string>>({})
+  // Per Child and button: a draft for a feed does not open on a nappy.
+  const draft = useSheetDraft<QuickLogDraft>(`baby-log:quick:${babyId}:${type}`)
+  const kept = draft.kept
+  const [included, setIncluded] = useState<BabyEventType[]>(
+    kept?.included ?? [type],
+  )
+  const [picks, setPicks] = useState<Record<string, Picks>>(
+    () =>
+      kept?.picks ?? {
+        [type]: initialPicks(type, latestOf(previous, type)),
+      },
+  )
+  const [notes, setNotes] = useState<Record<string, string>>(kept?.notes ?? {})
   const [saving, setSaving] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const [whenOpen, setWhenOpen] = useState(false)
@@ -101,13 +124,18 @@ export function QuickLogSheet({
   // `opened` is held once, at open: it anchors "Today" and "Yesterday" on the
   // When row, so they keep meaning the same day across a midnight somebody
   // happens to be logging through. `timestamp` is what gets written.
-  const [opened] = useState(() => Date.now())
-  const [timestamp, setTimestamp] = useState(opened)
+  // A kept draft keeps both: the time it was logging is still the moment.
+  const [opened] = useState(() => kept?.opened ?? Date.now())
+  const [timestamp, setTimestamp] = useState(kept?.timestamp ?? opened)
   // Keyed by type for the same reason notes are: several types can be open at
   // once, and a picture of a first laugh is not a picture of a nappy.
   const [photos, setPhotos] = useState<
     Partial<Record<BabyEventType, string | null>>
-  >({})
+  >(kept?.photos ?? {})
+  draft.track(
+    { included, picks, notes, opened, timestamp, photos },
+    { holding: saving },
+  )
 
 
   const fieldLabels = t.baby.log.fields as Record<string, string>

@@ -39,6 +39,19 @@ interface Entry {
 
 const sheets = new Set<Entry>()
 const waiters = new Set<() => void>()
+const closingListeners = new Set<() => void>()
+
+/**
+ * Calls `listener` each time `closeOpenSheets` starts, before any sheet is
+ * asked to close, so a form can keep what was typed as a draft (APP-622).
+ * Returns the unsubscribe.
+ */
+export function onSheetsClosing(listener: () => void): () => void {
+  closingListeners.add(listener)
+  return () => {
+    closingListeners.delete(listener)
+  }
+}
 
 function settle() {
   if (sheets.size > 0) return
@@ -90,6 +103,12 @@ export function closeOpenSheets(
   timeoutMs = CLOSE_SHEETS_TIMEOUT_MS,
 ): Promise<void> {
   if (sheets.size === 0) return Promise.resolve()
+  for (const listener of [...closingListeners]) {
+    // A draft that cannot be kept must not keep the chooser away.
+    try {
+      listener()
+    } catch {}
+  }
   return new Promise((resolve) => {
     const done = () => {
       clearTimeout(timer)

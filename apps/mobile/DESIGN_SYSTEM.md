@@ -146,6 +146,10 @@ haptics off, or while the camera or dictation is active.
   holds, so every deep-linkable screen opens cold with a working parent.
 - **Sheets** are `src/components/NativeSheet.tsx` around `@expo/ui`'s
   `BottomSheetModal`; the platform owns drag, keyboard, backdrop and dismissal.
+  A share closes every open sheet, and a sheet form keeps what was typed as a
+  draft: `useSheetDraft`, or `useSheetResume` when the screen holds the state
+  (`src/ui/sheet-drafts.ts`). A new sheet form uses one of them; the covered
+  list is in [Drop](../../docs/contracts/drop.md).
 - **Glass** (`expo-glass-effect`) only on chrome floating over scrolling
   content, and every layout must read correctly as the plain `View` it becomes
   below iOS 26 and on Android.

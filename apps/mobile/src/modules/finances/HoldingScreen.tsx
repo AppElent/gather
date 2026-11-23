@@ -23,6 +23,7 @@ import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { FINANCE_ICONS } from './icons'
 import {
   AddRow,
@@ -63,6 +64,9 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
   const [fee, setFee] = useState('')
   const [note, setNote] = useState('')
   const [newPrice, setNewPrice] = useState('')
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resumeAdd = useSheetResume(adding)
+  const resumePrice = useSheetResume(pricing)
 
   const Target = FINANCE_ICONS.Target
   const Alert = FINANCE_ICONS.Alert
@@ -203,7 +207,9 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
             chevron
             last
             onPress={() => {
-              setNewPrice(String((holding.lastPriceCents ?? 0) / 100))
+              if (resumePrice() !== true) {
+                setNewPrice(String((holding.lastPriceCents ?? 0) / 100))
+              }
               setPricing(true)
             }}
           />
@@ -251,8 +257,10 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
           <AddRow
             label={text.portfolio.holding.addTransaction}
             onPress={() => {
-              setKind('buy')
-              setDate(today)
+              if (resumeAdd() !== true) {
+                setKind('buy')
+                setDate(today)
+              }
               setAdding(true)
             }}
             last={false}
@@ -260,8 +268,10 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
           <AddRow
             label={text.portfolio.holding.recordAdjustment}
             onPress={() => {
-              setKind('adjustment')
-              setDate(today)
+              if (resumeAdd() !== true) {
+                setKind('adjustment')
+                setDate(today)
+              }
               setAdding(true)
             }}
           />

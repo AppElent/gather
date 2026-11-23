@@ -20,6 +20,7 @@ import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { TYPE, useTokens } from '../../theme/tokens'
 import { SectionLabel } from '../../ui/section-label'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 import { useTaskActions, useTaskLists } from './store'
 import type { Task, TaskList } from './types'
 
@@ -43,7 +44,10 @@ export function SectionsSheet({
   const tokens = useTokens('home')
   const { t } = useI18n()
   const actions = useTaskActions()
-  const [draft, setDraft] = useState('')
+  // A share keeps the new section's name (APP-622).
+  const kept = useSheetDraft<{ draft: string }>(`tasks:sections:${list.id}`)
+  const [draft, setDraft] = useState(kept.kept?.draft ?? '')
+  kept.track({ draft })
   const sections = list.sections
 
   const report = (write: Promise<unknown>) =>

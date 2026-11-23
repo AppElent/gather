@@ -44,6 +44,7 @@ import { fmt, plural, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { InsetAddRow, InsetList, InsetRow } from '../../../ui/inset-list'
+import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { Chip, MealThumb } from './parts'
 import { type WeekData, weekdayName } from './week'
 
@@ -75,14 +76,23 @@ export function PickSheet({
   const updateQuick = useMutation(api.kitchen.updateMealEntry)
   const removeQuick = useMutation(api.kitchen.removeMealEntry)
 
-  const [search, setSearch] = useState('')
-  const [matches, setMatches] = useState(true)
-  const [limit, setLimit] = useState<PickTimeLimit | undefined>()
+  // A share keeps the search, filters and a quick meal being typed (APP-622).
+  const draft = useSheetDraft<{
+    search: string
+    matches: boolean
+    limit?: PickTimeLimit
+    composer: { id?: Id<'mealEntries'>; name: string; minutes: string } | null
+  }>(`meal-planner:pick:${date}:${slot}`)
+  const kept = draft.kept
+  const [search, setSearch] = useState(kept?.search ?? '')
+  const [matches, setMatches] = useState(kept?.matches ?? true)
+  const [limit, setLimit] = useState<PickTimeLimit | undefined>(kept?.limit)
   const [composer, setComposer] = useState<{
     id?: Id<'mealEntries'>
     name: string
     minutes: string
-  } | null>(null)
+  } | null>(kept?.composer ?? null)
+  draft.track({ search, matches, limit, composer })
 
   const weekday = weekdayIndex(date)
   const weekdayWord = localMidnight(date).toLocaleDateString(locale, {

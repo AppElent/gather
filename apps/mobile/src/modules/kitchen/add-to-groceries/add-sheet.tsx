@@ -52,6 +52,7 @@ import {
 import { Button } from '../../../ui/button'
 import { ModuleTile } from '../../../ui/module-tile'
 import { SectionLabel } from '../../../ui/section-label'
+import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { useTaskList, useTaskLists } from '../../tasks/store'
 import { useInStock } from '../in-stock/use-in-stock'
 import {
@@ -77,6 +78,7 @@ export interface AddSheetSource {
 
 export function AddToGroceriesSheet({
   source,
+  place,
   lines,
   servings,
   aiCount,
@@ -89,6 +91,8 @@ export function AddToGroceriesSheet({
   onClose,
 }: {
   source: AddSheetSource
+  /** Where a share keeps the ticks, retyped lines and list (APP-622). */
+  place: string
   /**
    * The lines, or a function of the keys of the rows the person has ticked,
    * unticked or retyped: the week menu keeps a line they touched while it was
@@ -135,7 +139,15 @@ export function AddToGroceriesSheet({
       ),
     [allLists],
   )
-  const [chosenListId, setChosenListId] = useState<string>()
+  const draft = useSheetDraft<{
+    chosenListId?: string
+    ticks: Record<string, boolean>
+    edits: Record<string, LineRead>
+  }>(place)
+  const kept = draft.kept
+  const [chosenListId, setChosenListId] = useState<string | undefined>(
+    kept?.chosenListId,
+  )
   const listId = [
     chosenListId,
     preferredListId,
@@ -148,9 +160,10 @@ export function AddToGroceriesSheet({
   // In stock starts unticked (APP-314), for a recipe and the week menu alike.
   const inStock = useInStock(group.slug)
 
-  const [ticks, setTicks] = useState<Record<string, boolean>>({})
-  const [edits, setEdits] = useState<Record<string, LineRead>>({})
+  const [ticks, setTicks] = useState<Record<string, boolean>>(kept?.ticks ?? {})
+  const [edits, setEdits] = useState<Record<string, LineRead>>(kept?.edits ?? {})
   const [busy, setBusy] = useState(false)
+  draft.track({ chosenListId, ticks, edits }, { holding: busy })
   const [failed, setFailed] = useState(false)
   const [rowWidth, setRowWidth] = useState<number>()
 

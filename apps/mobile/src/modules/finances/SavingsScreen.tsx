@@ -19,6 +19,7 @@ import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
 import {
@@ -50,6 +51,8 @@ export function SavingsScreen() {
   const [name, setName] = useState('')
   const [target, setTarget] = useState('')
   const [date, setDate] = useState('')
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resume = useSheetResume(adding)
 
   const Target = FINANCE_ICONS.Target
 
@@ -67,9 +70,11 @@ export function SavingsScreen() {
   }
 
   function open() {
-    setName('')
-    setTarget('')
-    setDate('')
+    if (resume() !== true) {
+      setName('')
+      setTarget('')
+      setDate('')
+    }
     setAdding(true)
   }
 
@@ -191,6 +196,7 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
+  const resume = useSheetResume(editing)
 
 
   if (goal === undefined) {
@@ -362,7 +368,7 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
             emphasis
             chevron
             onPress={() => {
-              setDraft(String(goal.savedCents / 100))
+              if (resume() !== 'saved') setDraft(String(goal.savedCents / 100))
               setEditing('saved')
             }}
           />
@@ -378,7 +384,8 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
             chevron
             last
             onPress={() => {
-              setDraft(String((goal.monthlyCents ?? 0) / 100))
+              if (resume() !== 'monthly')
+                setDraft(String((goal.monthlyCents ?? 0) / 100))
               setEditing('monthly')
             }}
           />

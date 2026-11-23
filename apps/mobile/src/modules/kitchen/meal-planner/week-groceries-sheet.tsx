@@ -20,6 +20,7 @@ import { fmt, plural, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { SectionLabel } from '../../../ui/section-label'
+import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { moduleHref } from '../../moduleDestination'
 import { AddToGroceriesSheet } from '../add-to-groceries/add-sheet'
 import { useIngredientLines } from '../add-to-groceries/use-recipe-lines'
@@ -66,9 +67,15 @@ export function WeekGroceriesSheet({
     () => data.meals.filter((meal) => meal.date >= from && meal.date <= to),
     [data.meals, from, to],
   )
+  // A share keeps the days counted with the sheet's ticks (APP-622).
+  const place = `groceries:week:${weekStart}`
+  const draft = useSheetDraft<{ counted: string[] }>(`${place}:days`)
   const [counted, setCounted] = useState(() =>
-    defaultDays(weekStart, localIsoDate(), meals),
+    draft.kept
+      ? new Set(draft.kept.counted)
+      : defaultDays(weekStart, localIsoDate(), meals),
   )
+  draft.track({ counted: [...counted].sort() })
 
   const sources = useMemo(
     () =>
@@ -157,6 +164,7 @@ export function WeekGroceriesSheet({
 
   return (
     <AddToGroceriesSheet
+      place={place}
       source={{
         title: fmt(words.source, { range }),
         subtitle:

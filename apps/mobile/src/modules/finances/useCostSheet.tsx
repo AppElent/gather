@@ -23,6 +23,7 @@ import { StyleSheet, View } from 'react-native'
 import { NativeSheet } from '../../components/NativeSheet'
 import { api } from '../../convex/api'
 import { useI18n } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { Chip, Field, PrimaryButton } from './ui'
 import { useFinanceWrite } from './useFinanceWrite'
 
@@ -40,12 +41,16 @@ export function useCostSheet(groupSlug: string): {
   const [amount, setAmount] = useState('')
   const [frequency, setFrequency] = useState<CostFrequency>('monthly')
   const [category, setCategory] = useState<CostCategory>('housing')
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resume = useSheetResume(showing)
 
   function open() {
-    setName('')
-    setAmount('')
-    setFrequency('monthly')
-    setCategory('housing')
+    if (resume() !== true) {
+      setName('')
+      setAmount('')
+      setFrequency('monthly')
+      setCategory('housing')
+    }
     setShowing(true)
   }
 

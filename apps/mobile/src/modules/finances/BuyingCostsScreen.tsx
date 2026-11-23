@@ -26,6 +26,7 @@ import { NativeSheet } from '../../components/NativeSheet'
 import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { FINANCE_ICONS } from './icons'
 import { termWords } from './loanParts'
 import {
@@ -64,6 +65,8 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resume = useSheetResume(editing)
 
   const Key = FINANCE_ICONS.Key
 
@@ -171,7 +174,9 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
             emphasis
             chevron
             onPress={() => {
-              setDraft(String(stored.purchasePriceCents / 100))
+              if (resume() !== 'price') {
+                setDraft(String(stored.purchasePriceCents / 100))
+              }
               setEditing('price')
             }}
           />
@@ -181,7 +186,9 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
             emphasis
             chevron
             onPress={() => {
-              setDraft(String(stored.ownMoneyCents / 100))
+              if (resume() !== 'ownMoney') {
+                setDraft(String(stored.ownMoneyCents / 100))
+              }
               setEditing('ownMoney')
             }}
           />
@@ -191,7 +198,9 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
             emphasis
             chevron
             onPress={() => {
-              setDraft(String(stored.mortgageCents / 100))
+              if (resume() !== 'mortgage') {
+                setDraft(String(stored.mortgageCents / 100))
+              }
               setEditing('mortgage')
             }}
           />
@@ -204,7 +213,9 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
             chevron
             last
             onPress={() => {
-              setDraft(String(stored.mortgageRatePercent))
+              if (resume() !== 'rate') {
+                setDraft(String(stored.mortgageRatePercent))
+              }
               setEditing('rate')
             }}
           />
@@ -247,7 +258,9 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
               emphasis={(stored.lines?.[line] ?? 0) > 0}
               chevron
               onPress={() => {
-                setDraft(String((stored.lines?.[line] ?? 0) / 100))
+                if (resume() !== line) {
+                  setDraft(String((stored.lines?.[line] ?? 0) / 100))
+                }
                 setEditing(line)
               }}
             />
@@ -264,7 +277,9 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
             chevron
             last
             onPress={() => {
-              setDraft(String(stored.nhgPercent ?? 0.4))
+              if (resume() !== 'nhg') {
+                setDraft(String(stored.nhgPercent ?? 0.4))
+              }
               setEditing('nhg')
             }}
           />

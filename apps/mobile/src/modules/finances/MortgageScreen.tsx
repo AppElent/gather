@@ -23,6 +23,7 @@ import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
 import { RADIUS, TYPE } from '../../theme/tokens'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { moduleHref } from '../moduleDestination'
 import { dateForMonth } from './format'
 import { FINANCE_ICONS } from './icons'
@@ -61,6 +62,8 @@ export function MortgageScreen({
   const { attempt, failure } = useFinanceWrite()
 
   const [copyName, setCopyName] = useState<string | null>(null)
+  // A share closed the sheet: open on the name that was typed (APP-622).
+  const resume = useSheetResume(copyName)
   const Clock = FINANCE_ICONS.Clock
 
   if (calculation === undefined) {
@@ -275,7 +278,8 @@ export function MortgageScreen({
             accessibilityLabel={text.actions.duplicate}
             onPress={() =>
               setCopyName(
-                fmt(text.house.copySuffix, { name: calculation.name }),
+                resume() ??
+                  fmt(text.house.copySuffix, { name: calculation.name }),
               )
             }
             style={({ pressed }) => [

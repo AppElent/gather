@@ -29,6 +29,7 @@ import { fmt, plural, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { InsetList, InsetRow } from '../../../ui/inset-list'
+import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { Chip } from './parts'
 import { type WeekData, weekRange } from './week'
 import {
@@ -86,11 +87,27 @@ export function PlanSheet({
   const online = useConvexConnectionState().isWebSocketConnected
 
   const choices = useMemo(() => planSlotChoices(data.preferences), [data.preferences])
-  const [slots, setSlots] = useState<MealSlot[]>(() => defaultPlanSlots(choices))
-  const [flipped, setFlipped] = useState<ReadonlySet<string>>(new Set())
-  const [wish, setWish] = useState('')
-  const [wishes, setWishes] = useState<WeekPlanWish[]>([])
+  // A share keeps the week being asked for (APP-622).
+  const draft = useSheetDraft<{
+    slots: MealSlot[]
+    flipped: string[]
+    wish: string
+    wishes: WeekPlanWish[]
+  }>(`meal-planner:plan:${weekStart}`)
+  const kept = draft.kept
+  const [slots, setSlots] = useState<MealSlot[]>(
+    () => kept?.slots ?? defaultPlanSlots(choices),
+  )
+  const [flipped, setFlipped] = useState<ReadonlySet<string>>(
+    () => new Set(kept?.flipped ?? []),
+  )
+  const [wish, setWish] = useState(kept?.wish ?? '')
+  const [wishes, setWishes] = useState<WeekPlanWish[]>(kept?.wishes ?? [])
   const [busy, setBusy] = useState(false)
+  draft.track(
+    { slots, flipped: [...flipped].sort(), wish, wishes },
+    { holding: busy },
+  )
   const [failed, setFailed] = useState<string | null>(null)
   const [overCap, setOverCap] = useState(false)
 

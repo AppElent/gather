@@ -26,6 +26,7 @@ import { Segmented } from '../../components/Segmented'
 import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { FINANCE_ICONS } from './icons'
 import {
   AddRow,
@@ -74,6 +75,9 @@ export function SplitScreen() {
   const [amount, setAmount] = useState('')
   const [label, setLabel] = useState('')
   const [name, setName] = useState('')
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resumeAdd = useSheetResume(adding)
+  const resumeSave = useSheetResume(saving)
 
   const Users = FINANCE_ICONS.Users
 
@@ -209,7 +213,9 @@ export function SplitScreen() {
           <AddRow
             label={text.split.addPayment}
             onPress={() => {
-              setPayer(members[0]?.userId ?? null)
+              if (resumeAdd() !== true) {
+                setPayer(members[0]?.userId ?? null)
+              }
               setAdding(true)
             }}
           />
@@ -361,7 +367,9 @@ export function SplitScreen() {
               label={text.split.saveThis}
               disabled={!allocationBalances}
               onPress={() => {
-                setName(what)
+                if (resumeSave() !== true) {
+                  setName(what)
+                }
                 setSaving(true)
               }}
             />

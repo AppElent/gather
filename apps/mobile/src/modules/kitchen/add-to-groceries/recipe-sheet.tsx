@@ -4,9 +4,9 @@
  * servings stepper that starts at the recipe's own servings.
  */
 import { useState } from 'react'
-
 import { plural, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
+import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { AddToGroceriesSheet } from './add-sheet'
 import { useRecipeLines } from './use-recipe-lines'
 
@@ -32,10 +32,17 @@ export function RecipeToGroceriesSheet({
     ingredients: recipe.ingredients,
     servings: recipe.servings,
   })
-  const [servings, setServings] = useState(startServings ?? recipe.servings ?? 0)
+  // A share keeps the stepper with the sheet's ticks (APP-622).
+  const place = `groceries:recipe:${recipe._id}`
+  const draft = useSheetDraft<{ servings: number }>(`${place}:servings`)
+  const [servings, setServings] = useState(
+    draft.kept?.servings ?? startServings ?? recipe.servings ?? 0,
+  )
+  draft.track({ servings })
 
   return (
     <AddToGroceriesSheet
+      place={place}
       source={{
         title: recipe.title,
         subtitle: recipe.servings

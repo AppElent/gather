@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the share sheet, a Drop, its destinations, host rules, or expo-share-intent.
-version: 1.2.0
+version: 1.3.0
 status: current
 ---
 
@@ -33,6 +33,35 @@ that already means making Group content visible to a second Group.
   sheet is presented above the stack and would hide the chooser
   (`src/components/openSheets.ts`). Arrivals are counted for the whole session,
   so a share after a finished or abandoned one opens the chooser again.
+- **A share keeps what was typed.** The person did not ask for that close,
+  so every sheet form with input keeps it, in memory, per account and Group
+  ([editors](../standards/editors.md), APP-622). A form whose state lives in
+  the sheet uses `useSheetDraft` (`src/ui/sheet-drafts.ts`, on the composer
+  draft store) and opens on the draft next time. A finance screen holds its
+  sheet's state itself, so `useSheetResume` only stops the next open from
+  seeding it again. A close the person chose (Cancel, Close, a swipe) still
+  discards, as before; nothing is kept while a save is on its way. No form
+  needed to ask instead. Covered:
+  - **Tasks:** quick sheet task line (`QuickAddTask`, APP-618), New list,
+    Rename task or list, Labels, Sections (new section), Reminder, Repeat.
+  - **Baby log:** Quick log (types, fields, notes, time, photos), quick to-do
+    or question.
+  - **Calendar:** new calendar name; the event editor opened from an event
+    resumes its kept draft (it was already kept from the calendar screen).
+  - **Kitchen:** Add to groceries (ticks, retyped lines, list, servings or
+    days), Pick (search, filters, quick meal), Plan my week, Swap (wish, chip,
+    and the answers already paid for).
+  - **Tasting:** the subject picker's typed name.
+  - **Finances:** Add savings goal, saved so far and monthly, Add recurring
+    cost, its amount, note and split, Add holding, Add transaction, Update
+    price, buying-cost values, house and calculation fields, loan-part
+    fields, Duplicate calculation, Add payment and Save scenario.
+
+  Not forms, so nothing to keep: pickers and menus whose taps apply at once,
+  and a planned meal's sheet, which saves on any close. New house, Add asset
+  or liability and Custom allocation already kept their input. The keyboard composer is not a
+  `NativeSheet` and keeps its own draft. A finance screen that a Group switch
+  unwinds loses its sheet's input.
 - **The commit clears the Drop.** A target that has not written by the time it
   navigates declares `keepsDrop` (today only `recipe-import`): its screen is
   pushed over the chooser with the Drop still pending, so Back still has

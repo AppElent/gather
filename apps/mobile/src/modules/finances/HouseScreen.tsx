@@ -23,6 +23,7 @@ import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
 import { toLoanParts } from './loanParts'
@@ -56,6 +57,8 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resume = useSheetResume(editing)
 
   const Key = FINANCE_ICONS.Key
   const Clock = FINANCE_ICONS.Clock
@@ -227,7 +230,9 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
           <AddRow
             label={text.house.addCalculation}
             onPress={() => {
-              setDraft('')
+              if (resume() !== 'calculation') {
+                setDraft('')
+              }
               setEditing('calculation')
             }}
           />
@@ -252,11 +257,13 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
             emphasis={house.valueCents !== undefined}
             chevron
             onPress={() => {
-              setDraft(
-                house.valueCents !== undefined
-                  ? String(house.valueCents / 100)
-                  : '',
-              )
+              if (resume() !== 'value') {
+                setDraft(
+                  house.valueCents !== undefined
+                    ? String(house.valueCents / 100)
+                    : '',
+                )
+              }
               setEditing('value')
             }}
           />
@@ -269,7 +276,9 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
             }
             chevron
             onPress={() => {
-              setDraft(house.boughtOn ?? today)
+              if (resume() !== 'bought') {
+                setDraft(house.boughtOn ?? today)
+              }
               setEditing('bought')
             }}
           />

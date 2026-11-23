@@ -10,6 +10,7 @@ import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { CalendarEditor } from './CalendarEditor'
 import { useCalendarEditor } from './useCalendarEditor'
 
@@ -34,6 +35,7 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
   const members = useQuery(api.groups.members, { slug: group.slug })
   const [editing, setEditing] = useState(false)
   const controller = useCalendarEditor()
+  const resume = useSheetResume(editing)
   useRecordRecent(
     event && event !== null
       ? {
@@ -95,7 +97,15 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
         <Pressable
           testID="calendar-event-edit"
           onPress={() => {
-            controller.openEdit(model)
+            // A share closed the editor (APP-622): back on its kept draft.
+            const kept = controller.draft
+            if (
+              resume() === true &&
+              kept?.status === 'dismissed' &&
+              kept.eventId === model.id
+            )
+              controller.resume()
+            else controller.openEdit(model)
             setEditing(true)
           }}
           style={[styles.edit, { borderColor: tokens.hair }]}

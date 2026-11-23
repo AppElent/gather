@@ -15,6 +15,7 @@ import { api } from '../../convex/api'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 
 export function CalendarManagementSheet({
   groupSlug,
@@ -37,7 +38,10 @@ export function CalendarManagementSheet({
   const add = useMutation(api.calendar.addCalendar)
   const update = useMutation(api.calendar.updateCalendar)
   const remove = useMutation(api.calendar.removeCalendar)
-  const [name, setName] = useState('')
+  // A share keeps the new calendar's name (APP-622).
+  const draft = useSheetDraft<{ name: string }>('calendar:new-calendar')
+  const [name, setName] = useState(draft.kept?.name ?? '')
+  draft.track({ name })
   const colors: CalendarEvent['color'][] = [
     'home',
     'kitchen',

@@ -36,6 +36,7 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 import { type Draft, draftRule, repeatDraft } from './repeatDraft'
 import { useTaskActions } from './store'
 import type { Task } from './types'
@@ -59,7 +60,12 @@ export function RepeatSheet({
   const actions = useTaskActions()
   const today = localIsoDate()
   const anchor = task.dueDate ?? today
-  const [draft, setDraft] = useState(() => repeatDraft(task, today))
+  // A share keeps the rule being made (APP-622); the composer's task has no id.
+  const kept = useSheetDraft<Draft>(`tasks:repeat:${task.id ?? 'composer'}`)
+  const [draft, setDraft] = useState(
+    () => kept.kept ?? repeatDraft(task, today),
+  )
+  kept.track(draft)
   const rule = draftRule(draft, anchor)
   const invalid = draft.mode !== 'none' && !rule
 

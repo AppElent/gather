@@ -28,6 +28,7 @@ import { Segmented } from '../../components/Segmented'
 import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
 import { portfolioTotalsFor } from './portfolioTotals'
@@ -65,6 +66,8 @@ export function PortfolioScreen() {
   const [units, setUnits] = useState('')
   const [price, setPrice] = useState('')
   const [asAt, setAsAt] = useState(today)
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resume = useSheetResume(adding)
 
   const Chart = FINANCE_ICONS.Chart
 
@@ -84,12 +87,14 @@ export function PortfolioScreen() {
   const totals = portfolioTotalsFor(holdings)
 
   function open() {
-    setSymbol('')
-    setName('')
-    setExchange('')
-    setUnits('')
-    setPrice('')
-    setAsAt(today)
+    if (resume() !== true) {
+      setSymbol('')
+      setName('')
+      setExchange('')
+      setUnits('')
+      setPrice('')
+      setAsAt(today)
+    }
     setAdding(true)
   }
 

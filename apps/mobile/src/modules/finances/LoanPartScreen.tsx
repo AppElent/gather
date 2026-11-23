@@ -31,6 +31,7 @@ import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { termWords, toLoanPart, toLoanParts } from './loanParts'
 import {
   AddRow,
@@ -86,6 +87,8 @@ export function LoanPartScreen({
   )
   const [repaymentDate, setRepaymentDate] = useState(today)
   const [freeAnnual, setFreeAnnual] = useState('10')
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resume = useSheetResume(editing)
 
   if (part === undefined || calculation === undefined) {
     return (
@@ -261,7 +264,9 @@ export function LoanPartScreen({
             emphasis
             chevron
             onPress={() => {
-              setDraft(String(part.principalCents / 100))
+              if (resume() !== 'amount') {
+                setDraft(String(part.principalCents / 100))
+              }
               setEditing('amount')
             }}
           />
@@ -271,7 +276,9 @@ export function LoanPartScreen({
             emphasis
             chevron
             onPress={() => {
-              setDraft(String(part.annualRatePercent))
+              if (resume() !== 'rate') {
+                setDraft(String(part.annualRatePercent))
+              }
               setEditing('rate')
             }}
           />
@@ -284,7 +291,9 @@ export function LoanPartScreen({
             }
             chevron
             onPress={() => {
-              setDraft(part.fixedUntil ?? today)
+              if (resume() !== 'fixedUntil') {
+                setDraft(part.fixedUntil ?? today)
+              }
               setEditing('fixedUntil')
             }}
           />
@@ -294,7 +303,9 @@ export function LoanPartScreen({
             chevron
             last
             onPress={() => {
-              setDraft(String(Math.round(part.termMonths / 12)))
+              if (resume() !== 'term') {
+                setDraft(String(Math.round(part.termMonths / 12)))
+              }
               setEditing('term')
             }}
           />
@@ -321,7 +332,9 @@ export function LoanPartScreen({
                   label={text.loanPart.addRate}
                   selected={false}
                   onPress={() => {
-                    setDraft('')
+                    if (resume() !== 'expiryRate') {
+                      setDraft('')
+                    }
                     setEditing('expiryRate')
                   }}
                 />
@@ -361,8 +374,10 @@ export function LoanPartScreen({
           <AddRow
             label={text.loanPart.addRepayment}
             onPress={() => {
-              setDraft('')
-              setRepaymentDate(today)
+              if (resume() !== 'repayment') {
+                setDraft('')
+                setRepaymentDate(today)
+              }
               setEditing('repayment')
             }}
             last={false}
@@ -380,8 +395,10 @@ export function LoanPartScreen({
             chevron
             last
             onPress={() => {
-              setFreeAnnual(String(part.charge?.freeAnnualPercent ?? 10))
-              setDraft(String(part.charge?.chargePercent ?? ''))
+              if (resume() !== 'charge') {
+                setFreeAnnual(String(part.charge?.freeAnnualPercent ?? 10))
+                setDraft(String(part.charge?.chargePercent ?? ''))
+              }
               setEditing('charge')
             }}
           />
