@@ -46,6 +46,18 @@ export function energyChannelsOverlap(
   )
 }
 
+/** Whether `measured` counts everything a channel counts. */
+export function energyChannelCovered(
+  channel: { kind: EnergyChannelKind; tariff?: EnergyTariff },
+  measured: readonly { kind: EnergyChannelKind; tariff?: EnergyTariff }[],
+): boolean {
+  const same = measured.filter((each) => each.kind === channel.kind)
+  const has = (tariff: EnergyTariff | undefined) =>
+    same.some((each) => each.tariff === tariff)
+  if (has(undefined)) return true
+  return channel.tariff ? has(channel.tariff) : has('t1') && has('t2')
+}
+
 /**
  * Whether a typed meter is overdue: no reading for two weeks. Shown in
  * `danger` words under Sources.
@@ -179,7 +191,7 @@ export interface HaProposal {
   statisticId: string
   /** False when Home Assistant keeps no usable statistic under this id. */
   available: boolean
-  /** False for a guess the dashboard did not name (a battery's charge level). */
+  /** False for what starts off: a guessed charge level, a likely total. */
   fromDashboard: boolean
 }
 
@@ -191,16 +203,31 @@ function tariffOf(id: string): EnergyTariff | undefined {
   return T2.test(id) ? 't2' : undefined
 }
 
-/** A pair of counters is a split meter only when one is T1 and one is T2. */
+/**
+ * Counters are a split meter only when exactly one is T1 and one is T2. Any
+ * other beside them may be their total (HomeWizard has all three), so it is
+ * offered but starts off.
+ */
 function withTariffs(
   kind: 'gridImport' | 'gridExport',
   ids: readonly string[],
-): { kind: EnergyChannelKind; tariff?: EnergyTariff; id: string }[] {
+): {
+  kind: EnergyChannelKind
+  tariff?: EnergyTariff
+  id: string
+  suggested: boolean
+}[] {
   const tariffs = ids.map(tariffOf)
-  const split =
-    ids.length === 2 && tariffs.includes('t1') && tariffs.includes('t2')
+  const only = (tariff: EnergyTariff) =>
+    tariffs.filter((each) => each === tariff).length === 1
+  const split = only('t1') && only('t2')
   return ids
-    .map((id, index) => ({ kind, id, tariff: split ? tariffs[index] : undefined }))
+    .map((id, index) => ({
+      kind,
+      id,
+      tariff: split ? tariffs[index] : undefined,
+      suggested: !split || tariffs[index] !== undefined,
+    }))
     .sort((a, b) => (a.tariff ?? '').localeCompare(b.tariff ?? ''))
 }
 
@@ -280,10 +307,10 @@ export function energyProposals(
     })
   }
   for (const channel of withTariffs('gridImport', unique(imports))) {
-    propose(channel, true)
+    propose(channel, channel.suggested)
   }
   for (const channel of withTariffs('gridExport', unique(exports))) {
-    propose(channel, true)
+    propose(channel, channel.suggested)
   }
   for (const channel of rest) propose(channel, true)
   if (battery) {

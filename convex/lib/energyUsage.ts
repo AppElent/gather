@@ -7,8 +7,8 @@
  *
  * A channel of a manual source counts from its readings, spread over days
  * and marked estimated; any other channel counts from its intervals. A typed
- * meter never adds to a day between the first and the last hour an hourly channel
- * measured of the same thing: hours missed in between are in the next one it has.
+ * meter adds nothing between the first and the last hour hourly channels measured
+ * of the same thing: hours missed in between are in the next one they have.
  */
 import { addDays } from '@gather/core/civil-date'
 import {
@@ -19,7 +19,6 @@ import {
   type EnergyContractTerms,
   type EnergyCost,
   type EnergyDayUse,
-  energyChannelsOverlap,
   energyContractOn,
   energyDayCost,
   energyNetMetering,
@@ -297,8 +296,8 @@ function average(slots: readonly PriceSlot[], from: number, to: number) {
 }
 
 /**
- * The days an hourly channel measured, from its first stored hour to its last.
- * Home Assistant adds the hours it missed to the next one it has, so a day
+ * The time an hourly channel measured, from its first stored hour to its last.
+ * Home Assistant adds the hours it missed to the next one it has, so time
  * without rows in between is counted too (APP-495).
  */
 async function measuredSpan(ctx: QueryCtx, channelId: Id<'energyChannels'>) {
@@ -312,9 +311,25 @@ async function measuredSpan(ctx: QueryCtx, channelId: Id<'energyChannels'>) {
   ])
   if (!first || !last) return null
   return {
-    from: amsterdamDayOf(first.hourStart),
-    to: amsterdamDayOf(last.hourStart),
+    from: first.hourStart,
+    to: last.hourStart + HOUR_MS,
   }
+}
+
+type Span = { from: number; to: number }
+
+/** The share of `day` inside any of `spans`. */
+function shareWithin(spans: readonly Span[], day: Span) {
+  let covered = 0
+  let until = day.from
+  for (const span of [...spans].sort((a, b) => a.from - b.from)) {
+    const from = Math.max(span.from, until)
+    const to = Math.min(span.to, day.to)
+    if (to <= from) continue
+    covered += to - from
+    until = to
+  }
+  return covered / (day.to - day.from)
 }
 
 /** The hours each kind's split (tariff) counters cover. */
@@ -409,11 +424,7 @@ export async function computeEnergyRange(
     }
   }
 
-  const spans: {
-    channel: Doc<'energyChannels'>
-    from: string
-    to: string
-  }[] = []
+  const spans: ({ channel: Doc<'energyChannels'> } & Span)[] = []
   if (channels.some((each) => each.manual)) {
     await Promise.all(
       hourly.map(async ({ channel }) => {
@@ -451,19 +462,54 @@ export async function computeEnergyRange(
       ...(after ? [after] : []),
     ]
     const spread = spreadReadingsOverDays(readings, days)
+    const same = spans.filter((each) => each.channel.kind === channel.kind)
+    const of = (tariff: 't1' | 't2') =>
+      same.filter((each) => each.channel.tariff === tariff)
+    // Where hours count all this meter counts: a total, its own tariff, or
+    // for a meter of every tariff both of them.
+    const whole: Span[] = same.filter(
+      (each) => !each.channel.tariff || each.channel.tariff === channel.tariff,
+    )
+    if (!channel.tariff) {
+      for (const t1 of of('t1')) {
+        for (const t2 of of('t2')) {
+          whole.push({
+            from: Math.max(t1.from, t2.from),
+            to: Math.min(t1.to, t2.to),
+          })
+        }
+      }
+    }
+    // One tariff of it, elsewhere: only the rest is the other tariff's.
+    const partial = channel.tariff
+      ? []
+      : hourly.filter(
+          (each) =>
+            each.channel.kind === channel.kind && each.channel.tariff,
+        )
     spread.forEach((amount, index) => {
       const day = days[index] as string
       const bucket = dayBuckets.get(day)
       if (amount === null || !bucket) return
-      // The same meter, already counted from its hours.
-      const counted = spans.some(
-        (each) =>
-          each.from <= day &&
-          day <= each.to &&
-          energyChannelsOverlap(each.channel, channel),
-      )
-      if (counted) return
-      addTo(bucket, channel, amount, true)
+      // Only what the same meter's hours do not count already.
+      const dayStart = amsterdamDayStart(day)
+      const dayEnd = amsterdamDayStart(addDays(day, 1))
+      const share = shareWithin(whole, { from: dayStart, to: dayEnd })
+      if (share >= 1) return
+      let part = 0
+      for (const { intervals } of partial) {
+        for (const each of intervals) {
+          if (each.hourStart < dayStart || each.hourStart >= dayEnd) continue
+          const counted = whole.some(
+            (span) => span.from <= each.hourStart && each.hourStart < span.to,
+          )
+          if (!counted) part += each.amount
+        }
+      }
+      const rest = amount * (1 - share) - part
+      if (rest > 0 || (share === 0 && part === 0)) {
+        addTo(bucket, channel, rest, true)
+      }
     })
   }
 

@@ -15,6 +15,7 @@ import { addDays, isIsoDate } from '@gather/core/civil-date'
 import {
   amsterdamDayStart,
   checkEnergyReading,
+  energyChannelCovered,
   energyChannelsOverlap,
   energyReadingMoment,
 } from '@gather/core/energy'
@@ -92,11 +93,7 @@ async function readingsAround(
 /** Kinds a typed meter can read and a connected source already measures whole. */
 async function measuredKinds(ctx: QueryCtx, siteId: Id<'energySites'>) {
   const measured = await connectedChannels(ctx, siteId)
-  return METER_KINDS.filter((kind) =>
-    (['t1', 't2'] as const).every((tariff) =>
-      measured.some((each) => energyChannelsOverlap(each, { kind, tariff })),
-    ),
-  )
+  return METER_KINDS.filter((kind) => energyChannelCovered({ kind }, measured))
 }
 
 const point = (reading: Doc<'energyReadings'> | null) =>

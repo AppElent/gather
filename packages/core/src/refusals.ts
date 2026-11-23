@@ -169,6 +169,7 @@ export const ENERGY_REFUSAL_CODES = [
   'tokenNeeded',
   'channelTwice',
   'channelsMixed',
+  'tooManyChannels',
   'statisticNotFound',
   'pickChannel',
   'sourceUnreachable',

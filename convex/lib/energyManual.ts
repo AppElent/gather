@@ -1,4 +1,4 @@
-import { energyChannelsOverlap } from '@gather/core/energy'
+import { energyChannelCovered, energyChannelsOverlap } from '@gather/core/energy'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 
@@ -28,8 +28,8 @@ export async function connectedChannels(
 }
 
 /**
- * Each channel comes from one source (APP-495): a typed meter that a
- * connected Home Assistant channel also measures is retired, so the readings
+ * Each channel comes from one source (APP-495): a typed meter that
+ * connected Home Assistant channels measure whole is retired, so the readings
  * form stops asking for it, and comes back once nothing else measures it.
  * Its readings stay either way. Nothing else retires a typed meter today; a
  * meter swap that does must tell the two apart.
@@ -62,7 +62,7 @@ export async function reconcileManualChannels(
         b._creationTime - a._creationTime,
     )
   for (const channel of typed) {
-    const covered = measured.some((each) => energyChannelsOverlap(each, channel))
+    const covered = energyChannelCovered(channel, measured)
     if (covered) {
       if (channel.retiredAt === undefined) {
         await ctx.db.patch(channel._id, { retiredAt: Date.now() })

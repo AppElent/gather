@@ -21,6 +21,7 @@ import type { Doc, Id } from './_generated/dataModel'
 import {
   internalMutation,
   internalQuery,
+  type MutationCtx,
   mutation,
   type QueryCtx,
   query,
@@ -42,6 +43,14 @@ const HOME_ASSISTANT_LABEL = 'Home Assistant'
 /** Sources started per cron step, and the pause between two of them. */
 const SOURCES_PER_STEP = 100
 const SYNC_STAGGER_MS = 500
+/**
+ * A history import that did not finish is tried again every hour for six
+ * hours and then every six, for two weeks.
+ */
+const HISTORY_RETRIES = 60
+const HISTORY_RETRY_MAX_MS = 6 * HOUR_MS
+const retryDelay = (attempt: number) =>
+  attempt < 6 ? HOUR_MS : HISTORY_RETRY_MAX_MS
 
 const byChannel = (
   a: Pick<Doc<'energyChannels'>, 'kind' | 'tariff'>,
@@ -180,6 +189,7 @@ export const disconnect = mutation({
     if (!site) throw new ConvexError(energyRefusal('notFound'))
     const source = await homeAssistantSource(ctx, site._id)
     if (!source) throw new ConvexError(energyRefusal('notFound'))
+    await cancelImports(ctx, source._id)
     await ctx.db.patch(source._id, {
       secret: undefined,
       status: 'needsReconnect',
@@ -196,6 +206,29 @@ async function homeAssistantSource(ctx: QueryCtx, siteId: Id<'energySites'>) {
     .withIndex('by_site', (q) => q.eq('siteId', siteId))
     .collect()
   return sources.find((each) => each.kind === 'homeAssistant') ?? null
+}
+
+/**
+ * Drop the history imports still to run, so none of an earlier connection
+ * writes into a later one. Newest first; none waits longer than the longest
+ * retry.
+ */
+async function cancelImports(ctx: MutationCtx, sourceId: Id<'energySources'>) {
+  const since = Date.now() - HISTORY_RETRY_MAX_MS - HOUR_MS
+  for await (const job of ctx.db.system
+    .query('_scheduled_functions')
+    .order('desc')) {
+    if (job._creationTime < since) return
+    const args = job.args[0] as Record<string, unknown> | undefined
+    if (
+      job.state.kind === 'pending' &&
+      job.name.includes('syncSource') &&
+      args?.sourceId === sourceId &&
+      args.historyFrom !== undefined
+    ) {
+      await ctx.scheduler.cancel(job._id)
+    }
+  }
 }
 
 // -- For the actions in energyHomeAssistant.ts ------------------------------------
@@ -248,6 +281,8 @@ export const saveConnection = internalMutation({
     baseUrl: v.string(),
     secret: v.string(),
     channels: v.array(channelChoiceValidator),
+    /** The stored token was used: refused when it is no longer stored. */
+    storedToken: v.boolean(),
     historyFrom: v.optional(v.number()),
   },
   returns: v.null(),
@@ -259,6 +294,16 @@ export const saveConnection = internalMutation({
     checkChoices(args.channels)
 
     const existing = await homeAssistantSource(ctx, site._id)
+    const unchanged =
+      Boolean(existing?.secret) && existing?.baseUrl === args.baseUrl
+    if (args.storedToken && !(unchanged && existing?.secret === args.secret)) {
+      // Disconnected or replaced while this connection was being tested.
+      throw new ConvexError(energyRefusal('tokenNeeded'))
+    }
+    // An import still to run goes on through an edit of its own connection.
+    if (existing && (!unchanged || args.historyFrom !== undefined)) {
+      await cancelImports(ctx, existing._id)
+    }
     const connection = {
       baseUrl: args.baseUrl,
       secret: args.secret,
@@ -332,9 +377,20 @@ export const saveConnection = internalMutation({
         })
       }
     }
+    let kept = args.channels.length
     for (const channel of left) {
-      if (channel.retiredAt !== undefined) continue
-      await ctx.db.patch(channel._id, { retiredAt: Date.now() })
+      if (channel.retiredAt === undefined) {
+        await ctx.db.patch(channel._id, { retiredAt: Date.now() })
+      }
+      const measured = await ctx.db
+        .query('energyIntervals')
+        .withIndex('by_channel_hour', (q) => q.eq('channelId', channel._id))
+        .first()
+      if (measured) kept += 1
+    }
+    // Usage reads a month of hours of every channel, retired ones too.
+    if (kept > MAX_CHANNELS) {
+      throw new ConvexError(energyRefusal('tooManyChannels'))
     }
     await reconcileManualChannels(ctx, site._id)
     await ctx.scheduler.runAfter(
@@ -348,7 +404,11 @@ export const saveConnection = internalMutation({
   },
 })
 
-/** Enough for a split meter, solar, battery and gas several times over. */
+/**
+ * Channels of one connection, with the retired ones whose hours still count.
+ * Enough for a split meter, solar, battery and gas several times over, and a
+ * month of their hours fits in one query.
+ */
 const MAX_CHANNELS = 30
 
 function checkChoices(
@@ -383,13 +443,32 @@ function checkChoices(
   }
 }
 
+type SyncPlan = {
+  baseUrl: string
+  secret: string
+  /** The next try of a history import. */
+  retryId: Id<'_scheduled_functions'> | undefined
+  channels: {
+    channelId: Id<'energyChannels'>
+    kind: Doc<'energyChannels'>['kind']
+    statisticId: string
+    from: number
+  }[]
+}
+
 /**
  * What one sync reads: the connection and, per channel in use, the last hour
  * stored. Null when there is nothing to do: disconnected, or gone.
+ *
+ * A history import is tried again unless it is done, so its next try is
+ * scheduled before it starts: one that is killed has it too.
  */
 export const beginSync = internalMutation({
-  args: { sourceId: v.id('energySources'), history: v.boolean() },
-  handler: async (ctx, args) => {
+  args: {
+    sourceId: v.id('energySources'),
+    history: v.optional(v.object({ from: v.number(), attempt: v.number() })),
+  },
+  handler: async (ctx, args): Promise<SyncPlan | null> => {
     const source = await ctx.db.get(args.sourceId)
     if (
       !source ||
@@ -403,6 +482,20 @@ export const beginSync = internalMutation({
       .query('energyChannels')
       .withIndex('by_source', (q) => q.eq('sourceId', source._id))
       .collect()
+    let retryId: Id<'_scheduled_functions'> | undefined
+    if (args.history && args.history.attempt < HISTORY_RETRIES) {
+      retryId = await ctx.scheduler.runAfter(
+        retryDelay(args.history.attempt),
+        internal.energyHomeAssistant.syncSource,
+        {
+          sourceId: source._id,
+          historyFrom: args.history.from,
+          attempt: args.history.attempt + 1,
+        },
+      )
+    }
+    // A refused token waits for a new one; so does its import.
+    if (args.history && source.status === 'needsReconnect') return null
     // Only a long import shows as busy; the hourly one is done in seconds.
     if (args.history && source.status !== 'syncing') {
       await ctx.db.patch(source._id, { status: 'syncing' })
@@ -410,6 +503,7 @@ export const beginSync = internalMutation({
     return {
       baseUrl: source.baseUrl,
       secret: source.secret,
+      retryId,
       channels: await Promise.all(
         channels
           .filter((each) => each.retiredAt === undefined && each.externalRef)
@@ -440,13 +534,14 @@ export const beginSync = internalMutation({
 /**
  * Store hourly amounts: one row per channel and hour, whatever is stored
  * again. A channel edited meanwhile is left out, so one sensor's hours never
- * land in another's channel. Answers false when the connection is gone or
- * changed, so a running sync stops.
+ * land in another's channel. Answers `stop` when the connection is gone or
+ * changed, or the import this run belongs to was dropped.
  */
 export const storeIntervals = internalMutation({
   args: {
     sourceId: v.id('energySources'),
     baseUrl: v.string(),
+    retryId: v.optional(v.id('_scheduled_functions')),
     batches: v.array(
       v.object({
         channelId: v.id('energyChannels'),
@@ -455,10 +550,16 @@ export const storeIntervals = internalMutation({
       }),
     ),
   },
-  returns: v.boolean(),
+  returns: v.union(v.literal('stored'), v.literal('partly'), v.literal('stop')),
   handler: async (ctx, args) => {
     const source = await ctx.db.get(args.sourceId)
-    if (!source?.secret || source.baseUrl !== args.baseUrl) return false
+    if (!source?.secret || source.baseUrl !== args.baseUrl) {
+      return 'stop' as const
+    }
+    if (args.retryId && !(await isPending(ctx, args.retryId))) {
+      return 'stop' as const
+    }
+    let partly = false
     for (const batch of args.batches) {
       const channel = await ctx.db.get(batch.channelId)
       const first = batch.hours[0]
@@ -471,6 +572,7 @@ export const storeIntervals = internalMutation({
         channel.retiredAt !== undefined
       ) {
         // Edited meanwhile: the other channels carry on.
+        partly = true
         continue
       }
       const stored = await ctx.db
@@ -498,7 +600,34 @@ export const storeIntervals = internalMutation({
         }
       }
     }
-    return true
+    return partly ? ('partly' as const) : ('stored' as const)
+  },
+})
+
+async function isPending(ctx: QueryCtx, id: Id<'_scheduled_functions'>) {
+  return (await ctx.db.system.get(id))?.state.kind === 'pending'
+}
+
+/** Carry a long import on in a new run, before this one's time is up. */
+export const continueImport = internalMutation({
+  args: {
+    sourceId: v.id('energySources'),
+    retryId: v.id('_scheduled_functions'),
+    historyFrom: v.number(),
+    attempt: v.number(),
+    readFrom: v.number(),
+    incomplete: v.boolean(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { retryId, ...args }) => {
+    if (!(await isPending(ctx, retryId))) return null
+    await ctx.scheduler.cancel(retryId)
+    await ctx.scheduler.runAfter(
+      0,
+      internal.energyHomeAssistant.syncSource,
+      args,
+    )
+    return null
   },
 })
 
@@ -521,9 +650,14 @@ export const finishSync = internalMutation({
       v.literal('syncFailed'),
     ),
     missing: v.array(v.string()),
+    /** The import's next try, when this run finished the import. */
+    retryId: v.optional(v.id('_scheduled_functions')),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    if (args.retryId && (await isPending(ctx, args.retryId))) {
+      await ctx.scheduler.cancel(args.retryId)
+    }
     const source = await ctx.db.get(args.sourceId)
     if (
       !source?.secret ||

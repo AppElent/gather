@@ -88,6 +88,7 @@ describe('what the Energy dashboard proposes', () => {
     ['two meters that are not tariffs', ['sensor.house', 'sensor.barn'], [undefined, undefined]],
     ['Dutch names', ['sensor.import_dal', 'sensor.import_normaal'], ['t1', 't2']],
     ['English DSMR names', ['sensor.import_tarif_1', 'sensor.import_tarif_2'], ['t1', 't2']],
+    ['a total beside a split pair', ['sensor.p1_import', 'sensor.p1_import_tariff_1', 'sensor.p1_import_tariff_2'], [undefined, 't1', 't2']],
     ['two of one tariff', ['sensor.a_tariff_1', 'sensor.b_tariff_1'], [undefined, undefined]],
   ])('%s', (_, ids, tariffs) => {
     expect(

@@ -39,8 +39,8 @@ const HISTORY_MS = 365 * DAY_MS
 const WINDOW_MS = 31 * DAY_MS
 /** Rows per mutation: far under Convex's limits, and quick to retry. */
 const ROWS_PER_WRITE = 500
-/** An unreachable first import is tried again every hour for a day. */
-const HISTORY_RETRIES = 24
+/** A Node action has ten minutes; a longer import goes on in a new run. */
+const RUN_MS = 5 * 60_000
 const TOKEN_LIMIT = 1000
 /** Sensors offered to pick from; a large home has a few hundred. */
 const STATISTICS_LIMIT = 1000
@@ -263,6 +263,7 @@ export const connect = action({
       baseUrl: origin,
       secret: token,
       channels: args.channels,
+      storedToken: !args.token?.trim(),
       ...(args.history
         ? {
             historyFrom:
@@ -283,22 +284,31 @@ type Plan = {
 
 /**
  * Read one source's new hours. With `historyFrom` every channel is read from
- * there instead of from its last stored hour. Oldest first, so an import that
- * stops halfway is carried on by the next hourly sync.
+ * there instead of from its last stored hour, and what does not finish is tried
+ * again (`beginSync`). `readFrom` is how far an earlier run of it came.
  */
 export const syncSource = internalAction({
   args: {
     sourceId: v.id('energySources'),
     historyFrom: v.optional(v.number()),
     attempt: v.optional(v.number()),
+    readFrom: v.optional(v.number()),
+    incomplete: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
     const plan = await ctx.runMutation(internal.energySources.beginSync, {
       sourceId: args.sourceId,
-      history: args.historyFrom !== undefined,
+      ...(args.historyFrom === undefined
+        ? {}
+        : {
+            history: { from: args.historyFrom, attempt: args.attempt ?? 0 },
+          }),
     })
     if (!plan) return null
+    const startedAt = Date.now()
+    const { retryId } = plan
+    let incomplete = args.incomplete ?? false
     const finish = (
       problem: HomeAssistantError['problem'] | 'statisticMissing' | 'syncFailed' | null,
       missing: string[] = [],
@@ -309,6 +319,7 @@ export const syncSource = internalAction({
         secret: plan.secret,
         problem,
         missing,
+        ...(retryId && problem === null && !incomplete ? { retryId } : {}),
       })
 
     // The hour still running has no statistic yet.
@@ -330,9 +341,11 @@ export const syncSource = internalAction({
           missing.push(channel.statisticId)
           continue
         }
+        // The hour before is the baseline of the first one asked for.
+        const start = args.readFrom ?? args.historyFrom
         channels.push({
           ...channel,
-          from: args.historyFrom ?? channel.from,
+          from: start === undefined ? channel.from : start - HOUR_MS,
           baseline: null,
         })
       }
@@ -359,13 +372,16 @@ export const syncSource = internalAction({
         }
         const rows = write.length
         write = []
-        return await pacedWrite(rows, () =>
+        const stored = await pacedWrite(rows, () =>
           ctx.runMutation(internal.energySources.storeIntervals, {
             sourceId: args.sourceId,
             baseUrl: plan.baseUrl,
             batches: [...batches.values()],
+            ...(retryId ? { retryId } : {}),
           }),
         )
+        if (stored === 'partly') incomplete = true
+        return stored !== 'stop'
       }
 
       let from = Math.min(end, ...channels.map((each) => each.from))
@@ -396,26 +412,29 @@ export const syncSource = internalAction({
         }
         if (!(await flush())) return null
         from = to
+        if (
+          retryId &&
+          args.historyFrom !== undefined &&
+          from < end &&
+          Date.now() - startedAt > RUN_MS
+        ) {
+          await ctx.runMutation(internal.energySources.continueImport, {
+            sourceId: args.sourceId,
+            retryId,
+            historyFrom: args.historyFrom,
+            attempt: args.attempt ?? 0,
+            readFrom: from,
+            incomplete: incomplete || missing.length > 0,
+          })
+          return null
+        }
       }
       await finish(missing.length ? 'statisticMissing' : null, missing)
     } catch (error) {
       // Not Home Assistant's doing: a failed write. Convex reports it, and
-      // the next hourly sync starts again from the last stored hour.
+      // the next sync, or the import's next try, starts again.
       const problem =
         error instanceof HomeAssistantError ? error.problem : 'syncFailed'
-      // The retry first: recording the problem is a write that can fail too.
-      const attempt = args.attempt ?? 0
-      if (
-        problem !== 'badToken' &&
-        args.historyFrom !== undefined &&
-        attempt < HISTORY_RETRIES
-      ) {
-        await ctx.scheduler.runAfter(
-          HOUR_MS,
-          internal.energyHomeAssistant.syncSource,
-          { ...args, attempt: attempt + 1 },
-        )
-      }
       await finish(problem)
       if (!(error instanceof HomeAssistantError)) throw error
     } finally {

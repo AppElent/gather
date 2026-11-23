@@ -382,7 +382,8 @@ describe('history', () => {
     )
     expect(asked).toHaveLength(12)
     expect(asked[0]).toMatchObject({ period: 'hour', units: { energy: 'kWh' } })
-    expect(asked[0]?.start_time).toBe(new Date(from).toISOString())
+    // The hour before is the first one's baseline.
+    expect(asked[0]?.start_time).toBe(new Date(from - HOUR).toISOString())
     for (const each of asked) {
       expect(
         Date.parse(each.end_time as string) - Date.parse(each.start_time as string),
@@ -588,13 +589,13 @@ describe('the hourly sync', () => {
     }
     // A channel that got another sensor is left out; another address stops it.
     const before = await rows(t, 'energyIntervals')
-    expect(await t.mutation(internal.energySources.storeIntervals, write)).toBe(true)
+    expect(await t.mutation(internal.energySources.storeIntervals, write)).toBe('partly')
     expect(
       await t.mutation(internal.energySources.storeIntervals, {
         ...write,
         baseUrl: 'https://old.example.com',
       }),
-    ).toBe(false)
+    ).toBe('stop')
     expect(await rows(t, 'energyIntervals')).toEqual(before)
     await t.mutation(internal.energySources.finishSync, {
       sourceId,
@@ -835,8 +836,62 @@ describe('never counting one meter twice', () => {
     const day = (name: string) => days.find((each) => each.day === name)
     expect(day('2026-11-13')?.importKwh).toBeCloseTo(20)
     expect(day('2026-11-15')?.hasData).toBe(false)
-    expect(day('2026-11-16')?.importKwh).toBeCloseTo(48)
+    // The 14th before 10:00 and the 16th after 11:00 are still typed.
+    expect(day('2026-11-14')?.importKwh).toBeCloseTo(1 + (20 * 10) / 24)
+    expect(day('2026-11-16')?.importKwh).toBeCloseTo(48 + (20 * 13) / 24)
     expect(day('2026-11-17')?.importKwh).toBeCloseTo(20)
+  })
+
+  test('one hour measured leaves the rest of its day typed', async () => {
+    const seeded = await withMeters()
+    await connect(seeded, [IMPORT])
+    const [channel] = (await rows(seeded.t, 'energyChannels')).filter(
+      (each) => each.externalRef === IMPORT.statisticId,
+    )
+    await seeded.t.run(async (ctx) => {
+      await ctx.db.insert('energyIntervals', {
+        groupId: seeded.homeId,
+        channelId: channel?._id as Id<'energyChannels'>,
+        hourStart: Date.UTC(2026, 10, 15, 9),
+        amount: 2,
+        estimated: false,
+      })
+    })
+    const day = (await month(seeded.as))?.days.find(
+      (each) => each.day === '2026-11-15',
+    )
+    expect(day?.importKwh).toBeCloseTo(2 + (20 * 23) / 24)
+    expect(day?.estimated).toBe(true)
+  })
+
+  test('a T1 counter leaves a typed meter of every tariff, which counts the rest', async () => {
+    const seeded = await seed()
+    await seeded.as.mutation(api.energyReadings.setupChannels, {
+      ...SETUP,
+      split: false,
+      gas: false,
+    })
+    const [typed] = await rows(seeded.t, 'energyChannels')
+    const typedId = typed?._id as Id<'energyChannels'>
+    await seeded.t.run(async (ctx) => {
+      await insertReading(ctx, seeded.homeId, typedId, '2026-11-10', 1000)
+      await insertReading(ctx, seeded.homeId, typedId, '2026-11-20', 1200)
+    })
+    const t1 = {
+      kind: 'gridImport',
+      tariff: 't1',
+      statisticId: 'sensor.p1_import_tariff_1',
+    } as const
+    // From the 15th on, 0.5 kWh an hour of T1.
+    const from = Date.UTC(2026, 10, 14, 22)
+    fake.sums[t1.statisticId] = counter(from, (THIS_HOUR - from) / HOUR, 0.5)
+    await connect(seeded, [t1], true)
+    expect(await activeTyped(seeded)).toEqual(['gridImport'])
+    const day = (await month(seeded.as))?.days.find(
+      (each) => each.day === '2026-11-16',
+    )
+    // 12 of the day's 20 are T1; the other 8 are the typed meter's.
+    expect(day?.importKwh).toBeCloseTo(20)
   })
 
   test('a total next to split counters counts once', async () => {
@@ -866,5 +921,160 @@ describe('never counting one meter twice', () => {
       })
     })
     expect((await month(seeded.as))?.totals.importKwh).toBeCloseTo(2)
+  })
+})
+
+describe('an import and the connection it belongs to', () => {
+  const imports = (t: Seeded['t']) =>
+    t.run(async (ctx) =>
+      (await ctx.db.system.query('_scheduled_functions').collect()).filter(
+        (each) =>
+          each.state.kind === 'pending' &&
+          each.name.includes('syncSource') &&
+          (each.args[0] as { historyFrom?: number }).historyFrom !== undefined,
+      ),
+    )
+
+  test('an edit that kept the token cannot undo a disconnect', async () => {
+    const seeded = await seed()
+    await connect(seeded)
+    await seeded.as.mutation(api.energySources.disconnect, HOME)
+    // What an action that read the token before the disconnect still sends.
+    const late = seeded.as.mutation(internal.energySources.saveConnection, {
+      ...HOME,
+      baseUrl: ADDRESS,
+      secret: TOKEN,
+      storedToken: true,
+      channels: [IMPORT],
+    })
+    expect((await refusalOf(late)).code).toBe('tokenNeeded')
+    expect((await rows(seeded.t, 'energySources'))[0]?.secret).toBeUndefined()
+  })
+
+  test('a missing statistic keeps the import, until it is there', async () => {
+    const seeded = await seed()
+    const from = THIS_HOUR - 100 * HOUR
+    fake.sums[IMPORT.statisticId] = counter(from, 100, 1)
+    fake.sums[GAS.statisticId] = counter(from, 100, 1)
+    await seeded.as.action(api.energyHomeAssistant.connect, {
+      ...CONNECTION,
+      channels: [IMPORT, GAS],
+      history: true,
+    })
+    const all = fake.statistics
+    fake.statistics = all.filter((each) => each.statistic_id !== GAS.statisticId)
+    await settle(seeded.t)
+    const [retry, ...more] = await imports(seeded.t)
+    expect(more).toEqual([])
+    expect((await rows(seeded.t, 'energySources'))[0]?.status).toBe('error')
+    const before = (await rows(seeded.t, 'energyIntervals')).length
+    fake.statistics = all
+    await seeded.t.action(
+      internal.energyHomeAssistant.syncSource,
+      retry?.args[0] as { sourceId: Id<'energySources'> },
+    )
+    expect((await rows(seeded.t, 'energyIntervals')).length).toBe(before * 2)
+  })
+
+  test('a long import goes on in a new run, unless it was dropped', async () => {
+    const seeded = await seed()
+    await connect(seeded)
+    const [source] = await rows(seeded.t, 'energySources')
+    const sourceId = source?._id as Id<'energySources'>
+    const historyFrom = THIS_HOUR - 100 * HOUR
+    const plan = await seeded.t.mutation(internal.energySources.beginSync, {
+      sourceId,
+      history: { from: historyFrom, attempt: 2 },
+    })
+    const next = {
+      sourceId,
+      historyFrom,
+      attempt: 2,
+      readFrom: THIS_HOUR - 50 * HOUR,
+      incomplete: true,
+    }
+    const goOn = {
+      ...next,
+      retryId: plan?.retryId as Id<'_scheduled_functions'>,
+    }
+    await seeded.t.mutation(internal.energySources.continueImport, goOn)
+    const pending = await imports(seeded.t)
+    expect(pending.map((each) => each.args[0])).toEqual([next])
+    await seeded.as.mutation(api.energySources.disconnect, HOME)
+    await seeded.t.mutation(internal.energySources.continueImport, goOn)
+    expect(await imports(seeded.t)).toEqual([])
+  })
+
+  test('a finished import leaves no retry', async () => {
+    const seeded = await seed()
+    await connect(seeded, [IMPORT], true)
+    expect(await imports(seeded.t)).toEqual([])
+  })
+
+  test('disconnecting drops the import; the same connection again has none', async () => {
+    const seeded = await seed()
+    const all = fake.statistics
+    await connect(seeded, [IMPORT], true)
+    fake.statistics = []
+    await seeded.as
+      .mutation(internal.energySources.saveConnection, {
+        ...HOME,
+        baseUrl: ADDRESS,
+        secret: TOKEN,
+        storedToken: true,
+        channels: [IMPORT],
+        historyFrom: THIS_HOUR - 10 * HOUR,
+      })
+    await settle(seeded.t)
+    expect(await imports(seeded.t)).toHaveLength(1)
+    const [pending] = await imports(seeded.t)
+    // An edit of the same connection leaves it be.
+    fake.statistics = all
+    await connect(seeded, [IMPORT])
+    expect(await imports(seeded.t)).toHaveLength(1)
+    await seeded.as.mutation(api.energySources.disconnect, HOME)
+    expect(await imports(seeded.t)).toEqual([])
+    // One still running when it was dropped writes nothing.
+    await connect(seeded, [IMPORT])
+    const [source] = await rows(seeded.t, 'energySources')
+    expect(
+      await seeded.t.mutation(internal.energySources.storeIntervals, {
+        sourceId: source?._id as Id<'energySources'>,
+        baseUrl: ADDRESS,
+        retryId: pending?._id,
+        batches: [],
+      }),
+    ).toBe('stop')
+    expect(await imports(seeded.t)).toEqual([])
+  })
+
+  test('retired channels with hours count toward the limit', async () => {
+    const seeded = await seed()
+    const save = (kind: 'solar' | 'gridImport') =>
+      seeded.as.mutation(internal.energySources.saveConnection, {
+        ...HOME,
+        baseUrl: ADDRESS,
+        secret: TOKEN,
+        storedToken: false,
+        channels: Array.from({ length: 20 }, (_, index) => ({
+          kind,
+          statisticId: `sensor.${kind}_${index}`,
+        })),
+      })
+    await save('solar')
+    await save('gridImport')
+    await save('solar')
+    await seeded.t.run(async (ctx) => {
+      for (const channel of await ctx.db.query('energyChannels').collect()) {
+        await ctx.db.insert('energyIntervals', {
+          groupId: seeded.homeId,
+          channelId: channel._id,
+          hourStart: THIS_HOUR,
+          amount: 1,
+          estimated: false,
+        })
+      }
+    })
+    expect((await refusalOf(save('gridImport'))).code).toBe('tooManyChannels')
   })
 })

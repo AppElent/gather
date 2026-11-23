@@ -405,6 +405,7 @@ export const energy = {
       'Gather cannot reach an address inside your home network. Use the address from outside.',
     tokenNeeded: 'Paste the token. A new address always needs it again.',
     channelTwice: 'One sensor is picked twice.',
+    tooManyChannels: 'Too many sensors, counting earlier ones that still have data. Leave some out.',
     channelsMixed:
       'Pick either the total or the off-peak and normal sensors of a channel, not both.',
     statisticNotFound: 'A picked sensor no longer exists in Home Assistant. Test again.',
