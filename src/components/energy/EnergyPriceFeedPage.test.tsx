@@ -85,7 +85,7 @@ describe('EnergyPriceFeedPage', () => {
     renderInGroup(<EnergyPriceFeedPage />)
     const field = screen.getByLabelText('Key')
     expect(field).toHaveValue('')
-    expect(field).toHaveAttribute('placeholder', 'Saved. Type a new one to replace it.')
+    expect(field).toHaveAttribute('placeholder', 'Saved. Type a new one here.')
   })
 
   test('a refusal and a failed fetch read in words', async () => {

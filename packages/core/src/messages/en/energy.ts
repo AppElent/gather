@@ -486,7 +486,7 @@ export const energy = {
     entsoeHeading: 'ENTSO-E token',
     tibberHeading: 'Tibber API key',
     key: 'Key',
-    keyStored: 'Saved. Type a new one to replace it.',
+    keyStored: 'Saved. Type a new one here.',
     entsoeHelp: 'Ask for a token at the ENTSO-E Transparency Platform.',
     tibberHelp: 'Make a key at developer.tibber.com.',
     keyNote:
