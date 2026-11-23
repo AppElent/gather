@@ -428,7 +428,7 @@ describe('history', () => {
       ctx.db.system.query('_scheduled_functions').collect(),
     )
     expect(
-      pending.filter((each) => each.state.kind === 'pending').map((each) => each.args[0]),
+      pending.filter((each) => each.state.kind === 'pending' && !each.name.includes('endImport')).map((each) => each.args[0]),
     ).toEqual([
       expect.objectContaining({ attempt: 1, sourceId: source?._id }),
     ])
@@ -602,6 +602,7 @@ describe('the hourly sync', () => {
       baseUrl: ADDRESS,
       secret: 'an earlier token',
       problem: 'badToken',
+        done: false,
       missing: [],
     })
     expect((await rows(t, 'energySources'))[0]?.status).toBe('ok')
@@ -864,6 +865,45 @@ describe('never counting one meter twice', () => {
     expect(day?.estimated).toBe(true)
   })
 
+  test('a reading pair from noon to noon counts once beside half a day measured', async () => {
+    const seeded = await seed()
+    await seeded.as.mutation(api.energyReadings.setupChannels, {
+      ...SETUP,
+      split: false,
+      gas: false,
+    })
+    const [typed] = await rows(seeded.t, 'energyChannels')
+    const typedId = typed?._id as Id<'energyChannels'>
+    await connect(seeded, [IMPORT])
+    const [channel] = (await rows(seeded.t, 'energyChannels')).filter(
+      (each) => each.externalRef === IMPORT.statisticId,
+    )
+    // Monday 16 November: noon to midnight in Amsterdam, 1 kWh an hour.
+    const noon = Date.UTC(2026, 10, 16, 11)
+    await seeded.t.run(async (ctx) => {
+      await insertReading(ctx, seeded.homeId, typedId, '2026-11-16', 1000)
+      await insertReading(ctx, seeded.homeId, typedId, '2026-11-17', 1024)
+      for (const each of await ctx.db.query('energyReadings').collect()) {
+        await ctx.db.patch(each._id, {
+          at: each.value === 1000 ? noon : noon + 24 * HOUR,
+        })
+      }
+      for (let hour = 0; hour < 12; hour++) {
+        await ctx.db.insert('energyIntervals', {
+          groupId: seeded.homeId,
+          channelId: channel?._id as Id<'energyChannels'>,
+          hourStart: noon + hour * HOUR,
+          amount: 1,
+          estimated: false,
+        })
+      }
+    })
+    const days = (await month(seeded.as))?.days ?? []
+    const kwh = (of: string) => days.find((each) => each.day === of)?.importKwh
+    expect(kwh('2026-11-16')).toBeCloseTo(12)
+    expect(kwh('2026-11-17')).toBeCloseTo(12)
+  })
+
   test('a T1 counter leaves a typed meter of every tariff, which counts the rest', async () => {
     const seeded = await seed()
     await seeded.as.mutation(api.energyReadings.setupChannels, {
@@ -882,16 +922,65 @@ describe('never counting one meter twice', () => {
       tariff: 't1',
       statisticId: 'sensor.p1_import_tariff_1',
     } as const
-    // From the 15th on, 0.5 kWh an hour of T1.
-    const from = Date.UTC(2026, 10, 14, 22)
-    fake.sums[t1.statisticId] = counter(from, (THIS_HOUR - from) / HOUR, 0.5)
+    // From the 12th on T1 at 0.125 an hour, and 30 in a day on the 15th.
+    const from = Date.UTC(2026, 10, 11, 23)
+    const saved = counter(from, (THIS_HOUR - from) / HOUR, 0.125)
+    for (const [at, value] of saved) {
+      saved.set(
+        at,
+        value +
+          1.125 *
+            Math.min(24, Math.max(0, (at - Date.UTC(2026, 10, 14, 22)) / HOUR)),
+      )
+    }
+    fake.sums[t1.statisticId] = saved
     await connect(seeded, [t1], true)
     expect(await activeTyped(seeded)).toEqual(['gridImport'])
-    const day = (await month(seeded.as))?.days.find(
-      (each) => each.day === '2026-11-16',
+    // The typed 200, however T1 was spread over its days.
+    const days = (await month(seeded.as))?.days ?? []
+    const typedDays = days.filter(
+      (each) => each.day >= '2026-11-10' && each.day <= '2026-11-19',
     )
-    // 12 of the day's 20 are T1; the other 8 are the typed meter's.
-    expect(day?.importKwh).toBeCloseTo(20)
+    expect(
+      typedDays.find((each) => each.day === '2026-11-15')?.importKwh,
+    ).toBeCloseTo(20)
+    expect(
+      typedDays.reduce((total, each) => total + each.importKwh, 0),
+    ).toBeCloseTo(190)
+  })
+
+  test('a lone tariff after a total leaves the total’s hours', async () => {
+    const seeded = await seed()
+    await connect(seeded, [IMPORT])
+    const [total] = (await rows(seeded.t, 'energyChannels')).filter(
+      (each) => each.externalRef === IMPORT.statisticId,
+    )
+    const at = Date.UTC(2026, 10, 15, 9)
+    await seeded.t.run(async (ctx) => {
+      const { _id, _creationTime, ...copy } = total as Doc<'energyChannels'>
+      const t1 = await ctx.db.insert('energyChannels', {
+        ...copy,
+        tariff: 't1',
+        externalRef: 'sensor.p1_import_tariff_1',
+      })
+      await ctx.db.patch(_id, { retiredAt: THIS_HOUR })
+      for (const [channelId, amount] of [
+        [_id, 3],
+        [t1, 1],
+      ] as const) {
+        await ctx.db.insert('energyIntervals', {
+          groupId: seeded.homeId,
+          channelId,
+          hourStart: at,
+          amount,
+          estimated: false,
+        })
+      }
+    })
+    const day = (await month(seeded.as))?.days.find(
+      (each) => each.day === '2026-11-15',
+    )
+    expect(day?.importKwh).toBeCloseTo(3)
   })
 
   test('a total next to split counters counts once', async () => {
@@ -982,15 +1071,20 @@ describe('an import and the connection it belongs to', () => {
     const [source] = await rows(seeded.t, 'energySources')
     const sourceId = source?._id as Id<'energySources'>
     const historyFrom = THIS_HOUR - 100 * HOUR
+    const importId = await seeded.t.run((ctx) =>
+      ctx.scheduler.runAfter(HOUR, internal.energySources.endImport, {}),
+    )
     const plan = await seeded.t.mutation(internal.energySources.beginSync, {
       sourceId,
-      history: { from: historyFrom, attempt: 2 },
+      history: { from: historyFrom, attempt: 2, importId },
     })
     const next = {
       sourceId,
       historyFrom,
       attempt: 2,
+      importId,
       readFrom: THIS_HOUR - 50 * HOUR,
+      sums: [{ statisticId: IMPORT.statisticId, sum: 100 }],
       incomplete: true,
     }
     const goOn = {
@@ -1003,6 +1097,36 @@ describe('an import and the connection it belongs to', () => {
     await seeded.as.mutation(api.energySources.disconnect, HOME)
     await seeded.t.mutation(internal.energySources.continueImport, goOn)
     expect(await imports(seeded.t)).toEqual([])
+  })
+
+  test('a run that carries on counts a gap across its start', async () => {
+    const seeded = await seed()
+    const at = THIS_HOUR - 3 * HOUR
+    fake.sums[IMPORT.statisticId] = new Map([
+      [at - 3 * HOUR, 100],
+      [at, 103],
+    ])
+    await seeded.as.action(api.energyHomeAssistant.connect, {
+      ...CONNECTION,
+      channels: [IMPORT],
+      history: true,
+    })
+    const [job] = await imports(seeded.t)
+    await seeded.t.action(internal.energyHomeAssistant.syncSource, {
+      ...(job?.args[0] as {
+        sourceId: Id<'energySources'>
+        historyFrom: number
+        importId: Id<'_scheduled_functions'>
+      }),
+      readFrom: at,
+      sums: [{ statisticId: IMPORT.statisticId, sum: 100 }],
+    })
+    expect(
+      (await rows(seeded.t, 'energyIntervals')).map((each) => [
+        each.hourStart,
+        each.amount,
+      ]),
+    ).toEqual([[at, 3]])
   })
 
   test('a finished import leaves no retry', async () => {
@@ -1041,10 +1165,17 @@ describe('an import and the connection it belongs to', () => {
       await seeded.t.mutation(internal.energySources.storeIntervals, {
         sourceId: source?._id as Id<'energySources'>,
         baseUrl: ADDRESS,
-        retryId: pending?._id,
+        importId: (pending?.args[0] as { importId: Id<'_scheduled_functions'> })
+          .importId,
         batches: [],
       }),
     ).toBe('stop')
+    // Nor does a try that was just being started.
+    await seeded.t.action(
+      internal.energyHomeAssistant.syncSource,
+      pending?.args[0] as { sourceId: Id<'energySources'> },
+    )
+    expect(await rows(seeded.t, 'energyIntervals')).toEqual([])
     expect(await imports(seeded.t)).toEqual([])
   })
 

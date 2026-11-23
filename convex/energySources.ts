@@ -209,9 +209,22 @@ async function homeAssistantSource(ctx: QueryCtx, siteId: Id<'energySites'>) {
 }
 
 /**
- * Drop the history imports still to run, so none of an earlier connection
- * writes into a later one. Newest first; none waits longer than the longest
- * retry.
+ * A history import is known by the job that would end it (`endImport`): every
+ * run carries its id, and does nothing once that job is no longer pending. So
+ * an import is dropped or done at once for a run that is just starting too.
+ */
+const IMPORT_MS = 15 * 24 * HOUR_MS
+
+export const endImport = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async () => null,
+})
+
+/**
+ * Drop the history imports of a source, so none of an earlier connection
+ * writes into a later one. An import always has a run that is pending or
+ * busy; newest first, none waits longer than the longest retry.
  */
 async function cancelImports(ctx: MutationCtx, sourceId: Id<'energySources'>) {
   const since = Date.now() - HISTORY_RETRY_MAX_MS - HOUR_MS
@@ -221,12 +234,16 @@ async function cancelImports(ctx: MutationCtx, sourceId: Id<'energySources'>) {
     if (job._creationTime < since) return
     const args = job.args[0] as Record<string, unknown> | undefined
     if (
-      job.state.kind === 'pending' &&
+      (job.state.kind === 'pending' || job.state.kind === 'inProgress') &&
       job.name.includes('syncSource') &&
       args?.sourceId === sourceId &&
       args.historyFrom !== undefined
     ) {
-      await ctx.scheduler.cancel(job._id)
+      const importId = args.importId as Id<'_scheduled_functions'> | undefined
+      if (importId && (await isPending(ctx, importId))) {
+        await ctx.scheduler.cancel(importId)
+      }
+      if (job.state.kind === 'pending') await ctx.scheduler.cancel(job._id)
     }
   }
 }
@@ -398,7 +415,15 @@ export const saveConnection = internalMutation({
       internal.energyHomeAssistant.syncSource,
       args.historyFrom === undefined
         ? { sourceId: source }
-        : { sourceId: source, historyFrom: args.historyFrom },
+        : {
+            sourceId: source,
+            historyFrom: args.historyFrom,
+            importId: await ctx.scheduler.runAfter(
+              IMPORT_MS,
+              internal.energySources.endImport,
+              {},
+            ),
+          },
     )
     return null
   },
@@ -466,7 +491,13 @@ type SyncPlan = {
 export const beginSync = internalMutation({
   args: {
     sourceId: v.id('energySources'),
-    history: v.optional(v.object({ from: v.number(), attempt: v.number() })),
+    history: v.optional(
+      v.object({
+        from: v.number(),
+        attempt: v.number(),
+        importId: v.id('_scheduled_functions'),
+      }),
+    ),
   },
   handler: async (ctx, args): Promise<SyncPlan | null> => {
     const source = await ctx.db.get(args.sourceId)
@@ -482,6 +513,9 @@ export const beginSync = internalMutation({
       .query('energyChannels')
       .withIndex('by_source', (q) => q.eq('sourceId', source._id))
       .collect()
+    if (args.history && !(await isPending(ctx, args.history.importId))) {
+      return null
+    }
     let retryId: Id<'_scheduled_functions'> | undefined
     if (args.history && args.history.attempt < HISTORY_RETRIES) {
       retryId = await ctx.scheduler.runAfter(
@@ -491,6 +525,7 @@ export const beginSync = internalMutation({
           sourceId: source._id,
           historyFrom: args.history.from,
           attempt: args.history.attempt + 1,
+          importId: args.history.importId,
         },
       )
     }
@@ -541,7 +576,7 @@ export const storeIntervals = internalMutation({
   args: {
     sourceId: v.id('energySources'),
     baseUrl: v.string(),
-    retryId: v.optional(v.id('_scheduled_functions')),
+    importId: v.optional(v.id('_scheduled_functions')),
     batches: v.array(
       v.object({
         channelId: v.id('energyChannels'),
@@ -556,7 +591,7 @@ export const storeIntervals = internalMutation({
     if (!source?.secret || source.baseUrl !== args.baseUrl) {
       return 'stop' as const
     }
-    if (args.retryId && !(await isPending(ctx, args.retryId))) {
+    if (args.importId && !(await isPending(ctx, args.importId))) {
       return 'stop' as const
     }
     let partly = false
@@ -612,16 +647,18 @@ async function isPending(ctx: QueryCtx, id: Id<'_scheduled_functions'>) {
 export const continueImport = internalMutation({
   args: {
     sourceId: v.id('energySources'),
+    importId: v.id('_scheduled_functions'),
     retryId: v.id('_scheduled_functions'),
     historyFrom: v.number(),
     attempt: v.number(),
     readFrom: v.number(),
+    sums: v.array(v.object({ statisticId: v.string(), sum: v.number() })),
     incomplete: v.boolean(),
   },
   returns: v.null(),
   handler: async (ctx, { retryId, ...args }) => {
-    if (!(await isPending(ctx, retryId))) return null
-    await ctx.scheduler.cancel(retryId)
+    if (!(await isPending(ctx, args.importId))) return null
+    if (await isPending(ctx, retryId)) await ctx.scheduler.cancel(retryId)
     await ctx.scheduler.runAfter(
       0,
       internal.energyHomeAssistant.syncSource,
@@ -650,13 +687,21 @@ export const finishSync = internalMutation({
       v.literal('syncFailed'),
     ),
     missing: v.array(v.string()),
-    /** The import's next try, when this run finished the import. */
+    /** The import this run belongs to, and its next try. */
+    importId: v.optional(v.id('_scheduled_functions')),
     retryId: v.optional(v.id('_scheduled_functions')),
+    done: v.boolean(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    if (args.retryId && (await isPending(ctx, args.retryId))) {
-      await ctx.scheduler.cancel(args.retryId)
+    if (args.importId) {
+      if (!(await isPending(ctx, args.importId))) return null
+      if (args.done) {
+        await ctx.scheduler.cancel(args.importId)
+        if (args.retryId && (await isPending(ctx, args.retryId))) {
+          await ctx.scheduler.cancel(args.retryId)
+        }
+      }
     }
     const source = await ctx.db.get(args.sourceId)
     if (

@@ -35,6 +35,9 @@ import { homeAssistantOrigin } from './lib/homeAssistantUrl'
 const HOUR_MS = 3_600_000
 const DAY_MS = 24 * HOUR_MS
 /** A year of hours, and no more than a month of them per question. */
+const sumsValidator = v.array(
+  v.object({ statisticId: v.string(), sum: v.number() }),
+)
 const HISTORY_MS = 365 * DAY_MS
 const WINDOW_MS = 31 * DAY_MS
 /** Rows per mutation: far under Convex's limits, and quick to retry. */
@@ -292,17 +295,25 @@ export const syncSource = internalAction({
     sourceId: v.id('energySources'),
     historyFrom: v.optional(v.number()),
     attempt: v.optional(v.number()),
+    /** The import this run belongs to (`IMPORT_MS`). */
+    importId: v.optional(v.id('_scheduled_functions')),
     readFrom: v.optional(v.number()),
+    /** The last sums an earlier run read, to carry on from. */
+    sums: v.optional(sumsValidator),
     incomplete: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
     const plan = await ctx.runMutation(internal.energySources.beginSync, {
       sourceId: args.sourceId,
-      ...(args.historyFrom === undefined
+      ...(args.historyFrom === undefined || !args.importId
         ? {}
         : {
-            history: { from: args.historyFrom, attempt: args.attempt ?? 0 },
+            history: {
+              from: args.historyFrom,
+              attempt: args.attempt ?? 0,
+              importId: args.importId,
+            },
           }),
     })
     if (!plan) return null
@@ -319,7 +330,9 @@ export const syncSource = internalAction({
         secret: plan.secret,
         problem,
         missing,
-        ...(retryId && problem === null && !incomplete ? { retryId } : {}),
+        ...(args.importId ? { importId: args.importId } : {}),
+        ...(retryId ? { retryId } : {}),
+        done: problem === null && !incomplete,
       })
 
     // The hour still running has no statistic yet.
@@ -342,11 +355,16 @@ export const syncSource = internalAction({
           continue
         }
         // The hour before is the baseline of the first one asked for.
-        const start = args.readFrom ?? args.historyFrom
         channels.push({
           ...channel,
-          from: start === undefined ? channel.from : start - HOUR_MS,
-          baseline: null,
+          from:
+            args.readFrom ??
+            (args.historyFrom === undefined
+              ? channel.from
+              : args.historyFrom - HOUR_MS),
+          baseline:
+            args.sums?.find((each) => each.statisticId === channel.statisticId)
+              ?.sum ?? null,
         })
       }
 
@@ -377,7 +395,7 @@ export const syncSource = internalAction({
             sourceId: args.sourceId,
             baseUrl: plan.baseUrl,
             batches: [...batches.values()],
-            ...(retryId ? { retryId } : {}),
+            ...(args.importId ? { importId: args.importId } : {}),
           }),
         )
         if (stored === 'partly') incomplete = true
@@ -414,16 +432,21 @@ export const syncSource = internalAction({
         from = to
         if (
           retryId &&
+          args.importId &&
           args.historyFrom !== undefined &&
           from < end &&
           Date.now() - startedAt > RUN_MS
         ) {
           await ctx.runMutation(internal.energySources.continueImport, {
             sourceId: args.sourceId,
+            importId: args.importId,
             retryId,
             historyFrom: args.historyFrom,
             attempt: args.attempt ?? 0,
             readFrom: from,
+            sums: channels.flatMap(({ statisticId, baseline }) =>
+              baseline === null ? [] : [{ statisticId, sum: baseline }],
+            ),
             incomplete: incomplete || missing.length > 0,
           })
           return null

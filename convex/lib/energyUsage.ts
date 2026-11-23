@@ -332,20 +332,30 @@ function shareWithin(spans: readonly Span[], day: Span) {
   return covered / (day.to - day.from)
 }
 
-/** The hours each kind's split (tariff) counters cover. */
-function splitHours(
+/**
+ * Whether an hour of `channel` is counted by another hourly one as well: a
+ * total's by its two tariffs together, one tariff's by a total without both.
+ */
+function countedTwice(
   hourly: readonly {
     channel: Doc<'energyChannels'>
     intervals: readonly Doc<'energyIntervals'>[]
   }[],
 ) {
-  const split = new Set<string>()
+  const key = (
+    { kind, tariff }: Pick<Doc<'energyChannels'>, 'kind' | 'tariff'>,
+    hourStart: number,
+  ) => `${kind}:${tariff ?? 'total'}:${hourStart}`
+  const stored = new Set<string>()
   for (const { channel, intervals } of hourly) {
-    for (const { hourStart } of intervals) {
-      if (channel.tariff) split.add(`${channel.kind}:${hourStart}`)
-    }
+    for (const each of intervals) stored.add(key(channel, each.hourStart))
   }
-  return split
+  return ({ kind, tariff }: Doc<'energyChannels'>, hourStart: number) => {
+    const has = (of: 't1' | 't2' | undefined) =>
+      stored.has(key({ kind, tariff: of }, hourStart))
+    const pair = has('t1') && has('t2')
+    return tariff ? has(undefined) && !pair : pair
+  }
 }
 
 export interface EnergyRange {
@@ -383,8 +393,8 @@ export async function computeEnergyRange(
     }
   }
 
-  // Hourly sources first: what they measured decides what may still be added
-  // from typed readings and from counters that overlap (APP-495).
+  // What hourly sources measured decides what may still be added from typed
+  // readings and from counters that overlap (APP-495).
   const hourly = await Promise.all(
     channels
       .filter((each) => !each.manual)
@@ -401,29 +411,6 @@ export async function computeEnergyRange(
           .collect(),
       })),
   )
-  const split = splitHours(hourly)
-  for (const { channel, intervals } of hourly) {
-    for (const interval of intervals) {
-      // A counter of every tariff next to the split ones it adds up.
-      if (
-        !channel.tariff &&
-        split.has(`${channel.kind}:${interval.hourStart}`)
-      ) {
-        continue
-      }
-      // State of charge is a level, not an amount: a day's figure is the
-      // average of its hours, so it is only kept per hour.
-      const dayBucket = dayBuckets.get(amsterdamDayOf(interval.hourStart))
-      if (dayBucket && channel.kind !== 'batterySoc') {
-        addTo(dayBucket, channel, interval.amount, interval.estimated)
-      }
-      const hourBucket = hourBuckets.get(interval.hourStart)
-      if (hourBucket) {
-        addTo(hourBucket, channel, interval.amount, interval.estimated)
-      }
-    }
-  }
-
   const spans: ({ channel: Doc<'energyChannels'> } & Span)[] = []
   if (channels.some((each) => each.manual)) {
     await Promise.all(
@@ -433,6 +420,11 @@ export async function computeEnergyRange(
       }),
     )
   }
+  // Typed meters of every tariff: when they were read, and the hours measured.
+  const typedTotals: (Span & {
+    kind: Doc<'energyChannels'>['kind']
+    whole: Span[]
+  })[] = []
   for (const { channel, manual } of channels) {
     if (!manual || channel.kind === 'batterySoc') continue
     const [before, inside, after] = await Promise.all([
@@ -461,7 +453,9 @@ export async function computeEnergyRange(
       ...inside,
       ...(after ? [after] : []),
     ]
-    const spread = spreadReadingsOverDays(readings, days)
+    const from = readings[0]?.at
+    const to = readings[readings.length - 1]?.at
+    if (from === undefined || to === undefined) continue
     const same = spans.filter((each) => each.channel.kind === channel.kind)
     const of = (tariff: 't1' | 't2') =>
       same.filter((each) => each.channel.tariff === tariff)
@@ -479,38 +473,52 @@ export async function computeEnergyRange(
           })
         }
       }
+      typedTotals.push({ kind: channel.kind, from, to, whole })
     }
-    // One tariff of it, elsewhere: only the rest is the other tariff's.
-    const partial = channel.tariff
-      ? []
-      : hourly.filter(
+    // Each stretch between two readings loses the part hours count already.
+    for (const [index, reading] of readings.entries()) {
+      const next = readings[index + 1]
+      if (!next) continue
+      const spread = spreadReadingsOverDays([reading, next], days)
+      for (const [dayIndex, amount] of spread.entries()) {
+        const day = days[dayIndex] as string
+        const bucket = dayBuckets.get(day)
+        if (amount === null || !bucket) continue
+        const share = shareWithin(whole, {
+          from: Math.max(reading.at, amsterdamDayStart(day)),
+          to: Math.min(next.at, amsterdamDayStart(addDays(day, 1))),
+        })
+        if (share < 1) addTo(bucket, channel, amount * (1 - share), true)
+      }
+    }
+  }
+
+  const twice = countedTwice(hourly)
+  for (const { channel, intervals } of hourly) {
+    for (const interval of intervals) {
+      const at = interval.hourStart
+      if (twice(channel, at)) continue
+      // State of charge is a level, not an amount: a day's figure is the
+      // average of its hours, so it is only kept per hour.
+      const dayBucket = dayBuckets.get(amsterdamDayOf(at))
+      // One tariff alone is already in what a typed meter of both counted.
+      const typed =
+        channel.tariff !== undefined &&
+        typedTotals.some(
           (each) =>
-            each.channel.kind === channel.kind && each.channel.tariff,
+            each.kind === channel.kind &&
+            each.from <= at &&
+            at < each.to &&
+            !each.whole.some((span) => span.from <= at && at < span.to),
         )
-    spread.forEach((amount, index) => {
-      const day = days[index] as string
-      const bucket = dayBuckets.get(day)
-      if (amount === null || !bucket) return
-      // Only what the same meter's hours do not count already.
-      const dayStart = amsterdamDayStart(day)
-      const dayEnd = amsterdamDayStart(addDays(day, 1))
-      const share = shareWithin(whole, { from: dayStart, to: dayEnd })
-      if (share >= 1) return
-      let part = 0
-      for (const { intervals } of partial) {
-        for (const each of intervals) {
-          if (each.hourStart < dayStart || each.hourStart >= dayEnd) continue
-          const counted = whole.some(
-            (span) => span.from <= each.hourStart && each.hourStart < span.to,
-          )
-          if (!counted) part += each.amount
-        }
+      if (dayBucket && channel.kind !== 'batterySoc' && !typed) {
+        addTo(dayBucket, channel, interval.amount, interval.estimated)
       }
-      const rest = amount * (1 - share) - part
-      if (rest > 0 || (share === 0 && part === 0)) {
-        addTo(bucket, channel, rest, true)
+      const hourBucket = hourBuckets.get(at)
+      if (hourBucket) {
+        addTo(hourBucket, channel, interval.amount, interval.estimated)
       }
-    })
+    }
   }
 
   const contracts = await ctx.db
