@@ -176,6 +176,8 @@ export const tasks = {
     clearAmount: 'No amount',
     unit: 'Unit',
     aisle: 'Aisle',
+    /** An item's aisle chosen on its screen did not save (APP-621). */
+    aisleFailed: 'Could not move it to {aisle}. Try again.',
     /** An item's own screen says item, not task (APP-387). */
     itemPlaceholder: 'What do you need?',
     deleteItem: 'Delete item',
