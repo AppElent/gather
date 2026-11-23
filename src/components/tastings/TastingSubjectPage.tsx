@@ -50,7 +50,7 @@ export function TastingSubjectPage({
     return (
       <div className="mx-auto max-w-3xl">
         <Breadcrumbs trail={trail} />
-        <p className="text-sm text-[var(--app-muted)]">
+        <p className="text-sm text-[var(--muted)]">
           {messages.common.errors.loading}
         </p>
       </div>
@@ -60,7 +60,7 @@ export function TastingSubjectPage({
     return (
       <div className="mx-auto max-w-3xl">
         <Breadcrumbs trail={trail} />
-        <p className="text-sm text-[var(--app-muted)]">
+        <p className="text-sm text-[var(--muted)]">
           {messages.common.errors.notFound}
         </p>
       </div>
@@ -81,19 +81,19 @@ export function TastingSubjectPage({
         <img
           src={subject.photoUrl}
           alt={fmt(copy.subject.photoOf, { name: subject.name })}
-          className="max-h-80 w-full rounded-[var(--app-radius)] object-cover"
+          className="max-h-80 w-full rounded-[var(--radius-control)] object-cover"
         />
       ) : null}
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="m-0 text-2xl font-semibold">{subject.name}</h1>
+          <h1 className="m-0 text-2xl font-bold">{subject.name}</h1>
           {subject.average === null ? (
-            <p className="mt-1 text-sm text-[var(--app-muted)]">
+            <p className="mt-1 text-sm text-[var(--muted)]">
               {copy.index.noScore}
             </p>
           ) : (
-            <p className="mt-1 text-sm text-[var(--app-muted)]">
-              <strong className="text-[var(--app-fg)]">
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              <strong className="text-[var(--ink)]">
                 {subject.average.toFixed(1)} ★
               </strong>{' '}
               {fmt(copy.index.fromCount, { count: subject.count })}
@@ -104,7 +104,7 @@ export function TastingSubjectPage({
           <button
             type="button"
             aria-label={copy.subject.logTasting}
-            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
             onClick={() => setLogging(true)}
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
@@ -113,7 +113,7 @@ export function TastingSubjectPage({
           <Link
             {...nav.edit(subject._id)}
             aria-label={copy.subject.editSubject}
-            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] text-inherit no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] text-inherit no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
           >
             <Pencil className="h-4 w-4" aria-hidden="true" />
             <span className="hidden lg:inline">{copy.subject.editSubject}</span>
@@ -121,7 +121,7 @@ export function TastingSubjectPage({
           <button
             type="button"
             aria-label={copy.subject.delete}
-            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-red-300 text-red-700 lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--danger)] text-[var(--danger)] lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
             onClick={() =>
               confirm({
                 title: fmt(copy.subject.deleteSubjectTitle, {
@@ -150,7 +150,7 @@ export function TastingSubjectPage({
       </header>
 
       <SurfaceCard>
-        <h2 className="mt-0 text-sm font-semibold uppercase tracking-wide text-[var(--app-muted)]">
+        <h2 className="mt-0 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
           {copy.subject.facts}
         </h2>
         <Facts
@@ -165,7 +165,7 @@ export function TastingSubjectPage({
         <h2 className="text-lg font-semibold">{copy.subject.tastings}</h2>
         {tastings.length === 0 ? (
           <SurfaceCard>
-            <p className="m-0 text-sm text-[var(--app-muted)]">
+            <p className="m-0 text-sm text-[var(--muted)]">
               {copy.subject.noTastings}
             </p>
           </SurfaceCard>
@@ -177,7 +177,7 @@ export function TastingSubjectPage({
                   <div>
                     <p className="m-0 font-semibold">
                       {tasting.mine ? copy.subject.you : (tasting.byName ?? '')}
-                      <span className="ml-2 text-sm font-normal text-[var(--app-muted)]">
+                      <span className="ml-2 text-sm font-normal text-[var(--muted)]">
                         {new Intl.DateTimeFormat(locale, {
                           dateStyle: 'medium',
                           timeZone: 'UTC',
@@ -193,7 +193,7 @@ export function TastingSubjectPage({
                       <button
                         type="button"
                         aria-label={copy.subject.edit}
-                        className="grid min-h-9 min-w-9 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)]"
+                        className="grid min-h-9 min-w-9 place-items-center rounded-[var(--radius-control)] border border-[var(--hair)]"
                         onClick={() =>
                           setEditing({
                             id: tasting._id,
@@ -209,7 +209,7 @@ export function TastingSubjectPage({
                     <button
                       type="button"
                       aria-label={copy.subject.deleteTasting}
-                      className="grid min-h-9 min-w-9 place-items-center rounded-[var(--app-radius)] border border-red-300 text-red-700"
+                      className="grid min-h-9 min-w-9 place-items-center rounded-[var(--radius-control)] border border-[var(--danger)] text-[var(--danger)]"
                       onClick={() =>
                         confirm({
                           title: copy.subject.deleteTastingTitle,
@@ -280,7 +280,7 @@ function Facts({
         if (value === undefined) return null
         return (
           <div key={field.key}>
-            <dt className="text-xs font-semibold text-[var(--app-muted)]">
+            <dt className="text-xs font-semibold text-[var(--muted)]">
               {
                 messages.tastings.fields[
                   field.key as keyof typeof messages.tastings.fields

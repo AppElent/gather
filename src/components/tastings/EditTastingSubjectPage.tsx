@@ -44,7 +44,7 @@ export function EditTastingSubjectPage({
     return (
       <div className="mx-auto max-w-2xl">
         <Breadcrumbs trail={trail} />
-        <p className="text-sm text-[var(--app-muted)]">
+        <p className="text-sm text-[var(--muted)]">
           {messages.common.errors.loading}
         </p>
       </div>
@@ -54,7 +54,7 @@ export function EditTastingSubjectPage({
     return (
       <div className="mx-auto max-w-2xl">
         <Breadcrumbs trail={trail} />
-        <p className="text-sm text-[var(--app-muted)]">
+        <p className="text-sm text-[var(--muted)]">
           {messages.common.errors.notFound}
         </p>
       </div>
@@ -106,7 +106,7 @@ function EditSubjectForm({
   return (
     <div className="mx-auto max-w-2xl">
       <Breadcrumbs trail={trail} />
-      <h1 className="mb-6 text-2xl font-semibold">
+      <h1 className="mb-6 text-2xl font-bold">
         {copy.subject.editSubject}
       </h1>
       <ImageUploadField
@@ -151,7 +151,7 @@ function EditSubjectForm({
         <label className="grid gap-1.5 text-sm font-medium">
           <span>{copy.composer.name}</span>
           <input
-            className="min-h-10 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3"
+            className="min-h-10 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3"
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
@@ -169,14 +169,14 @@ function EditSubjectForm({
           />
         ))}
         {error ? (
-          <p role="alert" className="m-0 text-sm text-red-700">
+          <p role="alert" className="m-0 text-sm text-[var(--danger)]">
             {error}
           </p>
         ) : null}
         <div className="flex justify-end gap-2">
           <button
             type="button"
-            className="min-h-10 rounded-[var(--app-radius)] border border-[var(--app-border)] px-4 text-sm font-semibold"
+            className="min-h-10 rounded-[var(--radius-control)] border border-[var(--hair)] px-4 text-sm font-semibold"
             onClick={() => navigate(nav.subject(subject._id))}
           >
             {copy.composer.cancel}
@@ -184,7 +184,7 @@ function EditSubjectForm({
           <button
             type="submit"
             disabled={saving}
-            className="min-h-10 rounded-[var(--app-radius)] bg-[var(--app-accent)] px-4 text-sm font-semibold text-white disabled:opacity-60"
+            className="min-h-10 rounded-[var(--radius-control)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--on-accent)] disabled:opacity-60"
           >
             {copy.composer.saveEdit}
           </button>

@@ -39,7 +39,7 @@ export function StoreTile({
   const logo = retailerLogoImage(catalogKey)
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
   const background = color ?? DEFAULT_STORE_COLOR
-  const frame = `${SIZES[size].box} grid shrink-0 place-items-center overflow-hidden rounded-[var(--app-radius)] border border-[var(--app-border)]`
+  const frame = `${SIZES[size].box} grid shrink-0 place-items-center overflow-hidden rounded-[var(--radius-control)] border border-[var(--hair)]`
 
   if (logo && logo.src !== failedSrc) {
     return (

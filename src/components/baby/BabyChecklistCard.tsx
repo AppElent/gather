@@ -56,13 +56,13 @@ export function BabyChecklistCard({
           <h2 className="m-0 text-sm font-semibold">
             {title}
             {openItems.length > 0 && (
-              <span className="ml-1.5 text-[var(--app-muted)]">
+              <span className="ml-1.5 text-[var(--muted)]">
                 ({openItems.length})
               </span>
             )}
           </h2>
           <ChevronDown
-            className={`h-4 w-4 shrink-0 text-[var(--app-muted)] transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`h-4 w-4 shrink-0 text-[var(--muted)] transition-transform ${open ? 'rotate-180' : ''}`}
             aria-hidden="true"
           />
         </button>
@@ -81,7 +81,7 @@ export function BabyChecklistCard({
             }
           />
           {tasks !== undefined && openItems.length === 0 ? (
-            <p className="m-0 text-sm text-[var(--app-muted)]">
+            <p className="m-0 text-sm text-[var(--muted)]">
               {child.checklistEmpty}
             </p>
           ) : (
@@ -94,7 +94,7 @@ export function BabyChecklistCard({
                   <button
                     type="button"
                     aria-label={fmt(child.deleteTask, { task: t.title })}
-                    className="grid min-h-9 min-w-9 shrink-0 place-items-center rounded-[var(--app-radius)] text-[var(--app-muted)]"
+                    className="grid min-h-9 min-w-9 shrink-0 place-items-center rounded-[var(--radius-control)] text-[var(--muted)]"
                     onClick={() =>
                       void removeTask({ taskId: t._id, groupSlug })
                     }

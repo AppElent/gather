@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
-import { getRouteContext } from '../../lib/appNavigation'
+import { getRouteContext, getRouteGroup } from '../../lib/appNavigation'
 import { useMessages } from '../../lib/i18n'
 import { linkTo, needsCurrentGroup } from '../../lib/links'
 import { CommandPalette } from './CommandPalette'
@@ -70,7 +70,12 @@ function AppShellBody({ children }: { children: ReactNode }) {
             onOpenPalette={() => setPaletteOpen(true)}
             onReportIssue={() => setReporterOpen(true)}
           />
-          <main className="min-w-0 flex-1 px-3 py-4 md:px-5 md:py-5">
+          {/* A Module's page wears its group's colours (`data-group` in
+              styles.css); the navigation around it stays neutral. */}
+          <main
+            data-group={getRouteGroup(location.pathname)}
+            className="min-w-0 flex-1 px-3 py-4 md:px-5 md:py-5"
+          >
             {!groupPage || currentGroup ? (
               children
             ) : groups === undefined ? (
@@ -97,7 +102,7 @@ function AppShellBody({ children }: { children: ReactNode }) {
             aria-label={messages.shell.drawer.label}
             onKeyDown={drawer.onKeyDown}
             onClick={(event) => event.stopPropagation()}
-            className="min-h-full w-[min(22rem,92vw)] overflow-y-auto border-r border-[var(--app-border)] bg-[var(--app-surface)]"
+            className="min-h-full w-[min(22rem,92vw)] overflow-y-auto border-r border-[var(--hair)] bg-[var(--surface)]"
           >
             <div className="flex justify-end p-3">
               <IconButton

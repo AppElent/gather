@@ -51,7 +51,7 @@ function MemberList({
     <SurfaceCard ariaLabel={home.whoIsHere}>
       <h2 className="m-0 mb-2 text-sm font-semibold">{home.whoIsHere}</h2>
       {members === undefined ? (
-        <p className="m-0 text-sm text-[var(--app-muted)]">
+        <p className="m-0 text-sm text-[var(--muted)]">
           {messages.common.errors.loading}
         </p>
       ) : (
@@ -59,7 +59,7 @@ function MemberList({
           {members.map((member) => (
             <li
               key={member.userId}
-              className="flex min-w-0 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)] px-2 py-1 text-sm"
+              className="flex min-w-0 items-center gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)] px-2 py-1 text-sm"
             >
               {/* Wraps rather than truncating: a name is the one thing on this
                   card a reader cannot guess from the rest of it. */}
@@ -76,7 +76,7 @@ function MemberList({
       {/* Split around the link rather than assembled from one string: neither
           half carries markup, so a translation is free to word the sentence
           its own way without having to reproduce a `<Link>`. */}
-      <p className="mt-3 mb-0 text-sm leading-6 text-[var(--app-muted)]">
+      <p className="mt-3 mb-0 text-sm leading-6 text-[var(--muted)]">
         {fmt(note.before, { group: groupName })}{' '}
         <Link {...linkTo('groups')}>{note.link}</Link>
         {note.after}
@@ -88,7 +88,7 @@ function MemberList({
 /** The title of an entry, linked wherever the Module has a page for it. */
 function EntryTitle({ entry }: { entry: GroupActivityEntry }) {
   const messages = useMessages()
-  const className = 'font-semibold text-[var(--app-fg)]'
+  const className = 'font-semibold text-[var(--ink)]'
 
   // The link is built here from the row id the server sent — never assembled
   // from a string, and never sent as one.
@@ -131,8 +131,8 @@ function ActivityRow({ entry }: { entry: GroupActivityEntry }) {
   const phrase = activityPhrase(entry.kind, messages)
 
   return (
-    <li className="grid grid-cols-[28px_minmax(0,1fr)] gap-2 border-t border-[var(--app-border)] py-2 first:border-t-0 first:pt-0">
-      <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
+    <li className="grid grid-cols-[28px_minmax(0,1fr)] gap-2 border-t border-[var(--hair)] py-2 first:border-t-0 first:pt-0">
+      <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--hair)] bg-[var(--surface)] text-[var(--muted)]">
         <Icon name={activityModuleIcon(entry)} className="h-4 w-4" />
       </span>
       <div className="min-w-0">
@@ -150,7 +150,7 @@ function ActivityRow({ entry }: { entry: GroupActivityEntry }) {
             ? ` ${phrase.connector} ${entry.context}`
             : null}
         </p>
-        <p className="m-0 flex flex-wrap gap-x-2 text-xs text-[var(--app-muted)]">
+        <p className="m-0 flex flex-wrap gap-x-2 text-xs text-[var(--muted)]">
           <span>{activityModuleLabel(entry, messages)}</span>
           <time dateTime={new Date(entry.at).toISOString()}>
             {formatActivityTime(entry.at, messages, locale)}
@@ -174,7 +174,7 @@ function NothingYet({ groupName }: { groupName: string }) {
 
   return (
     <div className="grid gap-3">
-      <p className="m-0 text-sm leading-6 text-[var(--app-muted)]">
+      <p className="m-0 text-sm leading-6 text-[var(--muted)]">
         {fmt(home.nothingYet, { group: groupName })} {home.nothingYetShared}
       </p>
       <div className="flex flex-wrap gap-2">
@@ -182,7 +182,7 @@ function NothingYet({ groupName }: { groupName: string }) {
           <Link
             key={module.id}
             {...moduleLink(module)}
-            className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold text-[var(--app-fg)] no-underline"
+            className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--ink)] no-underline"
           >
             <Icon name={module.icon} className="h-4 w-4" />
             <span className="truncate">
@@ -214,10 +214,10 @@ export function GroupHome() {
             track is already too wide by the time it wraps. `anywhere` is the one
             that lowers the minimum. A Group's name is somebody else's input and
             can be one long word. */}
-        <h1 className="m-0 text-2xl font-semibold wrap-anywhere">
+        <h1 className="m-0 text-2xl font-bold wrap-anywhere">
           {groupName}
         </h1>
-        <p className="mt-1 mb-0 text-sm leading-6 text-[var(--app-muted)]">
+        <p className="mt-1 mb-0 text-sm leading-6 text-[var(--muted)]">
           {home.sharedSubtitle}
         </p>
       </header>
@@ -229,7 +229,7 @@ export function GroupHome() {
           {home.recentActivity}
         </h2>
         {activity === undefined ? (
-          <p className="m-0 text-sm text-[var(--app-muted)]">
+          <p className="m-0 text-sm text-[var(--muted)]">
             {messages.common.errors.loading}
           </p>
         ) : activity.length === 0 ? (

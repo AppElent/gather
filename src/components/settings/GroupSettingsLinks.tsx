@@ -24,11 +24,11 @@ export function GroupSettingsLinks() {
       <h2 className="m-0 mb-1 text-base font-semibold">
         {groupSettings.title}
       </h2>
-      <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
+      <p className="m-0 mb-3 text-sm text-[var(--muted)]">
         {groupSettings.description}
       </p>
       {groups === undefined ? (
-        <p className="m-0 text-sm text-[var(--app-muted)]">
+        <p className="m-0 text-sm text-[var(--muted)]">
           {messages.common.errors.loading}
         </p>
       ) : (
@@ -38,10 +38,10 @@ export function GroupSettingsLinks() {
               <Link
                 {...linkTo('groupSettings')}
                 onClick={() => setCurrentGroup(group._id)}
-                className="flex min-h-9 items-center justify-between gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2 text-sm font-semibold no-underline"
+                className="flex min-h-9 items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--hair)] px-3 py-2 text-sm font-semibold no-underline"
               >
                 {group.name}
-                <span className="text-xs font-normal text-[var(--app-muted)]">
+                <span className="text-xs font-normal text-[var(--muted)]">
                   {groupSettings.open}
                 </span>
               </Link>

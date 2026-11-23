@@ -39,7 +39,7 @@ export function SignInPage() {
         title={text.redirecting.title}
         subtitle={text.redirecting.subtitle}
       >
-        <p className="m-0 text-sm text-[var(--app-muted)]">
+        <p className="m-0 text-sm text-[var(--muted)]">
           {text.redirecting.body}
         </p>
       </PublicPageFrame>
@@ -56,10 +56,10 @@ export function SignInPage() {
         <div
           role="status"
           data-testid="gather-data-deleted"
-          className="mb-4 grid gap-1 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2 text-sm"
+          className="mb-4 grid gap-1 rounded-[var(--radius-control)] border border-[var(--hair)] px-3 py-2 text-sm"
         >
           <p className="m-0 font-semibold">{dataDeleted.doneTitle}</p>
-          <p className="m-0 text-[var(--app-muted)]">{dataDeleted.doneBody}</p>
+          <p className="m-0 text-[var(--muted)]">{dataDeleted.doneBody}</p>
         </div>
       ) : null}
       <SignInForm onSuccess={onSuccess} />

@@ -41,7 +41,7 @@ export function QuickLogButtons({
           <button
             type="button"
             onClick={() => setActive('multi')}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-[var(--app-radius)] border border-[var(--app-border)] px-2.5 text-sm font-semibold"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--hair)] px-2.5 text-sm font-semibold"
           >
             <Layers className="h-4 w-4" aria-hidden="true" />
             {quickLog.several}
@@ -72,7 +72,7 @@ export function QuickLogButtons({
               key={type}
               type="button"
               onClick={() => setActive(type)}
-              className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-xs font-semibold"
+              className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] text-xs font-semibold"
             >
               <EventIcon type={type} className="h-5 w-5" />
               {messages.baby.eventTypes[type]}

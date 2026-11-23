@@ -16,9 +16,9 @@ export function RecipeDestinationNotice({
   const notice = useMessages().recipes.destination
 
   return (
-    <p className="m-0 text-xs text-[var(--app-muted)]">
+    <p className="m-0 text-xs text-[var(--muted)]">
       {notice.prefix}{' '}
-      <span className="font-semibold text-[var(--app-fg)]">
+      <span className="font-semibold text-[var(--ink)]">
         {destination.groupName}
       </span>
       {notice.suffix}

@@ -98,7 +98,7 @@ export function EnergyUsagePage({
   return (
     <div className="mx-auto grid max-w-3xl gap-4">
       <Breadcrumbs trail={energyTrail(messages, copy.title)} className="mb-0" />
-      <h2 className="m-0 text-2xl font-semibold">{copy.title}</h2>
+      <h2 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h2>
       <Segmented
         label={copy.rangeLabel}
         value={range}
@@ -135,7 +135,7 @@ export function EnergyUsagePage({
 
 function Loading() {
   return (
-    <div className="h-40 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]" />
+    <div className="h-40 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]" />
   )
 }
 
@@ -152,11 +152,11 @@ function TotalCard({
 }) {
   return (
     <section aria-label={caption} className={WASH}>
-      <span className="text-sm text-[var(--app-muted)]">{caption}</span>
+      <span className="text-sm text-[var(--muted)]">{caption}</span>
       <span className="flex flex-wrap items-baseline gap-2">
         <span className={NUMERAL}>{total}</span>
         {unit ? (
-          <span className="text-base text-[var(--app-muted)]">{unit}</span>
+          <span className="text-base text-[var(--muted)]">{unit}</span>
         ) : null}
       </span>
       {note ? <p className="m-0 text-sm">{note}</p> : null}
@@ -247,14 +247,14 @@ function DayView({
       {hourly ? (
         <HourChart period={period} now={now} />
       ) : (
-        <p className="m-0 text-sm text-[var(--app-muted)]">{copy.noHours}</p>
+        <p className="m-0 text-sm text-[var(--muted)]">{copy.noHours}</p>
       )}
       {hourly && period.channels.batterySoc ? (
         <ChargeChart period={period} isToday={day === today} />
       ) : null}
       {hasData ? <Facts facts={factsOf(period, messages, locale)} /> : null}
       {period.totals.estimated ? (
-        <p className="m-0 text-sm text-[var(--app-muted)]">
+        <p className="m-0 text-sm text-[var(--muted)]">
           {copy.estimatedNote}
         </p>
       ) : null}
@@ -270,7 +270,7 @@ function HourChart({ period, now }: { period: EnergyPeriod; now: number }) {
     <ChartFigure
       title={messages.energy.usage.perHour}
       aside={
-        <span className="text-xs text-[var(--app-muted)]">
+        <span className="text-xs text-[var(--muted)]">
           {messages.energy.units.kWh}
         </span>
       }
@@ -326,7 +326,7 @@ function ChargeChart({
       title={copy.socTitle}
       aside={
         isToday ? (
-          <span className="text-xs text-[var(--app-muted)] tabular-nums">
+          <span className="text-xs text-[var(--muted)] tabular-nums">
             {fmt(copy.socNow, { percent: Math.round(last.percent) })}
           </span>
         ) : null
@@ -335,7 +335,7 @@ function ChargeChart({
       sentence={label}
     >
       <div aria-hidden="true" className="flex gap-2">
-        <div className="flex h-[100px] w-7 shrink-0 flex-col justify-between text-right text-xs leading-none text-[var(--app-muted)] tabular-nums">
+        <div className="flex h-[100px] w-7 shrink-0 flex-col justify-between text-right text-xs leading-none text-[var(--muted)] tabular-nums">
           <span>100</span>
           <span>50</span>
           <span>0</span>
@@ -346,21 +346,21 @@ function ChargeChart({
             preserveAspectRatio="none"
             className="block h-[100px] w-full"
           >
-            <line x1="0" y1="1" x2="240" y2="1" stroke="var(--app-border)" vectorEffect="non-scaling-stroke" />
-            <line x1="0" y1="50" x2="240" y2="50" stroke="var(--app-border)" vectorEffect="non-scaling-stroke" />
-            <line x1="0" y1="99" x2="240" y2="99" stroke="var(--app-muted)" vectorEffect="non-scaling-stroke" />
-            <polygon points={area} fill="var(--app-accent)" fillOpacity="0.18" />
+            <line x1="0" y1="1" x2="240" y2="1" stroke="var(--hair)" vectorEffect="non-scaling-stroke" />
+            <line x1="0" y1="50" x2="240" y2="50" stroke="var(--hair)" vectorEffect="non-scaling-stroke" />
+            <line x1="0" y1="99" x2="240" y2="99" stroke="var(--muted)" vectorEffect="non-scaling-stroke" />
+            <polygon points={area} fill="var(--home-wash)" />
             <polyline
               points={line}
               fill="none"
-              stroke="var(--app-fg)"
+              stroke="var(--ink)"
               strokeWidth="2.5"
               strokeLinejoin="round"
               strokeLinecap="round"
               vectorEffect="non-scaling-stroke"
             />
           </svg>
-          <div className="flex justify-between text-xs text-[var(--app-muted)] tabular-nums">
+          <div className="flex justify-between text-xs text-[var(--muted)] tabular-nums">
             {HOUR_TICKS.map((tick) => (
               <span key={tick}>{tick}</span>
             ))}
@@ -431,7 +431,7 @@ function MonthView({
           month: formatEnergyDate(month, locale, 'month'),
         })}
         aside={
-          <span className="text-xs text-[var(--app-muted)]">
+          <span className="text-xs text-[var(--muted)]">
             {messages.energy.units.kWh}
           </span>
         }
@@ -449,7 +449,7 @@ function MonthView({
       </ChartFigure>
       <Facts facts={factsOf(period, messages, locale)} />
       {totals.estimated ? (
-        <p className="m-0 text-sm text-[var(--app-muted)]">
+        <p className="m-0 text-sm text-[var(--muted)]">
           {copy.estimatedNote}
         </p>
       ) : null}
@@ -558,7 +558,7 @@ function YearView({
       <ChartFigure
         title={fmt(copy.perMonth, { year, previous: year - 1 })}
         aside={
-          <span className="text-xs text-[var(--app-muted)]">
+          <span className="text-xs text-[var(--muted)]">
             {unit === 'kwh' ? messages.energy.units.kWh : '€'}
           </span>
         }
@@ -605,7 +605,7 @@ function YearView({
         </RowList>
       ) : null}
       {estimated ? (
-        <p className="m-0 text-sm text-[var(--app-muted)]">
+        <p className="m-0 text-sm text-[var(--muted)]">
           {copy.estimatedNote}
         </p>
       ) : null}

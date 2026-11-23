@@ -47,17 +47,17 @@ export function TasksPage() {
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="m-0 text-2xl font-semibold">
+          <h2 className="m-0 font-rounded text-2xl font-bold">
             {messages.modules.byId.tasks.label}
           </h2>
-          <p className="mt-1 text-sm text-[var(--app-muted)]">
+          <p className="mt-1 text-sm text-[var(--muted)]">
             {page.subtitle}
           </p>
         </div>
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="inline-flex min-h-9 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold"
+          className="inline-flex min-h-9 items-center gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3 text-sm font-semibold"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           {page.addList}
@@ -76,7 +76,7 @@ export function TasksPage() {
           {[0, 1].map((i) => (
             <div
               key={i}
-              className="h-40 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]"
+              className="h-40 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]"
             />
           ))}
         </div>
@@ -84,13 +84,13 @@ export function TasksPage() {
         <SurfaceCard>
           <div className="grid gap-3 text-center">
             <h3 className="m-0 text-base font-semibold">{page.emptyTitle}</h3>
-            <p className="m-0 text-sm text-[var(--app-muted)]">
+            <p className="m-0 text-sm text-[var(--muted)]">
               {page.emptyBody}
             </p>
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="mx-auto inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
+              className="mx-auto inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold"
             >
               {page.emptyAction}
             </button>

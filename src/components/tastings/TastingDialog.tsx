@@ -134,11 +134,11 @@ export function TastingDialog({
         aria-modal="true"
         aria-labelledby="tasting-dialog-title"
         onKeyDown={onKeyDown}
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-5 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] p-5 shadow-2xl"
       >
         <header className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <h2 id="tasting-dialog-title" className="m-0 text-xl font-semibold">
+            <h2 id="tasting-dialog-title" className="m-0 font-rounded text-xl font-bold">
               {step === 'pick'
                 ? fmt(copy.picker.title, { kind: words.one })
                 : tasting
@@ -146,7 +146,7 @@ export function TastingDialog({
                   : words.newTasting}
             </h2>
             {step === 'compose' && choice ? (
-              <p className="mt-1 text-sm text-[var(--app-muted)]">
+              <p className="mt-1 text-sm text-[var(--muted)]">
                 {choice.name}
               </p>
             ) : null}
@@ -154,7 +154,7 @@ export function TastingDialog({
           <button
             type="button"
             aria-label={copy.composer.cancel}
-            className="grid min-h-10 min-w-10 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)]"
+            className="grid min-h-10 min-w-10 place-items-center rounded-[var(--radius-control)] border border-[var(--hair)]"
             onClick={onClose}
           >
             <X className="h-4 w-4" aria-hidden="true" />
@@ -167,13 +167,13 @@ export function TastingDialog({
               <span>{copy.picker.search}</span>
               <input
                 ref={searchRef}
-                className="min-h-11 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3"
+                className="min-h-11 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>
             {exactDuplicate && query.trim() ? (
-              <p className="m-0 rounded-[var(--app-radius)] border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+              <p className="m-0 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--home-wash)] p-3 text-sm text-[var(--ink)]">
                 {fmt(copy.picker.duplicate, { name: exactDuplicate.name })}
               </p>
             ) : null}
@@ -186,7 +186,7 @@ export function TastingDialog({
                   <button
                     key={entry._id}
                     type="button"
-                    className="rounded-[var(--app-radius)] border border-[var(--app-border)] p-3 text-left hover:bg-[var(--app-surface-muted)]"
+                    className="rounded-[var(--radius-control)] border border-[var(--hair)] p-3 text-left hover:bg-[var(--surface-2)]"
                     onClick={() =>
                       choose({
                         subjectId: entry._id,
@@ -196,7 +196,7 @@ export function TastingDialog({
                     }
                   >
                     <span className="font-semibold">{entry.name}</span>
-                    <span className="ml-2 text-xs text-[var(--app-muted)]">
+                    <span className="ml-2 text-xs text-[var(--muted)]">
                       {entry.count === 1
                         ? fmt(copy.composer.existing, { count: entry.count })
                         : fmt(copy.composer.existingOther, {
@@ -216,7 +216,7 @@ export function TastingDialog({
                   <button
                     key={entry.seedKey}
                     type="button"
-                    className="rounded-[var(--app-radius)] border border-[var(--app-border)] p-3 text-left hover:bg-[var(--app-surface-muted)]"
+                    className="rounded-[var(--radius-control)] border border-[var(--hair)] p-3 text-left hover:bg-[var(--surface-2)]"
                     onClick={() =>
                       choose({
                         name: entry.name,
@@ -226,7 +226,7 @@ export function TastingDialog({
                     }
                   >
                     <span className="font-semibold">{entry.name}</span>
-                    <span className="ml-2 text-xs text-[var(--app-muted)]">
+                    <span className="ml-2 text-xs text-[var(--muted)]">
                       {copy.composer.fromCatalog}
                     </span>
                   </button>
@@ -236,13 +236,13 @@ export function TastingDialog({
             {query.trim() ? (
               <button
                 type="button"
-                className="rounded-[var(--app-radius)] border border-dashed border-[var(--app-border)] p-3 text-left"
+                className="rounded-[var(--radius-control)] border border-dashed border-[var(--hair)] p-3 text-left"
                 onClick={() => choose({ name: query.trim(), attributes: {} })}
               >
                 <span className="block font-semibold">
                   {fmt(copy.picker.create, { name: query.trim() })}
                 </span>
-                <span className="text-xs text-[var(--app-muted)]">
+                <span className="text-xs text-[var(--muted)]">
                   {fmt(copy.picker.createHint, { kind: words.one })}
                 </span>
               </button>
@@ -296,14 +296,14 @@ export function TastingDialog({
             }}
           >
             {!choice.subjectId && !tasting ? (
-              <fieldset className="grid gap-4 rounded-[var(--app-radius)] border border-[var(--app-border)] p-4">
+              <fieldset className="grid gap-4 rounded-[var(--radius-control)] border border-[var(--hair)] p-4">
                 <legend className="px-1 text-sm font-semibold">
                   {words.facts}
                 </legend>
                 <label className="grid gap-1.5 text-sm font-medium">
                   <span>{copy.composer.name}</span>
                   <input
-                    className="min-h-10 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3"
+                    className="min-h-10 rounded-[var(--radius-control)] border border-[var(--hair)] px-3"
                     value={choice.name}
                     onChange={(event) =>
                       setChoice({ ...choice, name: event.target.value })
@@ -324,7 +324,7 @@ export function TastingDialog({
                 ))}
               </fieldset>
             ) : null}
-            <fieldset className="grid gap-4 rounded-[var(--app-radius)] border border-[var(--app-border)] p-4">
+            <fieldset className="grid gap-4 rounded-[var(--radius-control)] border border-[var(--hair)] p-4">
               <legend className="px-1 text-sm font-semibold">
                 {copy.composer.myTasting}
               </legend>
@@ -332,7 +332,7 @@ export function TastingDialog({
                 <span>{copy.composer.score}</span>
                 <div className="flex items-center gap-3">
                   <input
-                    className="w-full accent-[var(--app-accent)]"
+                    className="w-full accent-[var(--accent-text)]"
                     type="range"
                     min={TASTING_RATING.min}
                     max={TASTING_RATING.max}
@@ -348,7 +348,7 @@ export function TastingDialog({
               <label className="grid gap-1.5 text-sm font-medium">
                 <span>{copy.composer.tastedAt}</span>
                 <input
-                  className="min-h-10 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3"
+                  className="min-h-10 rounded-[var(--radius-control)] border border-[var(--hair)] px-3"
                   type="date"
                   value={tastedAt}
                   onChange={(event) => setTastedAt(event.target.value)}
@@ -368,7 +368,7 @@ export function TastingDialog({
               ))}
             </fieldset>
             {error ? (
-              <p role="alert" className="m-0 text-sm text-red-700">
+              <p role="alert" className="m-0 text-sm text-[var(--danger)]">
                 {error}
               </p>
             ) : null}
@@ -376,7 +376,7 @@ export function TastingDialog({
               {!initialSubject && !tasting ? (
                 <button
                   type="button"
-                  className="min-h-10 rounded-[var(--app-radius)] border border-[var(--app-border)] px-4 text-sm font-semibold"
+                  className="min-h-10 rounded-[var(--radius-control)] border border-[var(--hair)] px-4 text-sm font-semibold"
                   onClick={() => setStep('pick')}
                 >
                   {copy.picker.back}
@@ -385,7 +385,7 @@ export function TastingDialog({
               <button
                 type="submit"
                 disabled={saving}
-                className="min-h-10 rounded-[var(--app-radius)] bg-[var(--app-accent)] px-4 text-sm font-semibold text-white disabled:opacity-60"
+                className="min-h-10 rounded-[var(--radius-control)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--on-accent)] disabled:opacity-60"
               >
                 {tasting ? copy.composer.saveEdit : copy.composer.save}
               </button>

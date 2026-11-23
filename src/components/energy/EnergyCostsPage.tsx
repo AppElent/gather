@@ -75,7 +75,7 @@ export function EnergyCostsPage() {
   return (
     <div className="mx-auto grid max-w-3xl gap-4">
       <Breadcrumbs trail={energyTrail(messages, copy.title)} className="mb-0" />
-      <h2 className="m-0 text-2xl font-semibold">{copy.title}</h2>
+      <h2 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h2>
       <PeriodStepper
         label={monthTitle(month, locale, true)}
         previousLabel={copy.previousMonth}
@@ -97,7 +97,7 @@ export function EnergyCostsPage() {
       ) : null}
 
       {period === undefined ? (
-        <div className="h-40 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]" />
+        <div className="h-40 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]" />
       ) : period === null ? (
         <p className="m-0 text-sm">{messages.energy.empty.summary}</p>
       ) : (
@@ -219,7 +219,7 @@ function MonthCosts({
         ) : (
           <>
             {totals.firstDay && totals.lastDay ? (
-              <span className="text-sm text-[var(--app-muted)]">
+              <span className="text-sm text-[var(--muted)]">
                 {fmt(copy.range, {
                   from: formatEnergyDate(totals.firstDay, locale, 'dayMonth'),
                   to: formatEnergyDate(totals.lastDay, locale, 'dayMonth'),
@@ -243,12 +243,12 @@ function MonthCosts({
           </>
         )}
         {status === 'ok' && totals.costMissingDays > 0 ? (
-          <p className="m-0 text-sm text-[var(--app-muted)]">
+          <p className="m-0 text-sm text-[var(--muted)]">
             {plural(locale, totals.costMissingDays, copy.missingDays)}
           </p>
         ) : null}
         {totals.estimated ? (
-          <p className="m-0 text-sm text-[var(--app-muted)]">{copy.estimated}</p>
+          <p className="m-0 text-sm text-[var(--muted)]">{copy.estimated}</p>
         ) : null}
       </section>
 
@@ -276,7 +276,7 @@ function MonthCosts({
           }
         />
       </RowList>
-      <p className="m-0 text-sm text-[var(--app-muted)]">{copy.vatNote}</p>
+      <p className="m-0 text-sm text-[var(--muted)]">{copy.vatNote}</p>
     </>
   )
 }
@@ -323,9 +323,9 @@ function PerDayChart({
                 data-bar={future ? 'future' : bar ? 'cost' : 'empty'}
                 className={`min-w-0 flex-1 rounded-t-[2px] ${
                   future
-                    ? 'border border-dashed border-[var(--app-muted)] opacity-50'
+                    ? 'border border-dashed border-[var(--muted)] opacity-50'
                     : bar
-                      ? 'bg-[var(--app-fg)]'
+                      ? 'bg-[var(--ink)]'
                       : ''
                 }`}
                 style={{
@@ -339,8 +339,8 @@ function PerDayChart({
             )
           })}
         </div>
-        <div className="h-px bg-[var(--app-border)]" />
-        <div className="mt-1 flex justify-between text-xs text-[var(--app-muted)] tabular-nums">
+        <div className="h-px bg-[var(--hair)]" />
+        <div className="mt-1 flex justify-between text-xs text-[var(--muted)] tabular-nums">
           {dayTicks(period.days.length).map((tick) => (
             <span key={tick}>{tick}</span>
           ))}
@@ -404,7 +404,7 @@ function PerMonthChart({
         <Link
           {...linkTo('energyUsage')}
           search={{ range: 'year' }}
-          className="text-sm text-[var(--app-muted)] no-underline hover:underline"
+          className="text-sm text-[var(--accent-text)] no-underline hover:underline"
         >
           {copy.yearLink} ›
         </Link>

@@ -31,5 +31,5 @@ test('renders public pages in the app visual system', () => {
   expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeDefined()
   expect(screen.getByLabelText('Auth form')).toBeDefined()
   expect(screen.getByRole('main').className).toContain('app-shell')
-  expect(screen.getByRole('main').className).not.toContain('island-shell')
+  expect(screen.getByRole('main').className).not.toContain('demo-panel')
 })

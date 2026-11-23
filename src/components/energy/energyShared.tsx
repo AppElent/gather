@@ -28,9 +28,10 @@ import type { Crumb } from '../app/Breadcrumbs'
  * and the two chart shapes of the design's chart grammar
  * (`designs/energy/README.md` section 11).
  *
- * Colours are the web palette's own tokens: ink is `--app-fg`, last year is
- * `--app-muted`, the baseline is `--app-border`, and solar takes
- * `--app-accent`, because the web has no Home group colour of its own.
+ * Colours are the web palette's own tokens: ink is `--ink`, last year is
+ * `--muted`, the baseline is `--hair`, and solar takes
+ * `--home-text`, Energy's group colour at the strength a graphic needs on
+ * `surface` (3:1); `--home-fill` is too light for that in the light scheme.
  */
 
 /**
@@ -44,17 +45,17 @@ export type EnergyCostTotals = NonNullable<EnergyPeriod['totals']['cost']>
 export type EnergyContractSummary = NonNullable<EnergyPeriod['contract']>
 
 export const PRIMARY =
-  'inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius)] bg-[var(--app-accent)] px-4 text-sm font-semibold text-white disabled:opacity-60'
+  'inline-flex min-h-10 items-center justify-center rounded-[var(--radius-control)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--on-accent)] disabled:opacity-60'
 export const SECONDARY =
-  'inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-4 text-sm font-semibold text-[var(--app-fg)] disabled:opacity-60'
+  'inline-flex min-h-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--ink)] disabled:opacity-60'
 /** 16px on phones so iOS does not zoom in on focus, as the kitchen fields. */
 export const FIELD =
-  'min-h-11 w-full min-w-0 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-[16px] text-[var(--app-fg)] outline-none focus:border-[var(--app-accent)] sm:text-sm'
+  'min-h-11 w-full min-w-0 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--ink)] sm:text-sm'
 /** The wash card that carries a page's total. */
 export const WASH =
-  'grid gap-1.5 rounded-[calc(var(--app-radius)*2)] bg-[var(--app-surface-muted)] p-4'
+  'grid gap-1.5 rounded-[calc(var(--radius-control)*2)] bg-[var(--surface-2)] p-4'
 export const NUMERAL =
-  'text-4xl font-extrabold leading-tight tabular-nums sm:text-5xl'
+  'font-rounded text-4xl font-bold leading-tight tabular-nums sm:text-5xl'
 
 function readEnergyClock() {
   const today = amsterdamIsoDate()
@@ -151,7 +152,7 @@ export function Segmented<T extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className="grid min-h-10 gap-0.5 rounded-full bg-[var(--app-surface-muted)] p-0.5"
+      className="grid min-h-10 gap-0.5 rounded-full bg-[var(--surface-2)] p-0.5"
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map((option) => {
@@ -165,8 +166,8 @@ export function Segmented<T extends string>({
             onClick={() => onChange(option.value)}
             className={`min-h-9 rounded-full px-2 text-sm ${
               selected
-                ? 'bg-[var(--app-surface)] font-semibold text-[var(--app-fg)] shadow-sm'
-                : 'text-[var(--app-muted)]'
+                ? 'bg-[var(--surface)] font-semibold text-[var(--ink)] shadow-sm'
+                : 'text-[var(--muted)]'
             }`}
           >
             {option.label}
@@ -194,7 +195,7 @@ export function PeriodStepper({
   canNext: boolean
 }) {
   const button =
-    'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--app-fg)] disabled:opacity-40'
+    'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--ink)] disabled:opacity-40'
   return (
     <div className="flex items-center justify-center gap-1">
       <button
@@ -203,13 +204,13 @@ export function PeriodStepper({
         className={button}
         onClick={onPrevious}
       >
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--app-surface-muted)]">
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-2)]">
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </span>
       </button>
       <span
         aria-live="polite"
-        className="inline-flex min-h-9 min-w-0 items-center rounded-full bg-[var(--app-surface-muted)] px-4 text-sm font-semibold"
+        className="inline-flex min-h-9 min-w-0 items-center rounded-full bg-[var(--surface-2)] px-4 text-sm font-semibold"
       >
         {label}
       </span>
@@ -220,7 +221,7 @@ export function PeriodStepper({
         onClick={onNext}
         disabled={!canNext}
       >
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--app-surface-muted)]">
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-2)]">
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </span>
       </button>
@@ -241,16 +242,16 @@ export function NavRow({
   return (
     <Link
       {...link}
-      className="flex min-h-14 items-center gap-3 px-4 py-2 text-[var(--app-fg)] no-underline hover:bg-[var(--app-surface-muted)]"
+      className="flex min-h-14 items-center gap-3 px-4 py-2 text-[var(--ink)] no-underline hover:bg-[var(--surface-2)]"
     >
       <span className="grid min-w-0 flex-1">
         <span className="text-base">{label}</span>
         {sub ? (
-          <span className="text-sm text-[var(--app-muted)]">{sub}</span>
+          <span className="text-sm text-[var(--muted)]">{sub}</span>
         ) : null}
       </span>
       <ChevronRight
-        className="h-4 w-4 shrink-0 text-[var(--app-muted)]"
+        className="h-4 w-4 shrink-0 text-[var(--muted)]"
         aria-hidden="true"
       />
     </Link>
@@ -271,7 +272,7 @@ export function RowList({
   return (
     <Tag
       aria-label={label}
-      className="shell-card grid divide-y divide-[var(--app-border)] overflow-hidden p-0"
+      className="shell-card grid divide-y divide-[var(--hair)] overflow-hidden p-0"
     >
       {children}
     </Tag>
@@ -293,7 +294,7 @@ export function ValueRow({
       <span className="grid min-w-0">
         <span className="text-base">{label}</span>
         {sub ? (
-          <span className="text-sm text-[var(--app-muted)]">{sub}</span>
+          <span className="text-sm text-[var(--muted)]">{sub}</span>
         ) : null}
       </span>
       <span className="shrink-0 text-base font-semibold tabular-nums">
@@ -316,7 +317,7 @@ export function Facts({
           key={fact.label}
           className="shell-card grid min-w-0 gap-1 [overflow-wrap:anywhere]"
         >
-          <dt className="text-sm text-[var(--app-muted)]">{fact.label}</dt>
+          <dt className="text-sm text-[var(--muted)]">{fact.label}</dt>
           <dd className="m-0 text-xl font-bold tabular-nums">{fact.value}</dd>
         </div>
       ))}
@@ -327,7 +328,7 @@ export function Facts({
 // -- Charts ---------------------------------------------------------------------
 
 const FUTURE_BAR =
-  'border border-dashed border-[var(--app-muted)] opacity-50'
+  'border border-dashed border-[var(--muted)] opacity-50'
 
 function Legend({
   items,
@@ -335,14 +336,14 @@ function Legend({
   items: readonly { label: string; swatch: 'ink' | 'solar' | 'muted' | 'future' | 'outline' }[]
 }) {
   const swatch = {
-    ink: 'bg-[var(--app-fg)]',
-    solar: 'bg-[var(--app-accent)]',
-    muted: 'bg-[var(--app-muted)]',
+    ink: 'bg-[var(--ink)]',
+    solar: 'bg-[var(--home-text)]',
+    muted: 'bg-[var(--muted)]',
     future: FUTURE_BAR,
-    outline: 'border-2 border-[var(--app-fg)]',
+    outline: 'border-2 border-[var(--ink)]',
   }
   return (
-    <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-xs text-[var(--app-muted)]">
+    <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-xs text-[var(--muted)]">
       {items.map((item) => (
         <li key={item.label} className="flex items-center gap-1.5">
           <span
@@ -411,7 +412,7 @@ export function MirrorBars({
             key={slot.key}
             data-bar={slot.future ? 'future' : slot.empty ? 'empty' : 'up'}
             className={`min-w-0 flex-1 rounded-t-[3px] ${
-              slot.future ? FUTURE_BAR : slot.empty ? '' : 'bg-[var(--app-fg)]'
+              slot.future ? FUTURE_BAR : slot.empty ? '' : 'bg-[var(--ink)]'
             }`}
             style={{
               height: slot.future
@@ -421,7 +422,7 @@ export function MirrorBars({
           />
         ))}
       </div>
-      <div className="h-px bg-[var(--app-border)]" />
+      <div className="h-px bg-[var(--hair)]" />
       {showDown ? (
         <div
           className={`flex items-start ${gap}`}
@@ -430,7 +431,7 @@ export function MirrorBars({
           {slots.map((slot) => (
             <span
               key={slot.key}
-              className="min-w-0 flex-1 rounded-b-[3px] bg-[var(--app-accent)]"
+              className="min-w-0 flex-1 rounded-b-[3px] bg-[var(--home-text)]"
               style={{
                 height: slot.future
                   ? 0
@@ -440,7 +441,7 @@ export function MirrorBars({
           ))}
         </div>
       ) : null}
-      <div className="mt-1 flex justify-between text-xs text-[var(--app-muted)] tabular-nums">
+      <div className="mt-1 flex justify-between text-xs text-[var(--muted)] tabular-nums">
         {ticks.map((tick) => (
           <span key={tick}>{tick}</span>
         ))}
@@ -479,15 +480,15 @@ export function YearPairBars({
             className="flex h-full min-w-0 flex-1 items-end gap-px"
           >
             <span
-              className="min-w-0 flex-1 rounded-t-[2px] bg-[var(--app-muted)]"
+              className="min-w-0 flex-1 rounded-t-[2px] bg-[var(--muted)]"
               style={{ height: `${Math.round(pair.previous * height)}px` }}
             />
             <span
               data-bar={pair.running ? 'running' : 'current'}
               className={`box-border min-w-0 flex-1 rounded-t-[2px] ${
                 pair.running
-                  ? 'border-2 border-[var(--app-fg)]'
-                  : 'bg-[var(--app-fg)]'
+                  ? 'border-2 border-[var(--ink)]'
+                  : 'bg-[var(--ink)]'
               }`}
               style={{
                 height: pair.hasCurrent
@@ -498,7 +499,7 @@ export function YearPairBars({
           </span>
         ))}
       </div>
-      <div className="flex gap-1 text-[11px] text-[var(--app-muted)] sm:text-xs">
+      <div className="flex gap-1 text-[11px] text-[var(--muted)] sm:text-xs">
         {labels.map((label, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: months are positions
           <span key={index} className="min-w-0 flex-1 truncate text-center">

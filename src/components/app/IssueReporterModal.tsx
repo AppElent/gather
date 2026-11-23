@@ -91,7 +91,7 @@ export function IssueReporterModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full max-w-md rounded-xl border bg-white p-4 shadow-lg dark:bg-neutral-900"
+        className="w-full max-w-md rounded-[var(--radius-card)] border border-[var(--hair)] bg-[var(--surface)] text-[var(--ink)] p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
@@ -106,7 +106,7 @@ export function IssueReporterModal({
                 href={status.issueUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="block text-emerald-600 underline dark:text-emerald-400"
+                className="block text-[var(--ink)] underline"
               >
                 {issueReporter.viewIssue}
               </a>
@@ -135,7 +135,7 @@ export function IssueReporterModal({
                 </option>
               ))}
             </select>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400">
+            <p className="text-xs text-[var(--muted)]">
               {issueReporter.publicNotice}
             </p>
             <textarea
@@ -147,7 +147,7 @@ export function IssueReporterModal({
               className="w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none"
             />
             {status.state === 'error' && (
-              <p className="text-sm text-red-600 dark:text-red-400">
+              <p className="text-sm text-[var(--danger)]">
                 {status.error}
               </p>
             )}
@@ -162,7 +162,7 @@ export function IssueReporterModal({
               <button
                 type="submit"
                 disabled={status.state === 'submitting' || !text.trim()}
-                className="rounded-md border bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50 dark:bg-white dark:text-black"
+                className="rounded-md border border-[var(--ink)] bg-[var(--ink)] px-3 py-1.5 text-sm text-[var(--on-ink)] disabled:opacity-50"
               >
                 {status.state === 'submitting'
                   ? issueReporter.sending

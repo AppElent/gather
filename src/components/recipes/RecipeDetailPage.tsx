@@ -73,7 +73,7 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
       <Breadcrumbs trail={trail} />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">{recipe.title}</h1>
+          <h1 className="text-2xl font-bold">{recipe.title}</h1>
           {recipe.rating != null && (
             <p className="text-sm opacity-60">{'★'.repeat(recipe.rating)}</p>
           )}
@@ -120,7 +120,7 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
       </div>
 
       {error && (
-        <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p className="mb-4 rounded-md border border-[var(--danger)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--danger)]">
           {error}
         </p>
       )}
@@ -165,14 +165,14 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
         and the prompt to re-estimate stays out of the way.
       */}
       {recipe.nutritionStale && recipe.canEdit && (
-        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <div className="mb-4 rounded-md border border-[var(--hair)] bg-[var(--home-wash)] px-3 py-2 text-sm text-[var(--ink)]">
           <p className="mb-2">{detail.staleNutrition}</p>
           <div className="flex gap-2">
             {aiConfigured && (
               <button
                 type="button"
                 disabled={estimating}
-                className="rounded border border-amber-400 px-2 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded border border-[var(--muted)] px-2 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={async () => {
                   setEstimating(true)
                   setError(null)
@@ -203,7 +203,7 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
             <Link
               {...linkTo('editRecipe', { recipeId: recipeId })}
               aria-label={detail.editManually}
-              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border border-amber-400 no-underline lg:gap-1 lg:px-2 lg:py-1 lg:text-xs lg:font-medium"
+              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border border-[var(--muted)] no-underline lg:gap-1 lg:px-2 lg:py-1 lg:text-xs lg:font-medium"
             >
               <Pencil className="h-4 w-4" aria-hidden="true" />
               <span className="hidden lg:inline">{detail.editManually}</span>

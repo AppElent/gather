@@ -7,6 +7,7 @@ import {
   DOCK_SLOTS,
   dockNavItems,
   getRouteContext,
+  getRouteGroup,
   jumpTargets,
   navItems,
   shellJumpTargets,
@@ -259,5 +260,18 @@ describe('the route context the topbar shows', () => {
 
   test('falls back rather than showing an empty header', () => {
     expect(getRouteContext('/nowhere', en).title).toBe('Gather')
+  })
+})
+
+describe('the group a page wears', () => {
+  test("is the Module's, from anywhere inside it", () => {
+    expect(getRouteGroup('/recipes')).toBe('kitchen')
+    expect(getRouteGroup('/recipes/r1/edit')).toBe('kitchen')
+    expect(getRouteGroup('/tasks')).toBe('home')
+  })
+
+  test('is none on the shell pages', () => {
+    for (const path of ['/', '/home', '/all', '/settings', '/account', '/nowhere'])
+      expect(getRouteGroup(path), path).toBeUndefined()
   })
 })

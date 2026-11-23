@@ -20,15 +20,15 @@ export function ModulePlaceholder({ moduleId }: { moduleId: ModuleId }) {
     <div className="mx-auto grid max-w-4xl gap-4">
       <SurfaceCard>
         <div className="flex items-start gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)] text-[var(--app-muted)]">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)] text-[var(--muted)]">
             <Icon name={icon} className="h-5 w-5" />
           </span>
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <h1 className="m-0 text-2xl font-semibold">{label}</h1>
+              <h1 className="m-0 text-2xl font-bold">{label}</h1>
               <Pill>{placeholder.planned}</Pill>
             </div>
-            <p className="m-0 max-w-2xl text-sm leading-6 text-[var(--app-muted)]">
+            <p className="m-0 max-w-2xl text-sm leading-6 text-[var(--muted)]">
               {description}
             </p>
           </div>
@@ -39,7 +39,7 @@ export function ModulePlaceholder({ moduleId }: { moduleId: ModuleId }) {
         <h2 className="m-0 text-sm font-semibold">
           {placeholder.whatWillLiveHere}
         </h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--app-muted)]">
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
           {placeholder.body}
         </p>
       </SurfaceCard>

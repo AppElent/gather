@@ -58,7 +58,7 @@ export function DataExportSettings() {
       {failed && (
         <p
           role="alert"
-          className="mb-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800"
+          className="mb-3 rounded-md border border-[var(--danger)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--danger)]"
         >
           {dataExport.failed}
         </p>
@@ -68,7 +68,7 @@ export function DataExportSettings() {
         type="button"
         disabled={progress !== null}
         onClick={run}
-        className="inline-flex min-h-9 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex min-h-9 items-center gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Download className="size-4" aria-hidden="true" />
         <span aria-live="polite">

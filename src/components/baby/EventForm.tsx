@@ -123,13 +123,13 @@ export function EventForm({
         />
       </label>
 
-      {error && <p className="m-0 text-sm text-red-800">{error}</p>}
+      {error && <p className="m-0 text-sm text-[var(--danger)]">{error}</p>}
 
       <div className="flex gap-2">
         <button
           type="submit"
           disabled={submitting}
-          className="min-h-9 rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-9 rounded-[var(--radius-control)] border border-[var(--accent)] bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--on-accent)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting
             ? messages.common.actions.saving
@@ -138,7 +138,7 @@ export function EventForm({
         <button
           type="button"
           onClick={onCancel}
-          className="min-h-9 px-2 text-sm text-[var(--app-muted)]"
+          className="min-h-9 px-2 text-sm text-[var(--muted)]"
         >
           {messages.common.actions.cancel}
         </button>

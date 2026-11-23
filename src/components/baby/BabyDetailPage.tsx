@@ -131,11 +131,11 @@ export function BabyDetailPage({ babyId }: BabyDetailPageProps) {
               className="h-14 w-14 rounded-full object-cover"
             />
           ) : (
-            <div className="h-14 w-14 rounded-full bg-[var(--app-surface-muted)]" />
+            <div className="h-14 w-14 rounded-full bg-[var(--surface-2)]" />
           )}
           <div>
-            <h1 className="m-0 text-2xl font-semibold">{baby.name}</h1>
-            <p className="m-0 text-sm text-[var(--app-muted)]">
+            <h1 className="m-0 text-2xl font-bold">{baby.name}</h1>
+            <p className="m-0 text-sm text-[var(--muted)]">
               {formatAge(baby.birthDate, child.age, locale)}
             </p>
           </div>
@@ -144,7 +144,7 @@ export function BabyDetailPage({ babyId }: BabyDetailPageProps) {
           <ExportPdfButton onClick={() => setExportOpen(true)} />
           <Link
             {...linkTo('editChild', { babyId: id })}
-            className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold no-underline"
+            className="inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold no-underline"
           >
             {messages.common.actions.edit}
           </Link>
@@ -190,7 +190,7 @@ export function BabyDetailPage({ babyId }: BabyDetailPageProps) {
       )}
 
       {events === undefined ? (
-        <div className="h-40 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]" />
+        <div className="h-40 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]" />
       ) : (
         <Timeline babyId={id} groupSlug={groupSlug} events={events} />
       )}

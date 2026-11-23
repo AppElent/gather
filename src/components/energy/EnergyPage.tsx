@@ -51,10 +51,10 @@ export function EnergyPage() {
     <div className="mx-auto grid max-w-3xl gap-4">
       <header>
         <div className="min-w-0">
-          <h2 className="m-0 text-2xl font-semibold">
+          <h2 className="m-0 font-rounded text-2xl font-bold">
             {messages.modules.byId.energy.label}
           </h2>
-          <p className="mt-1 text-sm text-[var(--app-muted)]">
+          <p className="mt-1 text-sm text-[var(--muted)]">
             {overview === undefined
               ? ' '
               : overview
@@ -65,7 +65,7 @@ export function EnergyPage() {
       </header>
 
       {overview === undefined ? (
-        <div className="h-40 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]" />
+        <div className="h-40 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]" />
       ) : overview ? (
         <SiteHome overview={overview} groupSlug={group.slug} />
       ) : (
@@ -120,13 +120,13 @@ function SiteHome({
     <>
       <SurfaceCard className="grid gap-1">
         <h3 className="m-0 text-lg font-semibold">{overview.site.name}</h3>
-        <p className="m-0 text-sm text-[var(--app-muted)]">{sourceLine}</p>
+        <p className="m-0 text-sm text-[var(--muted)]">{sourceLine}</p>
       </SurfaceCard>
 
       {overview.sources.length === 0 ? (
         <SurfaceCard className="grid gap-2">
           <h3 className="m-0 text-sm font-semibold">{copy.site.nextTitle}</h3>
-          <p className="m-0 text-sm text-[var(--app-muted)]">
+          <p className="m-0 text-sm text-[var(--muted)]">
             {copy.site.nextHomeAssistant}
           </p>
           <div>
@@ -211,12 +211,12 @@ function HourCard({ period }: { period: EnergyPeriod }) {
   return (
     <Link
       {...linkTo('energyUsage')}
-      className="block text-[var(--app-fg)] no-underline"
+      className="block text-[var(--ink)] no-underline"
     >
       <ChartFigure
         title={messages.energy.home.hourCard}
         aside={
-          <span className="text-sm text-[var(--app-muted)]">
+          <span className="text-sm text-[var(--muted)]">
             {messages.energy.home.openUsage} ›
           </span>
         }
@@ -245,12 +245,12 @@ function DayCard({ period }: { period: EnergyPeriod }) {
   return (
     <Link
       {...linkTo('energyUsage')}
-      className="block text-[var(--app-fg)] no-underline"
+      className="block text-[var(--ink)] no-underline"
     >
       <ChartFigure
         title={messages.energy.home.dayCard}
         aside={
-          <span className="text-sm text-[var(--app-muted)]">
+          <span className="text-sm text-[var(--muted)]">
             {messages.energy.home.openUsage} ›
           </span>
         }
@@ -284,7 +284,7 @@ function AddFirstAddress({ groupSlug }: { groupSlug: string }) {
       <SurfaceCard className="grid gap-3 py-8">
         <h3 className="m-0 text-lg font-semibold">{copy.empty.title}</h3>
         <p className="m-0 max-w-xl text-sm">{copy.empty.body}</p>
-        <p className="m-0 max-w-xl text-sm text-[var(--app-muted)]">
+        <p className="m-0 max-w-xl text-sm text-[var(--muted)]">
           {copy.empty.next}
         </p>
         <div>
@@ -357,7 +357,7 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
   return (
     <form className="grid gap-4" onSubmit={submit} noValidate>
       <SurfaceCard className="grid gap-3">
-        <h3 className="m-0 text-xs font-semibold uppercase tracking-wide text-[var(--app-muted)]">
+        <h3 className="m-0 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           {copy.form.addressHeading}
         </h3>
         <label className="grid gap-1 text-sm font-medium" htmlFor={`${ids}-name`}>
@@ -390,7 +390,7 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
         </label>
         <p
           id={`${ids}-house-hint`}
-          className="m-0 text-xs text-[var(--app-muted)]"
+          className="m-0 text-xs text-[var(--muted)]"
         >
           {copy.form.houseHint}
         </p>
@@ -398,13 +398,13 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
 
       <SurfaceCard className="grid gap-3">
         <fieldset className="m-0 grid gap-2 border-0 p-0">
-          <legend className="mb-2 p-0 text-xs font-semibold uppercase tracking-wide text-[var(--app-muted)]">
+          <legend className="mb-2 p-0 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
             {copy.form.sourceHeading}
           </legend>
           {options.map((option) => (
             <label
               key={option.value}
-              className="flex cursor-pointer items-start gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] p-3 has-[:checked]:border-[var(--app-accent)]"
+              className="flex cursor-pointer items-start gap-3 rounded-[var(--radius-control)] border border-[var(--hair)] p-3 has-[:checked]:border-[var(--ink)]"
             >
               <input
                 type="radio"
@@ -412,11 +412,11 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
                 value={option.value}
                 checked={source === option.value}
                 onChange={() => setSource(option.value)}
-                className="mt-1 h-4 w-4 shrink-0 accent-[var(--app-accent)]"
+                className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent-text)]"
               />
               <span className="grid gap-0.5">
                 <span className="text-sm font-semibold">{option.label}</span>
-                <span className="text-xs text-[var(--app-muted)]">
+                <span className="text-xs text-[var(--muted)]">
                   {option.hint}
                 </span>
               </span>
@@ -426,7 +426,7 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
       </SurfaceCard>
 
       {error ? (
-        <p role="alert" className="m-0 text-sm text-[var(--app-danger)]">
+        <p role="alert" className="m-0 text-sm text-[var(--danger)]">
           {error}
         </p>
       ) : null}

@@ -30,7 +30,7 @@ export function MobileDock() {
   return (
     <nav
       aria-label={dock.label}
-      className="fixed inset-x-2 bottom-2 z-30 grid gap-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-1 md:hidden"
+      className="fixed inset-x-2 bottom-2 z-30 grid gap-1 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] p-1 md:hidden"
       // Someone who has pinned nothing gets two items, not four empty columns.
       style={{
         gridTemplateColumns: `repeat(${shown.length}, minmax(0, 1fr))`,
@@ -43,7 +43,7 @@ export function MobileDock() {
           // This bar colours itself from `aria-current`, which the router also
           // sets by prefix; see `activeNavItemId` for why the two agree.
           aria-current={item.id === activeId ? 'page' : undefined}
-          className="grid min-h-11 place-items-center rounded-[7px] text-xs text-[var(--app-muted)] no-underline aria-[current=page]:bg-[var(--app-surface-muted)] aria-[current=page]:text-[var(--app-fg)]"
+          className="grid min-h-11 place-items-center rounded-[7px] text-xs text-[var(--muted)] no-underline aria-[current=page]:bg-[var(--surface-2)] aria-[current=page]:text-[var(--ink)]"
         >
           <Icon name={item.icon} className="h-4 w-4" />
           <span>{item.label}</span>

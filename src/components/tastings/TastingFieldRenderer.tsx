@@ -35,7 +35,7 @@ export function TastingFieldRenderer({
   const label = tastings.fields[field.key as keyof typeof tastings.fields]
   const id = `tasting-field-${field.key}`
   const controlClass =
-    'min-h-10 w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm'
+    'min-h-10 w-full rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3 text-sm'
 
   const term = (key: string) => tastingTerm(messages, field.vocabulary, key)
 
@@ -71,7 +71,7 @@ export function TastingFieldRenderer({
             }
           />
           {field.unit ? (
-            <span className="text-sm text-[var(--app-muted)]">
+            <span className="text-sm text-[var(--muted)]">
               {tastings.units[field.unit]}
             </span>
           ) : null}
@@ -81,7 +81,7 @@ export function TastingFieldRenderer({
         <div className="flex items-center gap-3">
           <input
             id={id}
-            className="w-full accent-[var(--app-accent)]"
+            className="w-full accent-[var(--accent-text)]"
             type="range"
             min={1}
             max={5}

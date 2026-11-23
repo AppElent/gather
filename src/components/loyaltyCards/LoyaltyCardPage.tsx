@@ -83,7 +83,7 @@ export function LoyaltyCardPage({
         <Breadcrumbs
           trail={[moduleCrumb, { label: card === null ? copy.notFound : '…' }]}
         />
-        <p className="text-sm text-[var(--app-muted)]">
+        <p className="text-sm text-[var(--muted)]">
           {card === null ? copy.notFound : messages.common.errors.loading}
         </p>
       </div>
@@ -108,11 +108,11 @@ export function LoyaltyCardPage({
             catalogKey={card.catalogKey}
           />
           <div className="min-w-0">
-            <h2 className="m-0 truncate text-2xl font-semibold">
+            <h2 className="m-0 truncate font-rounded text-2xl font-bold">
               {card.storeName}
             </h2>
             {card.holder ? (
-              <p className="m-0 truncate text-sm text-[var(--app-muted)]">
+              <p className="m-0 truncate text-sm text-[var(--muted)]">
                 {card.holder}
               </p>
             ) : null}
@@ -121,7 +121,7 @@ export function LoyaltyCardPage({
         <Link
           {...linkTo('editLoyaltyCard', { cardId: card._id })}
           aria-label={messages.common.actions.edit}
-          className="inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-fg)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
+          className="inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] text-[var(--ink)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
         >
           <Pencil className="h-4 w-4" aria-hidden="true" />
           <span className="hidden lg:inline">
@@ -132,7 +132,7 @@ export function LoyaltyCardPage({
 
       <section
         aria-label={copy.showAtTill}
-        className="grid gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-3 sm:p-4"
+        className="grid gap-3 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] p-3 sm:p-4"
       >
         <Barcode
           format={card.barcodeFormat}
@@ -143,7 +143,7 @@ export function LoyaltyCardPage({
           })}
         />
         <div className="text-center">
-          <p className="m-0 text-xs uppercase tracking-wide text-[var(--app-muted)]">
+          <p className="m-0 text-xs uppercase tracking-wide text-[var(--muted)]">
             {copy.cardNumber} · {formatName}
           </p>
           <p className="m-0 select-all break-all font-mono text-xl tracking-widest">
@@ -156,14 +156,14 @@ export function LoyaltyCardPage({
         {card.note ? (
           <div className="sm:col-span-2">
             <dt className="font-medium">{copy.note}</dt>
-            <dd className="m-0 whitespace-pre-wrap text-[var(--app-muted)]">
+            <dd className="m-0 whitespace-pre-wrap text-[var(--muted)]">
               {card.note}
             </dd>
           </div>
         ) : null}
         <div>
           <dt className="font-medium">{copy.lastUsed}</dt>
-          <dd className="m-0 text-[var(--app-muted)]">
+          <dd className="m-0 text-[var(--muted)]">
             {lastUsed
               ? formatActivityTime(lastUsed, messages, locale)
               : messages.loyaltyCards.index.neverUsed}
@@ -179,14 +179,14 @@ export function LoyaltyCardPage({
               <img
                 src={card.frontPhotoUrl}
                 alt={messages.loyaltyCards.form.frontPhoto}
-                className="w-full rounded-[var(--app-radius)] border border-[var(--app-border)] object-cover"
+                className="w-full rounded-[var(--radius-control)] border border-[var(--hair)] object-cover"
               />
             ) : null}
             {card.backPhotoUrl ? (
               <img
                 src={card.backPhotoUrl}
                 alt={messages.loyaltyCards.form.backPhoto}
-                className="w-full rounded-[var(--app-radius)] border border-[var(--app-border)] object-cover"
+                className="w-full rounded-[var(--radius-control)] border border-[var(--hair)] object-cover"
               />
             ) : null}
           </div>

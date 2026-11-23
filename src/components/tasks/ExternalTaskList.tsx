@@ -61,7 +61,7 @@ export function ExternalTaskList({
           <button
             type="button"
             aria-label={fmt(external.refresh, { name })}
-            className="inline-flex items-center text-[var(--app-muted)]"
+            className="inline-flex items-center text-[var(--muted)]"
             onClick={() => void load()}
             disabled={state.status === 'loading'}
           >
@@ -70,7 +70,7 @@ export function ExternalTaskList({
           <button
             type="button"
             aria-label={fmt(messages.tasks.local.deleteList, { name })}
-            className="inline-flex items-center text-[var(--app-muted)]"
+            className="inline-flex items-center text-[var(--muted)]"
             onClick={onRemoveList}
           >
             <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -83,13 +83,13 @@ export function ExternalTaskList({
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-6 animate-pulse rounded bg-[var(--app-surface-muted)]"
+              className="h-6 animate-pulse rounded bg-[var(--surface-2)]"
             />
           ))}
         </div>
       )}
       {state.status === 'reconnect' && (
-        <p className="m-0 text-sm text-[var(--app-muted)]">
+        <p className="m-0 text-sm text-[var(--muted)]">
           {fmt(external.reconnect, {
             provider: PROVIDER_LABELS[state.provider],
           })}{' '}
@@ -101,7 +101,7 @@ export function ExternalTaskList({
         </p>
       )}
       {state.status === 'error' && (
-        <p className="m-0 text-sm text-[var(--app-muted)]">
+        <p className="m-0 text-sm text-[var(--muted)]">
           {state.message}{' '}
           <button
             type="button"
@@ -114,7 +114,7 @@ export function ExternalTaskList({
       )}
       {state.status === 'ok' &&
         (state.tasks.length === 0 ? (
-          <p className="m-0 text-sm text-[var(--app-muted)]">
+          <p className="m-0 text-sm text-[var(--muted)]">
             {fmt(external.empty, { provider: PROVIDER_LABELS[provider] })}
           </p>
         ) : (

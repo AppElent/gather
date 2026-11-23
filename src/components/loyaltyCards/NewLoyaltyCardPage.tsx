@@ -47,7 +47,7 @@ export function NewLoyaltyCardPage() {
   return (
     <div className="mx-auto grid max-w-2xl gap-4">
       <Breadcrumbs trail={trail} className="mb-0" />
-      <h2 className="m-0 text-2xl font-semibold">{copy.form.createTitle}</h2>
+      <h2 className="m-0 font-rounded text-2xl font-bold">{copy.form.createTitle}</h2>
 
       {choice === null ? (
         <RetailerPicker
@@ -56,7 +56,7 @@ export function NewLoyaltyCardPage() {
         />
       ) : (
         <>
-          <div className="flex items-center justify-between gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
+          <div className="flex items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] p-3">
             <span className="flex min-w-0 items-center gap-3">
               {retailer ? (
                 <StoreTile
@@ -72,7 +72,7 @@ export function NewLoyaltyCardPage() {
             </span>
             <button
               type="button"
-              className="min-h-9 shrink-0 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm"
+              className="min-h-9 shrink-0 rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm"
               onClick={() => {
                 setChoice(null)
                 setError(null)

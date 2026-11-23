@@ -19,10 +19,10 @@ export function BabySwitcher({ babies, activeId }: BabySwitcherProps) {
         <Link
           key={b._id}
           {...linkTo('child', { babyId: b._id })}
-          className={`inline-flex min-h-8 items-center rounded-[var(--app-radius)] border px-3 text-sm font-semibold no-underline ${
+          className={`inline-flex min-h-8 items-center rounded-[var(--radius-control)] border px-3 text-sm font-semibold no-underline ${
             b._id === activeId
-              ? 'border-[var(--app-fg)] bg-[var(--app-surface)] text-[var(--app-fg)]'
-              : 'border-[var(--app-border)] text-[var(--app-muted)]'
+              ? 'border-[var(--ink)] bg-[var(--surface)] text-[var(--ink)]'
+              : 'border-[var(--hair)] text-[var(--muted)]'
           }`}
         >
           {b.name}

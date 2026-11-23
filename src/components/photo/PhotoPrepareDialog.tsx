@@ -290,7 +290,7 @@ export function PhotoPrepareDialog({
               <h2 className="m-0 text-base font-semibold">
                 {image.frameTitle}
               </h2>
-              <p className="m-0 text-sm text-[var(--app-muted)]">
+              <p className="m-0 text-sm text-[var(--muted)]">
                 {aspect === null ? image.frameFree : image.frameSquare}
               </p>
             </div>
@@ -298,7 +298,7 @@ export function PhotoPrepareDialog({
             {error ? (
               <p
                 role="alert"
-                className="m-0 rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 py-2 text-sm text-[var(--app-danger)]"
+                className="m-0 rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 py-2 text-sm text-[var(--danger)]"
               >
                 {photoErrorText(error, image)}
               </p>
@@ -349,7 +349,7 @@ export function PhotoPrepareDialog({
                         onPointerUp={endDrag}
                         onPointerCancel={endDrag}
                         onKeyDown={nudge('resize')}
-                        className="absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize touch-none rounded-full border-2 border-white bg-[var(--app-accent,#0f766e)]"
+                        className="absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize touch-none rounded-full border-2 border-white bg-[var(--accent)]"
                         style={{
                           left: `${((crop.x + crop.width) / photo.width) * 100}%`,
                           top: `${((crop.y + crop.height) / photo.height) * 100}%`,
@@ -383,7 +383,7 @@ export function PhotoPrepareDialog({
               </label>
             ) : null}
 
-            <p className="m-0 text-xs text-[var(--app-muted)]">
+            <p className="m-0 text-xs text-[var(--muted)]">
               {storedSize
                 ? fmt(image.storedAs, {
                     width: storedSize.width,
@@ -396,7 +396,7 @@ export function PhotoPrepareDialog({
               <button
                 type="button"
                 onClick={abandon}
-                className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
+                className="inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold"
               >
                 {cancelLabel}
               </button>
@@ -404,7 +404,7 @@ export function PhotoPrepareDialog({
                 type="button"
                 disabled={!crop || preparing}
                 onClick={() => void confirm()}
-                className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold disabled:opacity-60"
+                className="inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold disabled:opacity-60"
               >
                 {preparing ? image.preparing : image.use}
               </button>

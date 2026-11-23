@@ -33,7 +33,7 @@ export function AuthCard({
               {config.appName}
             </span>
           )}
-          <h1 className="mt-2 text-lg font-semibold text-[var(--auth-fg)]">
+          <h1 className="mt-2 text-lg font-bold text-[var(--auth-fg)]">
             {title}
           </h1>
           {subtitle ? (

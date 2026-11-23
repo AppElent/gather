@@ -90,7 +90,7 @@ function EditBabyForm({
     <div className="mx-auto max-w-2xl">
       <Breadcrumbs trail={trail} />
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="m-0 text-2xl font-semibold">
+        <h1 className="m-0 text-2xl font-bold">
           {fmt(form.editTitle, { name: baby.name })}
         </h1>
         <button
@@ -114,7 +114,7 @@ function EditBabyForm({
       </div>
 
       {error && (
-        <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p className="mb-4 rounded-md border border-[var(--danger)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--danger)]">
           {error}
         </p>
       )}

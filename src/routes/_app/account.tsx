@@ -14,14 +14,14 @@ function AccountPage() {
 
   return (
     <div className="mx-auto grid max-w-2xl gap-6">
-      <h1 className="m-0 mb-4 text-xl font-semibold">
+      <h1 className="m-0 mb-4 text-xl font-bold">
         {messages.shell.routes.account.title}
       </h1>
       <ProfilePanel />
       <SignedInDevices />
       <DataExportSettings />
       <AccountDeleteSettings />
-      <p className="m-0 text-sm text-[var(--app-muted)]">
+      <p className="m-0 text-sm text-[var(--muted)]">
         <Link to="/privacy" className="underline-offset-2 hover:underline">
           {messages.privacy.title}
         </Link>

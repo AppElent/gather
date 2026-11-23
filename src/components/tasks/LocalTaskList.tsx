@@ -10,7 +10,7 @@ import { TaskEditor, type TaskEditorValues } from './TaskEditor'
 import { TaskRow } from './TaskRow'
 
 const iconButtonClass =
-  'inline-flex items-center text-[var(--app-muted)] disabled:opacity-30'
+  'inline-flex items-center text-[var(--muted)] disabled:opacity-30'
 
 export interface LocalTaskListProps {
   listId: Id<'taskLists'>
@@ -79,7 +79,7 @@ export function LocalTaskList({
       />
       <button
         type="button"
-        className="mb-2 text-xs text-[var(--app-muted)]"
+        className="mb-2 text-xs text-[var(--muted)]"
         onClick={() => setShowDetails((s) => !s)}
       >
         {showDetails ? local.hideDetails : local.showDetails}
@@ -166,7 +166,7 @@ export function LocalTaskList({
         ),
       )}
       {tasks?.length === 0 && (
-        <p className="m-0 text-sm text-[var(--app-muted)]">{local.empty}</p>
+        <p className="m-0 text-sm text-[var(--muted)]">{local.empty}</p>
       )}
     </SurfaceCard>
   )

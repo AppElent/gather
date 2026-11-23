@@ -45,10 +45,10 @@ export function RecipesPage() {
     <div className="mx-auto grid max-w-5xl gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="m-0 text-2xl font-semibold">
+          <h2 className="m-0 font-rounded text-2xl font-bold">
             {messages.modules.byId.recipes.label}
           </h2>
-          <p className="mt-1 text-sm text-[var(--app-muted)]">
+          <p className="mt-1 text-sm text-[var(--muted)]">
             {list.subtitle}
           </p>
         </div>
@@ -57,7 +57,7 @@ export function RecipesPage() {
           <Link
             {...linkTo('newRecipe')}
             aria-label={list.add}
-            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-fg)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] text-[var(--ink)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             <span className="hidden lg:inline">{list.add}</span>
@@ -70,7 +70,7 @@ export function RecipesPage() {
           {[0, 1, 2].map((index) => (
             <div
               key={index}
-              className="h-32 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]"
+              className="h-32 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]"
             />
           ))}
         </div>
@@ -78,13 +78,13 @@ export function RecipesPage() {
         <SurfaceCard>
           <div className="grid gap-3 text-center">
             <h3 className="m-0 text-base font-semibold">{list.emptyTitle}</h3>
-            <p className="m-0 text-sm text-[var(--app-muted)]">
+            <p className="m-0 text-sm text-[var(--muted)]">
               {list.emptyBody}
             </p>
             <Link
               {...linkTo('newRecipe')}
               aria-label={list.emptyAction}
-              className="mx-auto inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
+              className="mx-auto inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
               <span className="hidden lg:inline">{list.emptyAction}</span>
@@ -97,7 +97,7 @@ export function RecipesPage() {
             <label className="relative block min-w-0 flex-1 basis-60">
               <span className="sr-only">{list.search}</span>
               <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--app-muted)]"
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]"
                 aria-hidden="true"
               />
               <input
@@ -140,7 +140,7 @@ export function RecipesPage() {
                 <h3 className="m-0 text-base font-semibold">
                   {list.noResultsTitle}
                 </h3>
-                <p className="m-0 text-sm text-[var(--app-muted)]">
+                <p className="m-0 text-sm text-[var(--muted)]">
                   {tag
                     ? fmt(list.noResultsTaggedBody, {
                         query: query.trim(),
@@ -150,7 +150,7 @@ export function RecipesPage() {
                 </p>
                 <button
                   type="button"
-                  className="mx-auto inline-flex min-h-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
+                  className="mx-auto inline-flex min-h-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold"
                   onClick={clearFilters}
                 >
                   {list.clearFilters}
@@ -169,7 +169,7 @@ export function RecipesPage() {
                 <Link
                   key={r._id}
                   {...linkTo('recipe', { recipeId: r._id })}
-                  className="block no-underline transition hover:opacity-90"
+                  className="block text-[var(--ink)] no-underline transition hover:opacity-90"
                 >
                   <RecipeCard recipe={r} mode={viewMode} />
                 </Link>

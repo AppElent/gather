@@ -99,19 +99,19 @@ export function AccountDeleteSettings() {
     const id = `account-delete-${choice}`
     return (
       <div
-        className="grid gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] p-3"
+        className="grid gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] p-3"
         aria-labelledby={`${id}-title`}
         role="group"
       >
         <h3 id={`${id}-title`} className="m-0 text-sm font-semibold">
           {text.title}
         </h3>
-        <p className="m-0 text-sm text-[var(--app-muted)]">{text.body}</p>
+        <p className="m-0 text-sm text-[var(--muted)]">{text.body}</p>
         {choice === 'wholeAccount' && askingApple ? (
           <div
             role="group"
             aria-labelledby={`${id}-apple`}
-            className="grid gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2"
+            className="grid gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] px-3 py-2"
           >
             <p id={`${id}-apple`} className="m-0 text-sm">
               {words.apple.prompt}
@@ -124,7 +124,7 @@ export function AccountDeleteSettings() {
                 autoFocus
                 disabled={state.step === 'revokingApple'}
                 onClick={continueWithApple}
-                className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 text-sm font-semibold text-[var(--app-danger)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 text-sm font-semibold text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span aria-live="polite">
                   {state.step === 'revokingApple'
@@ -137,7 +137,7 @@ export function AccountDeleteSettings() {
                   type="button"
                   data-testid="account-delete-apple-cancel"
                   onClick={cancelApple}
-                  className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
+                  className="inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold"
                 >
                   {messages.common.actions.cancel}
                 </button>
@@ -148,7 +148,7 @@ export function AccountDeleteSettings() {
         {error ? (
           <p
             role="alert"
-            className="m-0 rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 py-2 text-sm text-[var(--app-danger)]"
+            className="m-0 rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 py-2 text-sm text-[var(--danger)]"
           >
             {error}
           </p>
@@ -159,7 +159,7 @@ export function AccountDeleteSettings() {
             data-testid={`${id}-submit`}
             disabled={disabled}
             onClick={() => ask(choice)}
-            className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 text-sm font-semibold text-[var(--app-danger)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 text-sm font-semibold text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <span aria-live="polite">
               {busyWith === choice ? messages.common.actions.working : text.submit}
@@ -174,7 +174,7 @@ export function AccountDeleteSettings() {
     <>
       <section
         aria-labelledby="account-delete-title"
-        className="rm-panel border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] p-4"
+        className="rm-panel border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] p-4"
       >
         <h2 id="account-delete-title" className="rm-label">
           {words.dangerZone}
@@ -182,12 +182,12 @@ export function AccountDeleteSettings() {
         <p className="m-0 mb-3 text-sm font-semibold">{words.lead}</p>
 
         {preview === undefined ? (
-          <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
+          <p className="m-0 mb-3 text-sm text-[var(--muted)]">
             {messages.common.errors.loading}
           </p>
         ) : preview === null ? null : preview.deleted.length === 0 &&
           preview.kept.length === 0 ? (
-          <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
+          <p className="m-0 mb-3 text-sm text-[var(--muted)]">
             {words.noGroups}
           </p>
         ) : (
@@ -251,12 +251,12 @@ function Consequence({
   return (
     <div className="grid gap-1">
       <h3
-        className={`m-0 text-sm font-semibold ${tone === 'danger' ? 'text-[var(--app-danger)]' : ''}`}
+        className={`m-0 text-sm font-semibold ${tone === 'danger' ? 'text-[var(--danger)]' : ''}`}
       >
         {heading}
       </h3>
-      <p className="m-0 text-sm text-[var(--app-muted)]">{body}</p>
-      <ul className="m-0 mt-1 list-none divide-y divide-[var(--app-border)] rounded-[var(--app-radius)] border border-[var(--app-border)] p-0">
+      <p className="m-0 text-sm text-[var(--muted)]">{body}</p>
+      <ul className="m-0 mt-1 list-none divide-y divide-[var(--hair)] rounded-[var(--radius-control)] border border-[var(--hair)] p-0">
         {groups.map((name, index) => (
           <li key={`${index}:${name}`} className="px-3 py-2 text-sm">
             {name}

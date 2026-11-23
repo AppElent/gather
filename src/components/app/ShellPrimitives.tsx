@@ -49,7 +49,7 @@ export function SurfaceCard({
 
 export interface PillProps {
   children: ReactNode
-  tone?: 'default' | 'dark' | 'success' | 'warning'
+  tone?: 'default' | 'dark'
   className?: string
 }
 

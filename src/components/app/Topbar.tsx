@@ -26,7 +26,7 @@ export function Topbar({
   const { topbar } = useMessages().shell
 
   return (
-    <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-bg)_86%,transparent)] px-3 backdrop-blur md:min-h-[72px] md:px-5">
+    <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-[var(--hair)] bg-[color-mix(in_oklch,var(--ground)_86%,transparent)] px-3 backdrop-blur md:min-h-[72px] md:px-5">
       <div className="flex min-w-0 items-center gap-3">
         <IconButton
           label={topbar.openNavigation}
@@ -36,16 +36,16 @@ export function Topbar({
           <Menu className="h-4 w-4" aria-hidden="true" />
         </IconButton>
         <div className="min-w-0">
-          <h1 className="m-0 truncate text-xl font-semibold leading-tight md:text-2xl">
+          <h1 className="m-0 truncate text-xl font-bold leading-tight md:text-2xl">
             {context.title}
           </h1>
-          <p className="mt-1 hidden truncate text-sm text-[var(--app-muted)] md:block">
+          <p className="mt-1 hidden truncate text-sm text-[var(--muted)] md:block">
             {context.subtitle}
           </p>
           {/* The phone has no sidebar on screen, so the Group it would have
               named goes here — it is the one thing a reader cannot otherwise
               see, and the subtitle it replaces only restates the title. */}
-          <p className="mt-1 truncate text-sm text-[var(--app-muted)] md:hidden">
+          <p className="mt-1 truncate text-sm text-[var(--muted)] md:hidden">
             {groupName ?? context.subtitle}
           </p>
         </div>

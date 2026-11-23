@@ -100,7 +100,7 @@ export function RecipeSharingPanel({
       )}
 
       {error && (
-        <p className="mb-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-red-800">
+        <p className="mb-3 rounded-md border border-[var(--danger)] bg-[var(--surface)] px-3 py-2 text-[var(--danger)]">
           {error}
         </p>
       )}

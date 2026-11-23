@@ -117,7 +117,7 @@ export function ImageUploadField({
             className="h-20 w-20 shrink-0 rounded-lg object-cover"
           />
         ) : (
-          <div className="h-20 w-20 shrink-0 rounded-lg bg-black/5 dark:bg-white/10" />
+          <div className="h-20 w-20 shrink-0 rounded-lg bg-[var(--surface-2)]" />
         )}
         <div className="min-w-0 flex-1">
           {/* Visually hidden, not removed: it is still the field, still the
@@ -143,13 +143,13 @@ export function ImageUploadField({
           />
           <label
             htmlFor={fieldId}
-            className="inline-flex max-w-full min-h-9 cursor-pointer items-center truncate rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--app-accent)] peer-disabled:cursor-not-allowed peer-disabled:opacity-60"
+            className="inline-flex max-w-full min-h-9 cursor-pointer items-center truncate rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--ink)] peer-disabled:cursor-not-allowed peer-disabled:opacity-60"
           >
             {displayUrl ? image.replace : image.choose}
           </label>
           {uploading && <p className="text-xs opacity-60">{image.uploading}</p>}
           {error && (
-            <p role="alert" className="text-xs text-red-800">
+            <p role="alert" className="text-xs text-[var(--danger)]">
               {error}
             </p>
           )}

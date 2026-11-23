@@ -89,9 +89,9 @@ function EditRecipeForm({
   return (
     <div>
       <Breadcrumbs trail={trail} />
-      <h1 className="mb-6 text-2xl font-semibold">{edit.title}</h1>
+      <h1 className="mb-6 text-2xl font-bold">{edit.title}</h1>
       {error && (
-        <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p className="mb-4 rounded-md border border-[var(--danger)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--danger)]">
           {error}
         </p>
       )}

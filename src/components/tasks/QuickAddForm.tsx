@@ -36,12 +36,12 @@ export function QuickAddForm({
         onChange={(e) => setTitle(e.target.value)}
         placeholder={placeholder}
         aria-label={fieldLabel}
-        className="min-h-9 flex-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-3 text-sm"
+        className="min-h-9 flex-1 rounded-[var(--radius-control)] border border-[var(--hair)] bg-transparent px-3 text-sm"
       />
       <button
         type="submit"
         aria-label={buttonLabel}
-        className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3"
+        className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3"
       >
         <Plus className="h-4 w-4" aria-hidden="true" />
       </button>

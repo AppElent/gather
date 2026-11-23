@@ -123,7 +123,7 @@ export function NewRecipePage({ initialUrl }: NewRecipePageProps) {
   return (
     <div>
       <Breadcrumbs trail={trail} />
-      <h1 className="mb-6 text-2xl font-semibold">{createText.title}</h1>
+      <h1 className="mb-6 text-2xl font-bold">{createText.title}</h1>
 
       <div className="mx-auto mb-6 max-w-2xl rounded-xl border p-4">
         <label className="block text-sm">
@@ -151,10 +151,10 @@ export function NewRecipePage({ initialUrl }: NewRecipePageProps) {
           <RecipeDestinationNotice destination={destination} />
         </div>
         {importError && (
-          <p className="mt-2 text-sm text-red-800">{importError}</p>
+          <p className="mt-2 text-sm text-[var(--danger)]">{importError}</p>
         )}
         {imported && !importing && !importError && (
-          <p className="mt-2 text-sm text-green-700">{createText.imported}</p>
+          <p className="mt-2 text-sm text-[var(--kitchen-text)]">{createText.imported}</p>
         )}
       </div>
 
@@ -170,7 +170,7 @@ export function NewRecipePage({ initialUrl }: NewRecipePageProps) {
       />
 
       {error && (
-        <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p className="mb-4 rounded-md border border-[var(--danger)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--danger)]">
           {error}
         </p>
       )}

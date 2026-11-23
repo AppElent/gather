@@ -66,23 +66,23 @@ function SignedInGate() {
   if (!isClerkLoaded || !isAuthenticated) {
     if (!authStalled) {
       return (
-        <div className="app-shell grid min-h-svh place-items-center text-sm text-[var(--app-muted)]">
+        <div className="app-shell grid min-h-svh place-items-center text-sm text-[var(--muted)]">
           {messages.common.errors.loading}
         </div>
       )
     }
 
     return (
-      <div className="app-shell grid min-h-svh place-items-center px-6 text-sm text-[var(--app-muted)]">
+      <div className="app-shell grid min-h-svh place-items-center px-6 text-sm text-[var(--muted)]">
         <div className="grid max-w-sm justify-items-center gap-3 text-center">
-          <p className="m-0 text-base font-semibold text-[var(--app-fg)]">
+          <p className="m-0 text-base font-semibold text-[var(--ink)]">
             {session.stalledTitle}
           </p>
           <p className="m-0 leading-6">{session.stalledBody}</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)]"
+            className="inline-flex min-h-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--accent)] bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--on-accent)]"
           >
             {session.reload}
           </button>

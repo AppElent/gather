@@ -67,9 +67,9 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={groupSwitcher.label}
-        className="grid w-full grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1.5 text-left"
+        className="grid w-full grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-2 py-1.5 text-left"
       >
-        <span className="grid h-8 w-8 place-items-center overflow-hidden rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-sm font-bold text-[var(--app-fg)]">
+        <span className="grid h-8 w-8 place-items-center overflow-hidden rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] text-sm font-bold text-[var(--ink)]">
           {current?.imageUrl ? (
             <img
               src={current.imageUrl}
@@ -83,24 +83,24 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
           )}
         </span>
         <span className="min-w-0">
-          <strong className="block truncate text-sm text-[var(--app-fg)]">
+          <strong className="block truncate text-sm text-[var(--ink)]">
             {/* Not "Gather": the app's name is the one thing on this screen
                 nobody needs telling. */}
             {current?.name ??
               (groups === undefined ? loading : groupSwitcher.none)}
           </strong>
-          <span className="block truncate text-xs text-[var(--app-muted)]">
+          <span className="block truncate text-xs text-[var(--muted)]">
             {current ? groupSwitcher.shared : groupSwitcher.pick}
           </span>
         </span>
         <Icon
           name={open ? 'ChevronUp' : 'ChevronDown'}
-          className="h-4 w-4 text-[var(--app-muted)]"
+          className="h-4 w-4 text-[var(--muted)]"
         />
       </button>
 
       {open ? (
-        <div className="absolute inset-x-0 top-full z-40 mt-1 grid gap-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-1 shadow-lg">
+        <div className="absolute inset-x-0 top-full z-40 mt-1 grid gap-1 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] p-1 shadow-lg">
           {groups?.map((group) => (
             <Link
               key={group._id}
@@ -111,7 +111,7 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
                 onNavigate?.()
               }}
               aria-current={group._id === current?._id ? 'true' : undefined}
-              className="grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[7px] px-2 text-sm font-semibold text-[var(--app-fg)] no-underline aria-[current]:bg-[var(--app-surface-muted)]"
+              className="grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[7px] px-2 text-sm font-semibold text-[var(--ink)] no-underline aria-[current]:bg-[var(--surface-2)]"
             >
               <span className="truncate">{group.name}</span>
             </Link>
@@ -122,7 +122,7 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
               setOpen(false)
               onNavigate?.()
             }}
-            className="grid min-h-9 items-center rounded-[7px] border-t border-[var(--app-border)] px-2 text-sm text-[var(--app-muted)] no-underline"
+            className="grid min-h-9 items-center rounded-[7px] border-t border-[var(--hair)] px-2 text-sm text-[var(--muted)] no-underline"
           >
             {groupSwitcher.manage}
           </Link>

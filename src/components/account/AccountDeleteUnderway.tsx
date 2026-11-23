@@ -29,7 +29,7 @@ export function AccountDeleteUnderway({
         <div className="grid w-full max-w-sm gap-3">
           <p
             role="alert"
-            className="m-0 rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 py-2 text-sm text-[var(--app-danger)]"
+            className="m-0 rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 py-2 text-sm text-[var(--danger)]"
           >
             {words.partlyFailed}
           </p>
@@ -37,14 +37,14 @@ export function AccountDeleteUnderway({
             type="button"
             data-testid="account-delete-retry"
             onClick={retryLogin}
-            className="inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)]"
+            className="inline-flex min-h-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--accent)] bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--on-accent)]"
           >
             {messages.common.actions.retry}
           </button>
           <button
             type="button"
             onClick={signOut}
-            className="inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
+            className="inline-flex min-h-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold"
           >
             {messages.common.actions.signOut}
           </button>
@@ -56,14 +56,14 @@ export function AccountDeleteUnderway({
           <p className="m-0 text-base font-semibold">
             {words.dataOnly.doneTitle}
           </p>
-          <p className="m-0 text-[var(--app-muted)]">
+          <p className="m-0 text-[var(--muted)]">
             {words.dataOnly.doneBody}
           </p>
         </div>
       ) : (
         <p
           aria-live="polite"
-          className="m-0 text-center text-[var(--app-muted)]"
+          className="m-0 text-center text-[var(--muted)]"
         >
           {words.underway}
         </p>

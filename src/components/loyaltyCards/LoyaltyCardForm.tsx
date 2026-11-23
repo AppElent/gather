@@ -170,7 +170,7 @@ export function LoyaltyCardForm({
             onBlur={() => setStoreTouched(true)}
           />
           {storeMissing ? (
-            <p id={ids.storeError} className="m-0 text-[var(--app-danger)]">
+            <p id={ids.storeError} className="m-0 text-[var(--danger)]">
               {messages.loyaltyCards.refusals['loyalty:needsStore']}
             </p>
           ) : null}
@@ -183,7 +183,7 @@ export function LoyaltyCardForm({
             <input
               id={ids.color}
               type="color"
-              className="h-10 w-16 cursor-pointer rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-1"
+              className="h-10 w-16 cursor-pointer rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] p-1"
               value={brandColor}
               // The phone's swatches, offered first here, so a colour picked
               // on either looks the same on both (APP-160).
@@ -224,12 +224,12 @@ export function LoyaltyCardForm({
           onBlur={() => setNumberTouched(true)}
         />
         {numberHints.length ? (
-          <p id={ids.numberHelp} className="m-0 text-[var(--app-muted)]">
+          <p id={ids.numberHelp} className="m-0 text-[var(--muted)]">
             {numberHints.join(' ')}
           </p>
         ) : null}
         {showProblem && !check.ok ? (
-          <p id={ids.numberError} className="m-0 text-[var(--app-danger)]">
+          <p id={ids.numberError} className="m-0 text-[var(--danger)]">
             {copy.problems[check.problem]}
           </p>
         ) : null}
@@ -255,7 +255,7 @@ export function LoyaltyCardForm({
           ))}
         </select>
         {formatIsGuess ? (
-          <p id={ids.formatHelp} className="m-0 text-[var(--app-muted)]">
+          <p id={ids.formatHelp} className="m-0 text-[var(--muted)]">
             {fmt(copy.formatGuess, { store: storeName || retailer.name })}
           </p>
         ) : null}
@@ -288,7 +288,7 @@ export function LoyaltyCardForm({
           aria-describedby={ids.holderHelp}
           onChange={(event) => setHolder(event.target.value)}
         />
-        <p id={ids.holderHelp} className="m-0 text-[var(--app-muted)]">
+        <p id={ids.holderHelp} className="m-0 text-[var(--muted)]">
           {copy.holderHint}
         </p>
       </div>
@@ -337,7 +337,7 @@ export function LoyaltyCardForm({
         <button
           type="submit"
           disabled={submitting || uploading}
-          className="min-h-11 rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-4 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-11 rounded-[var(--radius-control)] border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--on-accent)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting
             ? messages.common.actions.saving

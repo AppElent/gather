@@ -14,7 +14,7 @@ import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { StoreTile } from './StoreTile'
 
 const BUTTON =
-  'inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-2 text-sm font-semibold text-[var(--app-fg)] disabled:opacity-40'
+  'inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-2 text-sm font-semibold text-[var(--ink)] disabled:opacity-40'
 
 /**
  * The Current Group's Loyalty cards, in Convex's order: cards nobody arranged
@@ -99,7 +99,7 @@ export function LoyaltyCardsPage() {
     <Link
       {...linkTo('newLoyaltyCard')}
       aria-label={copy.add}
-      className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-fg)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
+      className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] text-[var(--ink)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
     >
       <Plus className="h-4 w-4" aria-hidden="true" />
       <span className="hidden lg:inline">{copy.add}</span>
@@ -110,10 +110,10 @@ export function LoyaltyCardsPage() {
     <div className="mx-auto grid max-w-5xl gap-4">
       <header className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="m-0 text-2xl font-semibold">
+          <h2 className="m-0 font-rounded text-2xl font-bold">
             {messages.modules.byId['loyalty-cards'].label}
           </h2>
-          <p className="mt-1 text-sm text-[var(--app-muted)]">
+          <p className="mt-1 text-sm text-[var(--muted)]">
             {copy.subtitle}
           </p>
         </div>
@@ -151,7 +151,7 @@ export function LoyaltyCardsPage() {
       </header>
 
       {failed ? (
-        <p role="alert" className="m-0 text-sm text-[var(--app-danger)]">
+        <p role="alert" className="m-0 text-sm text-[var(--danger)]">
           {messages.common.errors.didNotWork}
         </p>
       ) : null}
@@ -161,26 +161,26 @@ export function LoyaltyCardsPage() {
           {[0, 1, 2].map((key) => (
             <div
               key={key}
-              className="h-20 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]"
+              className="h-20 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]"
             />
           ))}
         </div>
       ) : cards.length === 0 ? (
         <SurfaceCard className="grid justify-items-center gap-3 py-10 text-center">
           <h2 className="m-0 text-lg font-semibold">{copy.emptyTitle}</h2>
-          <p className="m-0 max-w-lg text-sm text-[var(--app-muted)]">
+          <p className="m-0 max-w-lg text-sm text-[var(--muted)]">
             {fmt(copy.emptyBody, { group: group.name })}
           </p>
           <Link
             {...linkTo('newLoyaltyCard')}
-            className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold text-[var(--app-fg)] no-underline"
+            className="inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold text-[var(--ink)] no-underline"
           >
             {copy.emptyAction}
           </Link>
         </SurfaceCard>
       ) : arranging ? (
         <>
-          <p className="m-0 text-sm text-[var(--app-muted)]">
+          <p className="m-0 text-sm text-[var(--muted)]">
             {fmt(copy.reorderShared, { group: group.name })}
           </p>
           <p role="status" aria-live="polite" className="sr-only">
@@ -188,12 +188,12 @@ export function LoyaltyCardsPage() {
           </p>
           <ol
             aria-label={copy.reorder}
-            className="m-0 grid list-none gap-0 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-0"
+            className="m-0 grid list-none gap-0 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] p-0"
           >
             {cards.map((card, index) => (
               <li
                 key={card._id}
-                className="flex items-center gap-3 border-t border-[var(--app-border)] px-3 py-2 first:border-t-0"
+                className="flex items-center gap-3 border-t border-[var(--hair)] px-3 py-2 first:border-t-0"
               >
                 <StoreTile
                   name={card.storeName}
@@ -242,11 +242,11 @@ export function LoyaltyCardsPage() {
           <label className="relative block">
             <span className="sr-only">{copy.filter}</span>
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--app-muted)]"
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]"
               aria-hidden="true"
             />
             <input
-              className="min-h-11 w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] pl-10 pr-10 text-[16px] sm:text-sm"
+              className="min-h-11 w-full rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] pl-10 pr-10 text-[16px] sm:text-sm"
               type="search"
               placeholder={copy.filter}
               value={filter}
@@ -266,7 +266,7 @@ export function LoyaltyCardsPage() {
 
           {shown.length === 0 ? (
             <SurfaceCard className="text-center">
-              <p className="m-0 text-sm text-[var(--app-muted)]">
+              <p className="m-0 text-sm text-[var(--muted)]">
                 {copy.filterEmpty}
               </p>
             </SurfaceCard>
@@ -276,7 +276,7 @@ export function LoyaltyCardsPage() {
                 <li key={card._id}>
                   <Link
                     {...linkTo('loyaltyCard', { cardId: card._id })}
-                    className="flex min-h-20 items-center gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-3 text-[var(--app-fg)] no-underline hover:bg-[var(--app-surface-muted)]"
+                    className="flex min-h-20 items-center gap-3 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] p-3 text-[var(--ink)] no-underline hover:bg-[var(--surface-2)]"
                   >
                     <StoreTile
                       name={card.storeName}
@@ -293,7 +293,7 @@ export function LoyaltyCardsPage() {
                           {card.holder}
                         </span>
                       ) : null}
-                      <span className="block truncate text-xs text-[var(--app-muted)]">
+                      <span className="block truncate text-xs text-[var(--muted)]">
                         {card.lastUsedAt
                           ? fmt(copy.usedAt, {
                               when: formatActivityTime(

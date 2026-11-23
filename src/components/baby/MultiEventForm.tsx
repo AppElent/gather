@@ -199,7 +199,7 @@ export function MultiEventForm({
       {activeTypes.map((type) => (
         <div
           key={type}
-          className="grid gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)] p-3"
+          className="grid gap-3 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)] p-3"
         >
           <p className="m-0 flex items-center gap-2 text-sm font-semibold">
             <EventIcon type={type} />
@@ -232,22 +232,22 @@ export function MultiEventForm({
             />
           </label>
           {fieldErrors[type] && (
-            <p className="m-0 text-sm text-red-800">{fieldErrors[type]}</p>
+            <p className="m-0 text-sm text-[var(--danger)]">{fieldErrors[type]}</p>
           )}
         </div>
       ))}
 
       {activeTypes.length === 0 && (
-        <p className="m-0 text-sm text-[var(--app-muted)]">{multi.pickOne}</p>
+        <p className="m-0 text-sm text-[var(--muted)]">{multi.pickOne}</p>
       )}
 
-      {error && <p className="m-0 text-sm text-red-800">{error}</p>}
+      {error && <p className="m-0 text-sm text-[var(--danger)]">{error}</p>}
 
       <div className="flex gap-2">
         <button
           type="submit"
           disabled={submitting || activeTypes.length === 0}
-          className="min-h-9 rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-9 rounded-[var(--radius-control)] border border-[var(--accent)] bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--on-accent)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting
             ? messages.common.actions.saving
@@ -256,7 +256,7 @@ export function MultiEventForm({
         <button
           type="button"
           onClick={onCancel}
-          className="min-h-9 px-2 text-sm text-[var(--app-muted)]"
+          className="min-h-9 px-2 text-sm text-[var(--muted)]"
         >
           {messages.common.actions.cancel}
         </button>

@@ -58,7 +58,7 @@ export function EnergyReadingsPage() {
   return (
     <div className="mx-auto grid max-w-3xl gap-4">
       <Breadcrumbs trail={energyTrail(messages, copy.title)} className="mb-0" />
-      <h2 className="m-0 text-2xl font-semibold">{copy.title}</h2>
+      <h2 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h2>
       {showDate ? (
         <SurfaceCard className="grid gap-2">
           <label
@@ -82,7 +82,7 @@ export function EnergyReadingsPage() {
         </SurfaceCard>
       ) : null}
       {form === undefined ? (
-        <div className="h-40 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]" />
+        <div className="h-40 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]" />
       ) : form === null ? (
         <SurfaceCard>
           <p className="m-0 text-sm">{messages.energy.empty.summary}</p>
@@ -202,7 +202,7 @@ function ReadingsForm({
   return (
     <form className="grid gap-4" onSubmit={submit} noValidate>
       <SurfaceCard className="grid gap-4">
-        <h3 className="m-0 text-xs font-semibold uppercase tracking-wide text-[var(--app-muted)]">
+        <h3 className="m-0 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           {copy.heading}
         </h3>
         {form.channels.map((channel) => {
@@ -223,7 +223,7 @@ function ReadingsForm({
               </label>
               <p
                 id={`${id}-previous`}
-                className="m-0 text-sm text-[var(--app-muted)]"
+                className="m-0 text-sm text-[var(--muted)]"
               >
                 {channel.previous
                   ? fmt(copy.previous, {
@@ -252,14 +252,14 @@ function ReadingsForm({
                   }}
                   onBlur={() => validate(channel)}
                 />
-                <span className="w-10 shrink-0 text-sm text-[var(--app-muted)]">
+                <span className="w-10 shrink-0 text-sm text-[var(--muted)]">
                   {unit}
                 </span>
               </div>
               {channel.onDay ? (
                 <p
                   id={`${id}-replaces`}
-                  className="m-0 text-xs text-[var(--app-muted)]"
+                  className="m-0 text-xs text-[var(--muted)]"
                 >
                   {fmt(copy.replaces, {
                     value: readingNumber(channel.onDay.value, locale),
@@ -271,7 +271,7 @@ function ReadingsForm({
                 <p
                   id={`${id}-error`}
                   role="alert"
-                  className="m-0 text-sm text-[var(--app-danger)]"
+                  className="m-0 text-sm text-[var(--danger)]"
                 >
                   {error}
                 </p>
@@ -281,10 +281,10 @@ function ReadingsForm({
         })}
       </SurfaceCard>
 
-      <p className="m-0 text-sm text-[var(--app-muted)]">{copy.footnote}</p>
+      <p className="m-0 text-sm text-[var(--muted)]">{copy.footnote}</p>
 
       {formError ? (
-        <p role="alert" className="m-0 text-sm text-[var(--app-danger)]">
+        <p role="alert" className="m-0 text-sm text-[var(--danger)]">
           {formError}
         </p>
       ) : null}
@@ -345,12 +345,12 @@ function SetupMeters({ groupSlug }: { groupSlug: string }) {
     <form onSubmit={submit} noValidate>
       <SurfaceCard className="grid gap-3">
         <h3 className="m-0 text-lg font-semibold">{copy.setupTitle}</h3>
-        <p className="m-0 text-sm text-[var(--app-muted)]">{copy.setupBody}</p>
+        <p className="m-0 text-sm text-[var(--muted)]">{copy.setupBody}</p>
         {options.map((option) => (
           <label
             key={option.key}
             htmlFor={`${ids}-${option.key}`}
-            className="flex cursor-pointer items-start gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] p-3 has-[:checked]:border-[var(--app-accent)]"
+            className="flex cursor-pointer items-start gap-3 rounded-[var(--radius-control)] border border-[var(--hair)] p-3 has-[:checked]:border-[var(--ink)]"
           >
             <input
               id={`${ids}-${option.key}`}
@@ -361,13 +361,13 @@ function SetupMeters({ groupSlug }: { groupSlug: string }) {
                 const checked = event.target.checked
                 setChoice((current) => ({ ...current, [option.key]: checked }))
               }}
-              className="mt-1 h-4 w-4 shrink-0 accent-[var(--app-accent)]"
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent-text)]"
             />
             <span className="grid gap-0.5">
               <span className="text-sm font-semibold">{option.label}</span>
               <span
                 id={`${ids}-${option.key}-hint`}
-                className="text-xs text-[var(--app-muted)]"
+                className="text-xs text-[var(--muted)]"
               >
                 {option.hint}
               </span>
@@ -375,7 +375,7 @@ function SetupMeters({ groupSlug }: { groupSlug: string }) {
           </label>
         ))}
         {error ? (
-          <p role="alert" className="m-0 text-sm text-[var(--app-danger)]">
+          <p role="alert" className="m-0 text-sm text-[var(--danger)]">
             {error}
           </p>
         ) : null}

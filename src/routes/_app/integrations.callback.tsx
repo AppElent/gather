@@ -74,7 +74,7 @@ function OAuthCallback() {
             <h2 className="m-0 text-base font-semibold">
               {oauthCallback.failedTitle}
             </h2>
-            <p className="m-0 text-sm text-[var(--app-muted)]">
+            <p className="m-0 text-sm text-[var(--muted)]">
               {failure.kind === 'error'
                 ? failure.message || oauthCallback.failed
                 : oauthCallback[failure.kind]}
@@ -84,7 +84,7 @@ function OAuthCallback() {
             </Link>
           </div>
         ) : (
-          <p className="m-0 text-sm text-[var(--app-muted)]">
+          <p className="m-0 text-sm text-[var(--muted)]">
             {oauthCallback.finishing}
           </p>
         )}

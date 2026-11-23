@@ -178,7 +178,7 @@ export function EnergyContractPage() {
   if (contracts === undefined) {
     return (
       <Frame messages={messages} title={copy.title}>
-        <div className="h-40 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]" />
+        <div className="h-40 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]" />
       </Frame>
     )
   }
@@ -228,7 +228,7 @@ export function EnergyContractPage() {
               {copy.newContract}
             </button>
           </div>
-          <p className="m-0 text-sm text-[var(--app-muted)]">
+          <p className="m-0 text-sm text-[var(--muted)]">
             {copy.earlierHint}
           </p>
         </div>
@@ -264,7 +264,7 @@ function Frame({
         trail={energyTrail(messages, messages.energy.contract.title)}
         className="mb-0"
       />
-      <h2 className="m-0 text-2xl font-semibold">{title}</h2>
+      <h2 className="m-0 font-rounded text-2xl font-bold">{title}</h2>
       {children}
     </div>
   )
@@ -277,10 +277,10 @@ function EarlierContracts({ contracts }: { contracts: readonly ContractRow[] }) 
   if (earlier.length === 0) return null
   return (
     <section className="grid gap-2">
-      <h3 className="m-0 text-xs font-semibold uppercase tracking-wide text-[var(--app-muted)]">
+      <h3 className="m-0 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
         {copy.earlier}
       </h3>
-      <ul className="shell-card m-0 grid list-none divide-y divide-[var(--app-border)] p-0">
+      <ul className="shell-card m-0 grid list-none divide-y divide-[var(--hair)] p-0">
         {earlier.map((contract, index) => {
           // Newest first: the one before this in the list started after it.
           const next = contracts[index] as ContractRow
@@ -289,7 +289,7 @@ function EarlierContracts({ contracts }: { contracts: readonly ContractRow[] }) 
               <span className="text-base">
                 {contractSummary(contract.terms, messages, locale)}
               </span>
-              <span className="text-sm text-[var(--app-muted)]">
+              <span className="text-sm text-[var(--muted)]">
                 {fmt(copy.earlierRange, {
                   from: formatEnergyDate(
                     contract.terms.validFrom,
@@ -455,7 +455,7 @@ function ContractForm({
         {amount('vat', copy.vat, copy.unitPercent)}
       </Group>
 
-      <p className="m-0 text-sm text-[var(--app-muted)]">{copy.amountsNote}</p>
+      <p className="m-0 text-sm text-[var(--muted)]">{copy.amountsNote}</p>
 
       {netMeteringOffered(draft.validFrom) ? (
         <SurfaceCard className="flex items-center justify-between gap-3">
@@ -465,7 +465,7 @@ function ContractForm({
             </span>
             <span
               id={`${ids}-net-hint`}
-              className="text-sm text-[var(--app-muted)]"
+              className="text-sm text-[var(--muted)]"
             >
               {copy.netMeteringHint}
             </span>
@@ -479,8 +479,8 @@ function ContractForm({
             onClick={() => set('netMetering', !draft.netMetering)}
             className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
               draft.netMetering
-                ? 'bg-[var(--app-accent)]'
-                : 'bg-[var(--app-border)]'
+                ? 'bg-[var(--accent-text)]'
+                : 'bg-[var(--hair)]'
             }`}
           >
             <span
@@ -494,7 +494,7 @@ function ContractForm({
       ) : null}
 
       {error ? (
-        <p role="alert" className="m-0 text-sm text-[var(--app-danger)]">
+        <p role="alert" className="m-0 text-sm text-[var(--danger)]">
           {error}
         </p>
       ) : null}
@@ -512,7 +512,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
     <SurfaceCard>
       {/* A fieldset, so "Energy tax" under Gas and under Electricity are told apart. */}
       <fieldset className="m-0 grid min-w-0 gap-3 border-0 p-0">
-        <legend className="mb-3 p-0 text-xs font-semibold uppercase tracking-wide text-[var(--app-muted)]">
+        <legend className="mb-3 p-0 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           {title}
         </legend>
         {children}
@@ -551,12 +551,12 @@ function AmountField({
           aria-describedby={hint ? `${id}-hint` : undefined}
           onChange={(event) => onChange(event.target.value)}
         />
-        <span className="w-16 shrink-0 text-sm text-[var(--app-muted)]">
+        <span className="w-16 shrink-0 text-sm text-[var(--muted)]">
           {unit}
         </span>
       </div>
       {hint ? (
-        <p id={`${id}-hint`} className="m-0 text-xs text-[var(--app-muted)]">
+        <p id={`${id}-hint`} className="m-0 text-xs text-[var(--muted)]">
           {hint}
         </p>
       ) : null}

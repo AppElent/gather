@@ -89,7 +89,7 @@ function ConfirmDialog({
           <div className="grid gap-3">
             <h2 className="m-0 text-base font-semibold">{request.title}</h2>
             {request.body ? (
-              <div className="text-sm text-[var(--app-muted)]">
+              <div className="text-sm text-[var(--muted)]">
                 {request.body}
               </div>
             ) : null}
@@ -122,7 +122,7 @@ function ConfirmDialog({
             {error ? (
               <p
                 role="alert"
-                className="m-0 rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 py-2 text-sm text-[var(--app-danger)]"
+                className="m-0 rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 py-2 text-sm text-[var(--danger)]"
               >
                 {error}
               </p>
@@ -131,7 +131,7 @@ function ConfirmDialog({
               <button
                 type="button"
                 onClick={onCancel}
-                className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
+                className="inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold"
               >
                 {actions.cancel}
               </button>
@@ -140,7 +140,7 @@ function ConfirmDialog({
                 type="button"
                 disabled={busy || !phraseMatches}
                 onClick={onConfirm}
-                className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 text-sm font-semibold text-[var(--app-danger)] disabled:opacity-60"
+                className="inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 text-sm font-semibold text-[var(--danger)] disabled:opacity-60"
               >
                 {busy
                   ? actions.working

@@ -29,10 +29,10 @@ function GroupSettings() {
     // long word, which an `auto` track would widen the whole page to fit.
     <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-4">
       <header>
-        <h1 className="m-0 text-xl font-semibold wrap-anywhere">
+        <h1 className="m-0 text-xl font-bold wrap-anywhere">
           {fmt(groupPage.title, { group: group.name })}
         </h1>
-        <p className="mt-1 mb-0 text-sm leading-6 text-[var(--app-muted)]">
+        <p className="mt-1 mb-0 text-sm leading-6 text-[var(--muted)]">
           {groupPage.intro}
         </p>
       </header>

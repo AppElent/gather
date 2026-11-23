@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
+import { NEUTRALS } from '../apps/mobile/src/theme/palette'
 
 /**
  * The app icons are generated, not authored, and nothing at build time notices
@@ -104,9 +105,10 @@ describe('app icons', () => {
     expect([0, 2]).toContain(colourType) // greyscale or truecolour, no alpha
   })
 
-  test('the manifest colours match the app background tokens', () => {
-    expect(manifest.theme_color).toBe('#e7f3ec')
-    expect(manifest.background_color).toBe('#e7f3ec')
+  test('the manifest colours are the light ground', () => {
+    const ground = NEUTRALS.light.ground.toLowerCase()
+    expect(manifest.theme_color).toBe(ground)
+    expect(manifest.background_color).toBe(ground)
   })
 
   test('both theme-color metas survive the head manager', () => {
@@ -115,8 +117,8 @@ describe('app icons', () => {
     // dark one and left light-scheme chrome with no colour at all.
     expect(root).not.toMatch(/meta:[\s\S]*?'theme-color'/)
     for (const [scheme, colour] of [
-      ['light', '#e7f3ec'],
-      ['dark', '#0a1418'],
+      ['light', NEUTRALS.light.ground.toLowerCase()],
+      ['dark', NEUTRALS.dark.ground.toLowerCase()],
     ]) {
       expect(root).toMatch(
         new RegExp(

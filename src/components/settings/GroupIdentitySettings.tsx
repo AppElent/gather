@@ -12,13 +12,13 @@ import type { ShellGroup } from '../app/useCurrentGroup'
 import { ImageUploadField } from '../photo/ImageUploadField'
 
 const buttonClass =
-  'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold'
+  'inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold'
 
 const dangerButtonClass =
-  'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 text-sm font-semibold text-[var(--app-danger)] disabled:opacity-60'
+  'inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 text-sm font-semibold text-[var(--danger)] disabled:opacity-60'
 
 const inputClass =
-  'min-h-9 w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-3 text-sm'
+  'min-h-9 w-full rounded-[var(--radius-control)] border border-[var(--hair)] bg-transparent px-3 text-sm'
 
 export interface GroupIdentitySettingsProps {
   group: ShellGroup
@@ -101,12 +101,12 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
   return (
     <SurfaceCard>
       <h2 className="m-0 mb-1 text-base font-semibold">{group_.title}</h2>
-      <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
+      <p className="m-0 mb-3 text-sm text-[var(--muted)]">
         {group_.sharedNote}
       </p>
 
       {error && (
-        <p role="alert" className="m-0 mb-3 text-sm text-[var(--app-danger)]">
+        <p role="alert" className="m-0 mb-3 text-sm text-[var(--danger)]">
           {error}
         </p>
       )}
@@ -235,7 +235,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
             {othersRemain || lastMember ? (
               <p
                 id="group-delete-note"
-                className="m-0 text-xs text-[var(--app-muted)]"
+                className="m-0 text-xs text-[var(--muted)]"
               >
                 {lastMember ? group_.lastMember : group_.deleteOthersFirst}
               </p>
@@ -266,14 +266,14 @@ function InviteCode({ slug }: { slug: string }) {
       <span className="text-sm font-semibold">{group_.inviteCode}</span>
       <div className="flex flex-wrap items-center gap-2">
         {code === undefined ? (
-          <span className="text-sm text-[var(--app-muted)]">
+          <span className="text-sm text-[var(--muted)]">
             {messages.common.errors.loading}
           </span>
         ) : (
           <Pill>{code}</Pill>
         )}
       </div>
-      <p className="m-0 text-xs text-[var(--app-muted)]">
+      <p className="m-0 text-xs text-[var(--muted)]">
         {group_.inviteCodeNote}
       </p>
     </div>

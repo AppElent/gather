@@ -19,7 +19,7 @@ export function LanguageSettings() {
   return (
     <SurfaceCard>
       <h2 className="m-0 mb-1 text-base font-semibold">{language.title}</h2>
-      <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
+      <p className="m-0 mb-3 text-sm text-[var(--muted)]">
         {language.description}
       </p>
       <div className="flex flex-wrap gap-2">
@@ -32,10 +32,10 @@ export function LanguageSettings() {
               lang={option}
               aria-pressed={isOn}
               onClick={() => setLocale(option)}
-              className={`inline-flex min-h-9 items-center justify-center rounded-[var(--app-radius)] border px-3 text-sm font-semibold ${
+              className={`inline-flex min-h-9 items-center justify-center rounded-[var(--radius-control)] border px-3 text-sm font-semibold ${
                 isOn
-                  ? 'border-[var(--app-fg)] bg-[var(--app-fg)] text-[var(--app-surface)]'
-                  : 'border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-fg)]'
+                  ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]'
+                  : 'border-[var(--hair)] bg-[var(--surface)] text-[var(--ink)]'
               }`}
             >
               {language.names[option]}

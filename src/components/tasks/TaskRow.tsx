@@ -4,10 +4,10 @@ import type { UnifiedTask } from '../../../convex/lib/taskProviders/types'
 import { fmt, useMessages } from '../../lib/i18n'
 
 const PRIORITY_STYLES: Record<1 | 2 | 3 | 4, string> = {
-  1: 'bg-red-500/15 text-red-600',
-  2: 'bg-orange-500/15 text-orange-600',
-  3: 'bg-blue-500/15 text-blue-600',
-  4: 'bg-[var(--app-surface-muted)] text-[var(--app-muted)]',
+  1: 'bg-[var(--surface-2)] text-[var(--danger)]',
+  2: 'bg-[var(--surface-2)] text-[var(--ink)]',
+  3: 'bg-[var(--surface-2)] text-[var(--ink)]',
+  4: 'bg-[var(--surface-2)] text-[var(--muted)]',
 }
 
 export interface TaskRowProps {
@@ -31,7 +31,7 @@ export function TaskRow({ task, onToggle, actions }: TaskRowProps) {
       />
       <span
         className={`min-w-0 flex-1 truncate text-sm ${
-          task.done ? 'text-[var(--app-muted)] line-through' : ''
+          task.done ? 'text-[var(--muted)] line-through' : ''
         }`}
       >
         {task.title}
@@ -46,13 +46,13 @@ export function TaskRow({ task, onToggle, actions }: TaskRowProps) {
       {task.labels?.map((label) => (
         <span
           key={label}
-          className="rounded bg-[var(--app-surface-muted)] px-1.5 py-0.5 text-xs text-[var(--app-muted)]"
+          className="rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-xs text-[var(--muted)]"
         >
           {label}
         </span>
       ))}
       {task.dueDate && (
-        <span className="text-xs text-[var(--app-muted)]">{task.dueDate}</span>
+        <span className="text-xs text-[var(--muted)]">{task.dueDate}</span>
       )}
       {task.url && (
         <a
@@ -60,7 +60,7 @@ export function TaskRow({ task, onToggle, actions }: TaskRowProps) {
           target="_blank"
           rel="noreferrer"
           aria-label={fmt(row.openInSource, { task: task.title })}
-          className="text-[var(--app-muted)]"
+          className="text-[var(--muted)]"
         >
           <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
         </a>

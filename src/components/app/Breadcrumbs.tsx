@@ -86,14 +86,14 @@ export function Breadcrumbs({ trail, className = 'mb-4' }: BreadcrumbsProps) {
         <Link
           {...parent.link}
           aria-label={fmt(breadcrumbs.backTo, { page: parent.label })}
-          className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[var(--app-muted)] no-underline md:hidden"
+          className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[var(--muted)] no-underline md:hidden"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           <span className="truncate">{parent.label}</span>
         </Link>
       )}
 
-      <ol className="m-0 hidden list-none flex-wrap items-center gap-1 p-0 text-sm text-[var(--app-muted)] md:flex">
+      <ol className="m-0 hidden list-none flex-wrap items-center gap-1 p-0 text-sm text-[var(--muted)] md:flex">
         {trail.map((crumb, index) => (
           <li
             // Two steps of one trail can share a label — a child called after
@@ -111,14 +111,14 @@ export function Breadcrumbs({ trail, className = 'mb-4' }: BreadcrumbsProps) {
             {crumb.link ? (
               <Link
                 {...crumb.link}
-                className="truncate text-[var(--app-muted)] no-underline hover:underline"
+                className="truncate text-[var(--muted)] no-underline hover:underline"
               >
                 {crumb.label}
               </Link>
             ) : (
               <span
                 aria-current="page"
-                className="truncate font-semibold text-[var(--app-fg)]"
+                className="truncate font-semibold text-[var(--ink)]"
               >
                 {crumb.label}
               </span>

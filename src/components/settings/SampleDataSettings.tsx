@@ -8,7 +8,7 @@ import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
 
 const buttonClass =
-  'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60'
+  'inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60'
 
 /**
  * Whether this build may offer the sample-data controls.
@@ -82,7 +82,7 @@ export function SampleDataSettings() {
       </p>
 
       {error && (
-        <p className="mb-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p className="mb-3 rounded-md border border-[var(--danger)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--danger)]">
           {error}
         </p>
       )}
