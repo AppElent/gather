@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  closeDistance,
   DRAG_CLOSE,
   DRAG_CLOSE_EXPANDED,
   DRAG_EXPAND,
@@ -48,5 +49,19 @@ describe('an expanded card', () => {
   test('follows a drag down only', () => {
     expect(dragOffset(-100, true)).toBe(0)
     expect(dragOffset(60, true)).toBe(60)
+  })
+})
+
+describe('closing from expanded', () => {
+  test('happens past where the small card sits, then a small close', () => {
+    const at = closeDistance({ small: 120, expanded: 560 })
+    expect(at).toBe(560 - 120 + DRAG_CLOSE)
+    expect(dragOutcome(drag(at - 1), true, at)).toBe('collapse')
+    expect(dragOutcome(drag(at + 1), true, at)).toBe('close')
+  })
+
+  test('falls back to a fixed distance until both sizes are measured', () => {
+    expect(closeDistance({ small: 0, expanded: 560 })).toBe(DRAG_CLOSE_EXPANDED)
+    expect(closeDistance({ small: 120, expanded: 0 })).toBe(DRAG_CLOSE_EXPANDED)
   })
 })

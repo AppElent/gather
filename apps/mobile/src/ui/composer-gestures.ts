@@ -11,7 +11,10 @@
 export const DRAG_EXPAND = 32
 /** How far down a drag must travel to collapse an expanded card, or close a small one. */
 export const DRAG_CLOSE = 72
-/** How far down an expanded card must be dragged to close rather than collapse. */
+/**
+ * How far down an expanded card must be dragged to close rather than collapse,
+ * before both of its sizes have been measured.
+ */
 export const DRAG_CLOSE_EXPANDED = 280
 /** A flick this fast counts however short it was, in points per second. */
 const FLICK_UP = -600
@@ -30,11 +33,12 @@ export interface DragEnd {
 export function dragOutcome(
   { translationY, velocityY }: DragEnd,
   expanded: boolean,
+  closeExpandedAt = DRAG_CLOSE_EXPANDED,
 ): DragOutcome {
   const up = translationY < -DRAG_EXPAND || velocityY < FLICK_UP
   const down = translationY > DRAG_CLOSE || velocityY > FLICK_DOWN
   if (expanded) {
-    if (translationY > DRAG_CLOSE_EXPANDED) return 'close'
+    if (translationY > closeExpandedAt) return 'close'
     return down && !up ? 'collapse' : null
   }
   if (up && !down) return 'expand'
@@ -50,4 +54,20 @@ export function dragOutcome(
 export function dragOffset(translationY: number, expanded: boolean): number {
   if (translationY >= 0) return translationY
   return expanded ? 0 : translationY * UP_RESISTANCE
+}
+
+/** The card's measured height at each size, 0 until it has been drawn so. */
+export interface CardHeights {
+  small: number
+  expanded: number
+}
+
+/**
+ * How far down an expanded card's handle travels to close it: past where the
+ * small card's handle sits (both are bottom-anchored, so that is the
+ * difference in height), and then a small card's closing drag.
+ */
+export function closeDistance({ small, expanded }: CardHeights): number {
+  if (small <= 0 || expanded <= small) return DRAG_CLOSE_EXPANDED
+  return expanded - small + DRAG_CLOSE
 }

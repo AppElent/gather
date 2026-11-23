@@ -73,7 +73,12 @@ import { useI18n } from '../i18n'
 import type { Glyph } from '../theme/glyph'
 import { UI_ICONS } from '../theme/icons'
 import { type ModuleGroup, RADIUS, SPACE, TYPE, useTokens } from '../theme/tokens'
-import { dragOffset, dragOutcome } from './composer-gestures'
+import {
+  type CardHeights,
+  closeDistance,
+  dragOffset,
+  dragOutcome,
+} from './composer-gestures'
 import { type ComposerMoreItem, composerMoreMenu } from './composer-menu'
 import { Modal } from './modal'
 
@@ -249,6 +254,9 @@ function ComposerCard({
   // a horizontal move is the chip row's scroll, so the drag gives way to it.
   // An expanded card is dragged by its top band only: its description
   // scrolls. The card follows the finger and springs back without a bounce.
+  // The card's height at each size, so a drag down from expanded closes
+  // once it has passed where the small card sits.
+  const heights = useRef<CardHeights>({ small: 0, expanded: 0 })
   const dragPan = (activeOffset: number) =>
     Gesture.Pan()
       .runOnJS(true)
@@ -257,8 +265,10 @@ function ComposerCard({
       .onUpdate((event) => {
         drag.value = dragOffset(event.translationY, expanded)
       })
-      .onEnd((event) => {
-        const outcome = dragOutcome(event, expanded)
+      .onEnd((event, success) => {
+        // A pan the system cancelled (a call, Control Centre) does nothing.
+        if (!success) return
+        const outcome = dragOutcome(event, expanded, closeDistance(heights.current))
         if (outcome === 'expand') toggle(true)
         else if (outcome === 'collapse') toggle(false)
         else if (outcome === 'close') onClose()
@@ -351,6 +361,10 @@ function ComposerCard({
           <Animated.View
             testID={testID}
             layout={LinearTransition.duration(220)}
+            onLayout={(event) => {
+              heights.current[expanded ? 'expanded' : 'small'] =
+                event.nativeEvent.layout.height
+            }}
             style={[
               styles.card,
               expanded && styles.expanded,
