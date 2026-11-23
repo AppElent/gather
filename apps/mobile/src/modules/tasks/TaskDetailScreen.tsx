@@ -47,7 +47,7 @@ import { GroceryFields } from './GroceryFields'
 import { TASK_ICONS } from './icons'
 import { reminderLabel } from './reminder'
 import { SubtaskSection } from './SubtaskSection'
-import { useTaskActions, useTaskState } from './store'
+import { useTaskActions, useTaskOf } from './store'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
 import { WishlistFields } from './WishlistFields'
@@ -57,7 +57,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
   const router = useRouter()
-  const state = useTaskState()
+  // The task's own list only, never every list in the Group (APP-565).
+  const state = useTaskOf(taskId)
   const actions = useTaskActions()
   const taskSheets = useTaskSheets({
     tasks: state.tasks,
@@ -69,7 +70,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const scrollRef = useRef<ScrollView>(null)
   const [dragging, setDragging] = useState(false)
 
-  const task = state.tasks.find((each) => each.id === taskId)
+  const task = state.task
   const list = state.lists.find((each) => each.id === task?.listId)
 
   useRecordRecent(

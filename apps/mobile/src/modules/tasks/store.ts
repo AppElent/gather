@@ -465,6 +465,80 @@ export function useTaskList(listId: string) {
   }
 }
 
+/** The linked list among `lists` whose last answer holds the task, if any. */
+export function linkedHomeOf(
+  lists: readonly ListRow[] | undefined,
+  linked: ReadonlyMap<string, ExternalEntry>,
+  taskId: string,
+): string | undefined {
+  return (lists ?? NO_LISTS).find(
+    (list) =>
+      list.provider !== 'local' &&
+      linked.get(list._id)?.tasks.some((task) => task.id === taskId),
+  )?._id
+}
+
+/**
+ * One task's list and its tasks (APP-565: the task's detail screen), without
+ * subscribing to the rest of the Group's lists. A linked task is found in its
+ * list's last answer; any other is placed by `tasks.listOf`. Only a task
+ * neither knows (a linked one nobody has fetched yet, say from Recents) asks
+ * the Group's linked lists, as opening them would. `task` stays the last row
+ * seen while the server still places it, so moving it to another list does
+ * not blank the screen while that list's rows arrive.
+ */
+export function useTaskOf(taskId: string) {
+  const { group } = useGroup()
+  const lists = useTaskLists()
+  const linked = useSyncExternalStore(subscribe, externalSnapshot)
+  const linkedHome = linkedHomeOf(lists, linked, taskId)
+  const localHome = useQuery(
+    api.tasks.listOf,
+    linkedHome ? 'skip' : { groupSlug: group.slug, taskId },
+  )
+  const home = linkedHome ?? localHome ?? undefined
+  const unknown = !linkedHome && localHome === null
+  const only = useMemo(() => {
+    const all = lists ?? NO_LISTS
+    if (home) return all.filter((list) => list._id === home)
+    if (unknown) return all.filter((list) => list.provider !== 'local')
+    return NO_LISTS
+  }, [lists, home, unknown])
+  const state = useListsOf(only)
+  const found = state.tasks.find((task) => task.id === taskId)
+  const last = useRef<Task | undefined>(undefined)
+  if (found) last.current = found
+  else if (!home) last.current = undefined
+  return {
+    today: localIsoDate(),
+    lists: state.lists,
+    tasks: state.tasks,
+    task: found ?? last.current,
+  }
+}
+
+/**
+ * Every label typed in the Current Group (APP-565: the Labels sheet's
+ * suggestions): one `tasks.labels` subscription for the local lists, and the
+ * last fetched rows of its linked lists, without asking any provider.
+ */
+export function useGroupLabels(): readonly string[] {
+  const { group } = useGroup()
+  const lists = useTaskLists()
+  const local = useQuery(api.tasks.labels, { groupSlug: group.slug })
+  const linked = useSyncExternalStore(subscribe, externalSnapshot)
+  return useMemo(() => {
+    const found = new Set(local ?? [])
+    for (const list of lists ?? NO_LISTS) {
+      if (list.provider === 'local') continue
+      for (const task of linked.get(list._id)?.tasks ?? []) {
+        for (const label of task.labels) found.add(label)
+      }
+    }
+    return Array.from(found).sort()
+  }, [local, lists, linked])
+}
+
 /**
  * The tasks of the given lists only (APP-313: the Grocery lists sheet's
  * counts). `lists` must be memoised by the caller, as `useQueries` needs.
