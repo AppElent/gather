@@ -1,5 +1,6 @@
 /**
- * Completes an addressed Group-link handoff inside the authenticated shell.
+ * Completes a tapped notification's handoff inside the authenticated shell
+ * (`/open-notification`, from `PushTapLinks`).
  *
  * It is a route only while the handoff runs. After validating the link
  * against the live membership answer, it replaces itself with a tabbed
@@ -20,7 +21,8 @@ export function GroupLinkHandoff() {
   const [target] = useState(() => groupLinkTarget(pendingGroupLink(), groups))
 
   useEffect(() => {
-    // Invalid and unsupported links resolve to Home in the Group the Member
+    // Invalid and unsupported links, and a visit with nothing pending, resolve
+    // to Home in the Group the Member
     // was already in.
     if (!target) {
       clearPendingGroupLink()
@@ -29,7 +31,9 @@ export function GroupLinkHandoff() {
     }
     openInGroup(target.groupId, () => {
       clearPendingGroupLink()
-      router.replace(target.href)
+      // With its stack's anchor beneath it (the All index), so a record
+      // opened by a link or a push tap has a back button (APP-454).
+      router.replace(target.href, { withAnchor: true })
     })
   }, [target, openInGroup])
 

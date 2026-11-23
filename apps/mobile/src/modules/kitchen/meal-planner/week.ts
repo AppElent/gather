@@ -19,6 +19,7 @@ import {
   enabledSlots,
   type ResolvedMealPreferences,
 } from '@gather/core/meal-preferences'
+import { memberFirstNames } from '@gather/core/member-names'
 import type { FunctionReturnType } from 'convex/server'
 
 import type { api } from '../../../convex/api'
@@ -59,6 +60,15 @@ export function weekdayName(date: string, locale: string) {
   return sentenceCase(
     localMidnight(date).toLocaleDateString(locale, { weekday: 'long' }),
   )
+}
+
+/**
+ * The weekday inside a sentence: "voor donderdag", "for Thursday". Dutch
+ * writes weekdays in lower case; `weekdayName` is for the start of a line.
+ */
+export function weekdayInText(date: string, locale: string) {
+  const name = localMidnight(date).toLocaleDateString(locale, { weekday: 'long' })
+  return locale === 'nl' ? name.toLocaleLowerCase(locale) : sentenceCase(name)
 }
 
 /** "26 Nov". */
@@ -155,15 +165,26 @@ export function servingsOf(
   return mealServings(servings, data.preferences.servingsOverride, eaters)
 }
 
-/** The Members not eating, by name. */
+/**
+ * Each Member's first name by user id: "Sam", or the full name when two
+ * Members share a first name.
+ */
+export function shortNames(members: readonly Member[]) {
+  return memberFirstNames(
+    members.map((member) => ({ id: member.userId, name: member.name })),
+  )
+}
+
+/** The Members not eating, by first name. */
 export function absentNames(
   members: readonly Member[],
   eaters: readonly string[],
 ) {
   const eating = new Set(eaters)
+  const names = shortNames(members)
   return members
     .filter((member) => !eating.has(member.userId))
-    .map((member) => member.name)
+    .map((member) => names.get(member.userId) || member.name)
 }
 
 /** The coin group's one accessibility label. */

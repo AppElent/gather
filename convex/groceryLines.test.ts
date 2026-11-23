@@ -1,3 +1,4 @@
+import { recogniseGroceryLine } from '@gather/core/groceries'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import {
   alice,
@@ -8,6 +9,19 @@ import {
 } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import { DAILY_AI_CALLS } from './lib/aiUsage'
+
+// Counts the key parses `recogniseGroceryTitle` makes (APP-479).
+const parses = vi.hoisted(() => ({ count: 0 }))
+vi.mock('@gather/core/groceries', async (importActual) => {
+  const actual = await importActual<typeof import('@gather/core/groceries')>()
+  return {
+    ...actual,
+    parseGroceryLine: (...args: Parameters<typeof actual.parseGroceryLine>) => {
+      parses.count++
+      return actual.parseGroceryLine(...args)
+    },
+  }
+})
 
 /**
  * A recipe's ingredients onto a grocery list (APP-312): merged into what is
@@ -234,6 +248,120 @@ function aiReply(items: unknown[]) {
     }),
   }
 }
+
+describe('groceryLines.aisles', () => {
+  test('answers like the list: the Group’s override, the list’s history, then the dictionary', async () => {
+    const { t, as, groceries } = await seed()
+    await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', SLUG))
+        .unique()
+      const user = await ctx.db.query('users').first()
+      if (!group || !user) throw new Error('seed')
+      // The Group files "Penne" under snacks, whatever the dictionary says.
+      await ctx.db.insert('groceryCategoryOverrides', {
+        groupId: group._id,
+        name: 'penne',
+        aisle: 'snacks',
+        updatedBy: user._id,
+        updatedAt: 0,
+      })
+      // The list's history: "Doenjang" was last put under tins_sauces.
+      await ctx.db.insert('tasks', {
+        listId: groceries,
+        title: 'Doenjang',
+        done: true,
+        createdBy: user._id,
+        order: 9,
+        category: 'tins_sauces',
+      })
+    })
+    const aisles = await as.query(api.groceryLines.aisles, {
+      groupSlug: SLUG,
+      listId: groceries,
+      titles: ['Penne', 'Doenjang', 'Eieren', 'Zzqxv'],
+    })
+    expect(aisles).toEqual(['snacks', 'tins_sauces', 'dairy', 'other'])
+  })
+
+  test('parses the recent items once for the whole question, not once per title (APP-479)', async () => {
+    const { t, as, groceries } = await seed()
+    const items = 150
+    const titles = 40
+    await t.run(async (ctx) => {
+      const user = await ctx.db.query('users').first()
+      if (!user) throw new Error('seed')
+      for (let index = 0; index < items; index++)
+        await ctx.db.insert('tasks', {
+          listId: groceries,
+          title: `Artikel ${index}`,
+          done: true,
+          createdBy: user._id,
+          order: 10 + index,
+          category: 'snacks',
+        })
+    })
+    const asked = Array.from({ length: titles }, (_, index) => `Ding ${index}`)
+    parses.count = 0
+    await as.query(api.groceryLines.aisles, {
+      groupSlug: SLUG,
+      listId: groceries,
+      titles: asked,
+    })
+    // Every recent item once (the window is 200 and the list holds fewer),
+    // and about one parse per title: nowhere near titles x items = 6,000.
+    expect(parses.count).toBeLessThan(items + 3 + 3 * titles)
+  })
+
+  test('a repeated title is asked once and answered in every position, a long one is cut', async () => {
+    const { as, groceries } = await seed()
+    // Only the part past the cut says what it is.
+    const long = `${'x'.repeat(500)} eieren`
+    expect(recogniseGroceryLine(long).aisle).toBe('dairy')
+    const aisles = await as.query(api.groceryLines.aisles, {
+      groupSlug: SLUG,
+      listId: groceries,
+      titles: ['Eieren', 'Zzqxv', 'Eieren', long, 'Zzqxv'],
+    })
+    expect(aisles).toEqual(['dairy', 'other', 'dairy', 'other', 'other'])
+  })
+
+  test('refuses too many titles before it looks at the list or the caller', async () => {
+    const { chores, t } = await seed()
+    const titles = Array.from({ length: 201 }, (_, index) => `Ding ${index}`)
+    // Not signed in, and not a grocery list: the size is what it refuses.
+    await expect(
+      t.query(api.groceryLines.aisles, { groupSlug: SLUG, listId: chores, titles }),
+    ).rejects.toThrow(/Too many titles/)
+  })
+
+  test('refuses a list that is not a grocery list, and someone outside the Group', async () => {
+    const { t, as, chores, groceries } = await seed()
+    await expect(
+      as.query(api.groceryLines.aisles, {
+        groupSlug: SLUG,
+        listId: chores,
+        titles: ['Eieren'],
+      }),
+    ).rejects.toThrow()
+    await t.withIdentity(bob).mutation(api.users.ensureUser, {})
+    await expect(
+      t.withIdentity(bob).query(api.groceryLines.aisles, {
+        groupSlug: SLUG,
+        listId: groceries,
+        titles: ['Eieren'],
+      }),
+    ).rejects.toThrow()
+    await expect(
+      t.query(api.groceryLines.aisles, {
+        groupSlug: SLUG,
+        listId: groceries,
+        titles: ['Eieren'],
+      }),
+    ).rejects.toThrow()
+  })
+})
 
 describe('groceryLines.read', () => {
   async function signedUp() {

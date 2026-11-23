@@ -3,7 +3,10 @@ import type { ErrorBoundaryProps } from 'expo-router'
 import { SearchError } from '../../../../src/search/SearchError'
 import { SearchScreen } from '../../../../src/search/SearchScreen'
 
-export default SearchScreen
+/** The Search tab: the one search screen in its own stack, on All Modules. */
+export default function SearchTab() {
+  return <SearchScreen stack="search" />
+}
 
 /**
  * Convex's `useQuery` throws on the render path when the server refuses — a

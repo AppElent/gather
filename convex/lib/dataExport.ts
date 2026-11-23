@@ -39,10 +39,14 @@
 
 import type {
   ExportExclusion,
+  ExportManifest,
   ExportPage,
   ExportRow,
 } from '@gather/core/data-export'
+import { EXPORT_VERSION } from '@gather/core/data-export'
+import { INVALID_EXPORT_CURSOR } from '@gather/core/refusals'
 import type { PaginationOptions } from 'convex/server'
+import { ConvexError } from 'convex/values'
 import type { DataModel, Doc, Id, TableNames } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import type { GroupScopedTable } from './groupAccess'
@@ -50,6 +54,14 @@ import { storedFileIdsOf } from './storedFiles'
 
 /** Rows read per page. Small enough for any table's largest row. */
 export const PAGE_SIZE = 200
+
+/**
+ * Bytes one page reads at most, well inside a query's 16 MiB: 200 rows of a
+ * table whose rows run large (a long note, a recipe with many steps) would not
+ * be. A page that reaches it ends early and the cursor resumes after its last
+ * row. A document is at most 1 MiB, so a page always makes progress.
+ */
+export const PAGE_BYTES = 4 * 1024 * 1024
 
 export type ExportScope = 'account' | 'group'
 
@@ -141,6 +153,8 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   mealEntries: { scope: 'group', index: 'by_group' },
   plannedDinners: { scope: 'group', index: 'by_group' },
   mealPreferences: { scope: 'group', index: 'by_group' },
+  // Plan mijn week's open proposal (APP-319): Group content for a day.
+  mealPlanDrafts: { scope: 'group', index: 'by_group' },
   // The Pantry's rows until the contract step (APP-314), and the staples
   // they became: both go out, so nothing a Group typed is missing.
   pantryEntries: { scope: 'group', index: 'by_group' },
@@ -190,6 +204,17 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   financeSettings: { scope: 'group', index: 'by_group' },
   netWorthEntries: { scope: 'group', index: 'by_group' },
   netWorthSnapshots: { scope: 'group', index: 'by_group' },
+  // Energy (APP-491). A source's token and a price feed's key never leave;
+  // market prices belong to no Group and account prices are the supplier's,
+  // fetched again from the feed (`energyPrices` below).
+  energySites: { scope: 'group', index: 'by_group' },
+  energyContracts: { scope: 'group', index: 'by_group' },
+  energySources: { scope: 'group', index: 'by_group', omit: ['secret'] },
+  energyAssets: { scope: 'group', index: 'by_group' },
+  energyChannels: { scope: 'group', index: 'by_group' },
+  energyReadings: { scope: 'group', index: 'by_group' },
+  energyIntervals: { scope: 'group', index: 'by_group' },
+  energyPriceFeeds: { scope: 'group', index: 'by_group', omit: ['secret'] },
   integrationConnections: {
     scope: 'group',
     index: 'by_group_provider',
@@ -200,6 +225,10 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   // -- Not exported --------------------------------------------------------
   tastingCatalog: { exclude: 'reference-data' },
   retailerCatalog: { exclude: 'reference-data' },
+  // Price slots: a market price is the same for every Group and belongs to
+  // none; an account price is the supplier's own, a cache of its feed that
+  // carries no Group id to scope it by (APP-491).
+  energyPrices: { exclude: 'reference-data' },
   seedRuns: { exclude: 'bookkeeping' },
 }
 
@@ -242,6 +271,7 @@ type Row = Record<string, unknown> & { _id: string; _creationTime: number }
  */
 interface RangeQuery {
   collect(): Promise<Row[]>
+  take(n: number): Promise<Row[]>
   paginate(options: PaginationOptions): Promise<{
     page: Row[]
     isDone: boolean
@@ -293,6 +323,27 @@ interface ParentCursor {
   inner: string | null
 }
 
+/** A cursor this module handed out, or the keyed refusal for one it did not. */
+function readParentCursor(cursor: string): ParentCursor {
+  let at: unknown
+  try {
+    at = JSON.parse(cursor)
+  } catch {
+    throw new ConvexError(INVALID_EXPORT_CURSOR)
+  }
+  const c = at as Partial<ParentCursor> | null
+  if (
+    !c ||
+    typeof c !== 'object' ||
+    typeof c.parent !== 'string' ||
+    typeof c.createdAt !== 'number' ||
+    !(c.inner === null || typeof c.inner === 'string')
+  ) {
+    throw new ConvexError(INVALID_EXPORT_CURSOR)
+  }
+  return c as ParentCursor
+}
+
 function parentCursor(parent: Row, inner: string | null): ParentCursor {
   return { parent: parent._id, createdAt: parent._creationTime, inner }
 }
@@ -324,7 +375,7 @@ async function readRaw(
       parentTreatment.index,
       s,
     ).collect()
-    const at = cursor ? (JSON.parse(cursor) as ParentCursor) : null
+    const at = cursor ? readParentCursor(cursor) : null
     let index = 0
     let inner: string | null = null
     if (at) {
@@ -337,7 +388,11 @@ async function readRaw(
     if (!parent) return { rows: [], cursor: null, isDone: true }
     const page = await tableQuery(ctx, table)
       .withIndex(treatment.index, (q) => q.eq(treatment.field, parent._id))
-      .paginate({ numItems: PAGE_SIZE, cursor: inner })
+      .paginate({
+        numItems: PAGE_SIZE,
+        cursor: inner,
+        maximumBytesRead: PAGE_BYTES,
+      })
     const following = parents[index + 1]
     const next = !page.isDone
       ? parentCursor(parent, page.continueCursor)
@@ -354,6 +409,7 @@ async function readRaw(
   const page = await scopeRange(ctx, table, treatment.index, s).paginate({
     numItems: PAGE_SIZE,
     cursor,
+    maximumBytesRead: PAGE_BYTES,
   })
   return { rows: page.page, cursor: page.continueCursor, isDone: page.isDone }
 }
@@ -492,4 +548,85 @@ export async function readExportPage(
     rows.push(await project(ctx, table, treatment, s, refs, row))
   }
   return { rows, cursor: raw.isDone ? null : raw.cursor, isDone: raw.isDone }
+}
+
+/**
+ * What is in the person's export: the tables, in file order, and their Groups
+ * by name. `dataExport.manifest` returns it as is; the account portal walks the
+ * same steps (`convex/accountPortal.ts`).
+ */
+export async function exportManifest(
+  ctx: QueryCtx,
+  me: Doc<'users'>,
+): Promise<ExportManifest> {
+  const groups = (await exportGroups(ctx, me)).map((g) => ({
+    slug: g.slug,
+    name: g.name,
+  }))
+  return { version: EXPORT_VERSION, ...exportLayout(), groups }
+}
+
+/** The person's Groups in export order: by name. */
+export async function exportGroups(
+  ctx: QueryCtx,
+  me: Doc<'users'>,
+): Promise<Doc<'groups'>[]> {
+  const memberships = await ctx.db
+    .query('memberships')
+    .withIndex('by_user', (q) => q.eq('userId', me._id))
+    .collect()
+  const groups: Doc<'groups'>[] = []
+  for (const membership of memberships) {
+    const group = await ctx.db.get(membership.groupId)
+    if (group) groups.push(group)
+  }
+  return groups.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/**
+ * How many of one Group's rows of `table` the export would hold, reading at
+ * most `limit` of them, on the index the registry names. A child table is
+ * counted across its parents, as it is paged. For the account portal's
+ * `summary`, which caps every count rather than reading a whole table.
+ */
+export async function countGroupRows(
+  ctx: QueryCtx,
+  args: {
+    table: TableNames
+    me: Doc<'users'>
+    group: Doc<'groups'>
+    limit: number
+  },
+): Promise<number> {
+  const treatment = treatmentOf(args.table)
+  if (!isIncluded(treatment) || treatment.scope !== 'group') {
+    throw new Error(`${args.table} is not exported per Group`)
+  }
+  const s: Scope = { scope: 'group', me: args.me, group: args.group }
+  if ('self' in treatment) return 1
+  if (!('parent' in treatment)) {
+    const rows = await scopeRange(ctx, args.table, treatment.index, s).take(
+      args.limit,
+    )
+    return rows.length
+  }
+  const parentTreatment = treatmentOf(treatment.parent)
+  if (!isIncluded(parentTreatment) || !('index' in parentTreatment)) {
+    throw new Error(`Export parent ${treatment.parent} is not read by index`)
+  }
+  const parents = await scopeRange(
+    ctx,
+    treatment.parent,
+    parentTreatment.index,
+    s,
+  ).collect()
+  let count = 0
+  for (const parent of parents) {
+    if (count >= args.limit) break
+    const rows = await tableQuery(ctx, args.table)
+      .withIndex(treatment.index, (q) => q.eq(treatment.field, parent._id))
+      .take(args.limit - count)
+    count += rows.length
+  }
+  return count
 }

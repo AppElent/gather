@@ -31,43 +31,47 @@ import { useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { api } from '../../convex/api'
-import { useQuery } from '../../convex/queries'
 import { fmt, type Messages, plural, useI18n } from '../../i18n'
 import { useHiddenSmartLists } from '../../prefs/hiddenSmartLists'
+import { ModuleHeaderActions } from '../../search/ModuleSearchButton'
 import { UI_ICONS } from '../../theme/icons'
 import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetAddRow, InsetList, InsetRow } from '../../ui/inset-list'
+import { ADD_BUTTON_CLEARANCE } from '../../ui/keyboard-composer'
 import { ModuleTile, moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
 import { WashHeader } from '../../ui/wash-header'
 import { moduleShown } from '../buildModules'
+import { AddTask } from './AddTaskComposer'
 import { AssigneeCoin, useTaskPeople } from './assignee'
 import { SMART_LIST_GLYPHS, TASK_ICONS } from './icons'
 import { ListTile } from './listFace'
 import { NewListSheet } from './NewListSheet'
 import { SmartEmpty, SmartHeading, SmartTaskRow } from './smart'
-import { useSmartLists, useTaskState } from './store'
+import { type ListCount, useSmartLists, useTaskIndex } from './store'
 import { useTaskSheets } from './taskMenu'
-import type { Task, TaskList } from './types'
+import type { TaskList } from './types'
 
 export function TaskLists() {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
   const router = useRouter()
-  const state = useTaskState()
-  const taskSheets = useTaskSheets({ tasks: state.tasks })
+  // Counts only (APP-430): never a subscription to a list's rows.
+  const index = useTaskIndex()
   const tile = moduleTile('tasks')
   const [creating, setCreating] = useState(false)
 
-  const lists = [...state.lists].sort((a, b) => a.order - b.order)
+  const lists = [...index.lists].sort((a, b) => a.order - b.order)
 
   // The smart lists (APP-301): one subscription for every local list's open
   // rows, plus what the linked lists last answered. Today is the first
   // section rather than a row, because it is what this screen is opened for.
   const smart = useSmartLists()
+  // Every row this screen draws is a smart row: the Today strip and the
+  // notices below are both read from it, so its sheets need no more.
+  const taskSheets = useTaskSheets({ tasks: smart.tasks })
   const { hidden, toggle: toggleHidden } = useHiddenSmartLists()
   const shown = (id: SmartListId) => !hidden.includes(id)
   const due = smart.byList.today
@@ -78,20 +82,20 @@ export function TaskLists() {
   const smartListOf = (id: string) =>
     smart.lists.find((list) => list.id === id)
 
-  const openTotal = state.tasks.filter((task) => !task.done).length
+  const openTotal = index.openTotal
 
   // Tasks someone else gave you that you have not opened yet (APP-302): the
   // in-app half of the assignment notice, while push cannot reach the phone.
-  // Opening one clears it (`tasks.markAssignmentSeen`).
-  const me = useQuery(api.users.me, {})
+  // Opening one clears it (`tasks.markAssignmentSeen`). Mine holds every open
+  // task assigned to the caller, so the notices are among its rows.
   const { byId } = useTaskPeople()
-  const notices = me
-    ? state.tasks
+  const notices = smart.me
+    ? smart.tasks
         .filter(
           (task) =>
             !task.done &&
             task.assignmentNotice &&
-            task.assigneeId === me._id,
+            task.assigneeId === smart.me,
         )
         .sort(
           (a, b) =>
@@ -107,47 +111,51 @@ export function TaskLists() {
         options={{
           ...washScreenOptions(t.tasks.title),
           headerRight: () => (
-            <MenuView
-              testID="tasks-menu"
-              actions={[
-                {
-                  id: 'smart',
-                  title: t.tasks.smart.menu,
-                  displayInline: true,
-                  subactions: SMART_LISTS.map((id) => ({
-                    id,
-                    title: t.tasks.smart.lists[id].title,
-                    state: shown(id) ? ('on' as const) : ('off' as const),
-                  })),
-                },
-              ]}
-              onPressAction={(event) => {
-                const id = event.nativeEvent.event
-                if (SMART_LISTS.some((each) => each === id)) {
-                  toggleHidden(id as SmartListId)
-                }
-              }}
-            >
-              <View
-                style={styles.headerButton}
-                accessible
-                accessibilityRole="button"
-                accessibilityLabel={t.tasks.smart.menu}
+            <ModuleHeaderActions module="tasks">
+              <MenuView
+                testID="tasks-menu"
+                actions={[
+                  {
+                    id: 'smart',
+                    title: t.tasks.smart.menu,
+                    displayInline: true,
+                    subactions: SMART_LISTS.map((id) => ({
+                      id,
+                      title: t.tasks.smart.lists[id].title,
+                      state: shown(id) ? ('on' as const) : ('off' as const),
+                    })),
+                  },
+                ]}
+                onPressAction={(event) => {
+                  const id = event.nativeEvent.event
+                  if (SMART_LISTS.some((each) => each === id)) {
+                    toggleHidden(id as SmartListId)
+                  }
+                }}
               >
-                <UI_ICONS.Ellipsis
-                  size={22}
-                  color={tokens.ink}
-                  strokeWidth={2.2}
-                />
-              </View>
-            </MenuView>
+                <View
+                  style={styles.headerButton}
+                  accessible
+                  accessibilityRole="button"
+                  accessibilityLabel={t.tasks.smart.menu}
+                >
+                  <UI_ICONS.Ellipsis
+                    size={22}
+                    color={tokens.ink}
+                    strokeWidth={2.2}
+                  />
+                </View>
+              </MenuView>
+            </ModuleHeaderActions>
           ),
         }}
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 24 + ADD_BUTTON_CLEARANCE,
+        }}
       >
         {tile ? (
           <WashHeader
@@ -263,7 +271,7 @@ export function TaskLists() {
             <SectionLabel>{t.tasks.lists}</SectionLabel>
             <InsetList>
               {lists.map((list) => {
-                const count = openCount(list, state.tasks, t)
+                const count = openCount(list, index.counts.get(list.id), t)
                 // The type under the name, unless the name already says it.
                 const typed =
                   list.provider === 'local' &&
@@ -324,6 +332,7 @@ export function TaskLists() {
         </View>
       </ScrollView>
 
+      <AddTask place="index" preset={{}} />
       {taskSheets.sheets}
       {creating ? (
         <NewListSheet
@@ -347,30 +356,30 @@ export function TaskLists() {
   )
 }
 
-/** How many tasks are left on a list, or that its provider did not answer. */
+/**
+ * How many tasks are left on a list, or that its provider did not answer; ''
+ * until the count is known.
+ */
 function openCount(
   list: TaskList,
-  tasks: readonly Task[],
+  count: ListCount | undefined,
   t: Messages,
 ): string {
   if (list.sync === 'reconnect' || list.sync === 'failed') {
     return t.tasks.notLoaded
   }
+  if (!count) return ''
   // A packing list counts what is packed: its items are ticked off and reset,
   // so "3 left" would read as a list nearly done when it is nearly packed.
   if (keepsCheckedInPlace(list.kind)) {
-    const items = tasks.filter((task) => task.listId === list.id)
     return fmt(t.tasks.packing.progress, {
-      done: items.filter((task) => task.done).length,
-      total: items.length,
+      done: count.done ?? 0,
+      total: count.total ?? count.open,
     })
   }
-  const open = tasks.filter(
-    (task) => task.listId === list.id && !task.done,
-  ).length
-  if (open === 0) return t.tasks.allDone
-  if (open === 1) return t.tasks.openOne
-  return fmt(t.tasks.open, { count: open })
+  if (count.open === 0) return t.tasks.allDone
+  if (count.open === 1) return t.tasks.openOne
+  return fmt(t.tasks.open, { count: count.open })
 }
 
 const styles = StyleSheet.create({

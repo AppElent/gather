@@ -13,6 +13,11 @@ export interface UnifiedTask {
    * linked list's Repeat row (APP-303). Gather cannot write it back.
    */
   repeatText?: string
+  /**
+   * The `externalId` of the item this one is a subtask of (APP-304): Todoist's
+   * `parent_id`, Notion's sub-item relation. Absent on a top-level item.
+   */
+  parentExternalId?: string
 }
 
 export interface ProviderSource {

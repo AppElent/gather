@@ -10,7 +10,12 @@ import { api } from '../../convex/api'
 import { usePaginatedQuery, useQuery } from '../../convex/queries'
 
 import type { CalendarScreenData } from './CalendarScreen'
-import { mergeSourceEvents } from './calendarSources'
+import {
+  applySourceReport,
+  calendarSourceKey,
+  isMonthLoaded,
+  mergeSourceEvents,
+} from './calendarSources'
 
 export interface CalendarConnectedData extends CalendarScreenData {
   view: CalendarView
@@ -22,7 +27,11 @@ export interface CalendarConnectedData extends CalendarScreenData {
     color: CalendarEvent['color']
     month: string
   }[]
-  onEvents: (sourceKey: string, events: CalendarEvent[]) => void
+  onEvents: (
+    sourceKey: string,
+    events: CalendarEvent[],
+    complete: boolean,
+  ) => void
   preferencesReady: boolean
 }
 
@@ -47,14 +56,12 @@ export function useCalendarData(
   )
 
   const onEvents = useCallback(
-    (sourceKey: string, events: CalendarEvent[]) => {
-      setSourceState((current) => ({
-        groupSlug,
-        events:
-          current.groupSlug === groupSlug
-            ? { ...current.events, [sourceKey]: events }
-            : { [sourceKey]: events },
-      }))
+    (sourceKey: string, events: CalendarEvent[], complete: boolean) => {
+      setSourceState((current) => {
+        const base = current.groupSlug === groupSlug ? current.events : {}
+        const next = applySourceReport(base, sourceKey, events, complete)
+        return next === current.events ? current : { groupSlug, events: next }
+      })
     },
     [groupSlug],
   )
@@ -71,7 +78,7 @@ export function useCalendarData(
     () =>
       pages.flatMap((calendar) =>
         months.map((month) => ({
-          sourceKey: `${calendar._id}:${month}`,
+          sourceKey: calendarSourceKey(calendar._id, month),
           calendarId: calendar._id,
           calendarName: calendar.name,
           color: calendar.color ?? 'home',
@@ -95,6 +102,17 @@ export function useCalendarData(
         name: member.name,
       })),
     [members],
+  )
+  const calendarIds = useMemo(
+    () =>
+      calendars.status === 'LoadingFirstPage'
+        ? null
+        : pages.map((calendar) => calendar._id as string),
+    [calendars.status, pages],
+  )
+  const monthLoaded = useCallback(
+    (month: string) => isMonthLoaded(sourceEvents, calendarIds, month),
+    [calendarIds, sourceEvents],
   )
   const hiddenCalendarIds = useMemo(
     () => preferences?.hiddenCalendarIds ?? [],
@@ -124,5 +142,6 @@ export function useCalendarData(
     preferencesReady: preferences !== undefined,
     sources,
     onEvents,
+    monthLoaded,
   }
 }

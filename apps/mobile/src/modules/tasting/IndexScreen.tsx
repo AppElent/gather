@@ -20,7 +20,7 @@
  */
 import type { TastingKind } from '@gather/core/tastings'
 import { Stack, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+
 import {
   Pressable,
   ScrollView,
@@ -31,11 +31,12 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
-import { SearchField } from '../../components/SearchField'
 import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
+import { ModuleHeaderActions } from '../../search/ModuleSearchButton'
+import { searchModuleOfKind } from '../../search/searchFilters'
 import { RADIUS, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, InsetRow } from '../../ui/inset-list'
 import { ModuleTile, moduleTile } from '../../ui/module-tile'
@@ -56,7 +57,6 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
   const router = useRouter()
   const { t, locale } = useI18n()
   const { group } = useGroup()
-  const [query, setQuery] = useState('')
   const capture = useCapture(kind)
   // At accessibility sizes the score moves under the subtitle: beside it, the
   // score column squeezed a long subtitle until it broke mid-word.
@@ -104,14 +104,7 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
     kind,
   })
 
-  const needle = query.trim().toLowerCase()
-  const rows = useMemo(
-    () =>
-      (subjects ?? []).filter(
-        (subject) => !needle || subject.name.toLowerCase().includes(needle),
-      ),
-    [subjects, needle],
-  )
+  const rows = subjects ?? []
   const totalTastings = (subjects ?? []).reduce(
     (sum, subject) => sum + subject.count,
     0,
@@ -122,14 +115,16 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
       options={{
         ...washScreenOptions(title),
         headerRight: () => (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.tastings.index.add}
-            onPress={capture.open}
-            hitSlop={12}
-          >
-            <Plus size={24} color={tokens.accentText} strokeWidth={2} />
-          </Pressable>
+          <ModuleHeaderActions module={searchModuleOfKind(kind)}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.tastings.index.add}
+              onPress={capture.open}
+              hitSlop={12}
+            >
+              <Plus size={24} color={tokens.accentText} strokeWidth={2} />
+            </Pressable>
+          </ModuleHeaderActions>
         ),
       }}
     />
@@ -213,32 +208,7 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
         />
 
         <View style={styles.content}>
-          <SearchField
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t.tastings.index.search}
-            clearAccessibilityLabel={t.tastings.index.clearSearch}
-          />
-
-          {rows.length === 0 ? (
-            /* *Nothing found* — a way to clear the search, never an add button. */
-            <View style={styles.noResults}>
-              <Text style={[styles.summary, { color: tokens.muted }]}>
-                {t.tastings.index.searchEmpty}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.tastings.index.clearSearch}
-                onPress={() => setQuery('')}
-                style={({ pressed }) => [pressed && styles.pressed]}
-              >
-                <Text style={[styles.clear, { color: tokens.accentText }]}>
-                  {t.tastings.index.clearSearch}
-                </Text>
-              </Pressable>
-            </View>
-          ) : (
-            <InsetList>
+          <InsetList>
               {rows.map((subject) => (
                 <InsetRow
                   key={subject._id}
@@ -268,7 +238,6 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
                 </InsetRow>
               ))}
             </InsetList>
-          )}
         </View>
       </ScrollView>
       <CaptureFlow capture={capture} />
@@ -278,9 +247,6 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: SPACE[4], gap: SPACE[3] },
-  summary: { ...TYPE.footnote },
-  noResults: { gap: 6, paddingVertical: 12 },
-  clear: { ...TYPE.bodyStrong },
   rowScore: { alignItems: 'flex-end', gap: 2 },
   rowScoreStacked: {
     flexDirection: 'row',

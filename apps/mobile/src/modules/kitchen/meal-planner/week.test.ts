@@ -10,7 +10,10 @@ import {
   joinNames,
   mealMeta,
   type PlannedMeal,
+  shortNames,
   type WeekData,
+  weekdayInText,
+  weekdayName,
   weekRange,
 } from './week'
 
@@ -97,5 +100,32 @@ describe('week menu', () => {
         '2026-11-23',
       ),
     ).toBe(1)
+  })
+})
+
+describe('weekdayInText', () => {
+  test('lower case inside a Dutch sentence, capitalised in English', () => {
+    expect(weekdayInText('2026-11-26', 'nl')).toBe('donderdag')
+    expect(weekdayInText('2026-11-26', 'en')).toBe('Thursday')
+    expect(weekdayName('2026-11-26', 'nl')).toBe('Donderdag')
+  })
+
+  test('labels use first names, full names only when two share one', () => {
+    const family = [
+      { userId: 'sam', name: 'Sam Okonkwo' },
+      { userId: 'noor', name: 'Noor de Vries' },
+      { userId: 'sanne', name: 'Sanne Jansen' },
+    ] as WeekData['members']
+    expect(eatingLabel(family, ['noor', 'sanne'], words, 'en')).toBe(
+      '2 eating, without Sam',
+    )
+    const twoSams = [
+      ...family,
+      { userId: 'sam2', name: 'Sam Bakker' },
+    ] as WeekData['members']
+    expect(shortNames(twoSams).get('noor')).toBe('Noor')
+    expect(eatingLabel(twoSams, ['noor', 'sanne'], words, 'en')).toBe(
+      '2 eating, without Sam Okonkwo and Sam Bakker',
+    )
   })
 })

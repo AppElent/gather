@@ -24,7 +24,7 @@ export default function AuthLayout() {
   const tokens = useTokens()
 
   if (isSignedIn) {
-    return <Redirect href={pendingGroupLink() ? '/deep-link' : '/home'} />
+    return <Redirect href={pendingGroupLink() ? '/open-notification' : '/home'} />
   }
 
   return (

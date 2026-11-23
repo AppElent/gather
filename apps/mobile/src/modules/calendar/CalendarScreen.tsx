@@ -4,20 +4,17 @@ import type {
   CalendarPerson,
   CalendarView,
 } from '@gather/core/calendar'
-import { addDays } from '@gather/core/civil-date'
 import Constants from 'expo-constants'
 import { Stack } from 'expo-router'
 import {
   type ReactNode,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react'
 import {
   type FlatList,
-  LayoutAnimation,
   Platform,
   Pressable,
   StatusBar,
@@ -25,7 +22,6 @@ import {
   Text,
   View,
 } from 'react-native'
-import { useReducedMotion } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useI18n } from '../../i18n'
@@ -33,7 +29,10 @@ import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { CalendarAgenda } from './CalendarAgenda'
 import { CalendarHeader } from './CalendarHeader'
 import {
+  agendaRangeAround,
+  agendaRangeForJump,
   chooseHeader,
+  extendAgendaRange,
   initialCalendarNavigation,
   pageActiveDate,
   selectCalendarDate,
@@ -48,6 +47,11 @@ export interface CalendarScreenData {
   events: CalendarEvent[]
   people: CalendarPerson[]
   hiddenCalendarIds: string[]
+  /**
+   * Whether a month's events are all in, so its empty days really are empty.
+   * Left out, every month counts as loaded.
+   */
+  monthLoaded?: (month: string) => boolean
 }
 
 export interface CalendarScreenProps {
@@ -55,7 +59,6 @@ export interface CalendarScreenProps {
   today: string
   /** Told whenever the visible date moves, so the events around it are loaded. */
   onActiveDate: (date: string) => void
-  onAdd: (date: string) => void
   onEvent: (event: CalendarEvent) => void
   onDeleteEvent: (event: CalendarEvent) => void
   preferredView: CalendarView
@@ -63,6 +66,8 @@ export interface CalendarScreenProps {
   onViewChange: (view: CalendarView) => void
   onOpenCalendars: () => void
   onOpenPeople: () => void
+  /** The header menu's Add event: opens the composer. */
+  onAddEvent: () => void
   hasDraft: boolean
   onResumeDraft: () => void
 }
@@ -71,7 +76,6 @@ export function CalendarScreen({
   data,
   today,
   onActiveDate,
-  onAdd,
   onEvent,
   onDeleteEvent,
   preferredView,
@@ -79,13 +83,13 @@ export function CalendarScreen({
   onViewChange,
   onOpenCalendars,
   onOpenPeople,
+  onAddEvent,
   hasDraft,
   onResumeDraft,
 }: CalendarScreenProps) {
   const { t } = useI18n()
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
-  const reduceMotion = useReducedMotion()
   const topInset = Math.max(
     insets.top,
     StatusBar.currentHeight ?? 0,
@@ -105,27 +109,22 @@ export function CalendarScreen({
   /** Bumped on every deliberate jump, even to the date already selected. */
   const [jumpId, setJumpId] = useState(0)
   const shownDate = scrolledDate ?? navigation.activeDate
-  const [expandedByMonth, setExpandedByMonth] = useState<
-    Record<string, readonly string[]>
-  >({})
-  const activeMonth = navigation.activeDate.slice(0, 7)
+  /**
+   * Empty days the person opened. Kept across months, not per selected
+   * month: with one long list, a gap opened in one month stays open after a
+   * jump to another.
+   */
+  const [expandedDates, setExpandedDates] = useState<readonly string[]>([])
   useEffect(() => {
     onActiveDate(shownDate)
   }, [shownDate, onActiveDate])
-  const from = useMemo(
-    () => addDays(navigation.activeDate, -21),
-    [navigation.activeDate],
-  )
-  const toExclusive = useMemo(
-    () => addDays(navigation.activeDate, 42),
-    [navigation.activeDate],
-  )
-
-  const expandedDates = expandedByMonth[activeMonth] ?? []
+  /** The whole months the agenda has loaded; scrolling grows it at either end. */
+  const [range, setRange] = useState(() => agendaRangeAround(today))
 
   const jumpToDate = useCallback((date: string) => {
     setScrolledDate(null)
     setJumpId((id) => id + 1)
+    setRange((current) => agendaRangeForJump(current, date))
     setNavigation((current) => selectCalendarDate(current, date))
   }, [])
 
@@ -173,9 +172,9 @@ export function CalendarScreen({
             setNavigation((current) => setCalendarView(current, view))
             onViewChange(view)
           }}
-          onAdd={() => onAdd(shownDate)}
           onOpenCalendars={onOpenCalendars}
           onOpenPeople={onOpenPeople}
+          onAddEvent={onAddEvent}
         />
         {/* box-none: the row itself never takes a touch, but the draft pill does. */}
         <View style={styles.status} pointerEvents="box-none">
@@ -204,38 +203,37 @@ export function CalendarScreen({
         </View>
         {sourceNodes}
         <CalendarAgenda
-          from={from}
-          toExclusive={toExclusive}
+          from={range.from}
+          toExclusive={range.toExclusive}
           selectedDate={navigation.activeDate}
           shownDate={shownDate}
           jumpId={jumpId}
           today={today}
           events={data.events}
           people={data.people}
+          monthLoaded={data.monthLoaded}
           expandedDates={expandedDates}
           onSelectDate={jumpToDate}
           onEvent={onEvent}
           onDeleteEvent={onDeleteEvent}
           onExpandGap={(dates) => {
-            setExpandedByMonth((current) => ({
-              ...current,
-              [activeMonth]: [
-                ...new Set([...(current[activeMonth] ?? []), ...dates]),
-              ],
-            }))
+            setExpandedDates((current) => [...new Set([...current, ...dates])])
             if (dates[0]) jumpToDate(dates[0])
           }}
           onVisibleDate={setScrolledDate}
           onDragUp={() => {
             // An automatic collapse: the list takes over the space, and the
-            // saved preference stays whatever the person last chose.
+            // saved preference stays whatever the person last chose. The
+            // header springs to its new height by itself.
             if (navigation.presentation !== 'month') return
-            if (!reduceMotion)
-              LayoutAnimation.configureNext(
-                LayoutAnimation.Presets.easeInEaseOut,
-              )
             setNavigation((current) => settleHeader(current, 0))
           }}
+          onLoadEarlier={() =>
+            setRange((current) => extendAgendaRange(current, -1))
+          }
+          onLoadLater={() =>
+            setRange((current) => extendAgendaRange(current, 1))
+          }
           listRef={listRef}
         />
       </View>

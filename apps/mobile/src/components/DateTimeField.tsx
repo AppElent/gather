@@ -85,11 +85,14 @@ export function DateTimeWheel({
   value,
   onChange,
   onClose,
+  maximumDate,
 }: {
   mode: Mode
   value: Date
   onChange: (next: Date) => void
   onClose: () => void
+  /** The last day that can be picked, such as today for a meter reading. */
+  maximumDate?: Date
 }) {
   const tokens = useTokens('home')
   const { locale } = useI18n()
@@ -102,6 +105,7 @@ export function DateTimeWheel({
         display={mode === 'date' ? 'inline' : 'spinner'}
         locale={PICKER_LOCALE[locale]}
         accentColor={tokens.ink}
+        maximumDate={maximumDate}
         onValueChange={(_, next) => onChange(next)}
       />
     )
@@ -113,6 +117,7 @@ export function DateTimeWheel({
       mode={mode}
       is24Hour={locale === 'nl'}
       accentColor={tokens.ink}
+      maximumDate={maximumDate}
       onValueChange={(_, next) => {
         onClose()
         onChange(next)

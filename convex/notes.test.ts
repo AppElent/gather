@@ -78,6 +78,26 @@ describe('notes through a Group address', () => {
     ).rejects.toThrow(/Not a member/)
   })
 
+  test('create takes pinned, and one idempotency key makes one note', async () => {
+    const { t } = await seed()
+    const args = {
+      groupSlug: 'notes-first',
+      title: 'Wifi',
+      body: 'gather-gast',
+      pinned: true,
+      idempotencyKey: 'composer-note-1',
+    }
+    const first = await t.withIdentity(alice).mutation(api.notes.create, args)
+    const again = await t.withIdentity(alice).mutation(api.notes.create, args)
+    expect(again).toBe(first)
+    const notes = await t
+      .withIdentity(alice)
+      .query(api.notes.list, { groupSlug: 'notes-first' })
+    expect(notes.filter((note) => note.title === 'Wifi')).toEqual([
+      expect.objectContaining({ _id: first, body: 'gather-gast', pinned: true }),
+    ])
+  })
+
   test('create, update, and remove stay at the addressed Group', async () => {
     const { t, firstNote } = await seed()
     const created = await t.withIdentity(alice).mutation(api.notes.create, {

@@ -41,6 +41,8 @@ export const PREFERENCE_KEYS = {
   pushRegistration: 'gather:push:registration',
   pushRelease: 'gather:push:release',
   pushExplained: 'gather:push:explained',
+  /** The Loyalty card on screen when Gather was left (APP-443). */
+  openLoyaltyCard: 'gather:loyalty-cards:open-card',
 } as const
 
 /**

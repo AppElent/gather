@@ -17,16 +17,18 @@
 import { hasLinkAndPrice } from '@gather/core/task-lists'
 import { describeRepeat } from '@gather/core/task-repeat'
 import { Stack, useRouter } from 'expo-router'
-import { type ReactNode, useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import {
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native'
+// Gesture Handler's own ScrollView: reordering subtasks drags inside it, and
+// the drag has to name it to out-rank it (`ReorderMode.tsx`).
+import { LegacyScrollView as ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { api, type Id } from '../../convex/api'
@@ -40,10 +42,12 @@ import { Card } from '../../ui/card'
 import { useDebouncedText } from '../../ui/use-debounced-text'
 import { AssigneeRow } from './assignee'
 import { Checkbox, Chip, priorityColor } from './components'
+import { detailWords } from './detailWords'
 import { GroceryFields } from './GroceryFields'
 import { TASK_ICONS } from './icons'
 import { reminderLabel } from './reminder'
-import { useTaskActions, useTaskState } from './store'
+import { SubtaskSection } from './SubtaskSection'
+import { useTaskActions, useTaskOf } from './store'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
 import { WishlistFields } from './WishlistFields'
@@ -53,14 +57,20 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
   const router = useRouter()
-  const state = useTaskState()
+  // The task's own list only, never every list in the Group (APP-565).
+  const state = useTaskOf(taskId)
   const actions = useTaskActions()
   const taskSheets = useTaskSheets({
     tasks: state.tasks,
-    onDeleted: () => router.back(),
+    // Deleting one of its subtasks from here leaves the parent's screen open.
+    onDeleted: (gone) => {
+      if (gone.id === taskId) router.back()
+    },
   })
+  const scrollRef = useRef<ScrollView>(null)
+  const [dragging, setDragging] = useState(false)
 
-  const task = state.tasks.find((each) => each.id === taskId)
+  const task = state.task
   const list = state.lists.find((each) => each.id === task?.listId)
 
   useRecordRecent(
@@ -97,9 +107,12 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const overdue = Boolean(task.dueDate && isOverdue(task.dueDate, state.today))
   const open = (action: string) => taskSheets.onAction(task, action)
   const repeatWords = t.tasks.repeat
+  const words = detailWords(t, Boolean(list?.grocery))
   // A linked list is read-only in Gather, so its repeat is its provider's to
   // set: shown in the provider's words, with the row switched off (APP-303).
   const canRepeat = Boolean(list?.writable && list.provider === 'local')
+  // A subtask repeats with its parent, never on its own (APP-304).
+  const subtask = Boolean(task.parentTaskId)
   const repeatValue = task.repeat
     ? describeRepeat(task.repeat, repeatWords.summary, locale)
     : (task.repeatText ?? repeatWords.summary.never)
@@ -110,6 +123,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         options={{ headerShown: true, title: list?.name ?? t.tasks.title }}
       />
       <ScrollView
+        ref={scrollRef}
+        scrollEnabled={!dragging}
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
@@ -143,10 +158,10 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             value={title.draft}
             onChangeText={title.change}
             onBlur={title.flush}
-            placeholder={t.tasks.task.titlePlaceholder}
+            placeholder={words.titlePlaceholder}
             placeholderTextColor={tokens.muted}
             multiline
-            accessibilityLabel={t.tasks.task.titlePlaceholder}
+            accessibilityLabel={words.titlePlaceholder}
             style={[
               styles.title,
               {
@@ -221,7 +236,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             }
             label={repeatWords.title}
             value={repeatValue}
-            disabled={!canRepeat}
+            disabled={!canRepeat || subtask}
             onPress={() => open('repeat')}
           />
           <PropertyRow
@@ -297,6 +312,18 @@ export function TaskDetail({ taskId }: { taskId: string }) {
           </Text>
         ) : null}
 
+        {list && !subtask && !list.grocery ? (
+          <SubtaskSection
+            task={task}
+            list={list}
+            tasks={state.tasks}
+            today={state.today}
+            scrollRef={scrollRef}
+            onDragging={setDragging}
+            onAction={taskSheets.onAction}
+          />
+        ) : null}
+
         {list?.provider === 'local' ? <CompletionHistory taskId={task.id} /> : null}
 
         <Card>
@@ -320,7 +347,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         <Pressable
           testID="detail-delete"
           accessibilityRole="button"
-          accessibilityLabel={t.tasks.task.delete}
+          accessibilityLabel={words.delete}
           onPress={() => open('delete')}
           style={({ pressed }) => [
             styles.delete,
@@ -336,7 +363,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             importantForAccessibility="no"
           />
           <Text style={[styles.deleteText, { color: tokens.danger }]}>
-            {t.tasks.task.delete}
+            {words.delete}
           </Text>
         </Pressable>
       </ScrollView>

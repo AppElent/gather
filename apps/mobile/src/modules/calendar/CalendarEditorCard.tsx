@@ -172,7 +172,9 @@ export function CalendarEditorCard({
           <Field label={t.calendar.title} error={errorText(errors.title)}>
             <TextInput
               testID="calendar-title"
-              autoFocus={draft.mode === 'create'}
+              // Not in the sheet: focusing while the native sheet presents
+              // leaves it blank, and All details arrives there with a title.
+              autoFocus={draft.mode === 'create' && !full}
               value={draft.values.title}
               onChangeText={(value) => onChange('title', value)}
               placeholder={t.calendar.titlePlaceholder}

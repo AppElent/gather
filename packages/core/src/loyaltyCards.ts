@@ -189,22 +189,76 @@ export interface SortableLoyaltyCard {
   storeName: string
   holder?: string
   lastUsedAt?: number
+  /** The Group's own arrangement (APP-440); absent until someone reorders. */
+  order?: number
 }
 
-/**
- * Last used first, then never-used cards, each by store name and then holder,
- * so two Bonuskaarten sit together in a stable order.
- */
-export function compareLoyaltyCards(
-  a: SortableLoyaltyCard,
-  b: SortableLoyaltyCard,
-): number {
+/** Last used first, then never-used cards by store name and then holder. */
+function byUse(a: SortableLoyaltyCard, b: SortableLoyaltyCard): number {
   const used = (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0)
   if (used !== 0) return used
   return (
     a.storeName.localeCompare(b.storeName) ||
     (a.holder ?? '').localeCompare(b.holder ?? '')
   )
+}
+
+/**
+ * The list's order (APP-440). Cards the Group never arranged come first, last
+ * used first and then by store name and holder, so two Bonuskaarten sit
+ * together in a stable order. Cards with an `order` follow, by that order.
+ *
+ * So a Group that never reorders sees exactly the old rule, and a card added
+ * after an arrangement lands on top, where the person who just added it looks.
+ */
+export function compareLoyaltyCards(
+  a: SortableLoyaltyCard,
+  b: SortableLoyaltyCard,
+): number {
+  const arranged = (a.order === undefined ? 0 : 1) - (b.order === undefined ? 0 : 1)
+  if (arranged !== 0) return arranged
+  if (a.order !== undefined && b.order !== undefined && a.order !== b.order)
+    return a.order - b.order
+  return byUse(a, b)
+}
+
+/**
+ * The arrangement a `reorder` writes, as ids top to bottom (APP-440).
+ *
+ * `listed` is what the client sent; `current` is every card the Group has, in
+ * the list's current order. Listed ids the Group does not have (deleted
+ * meanwhile) drop out, a repeated id counts once, and cards the client did not
+ * list keep their relative order after the listed ones.
+ */
+export function arrangedLoyaltyCardIds<Id extends string>(
+  listed: readonly Id[],
+  current: readonly Id[],
+): Id[] {
+  const known = new Set(current)
+  const placed = new Set<Id>()
+  const arranged: Id[] = []
+  for (const id of listed) {
+    if (!known.has(id) || placed.has(id)) continue
+    placed.add(id)
+    arranged.push(id)
+  }
+  for (const id of current) if (!placed.has(id)) arranged.push(id)
+  return arranged
+}
+
+/**
+ * The cards as a `reorder` with `ids` leaves them: what both clients show
+ * before Convex answers, by the same rule the server writes.
+ */
+export function cardsInArrangement<Card extends { _id: string }>(
+  cards: readonly Card[],
+  ids: readonly string[],
+): Card[] {
+  const byId = new Map(cards.map((card) => [card._id, card]))
+  return arrangedLoyaltyCardIds(
+    ids,
+    cards.map((card) => card._id),
+  ).flatMap((id) => byId.get(id) ?? [])
 }
 
 export interface HintedRetailer {

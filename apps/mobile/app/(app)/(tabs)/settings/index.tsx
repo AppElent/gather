@@ -15,7 +15,9 @@
  * the field searches exactly what the screen shows.
  */
 import { useUser } from '@clerk/expo'
-import { router } from 'expo-router'
+import Constants from 'expo-constants'
+import { router, Stack } from 'expo-router'
+import * as Updates from 'expo-updates'
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -28,6 +30,8 @@ import {
   openBrowserAsync,
   showAlert,
 } from '../../../../src/observability/native-presentation'
+import { environmentFromChannel } from '../../../../src/observability/options'
+import { buildInfoLine } from '../../../../src/settings/build-info'
 import { identityInitial } from '../../../../src/settings/identity'
 import {
   type SettingsEntry,
@@ -39,6 +43,7 @@ import { useAppearance } from '../../../../src/theme/appearance'
 import type { Glyph } from '../../../../src/theme/glyph'
 import { UI_ICONS } from '../../../../src/theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../../../src/theme/tokens'
+import { washScreenOptions } from '../../../../src/ui/screen-header'
 
 /** Decorative, and only ever next to the group's own title. */
 const SECTION_ICONS = {
@@ -78,22 +83,17 @@ export default function Settings() {
 
   return (
     <ScrollView
+      // The native large title, as on Home: the system draws it and collapses
+      // it inline on scroll, so the screen never paints its own (APP-610).
+      contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: tokens.ground }}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={[
         styles.content,
-        {
-          paddingTop: insets.top + 44,
-          paddingBottom: insets.bottom + 24,
-        },
+        { paddingBottom: insets.bottom + 24 },
       ]}
     >
-      <Text
-        accessibilityRole="header"
-        style={[styles.screenTitle, { color: tokens.ink }]}
-      >
-        {t.settings.title}
-      </Text>
+      <Stack.Screen options={washScreenOptions(t.settings.title)} />
 
       <SearchField
         value={query}
@@ -160,9 +160,41 @@ export default function Settings() {
               </View>
             )
           })}
+          <BuildInfoLine />
         </>
       )}
     </ScrollView>
+  )
+}
+
+/**
+ * Which version, build and over-the-air update this phone runs. It is a
+ * caption rather than a row: nothing here can be changed, and it is what you
+ * read out when something looks wrong.
+ *
+ * `EXPO_PUBLIC_GIT_SHA` is read by static dot access because Metro substitutes
+ * it textually at publish time (see `observability/init.ts`).
+ */
+function BuildInfoLine() {
+  const tokens = useTokens()
+  const { t } = useI18n()
+  const line = buildInfoLine(t.settings.buildInfo, {
+    version: Constants.expoConfig?.version ?? '?',
+    // The native build number: the manifest's copy can be updated, this cannot.
+    build:
+      Constants.platform?.ios?.buildNumber ??
+      String(Constants.platform?.android?.versionCode ?? '?'),
+    updateId: Updates.updateId,
+    isEmbeddedLaunch: Updates.isEmbeddedLaunch,
+    createdAt: Updates.createdAt,
+    sha: process.env.EXPO_PUBLIC_GIT_SHA,
+    // A development build reports an empty channel, not null.
+    channel: Updates.channel || environmentFromChannel(null, __DEV__),
+  })
+  return (
+    <Text selectable style={[styles.buildInfo, { color: tokens.muted }]}>
+      {line}
+    </Text>
   )
 }
 
@@ -317,12 +349,7 @@ function Row({
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16 },
-  screenTitle: {
-    ...TYPE.title2,
-    letterSpacing: -0.8,
-    marginBottom: 14,
-  },
-  search: { marginBottom: 16 },
+  search: { marginTop: 8, marginBottom: 16 },
   identity: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -368,6 +395,7 @@ const styles = StyleSheet.create({
   rowLabel: { ...TYPE.body },
   rowWithin: { ...TYPE.footnote },
   rowValue: { ...TYPE.subhead, maxWidth: 150 },
+  buildInfo: { ...TYPE.footnote, marginTop: 22, textAlign: 'center' },
   empty: { ...TYPE.subhead, paddingVertical: 24, textAlign: 'center' },
   pressed: { opacity: 0.6 },
 })

@@ -369,6 +369,118 @@ describe('leaving a Group', () => {
   })
 })
 
+/**
+ * Calendar events keep a list of Members too (APP-407). Bob is on two Household
+ * events (one shared with Alice) and one Club event; a fourth Household event
+ * is Alice's alone, so it must come through untouched, revision and all.
+ */
+async function eventWorld(t: Harness) {
+  const w = await world(t)
+  return await t.run(async (ctx) => {
+    const calendar = async (groupId: Id<'groups'>, createdBy: Id<'users'>) =>
+      ctx.db.insert('calendars', {
+        groupId,
+        name: 'Agenda',
+        source: 'local',
+        createdBy,
+      })
+    const home = await calendar(w.house, w.alice)
+    const school = await calendar(w.house, w.alice)
+    const field = await calendar(w.club, w.carol)
+    const event = (
+      calendarId: Id<'calendars'>,
+      assigneeIds: Id<'users'>[],
+      revision?: number,
+    ) =>
+      ctx.db.insert('calendarEvents', {
+        calendarId,
+        title: 'Event',
+        date: '2026-11-21',
+        createdBy: w.alice,
+        assigneeIds,
+        revision,
+      })
+    return {
+      ...w,
+      shared: await event(home, [w.alice, w.bob], 3),
+      bobsOwn: await event(school, [w.bob]),
+      alices: await event(home, [w.alice], 5),
+      clubEvent: await event(field, [w.carol, w.bob], 2),
+    }
+  })
+}
+
+async function eventOf(t: Harness, id: Id<'calendarEvents'>) {
+  return await t.run(async (ctx) => ctx.db.get(id))
+}
+
+describe('leaving a Group, calendar events (APP-407)', () => {
+  test('drops the leaver from that Group’s events only, bumping the revision of those it touched', async () => {
+    const t = testConvex()
+    const w = await eventWorld(t)
+
+    await t
+      .withIdentity(asBob)
+      .mutation(api.groups.leaveGroup, { groupId: w.house })
+
+    const shared = await eventOf(t, w.shared)
+    expect(shared?.assigneeIds).toEqual([w.alice])
+    expect(shared?.revision).toBe(4)
+    const bobsOwn = await eventOf(t, w.bobsOwn)
+    expect(bobsOwn).not.toBeNull()
+    expect(bobsOwn?.assigneeIds).toEqual([])
+    expect(bobsOwn?.revision).toBe(1)
+    const alices = await eventOf(t, w.alices)
+    expect(alices?.assigneeIds).toEqual([w.alice])
+    expect(alices?.revision).toBe(5)
+    const club = await eventOf(t, w.clubEvent)
+    expect(club?.assigneeIds).toEqual([w.carol, w.bob])
+    expect(club?.revision).toBe(2)
+  })
+
+  test('an editor still holding the old list gets a conflict', async () => {
+    const t = testConvex()
+    const w = await eventWorld(t)
+    const before = await eventOf(t, w.shared)
+    if (!before) throw new Error('no event')
+    await t
+      .withIdentity(asBob)
+      .mutation(api.groups.leaveGroup, { groupId: w.house })
+
+    await expect(
+      t.withIdentity(asAlice).mutation(api.calendar.updateEvent, {
+        groupSlug: HOUSE,
+        id: w.shared,
+        expectedRevision: 3,
+        title: 'Event',
+        calendarId: before.calendarId,
+        date: '2026-11-21',
+        allDay: true,
+        startMinutes: null,
+        endMinutes: null,
+        assigneeIds: [w.alice, w.bob],
+        location: null,
+        notes: null,
+      }),
+    ).rejects.toThrow('calendar:conflict')
+    expect((await eventOf(t, w.shared))?.assigneeIds).toEqual([w.alice])
+  })
+
+  test('deleting an account drops the person from events in shared Groups', async () => {
+    const t = testConvex()
+    const w = await eventWorld(t)
+    await t.withIdentity(asBob).mutation(api.accounts.deleteAccount, {})
+    await drain(t)
+    const shared = await eventOf(t, w.shared)
+    expect(shared?.assigneeIds).toEqual([w.alice])
+    expect(shared?.revision).toBe(4)
+    expect((await eventOf(t, w.alices))?.revision).toBe(5)
+    const club = await eventOf(t, w.clubEvent)
+    expect(club?.assigneeIds).toEqual([w.carol])
+    expect(club?.revision).toBe(3)
+  })
+})
+
 describe('a repeating task (APP-303)', () => {
   test('completing keeps the assignee and pushes nothing', async () => {
     const t = testConvex()

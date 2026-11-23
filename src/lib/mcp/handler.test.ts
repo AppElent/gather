@@ -2,6 +2,7 @@
 import { getFunctionName } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { describe, expect, it } from 'vitest'
+import { groupRefusalError } from '../../../convex/lib/groupAccess'
 import type { McpAccess } from './auth'
 import { type GatherMcpOptions, handleGatherMcpRequest } from './handler'
 import { GATHER_MCP_TOOLS } from './server'
@@ -284,8 +285,40 @@ describe('Gather MCP endpoint', () => {
     expect(backend.calls.map((c) => c.name)).toEqual(['groups:myGroups'])
   })
 
-  it('reads a Convex Group refusal as the same missing Group', async () => {
-    for (const refusal of ['Not a member of that group', 'No group has that slug']) {
+  it('reads a keyed Group refusal as the same missing Group (APP-429)', async () => {
+    for (const reason of ['unknown-slug', 'unknown-group', 'not-a-member'] as const) {
+      const out = await callTool(
+        fakeBackend({
+          'notes:list': () => {
+            throw groupRefusalError(reason)
+          },
+        }),
+        'list_notes',
+        { groupId: 'group_home' },
+      )
+      expect(out.content[0].text).toBe(GROUP_NOT_FOUND)
+    }
+  })
+
+  it('reads a keyed sign-in refusal as the sentence it always was', async () => {
+    const out = await callTool(
+      fakeBackend({
+        'notes:list': () => {
+          throw groupRefusalError('not-signed-in')
+        },
+      }),
+      'list_notes',
+      { groupId: 'group_home' },
+    )
+    expect(out.content[0].text).toBe('Not authenticated')
+  })
+
+  it('reads a Group refusal sentence from an older deployment the same way', async () => {
+    for (const refusal of [
+      'Not a member of that group',
+      'No group has that slug',
+      'Group not found',
+    ]) {
       const out = await callTool(
         fakeBackend({
           'notes:list': () => {
@@ -631,6 +664,62 @@ describe('Gather MCP endpoint', () => {
       taskId: 'task_1',
       updated: true,
       nextDueDate: '2026-11-28',
+    })
+  })
+
+  it('carries a subtask’s parent through create, list and update (APP-304)', async () => {
+    const backend = fakeBackend({
+      'tasks:add': () => 'task_2',
+      'tasks:update': () => null,
+      'tasks:listByList': () => [
+        { _id: 'task_1', title: 'Attic', done: false, labels: [] },
+        {
+          _id: 'task_2',
+          title: 'Sweep',
+          done: false,
+          labels: [],
+          parentTaskId: 'task_1',
+        },
+      ],
+    })
+    await callTool(backend, 'create_task', {
+      groupId: 'group_home',
+      listId: 'list_1',
+      idempotencyKey: KEY,
+      title: 'Sweep',
+      parentTaskId: 'task_1',
+    })
+    expect(backend.calls.at(-1)?.args).toMatchObject({
+      parentTaskId: 'task_1',
+    })
+    const listed = await callTool(backend, 'list_tasks', {
+      groupId: 'group_home',
+      listId: 'list_1',
+    })
+    expect(listed.structuredContent).toMatchObject({
+      tasks: [{ id: 'task_1' }, { id: 'task_2', parentTaskId: 'task_1' }],
+    })
+    await callTool(backend, 'update_task', {
+      groupId: 'group_home',
+      taskId: 'task_1',
+      done: true,
+      withSubtasks: true,
+    })
+    expect(backend.calls.at(-1)?.args).toEqual({
+      groupSlug: 'home',
+      taskId: 'task_1',
+      done: true,
+      withSubtasks: true,
+    })
+    await callTool(backend, 'update_task', {
+      groupId: 'group_home',
+      taskId: 'task_2',
+      parentTaskId: null,
+    })
+    expect(backend.calls.at(-1)?.args).toEqual({
+      groupSlug: 'home',
+      taskId: 'task_2',
+      parentTaskId: null,
     })
   })
 

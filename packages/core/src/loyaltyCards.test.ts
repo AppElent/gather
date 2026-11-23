@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  arrangedLoyaltyCardIds,
+  cardsInArrangement,
   compareLoyaltyCards,
   foldForSearch,
   isHexColor,
@@ -186,4 +188,87 @@ describe('retailersMatchingNumber', () => {
   test('suggests nothing for an empty number', () => {
     expect(keys('  ')).toEqual([])
   })
+})
+
+describe('compareLoyaltyCards with an arrangement (APP-440)', () => {
+  const label = (card: { storeName: string; holder?: string }) =>
+    `${card.storeName}${card.holder ? `/${card.holder}` : ''}`
+
+  test('unarranged cards first by the old rule, then arranged ones by order', () => {
+    const cards = [
+      { storeName: 'Hema', order: 2 },
+      { storeName: 'Zeeman', order: 0, lastUsedAt: 5 },
+      { storeName: 'Action', lastUsedAt: 30 },
+      { storeName: 'Albert Heijn', order: 1, lastUsedAt: 99 },
+      { storeName: 'Gamma' },
+      { storeName: 'Blokker', lastUsedAt: 10 },
+    ]
+    expect([...cards].sort(compareLoyaltyCards).map(label)).toEqual([
+      'Action',
+      'Blokker',
+      'Gamma',
+      'Zeeman',
+      'Albert Heijn',
+      'Hema',
+    ])
+  })
+
+  test('using an arranged card does not move it', () => {
+    const before = [
+      { storeName: 'Zeeman', order: 0 },
+      { storeName: 'Action', order: 1, lastUsedAt: 1 },
+    ]
+    const after = [before[0], { ...before[1], lastUsedAt: 1_000 }]
+    expect([...after].sort(compareLoyaltyCards).map(label)).toEqual([
+      'Zeeman',
+      'Action',
+    ])
+  })
+
+  test('a card added after an arrangement lands on top', () => {
+    const cards = [
+      { storeName: 'Action', order: 0 },
+      { storeName: 'Blokker', order: 1 },
+      { storeName: 'Zeeman' },
+    ]
+    expect([...cards].sort(compareLoyaltyCards).map(label)).toEqual([
+      'Zeeman',
+      'Action',
+      'Blokker',
+    ])
+  })
+
+  test('equal orders fall back to the old rule, so ties stay stable', () => {
+    const cards = [
+      { storeName: 'Albert Heijn', holder: 'Sam', order: 3 },
+      { storeName: 'Albert Heijn', holder: 'Nora', order: 3 },
+      { storeName: 'Hema', order: 3, lastUsedAt: 4 },
+    ]
+    expect([...cards].sort(compareLoyaltyCards).map(label)).toEqual([
+      'Hema',
+      'Albert Heijn/Nora',
+      'Albert Heijn/Sam',
+    ])
+  })
+})
+
+describe('arrangedLoyaltyCardIds', () => {
+  test('listed first, unknown and repeated ids dropped, the rest kept in order after', () => {
+    expect(
+      arrangedLoyaltyCardIds(['c', 'gone', 'a', 'c'], ['a', 'b', 'c', 'd']),
+    ).toEqual(['c', 'a', 'b', 'd'])
+  })
+
+  test('an empty list leaves the current order', () => {
+    expect(arrangedLoyaltyCardIds([], ['a', 'b'])).toEqual(['a', 'b'])
+  })
+})
+
+test('cardsInArrangement shows the arrangement a reorder will write', () => {
+  const cards = [{ _id: 'a' }, { _id: 'b' }, { _id: 'c' }]
+  expect(cardsInArrangement(cards, ['c', 'gone', 'a']).map((c) => c._id)).toEqual([
+    'c',
+    'a',
+    'b',
+  ])
 })

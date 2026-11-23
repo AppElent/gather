@@ -76,6 +76,7 @@ export const en = {
    * that rule names.
    */
   finances: coreEn.finances,
+  energy: coreEn.energy,
 
   /**
    * Loyalty cards: the shared tree, plus the words only the phone says —
@@ -161,6 +162,38 @@ export const en = {
       loyaltyCard: 'Loyalty card',
     },
     kinds: { cheese: 'Cheese', wine: 'Wine', beer: 'Beer' },
+    /** A search pushed from a Module (APP-613): its title and its header button. */
+    inModule: 'Search in {module}',
+    /** The field's placeholder there. */
+    placeholderModule: 'Search {module}',
+    /** The filter chips at the top of the results (APP-613). */
+    filters: {
+      label: 'Filters',
+      /** Every chip's VoiceOver label. */
+      chip: '{filter}: {value}. Tap to change.',
+      module: 'Module',
+      allModules: 'All Modules',
+      /** The selected Module chip's ✕. */
+      clearModule: 'Search all Modules',
+      /** The Module sheet's title. */
+      sheetTitle: 'Search in',
+      who: 'Who',
+      anyone: 'Anyone',
+      me: 'Me',
+      when: 'When',
+      anytime: 'Any time',
+      whenValues: {
+        today: 'Today',
+        week: 'This week',
+        month: 'This month',
+        earlier: 'Earlier',
+      },
+      status: 'Status',
+      anyStatus: 'Any',
+      statusValues: { open: 'Open', done: 'Done' },
+      noResults: 'Nothing found with these filters.',
+      clear: 'Clear filters',
+    },
   },
 
   /**
@@ -297,6 +330,11 @@ export const en = {
         'Drag a handle to rearrange. A module stays in its own category.',
       dragModule: 'Reorder {module}',
       dragSection: 'Reorder {section}',
+      /** VoiceOver's actions on a row in Edit mode, which cannot drag a grip. */
+      moveUpAction: 'Move up',
+      moveDownAction: 'Move down',
+      /** Said after one of them. `{item}` is a module or a category; positions count from 1. */
+      moved: '{item} moved to position {position} of {total}',
     },
 
     placeholder: coreEn.shell.placeholder,
@@ -429,6 +467,16 @@ export const en = {
     privacy: coreEn.privacy.title,
     /** Opens the web's About page, where the data sources are credited. */
     dataSources: coreEn.shell.about.dataSources.title,
+
+    /**
+     * The line at the foot of Settings. The update is `update <label>`, where
+     * the label is the release standard's, or `no update` on the embedded bundle.
+     */
+    buildInfo: {
+      line: 'Version {version} ({build}) · {update} · {channel}',
+      update: 'update {label}',
+      noUpdate: 'no update',
+    },
 
     /**
      * The field above the list. It is the way through for somebody who knows
@@ -668,7 +716,7 @@ export const en = {
       notePlaceholder: 'For example: make extra for lunch',
       openRecipe: 'Open recipe',
       somethingElse: 'Something else',
-      somethingElseSub: 'Pick another recipe for {weekday}',
+      somethingElseSub: 'Three alternatives that fit {weekday}',
       groceries: 'Groceries for this recipe',
       remove: 'Remove from week menu',
     },
@@ -695,6 +743,133 @@ export const en = {
       delete: 'Delete',
       deleteTitle: 'Delete “{title}”?',
       deleteBody: 'Meals already planned keep their name.',
+    },
+    /** Plan mijn week (APP-319): the start sheet. */
+    plan: {
+      open: 'Plan my week',
+      title: 'Plan my week',
+      subhead: '{range}. Gather only fills what is still empty, with your own recipes.',
+      days: 'Which days',
+      dayPlanned: 'planned',
+      dayFill: 'fill',
+      daySkip: 'skip',
+      dayPlannedLabel: '{day}, already planned, stays as it is',
+      dayFillLabel: '{day}, will be filled',
+      daySkipLabel: '{day}, will be skipped',
+      slotDays: '{slot} ({days})',
+      wish: 'Wish for this week (optional)',
+      wishPlaceholder: 'For example: lots of vegetables, one new thing',
+      wishes: {
+        moreVeg: 'Lots of vegetables',
+        somethingNew: 'One new thing',
+        useLow: 'Something with {item}',
+      },
+      uses: 'Gather takes into account',
+      usesPreferences: 'Meal preferences',
+      usesPreferencesNone: 'Nothing set yet',
+      adjust: 'Adjust',
+      noAllergen: 'no {name}',
+      dislike: 'rather no {name}',
+      meatFree: { one: '{count} meat-free', other: '{count} meat-free' },
+      fishDay: '{days} fish',
+      maxMinutes: 'up to {minutes} min on weekdays',
+      usesCalendar: 'Calendar',
+      busyEvening: '{day} {title} {time}: something quick',
+      usesEaters: 'Who eats',
+      fewerEaters: '{day} without {names}: for {count}',
+      usesStock: 'In stock',
+      runningLow: '{name} running low',
+      cta: { one: 'Make a plan for {count} day', other: 'Make a plan for {count} days' },
+      ctaNothing: 'Choose a day to fill',
+      working: 'Making a plan…',
+      cost: 'Costs 1 smart action · {left} of {limit} left today',
+      offline: 'Offline, try again later',
+      empty: 'Everything on these days is already planned.',
+      nothingFits: 'No proposal fits these days. Nothing in your week menu changed.',
+      failed: 'That did not work. Nothing in your week menu changed.',
+      limitTitle: 'Your smart actions for today are used up',
+      limitBody: 'You used {used} of {limit} today. Tomorrow you can again. Nothing in your week menu changed.',
+      limitHint: 'Choosing yourself still works, with the same preferences as a filter.',
+      chooseYourself: 'Choose yourself',
+    },
+    /** The proposal in the week (APP-319, direction A). */
+    proposal: {
+      aiTitle: 'Plan from Gather',
+      aiBody: 'From your own recipes, following the preferences and the calendar. Accept day by day, or all at once.',
+      fallbackTitle: 'Simple plan',
+      fallbackBody: 'The smart planner could not be reached. This plan was made with your own rules, without AI. It cost no smart action.',
+      eyebrow: 'Proposal · {slot}',
+      byRules: 'following your rules',
+      accept: 'Accept',
+      acceptLabel: 'Accept {title} for {day}',
+      somethingElse: 'Something else',
+      somethingElseLabel: 'Choose something else for {day}',
+      regenerate: 'Another proposal for {day}',
+      regenerateNone: 'No other proposal fits {day}.',
+      pending: { one: '{count} proposal not saved yet', other: '{count} proposals not saved yet' },
+      acceptAll: { one: 'Accept {count}', other: 'Accept all {count}' },
+      discard: 'Discard',
+      discarded: 'Proposal discarded. Nothing changed.',
+      allSaved: 'Everything is in the week menu',
+      groceries: 'Groceries for this week',
+      done: 'Done',
+      justAccepted: 'just accepted',
+      taken: 'Something was planned there meanwhile; it stays.',
+      gone: 'That proposal has expired.',
+      skipped: { one: '{count} day was planned meanwhile and stays.', other: '{count} days were planned meanwhile and stay.' },
+    },
+    /** Something else and New idea (APP-320). */
+    swap: {
+      title: 'Something else for {weekday}',
+      now: 'Now: {title}',
+      busyUntil: 'busy until {time}',
+      wish: 'Wish',
+      wishPlaceholder: 'Any wish? For example: chicken, quick',
+      chips: { chickenQuick: 'Chicken, quick', meatFree: 'Meat-free', faster: 'Quicker' },
+      quickMeal: 'quick meal',
+      reasonStock: 'Uses your {names}',
+      reasonFits: 'Fits in {minutes} min',
+      choose: 'Choose',
+      chosen: 'Chosen',
+      chooseLabel: 'Choose {title} for {day}',
+      chosenToast: '{weekday}: {new} instead of {old}',
+      chosenToastEmpty: '{weekday}: {new}',
+      undo: 'Undo',
+      working: 'Finding alternatives…',
+      none: 'Nothing else from your recipes fits. Try another wish, or a new idea.',
+      fallbackBody: "The smart planner couldn't be reached. These come from your own rules, without AI. It cost no smart action.",
+      newIdea: 'Nothing fits? New idea',
+      newIdeaSub: 'Gather comes up with a recipe you can save',
+      cost: 'Each ask costs 1 smart action · {left} of {limit} left today',
+      failed: "That didn't work. Nothing in your week menu changed.",
+    },
+    idea: {
+      title: 'New idea',
+      back: 'Back',
+      eyebrow: 'Made up by Gather · draft',
+      working: 'Gather is coming up with a recipe…',
+      minutes: 'minutes',
+      people: 'people',
+      ingredients: 'ingredients',
+      ingredientsHeading: 'Ingredients',
+      steps: 'Method',
+      fewer: 'One person fewer',
+      more: 'One person more',
+      inStock: 'in stock',
+      footnote: 'Made by AI. Check for allergies yourself. This idea has no nutrition values; once saved, you can add or estimate them on the recipe.',
+      savePlan: 'Save and put on {weekday}',
+      saveOnly: 'Save only',
+      another: 'Another idea',
+      saveNote: 'Saved, it becomes an ordinary recipe in {group}, source AI. Another idea costs 1 smart action.',
+      saved: '{title} is in your recipes.',
+      savedPlanned: '{weekday}: {title}',
+      takenMeanwhile: '{title} is in your recipes. Something was planned on {weekday} meanwhile.',
+      unavailableTitle: "A new idea isn't possible right now",
+      unavailableBody: "The smart planner couldn't be reached. It cost no smart action. Try again in a while.",
+      noneTitle: 'No idea that fits your preferences',
+      noneBody: "Gather left out an idea that didn't fit your meal preferences. Try Another idea.",
+      failed: "Saving didn't work. Nothing changed.",
+      askFailed: "That didn't work. Try again.",
     },
   },
 
@@ -863,6 +1038,7 @@ export const en = {
       'That password has turned up in a data breach. Please pick another.',
     codeIncorrect: 'That code is not right.',
     codeExpired: coreEn.auth.errors.codeExpired,
+    codeAttemptsExceeded: coreEn.auth.errors.codeAttemptsExceeded,
     emailCodeUnavailable: coreEn.auth.signIn.emailCode.unavailable,
     needsExtraStep: coreEn.auth.errors.needsExtraStep,
     noSecondFactor: coreEn.auth.errors.noSecondFactor,
@@ -976,6 +1152,68 @@ export const en = {
   },
 
   /**
+   * The keyboard composer (APP-587): one shell, pinned to the top of the
+   * keyboard, for a new task now and a new note or event later. Its own
+   * chrome and the task's chips; the field names are the task form's.
+   */
+  composer: {
+    /** The drag handle and the button top right, both ways. */
+    expand: 'Expand',
+    collapse: 'Collapse',
+    /** The + button: the details not always shown. */
+    more: 'More details',
+    /** The + menu's last entry: the task form, with everything kept. */
+    allDetails: 'All details',
+    /** The last entry in a set chip's menu. */
+    remove: 'Remove',
+    save: 'Save',
+    /** The dim scrim behind the composer, for VoiceOver. */
+    close: 'Close',
+    /** The add button on the Tasks screens. */
+    addTask: 'Add task',
+    taskTitle: 'Task name',
+    description: 'Description',
+    taskBody: 'Description, links, what’s needed…',
+    /** The add button on Notes (APP-588), and the note's body field. */
+    addNote: 'New note',
+    noteBody: 'Start typing…',
+    /** A note's save failed while the composer still showed it. */
+    noteFailed: 'That note could not be saved. Try again.',
+    /** A note's save failed once the composer had moved on or closed. */
+    noteNotSaved: '“{title}” was not saved.',
+    label: 'Label',
+    /** Starts a #label in the field, where it is recognised as typed. */
+    newLabel: 'New label…',
+    /** The Repeat menu's last entry: the Repeat sheet. */
+    customRepeat: 'Custom…',
+    date: {
+      label: 'Date',
+      weekend: 'This weekend',
+      nextWeek: 'Next week',
+      pick: 'Pick a date…',
+    },
+    time: {
+      pick: 'Pick a time…',
+    },
+    /** The task went in; a note or a reminder chosen with it did not. */
+    detailsFailed: 'The task was added, but not all of its details.',
+    /** A save that failed once the composer had moved on or closed. */
+    notAdded: '“{title}” was not added.',
+    tryAgain: 'Try again',
+    discard: 'Discard',
+    ok: 'OK',
+    /** The add button on Calendar (APP-589), and the event's fields. */
+    addEvent: 'Add event',
+    eventTitle: 'What’s happening?',
+    eventNote: 'Note',
+    eventBody: 'Note: what to bring, address…',
+    /** An event's save failed while the composer still showed it. */
+    eventFailed: 'That event could not be saved. Try again.',
+    /** An event's save failed once the composer had moved on or closed. */
+    eventNotSaved: '“{title}” was not saved.',
+  },
+
+  /**
    * The Tasks Module's own words: the phone's, not `coreEn.tasks`. The web's
    * tree for the same Module is a different shape, and merging the two is
    * ADR-0017 work; until then a second `tasks` key here is a duplicate-key
@@ -993,6 +1231,8 @@ export const en = {
     starters: coreEn.tasks.starters,
     starterSections: coreEn.tasks.starterSections,
     packing: coreEn.tasks.packing,
+    /** APP-304: subtasks, shared with the web. */
+    subtasks: coreEn.tasks.subtasks,
     repeat: coreEn.tasks.repeat,
     wishlist: coreEn.tasks.wishlist,
     grocery: coreEn.tasks.grocery,
@@ -1008,6 +1248,16 @@ export const en = {
       save: 'Add task',
       noList: 'This group has no list Gather can add a task to yet.',
       failed: 'That task could not be added. Try again.',
+      /** APP-307: under the field; dates and the rest are read as typed. */
+      hint: 'Dates, repeats, @Member and #label are recognised',
+      /** Adds the task and opens it, for what the line cannot say. */
+      moreDetails: 'More details',
+      /** A recognised part's ×, for VoiceOver: "Remove Tomorrow, Thu 19 Nov". */
+      remove: 'Remove {part}',
+      /** The list chip, for VoiceOver. */
+      listChip: 'List: {list}, change',
+      /** A typed time is the task's reminder; the task went in without it. */
+      reminderFailed: 'The task was added, but not its reminder.',
     },
     today: 'Today',
     todayEmpty: 'Nothing due today.',
@@ -1038,6 +1288,18 @@ export const en = {
         'Drag to rearrange. Completing, editing and swiping are off until you tap Done.',
       /** Completed rows have no order anyone arranges, so the mode hides them. */
       reorderCompleted: 'Completed tasks are hidden while you rearrange.',
+      /** Reorder mode's banner on a grocery list, arranged in its aisles (APP-522). */
+      reorderAislesHint:
+        'Drag an item under another aisle to move it there. Checking, editing and swiping are off until you tap Done.',
+      reorderChecked: 'Checked items are hidden while you rearrange.',
+      /** Reorder mode put back to the saved order after a refused drop (APP-534). */
+      reorderReset: "That move didn't save. This is the list as it is now.",
+      /** VoiceOver's actions on a row in reorder mode, which cannot drag a grip (APP-572). */
+      moveUpAction: 'Move up',
+      moveDownAction: 'Move down',
+      /** Said after one of them. Positions count from 1, within the section. */
+      movedTo: '{task} moved to position {position} of {total}',
+      movedToSection: '{task} moved to {section}, position {position} of {total}',
       /** A list Gather may read and not write (ADR-0021). */
       readOnly:
         'This list lives in {provider}. Gather can read it, but not write to it — so there is no composer here.',
@@ -1153,13 +1415,9 @@ export const en = {
   /** The Notes Module's own words, on the same terms as `tasks` above. */
   notes: {
     title: 'Notes',
-    search: 'Search notes',
     pinned: 'Pinned',
     recent: 'Recent',
     empty: 'No notes yet.',
-    /** Nothing matched the field — never an add button (mobile-interaction). */
-    noMatches: 'Nothing called “{query}”.',
-    newNote: 'New note',
     untitled: 'Untitled note',
     titlePlaceholder: 'Title',
     bodyPlaceholder: 'Start writing…',

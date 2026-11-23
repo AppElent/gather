@@ -3,7 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
@@ -83,6 +83,7 @@ function EditBabyForm({
   )
   const [photoUrl, setPhotoUrl] = useState<string | null>(baby.photoUrl)
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const { form } = messages.baby.log
 
   return (
@@ -154,7 +155,7 @@ function EditBabyForm({
             })
             navigate(linkTo('child', { babyId: baby._id }))
           } catch (err) {
-            setError(errorMessage(err, form.saveFailed))
+            setError(errorText(err, form.saveFailed))
             setSubmitting(false)
           }
         }}

@@ -302,6 +302,16 @@ const GROUP_CONTENT: {
         .collect(),
     ),
 
+  mealPlanDrafts: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'mealPlanDrafts',
+      await ctx.db
+        .query('mealPlanDrafts')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
   pantryEntries: async (ctx, groupId) =>
     purge(
       ctx,
@@ -378,6 +388,100 @@ const GROUP_CONTENT: {
       'homeBuyingCosts',
       await ctx.db
         .query('homeBuyingCosts')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  // Energy (APP-491), children before the sites they hang off. Every table
+  // has `by_group`, so no entry needs its parent to find its rows.
+  energyReadings: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energyReadings',
+      await ctx.db
+        .query('energyReadings')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  energyIntervals: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energyIntervals',
+      await ctx.db
+        .query('energyIntervals')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  energyChannels: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energyChannels',
+      await ctx.db
+        .query('energyChannels')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  // A source can hold a live token for somebody's Home Assistant.
+  energySources: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energySources',
+      await ctx.db
+        .query('energySources')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  energyAssets: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energyAssets',
+      await ctx.db
+        .query('energyAssets')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  energyContracts: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energyContracts',
+      await ctx.db
+        .query('energyContracts')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  // A feed holds the Member's own API key, and its account prices carry no
+  // Group id: they are found through the feed and go with it. Market prices
+  // (no `feedId`) are every Group's and stay.
+  energyPriceFeeds: async (ctx, groupId) => {
+    const feeds = await ctx.db
+      .query('energyPriceFeeds')
+      .withIndex('by_group', (q) => q.eq('groupId', groupId))
+      .collect()
+    for (const feed of feeds) {
+      await purge(
+        ctx,
+        'energyPrices',
+        await ctx.db
+          .query('energyPrices')
+          .withIndex('by_feed_carrier_start', (q) => q.eq('feedId', feed._id))
+          .collect(),
+      )
+    }
+    return purge(ctx, 'energyPriceFeeds', feeds)
+  },
+
+  energySites: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'energySites',
+      await ctx.db
+        .query('energySites')
         .withIndex('by_group', (q) => q.eq('groupId', groupId))
         .collect(),
     ),
@@ -562,6 +666,11 @@ export async function destroyGroup(
  * any notice they had not opened.
  *
  * A **task reminder** for them goes, with its queued send (APP-305).
+ *
+ * A **calendar event** on one of the Group's calendars drops them from its
+ * assignees; the event stays, and its `revision` moves so an open editor
+ * still holding the old list gets a conflict rather than writing it back
+ * (APP-407).
  */
 export async function detachFromGroup(
   ctx: MutationCtx,
@@ -634,4 +743,23 @@ export async function detachFromGroup(
     })
   }
   await unassignFromGroup(ctx, userId, groupId)
+
+  // Events hang off a calendar, so the Group's calendars are the way in.
+  const calendars = await ctx.db
+    .query('calendars')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .collect()
+  for (const calendar of calendars) {
+    const events = await ctx.db
+      .query('calendarEvents')
+      .withIndex('by_calendar', (q) => q.eq('calendarId', calendar._id))
+      .collect()
+    for (const event of events) {
+      if (!event.assigneeIds?.includes(userId)) continue
+      await ctx.db.patch(event._id, {
+        assigneeIds: event.assigneeIds.filter((id) => id !== userId),
+        revision: (event.revision ?? 0) + 1,
+      })
+    }
+  }
 }

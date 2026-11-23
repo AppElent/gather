@@ -126,7 +126,13 @@ export const FEATURES = defineFeatures([
     platforms: ['mobile'],
     reason:
       'Push notifications reach the phone only, so their switches live in its Settings (APP-298). The web sends none.',
-    routes: { mobile: ['(app)/(tabs)/settings/notifications'] },
+    routes: {
+      mobile: [
+        '(app)/(tabs)/settings/notifications',
+        // The handoff a tapped notification passes through to its record.
+        '(app)/open-notification',
+      ],
+    },
   },
   {
     id: 'theme',
@@ -271,7 +277,8 @@ export const FEATURES = defineFeatures([
     status: 'exclusive',
     platforms: ['mobile'],
     reason: `The Search tab is a phone destination (ADR-0018) for finding something mid-day (${ADR}).`,
-    routes: { mobile: ['(app)/(tabs)/search/**'] },
+    // A Module's search button pushes the same screen inside All (APP-613).
+    routes: { mobile: ['(app)/(tabs)/search/**', '(app)/(tabs)/all/search'] },
   },
   {
     id: 'quick-add',
@@ -288,15 +295,6 @@ export const FEATURES = defineFeatures([
     platforms: ['mobile'],
     reason: `Receives the phone's share sheet (docs/contracts/drop.md); capture is the phone's goal (${ADR}).`,
     routes: { mobile: ['(app)/drop/**'] },
-  },
-  {
-    id: 'legacy-group-links',
-    kind: 'product',
-    status: 'exclusive',
-    platforms: ['mobile'],
-    reason:
-      'Consumes old gather://g/<slug>/… links (ADR-0015, superseded by ADR-0031). Nothing produces them any more and the web 404s /g/ by ADR-0031, so APP-81 retires the handler.',
-    routes: { mobile: ['g/[groupSlug]/[...rest]', '(app)/deep-link'] },
   },
   {
     id: 'labs',
@@ -370,6 +368,20 @@ export const FEATURES = defineFeatures([
         '(app)/(tabs)/all/loyalty-cards/**',
         '(app)/(tabs)/search/loyalty-cards/**',
       ],
+    },
+  },
+
+  // Energy (APP-491): the phone leads, the web follows with the same
+  // functions (designs/energy/README.md): usage, costs, readings and the
+  // contract (APP-494).
+  {
+    id: 'energy',
+    kind: 'product',
+    status: 'parity',
+    platforms: ['web', 'mobile'],
+    routes: {
+      web: ['_app/energy/**'],
+      mobile: ['(app)/(tabs)/all/energy/**'],
     },
   },
 

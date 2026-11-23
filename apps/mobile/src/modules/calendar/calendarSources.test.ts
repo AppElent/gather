@@ -1,7 +1,11 @@
 import { normalizeCalendarEvent } from '@gather/core/calendar'
 import { describe, expect, test } from 'vitest'
 
-import { mergeSourceEvents } from './calendarSources'
+import {
+  applySourceReport,
+  isMonthLoaded,
+  mergeSourceEvents,
+} from './calendarSources'
 
 const event = (id: string, calendarId: string, revision = 1) =>
   normalizeCalendarEvent({
@@ -40,5 +44,45 @@ describe('mergeSourceEvents', () => {
 
     expect(merged).toHaveLength(1)
     expect(merged[0]?.revision).toBe(3)
+  })
+})
+
+describe('applySourceReport', () => {
+  test('keeps the last complete report while a source reloads', () => {
+    const loaded = applySourceReport(
+      {},
+      'home:2026-11-01',
+      [event('dinner', 'home')],
+      true,
+    )
+    expect(applySourceReport(loaded, 'home:2026-11-01', [], false)).toBe(
+      loaded,
+    )
+    expect(applySourceReport(loaded, 'home:2026-11-01', [], true)).toEqual({
+      'home:2026-11-01': [],
+    })
+  })
+
+  test('leaves a month unknown until its first complete report', () => {
+    expect(applySourceReport({}, 'home:2026-12-01', [], false)).toEqual({})
+  })
+})
+
+describe('isMonthLoaded', () => {
+  const reported = {
+    'home:2026-11-01': [],
+    'work:2026-11-01': [],
+    'home:2026-12-01': [],
+  }
+
+  test('needs every calendar to have reported the month', () => {
+    expect(isMonthLoaded(reported, ['home', 'work'], '2026-11-01')).toBe(true)
+    expect(isMonthLoaded(reported, ['home', 'work'], '2026-12-01')).toBe(false)
+    expect(isMonthLoaded(reported, ['home'], '2026-12-01')).toBe(true)
+  })
+
+  test('knows nothing while the calendars load, and waits for none without any', () => {
+    expect(isMonthLoaded(reported, null, '2026-11-01')).toBe(false)
+    expect(isMonthLoaded({}, [], '2027-03-01')).toBe(true)
   })
 })

@@ -252,11 +252,41 @@ describe('undo', () => {
         groupSlug: DE_VRIES,
       }),
     ).rejects.toThrow('Task not found')
-    await expect(
-      t
+    // Reading is no refusal: another Group's task has no history to show.
+    expect(
+      await t
         .withIdentity(bob)
         .query(api.tasks.completions, { taskId, groupSlug: DE_VRIES }),
-    ).rejects.toThrow('Task not found')
+    ).toEqual([])
+  })
+
+  test('a deleted task reads as no history, not a throw (APP-519)', async () => {
+    const { t, listId } = await seed()
+    const taskId = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId,
+      groupSlug: JANSEN,
+      title: 'Ramen',
+      dueDate: '2026-11-19',
+      repeat: { mode: 'fixed', unit: 'day', every: 2 },
+    })
+    await t
+      .withIdentity(alice)
+      .mutation(api.tasks.toggleDone, { taskId, groupSlug: JANSEN, today: TODAY })
+    // The phone's retained subscription re-runs after the screen deletes it.
+    await t
+      .withIdentity(alice)
+      .mutation(api.tasks.remove, { taskId, groupSlug: JANSEN })
+    expect(
+      await t
+        .withIdentity(alice)
+        .query(api.tasks.completions, { taskId, groupSlug: JANSEN }),
+    ).toEqual([])
+    // The Group is still refused, and distinctly.
+    await expect(
+      t
+        .withIdentity(alice)
+        .query(api.tasks.completions, { taskId, groupSlug: 'nobody' }),
+    ).rejects.toThrow('No group has that slug')
   })
 })
 
@@ -285,6 +315,29 @@ describe('every completion path', () => {
       dueDate: '2026-11-29',
     })
     expect(await historyRows(t, taskId)).toHaveLength(1)
+  })
+
+  test('reopening the occurrence takes a stale check stamp off (APP-516)', async () => {
+    const { t, listId } = await seed()
+    const taskId = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId,
+      groupSlug: JANSEN,
+      title: 'Handdoeken',
+      dueDate: '2026-11-22',
+      repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [7] },
+    })
+    // An open repeating task that still carries the stamp of an earlier check.
+    await t.run(async (ctx) => {
+      await ctx.db.patch(taskId, { doneAt: NOW - 1000 })
+    })
+
+    await t
+      .withIdentity(alice)
+      .mutation(api.tasks.toggleDone, { taskId, groupSlug: JANSEN, today: TODAY })
+
+    const row = await taskRow(t, taskId)
+    expect(row).toMatchObject({ done: false, dueDate: '2026-11-29' })
+    expect(row?.doneAt).toBeUndefined()
   })
 
   test('an installed app that sends no day gets the Dutch day', async () => {

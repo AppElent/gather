@@ -31,6 +31,18 @@ export const common = {
     notFound: 'Not found.',
     loading: 'Loading…',
     didNotWork: 'That did not work — try again.',
+    /**
+     * A Group refused at the door (APP-429), keyed by `GroupRefusalCode`.
+     * Read with `groupRefusalSentence`, never matched against the English
+     * `message` the refusal also carries.
+     */
+    groupRefusals: {
+      'not-signed-in': 'You are signed out. Sign in again to continue.',
+      'unknown-slug':
+        'That group does not exist. Check the link, or pick one of your groups.',
+      'unknown-group': 'That group no longer exists.',
+      'not-a-member': 'You are not a member of this group.',
+    },
   },
 
   /** The photo field a recipe and a child's profile both use. */

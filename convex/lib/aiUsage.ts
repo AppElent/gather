@@ -1,10 +1,12 @@
 /**
  * The daily cap on AI calls.
  *
- * Gather reaches Anthropic for a person from three actions — the recipe
+ * Gather reaches Anthropic for a person from these actions — the recipe
  * importer's fallback (`recipeImport.importFromUrl`), the nutrition estimate
- * (`recipeNutrition.estimateNutrition`) and reading recipe lines for the
- * grocery list (`groceryLines.read`, APP-312) — and all spend from this one
+ * (`recipeNutrition.estimateNutrition`), reading recipe lines for the
+ * grocery list (`groceryLines.read`, APP-312), Plan mijn week
+ * (`mealPlanDrafts.propose` and `.regenerate`, APP-319) and Iets anders /
+ * Nieuw idee (`mealIdeas.swap` and `.idea`, APP-320) — and all spend from this one
  * budget, per person per UTC day. Any new action that calls a model takes a
  * call from `takeAiCall` (or `aiUsage.takeCounted`) first; the limit is not
  * per feature on purpose, so a new one cannot quietly double what a person
@@ -12,7 +14,12 @@
  *
  * The call is taken *before* the request and not refunded when it fails: the
  * cap exists to bound spend, and a request that reached the provider cost
- * something whether or not it produced a recipe.
+ * something whether or not it produced a recipe. The exceptions are the
+ * meal planner's AI actions (Plan mijn week, Iets anders, Nieuw idee), whose
+ * fallback is promised to cost nothing: they give the call back with
+ * `aiUsage.refund` when no key is set or the model could not be reached,
+ * through `takeRefundableAiCall`, so the refund lands on the day the call was
+ * counted against.
  */
 
 import { AI_LIMIT_KIND } from '@gather/core/ai-limit'
@@ -48,4 +55,27 @@ export async function takeAiCall(
 ): Promise<void> {
   const taken = await ctx.runMutation(internal.aiUsage.take, { clerkId })
   if (!taken) aiLimitReached()
+}
+
+/**
+ * Take one call as `takeAiCall` does, or null over the cap, with a `refund`
+ * that gives it back to the day it was counted against (a take just before
+ * UTC midnight is not refunded from the next day, APP-460). `used` is how
+ * many calls that day has used with this one.
+ */
+export async function takeRefundableAiCall(
+  ctx: ActionCtx,
+  clerkId: string,
+): Promise<{ used: number; refund: () => Promise<void> } | null> {
+  const taken: { used: number; day: string } | null = await ctx.runMutation(
+    internal.aiUsage.takeDated,
+    { clerkId },
+  )
+  if (!taken) return null
+  return {
+    used: taken.used,
+    refund: async () => {
+      await ctx.runMutation(internal.aiUsage.refund, { clerkId, day: taken.day })
+    },
+  }
 }

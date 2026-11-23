@@ -5,6 +5,7 @@ import {
 } from '@gather/core/data-export'
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
+import { ENERGY_SECRETS, insertEnergyHousehold } from '../test/energyFixture'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { PAGE_SIZE } from './lib/dataExport'
@@ -235,6 +236,15 @@ async function household(t: Harness): Promise<Household> {
       dueDate: '2026-11-28',
       repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [6] },
     })
+    // A step of the bins, one level deep (APP-304).
+    await ctx.db.insert('tasks', {
+      listId: chores,
+      title: 'Rinse the bins',
+      done: false,
+      createdBy: alice,
+      order: PAGE_SIZE + 11,
+      parentTaskId: bins,
+    })
     await ctx.db.insert('taskCompletions', {
       groupId: household,
       taskId: bins,
@@ -310,6 +320,7 @@ async function household(t: Harness): Promise<Household> {
       cardNumber: '2620187342052',
       barcodeFormat: 'EAN_13',
       holder: 'Bob',
+      order: 0,
       frontPhotoId: await ctx.storage.store(new Blob(['front'])),
       backPhotoId: await ctx.storage.store(new Blob(['back'])),
       createdByUserId: bob,
@@ -421,6 +432,16 @@ async function household(t: Harness): Promise<Household> {
       updatedBy: alice,
       updatedAt: 0,
     })
+    await ctx.db.insert('mealPlanDrafts', {
+      groupId: household,
+      weekStart: '2026-11-23',
+      date: '2026-11-24',
+      slot: 'dinner',
+      quickMeal: 'Tosti',
+      source: 'fallback',
+      createdBy: alice,
+      expiresAt: 0,
+    })
     await ctx.db.insert('netWorthEntries', {
       groupId: household,
       createdByUserId: alice,
@@ -476,6 +497,9 @@ async function household(t: Harness): Promise<Household> {
       barcodeFormat: 'EAN_13',
       formatConfidence: 'sourced',
     })
+
+    // Energy (APP-492): a row in every table, with a token and a key.
+    await insertEnergyHousehold(ctx, household, bob)
 
     return { alice, bob, household, allotment }
   })
@@ -538,6 +562,7 @@ describe('what the file contains', () => {
       { table: 'recipeShares', reason: 'bookkeeping' },
       { table: 'tastingCatalog', reason: 'reference-data' },
       { table: 'retailerCatalog', reason: 'reference-data' },
+      { table: 'energyPrices', reason: 'reference-data' },
       { table: 'seedRuns', reason: 'bookkeeping' },
     ])
     expect(data.omittedFields.integrationConnections).toEqual(['accessToken'])
@@ -559,8 +584,12 @@ describe('what the file contains', () => {
     for (const [table, rows] of Object.entries(household)) {
       expect(rows.length, table).toBeGreaterThan(0)
     }
-    // The page of tasks, five more, and the repeating one (APP-303).
-    expect(household.tasks).toHaveLength(PAGE_SIZE + 6)
+    // The page of tasks, five more, the repeating one (APP-303) and its
+    // subtask (APP-304), which names its parent by the id the file gives it.
+    expect(household.tasks).toHaveLength(PAGE_SIZE + 7)
+    const bins = household.tasks.find((task) => task.title === 'Bins')
+    const rinse = household.tasks.find((task) => task.title === 'Rinse the bins')
+    expect(rinse?.parentTaskId).toBe(bins?.id)
     // Who completed it, by name.
     expect(household.taskCompletions).toEqual([
       expect.objectContaining({ completedBy: 'Bob', completedOn: '2026-11-19' }),
@@ -617,6 +646,8 @@ describe('what the file contains', () => {
       expect.stringContaining('http'),
     )
     const [card] = household.loyaltyCards
+    // The Group's arrangement travels with the card (APP-440).
+    expect(card.order).toBe(0)
     expect(card).not.toHaveProperty('frontPhotoId')
     expect(card).not.toHaveProperty('backPhotoId')
     expect(card.frontPhotoUrl).toEqual(expect.stringContaining('http'))
@@ -673,6 +704,32 @@ describe('what the file holds back', () => {
       accountLabel: 'Todoist',
       connectedBy: 'Bob',
     })
+  })
+
+  test('energy: the address, its contract, meters and readings, without secrets', async () => {
+    const t = testConvex()
+    const { data, text } = await exported(t)
+    const household = groupOf(data, 'household')
+    expect(household.energySites).toEqual([
+      expect.objectContaining({ name: 'Thuis', createdByUserId: 'Bob' }),
+    ])
+    expect(household.energyContracts).toEqual([
+      expect.objectContaining({ kind: 'dynamic', validFrom: '2026-01-01' }),
+    ])
+    expect(household.energyChannels).toHaveLength(2)
+    expect(household.energyReadings).toEqual([
+      expect.objectContaining({ value: 12345.6, enteredByUserId: 'Bob' }),
+    ])
+    expect(household.energyIntervals).toHaveLength(1)
+    expect(household.energyAssets).toHaveLength(1)
+    expect(household.energySources[0]).not.toHaveProperty('secret')
+    expect(household.energyPriceFeeds[0]).not.toHaveProperty('secret')
+    expect(data.omittedFields.energySources).toEqual(['secret'])
+    expect(data.omittedFields.energyPriceFeeds).toEqual(['secret'])
+    expect(text).not.toContain(ENERGY_SECRETS.source)
+    expect(text).not.toContain(ENERGY_SECRETS.feed)
+    // Prices are reference data, the account's own included (`dataExport.ts`).
+    expect(household).not.toHaveProperty('energyPrices')
   })
 
   test('reference data, bookkeeping and legacy columns', async () => {

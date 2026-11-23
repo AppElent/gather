@@ -12,6 +12,20 @@ import {
   calendarViewValidator,
 } from './lib/calendar'
 import {
+  energyAssetKindValidator,
+  energyCarrierValidator,
+  energyChannelKindValidator,
+  energyContractKindValidator,
+  energyFixedTariffsValidator,
+  energyPriceFeedStatusValidator,
+  energyPriceProviderValidator,
+  energyPriceScopeValidator,
+  energySourceKindValidator,
+  energySourceStatusValidator,
+  energyTariffValidator,
+  energyUnitValidator,
+} from './lib/energy'
+import {
   buyingCostLinesValidator,
   holdingFields,
   holdingTransactionFields,
@@ -302,6 +316,15 @@ export default defineSchema({
      * never read it and draw the task as before.
      */
     sectionId: v.optional(v.string()),
+    /**
+     * The task this one is a step of (APP-304): a task on the same list that
+     * has no parent itself, so subtasks are one level deep. Absent on every
+     * other task, and on every task from before subtasks. A subtask is a
+     * whole task (own check, assignee, due date) but never repeats on its own;
+     * it reopens when its parent's next occurrence comes. An installed app
+     * from before subtasks draws one as an ordinary row of the list.
+     */
+    parentTaskId: v.optional(v.id('tasks')),
   })
     .index('by_list', ['listId'])
     // The end of a list without reading all of it (APP-368).
@@ -312,7 +335,9 @@ export default defineSchema({
     .index('by_list_and_done_at', ['listId', 'doneAt'])
     // A person's tasks across lists: the leave-Group clean-up, the in-app
     // notice, and later the "Mine" smart list (APP-301).
-    .index('by_assignee', ['assigneeId']),
+    .index('by_assignee', ['assigneeId'])
+    // A task's subtasks without reading the rest of its list (APP-304).
+    .index('by_parent', ['parentTaskId']),
 
   /**
    * One completion of a repeating task (APP-303): who, when, and the due
@@ -329,6 +354,12 @@ export default defineSchema({
     completedOn: v.string(),
     previousDueDate: v.optional(v.string()),
     nextDueDate: v.string(),
+    /**
+     * The subtasks that were checked when this completion reopened them
+     * (APP-304), so undoing it checks those again. Absent when none were,
+     * and on every completion from before subtasks.
+     */
+    reopenedSubtaskIds: v.optional(v.array(v.id('tasks'))),
   })
     .index('by_task', ['taskId'])
     .index('by_group', ['groupId']),
@@ -443,6 +474,35 @@ export default defineSchema({
     updatedBy: v.id('users'),
     updatedAt: v.number(),
   }).index('by_group', ['groupId']),
+
+  // A proposal from Plan mijn week (APP-319): one row per proposed meal, per
+  // Group and week, until a Member accepts it (it becomes a `plannedDinners`
+  // row), discards the week's proposal, or it expires after 24 hours. Its own
+  // table, not a flag on Planned meals, so phones from before APP-319 never
+  // draw a proposal as a real meal. Group content: every Member sees and acts
+  // on it. `createdBy` is attribution only. Exactly one of `recipeId` and
+  // `quickMeal` is set; `mealEntryId` when the quick meal is one the Group
+  // has. `reason` is the model's line; `source` says which planner chose it:
+  // the model (`ai`), the rules for a slot the model left open (`rules`), or
+  // the rules because the model was not reachable (`fallback`).
+  mealPlanDrafts: defineTable({
+    groupId: v.id('groups'),
+    /** Monday of the week, `YYYY-MM-DD`. */
+    weekStart: v.string(),
+    date: v.string(),
+    slot: mealSlotValidator,
+    recipeId: v.optional(v.id('recipes')),
+    quickMeal: v.optional(v.string()),
+    mealEntryId: v.optional(v.id('mealEntries')),
+    prepMinutes: v.optional(v.number()),
+    reason: v.optional(v.string()),
+    source: v.union(v.literal('ai'), v.literal('rules'), v.literal('fallback')),
+    createdBy: v.id('users'),
+    expiresAt: v.number(),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_group_week', ['groupId', 'weekStart'])
+    .index('by_expires', ['expiresAt']),
 
   // The Pantry before it folded into Groceries as In stock (APP-314). Kept,
   // unread by current phones, while installed apps still call `kitchen.*`
@@ -956,9 +1016,185 @@ export default defineSchema({
     backPhotoId: v.optional(v.id('_storage')),
     /** Set by `markUsed` when the card is shown; absent until then. */
     lastUsedAt: v.optional(v.number()),
+    /**
+     * The Group's own arrangement (APP-440): one order per Group, written
+     * only by `reorder`. Absent until someone reorders, and on a card added
+     * since, which `compareLoyaltyCards` puts on top.
+     */
+    order: v.optional(v.number()),
     /** Attribution only. Confers no ownership and no access (GLOSSARY.md). */
     createdByUserId: v.id('users'),
   }).index('by_group', ['groupId']),
+
+  // -- Energy (APP-491, ADR-0051) -------------------------------------------
+  //
+  // Nine tables, as approved in `designs/energy/APP-491-data-model.md`.
+  // Everything is Group-scoped except market prices, which are the same for
+  // every Group. Money totals are cents; prices per kWh or m³ are euros as a
+  // decimal, because cents are too coarse there. Gather only reads a source;
+  // it never controls a device.
+  //
+  // Every Group-scoped table also has `by_group`, which the model does not
+  // list: the Group cascade and the data export reach a Group's rows by it,
+  // as they do for every other table with a `groupId`.
+
+  /** An address the Group measures: "Thuis", "Vakantiehuis". */
+  energySites: defineTable({
+    groupId: v.id('groups'),
+    name: v.string(),
+    /** A Finances House. Deleting the House clears it; the site stays. */
+    houseId: v.optional(v.id('houses')),
+    /** Attribution only. Confers no ownership and no access (GLOSSARY.md). */
+    createdByUserId: v.id('users'),
+    order: v.number(),
+  }).index('by_group', ['groupId']),
+
+  /** What a site's energy costs from `validFrom` on; amounts excl. VAT. */
+  energyContracts: defineTable({
+    groupId: v.id('groups'),
+    siteId: v.id('energySites'),
+    validFrom: v.string(), // YYYY-MM-DD
+    kind: energyContractKindValidator,
+    supplierName: v.optional(v.string()),
+    importMarkupEurPerKwh: v.number(),
+    /** Export compensation (+) or export cost (−). */
+    exportFeeEurPerKwh: v.number(),
+    energyTaxEurPerKwh: v.number(),
+    gasMarkupEurPerM3: v.optional(v.number()),
+    gasTaxEurPerM3: v.optional(v.number()),
+    fixedTariffs: v.optional(energyFixedTariffsValidator),
+    vatPercent: v.number(),
+    /** Standing charges and network costs. */
+    monthlyFixedCents: v.number(),
+    /** Vermindering energiebelasting. */
+    yearlyTaxCreditCents: v.optional(v.number()),
+    /** Salderen; treated as off from 2027-01-01. */
+    netMetering: v.boolean(),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_site_validFrom', ['siteId', 'validFrom']),
+
+  /** Where a site's readings come from (ADR-0020's cache model). */
+  energySources: defineTable({
+    groupId: v.id('groups'),
+    siteId: v.id('energySites'),
+    kind: energySourceKindValidator,
+    label: v.string(),
+    /** Home Assistant's external URL. */
+    baseUrl: v.optional(v.string()),
+    /** Token or OAuth refresh token. Server-only: never returned or exported. */
+    secret: v.optional(v.string()),
+    status: energySourceStatusValidator,
+    lastSyncedAt: v.optional(v.number()),
+    /** Shown to Members, in words. */
+    lastError: v.optional(v.string()),
+    connectedByUserId: v.id('users'),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_site', ['siteId'])
+    .index('by_kind_status', ['kind', 'status']),
+
+  /** One meter or sensor of a site, supplied by exactly one source. */
+  energyChannels: defineTable({
+    groupId: v.id('groups'),
+    siteId: v.id('energySites'),
+    sourceId: v.id('energySources'),
+    kind: energyChannelKindValidator,
+    /** Split meters only. */
+    tariff: v.optional(energyTariffValidator),
+    unit: energyUnitValidator,
+    /** HA statistic id, Enelogic measuring point, HomeWizard serial. */
+    externalRef: v.optional(v.string()),
+    /** The solar array or battery it belongs to. */
+    assetId: v.optional(v.id('energyAssets')),
+    /** A meter swap: the old channel stops, a new one starts. */
+    retiredAt: v.optional(v.number()),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_site', ['siteId'])
+    .index('by_source', ['sourceId']),
+
+  /** Solar panels or a home battery. */
+  energyAssets: defineTable({
+    groupId: v.id('groups'),
+    siteId: v.id('energySites'),
+    kind: energyAssetKindValidator,
+    name: v.string(),
+    /** Solar only. */
+    peakWatt: v.optional(v.number()),
+    /** Battery only. */
+    capacityKwh: v.optional(v.number()),
+    installedOn: v.optional(v.string()), // YYYY-MM-DD
+    /** For payback. */
+    purchaseCents: v.optional(v.number()),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_site', ['siteId']),
+
+  /** A cumulative meter reading, in the channel's unit. */
+  energyReadings: defineTable({
+    groupId: v.id('groups'),
+    channelId: v.id('energyChannels'),
+    at: v.number(),
+    value: v.number(),
+    /** Set for a reading somebody typed. */
+    enteredByUserId: v.optional(v.id('users')),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_channel_at', ['channelId', 'at']),
+
+  /**
+   * Usage per UTC hour (state of charge: the average %). About 8,800 rows per
+   * channel a year; day and month totals are computed in queries.
+   */
+  energyIntervals: defineTable({
+    groupId: v.id('groups'),
+    channelId: v.id('energyChannels'),
+    hourStart: v.number(),
+    amount: v.number(),
+    /** Spread from manual readings. */
+    estimated: v.boolean(),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_channel_hour', ['channelId', 'hourStart']),
+
+  /** Where a site's prices come from; bring your own key. */
+  energyPriceFeeds: defineTable({
+    groupId: v.id('groups'),
+    siteId: v.id('energySites'),
+    provider: energyPriceProviderValidator,
+    scope: energyPriceScopeValidator,
+    /** The Member's API key or token. Server-only: never returned or exported. */
+    secret: v.optional(v.string()),
+    /** All-in account prices skip the contract's markup and taxes. */
+    includesTaxes: v.boolean(),
+    status: energyPriceFeedStatusValidator,
+    lastFetchedAt: v.optional(v.number()),
+    lastError: v.optional(v.string()),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_site', ['siteId'])
+    .index('by_provider', ['provider']),
+
+  /**
+   * Prices per slot. A market price (no `feedId`) is the same for every Group
+   * and belongs to none; an account price belongs to its feed's Group and
+   * goes with the feed.
+   */
+  energyPrices: defineTable({
+    /** "energyzero", "entsoe", "tibber". */
+    provider: v.string(),
+    feedId: v.optional(v.id('energyPriceFeeds')),
+    carrier: energyCarrierValidator,
+    /** Start of the slot, UTC. */
+    start: v.number(),
+    /** 15 for electricity, 1440 for gas. */
+    minutes: v.number(),
+    /** Excl. tax for market feeds. */
+    eurPerUnit: v.number(),
+  })
+    .index('by_provider_carrier_start', ['provider', 'carrier', 'start'])
+    .index('by_feed_carrier_start', ['feedId', 'carrier', 'start']),
 
   /**
    * The Retailer catalog: Dutch stores a card can be picked from (APP-141).

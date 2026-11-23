@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as accountPortal from "../accountPortal.js";
 import type * as accounts from "../accounts.js";
 import type * as activity from "../activity.js";
 import type * as aiUsage from "../aiUsage.js";
@@ -17,8 +18,13 @@ import type * as calendar from "../calendar.js";
 import type * as cascade from "../cascade.js";
 import type * as crons from "../crons.js";
 import type * as dataExport from "../dataExport.js";
+import type * as energy from "../energy.js";
+import type * as energyContracts from "../energyContracts.js";
+import type * as energyReadings from "../energyReadings.js";
+import type * as energyUsage from "../energyUsage.js";
 import type * as groceryCategories from "../groceryCategories.js";
 import type * as groceryLines from "../groceryLines.js";
+import type * as groceryPrune from "../groceryPrune.js";
 import type * as groceryStaples from "../groceryStaples.js";
 import type * as groups from "../groups.js";
 import type * as holdings from "../holdings.js";
@@ -34,6 +40,8 @@ import type * as lib_calendar from "../lib/calendar.js";
 import type * as lib_clerkUsers from "../lib/clerkUsers.js";
 import type * as lib_connectedApps from "../lib/connectedApps.js";
 import type * as lib_dataExport from "../lib/dataExport.js";
+import type * as lib_energy from "../lib/energy.js";
+import type * as lib_energyUsage from "../lib/energyUsage.js";
 import type * as lib_finance from "../lib/finance.js";
 import type * as lib_groceryAi from "../lib/groceryAi.js";
 import type * as lib_groceryCategories from "../lib/groceryCategories.js";
@@ -46,6 +54,7 @@ import type * as lib_groupSlugs from "../lib/groupSlugs.js";
 import type * as lib_idempotency from "../lib/idempotency.js";
 import type * as lib_kitchen from "../lib/kitchen.js";
 import type * as lib_loyaltyCards from "../lib/loyaltyCards.js";
+import type * as lib_mealIdeasAi from "../lib/mealIdeasAi.js";
 import type * as lib_mealPlan from "../lib/mealPlan.js";
 import type * as lib_mealPreferences from "../lib/mealPreferences.js";
 import type * as lib_notificationFields from "../lib/notificationFields.js";
@@ -66,6 +75,7 @@ import type * as lib_sharing from "../lib/sharing.js";
 import type * as lib_slugs from "../lib/slugs.js";
 import type * as lib_stableDigest from "../lib/stableDigest.js";
 import type * as lib_storedFiles from "../lib/storedFiles.js";
+import type * as lib_subtasks from "../lib/subtasks.js";
 import type * as lib_svix from "../lib/svix.js";
 import type * as lib_taskAssignee from "../lib/taskAssignee.js";
 import type * as lib_taskFields from "../lib/taskFields.js";
@@ -79,9 +89,12 @@ import type * as lib_taskRepeat from "../lib/taskRepeat.js";
 import type * as lib_taskSections from "../lib/taskSections.js";
 import type * as lib_tastings from "../lib/tastings.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as lib_weekPlanAi from "../lib/weekPlanAi.js";
 import type * as loyaltyCards from "../loyaltyCards.js";
 import type * as maintenance from "../maintenance.js";
+import type * as mealIdeas from "../mealIdeas.js";
 import type * as mealPlan from "../mealPlan.js";
+import type * as mealPlanDrafts from "../mealPlanDrafts.js";
 import type * as mealPreferences from "../mealPreferences.js";
 import type * as migrations from "../migrations.js";
 import type * as mortgages from "../mortgages.js";
@@ -109,6 +122,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  accountPortal: typeof accountPortal;
   accounts: typeof accounts;
   activity: typeof activity;
   aiUsage: typeof aiUsage;
@@ -118,8 +132,13 @@ declare const fullApi: ApiFromModules<{
   cascade: typeof cascade;
   crons: typeof crons;
   dataExport: typeof dataExport;
+  energy: typeof energy;
+  energyContracts: typeof energyContracts;
+  energyReadings: typeof energyReadings;
+  energyUsage: typeof energyUsage;
   groceryCategories: typeof groceryCategories;
   groceryLines: typeof groceryLines;
+  groceryPrune: typeof groceryPrune;
   groceryStaples: typeof groceryStaples;
   groups: typeof groups;
   holdings: typeof holdings;
@@ -135,6 +154,8 @@ declare const fullApi: ApiFromModules<{
   "lib/clerkUsers": typeof lib_clerkUsers;
   "lib/connectedApps": typeof lib_connectedApps;
   "lib/dataExport": typeof lib_dataExport;
+  "lib/energy": typeof lib_energy;
+  "lib/energyUsage": typeof lib_energyUsage;
   "lib/finance": typeof lib_finance;
   "lib/groceryAi": typeof lib_groceryAi;
   "lib/groceryCategories": typeof lib_groceryCategories;
@@ -147,6 +168,7 @@ declare const fullApi: ApiFromModules<{
   "lib/idempotency": typeof lib_idempotency;
   "lib/kitchen": typeof lib_kitchen;
   "lib/loyaltyCards": typeof lib_loyaltyCards;
+  "lib/mealIdeasAi": typeof lib_mealIdeasAi;
   "lib/mealPlan": typeof lib_mealPlan;
   "lib/mealPreferences": typeof lib_mealPreferences;
   "lib/notificationFields": typeof lib_notificationFields;
@@ -167,6 +189,7 @@ declare const fullApi: ApiFromModules<{
   "lib/slugs": typeof lib_slugs;
   "lib/stableDigest": typeof lib_stableDigest;
   "lib/storedFiles": typeof lib_storedFiles;
+  "lib/subtasks": typeof lib_subtasks;
   "lib/svix": typeof lib_svix;
   "lib/taskAssignee": typeof lib_taskAssignee;
   "lib/taskFields": typeof lib_taskFields;
@@ -180,9 +203,12 @@ declare const fullApi: ApiFromModules<{
   "lib/taskSections": typeof lib_taskSections;
   "lib/tastings": typeof lib_tastings;
   "lib/validators": typeof lib_validators;
+  "lib/weekPlanAi": typeof lib_weekPlanAi;
   loyaltyCards: typeof loyaltyCards;
   maintenance: typeof maintenance;
+  mealIdeas: typeof mealIdeas;
   mealPlan: typeof mealPlan;
+  mealPlanDrafts: typeof mealPlanDrafts;
   mealPreferences: typeof mealPreferences;
   migrations: typeof migrations;
   mortgages: typeof mortgages;

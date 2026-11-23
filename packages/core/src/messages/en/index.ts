@@ -2,6 +2,7 @@ import { auth } from './auth'
 import { baby } from './baby'
 import { calendar } from './calendar'
 import { common } from './common'
+import { energy } from './energy'
 import { finances } from './finances'
 import { loyaltyCards } from './loyaltyCards'
 import { mcpViews } from './mcpViews'
@@ -37,6 +38,7 @@ export const en = {
   calendar,
   tastings,
   loyaltyCards,
+  energy,
   mealPreferences,
   settings,
   auth,

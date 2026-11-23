@@ -23,6 +23,7 @@ import {
   REPEAT_UNITS,
   type RepeatUnit,
   sameRepeat,
+  type TaskRepeat,
   upcomingDates,
   weekdayName,
 } from '@gather/core/task-repeat'
@@ -41,9 +42,15 @@ import type { Task } from './types'
 
 export function RepeatSheet({
   task,
+  onSave,
   onClose,
 }: {
-  task: Task
+  task: Pick<Task, 'repeat' | 'dueDate'> & { id?: string }
+  /**
+   * Where the rule goes instead of the task: the keyboard composer's draft
+   * (APP-587), for a task that does not exist yet.
+   */
+  onSave?: (rule: TaskRepeat | null) => void
   onClose: () => void
 }) {
   const tokens = useTokens('home')
@@ -65,7 +72,8 @@ export function RepeatSheet({
 
   const save = () => {
     if (invalid) return
-    if (!sameRepeat(rule, task.repeat)) {
+    if (onSave) onSave(rule)
+    else if (task.id && !sameRepeat(rule, task.repeat)) {
       actions.setRepeat(task.id, rule).catch(() => haptics.actionFailed())
     }
     onClose()

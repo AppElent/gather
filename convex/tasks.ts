@@ -11,7 +11,12 @@ import {
 } from '@gather/core/groceries'
 import { taskRefusal } from '@gather/core/refusals'
 import { inAnySmartList } from '@gather/core/smart-lists'
-import { normalizeTaskUrl } from '@gather/core/task-lists'
+import { reorderedSubtasks, subtaskProgress } from '@gather/core/subtasks'
+import {
+  asTaskListKind,
+  keepsCheckedInPlace,
+  normalizeTaskUrl,
+} from '@gather/core/task-lists'
 import { clockMoment } from '@gather/core/task-reminders'
 import { reanchorRepeat, type TaskRepeat } from '@gather/core/task-repeat'
 import { ConvexError, v } from 'convex/values'
@@ -22,6 +27,7 @@ import {
   askAiOnce,
   groceryTitleKey,
   isGroceryList,
+  OPEN_ITEMS_SCAN_LIMIT,
   openItemNamed,
   recentListItems,
   recogniseGroceryTitle,
@@ -39,6 +45,14 @@ import {
   requireInGroup,
 } from './lib/groupAccess'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
+import {
+  completeSubtasks,
+  deleteSubtasks,
+  recheckSubtasks,
+  requireParentFor,
+  shiftSubtaskDates,
+  subtasksOfTask,
+} from './lib/subtasks'
 import { assigneeChange, notifyAssignee } from './lib/taskAssignee'
 import { taskPriorityValidator, taskRepeatValidator } from './lib/taskFields'
 import {
@@ -57,6 +71,7 @@ import {
   completionsOf,
   firstDueDate,
   isRepeating,
+  movedDays,
   moveReminder,
   purgeCompletionsOfTask,
 } from './lib/taskRepeat'
@@ -140,7 +155,145 @@ export const smartLists = query({
           return open.filter((task) => inAnySmartList(task, of, scope))
         }),
     )
-    return { me: user._id, tasks: perList.flat() }
+    const tasks = perList.flat()
+    // APP-304: how far each row's subtasks are, and the title of the task a
+    // subtask row belongs to. Installed apps from before subtasks read
+    // neither and draw every row as before.
+    const subtasks: { taskId: Id<'tasks'>; done: number; total: number }[] = []
+    const parents: { taskId: Id<'tasks'>; title: string }[] = []
+    const seenParents = new Set<Id<'tasks'>>()
+    for (const task of tasks) {
+      if (task.parentTaskId) {
+        if (seenParents.has(task.parentTaskId)) continue
+        seenParents.add(task.parentTaskId)
+        const parent = await ctx.db.get(task.parentTaskId)
+        if (parent) parents.push({ taskId: parent._id, title: parent.title })
+        continue
+      }
+      const children = await ctx.db
+        .query('tasks')
+        .withIndex('by_parent', (q) => q.eq('parentTaskId', task._id))
+        .collect()
+      const progress = subtaskProgress(
+        children.map((child) => ({ ...child, id: child._id })),
+      ).get(task._id)
+      if (progress) subtasks.push({ taskId: task._id, ...progress })
+    }
+    return { me: user._id, tasks, subtasks, parents }
+  },
+})
+
+/**
+ * What the phone's Tasks index counts per local list (APP-430): one answer in
+ * place of a `listByList` subscription for every list of the Group.
+ *
+ * Counted as a list counts itself: a subtask is a step of its parent's row,
+ * not a row of its own (APP-304), so rows with a `parentTaskId` are left out.
+ * `open` is the list's open rows, read through `by_list_and_done`, so a
+ * grocery list's years of checked items are never read. A packing list keeps
+ * its checked items in place and shows how much is packed, so it also reads
+ * its (small, reset) rows for `done` and `total`. A linked list has no rows in
+ * Convex and is absent; the phone counts those from the provider.
+ */
+export const openCounts = query({
+  args: { groupSlug: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const lists = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    return await Promise.all(
+      lists
+        .filter((list) => list.provider === 'local')
+        .map(async (list) => {
+          if (keepsCheckedInPlace(asTaskListKind(list.kind))) {
+            const rows = (
+              await ctx.db
+                .query('tasks')
+                .withIndex('by_list', (q) => q.eq('listId', list._id))
+                .collect()
+            ).filter((task) => !task.parentTaskId)
+            const done = rows.filter((task) => task.done).length
+            return {
+              listId: list._id,
+              open: rows.length - done,
+              done,
+              total: rows.length,
+            }
+          }
+          const open = await ctx.db
+            .query('tasks')
+            .withIndex('by_list_and_done', (q) =>
+              q.eq('listId', list._id).eq('done', false),
+            )
+            .collect()
+          return {
+            listId: list._id,
+            open: open.filter((task) => !task.parentTaskId).length,
+          }
+        }),
+    )
+  },
+})
+
+/**
+ * Which local list of the named Group holds a task, or null (APP-565): the
+ * task's detail screen subscribes to that list alone instead of every list in
+ * the Group. The id is a string because the screen also opens a linked list's
+ * task, whose id is the provider's and never a Convex id; that, a missing
+ * task and one in another Group's list are all null, so the answer cannot
+ * tell anyone a task exists elsewhere. The Group itself is refused first.
+ */
+export const listOf = query({
+  args: { groupSlug: v.string(), taskId: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const taskId = ctx.db.normalizeId('tasks', args.taskId)
+    const task = taskId && (await ctx.db.get(taskId))
+    if (!task) return null
+    const list = await ctx.db.get(task.listId)
+    return list?.groupId === group._id ? list._id : null
+  },
+})
+
+/**
+ * Every label typed on a task in the named Group's local lists, sorted and
+ * once each (APP-565): the Labels sheet's suggestions, in one subscription
+ * instead of one per list. A grocery list is read for its open items only
+ * (`by_list_and_done`), so its years of checked items never are. A linked
+ * list has no rows in Convex; the phone adds its last fetched labels.
+ */
+export const labels = query({
+  args: { groupSlug: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const lists = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const rows = await Promise.all(
+      lists
+        .filter((list) => list.provider === 'local')
+        .map((list) =>
+          isGroceryList(group, list)
+            ? ctx.db
+                .query('tasks')
+                .withIndex('by_list_and_done', (q) =>
+                  q.eq('listId', list._id).eq('done', false),
+                )
+                .collect()
+            : ctx.db
+                .query('tasks')
+                .withIndex('by_list', (q) => q.eq('listId', list._id))
+                .collect(),
+        ),
+    )
+    const found = new Set<string>()
+    for (const task of rows.flat()) {
+      for (const label of task.labels ?? []) found.add(label)
+    }
+    return Array.from(found).sort()
   },
 })
 
@@ -250,6 +403,10 @@ export const add = mutation({
     // The section it is added to (APP-357). One the list does not have, and
     // none at all from an app older than sections, is "No section".
     sectionId: v.optional(v.string()),
+    // The task it is a step of (APP-304): one on the same list that is not a
+    // subtask itself. A subtask does not repeat and sits in its parent's
+    // section.
+    parentTaskId: v.optional(v.id('tasks')),
     idempotencyKey: idempotencyKeyValidator,
   },
   handler: async (ctx, args) => {
@@ -258,10 +415,18 @@ export const add = mutation({
       args.groupSlug,
       args.listId,
     )
+    const parent = args.parentTaskId
+      ? await requireParentFor(ctx, list, args.parentTaskId)
+      : null
+    if (parent && args.repeat) {
+      throw new ConvexError(taskRefusal('subtask-repeat'))
+    }
     const quantity =
       args.quantity === undefined ? undefined : checkedQuantity(args.quantity)
     const onGroceryList = isGroceryList(group, list)
-    const sectionId = knownSectionId(list, args.sectionId)
+    const sectionId = parent
+      ? parent.sectionId
+      : knownSectionId(list, args.sectionId)
     // A list without amounts keeps an amount it was sent in the title, so
     // nothing a connected app wrote is dropped.
     const title = onGroceryList
@@ -311,6 +476,7 @@ export const add = mutation({
         ...(repeat ? { repeat } : {}),
         ...(assignee ?? {}),
         ...(sectionId ? { sectionId } : {}),
+        ...(parent ? { parentTaskId: parent._id } : {}),
       })
       if (grocery) await askAiOnce(ctx, group._id, grocery, taskId)
       await notifyAssignee(ctx, group._id, taskId, assignee)
@@ -327,7 +493,15 @@ export const add = mutation({
  * come back with the new date.
  */
 export const toggleDone = mutation({
-  args: { taskId: v.id('tasks'), groupSlug: v.string(), today: todayArg },
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    today: todayArg,
+    // "Complete all" (APP-304): checking a task checks its open subtasks
+    // too. Absent — "Only this", and every app from before subtasks —
+    // leaves them as they are.
+    withSubtasks: v.optional(v.boolean()),
+  },
   returns: completionResult,
   handler: async (ctx, args) => {
     const {
@@ -350,6 +524,8 @@ export const toggleDone = mutation({
     await ctx.db.patch(args.taskId, doneFields(!task.done))
     if (task.reminder)
       await syncSend(ctx, { ...task, done: !task.done }, group._id, task.reminder)
+    if (!task.done && args.withSubtasks)
+      await completeSubtasks(ctx, task._id, group._id)
     return null
   },
 })
@@ -393,7 +569,8 @@ export const setReminder = mutation({
 
 /**
  * Take back a repeating task's completion right after it: the due date goes
- * back to the one it was completed from, and the history row goes. Only the
+ * back to the one it was completed from, its dated subtasks move back the
+ * same days, and the history row goes. Only the
  * task's latest completion can be undone, so one Member's undo never erases
  * another's later completion.
  */
@@ -420,23 +597,45 @@ export const undoCompletion = mutation({
       done: false,
     })
     await moveReminder(ctx, task, group._id, completion.previousDueDate)
+    await shiftSubtaskDates(
+      ctx,
+      task._id,
+      group._id,
+      movedDays(completion.nextDueDate, completion.previousDueDate),
+      { createdBefore: completion._creationTime },
+    )
+    if (completion.reopenedSubtaskIds)
+      await recheckSubtasks(
+        ctx,
+        task._id,
+        group._id,
+        completion.reopenedSubtaskIds,
+      )
     await ctx.db.delete(completion._id)
     return null
   },
 })
 
-/** Who completed a repeating task and when, newest first (APP-303). */
+/**
+ * Who completed a repeating task and when, newest first (APP-303).
+ *
+ * A task that has gone, or is in another Group's list, has no history to show:
+ * the answer is empty, the same for both (ADR-0009), as `loyaltyCards.get`
+ * answers null. The phone keeps a screen's subscription open for minutes after
+ * it unmounts (`apps/mobile/src/convex/queries.ts`), so deleting a task from
+ * its own screen re-runs this for an id that no longer exists; a throw there
+ * reported to Sentry on every re-run (APP-519). An unknown Group, or one the
+ * caller is not a Member of, is still refused, and distinctly.
+ */
 export const completions = query({
   args: { taskId: v.id('tasks'), groupSlug: v.string() },
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId)
     if (!task) {
       await requireGroupBySlug(ctx, args.groupSlug)
-      throw new ConvexError('Task not found')
+      return []
     }
-    if (!(await findInGroup(ctx, args.groupSlug, task.listId))) {
-      throw new ConvexError('Task not found')
-    }
+    if (!(await findInGroup(ctx, args.groupSlug, task.listId))) return []
     const rows = await ctx.db
       .query('taskCompletions')
       .withIndex('by_task', (q) => q.eq('taskId', args.taskId))
@@ -492,6 +691,11 @@ export const update = mutation({
     // The Member responsible (APP-302); null is nobody. Absent leaves it as
     // it is, which is what every client from before assignees sends.
     assigneeId: v.optional(v.union(v.id('users'), v.null())),
+    // The task it is a step of (APP-304); null makes it a task of its own.
+    // The same rules as `add`: same list, one level deep, no repeat.
+    parentTaskId: v.optional(v.union(v.id('tasks'), v.null())),
+    // With done true: check its open subtasks too ("Complete all").
+    withSubtasks: v.optional(v.boolean()),
   },
   returns: completionResult,
   handler: async (ctx, args) => {
@@ -502,6 +706,13 @@ export const update = mutation({
       doc: list,
     } = await requireEditableTaskInGroup(ctx, args.groupSlug, args.taskId)
     const { taskId, title, dueDate, priority, labels, notes, done } = args
+    const parent = await parentChange(ctx, task, list, args.parentTaskId)
+    const isSubtask =
+      args.parentTaskId === undefined
+        ? task.parentTaskId !== undefined
+        : args.parentTaskId !== null
+    if (isSubtask && (args.repeat || (args.repeat === undefined && task.repeat)))
+      throw new ConvexError(taskRefusal('subtask-repeat'))
     const url = args.url === undefined ? undefined : checkedUrl(args.url)
     const priceCents =
       args.priceCents === undefined ? undefined : checkedPrice(args.priceCents)
@@ -575,6 +786,7 @@ export const update = mutation({
       ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
       ...(assignee ?? {}),
       ...(reminder !== task.reminder ? { reminder } : {}),
+      ...(parent ?? {}),
     })
     if (task.reminder && (reminder !== task.reminder || done !== undefined))
       await syncSend(
@@ -583,11 +795,22 @@ export const update = mutation({
         group._id,
         task.reminder,
       )
+    // A repeating parent's dated subtasks move the same days as its due date,
+    // as they do when it completes (APP-468); a one-off parent's stay put.
+    if (dueDate !== undefined && willRepeat(task, args.repeat))
+      await shiftSubtaskDates(
+        ctx,
+        taskId,
+        group._id,
+        movedDays(task.dueDate, dueDate ?? undefined),
+      )
     if (askAi) await askAiOnce(ctx, group._id, askAi, taskId)
     if (done === true && !task.done)
       await restockCheckedStaples(ctx, group, list, [
         { title: title ?? task.title },
       ])
+    if (done === true && !task.done && args.withSubtasks && !completes)
+      await completeSubtasks(ctx, taskId, group._id)
     await notifyAssignee(ctx, group._id, taskId, assignee)
 
     const today = completionDay(args.today)
@@ -630,6 +853,31 @@ export const markAssignmentSeen = mutation({
     return null
   },
 })
+
+/**
+ * The parent fields an update writes (APP-304), or null when it changes no
+ * parent. Becoming a subtask: the parent is on the same list and not a
+ * subtask, the task has no subtasks of its own, and it takes the parent's
+ * section. Null makes it a task of its own again, where it is.
+ */
+async function parentChange(
+  ctx: MutationCtx,
+  task: Doc<'tasks'>,
+  list: Doc<'taskLists'>,
+  parentTaskId: Id<'tasks'> | null | undefined,
+): Promise<Pick<Doc<'tasks'>, 'parentTaskId' | 'sectionId'> | null> {
+  if (parentTaskId === undefined) return null
+  if (parentTaskId === null) {
+    return task.parentTaskId ? { parentTaskId: undefined } : null
+  }
+  if (parentTaskId === task.parentTaskId) return null
+  if (parentTaskId === task._id)
+    throw new ConvexError(taskRefusal('subtask-depth'))
+  const parent = await requireParentFor(ctx, list, parentTaskId)
+  if ((await subtasksOfTask(ctx, task._id)).length > 0)
+    throw new ConvexError(taskRefusal('subtask-depth'))
+  return { parentTaskId: parent._id, sectionId: parent.sectionId }
+}
 
 /** Whether the task repeats once this update's repeat change is applied. */
 function willRepeat(task: Doc<'tasks'>, repeat: TaskRepeat | null | undefined) {
@@ -742,6 +990,8 @@ export const remove = mutation({
   args: { taskId: v.id('tasks'), groupSlug: v.string() },
   handler: async (ctx, args) => {
     const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    // A parent's subtasks go with it (APP-304), after the same confirm.
+    await deleteSubtasks(ctx, task._id)
     await cancelSend(ctx, task)
     await purgeCompletionsOfTask(ctx, args.taskId)
     await ctx.db.delete(args.taskId)
@@ -938,8 +1188,30 @@ export const moveToList = mutation({
       unit: fields.unit satisfies GroceryUnit | undefined,
       // A section belongs to its list; on another list the task has none.
       sectionId: undefined,
+      // A subtask moved on its own leaves its parent behind (APP-304).
+      parentTaskId: undefined,
     })
     if (grocery) await askAiOnce(ctx, group._id, grocery, task._id)
+    // A parent takes its subtasks along, in their order, behind it. Onto a
+    // grocery list, which has no subtasks, they stay behind as tasks of
+    // their own.
+    const subtasks = (await subtasksOfTask(ctx, task._id)).sort(
+      (a, b) => a.order - b.order,
+    )
+    if (onGroceryList) {
+      for (const subtask of subtasks) {
+        await ctx.db.patch(subtask._id, { parentTaskId: undefined })
+      }
+      return null
+    }
+    for (const subtask of subtasks) {
+      await ctx.db.patch(subtask._id, {
+        listId: args.listId,
+        order: await endOfList(ctx, args.listId),
+        sectionId: undefined,
+        category: undefined,
+      })
+    }
     return null
   },
 })
@@ -952,7 +1224,7 @@ export const RECENT_GROCERIES_LIMIT = 100
  * the limit, so a name checked as two separate items still leaves room for
  * a hundred different ones.
  */
-const RECENT_GROCERIES_WINDOW = 2 * RECENT_GROCERIES_LIMIT
+export const RECENT_GROCERIES_WINDOW = 2 * RECENT_GROCERIES_LIMIT
 
 /**
  * A Group's Recent (APP-310): the checked items of its grocery lists, newest
@@ -1037,10 +1309,12 @@ export const recentGroceries = query({
 })
 
 /**
- * How many of each grocery list's newest checked items the habits read
- * (APP-311): enough for a year of weekly shopping of a full list.
+ * How many checked items the habits read (APP-311), across all the Group's
+ * grocery lists together, newest first (APP-427): enough for a year of weekly
+ * shopping of a full list. One list can fill it alone, so the daily prune
+ * keeps more than this per list (`groceryPrune.ts`, APP-404).
  */
-const GROCERY_HABITS_WINDOW = 1000
+export const GROCERY_HABITS_WINDOW = 1000
 
 /** How many names the composer's history completes from. */
 const GROCERY_HABITS_LIMIT = 300
@@ -1057,6 +1331,48 @@ const groceryHabitValidator = v.object({
 })
 
 /**
+ * The newest rows of several index ranges, each already newest first, merged
+ * into one newest-first run of at most `take` that pass `keep`. It reads
+ * lazily, one row at a time from whichever range has the newest next row, and
+ * stops after `scanLimit` rows read in all, so a Group with many lists reads
+ * no more than one with a single list.
+ */
+async function newestAcross(
+  ranges: AsyncIterable<Doc<'tasks'>>[],
+  options: {
+    take: number
+    scanLimit: number
+    at: (task: Doc<'tasks'>) => number
+    keep: (task: Doc<'tasks'>) => boolean
+  },
+): Promise<Doc<'tasks'>[]> {
+  const out: Doc<'tasks'>[] = []
+  if (options.take <= 0) return out
+  // Iterators left unfinished need no closing: the query's reads end with it.
+  const iterators = ranges.map((range) => range[Symbol.asyncIterator]())
+  const heads = await Promise.all(iterators.map((it) => it.next()))
+  let scanned = 0
+  while (out.length < options.take && scanned < options.scanLimit) {
+    let newest = -1
+    for (let i = 0; i < heads.length; i++) {
+      const head = heads[i]
+      if (head.done) continue
+      if (
+        newest === -1 ||
+        options.at(head.value) > options.at(heads[newest].value as Doc<'tasks'>)
+      )
+        newest = i
+    }
+    if (newest === -1) break
+    const row = heads[newest].value as Doc<'tasks'>
+    scanned++
+    if (options.keep(row)) out.push(row)
+    heads[newest] = await iterators[newest].next()
+  }
+  return out
+}
+
+/**
  * What the Group usually buys, for one of its grocery lists (APP-311;
  * `designs/groceries/README.md`, section 1 item 2 and section 2):
  *
@@ -1068,13 +1384,22 @@ const groceryHabitValidator = v.object({
  *   hidden from it, at most eight. Empty when the list has them switched off.
  *
  * History is the checked items of the Group's grocery lists, as Recent reads
- * it (`by_list_and_done_at`, no table of its own), bounded per list. Items
- * checked before `doneAt` existed count at the moment they were added. The
- * "now" a query sees is when it last ran: the strip moves on with the next
- * change to the Group's grocery lists or the next time it is opened.
+ * it (`by_list_and_done_at`, no table of its own): the newest
+ * `GROCERY_HABITS_WINDOW` across all of them together (APP-427). Items
+ * checked before `doneAt` existed count at the moment they were added, read
+ * only while the stamped history leaves room. What is open is read from this
+ * list alone, through `by_list_and_done`.
+ *
+ * `now` is when "due" is measured from. The phone sends the hour it is, so
+ * the strip moves on while the screen stays open (APP-427); without it (an
+ * installed app from before) it is when the query last ran.
  */
 export const groceryHabits = query({
-  args: { groupSlug: v.string(), listId: v.id('taskLists') },
+  args: {
+    groupSlug: v.string(),
+    listId: v.id('taskLists'),
+    now: v.optional(v.number()),
+  },
   returns: v.object({
     habits: v.array(groceryHabitValidator),
     suggestions: v.array(groceryHabitValidator),
@@ -1096,7 +1421,7 @@ export const groceryHabits = query({
     const grocery = lists.filter(
       (list) => list.provider === 'local' && isGroceryList(group, list),
     )
-    const window = (list: Doc<'taskLists'>, stamped: boolean) =>
+    const range = (list: Doc<'taskLists'>, stamped: boolean) =>
       ctx.db
         .query('tasks')
         .withIndex('by_list_and_done_at', (q) =>
@@ -1105,34 +1430,55 @@ export const groceryHabits = query({
             : q.eq('listId', list._id).eq('doneAt', undefined),
         )
         .order('desc')
-        .take(GROCERY_HABITS_WINDOW)
-    const [stamped, unstamped] = await Promise.all([
-      Promise.all(grocery.map((list) => window(list, true))),
-      Promise.all(grocery.map((list) => window(list, false))),
-    ])
-    const purchases: GroceryPurchase[] = [
-      ...stamped.flat().filter((task) => task.done),
-      ...unstamped.flat().filter((task) => task.done),
-    ].map((task) => ({
-      key: groceryTitleKey(task.title),
-      title: task.title,
-      at: task.doneAt ?? task._creationTime,
-      ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
-      ...(task.unit !== undefined ? { unit: task.unit } : {}),
-      ...(task.category !== undefined ? { category: task.category } : {}),
-    }))
+    const stamped = await newestAcross(
+      grocery.map((list) => range(list, true)),
+      {
+        take: GROCERY_HABITS_WINDOW,
+        scanLimit: GROCERY_HABITS_WINDOW,
+        at: (task) => task.doneAt ?? 0,
+        keep: (task) => task.done,
+      },
+    )
+    // Items checked before `doneAt` share the no-stamp range with the open
+    // items; read only while the stamped history leaves room.
+    const unstamped = await newestAcross(
+      grocery.map((list) => range(list, false)),
+      {
+        take: GROCERY_HABITS_WINDOW - stamped.length,
+        scanLimit: GROCERY_HABITS_WINDOW,
+        at: (task) => task._creationTime,
+        keep: (task) => task.done,
+      },
+    )
+    const purchases: GroceryPurchase[] = [...stamped, ...unstamped].map(
+      (task) => ({
+        key: groceryTitleKey(task.title),
+        title: task.title,
+        at: task.doneAt ?? task._creationTime,
+        ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
+        ...(task.unit !== undefined ? { unit: task.unit } : {}),
+        ...(task.category !== undefined ? { category: task.category } : {}),
+      }),
+    )
     const habits = groceryHabitsOf(purchases)
     if (target.suggestionsOff) {
       return { habits: habits.slice(0, GROCERY_HABITS_LIMIT), suggestions: [] }
     }
-    // What is open on the list now: the open rows sit in the no-stamp range.
-    const onList = unstamped[grocery.findIndex((list) => list._id === target._id)]
-      .filter((task) => !task.done)
-      .map((task) => groceryTitleKey(task.title))
-    const exclude = new Set([...onList, ...(target.hiddenSuggestions ?? [])])
+    const open = await ctx.db
+      .query('tasks')
+      .withIndex('by_list_and_done', (q) =>
+        q.eq('listId', target._id).eq('done', false),
+      )
+      .take(OPEN_ITEMS_SCAN_LIMIT)
+    const exclude = new Set([
+      ...open.map((task) => groceryTitleKey(task.title)),
+      ...(target.hiddenSuggestions ?? []),
+    ])
+    const now =
+      args.now !== undefined && Number.isFinite(args.now) ? args.now : Date.now()
     return {
       habits: habits.slice(0, GROCERY_HABITS_LIMIT),
-      suggestions: grocerySuggestions(habits, { now: Date.now(), exclude }),
+      suggestions: grocerySuggestions(habits, { now, exclude }),
     }
   },
 })
@@ -1170,17 +1516,111 @@ export const putBack = mutation({
     requireWritableGroceryList(group, list)
     const open = await openItemNamed(ctx, args.listId, task.title)
     if (open) return open._id
-    const order = await endOfList(ctx, args.listId)
-    return await ctx.db.insert('tasks', {
-      listId: args.listId,
-      title: task.title,
-      done: false,
-      createdBy: user._id,
-      order,
-      ...(task.category ? { category: task.category } : {}),
-      ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
-      ...(task.unit !== undefined ? { unit: task.unit } : {}),
-    })
+    return await insertOpenCopy(ctx, args.listId, user._id, task)
+  },
+})
+
+/** An open copy of a checked grocery item at the end of a list. */
+async function insertOpenCopy(
+  ctx: MutationCtx,
+  listId: Id<'taskLists'>,
+  userId: Id<'users'>,
+  task: Doc<'tasks'>,
+): Promise<Id<'tasks'>> {
+  return await ctx.db.insert('tasks', {
+    listId,
+    title: task.title,
+    done: false,
+    createdBy: userId,
+    order: await endOfList(ctx, listId),
+    ...(task.category ? { category: task.category } : {}),
+    ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
+    ...(task.unit !== undefined ? { unit: task.unit } : {}),
+  })
+}
+
+/**
+ * A grocery list's "Put back all" (APP-427): each checked item of the list is
+ * put back as `putBack` does, as an open copy, so its purchase stays in the
+ * Group's history; unchecking them would take them out of it. A name already
+ * open on the list, or twice among `taskIds`, is not added again. Answers the
+ * copies it added, for the undo to remove (`removePutBack`).
+ *
+ * Every id must be an item on this list, at most `OPEN_ITEMS_SCAN_LIMIT`; one
+ * no longer checked is skipped. Installed phones from before
+ * keep calling `setDoneInList` for this and keep unchecking.
+ */
+export const putBackChecked = mutation({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    taskIds: v.array(v.id('tasks')),
+  },
+  returns: v.array(v.id('tasks')),
+  handler: async (ctx, args) => {
+    const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
+    const list = await ctx.db.get(args.listId)
+    if (!list || list.groupId !== group._id)
+      throw new ConvexError(taskRefusal('not-found'))
+    requireWritableGroceryList(group, list)
+    if (args.taskIds.length > OPEN_ITEMS_SCAN_LIMIT)
+      throw new ConvexError(taskRefusal('not-found'))
+    const rows = await Promise.all(args.taskIds.map((id) => ctx.db.get(id)))
+    for (const task of rows)
+      if (!task || task.listId !== args.listId)
+        throw new ConvexError(taskRefusal('not-found'))
+    // One unchecked on another phone since the list was drawn is skipped.
+    const tasks = (rows as Doc<'tasks'>[]).filter((task) => task.done)
+    const open = await ctx.db
+      .query('tasks')
+      .withIndex('by_list_and_done', (q) =>
+        q.eq('listId', args.listId).eq('done', false),
+      )
+      .take(OPEN_ITEMS_SCAN_LIMIT)
+    const seen = new Set(open.map((task) => groceryTitleKey(task.title)))
+    const added: Id<'tasks'>[] = []
+    for (const task of tasks) {
+      const key = groceryTitleKey(task.title)
+      if (seen.has(key)) continue
+      seen.add(key)
+      added.push(await insertOpenCopy(ctx, args.listId, user._id, task))
+    }
+    return added
+  },
+})
+
+/**
+ * The undo of `putBackChecked`: the copies it added leave the list again.
+ * Only open items on this list are removed; one checked since (bought after
+ * all) or gone already is left as it is. Answers how many it removed.
+ */
+export const removePutBack = mutation({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    taskIds: v.array(v.id('tasks')),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    if (args.taskIds.length > OPEN_ITEMS_SCAN_LIMIT)
+      throw new ConvexError(taskRefusal('not-found'))
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const list = await ctx.db.get(args.listId)
+    if (!list || list.groupId !== group._id)
+      throw new ConvexError(taskRefusal('not-found'))
+    requireWritableGroceryList(group, list)
+    let removed = 0
+    for (const id of args.taskIds) {
+      const task = await ctx.db.get(id)
+      if (!task || task.listId !== args.listId || task.done) continue
+      // As `remove` does, should the copy have gained steps or a reminder.
+      await deleteSubtasks(ctx, task._id)
+      await cancelSend(ctx, task)
+      await purgeCompletionsOfTask(ctx, task._id)
+      await ctx.db.delete(id)
+      removed++
+    }
+    return removed
   },
 })
 
@@ -1201,6 +1641,8 @@ export const setSection = mutation({
       args.groupSlug,
       args.taskId,
     )
+    // A subtask sits in its parent's section and moves with it (APP-304).
+    if (task.parentTaskId) throw new ConvexError(taskRefusal('subtask-list'))
     const sectionId = knownSectionId(list, args.sectionId)
     if (args.sectionId !== null && sectionId === undefined) {
       throw new ConvexError('Section not found')
@@ -1210,6 +1652,42 @@ export const setSection = mutation({
       sectionId,
       order: await endOfList(ctx, task.listId),
     })
+    // Its subtasks go along, so an app from before subtasks, which draws
+    // them as rows, still finds them in the parent's section (APP-304).
+    for (const subtask of await subtasksOfTask(ctx, task._id)) {
+      await ctx.db.patch(subtask._id, { sectionId })
+    }
+    return null
+  },
+})
+
+/**
+ * One task's subtasks in a new order (APP-304), from its detail screen. They
+ * swap the order values they already hold, so nothing else on the list moves.
+ * `ids` must be every subtask of the task, once each.
+ */
+export const reorderSubtasks = mutation({
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    ids: v.array(v.id('tasks')),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { task } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
+    const siblings = await subtasksOfTask(ctx, task._id)
+    const next = reorderedSubtasks(
+      siblings.map((subtask) => ({ ...subtask, id: subtask._id })),
+      args.ids,
+    )
+    if (!next) throw new ConvexError('Reorder must contain every subtask once')
+    for (const { id, order } of next) {
+      await ctx.db.patch(id as Id<'tasks'>, { order })
+    }
     return null
   },
 })

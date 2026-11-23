@@ -1,0 +1,284 @@
+// @vitest-environment jsdom
+/**
+ * Reorder mode on a grocery list (APP-522): the column is every aisle's
+ * heading with its items, and dragging an item's grip past a heading commits
+ * it under that aisle. The gesture library is replaced by one whose pan the
+ * test drives by hand; rows have not laid out in jsdom, so each counts as the
+ * shortest a row can be (`SIZE.rowMin`, 52 here).
+ */
+import { act, type ReactNode } from 'react'
+import { beforeEach, expect, test, vi } from 'vitest'
+
+import { mount } from '../../testing/dom'
+import { aisleArrangement } from './groceryList'
+import { ReorderMode } from './ReorderMode'
+
+interface Pan {
+  begin: () => void
+  update: (event: { translationY: number }) => void
+  finalize: () => void
+}
+
+const grips = vi.hoisted(() => new Map<string, Pan>())
+type Row = {
+  accessibilityActions?: { name: string; label: string }[]
+  onAccessibilityAction?: (event: {
+    nativeEvent: { actionName: string }
+  }) => void
+}
+const a11y = vi.hoisted(() => ({
+  rows: new Map<string, unknown>(),
+  announced: [] as string[],
+}))
+
+vi.mock('react-native', async () => {
+  const React = await import('react')
+  const h = React.createElement
+  type Props = Record<string, unknown> & { children?: ReactNode }
+  const dom =
+    (tag: string) =>
+    ({ children, testID, accessibilityLabel }: Props) =>
+      h(
+        tag,
+        {
+          'data-testid': testID as string | undefined,
+          'aria-label': accessibilityLabel as string | undefined,
+        },
+        children,
+      )
+  class Value {
+    setValue() {}
+  }
+  const row = (props: Props) => {
+    if (typeof props.testID === 'string') a11y.rows.set(props.testID, props)
+    return dom('div')(props)
+  }
+  return {
+    View: dom('div'),
+    Text: dom('span'),
+    Animated: { View: row, Value },
+    AccessibilityInfo: {
+      announceForAccessibility: (text: string) => a11y.announced.push(text),
+    },
+    StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 1 },
+  }
+})
+vi.mock('react-native-gesture-handler', () => {
+  const Pan = () => {
+    const pan: Pan = { begin: () => {}, update: () => {}, finalize: () => {} }
+    const builder = {
+      pan,
+      runOnJS: () => builder,
+      blocksExternalGesture: () => builder,
+      onBegin: (fn: Pan['begin']) => {
+        pan.begin = fn
+        return builder
+      },
+      onUpdate: (fn: Pan['update']) => {
+        pan.update = fn
+        return builder
+      },
+      onFinalize: (fn: Pan['finalize']) => {
+        pan.finalize = fn
+        return builder
+      },
+    }
+    return builder
+  }
+  return {
+    Gesture: { Pan },
+    GestureDetector: ({
+      gesture,
+      children,
+    }: {
+      gesture: { pan: Pan }
+      children: { props: { accessibilityLabel: string } }
+    }) => {
+      grips.set(children.props.accessibilityLabel, gesture.pan)
+      return children as unknown as ReactNode
+    },
+  }
+})
+vi.mock('../../feedback/haptics', () => ({
+  haptics: { selectionChanged: () => {}, itemSaved: () => {} },
+}))
+vi.mock('../../i18n', async () => {
+  const { en } = await import('../../i18n/messages/en')
+  return { useI18n: () => ({ t: en, locale: 'en' }) }
+})
+vi.mock('../../theme/icons', () => ({
+  UI_ICONS: new Proxy({}, { get: () => () => null }),
+}))
+vi.mock('../../theme/tokens', () => ({
+  RADIUS: { card: 12 },
+  SIZE: { rowMin: 52 },
+  SPACE: [0, 4, 8, 12, 16],
+  TYPE: {},
+  useTokens: () => ({}),
+}))
+vi.mock('../../ui/card', () => ({
+  Card: ({ children }: { children: ReactNode }) => children,
+}))
+vi.mock('./components', () => ({ priorityColor: () => undefined }))
+
+const display = { due: false, priority: false, labels: false }
+const task = (id: string, title: string, category?: string) => ({
+  id,
+  title,
+  category,
+  done: false,
+  labels: [],
+  order: 0,
+})
+
+beforeEach(() => {
+  grips.clear()
+  a11y.rows.clear()
+  a11y.announced = []
+})
+
+const rowOf = (id: string) => a11y.rows.get(`reorder-${id}`) as Row
+const run = (id: string, actionName: 'moveUp' | 'moveDown') =>
+  act(() => rowOf(id).onAccessibilityAction?.({ nativeEvent: { actionName } }))
+
+test('an item dragged under the next aisle commits in that aisle', () => {
+  const tasks = [task('a', 'Appels', 'produce'), task('c', 'Cola', 'drinks')]
+  const commits: unknown[][] = []
+  const aisles = ['produce', 'bakery', 'drinks'] as const
+  const view = mount(
+    <ReorderMode
+      tasks={tasks as never}
+      sections={aisles.map((aisle) => ({ id: aisle, name: aisle }))}
+      arrangement={aisleArrangement(tasks, aisles)}
+      hint="Drag an item under another aisle"
+      display={display}
+      today="2026-11-21"
+      scrollRef={{ current: null }}
+      onDragging={() => {}}
+      onCommit={(...args) => commits.push(args)}
+    />,
+  )
+
+  // Every aisle has its heading, Bakery too although it is empty.
+  for (const aisle of aisles) {
+    expect(
+      view.container.querySelector(`[data-testid="reorder-heading-${aisle}"]`),
+    ).not.toBeNull()
+  }
+  expect(view.container.textContent).toContain('Drag an item under another aisle')
+
+  // Appels, one row down: past the Bakery heading, so into Bakery.
+  const appels = grips.get('Appels') as Pan
+  act(() => appels.begin())
+  act(() => appels.update({ translationY: 52 }))
+  act(() => appels.finalize())
+  expect(commits).toEqual([
+    [['a', 'c'], ['bakery', 'drinks'], { id: 'a', sectionId: 'bakery' }],
+  ])
+
+  view.unmount()
+})
+
+test('nothing lands above the first aisle, and a tap commits nothing', () => {
+  const tasks = [task('a', 'Appels', 'produce'), task('p', 'Peren', 'produce')]
+  const commits: unknown[] = []
+  const view = mount(
+    <ReorderMode
+      tasks={tasks as never}
+      sections={[{ id: 'produce', name: 'Produce' }]}
+      arrangement={aisleArrangement(tasks, ['produce'])}
+      display={display}
+      today="2026-11-21"
+      scrollRef={{ current: null }}
+      onDragging={() => {}}
+      onCommit={(...args) => commits.push(args)}
+    />,
+  )
+
+  const appels = grips.get('Appels') as Pan
+  act(() => appels.begin())
+  act(() => appels.finalize())
+  expect(commits).toEqual([])
+
+  // Peren, dragged far up: it stops under Produce's heading, still in Produce.
+  const peren = grips.get('Peren') as Pan
+  act(() => peren.begin())
+  act(() => peren.update({ translationY: -500 }))
+  act(() => peren.finalize())
+  // Rearranged within its aisle: no aisle change goes with it.
+  expect(commits).toEqual([[['p', 'a'], ['produce', 'produce'], undefined]])
+
+  view.unmount()
+})
+
+test('VoiceOver moves a task one row at a time and says where it went', () => {
+  const tasks = [task('a', 'Bread'), task('b', 'Milk'), task('c', 'Eggs')]
+  const commits: unknown[][] = []
+  const view = mount(
+    <ReorderMode
+      tasks={tasks as never}
+      display={display}
+      today="2026-11-21"
+      scrollRef={{ current: null }}
+      onDragging={() => {}}
+      onCommit={(...args) => commits.push(args)}
+    />,
+  )
+
+  // The first row cannot go up, the last cannot go down.
+  expect(rowOf('a').accessibilityActions?.map((each) => each.name)).toEqual([
+    'moveDown',
+  ])
+  expect(rowOf('b').accessibilityActions).toEqual([
+    { name: 'moveUp', label: 'Move up' },
+    { name: 'moveDown', label: 'Move down' },
+  ])
+  expect(rowOf('c').accessibilityActions?.map((each) => each.name)).toEqual([
+    'moveUp',
+  ])
+
+  run('c', 'moveUp')
+  expect(commits).toEqual([[['a', 'c', 'b'], undefined, undefined]])
+  expect(a11y.announced).toEqual(['Eggs moved to position 2 of 3'])
+
+  view.unmount()
+})
+
+test('VoiceOver moves a grocery item past a heading into that aisle, and names it', () => {
+  const tasks = [
+    task('a', 'Appels', 'produce'),
+    task('p', 'Peren', 'produce'),
+    task('c', 'Cola', 'drinks'),
+  ]
+  const commits: unknown[][] = []
+  const aisles = ['produce', 'drinks'] as const
+  const view = mount(
+    <ReorderMode
+      tasks={tasks as never}
+      sections={[
+        { id: 'produce', name: 'Produce' },
+        { id: 'drinks', name: 'Drinks' },
+      ]}
+      arrangement={aisleArrangement(tasks, aisles)}
+      display={display}
+      today="2026-11-21"
+      scrollRef={{ current: null }}
+      onDragging={() => {}}
+      onCommit={(...args) => commits.push(args)}
+    />,
+  )
+
+  // Nothing goes above the first aisle's heading.
+  expect(rowOf('a').accessibilityActions?.map((each) => each.name)).toEqual([
+    'moveDown',
+  ])
+
+  // Peren, one row down: past the Drinks heading, so first in Drinks.
+  run('p', 'moveDown')
+  expect(commits).toEqual([
+    [['a', 'p', 'c'], ['produce', 'drinks', 'drinks'], { id: 'p', sectionId: 'drinks' }],
+  ])
+  expect(a11y.announced).toEqual(['Peren moved to Drinks, position 1 of 2'])
+
+  view.unmount()
+})

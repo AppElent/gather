@@ -8,28 +8,29 @@
  * of title + first line + when, in two groups: the ones somebody pinned, and
  * the rest by recency.
  *
- * The field is the second way in, and it filters rather than navigates. An
- * empty result offers no add button, only a way back to everything — the
- * "nothing found" empty state, which is a different thing from "nothing yet"
- * (`apps/mobile/DESIGN_SYSTEM.md`).
+ * New notes start in the keyboard composer behind the add button (APP-588);
+ * the note screen is where one is read and edited.
+ *
+ * Search is the header's magnifying glass: the one search screen with Notes
+ * preset (APP-613), not a field of its own.
  *
  * Open question the canvas did not close: whether a note belongs to the Group
  * or to the person who wrote it. Drawn as the Group's, because everything else
  * in Gather is.
  */
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { NativeContextMenu } from '../../components/NativeContextMenu'
-import { SearchField } from '../../components/SearchField'
 import { haptics } from '../../feedback/haptics'
-import { fmt, useI18n } from '../../i18n'
-import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { useI18n } from '../../i18n'
+import { ModuleHeaderActions } from '../../search/ModuleSearchButton'
+import { TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
+import { ADD_BUTTON_CLEARANCE } from '../../ui/keyboard-composer'
 import { SectionLabel } from '../../ui/section-label'
+import { AddNote } from './AddNoteComposer'
 import { confirmDeleteNote } from './notesActions'
 import { noteWhen, preview } from './noteText'
 import { type Note, useNoteActions, useNotes } from './store'
@@ -41,16 +42,7 @@ export function Notes() {
   const router = useRouter()
   const notes = useNotes()
   const actions = useNoteActions()
-  const [query, setQuery] = useState('')
-
-  const needle = query.trim().toLowerCase()
-  const matching = notes.filter(
-    (note) =>
-      !needle ||
-      note.title.toLowerCase().includes(needle) ||
-      note.body.toLowerCase().includes(needle),
-  )
-  const byRecency = [...matching].sort((a, b) => b.updatedAt - a.updatedAt)
+  const byRecency = [...notes].sort((a, b) => b.updatedAt - a.updatedAt)
   const pinned = byRecency.filter((note) => note.pinned)
   const rest = byRecency.filter((note) => !note.pinned)
 
@@ -132,66 +124,21 @@ export function Notes() {
         options={{
           headerShown: true,
           title: t.notes.title,
-          headerRight: () => (
-            <Pressable
-              testID="note-new"
-              accessibilityRole="button"
-              accessibilityLabel={t.notes.newNote}
-              hitSlop={12}
-              onPress={async () => {
-                const id = await actions.addNote()
-                haptics.itemSaved()
-                open(id)
-              }}
-              style={styles.headerButton}
-            >
-              <UI_ICONS.Plus size={22} color={tokens.ink} strokeWidth={2.2} />
-            </Pressable>
-          ),
+          headerRight: () => <ModuleHeaderActions module="notes" />,
         }}
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
-        keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: insets.bottom + 24 },
+          { paddingBottom: insets.bottom + 24 + ADD_BUTTON_CLEARANCE },
         ]}
       >
-        <SearchField
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t.notes.search}
-          clearAccessibilityLabel={t.search.clear}
-          testID="notes-search"
-        />
-
         {notes.length === 0 ? (
           <Text style={[styles.empty, { color: tokens.muted }]}>
             {t.notes.empty}
           </Text>
-        ) : matching.length === 0 ? (
-          <View style={styles.notFound}>
-            <Text style={[styles.empty, { color: tokens.muted }]}>
-              {fmt(t.notes.noMatches, { query: query.trim() })}
-            </Text>
-            <Pressable
-              testID="notes-clear-search"
-              accessibilityRole="button"
-              accessibilityLabel={t.actions.showAll}
-              onPress={() => setQuery('')}
-              style={({ pressed }) => [
-                styles.clear,
-                { borderColor: tokens.hair },
-                pressed && { backgroundColor: tokens.surface2 },
-              ]}
-            >
-              <Text style={[styles.clearText, { color: tokens.ink }]}>
-                {t.actions.showAll}
-              </Text>
-            </Pressable>
-          </View>
         ) : (
           <>
             {pinned.length > 0 ? (
@@ -209,13 +156,13 @@ export function Notes() {
           </>
         )}
       </ScrollView>
+      <AddNote />
     </>
   )
 }
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 16 },
-  headerButton: { paddingHorizontal: 6, paddingVertical: 6 },
   group: { gap: 8 },
   row: {
     flexDirection: 'row',
@@ -230,13 +177,4 @@ const styles = StyleSheet.create({
   notePreview: { ...TYPE.footnote },
   when: { ...TYPE.footnote, ...TABULAR },
   empty: { ...TYPE.subhead, textAlign: 'center' },
-  notFound: { gap: 14, paddingVertical: 20, alignItems: 'center' },
-  clear: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.pill,
-  },
-  clearText: { ...TYPE.bodyStrong },
 })

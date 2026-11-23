@@ -336,6 +336,13 @@ Something a Group needs done, with at most one responsible current Member and
 an explicit completion state. It may be unassigned or repeat on a fixed schedule
 or after an interval measured from completion.
 
+**Subtask**:
+A Task that is a step of another Task on the same Task list, one level deep: a
+Subtask has no Subtasks of its own and does not repeat on its own. It keeps its
+own completion, assignee and due date. When its parent repeats, its Subtasks
+reopen with the next occurrence; deleting the parent deletes them.
+_Avoid_: Child task, Checklist item (that belongs to a Note), Step
+
 **Smart list**:
 A view of open Tasks across every Task list of a Group, chosen by a rule rather
 than stored: Today (due today or overdue), My tasks (assigned to the person
@@ -542,6 +549,35 @@ and aroma descriptors its fields offer. Those ship too, but they are field
 options rather than subjects, and every Kind has them even when it has no
 catalog.
 _Avoid_: Presets, Templates, Library
+
+**Address** (Energy):
+A home whose energy the Energy Module follows (`energySites`; NL _Adres_).
+Group content with a name ("Thuis"), optionally linked to a **House**;
+deleting the House only clears the link. Everything else in Energy hangs off
+an Address: its contract, sources, meters, solar panels and battery, and price
+source (ADR-0051).
+_Avoid_: Site (in copy), Location, Connection
+
+**Source** (Energy):
+Where an Address's readings come from (NL _Bron_): Home Assistant, Enelogic,
+HomeWizard, or meter readings a Member types. Read-only: Gather caches what a
+source reports and never writes to it or controls a device (ADR-0051). Typing
+meter readings is a full source, not a fallback. A source's token never leaves
+the server.
+_Avoid_: Integration, Connection, Device
+
+**Channel** (Energy):
+One meter or sensor of an Address, supplied by exactly one **Source** (NL
+_Kanaal_): grid import or export (per tariff), solar, battery charge and
+discharge, battery charge level, gas. A meter swap retires a channel and starts
+a new one.
+_Avoid_: Sensor, Meter (for the record)
+
+**Price source** (Energy):
+Where an Address's hourly prices come from (NL _Prijsbron_). A market price
+(EnergyZero, ENTSO-E) is reference data owned by no Group; an account price
+(Tibber, with the Member's own key) belongs to its Group and goes with it.
+_Avoid_: Price feed (in copy), Tariff
 
 **Loyalty card**:
 A store card a Group keeps — the Bonuskaart, the Kruidvat card — with the

@@ -13,6 +13,7 @@
 
 import {
   type GroceryAddLine,
+  type GroceryAisle,
   groceryLineText,
   isGroceryQuantity,
   pendingItemId,
@@ -22,16 +23,17 @@ import {
 import { ConvexError, type Infer, v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
-import { action, mutation } from './_generated/server'
+import { action, mutation, query } from './_generated/server'
 import { DAILY_AI_CALLS } from './lib/aiUsage'
 import { anthropicApiKey } from './lib/anthropic'
 import {
   askAiOnce,
   isGroceryList,
+  recentHistory,
   recentListItems,
   recogniseGroceryTitle,
 } from './lib/groceryCategories'
-import { groceryUnitValidator } from './lib/groceryFields'
+import { groceryAisleValidator, groceryUnitValidator } from './lib/groceryFields'
 import {
   AI_LINE_LENGTH_MAX,
   AI_LINES_MAX,
@@ -83,6 +85,51 @@ export const read = action({
     const answer = await readGroceryLinesWithAi(lines, apiKey)
     if (!answer) return { status: 'unavailable' as const }
     return { status: 'read' as const, used, limit: DAILY_AI_CALLS, lines: answer }
+  },
+})
+
+/** Titles one `aisles` call may ask about: a week of lines, with room. */
+const AISLE_TITLES_MAX = 200
+/** Longest title `aisles` reads; the rest is cut, as `add` refuses a longer one. */
+const AISLE_TITLE_LENGTH_MAX = 500
+
+/**
+ * The aisle each title would get if it were added to this grocery list now:
+ * `recogniseGroceryTitle`, the one `add` and the list use, so the Group's own
+ * choices and the list's history win over the bundled dictionary (APP-423).
+ * The week sheet groups its rows by it. Answers by position; a title nothing
+ * knows is `other`. Reads only, so it asks the AI nothing and counts nothing.
+ */
+export const aisles = query({
+  args: {
+    groupSlug: v.string(),
+    listId: v.id('taskLists'),
+    titles: v.array(v.string()),
+  },
+  returns: v.array(groceryAisleValidator),
+  handler: async (ctx, args) => {
+    // Refuse before reading anything: the list and the Group are not looked up
+    // for a question that is too big.
+    if (args.titles.length > AISLE_TITLES_MAX)
+      throw new ConvexError('Too many titles at once')
+    const {
+      group,
+      doc: list,
+    } = await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
+    if (!isGroceryList(group, list))
+      throw new ConvexError('This is not a grocery list')
+    // Cut up front and ask each distinct title once; answers go back by
+    // position, so a repeated title costs one lookup.
+    const titles = args.titles.map((title) => title.slice(0, AISLE_TITLE_LENGTH_MAX))
+    const history = recentHistory(await recentListItems(ctx, args.listId))
+    const aisleOf = new Map<string, GroceryAisle>()
+    for (const title of titles)
+      if (!aisleOf.has(title))
+        aisleOf.set(
+          title,
+          (await recogniseGroceryTitle(ctx, group._id, title, history)).aisle,
+        )
+    return titles.map((title) => aisleOf.get(title) ?? 'other')
   },
 })
 
@@ -153,7 +200,7 @@ export const add = mutation({
       lines,
     )
 
-    const recent = await recentListItems(ctx, args.listId)
+    const recent = recentHistory(await recentListItems(ctx, args.listId))
     const last = await ctx.db
       .query('tasks')
       .withIndex('by_list_and_order', (q) => q.eq('listId', args.listId))

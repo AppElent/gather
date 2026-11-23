@@ -4,7 +4,7 @@ import {
   type CalendarEvent,
   type CalendarPerson,
 } from '@gather/core/calendar'
-import { minutesToClock } from '@gather/core/civil-date'
+import { addMonths, minutesToClock } from '@gather/core/civil-date'
 import { useEffect, useMemo, useRef } from 'react'
 import {
   FlatList,
@@ -21,9 +21,13 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SwipeableRow } from '../../components/SwipeableRow'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { headingCase } from './calendarLabels'
+import { agendaMonths } from './calendarNavigation'
 
 export interface CalendarAgendaProps {
+  /** The first loaded month's first day. */
   from: string
+  /** The first day after the last loaded month. */
   toExclusive: string
   /** The date a deliberate jump asked for; kept visible even inside a gap. */
   selectedDate: string
@@ -33,6 +37,11 @@ export interface CalendarAgendaProps {
   jumpId?: number
   today: string
   events: readonly CalendarEvent[]
+  /**
+   * Whether a month's events are all in. A month still loading says so
+   * instead of "No events". Left out, every month counts as loaded.
+   */
+  monthLoaded?: (month: string) => boolean
   people: readonly CalendarPerson[]
   onSelectDate: (date: string) => void
   onEvent: (event: CalendarEvent) => void
@@ -49,13 +58,20 @@ export interface CalendarAgendaProps {
   onVisibleDate?: (date: string) => void
   /** The person dragged the list upward, toward later dates. */
   onDragUp?: () => void
+  /** The person scrolled near the first loaded day: load the month before. */
+  onLoadEarlier?: () => void
+  /** The list came near its last loaded day: load the month after. */
+  onLoadLater?: () => void
 }
 
 /** Points the list must travel up in one drag before the header collapses. */
 const COLLAPSE_AFTER = 16
 
+/** An agenda row, marked when its month's events have not all arrived yet. */
+type AgendaListRow = AgendaRow & { loading?: boolean }
+
 type ViewableChange = Parameters<
-  NonNullable<FlatListProps<AgendaRow>['onViewableItemsChanged']>
+  NonNullable<FlatListProps<AgendaListRow>['onViewableItemsChanged']>
 >[0]
 
 function rowDate(row: AgendaRow) {
@@ -74,6 +90,7 @@ export function CalendarAgenda({
   jumpId = 0,
   today,
   events,
+  monthLoaded,
   people,
   onSelectDate,
   onEvent,
@@ -83,14 +100,32 @@ export function CalendarAgenda({
   listRef,
   onVisibleDate,
   onDragUp,
+  onLoadEarlier,
+  onLoadLater,
 }: CalendarAgendaProps) {
   const { t, locale } = useI18n()
   const tokens = useTokens('home')
-  const rows = useMemo(
-    () =>
-      agendaRows(events, from, toExclusive, today, selectedDate, expandedDates),
-    [events, expandedDates, from, selectedDate, toExclusive, today],
-  )
+  // Month by month, so an empty run never spans two months: a month added at
+  // either end then leaves every row already on screen, and its key, alone,
+  // which is what lets the list hold its place while it grows.
+  const rows = useMemo(() => {
+    return agendaMonths({ from, toExclusive }).flatMap(
+      (month): AgendaListRow[] => {
+        const monthRows = agendaRows(
+          events,
+          month,
+          addMonths(month, 1),
+          today,
+          selectedDate,
+          expandedDates,
+        )
+        // Same rows and keys either way, so a month whose events land holds
+        // its place in the list; only the empty rows' words change.
+        if (!monthLoaded || monthLoaded(month)) return monthRows
+        return monthRows.map((row) => ({ ...row, loading: true }))
+      },
+    )
+  }, [events, expandedDates, from, monthLoaded, selectedDate, toExclusive, today])
   const peopleById = useMemo(
     () => new Map(people.map((person) => [person.id, person.name])),
     [people],
@@ -138,7 +173,44 @@ export function CalendarAgenda({
     },
   ).current
 
+  /** The list's own height and offset, for the check below. */
+  const viewport = useRef(0)
+  /** The rows an earlier month was last asked for, so each set asks once. */
+  const askedEarlierFor = useRef<AgendaListRow[] | null>(null)
+  const lastOffset = useRef(0)
+  const lastContentHeight = useRef(0)
+
+  /**
+   * Within a screen of the first row, ask for the month before. Not
+   * `onStartReached`: after a prepend the list waits for the scroll event
+   * that `maintainVisibleContentPosition` owes it and drops the check, so at
+   * the very top it stalled until the person scrolled away and back.
+   */
+  const maybeLoadEarlier = (offset: number) => {
+    const towardEarlier = offset < lastOffset.current
+    lastOffset.current = offset
+    // Not while a jump is under way: it is aiming at a row, and the list
+    // sits at its very start until the first layout. And only on the way
+    // toward earlier days, so a drag toward later ones keeps its collapse.
+    if (pendingJump.current || !viewport.current || !towardEarlier) return
+    if (offset > viewport.current) return
+    if (askedEarlierFor.current === rows) return
+    askedEarlierFor.current = rows
+    onLoadEarlier?.()
+  }
+
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offset = event.nativeEvent.contentOffset.y
+    const grew = event.nativeEvent.contentSize.height - lastContentHeight.current
+    const moved = offset - lastOffset.current
+    lastContentHeight.current = event.nativeEvent.contentSize.height
+    // Rows that grow above the visible ones (a month landing, events arriving
+    // for one, cells measured late) move the offset by their height. That is
+    // the list holding its place, not the finger, so the drag's start moves
+    // with it instead of reading as a drag toward later days.
+    if (dragStart.current !== null && grew > 0 && moved > 0)
+      dragStart.current += Math.min(grew, moved)
+    maybeLoadEarlier(offset)
     if (dragStart.current === null) return
     if (event.nativeEvent.contentOffset.y - dragStart.current > COLLAPSE_AFTER) {
       dragStart.current = null
@@ -230,7 +302,19 @@ export function CalendarAgenda({
       month: 'short',
     })
 
-  function renderRow({ item }: { item: AgendaRow }) {
+  function renderRow({ item }: { item: AgendaListRow }) {
+    if (item.kind === 'gap' && item.loading) {
+      return (
+        <View
+          testID={`calendar-gap-${item.from}`}
+          style={[styles.gap, { borderColor: tokens.hair }]}
+        >
+          <Text style={[styles.gapText, { color: tokens.muted }]}>
+            {t.calendar.loadingEvents}
+          </Text>
+        </View>
+      )
+    }
     if (item.kind === 'gap') {
       return (
         <Pressable
@@ -248,11 +332,14 @@ export function CalendarAgenda({
         </Pressable>
       )
     }
-    const label = new Date(`${item.date}T12:00:00`).toLocaleDateString(locale, {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    })
+    const label = headingCase(
+      new Date(`${item.date}T12:00:00`).toLocaleDateString(locale, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }),
+      locale,
+    )
     return (
       <View testID={`calendar-agenda-day-${item.date}`}>
         <Pressable
@@ -276,7 +363,9 @@ export function CalendarAgenda({
         </Pressable>
         {item.events.length === 0 ? (
           <Text style={[styles.empty, { color: tokens.muted }]}>
-            {t.calendar.nothingPlanned}
+            {item.loading
+              ? t.calendar.loadingEvents
+              : t.calendar.nothingPlanned}
           </Text>
         ) : (
           item.events.map(renderEvent)
@@ -298,6 +387,15 @@ export function CalendarAgenda({
       onViewableItemsChanged={onViewableItemsChanged}
       scrollEventThrottle={16}
       onScroll={onScroll}
+      // Rows added above the first visible one (an earlier month, or events
+      // arriving for one) push the content down by exactly their height, so
+      // the row under the finger stays put.
+      maintainVisibleContentPosition={MAINTAIN_POSITION}
+      onLayout={(event) => {
+        viewport.current = event.nativeEvent.layout.height
+      }}
+      onEndReachedThreshold={1}
+      onEndReached={() => onLoadLater?.()}
       onScrollBeginDrag={(event) => {
         pendingJump.current = false
         draggedSince.current = jumpId
@@ -327,6 +425,8 @@ export function CalendarAgenda({
   )
 }
 
+const MAINTAIN_POSITION = { minIndexForVisible: 0 }
+
 /** A row counts as "the first row" once half of it is on screen. */
 const VIEWABILITY = { itemVisiblePercentThreshold: 50 }
 
@@ -339,7 +439,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  dayTitle: { ...TYPE.bodyStrong, textTransform: 'capitalize' },
+  dayTitle: { ...TYPE.bodyStrong },
   empty: { ...TYPE.footnote, paddingHorizontal: 8, paddingBottom: 12 },
   event: {
     minHeight: 68,

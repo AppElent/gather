@@ -37,7 +37,23 @@ export function useNoteActions() {
   const remove = useMutation(api.notes.remove)
 
   return {
-    addNote: () => create({ groupSlug, title: '', body: '' }),
+    /**
+     * A note from the composer (APP-588). `saveKey` is the draft's: a retry,
+     * or a second Return, answers with the note already made.
+     */
+    addComposedNote: (
+      note: { title: string; body: string; pinned: boolean },
+      saveKey: string,
+    ) =>
+      create({
+        groupSlug,
+        title: note.title,
+        body: note.body,
+        // Sent only when set: a backend from before APP-588 refuses the field,
+        // and an unpinned note is its default.
+        ...(note.pinned ? { pinned: true } : {}),
+        idempotencyKey: saveKey,
+      }),
     editNote: (id: string, patch: { title?: string; body?: string }) =>
       update({ noteId: id as Id<'notes'>, groupSlug, ...patch }),
     togglePin: (note: Note) =>

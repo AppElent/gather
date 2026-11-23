@@ -28,6 +28,7 @@ import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
 import Sparkles from 'lucide-react-native/icons/sparkles'
 import Sun from 'lucide-react-native/icons/sun'
 import Tag from 'lucide-react-native/icons/tag'
+import Text from 'lucide-react-native/icons/text'
 import Trash2 from 'lucide-react-native/icons/trash-2'
 import User from 'lucide-react-native/icons/user'
 import UserPlus from 'lucide-react-native/icons/user-plus'
@@ -48,6 +49,8 @@ export const TASK_ICONS = {
   Repeat: glyph(Repeat, 'repeat'),
   Reset: glyph(RotateCcw, 'arrow.counterclockwise'),
   Tag: glyph(Tag, 'tag'),
+  /** A task's description, from the keyboard composer (APP-587). */
+  Description: glyph(Text, 'text.alignleft'),
   Trash2: glyph(Trash2, 'trash'),
 } satisfies Record<string, Glyph>
 

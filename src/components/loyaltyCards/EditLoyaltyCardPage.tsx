@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { LoyaltyCardDetail } from '../../../convex/loyaltyCards'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
@@ -73,6 +73,7 @@ function EditForm({
   const navigate = useNavigate()
   const { confirm, dialog } = useConfirmAction()
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const copy = messages.loyaltyCards.form
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -148,7 +149,7 @@ function EditForm({
             })
           } catch (caught) {
             setError(
-              errorMessage(caught, copy.saveFailed, messages.loyaltyCards.refusals),
+              errorText(caught, copy.saveFailed, messages.loyaltyCards.refusals),
             )
             setSubmitting(false)
           }

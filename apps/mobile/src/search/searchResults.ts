@@ -9,15 +9,12 @@
  */
 import { minutesToClock } from '@gather/core/civil-date'
 import type { ModuleId } from '@gather/core/modules'
-import { isTastingKind, TASTING_KIND_SPECS } from '@gather/core/tastings'
+import { isTastingKind } from '@gather/core/tastings'
 import type { Href } from 'expo-router'
 
 import type { Messages } from '../i18n'
-import {
-  type RecentRecordInput,
-  SEARCH_RECORD_TYPES,
-  type SearchRecordType,
-} from './recentRecords'
+import type { RecentRecordInput, SearchRecordType } from './recentRecords'
+import { moduleOf } from './searchFilters'
 
 export type QueryResult = {
   id: string
@@ -32,6 +29,8 @@ export type QueryResult = {
   date?: string
   startMinutes?: number
   endMinutes?: number
+  done?: boolean
+  createdBy?: string
   creationTime: number
 }
 
@@ -80,85 +79,68 @@ export function toRecent(result: QueryResult, t: Messages): RecentRecordInput {
 }
 
 /**
+ * The stack a search runs in: the Search tab's own, or All's when a Module's
+ * search button pushed it (APP-613).
+ */
+export type SearchStack = 'search' | 'all'
+
+/**
  * Where a record lives. Built from typed fields only — a tasting without a
  * Kind has no address, and says so, rather than guessing from its subtitle.
+ *
+ * Under the stack the search runs in: pushing into another tab's stack
+ * switches tabs, and Back then lands on that tab's root instead of on the
+ * results the person came from.
  */
-export function hrefFor(record: RecentRecordInput): Href | null {
-  // Under Search's own stack, not All's: pushing into another tab's stack
-  // switches tabs, and Back then lands on that tab's root instead of on the
-  // results the person came from.
+export function hrefFor(
+  record: RecentRecordInput,
+  stack: SearchStack = 'search',
+): Href | null {
   switch (record.type) {
     case 'recipe':
       return {
-        pathname: '/search/recipes/recipe',
+        pathname: `/${stack}/recipes/recipe`,
         params: { recipeId: record.id },
       }
     case 'task':
       return {
-        pathname: '/search/tasks/task/[taskId]',
+        pathname: `/${stack}/tasks/task/[taskId]`,
         params: { taskId: record.id },
       }
     case 'note':
       return {
-        pathname: '/search/notes/[noteId]',
+        pathname: `/${stack}/notes/[noteId]`,
         params: { noteId: record.id },
       }
     case 'tasting':
       return record.kind
         ? {
-            pathname: '/search/tasting/[kind]/subject',
+            pathname: `/${stack}/tasting/[kind]/subject`,
             params: { kind: record.kind, subjectId: record.id },
           }
         : null
     case 'loyaltyCard':
       return {
-        pathname: '/search/loyalty-cards/card',
+        pathname: `/${stack}/loyalty-cards/card`,
         params: { cardId: record.id },
       }
     default:
       return {
-        pathname: '/search/calendar/[eventId]',
+        pathname: `/${stack}/calendar/[eventId]`,
         params: { eventId: record.id },
       }
   }
 }
 
 /**
- * The Module a record belongs to. A tasting's is its Kind's, so it is `null`
- * here and read from the record in `recordShown`.
+ * Whether a stored recent may still be listed: only a record of a Module this
+ * build shows (`modules/moduleVisibility.ts`), by the same rule `typesFor`
+ * asks the server with. A tasting without a Kind has no Module.
  */
-const MODULE_OF_TYPE = {
-  recipe: 'recipes',
-  task: 'tasks',
-  note: 'notes',
-  tasting: null,
-  calendarEvent: 'calendar',
-  loyaltyCard: 'loyalty-cards',
-} as const satisfies Record<SearchRecordType, ModuleId | null>
-
-const TASTING_MODULES = Object.values(TASTING_KIND_SPECS).map(
-  (spec) => spec.moduleId,
-)
-
-/**
- * The types to ask `search.group` for: those of the Modules this build shows
- * (`modules/moduleVisibility.ts`). A hidden Module's records are not found.
- */
-export function searchableTypes(
-  shown: (moduleId: ModuleId) => boolean,
-): SearchRecordType[] {
-  return SEARCH_RECORD_TYPES.filter((type) => {
-    const module = MODULE_OF_TYPE[type]
-    return module ? shown(module) : TASTING_MODULES.some(shown)
-  })
-}
-
-/** Whether a stored recent may still be listed, by the same rule. */
 export function recordShown(
   record: Pick<RecentRecordInput, 'type' | 'kind'>,
   shown: (moduleId: ModuleId) => boolean,
 ): boolean {
-  const module = MODULE_OF_TYPE[record.type]
-  if (module) return shown(module)
-  return record.kind ? shown(TASTING_KIND_SPECS[record.kind].moduleId) : false
+  const module = moduleOf(record)
+  return module ? shown(module) : false
 }

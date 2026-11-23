@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Gather web, voorstel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{color:inherit}
+input::placeholder{color:inherit;opacity:.75}
+</style>
+</helmet>
+<div style="width: {{w}}px; height: {{h}}px; position: relative; overflow: hidden; background: {{t.ground}}; color: {{t.ink}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; display: flex">
+
+<!-- ================= DESKTOP ================= -->
+<sc-if value="{{isDesk}}" hint-placeholder-val="{{ true }}">
+  <aside style="width: 248px; flex-shrink: 0; box-sizing: border-box; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px">
+    <button type="button" style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 10px; border: 0; border-radius: 14px; background: {{t.surface}}; color: {{t.ink}}; font: inherit; text-align: left; cursor: pointer">
+      <span style="width: 32px; height: 32px; border-radius: 10px; background: {{t.ink}}; color: {{t.onInk}}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px">W</span>
+      <span style="flex-grow: 1; display: flex; flex-direction: column">
+        <span style="font-size: 15px; font-weight: 600">Willow Street</span>
+        <span style="font-size: 13px; color: {{t.muted}}">3 leden</span>
+      </span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"></path></svg>
+    </button>
+    <button type="button" style="margin: 10px 0 8px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border: 0; border-radius: 999px; background: {{t.surface2}}; color: {{t.muted}}; font: inherit; font-size: 15px; text-align: left; cursor: pointer">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM20 20l-4-4"></path></svg>
+      <span style="flex-grow: 1">Zoeken in Gather</span>
+      <span style="font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: 6px; background: {{t.surface}}">⌘K</span>
+    </button>
+    <sc-for list="{{navTop}}" as="item" hint-placeholder-count="2">
+      <a href="#" style="display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 10px; border-radius: 12px; background: {{item.bg}}; color: {{t.ink}}; text-decoration: none; font-size: 15px; font-weight: {{item.weight}}">
+        <span style="width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; {{item.tileStyle}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg></span>
+        <span style="flex-grow: 1">{{item.label}}</span>
+      </a>
+    </sc-for>
+    <div style="margin: 14px 10px 4px; font-size: 13px; font-weight: 600; color: {{t.muted}}">Vastgezet</div>
+    <sc-for list="{{navPinned}}" as="item" hint-placeholder-count="5">
+      <a href="#" style="display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 10px; border-radius: 12px; background: {{item.bg}}; color: {{t.ink}}; text-decoration: none; font-size: 15px; font-weight: {{item.weight}}">
+        <span style="width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; {{item.tileStyle}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg></span>
+        <span style="flex-grow: 1">{{item.label}}</span>
+        <span style="font-size: 13px; color: {{t.muted}}; font-variant-numeric: tabular-nums">{{item.count}}</span>
+      </a>
+    </sc-for>
+    <a href="#" style="display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 10px; border-radius: 12px; color: {{t.ink}}; text-decoration: none; font-size: 15px">
+      <span style="width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: {{t.surface2}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg></span>
+      <span>Alle modules</span>
+    </a>
+    <div style="flex-grow: 1"></div>
+    <a href="#" style="display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 10px; border-radius: 12px; color: {{t.ink}}; text-decoration: none; font-size: 15px">
+      <span style="width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: {{t.surface2}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg></span>
+      <span>Instellingen</span>
+    </a>
+    <button type="button" aria-label="Accountmenu: profiel, taal, feedback, probleem melden, uitloggen" style="display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 10px; border: 0; border-radius: 12px; background: transparent; color: {{t.ink}}; font: inherit; text-align: left; cursor: pointer">
+      <span style="width: 28px; height: 28px; border-radius: 999px; background: {{t.surface2}}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">TU</span>
+      <span style="flex-grow: 1; font-size: 15px">Test User</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg>
+    </button>
+  </aside>
+
+  <main style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 16px 24px 0 8px; display: flex; flex-direction: column; gap: 20px; overflow: hidden">
+
+    <!-- Start -->
+    <sc-if value="{{sStart}}" hint-placeholder-val="{{ false }}">
+      <header style="padding: 18px 8px 0; display: flex; align-items: flex-end; gap: 16px">
+        <div style="flex-grow: 1">
+          <h1 style="margin: 0; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 34px; line-height: 41px; font-weight: 700">Willow Street</h1>
+          <p style="margin: 2px 0 0; font-size: 15px; color: {{t.muted}}">Maandag 23 november · 3 leden</p>
+        </div>
+      </header>
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; padding: 0 8px">
+        <div style="display: flex; flex-direction: column; gap: 20px">
+          <div style="background: {{home.wash}}; border-radius: 26px; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; align-items: center; gap: 12px">
+              <span style="width: 36px; height: 36px; border-radius: 11px; background: {{home.fill}}; color: {{home.on}}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"></path></svg></span>
+              <span style="font-size: 15px; font-weight: 600">Te late taken</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 10px">
+              <span style="font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 44px; line-height: 48px; font-weight: 800; font-variant-numeric: tabular-nums">1</span>
+              <span style="font-size: 15px; color: {{t.muted}}">in House · Bleed the radiators</span>
+            </div>
+            <div><a href="#" style="display: inline-flex; align-items: center; height: 44px; padding: 0 22px; border-radius: 999px; background: {{home.fill}}; color: {{home.on}}; text-decoration: none; font-size: 17px; font-weight: 600">Open House</a></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <h2 style="margin: 0 4px; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Vandaag</h2>
+            <div style="background: {{t.surface}}; border-radius: 22px; padding: 6px 0">
+              <sc-for list="{{rail}}" as="item" hint-placeholder-count="6">
+                <sc-if value="{{item.now}}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: 6px 16px"><span style="display: inline-block; padding: 3px 10px; border-radius: 999px; background: {{t.ink}}; color: {{t.onInk}}; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums">Nu · 14:14</span></div>
+                </sc-if>
+                <sc-if value="{{item.row}}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 16px; color: {{item.color}}">
+                    <span style="width: 44px; font-size: 13px; font-variant-numeric: tabular-nums; color: {{t.muted}}">{{item.time}}</span>
+                    <span style="width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; {{item.tileStyle}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg></span>
+                    <span style="font-size: 15px; font-weight: {{item.weight}}">{{item.text}}</span>
+                  </div>
+                </sc-if>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 20px">
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <h2 style="margin: 0 4px; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Vastgezet</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+              <sc-for list="{{pinnedCards}}" as="item" hint-placeholder-count="3">
+                <a href="#" style="height: 128px; box-sizing: border-box; border-radius: 22px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; text-decoration: none; {{item.tileStyle}}">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg>
+                  <span style="font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 17px; line-height: 21px; font-weight: 700">{{item.label}}</span>
+                </a>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <h2 style="margin: 0 4px; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Recent in de Groep</h2>
+            <div style="background: {{t.surface}}; border-radius: 22px">
+              <sc-for list="{{activity}}" as="item" hint-placeholder-count="4">
+                <div style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 16px; box-sizing: border-box; border-top: {{item.border}}">
+                  <span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 9px; display: flex; align-items: center; justify-content: center; {{item.tileStyle}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg></span>
+                  <span style="display: flex; flex-direction: column; min-width: 0">
+                    <span style="font-size: 15px">{{item.text}}</span>
+                    <span style="font-size: 13px; color: {{t.muted}}">{{item.sub}}</span>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Module header (wash) -->
+    <sc-if value="{{showWash}}" hint-placeholder-val="{{ true }}">
+      <header style="background: {{g.wash}}; border-radius: 22px; padding: 20px 20px 20px 24px; display: flex; align-items: center; gap: 16px">
+        <span style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 17px; background: {{g.fill}}; color: {{g.on}}; display: flex; align-items: center; justify-content: center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{head.d}}"></path></svg></span>
+        <div style="flex-grow: 1; min-width: 0">
+          <sc-if value="{{head.crumb}}" hint-placeholder-val="{{ false }}">
+            <a href="#" style="font-size: 13px; color: {{t.muted}}; text-decoration: none">Taken ›</a>
+          </sc-if>
+          <h1 style="margin: 0; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 34px; line-height: 41px; font-weight: 700">{{head.title}}</h1>
+          <p style="margin: 0; font-size: 15px; color: {{t.muted}}"><b style="color: {{t.ink}}">{{head.count}}</b> · {{head.scope}}</p>
+        </div>
+        <button type="button" aria-label="Zoeken in {{head.title}}" style="width: 44px; height: 44px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM20 20l-4-4"></path></svg></button>
+        <button type="button" aria-label="Instellingen van {{head.title}}" style="width: 44px; height: 44px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg></button>
+        <button type="button" style="height: 44px; padding: 0 20px 0 16px; border: 0; border-radius: 999px; background: {{g.fill}}; color: {{g.on}}; font: inherit; font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>{{head.primary}}</button>
+      </header>
+    </sc-if>
+
+    <!-- Taken index -->
+    <sc-if value="{{sTaken}}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start">
+        <div style="display: flex; flex-direction: column; gap: 20px">
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; justify-content: space-between; margin: 0 4px; font-size: 13px; font-weight: 600"><span style="color: {{t.muted}}">Vandaag</span><span style="color: {{t.danger}}">1 te laat</span></div>
+            <div style="background: {{t.surface}}; border-radius: 22px">
+              <div style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 16px; box-sizing: border-box">
+                <span style="width: 22px; height: 22px; border-radius: 999px; border: 2px solid {{home.text}}; box-sizing: border-box"></span>
+                <span style="flex-grow: 1; display: flex; flex-direction: column">
+                  <span style="font-size: 16px">Bleed the radiators</span>
+                  <span style="font-size: 13px; color: {{t.muted}}"><b style="color: {{t.danger}}; font-weight: 600">Te laat · vr 20 nov</b> · House</span>
+                </span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <div style="margin: 0 4px; font-size: 13px; font-weight: 600; color: {{t.muted}}">Slimme lijsten</div>
+            <div style="background: {{t.surface}}; border-radius: 22px">
+              <sc-for list="{{smart}}" as="item" hint-placeholder-count="3">
+                <a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 16px; box-sizing: border-box; color: {{t.ink}}; text-decoration: none; border-top: {{item.border}}">
+                  <span style="width: 28px; height: 28px; border-radius: 9px; background: {{home.fill}}; color: {{home.on}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg></span>
+                  <span style="flex-grow: 1; display: flex; flex-direction: column">
+                    <span style="font-size: 16px">{{item.label}}</span>
+                    <span style="font-size: 13px; color: {{t.muted}}">{{item.sub}}</span>
+                  </span>
+                  <span style="font-size: 15px; color: {{t.muted}}; font-variant-numeric: tabular-nums">{{item.count}}</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+                </a>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="margin: 0 4px; font-size: 13px; font-weight: 600; color: {{t.muted}}">Lijsten</div>
+          <div style="background: {{t.surface}}; border-radius: 22px">
+            <sc-for list="{{lists}}" as="item" hint-placeholder-count="5">
+              <a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 16px; color: {{t.ink}}; text-decoration: none; background: {{item.bg}}; border-radius: {{item.radius}}; border-top: {{item.border}}">
+                <span style="width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; {{item.tileStyle}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg></span>
+                <span style="flex-grow: 1; font-size: 16px">{{item.label}}</span>
+                <span style="font-size: 15px; color: {{t.muted}}">{{item.count}}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+              </a>
+            </sc-for>
+          </div>
+          <p style="margin: 4px 8px 0; font-size: 13px; color: {{t.muted}}">Gekoppelde lijsten (Notion, Todoist) staan hier met het koppelingsicoon op een grijze tegel.</p>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Lijst met paneel -->
+    <sc-if value="{{sLijst}}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start">
+        <div style="display: flex; flex-direction: column; gap: 16px">
+          <label style="display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 16px; border-radius: 22px; background: {{t.surface}}; color: {{t.muted}}">
+            <span style="width: 22px; height: 22px; border-radius: 999px; background: {{home.fill}}; color: {{home.on}}; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span>
+            <input type="text" aria-label="Taak toevoegen" placeholder="Taak toevoegen, bijv. ‘Bel de loodgieter vrijdag’" style="flex-grow: 1; border: 0; outline: 0; background: transparent; font: inherit; font-size: 16px; color: {{t.ink}}">
+            <span style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: {{t.surface2}}">Enter</span>
+          </label>
+          <div style="background: {{t.surface}}; border-radius: 22px; overflow: hidden">
+            <sc-for list="{{tasks}}" as="item" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px 8px 16px; box-sizing: border-box; background: {{item.bg}}; border-top: {{item.border}}">
+                <span style="width: 22px; height: 22px; flex-shrink: 0; border-radius: 999px; border: 2px solid {{home.text}}; box-sizing: border-box"></span>
+                <span style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+                  <span style="font-size: 16px; font-weight: {{item.weight}}">{{item.title}}</span>
+                  <span style="font-size: 13px; color: {{t.muted}}"><b style="color: {{item.whenColor}}; font-weight: {{item.whenWeight}}">{{item.when}}</b>{{item.rest}}</span>
+                </span>
+                <span style="width: 26px; height: 26px; border-radius: 999px; background: {{t.surface2}}; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{item.coin}}</span>
+                <sc-if value="{{item.hover}}" hint-placeholder-val="{{ false }}">
+                  <button type="button" aria-label="Acties voor {{item.title}}" style="width: 32px; height: 32px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg></button>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <button type="button" style="display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 16px; border: 0; border-radius: 22px; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 16px; cursor: pointer">
+            <span style="width: 22px; height: 22px; border-radius: 999px; background: {{t.surface2}}; color: {{t.muted}}; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span>
+            <span style="flex-grow: 1; text-align: left">Afgerond (1)</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+        </div>
+        <aside aria-label="Bleed the radiators" style="background: {{t.surface}}; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: flex-start; gap: 10px">
+            <span style="width: 22px; height: 22px; margin-top: 3px; flex-shrink: 0; border-radius: 999px; border: 2px solid {{home.text}}; box-sizing: border-box"></span>
+            <h2 style="margin: 0; flex-grow: 1; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Bleed the radiators</h2>
+            <button type="button" aria-label="Paneel sluiten" style="width: 32px; height: 32px; border: 0; border-radius: 999px; background: {{t.surface2}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+          </div>
+          <div style="background: {{t.ground}}; border-radius: 16px">
+            <sc-for list="{{fields}}" as="item" hint-placeholder-count="4">
+              <div style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-top: {{item.border}}">
+                <span style="flex-grow: 1; font-size: 15px">{{item.label}}</span>
+                <span style="font-size: 15px; color: {{item.color}}; font-weight: {{item.weight}}">{{item.value}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin: 0; font-size: 15px; line-height: 20px; color: {{t.muted}}">Living room first, then upstairs. The key is in the drawer by the boiler.</p>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <button type="button" style="height: 44px; padding: 0 20px; border: 0; border-radius: 999px; background: {{home.fill}}; color: {{home.on}}; font: inherit; font-size: 17px; font-weight: 600; cursor: pointer">Afvinken</button>
+            <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: {{t.danger}}; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Verwijderen</button>
+          </div>
+        </aside>
+      </div>
+    </sc-if>
+
+    <!-- Recepten -->
+    <sc-if value="{{sRecepten}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+          <label style="display: flex; align-items: center; gap: 8px; height: 40px; width: 300px; padding: 0 14px; box-sizing: border-box; border-radius: 999px; background: {{t.surface}}; color: {{t.muted}}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM20 20l-4-4"></path></svg>
+            <input type="text" aria-label="Recepten zoeken" placeholder="Recepten zoeken" style="flex-grow: 1; border: 0; outline: 0; background: transparent; font: inherit; font-size: 15px; color: {{t.ink}}">
+          </label>
+          <sc-for list="{{chips}}" as="item" hint-placeholder-count="5">
+            <button type="button" aria-pressed="{{item.pressed}}" style="height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: {{item.bg}}; color: {{item.fg}}; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">{{item.label}}</button>
+          </sc-for>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start">
+          <sc-for list="{{recipeCols}}" as="col" hint-placeholder-count="2">
+            <div style="background: {{t.surface}}; border-radius: 22px">
+              <sc-for list="{{col.rows}}" as="item" hint-placeholder-count="4">
+                <a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 10px 16px; box-sizing: border-box; color: {{t.ink}}; text-decoration: none; border-top: {{item.border}}">
+                  <span style="width: 46px; height: 46px; flex-shrink: 0; display: flex; align-items: center; justify-content: center"><span style="width: 28px; height: 28px; border-radius: 9px; background: {{kitchen.fill}}; color: {{kitchen.on}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 0-3 2-3 5s1 4 3 4v9"></path></svg></span></span>
+                  <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                    <span style="font-size: 16px">{{item.title}}</span>
+                    <span style="font-size: 13px; color: {{t.muted}}"><span style="color: {{t.ink}}; letter-spacing: 1px">{{item.stars}}</span> · {{item.tags}}</span>
+                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+                </a>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin: 0 8px; font-size: 13px; color: {{t.muted}}">Een recept met foto krijgt een miniatuur van 46 px op deze plek; zonder foto de Keuken-tegel, nooit een nepfoto.</p>
+      </div>
+    </sc-if>
+  </main>
+</sc-if>
+
+<!-- ================= PHONE (390) ================= -->
+<sc-if value="{{isPhone}}" hint-placeholder-val="{{ false }}">
+  <div style="width: 390px; height: 844px; position: relative; overflow: hidden">
+
+    <sc-if value="{{sStart}}" hint-placeholder-val="{{ false }}">
+      <div style="padding: 12px 16px 0; display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; justify-content: space-between">
+          <button type="button" aria-label="Andere Groep" style="width: 44px; height: 44px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11a3.5 3.5 0 1 0 0-7a3.5 3.5 0 1 0 0 7zM3 20a6 6 0 0 1 12 0M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14a5 5 0 0 1 3 6"></path></svg></button>
+          <button type="button" aria-label="Accountmenu" style="width: 44px; height: 44px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 700">TU</button>
+        </div>
+        <div>
+          <h1 style="margin: 0; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 34px; line-height: 41px; font-weight: 700">Willow Street</h1>
+          <p style="margin: 2px 0 0; font-size: 15px; color: {{t.muted}}">Maandag 23 november · 3 leden</p>
+        </div>
+        <div style="background: {{home.wash}}; border-radius: 26px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span style="width: 36px; height: 36px; border-radius: 11px; background: {{home.fill}}; color: {{home.on}}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"></path></svg></span>
+            <span style="font-size: 15px; font-weight: 600">Te late taken</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <span style="font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 44px; line-height: 48px; font-weight: 800">1</span>
+            <span style="font-size: 15px; color: {{t.muted}}">in House</span>
+          </div>
+          <a href="#" style="display: flex; align-items: center; justify-content: center; height: 48px; border-radius: 999px; background: {{home.fill}}; color: {{home.on}}; text-decoration: none; font-size: 17px; font-weight: 600">Open House</a>
+        </div>
+        <h2 style="margin: 4px 0 0; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Vandaag</h2>
+        <div style="background: {{t.surface}}; border-radius: 22px; padding: 4px 0">
+          <sc-for list="{{rail}}" as="item" hint-placeholder-count="6">
+            <sc-if value="{{item.now}}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 4px 16px"><span style="display: inline-block; padding: 3px 10px; border-radius: 999px; background: {{t.ink}}; color: {{t.onInk}}; font-size: 13px; font-weight: 700">Nu · 14:14</span></div>
+            </sc-if>
+            <sc-if value="{{item.row}}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 16px; color: {{item.color}}">
+                <span style="width: 40px; font-size: 13px; color: {{t.muted}}">{{item.time}}</span>
+                <span style="width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; {{item.tileStyle}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg></span>
+                <span style="font-size: 15px; font-weight: {{item.weight}}">{{item.text}}</span>
+              </div>
+            </sc-if>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{phoneModule}}" hint-placeholder-val="{{ true }}">
+      <div style="background: {{g.wash}}; padding: 12px 16px 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; gap: 8px">
+          <a href="#" aria-label="Terug naar {{head.back}}" style="width: 44px; height: 44px; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+          <div style="flex-grow: 1"></div>
+          <button type="button" aria-label="Zoeken in {{head.title}}" style="width: 44px; height: 44px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM20 20l-4-4"></path></svg></button>
+          <button type="button" aria-label="Instellingen van {{head.title}}" style="width: 44px; height: 44px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg></button>
+        </div>
+        <h1 style="margin: 0; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 34px; line-height: 41px; font-weight: 700">{{head.title}}</h1>
+        <div style="display: flex; align-items: center; gap: 12px">
+          <span style="width: 56px; height: 56px; border-radius: 17px; background: {{g.fill}}; color: {{g.on}}; display: flex; align-items: center; justify-content: center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{head.d}}"></path></svg></span>
+          <span style="font-size: 15px; color: {{t.muted}}"><b style="color: {{t.ink}}">{{head.count}}</b> · {{head.scope}}</span>
+        </div>
+      </div>
+      <div style="padding: 14px 16px 0; display: flex; flex-direction: column; gap: 12px">
+        <sc-if value="{{sLijst}}" hint-placeholder-val="{{ true }}">
+          <label style="display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 16px; border-radius: 22px; background: {{t.surface}}; color: {{t.muted}}">
+            <span style="width: 22px; height: 22px; border-radius: 999px; background: {{home.fill}}; color: {{home.on}}; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span>
+            <input type="text" aria-label="Taak toevoegen" placeholder="Taak toevoegen" style="flex-grow: 1; border: 0; outline: 0; background: transparent; font: inherit; font-size: 16px; color: {{t.ink}}">
+          </label>
+          <div style="background: {{t.surface}}; border-radius: 22px; overflow: hidden">
+            <sc-for list="{{tasksPhone}}" as="item" hint-placeholder-count="3">
+              <a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 16px; box-sizing: border-box; color: {{t.ink}}; text-decoration: none; border-top: {{item.border}}">
+                <span style="width: 22px; height: 22px; flex-shrink: 0; border-radius: 999px; border: 2px solid {{home.text}}; box-sizing: border-box"></span>
+                <span style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+                  <span style="font-size: 16px">{{item.title}}</span>
+                  <span style="font-size: 13px; color: {{t.muted}}"><b style="color: {{item.whenColor}}; font-weight: {{item.whenWeight}}">{{item.when}}</b>{{item.rest}}</span>
+                </span>
+                <span style="width: 26px; height: 26px; border-radius: 999px; background: {{t.surface2}}; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{item.coin}}</span>
+              </a>
+            </sc-for>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 16px; border-radius: 22px; background: {{t.surface}}; font-size: 16px">
+            <span style="width: 22px; height: 22px; border-radius: 999px; background: {{t.surface2}}; color: {{t.muted}}; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span>
+            <span style="flex-grow: 1">Afgerond (1)</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </div>
+        </sc-if>
+        <sc-if value="{{sRecepten}}" hint-placeholder-val="{{ false }}">
+          <label style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 999px; background: {{t.surface}}; color: {{t.muted}}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM20 20l-4-4"></path></svg>
+            <input type="text" aria-label="Recepten zoeken" placeholder="Recepten zoeken" style="flex-grow: 1; border: 0; outline: 0; background: transparent; font: inherit; font-size: 16px; color: {{t.ink}}">
+          </label>
+          <div style="background: {{t.surface}}; border-radius: 22px">
+            <sc-for list="{{recipesPhone}}" as="item" hint-placeholder-count="5">
+              <a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 16px; box-sizing: border-box; color: {{t.ink}}; text-decoration: none; border-top: {{item.border}}">
+                <span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 9px; background: {{kitchen.fill}}; color: {{kitchen.on}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 0-3 2-3 5s1 4 3 4v9"></path></svg></span>
+                <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                  <span style="font-size: 16px">{{item.title}}</span>
+                  <span style="font-size: 13px; color: {{t.muted}}"><span style="color: {{t.ink}}; letter-spacing: 1px">{{item.stars}}</span> · {{item.tags}}</span>
+                </span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+              </a>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- tab bar stand-in: the browser has no Liquid Glass, so the web draws this bar itself -->
+    <nav aria-label="Hoofdnavigatie" style="position: absolute; left: 16px; right: 16px; bottom: 20px; display: flex; gap: 10px; align-items: center">
+      <div style="flex-grow: 1; height: 62px; border-radius: 999px; background: {{t.glass}}; box-shadow: {{t.glassShadow}}; display: flex; align-items: center; padding: 0 6px; backdrop-filter: blur(16px)">
+        <sc-for list="{{tabs}}" as="item" hint-placeholder-count="4">
+          <a href="#" aria-current="{{item.current}}" style="flex: 1 1 0; height: 50px; border-radius: 999px; background: {{item.bg}}; color: {{t.ink}}; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg>
+            <span style="font-size: 10px; line-height: 12px; font-weight: 600">{{item.label}}</span>
+          </a>
+        </sc-for>
+      </div>
+      <a href="#" aria-label="Zoeken" style="width: 62px; height: 62px; flex-shrink: 0; border-radius: 999px; background: {{t.glass}}; box-shadow: {{t.glassShadow}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(16px)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM20 20l-4-4"></path></svg></a>
+    </nav>
+  </div>
+</sc-if>
+
+<!-- ================= Nieuwe taak: dialog (desktop) or sheet (phone) ================= -->
+<sc-if value="{{sNieuw}}" hint-placeholder-val="{{ false }}">
+  <div style="position: absolute; inset: 0; background: {{t.scrim}}; display: flex; align-items: {{dlg.align}}; justify-content: center">
+    <div role="dialog" aria-label="Nieuwe taak" style="width: {{dlg.width}}; box-sizing: border-box; background: {{t.surface}}; border-radius: {{dlg.radius}}; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+      <sc-if value="{{isPhone}}" hint-placeholder-val="{{ false }}">
+        <span style="align-self: center; width: 36px; height: 5px; border-radius: 999px; background: {{t.hair}}"></span>
+      </sc-if>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <h2 style="margin: 0; flex-grow: 1; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Nieuwe taak</h2>
+        <button type="button" aria-label="Sluiten" style="width: 32px; height: 32px; border: 0; border-radius: 999px; background: {{t.surface2}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+      </div>
+      <label style="display: flex; align-items: center; height: 52px; padding: 0 16px; border-radius: 16px; background: {{t.ground}}; box-shadow: inset 0 0 0 2px {{home.text}}">
+        <input type="text" aria-label="Taak" value="Pick up the dry cleaning" style="flex-grow: 1; border: 0; outline: 0; background: transparent; font: inherit; font-size: 17px; color: {{t.ink}}">
+      </label>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <button type="button" style="height: 36px; padding: 0 12px 0 8px; border: 0; border-radius: 999px; background: {{t.surface2}}; color: {{t.ink}}; font: inherit; font-size: 15px; display: flex; align-items: center; gap: 6px"><span style="width: 20px; height: 20px; border-radius: 6px; background: {{home.fill}}; color: {{home.on}}; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"></path></svg></span>House<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: {{t.surface2}}; color: {{t.ink}}; font: inherit; font-size: 15px">Wanneer</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: {{t.surface2}}; color: {{t.ink}}; font: inherit; font-size: 15px">Wie</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: {{t.surface2}}; color: {{t.ink}}; font: inherit; font-size: 15px">Herhalen</button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <a href="#" style="flex-grow: 1; font-size: 15px; font-weight: 600; color: {{home.text}}; text-decoration: none">Meer details</a>
+        <button type="button" style="height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: {{t.surface2}}; color: {{t.ink}}; font: inherit; font-size: 17px; font-weight: 600">Annuleren</button>
+        <button type="button" style="height: 44px; padding: 0 20px; border: 0; border-radius: 999px; background: {{home.fill}}; color: {{home.on}}; font: inherit; font-size: 17px; font-weight: 600">Toevoegen</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["start","taken","lijst","recepten","nieuw"],"default":"taken"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"size":{"editor":"enum","options":["desktop","phone"],"default":"desktop"},"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const screen = this.props.screen ?? 'taken';
+    const theme = this.props.theme ?? 'light';
+    const size = this.props.size ?? 'desktop';
+    const dark = theme === 'dark';
+    const isDesk = size !== 'phone';
+    const t = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#2E3331', danger: '#F0917F', onInk: '#0F1110',
+      glass: 'rgba(44,46,45,0.78)', glassShadow: '0 8px 24px rgba(0,0,0,0.45)', tabSel: 'rgba(255,255,255,0.12)', scrim: 'rgba(0,0,0,0.6)'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', muted: '#5E6764', hair: '#DFE2DE', danger: '#A4372C', onInk: '#FFFFFF',
+      glass: 'rgba(255,255,255,0.78)', glassShadow: '0 8px 24px rgba(16,32,30,0.14)', tabSel: 'rgba(26,31,29,0.08)', scrim: 'rgba(15,17,16,0.32)'
+    };
+    const G = dark ? {
+      kitchen: { fill: '#0B7C75', on: '#FFFFFF', text: '#6FD6CD', wash: '#133230' },
+      home: { fill: '#D99B2B', on: '#2B1F06', text: '#F2C060', wash: '#2E2611' },
+      tasting: { fill: '#B4487F', on: '#FFFFFF', text: '#E59AC0', wash: '#2E1A25' },
+      money: { fill: '#2F6BD8', on: '#FFFFFF', text: '#8FB4F5', wash: '#16223A' }
+    } : {
+      kitchen: { fill: '#0B7C75', on: '#FFFFFF', text: '#0B7C75', wash: '#DDEFEC' },
+      home: { fill: '#F2B233', on: '#2B1F06', text: '#8A5C08', wash: '#FBEBC6' },
+      tasting: { fill: '#8A2D5A', on: '#FFFFFF', text: '#8A2D5A', wash: '#F1DFE8' },
+      money: { fill: '#2F6BD8', on: '#FFFFFF', text: '#2459BD', wash: '#E1EAFB' }
+    };
+    const I = {
+      home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+      plus: 'M12 8v8M8 12h8M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z',
+      grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+      gear: 'M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1',
+      list: 'M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01',
+      fork: 'M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 0-3 2-3 5s1 4 3 4v9',
+      cart: 'M3 4h2l2.4 11h10.2L20 7H6.2M9 20h.01M17 20h.01',
+      cal: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+      baby: 'M12 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16zM9 13a3.5 3.5 0 0 0 6 0M9.5 9.5h.01M14.5 9.5h.01',
+      wine: 'M8 3h8l-1 7a3 3 0 0 1-6 0zM12 13v8M8 21h8',
+      user: 'M12 12a4 4 0 1 0 0-8a4 4 0 1 0 0 8zM4 21a8 8 0 0 1 16 0',
+      clock: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM12 7v5l3 2',
+      users: 'M9 11a3.5 3.5 0 1 0 0-7a3.5 3.5 0 1 0 0 7zM3 20a6 6 0 0 1 12 0M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14a5 5 0 0 1 3 6',
+      moon: 'M20 14a8 8 0 1 1-10-10a6 6 0 0 0 10 10z',
+      drop: 'M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z',
+      star: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z'
+    };
+    const tile = (g) => 'background:' + g.fill + ';color:' + g.on;
+    const quiet = 'background:' + t.surface2 + ';color:' + t.ink;
+    const line = '0.5px solid ' + t.hair;
+
+    const current = { start: 'start', taken: 'taken', lijst: 'taken', nieuw: 'taken', recepten: 'recepten' }[screen];
+    const nav = (id, label, d, style, count) => ({ label, d, tileStyle: style, count: count || '', bg: current === id ? t.surface : 'transparent', weight: current === id ? 600 : 400 });
+    const navTop = [nav('start', 'Start', I.home, quiet), nav('add', 'Toevoegen', I.plus, quiet)];
+    const navPinned = [
+      nav('taken', 'Taken', I.list, tile(G.home), '16'),
+      nav('recepten', 'Recepten', I.fork, tile(G.kitchen), '12'),
+      nav('boodschappen', 'Boodschappen', I.cart, tile(G.kitchen), '4'),
+      nav('baby', 'Juno', I.baby, tile(G.home), ''),
+      nav('wijn', 'Wijnen', I.wine, tile(G.tasting), '')
+    ];
+
+    const rail = [
+      { row: true, time: '08:10', d: I.baby, text: 'Borstvoeding · links 12 min · Juno', color: t.muted, weight: 400, tileStyle: quiet },
+      { row: true, time: '10:15', d: I.moon, text: 'Slaap · 1 u 15 min · Juno', color: t.muted, weight: 400, tileStyle: quiet },
+      { row: true, time: '12:00', d: I.drop, text: 'Fles · 150 ml · Juno', color: t.muted, weight: 400, tileStyle: quiet },
+      { now: true },
+      { row: true, time: '15:30', d: I.baby, text: 'Volgende voeding, rond deze tijd', color: t.ink, weight: 600, tileStyle: tile(G.home) },
+      { row: true, time: '18:30', d: I.fork, text: 'Diner: Shakshuka', color: t.ink, weight: 600, tileStyle: tile(G.kitchen) }
+    ];
+    const pinnedCards = [
+      { label: 'Recepten', d: I.fork, tileStyle: tile(G.kitchen) },
+      { label: 'House', d: I.list, tileStyle: tile(G.home) },
+      { label: 'Wijnen', d: I.wine, tileStyle: tile(G.tasting) }
+    ];
+    const activity = [
+      { d: I.wine, tileStyle: tile(G.tasting), text: 'Sam beoordeelde Jopen Hoppenbier', sub: 'Bieren · 2 uur geleden', border: 'none' },
+      { d: I.wine, tileStyle: tile(G.tasting), text: 'Nora beoordeelde Westmalle Tripel', sub: 'Bieren · 2 uur geleden', border: line },
+      { d: I.fork, tileStyle: tile(G.kitchen), text: 'Test User voegde Shakshuka toe', sub: 'Recepten · gisteren', border: line },
+      { d: I.list, tileStyle: tile(G.home), text: 'Nora vinkte Descale the kettle af', sub: 'House · gisteren', border: line }
+    ];
+
+    const smart = [
+      { label: 'Mijn taken', sub: 'Aan jou toegewezen', count: '0', d: I.user, border: 'none' },
+      { label: 'Binnenkort', sub: 'Komende 7 dagen', count: '5', d: I.cal, border: line },
+      { label: 'Niet toegewezen', sub: 'Nog niemand heeft ze opgepakt', count: '12', d: I.users, border: line }
+    ];
+    const lists = [
+      ['Groceries', '4 open', I.cart, tile(G.kitchen)],
+      ['House', '3 open', I.list, tile(G.home)],
+      ['Weekend', '4 open', I.list, tile(G.home)],
+      ['Juno to-dos', '3 open', I.baby, tile(G.home)],
+      ['Juno questions', '2 open', I.list, tile(G.home)]
+    ].map((r, i) => ({ label: r[0], count: r[1], d: r[2], tileStyle: r[3], border: i ? line : 'none', bg: i === 1 ? t.surface2 : 'transparent', radius: '0' }));
+
+    const task = (title, when, whenColor, whenWeight, rest, coin, i, hover, sel) => ({ title, when, whenColor, whenWeight, rest, coin, border: i ? line : 'none', hover, bg: sel ? t.surface2 : (hover ? (dark ? '#222624' : '#F6F7F5') : 'transparent'), weight: sel ? 600 : 400 });
+    const tasks = [
+      task('Bleed the radiators', 'Te laat · vr 20 nov', t.danger, 600, ' · elk jaar', 'SO', 0, false, true),
+      task('Book the dentist', 'Vr 28 nov', t.muted, 400, ' · admin', 'NV', 1, true, false),
+      task('Replace the smoke alarm battery', 'Vr 5 dec', t.muted, 400, '', 'TU', 2, false, false)
+    ];
+    const tasksPhone = tasks.map((x) => ({ ...x }));
+    const fields = [
+      { label: 'Lijst', value: 'House', color: t.ink, weight: 400, border: 'none' },
+      { label: 'Wanneer', value: 'Vr 20 nov · te laat', color: t.danger, weight: 600, border: line },
+      { label: 'Herhalen', value: 'Elk jaar', color: t.muted, weight: 400, border: line },
+      { label: 'Wie', value: 'Sam Okonkwo', color: t.muted, weight: 400, border: line }
+    ];
+
+    const R = [
+      ['Banana oat pancakes', '★★★★☆', 'breakfast, quick, kids'],
+      ['Chicken and potato traybake', '★★★★☆', 'one-pan, weeknight'],
+      ['Chickpea and spinach curry', '★★★★☆', 'vegan, quick, weeknight'],
+      ['Greek salad', '★★★★★', 'vegetarian, no-cook, summer'],
+      ['Lasagne alla bolognese', '★★★★★', 'pasta, weekend, batch-cook'],
+      ['Pasta puttanesca', '★★★★☆', 'pasta, quick, store-cupboard'],
+      ['Shakshuka', '★★★★★', 'vegetarian, one-pan, brunch'],
+      ['Tarka dal', '★★★★☆', 'vegetarian, quick, freezer-friendly']
+    ];
+    const rrow = (r, i) => ({ title: r[0], stars: r[1], tags: r[2], border: i ? line : 'none' });
+    const recipeCols = [{ rows: R.slice(0, 4).map(rrow) }, { rows: R.slice(4, 8).map(rrow) }];
+    const recipesPhone = R.slice(0, 7).map(rrow);
+    const chips = ['Alle', 'vegetarian', 'quick', 'pasta', 'weeknight'].map((l, i) => ({ label: l, pressed: i === 0 ? 'true' : 'false', bg: i === 0 ? t.ink : t.surface, fg: i === 0 ? t.onInk : t.ink }));
+
+    const isRecipes = screen === 'recepten';
+    const g = isRecipes ? G.kitchen : G.home;
+    const head = screen === 'taken'
+      ? { title: 'Taken', count: '16 open', scope: '5 lijsten', d: I.list, primary: 'Lijst toevoegen', crumb: false, back: 'Alles' }
+      : isRecipes
+        ? { title: 'Recepten', count: '12 recepten', scope: 'Willow Street', d: I.fork, primary: 'Recept toevoegen', crumb: false, back: 'Alles' }
+        : { title: 'House', count: '3 open', scope: 'hele huishouden', d: I.list, primary: 'Taak toevoegen', crumb: true, back: 'Taken' };
+
+    const tabCurrent = screen === 'start' ? 'start' : 'alles';
+    const tabs = [['start', 'Start', I.home], ['add', 'Toevoegen', I.plus], ['inst', 'Instellingen', I.gear], ['alles', 'Alles', I.grid]]
+      .map((x) => ({ label: x[1], d: x[2], bg: x[0] === tabCurrent ? t.tabSel : 'transparent', current: x[0] === tabCurrent ? 'page' : 'false' }));
+
+    const sLijst = screen === 'lijst' || screen === 'nieuw';
+    return {
+      w: isDesk ? 1280 : 390, h: isDesk ? 860 : 844,
+      t, g, home: G.home, kitchen: G.kitchen, head,
+      isDesk, isPhone: !isDesk,
+      sStart: screen === 'start', sTaken: screen === 'taken', sLijst, sRecepten: isRecipes, sNieuw: screen === 'nieuw',
+      showWash: screen !== 'start', phoneModule: !isDesk && screen !== 'start',
+      navTop, navPinned, rail, pinnedCards, activity, smart, lists, tasks, tasksPhone, fields, recipeCols, recipesPhone, chips, tabs,
+      dlg: isDesk ? { align: 'center', width: '480px', radius: '22px' } : { align: 'flex-end', width: '100%', radius: '22px 22px 0 0' }
+    };
+  }
+}
+</script>
+</body>
+</html>

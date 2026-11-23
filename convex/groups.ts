@@ -5,6 +5,7 @@ import { internalQuery, mutation, query } from './_generated/server'
 import { rejectConnectedApps } from './lib/connectedApps'
 import {
   getMembership,
+  groupRefusalError,
   groupRoleValidator,
   requireGroupBySlug,
   resolveGroupBySlug,
@@ -30,9 +31,9 @@ async function requireMembership(
 }> {
   const user = await requireCurrentUser(ctx)
   const group = await ctx.db.get(groupId)
-  if (!group) throw new ConvexError('Group not found')
+  if (!group) throw groupRefusalError('unknown-group')
   const membership = await getMembership(ctx, groupId, user._id)
-  if (!membership) throw new ConvexError('Not a member of that group')
+  if (!membership) throw groupRefusalError('not-a-member')
   return { user, group, membership }
 }
 

@@ -652,3 +652,140 @@ describe('when the Group goes', () => {
     expect(await photoExists(t, back)).toBe(false)
   })
 })
+
+describe('reorder (APP-440)', () => {
+  async function addCard(t: Harness, storeName: string) {
+    return await t.withIdentity(alice).mutation(api.loyaltyCards.create, {
+      ...HOME,
+      storeName,
+      cardNumber: '12345678',
+      barcodeFormat: 'CODE_128',
+    })
+  }
+  const names = async (t: Harness, who = alice) =>
+    (await t.withIdentity(who).query(api.loyaltyCards.list, HOME)).map(
+      (card) => card.storeName,
+    )
+
+  test('a Group that never reorders keeps the old order', async () => {
+    const { t } = await seed()
+    await addCard(t, 'Hema')
+    const action = await addCard(t, 'Action')
+    await addCard(t, 'Zeeman')
+    await t
+      .withIdentity(alice)
+      .mutation(api.loyaltyCards.markUsed, { ...HOME, id: action })
+    expect(await names(t)).toEqual(['Action', 'Hema', 'Zeeman'])
+    const orders = await t.run(async (ctx) =>
+      (await ctx.db.query('loyaltyCards').collect()).map((card) => card.order ?? null),
+    )
+    expect(orders).toEqual([null, null, null])
+  })
+
+  test('any Member writes one order for the Group, and a new card lands on top', async () => {
+    const { t } = await seed()
+    const hema = await addCard(t, 'Hema')
+    const action = await addCard(t, 'Action')
+    const zeeman = await addCard(t, 'Zeeman')
+    await t
+      .withIdentity(bob)
+      .mutation(api.loyaltyCards.reorder, { ...HOME, ids: [zeeman, hema, action] })
+    expect(await names(t)).toEqual(['Zeeman', 'Hema', 'Action'])
+    expect(await names(t, bob)).toEqual(['Zeeman', 'Hema', 'Action'])
+
+    // Using an arranged card no longer moves it.
+    await t
+      .withIdentity(alice)
+      .mutation(api.loyaltyCards.markUsed, { ...HOME, id: action })
+    expect(await names(t)).toEqual(['Zeeman', 'Hema', 'Action'])
+
+    await addCard(t, 'Blokker')
+    expect(await names(t)).toEqual(['Blokker', 'Zeeman', 'Hema', 'Action'])
+  })
+
+  test('cards left out keep their relative order after the listed ones', async () => {
+    const { t } = await seed()
+    const hema = await addCard(t, 'Hema')
+    await addCard(t, 'Action')
+    await addCard(t, 'Zeeman')
+    await t
+      .withIdentity(alice)
+      .mutation(api.loyaltyCards.reorder, { ...HOME, ids: [hema] })
+    expect(await names(t)).toEqual(['Hema', 'Action', 'Zeeman'])
+  })
+
+  test('a card deleted meanwhile is skipped quietly', async () => {
+    const { t } = await seed()
+    const hema = await addCard(t, 'Hema')
+    const action = await addCard(t, 'Action')
+    const gone = await addCard(t, 'Zeeman')
+    await t
+      .withIdentity(alice)
+      .mutation(api.loyaltyCards.remove, { ...HOME, id: gone })
+    await t
+      .withIdentity(alice)
+      .mutation(api.loyaltyCards.reorder, { ...HOME, ids: [gone, action, hema] })
+    expect(await names(t)).toEqual(['Action', 'Hema'])
+  })
+
+  test('a card of another Group is skipped like a missing one, and left alone', async () => {
+    const { t } = await seed()
+    const hema = await addCard(t, 'Hema')
+    const action = await addCard(t, 'Action')
+    const theirs = await t.withIdentity(carol).mutation(api.loyaltyCards.create, {
+      ...OTHER,
+      storeName: 'Theirs',
+      cardNumber: '12345678',
+      barcodeFormat: 'CODE_128',
+    })
+    await t
+      .withIdentity(alice)
+      .mutation(api.loyaltyCards.reorder, { ...HOME, ids: [theirs, hema, action] })
+    expect(await names(t)).toEqual(['Hema', 'Action'])
+    const theirOrder = await t.run(
+      async (ctx) => (await ctx.db.get(theirs))?.order ?? null,
+    )
+    expect(theirOrder).toBeNull()
+  })
+
+  test('someone outside the Group cannot reorder it', async () => {
+    const { t } = await seed()
+    const hema = await addCard(t, 'Hema')
+    await expect(
+      t
+        .withIdentity(carol)
+        .mutation(api.loyaltyCards.reorder, { ...HOME, ids: [hema] }),
+    ).rejects.toThrow()
+    await expect(
+      t.mutation(api.loyaltyCards.reorder, { ...HOME, ids: [hema] }),
+    ).rejects.toThrow()
+  })
+
+  // That rows whose order is already right are not patched is a write saving,
+  // not behaviour a caller can see, so it is left to the code.
+  test('a second reorder renumbers the cards and keeps a card that did not move', async () => {
+    const { t } = await seed()
+    const hema = await addCard(t, 'Hema')
+    const action = await addCard(t, 'Action')
+    const zeeman = await addCard(t, 'Zeeman')
+    await t
+      .withIdentity(alice)
+      .mutation(api.loyaltyCards.reorder, { ...HOME, ids: [hema, action, zeeman] })
+    const before = await t.run(async (ctx) =>
+      (await ctx.db.query('loyaltyCards').collect()).map((card) => [
+        card._id,
+        card._creationTime,
+        card.order,
+      ]),
+    )
+    expect(before.map(([, , order]) => order)).toEqual([0, 1, 2])
+    await t
+      .withIdentity(alice)
+      .mutation(api.loyaltyCards.reorder, { ...HOME, ids: [action, hema, zeeman] })
+    expect(await names(t)).toEqual(['Action', 'Hema', 'Zeeman'])
+    const zeemanOrder = await t.run(
+      async (ctx) => (await ctx.db.get(zeeman))?.order,
+    )
+    expect(zeemanOrder).toBe(2)
+  })
+})

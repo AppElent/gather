@@ -7,7 +7,7 @@ import {
   seedMember,
   testConvex,
 } from '../test/convexHarness'
-import { api } from './_generated/api'
+import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { GROCERY_HISTORY_WINDOW } from './lib/groceryCategories'
 import { RECENT_GROCERIES_LIMIT } from './tasks'
@@ -232,6 +232,96 @@ describe('Recent', () => {
         groupSlug: SLUG,
       }),
     ).rejects.toThrow()
+  })
+})
+
+describe('backfillDoneAt (APP-445)', () => {
+  /** Every task's stamp, in insertion order. */
+  const stamps = ({ t }: Seeded) =>
+    t.run(async (ctx) =>
+      (await ctx.db.query('tasks').collect()).map((task) => [
+        task.title,
+        task.doneAt ?? null,
+      ]),
+    )
+
+  test('dry by default, then stamps checked items from when they were added, once', async () => {
+    const s = await seed()
+    await checked(s, s.groceries, 'oude kaas', undefined)
+    await checked(s, s.chores, 'oud klusje', undefined)
+    const stamped = await checked(s, s.groceries, 'melk', 100)
+    const open = await s.as.mutation(api.tasks.add, {
+      groupSlug: SLUG,
+      listId: s.groceries,
+      title: 'appels',
+    })
+    const before = await stamps(s)
+    expect(
+      await s.t.mutation(internal.maintenance.backfillDoneAt, {}),
+    ).toMatchObject({ apply: false, scanned: 4, missing: 2, more: false })
+    expect(await stamps(s)).toEqual(before)
+
+    await s.t.mutation(internal.maintenance.backfillDoneAt, { apply: true })
+    const rows = await s.t.run((ctx) => ctx.db.query('tasks').collect())
+    for (const row of rows.filter((row) => row.title.startsWith('oud')))
+      expect(row.doneAt).toBe(row._creationTime)
+    expect(rows.find((row) => row._id === stamped)?.doneAt).toBe(100)
+    expect(rows.find((row) => row._id === open)?.doneAt).toBeUndefined()
+    expect(
+      await s.t.mutation(internal.maintenance.backfillDoneAt, {}),
+    ).toMatchObject({ missing: 0, more: false })
+  })
+
+  test('Recent and the habits answer the same before and after', async () => {
+    const s = await seed()
+    // Checked before doneAt existed, so added before any stamp was written.
+    await checked(s, s.groceries, 'oud brood', undefined)
+    await checked(s, s.groceries, 'oude kaas', undefined)
+    await checked(s, s.market, 'oude appels', undefined)
+    const after = Date.now() + 1000
+    await checked(s, s.groceries, 'oud brood', after)
+    await checked(s, s.market, 'melk', after + 1)
+    await s.as.mutation(api.tasks.add, {
+      groupSlug: SLUG,
+      listId: s.groceries,
+      title: 'kaas',
+    })
+    const read = async () => ({
+      recent: await s.as.query(api.tasks.recentGroceries, { groupSlug: SLUG }),
+      habits: await s.as.query(api.tasks.groceryHabits, {
+        groupSlug: SLUG,
+        listId: s.groceries,
+      }),
+    })
+    const before = await read()
+    expect(before.recent.map((row) => row.title)).toEqual([
+      'melk',
+      'oud brood',
+      'oude appels',
+      'oude kaas',
+    ])
+    await s.t.mutation(internal.maintenance.backfillDoneAt, { apply: true })
+    expect(await read()).toEqual(before)
+  })
+
+  test('pages by cursor until more is false', async () => {
+    const s = await seed()
+    for (const title of ['a', 'b', 'c'])
+      await checked(s, s.groceries, `oud ${title}`, undefined)
+    const first = await s.t.mutation(internal.maintenance.backfillDoneAt, {
+      apply: true,
+      batch: 2,
+    })
+    expect(first).toMatchObject({ scanned: 2, missing: 2, more: true })
+    const second = await s.t.mutation(internal.maintenance.backfillDoneAt, {
+      apply: true,
+      batch: 2,
+      cursor: first.cursor,
+    })
+    expect(second).toMatchObject({ scanned: 1, missing: 1, more: false })
+    expect(
+      await s.t.mutation(internal.maintenance.backfillDoneAt, {}),
+    ).toMatchObject({ scanned: 3, missing: 0, more: false })
   })
 })
 

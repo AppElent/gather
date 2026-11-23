@@ -15,7 +15,9 @@
  */
 
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
+import { aisleOrder, isGroceryAisle } from '@gather/core/groceries'
 import { readTaskRefusal } from '@gather/core/refusals'
+import { reorderWithSubtasks, topLevelTasks } from '@gather/core/subtasks'
 import {
   groupBySection,
   hasLinkAndPrice,
@@ -24,8 +26,16 @@ import {
 } from '@gather/core/task-lists'
 import { describeRepeat } from '@gather/core/task-repeat'
 import { Stack, useRouter } from 'expo-router'
+import { useHeaderHeight } from 'expo-router/react-navigation'
 import { type ReactNode, useRef, useState } from 'react'
-import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import {
+  Platform,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 // Gesture Handler's own ScrollView, not React Native's: reorder's drag names
 // this view in `blocksExternalGesture`, and only a scroll view the library
 // knows about can be told to stand down for one touch. Gesture Handler 3's
@@ -34,6 +44,7 @@ import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { LegacyScrollView as ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useEdgeScroll } from '../../arrange/edgeScroll'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
@@ -42,14 +53,20 @@ import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { CompletedSection } from '../../ui/completed-section'
 import { InsetList } from '../../ui/inset-list'
+import { ADD_BUTTON_CLEARANCE } from '../../ui/keyboard-composer'
 import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { useUndoToast } from '../../ui/undo-toast'
 import { WashHeader } from '../../ui/wash-header'
+import { AddTask } from './AddTaskComposer'
 import { Chip, priorityColor } from './components'
 import { GroceryAmount, useGroceryAmountText } from './GroceryFields'
 import { GroceryListBody } from './GroceryListBody'
-import { checkedOncePerName, inCheckedSection } from './groceryList'
+import {
+  aisleArrangement,
+  checkedOncePerName,
+  inCheckedSection,
+} from './groceryList'
 import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
 import { AppearanceSheet } from './listFace'
 import { PackingProgress, UncheckAll } from './packing'
@@ -57,7 +74,7 @@ import { ReorderMode } from './ReorderMode'
 import { SectionHeading, SectionsSheet } from './sections'
 import { RenameSheet } from './sheets'
 import { taskSections, useTaskActions, useTaskList } from './store'
-import { TaskComposer, TaskRow } from './TaskRow'
+import { type KeptGroceryLine, TaskComposer, TaskRow } from './TaskRow'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
 import type { ListDisplay, Task, TaskList as TaskListModel } from './types'
@@ -106,16 +123,38 @@ export function TaskList({
   const [restyling, setRestyling] = useState(false)
   const [editingSections, setEditingSections] = useState(false)
   const [reordering, setReordering] = useState(false)
-  const taskSheets = useTaskSheets({
-    tasks,
-    onReorder: () => setReordering(true),
-  })
+  // The grocery composer is away in Reorder mode; its half-typed line and
+  // the aisle chosen for it wait here (APP-536).
+  const keptLine = useRef<KeptGroceryLine | undefined>(undefined)
+  // A drop the server refused puts Reorder mode back to the list's saved
+  // order, which a remount reads, and says so (APP-534). Without it the mode
+  // keeps the order it opened with, so after another Member adds an item
+  // every later drop is refused too. The loyalty cards' reorder does the same
+  // (APP-440).
+  const [reorderKey, setReorderKey] = useState(0)
+  const [reorderProblem, setReorderProblem] = useState<string | null>(null)
+  const startReorder = () => {
+    setReorderProblem(null)
+    setReordering(true)
+  }
+  const taskSheets = useTaskSheets({ tasks, onReorder: startReorder })
   const scrollRef = useRef<ScrollView>(null)
+  // The header is see-through and iOS insets the list under it, so the
+  // edge that scrolls the list sits under the header, as does its top.
+  // Android does not inset it.
+  const headerHeight = useHeaderHeight()
+  const { edgeScroll, scrollProps, probeRef } = useEdgeScroll(scrollRef, {
+    top: Platform.OS === 'ios' ? headerHeight : 0,
+    bottom: insets.bottom,
+  })
   const [dragging, setDragging] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshed, setRefreshed] = useState(false)
 
-  const { active, completed } = taskSections(tasks)
+  // A subtask is drawn under its parent on the detail screen, not as a row
+  // here; the parent's row says how far along they are (APP-304).
+  const rows = topLevelTasks(tasks)
+  const { active, completed } = taskSections(rows)
   // A grocery item just checked stays in its aisle for a moment (APP-310);
   // until it moves it is still open, in the summary and for Clear checked.
   const lingering = useLingering(
@@ -131,9 +170,12 @@ export function TaskList({
   // A packing list keeps its checked items where they are: it is reset for
   // the next trip rather than worked through (APP-306).
   const inPlace = keepsCheckedInPlace(list.kind)
-  const listed = inPlace ? tasks : active
+  // A list of tasks adds from the keyboard composer; a grocery list keeps its
+  // inline row (APP-311).
+  const addsWithButton = list.writable && !list.grocery
+  const listed = inPlace ? rows : active
   const finished = inPlace ? [] : completed
-  const doneCount = tasks.filter((task) => task.done).length
+  const doneCount = rows.filter((task) => task.done).length
   const wishlist = hasLinkAndPrice(list.kind)
   // A grocery row carries its amount at the end (APP-309), and the list is in
   // aisle sections with Checked and Recent (APP-310).
@@ -183,7 +225,7 @@ export function TaskList({
       haptics.selectionChanged()
       return
     }
-    if (action === 'reorder') setReordering(true)
+    if (action === 'reorder') startReorder()
     if (action === 'rename') setRenamingList(true)
     if (action === 'appearance') setRestyling(true)
     if (action === 'sections') setEditingSections(true)
@@ -424,6 +466,7 @@ export function TaskList({
 
       <ScrollView
         ref={scrollRef}
+        {...scrollProps}
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
@@ -431,7 +474,9 @@ export function TaskList({
         // cover it and a grocery line's recognised chips (APP-309).
         automaticallyAdjustKeyboardInsets
         scrollEnabled={!dragging}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 24 + (addsWithButton ? ADD_BUTTON_CLEARANCE : 0),
+        }}
         refreshControl={
           // Only a provider-backed list has anything to fetch. Convex keeps
           // the rest live, and a spinner over live data is theatre.
@@ -444,6 +489,7 @@ export function TaskList({
           ) : undefined
         }
       >
+        <View ref={probeRef} collapsable={false} />
         {tile ? (
           <WashHeader
             group={tile.group}
@@ -458,17 +504,64 @@ export function TaskList({
         <View style={styles.content}>
           {reordering ? (
             <ReorderMode
+              key={reorderKey}
               tasks={listed}
-              sections={list.sections}
+              // A grocery list is arranged in its aisles (APP-522): an item
+              // dragged under another aisle's heading moves to that aisle.
+              sections={
+                grocery
+                  ? aisleOrder(list.aisleOrder).map((aisle) => ({
+                      id: aisle,
+                      name: t.tasks.grocery.aisles[aisle],
+                    }))
+                  : list.sections
+              }
+              arrangement={
+                grocery ? aisleArrangement(listed, list.aisleOrder) : undefined
+              }
+              hint={grocery ? t.tasks.list.reorderAislesHint : undefined}
+              note={grocery ? t.tasks.list.reorderChecked : undefined}
+              problem={reorderProblem}
               display={list.display}
               today={today}
               scrollRef={scrollRef}
+              edgeScroll={edgeScroll}
               onDragging={setDragging}
-              onCommit={(ids, sectionIds) =>
+              onCommit={(ids, sectionIds, moved) => {
+                setReorderProblem(null)
+                // Once per drop, though its order and its aisle may both fail.
+                let reset = false
+                const failed = () => {
+                  if (reset) return
+                  reset = true
+                  haptics.actionFailed()
+                  setReorderKey((key) => key + 1)
+                  setReorderProblem(t.tasks.list.reorderReset)
+                }
+                if (grocery) {
+                  // The order within each aisle, then the dragged item's new
+                  // aisle, saved as a Member's own choice: the Group keeps it
+                  // for the item's name, as a choice in the item sheet
+                  // (APP-353). Only the drop's own item, so an aisle another
+                  // phone or the AI changed meanwhile is not written back.
+                  actions
+                    .reorderTasks(
+                      list.id,
+                      reorderWithSubtasks(ids, undefined, tasks, inPlace).ids,
+                    )
+                    .catch(failed)
+                  if (moved && isGroceryAisle(moved.sectionId)) {
+                    actions.setAisle(moved.id, moved.sectionId).catch(failed)
+                  }
+                  return
+                }
+                // The server wants every task once, subtasks included: each
+                // parent's go right behind it (APP-304).
+                const all = reorderWithSubtasks(ids, sectionIds, tasks, inPlace)
                 actions
-                  .reorderTasks(list.id, ids, sectionIds)
-                  .catch(() => haptics.actionFailed())
-              }
+                  .reorderTasks(list.id, all.ids, all.sectionIds)
+                  .catch(failed)
+              }}
             />
           ) : (
             <>
@@ -505,8 +598,8 @@ export function TaskList({
                 </View>
               )}
 
-              {inPlace && tasks.length > 0 ? (
-                <PackingProgress done={doneCount} total={tasks.length} />
+              {inPlace && rows.length > 0 ? (
+                <PackingProgress done={doneCount} total={rows.length} />
               ) : null}
 
               {grocery && !inPlace ? (
@@ -529,6 +622,8 @@ export function TaskList({
                         placeholder={addPlaceholder ?? t.kitchen.addGroceryItem}
                         grocery
                         tasks={tasks}
+                        scrollRef={scrollRef}
+                        keep={keptLine}
                       />
                     ) : null
                   }
@@ -542,8 +637,10 @@ export function TaskList({
               ) : (
                 <>
               {groups.map((section, index) => {
-                // The last section holds the composer, which adds to it.
-                const composer = list.writable && index === groups.length - 1
+                // On a grocery list the last section holds the composer, which
+                // adds to it. A list of tasks has the add button (APP-587).
+                const composer =
+                  grocery && list.writable && index === groups.length - 1
                 return (
                   <View key={section.id ?? 'none'} style={styles.section}>
                     {sectioned ? (
@@ -574,14 +671,11 @@ export function TaskList({
                       {composer ? (
                         <TaskComposer
                           listId={list.id}
-                          placeholder={
-                            addPlaceholder ??
-                            (grocery
-                              ? t.kitchen.addGroceryItem
-                              : t.tasks.list.addTask)
-                          }
-                          grocery={grocery}
+                          placeholder={addPlaceholder ?? t.kitchen.addGroceryItem}
+                          grocery
                           sectionId={section.id ?? undefined}
+                          scrollRef={scrollRef}
+                          keep={keptLine}
                         />
                       ) : null}
                     </InsetList>
@@ -608,6 +702,13 @@ export function TaskList({
         </View>
       </ScrollView>
 
+      {addsWithButton && !reordering ? (
+        <AddTask
+          place={`list:${list.id}`}
+          preset={{ listId: list.id }}
+          sectionId={groups[groups.length - 1]?.id ?? undefined}
+        />
+      ) : null}
       {undoToast.toast}
       {taskSheets.sheets}
       {renamingList ? (
@@ -688,7 +789,8 @@ function TaskMeta({
     (display.due && task.dueDate) ||
     (display.priority && task.priority) ||
     (display.labels && task.labels.length > 0) ||
-    repeat
+    repeat ||
+    task.subtasks
   if (!shown) return null
 
   const overdue = Boolean(task.dueDate && isOverdue(task.dueDate, today))
@@ -733,6 +835,20 @@ function TaskMeta({
             importantForAccessibility="no"
           />
           <Text style={[styles.meta, { color: tokens.muted }]}>{repeat}</Text>
+        </View>
+      ) : null}
+      {task.subtasks ? (
+        <View testID={`subtasks-${task.id}`} style={styles.metaItem}>
+          <TASK_ICONS.CircleCheck
+            size={12}
+            color={tokens.muted}
+            strokeWidth={2.2}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+          <Text style={[styles.meta, { color: tokens.muted }]}>
+            {fmt(t.tasks.subtasks.progress, { ...task.subtasks })}
+          </Text>
         </View>
       ) : null}
       {display.priority && task.priority ? (

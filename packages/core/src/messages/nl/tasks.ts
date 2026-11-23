@@ -98,6 +98,24 @@ export const tasks = {
     failed: 'Die lijst kon niet worden gemaakt. Probeer het opnieuw.',
   },
 
+  subtasks: {
+    title: 'Subtaken',
+    progress: '{done} van {total}',
+    add: 'Subtaak toevoegen',
+    footnote:
+      'Bij herhalen gaan de subtaken weer open. Vink je de taak af met open subtaken, dan vragen we of die ook af mogen.',
+    askTitle: 'Subtaken ook afvinken?',
+    askBody: 'Van “{title}” staan nog {count} subtaken open.',
+    askBodyOne: 'Van “{title}” staat nog één subtaak open.',
+    completeAll: 'Alles afvinken',
+    onlyThis: 'Alleen deze',
+    stepOf: 'Stap van {title}',
+    failed: 'Die subtaak kon niet worden toegevoegd. Probeer het opnieuw.',
+    deleteBody:
+      'De {count} subtaken worden ook verwijderd. Dit kan niet ongedaan worden gemaakt.',
+    deleteBodyOne:
+      'De subtaak wordt ook verwijderd. Dit kan niet ongedaan worden gemaakt.',
+  },
   packing: {
     progress: '{done} van {total}',
     packed: 'ingepakt',
@@ -123,7 +141,14 @@ export const tasks = {
     clearAmount: 'Geen hoeveelheid',
     unit: 'Eenheid',
     aisle: 'Afdeling',
-    recognised: 'Herkend zonder AI, ook offline',
+    itemPlaceholder: 'Wat heb je nodig?',
+    deleteItem: 'Item verwijderen',
+    labelsOnItem: 'Op dit item',
+    removeLabelEverywhere: 'Overal verwijderen',
+    recognised: 'Hoeveelheid en afdeling ingevuld op basis van wat je typt',
+    recognisedAmount: 'Hoeveelheid ingevuld op basis van wat je typt',
+    recognisedAisle: 'Afdeling ingevuld op basis van wat je typt',
+    changeAisleHint: 'Kies de afdeling waarin het wordt toegevoegd',
     aisleSection: { one: '{aisle}, {count} item', other: '{aisle}, {count} items' },
     checked: 'Afgevinkt',
     putBackAll: 'Zet terug',
@@ -192,13 +217,23 @@ export const tasks = {
       why: '{cadence} · {ago}',
       often: 'Vaak gekocht · {cadence}',
       history: 'Jullie historie',
-      dictionary: 'Woordenboek',
+      dictionary: 'Bekend product',
       onList: 'staat al op de lijst',
       onListAmount: 'staat al op de lijst ({amount})',
       pick: 'Zet {name} erbij',
     },
     undoSuperseded:
       'De lijst is sindsdien opnieuw gewist. Er is niets ongedaan gemaakt.',
+    shopping: {
+      start: 'Winkelen',
+      title: 'Winkelen',
+      progress: '{done} van {total}',
+      progressLabel: '{done} van {total} afgevinkt',
+      awake: '{list} · scherm blijft aan tot je klaar bent',
+      checked: '{name} afgevinkt',
+      finish: 'Klaar met winkelen',
+      empty: 'Niets meer te halen op deze lijst.',
+    },
     recent: {
       title: 'Recent',
       count: { one: '{count} item', other: '{count} items' },
@@ -237,6 +272,7 @@ export const tasks = {
       readWithAi: 'Gelezen met AI · {used} van je {limit} vandaag',
       readWithAiEarlier: 'Eerder gelezen met AI',
       reading: 'Lezen met AI…',
+      readingAsText: 'Lezen met AI… · gaat als tekst mee als je nu toevoegt',
       asText: 'Als tekst toegevoegd',
       add: { one: 'Zet {count} op de lijst', other: 'Zet {count} op de lijst' },
       footnote:
@@ -450,7 +486,7 @@ export const tasks = {
     nextNever: 'Komt niet terug',
     pickDay: 'Kies minstens één dag',
     footnote:
-      'Er staat steeds één keer open. Mis je hem, dan blijft hij als te laat staan; er komen geen kopieën bij.',
+      'Er staat steeds één keer open. Mis je hem, dan blijft hij als te laat staan; er komen geen kopieën bij. Subtaken gaan weer open.',
     footnoteNever: 'Een datum alleen geeft geen herinnering en geen herhaling.',
     linked:
       'Deze lijst staat in {provider}. Gather leest hem, maar kan er niet in schrijven: stel het herhalen in {provider} in.',

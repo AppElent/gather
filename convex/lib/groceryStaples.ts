@@ -14,7 +14,11 @@
 
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
-import { groceryTitleKey, isGroceryList } from './groceryCategories'
+import {
+  groceryTitleKey,
+  isGroceryList,
+  OPEN_ITEMS_SCAN_LIMIT,
+} from './groceryCategories'
 
 /** The longest staple name a Member may type. */
 export const STAPLE_NAME_MAX = 200
@@ -36,7 +40,11 @@ export async function findStaple(
     .first()
 }
 
-/** The keys of the open items on a list. */
+/**
+ * The keys of the open items on a list. Reads at most `OPEN_ITEMS_SCAN_LIMIT`
+ * open items, far beyond any real shopping list, so the read stays bounded
+ * (`docs/standards/convex.md`, APP-428).
+ */
 export async function openKeysOn(
   ctx: QueryCtx,
   listId: Id<'taskLists'>,
@@ -46,7 +54,7 @@ export async function openKeysOn(
     .withIndex('by_list_and_done', (q) =>
       q.eq('listId', listId).eq('done', false),
     )
-    .collect()
+    .take(OPEN_ITEMS_SCAN_LIMIT)
   return new Set(items.map((item) => groceryTitleKey(item.title)))
 }
 

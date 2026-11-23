@@ -24,10 +24,15 @@ import {
   query,
 } from './_generated/server'
 import { requireGroupBySlug } from './lib/groupAccess'
+import { mealSlotValidator } from './lib/kitchen'
 import {
   allergenValidator,
+  cookingMinutesValidator,
+  cuisineValidator,
   dietValidator,
   mealPreferencesPatchValidator,
+  smartSwitchValidator,
+  weekdayValidator,
 } from './lib/mealPreferences'
 
 async function rowOf(ctx: QueryCtx, groupId: Id<'groups'>) {
@@ -143,9 +148,10 @@ export const setMemberDefault = mutation({
 })
 
 /**
- * Switch one item of a safety list on or off, reading the list inside the
- * transaction. Two Members adding two allergens at once both keep theirs,
- * which a whole-list write could not promise.
+ * Change one item (a list entry, a slot's day or switch, one day's cooking
+ * time, one smart switch), reading the row inside the transaction. Two Members
+ * adding two allergens at once both keep theirs, which a whole-list write could
+ * not promise.
  */
 async function changeList(
   ctx: MutationCtx,
@@ -203,6 +209,105 @@ export const setDislike = mutation({
     changeList(ctx, args.groupSlug, {
       list: 'dislikes',
       value: args.dislike,
+      on: args.on,
+    }),
+})
+
+/**
+ * The cuisines, the fish and leftover days and a slot's days and switch are
+ * also written one item at a time (APP-446), for the same reason as the safety
+ * lists. `update` still takes them as whole lists, so a phone from before
+ * these functions keeps saving through it.
+ */
+export const setCuisine = mutation({
+  args: { groupSlug: v.string(), cuisine: cuisineValidator, on: v.boolean() },
+  handler: (ctx, args) =>
+    changeList(ctx, args.groupSlug, {
+      list: 'cuisines',
+      value: args.cuisine,
+      on: args.on,
+    }),
+})
+
+/** One weekday on or off the fish nights. */
+export const setFishDay = mutation({
+  args: { groupSlug: v.string(), day: weekdayValidator, on: v.boolean() },
+  handler: (ctx, args) =>
+    changeList(ctx, args.groupSlug, {
+      list: 'fishDays',
+      value: args.day,
+      on: args.on,
+    }),
+})
+
+/** One weekday on or off the cook-double days. */
+export const setLeftoverDay = mutation({
+  args: { groupSlug: v.string(), day: weekdayValidator, on: v.boolean() },
+  handler: (ctx, args) =>
+    changeList(ctx, args.groupSlug, {
+      list: 'leftoverDays',
+      value: args.day,
+      on: args.on,
+    }),
+})
+
+/** One weekday on or off one slot's days. */
+export const setSlotDay = mutation({
+  args: {
+    groupSlug: v.string(),
+    slot: mealSlotValidator,
+    day: weekdayValidator,
+    on: v.boolean(),
+  },
+  handler: (ctx, args) =>
+    changeList(ctx, args.groupSlug, {
+      list: 'slotDays',
+      slot: args.slot,
+      value: args.day,
+      on: args.on,
+    }),
+})
+
+/** One slot planned (`on`) or not. */
+export const setSlotEnabled = mutation({
+  args: { groupSlug: v.string(), slot: mealSlotValidator, on: v.boolean() },
+  handler: (ctx, args) =>
+    changeList(ctx, args.groupSlug, {
+      list: 'slotEnabled',
+      slot: args.slot,
+      on: args.on,
+    }),
+})
+
+/**
+ * One day's cooking time (APP-573): `null` is "no maximum". Only that day is
+ * written, so two Members changing two days at once both keep theirs. `update`
+ * still takes all seven, for a phone from before this function.
+ */
+export const setCookingMinutes = mutation({
+  args: {
+    groupSlug: v.string(),
+    day: weekdayValidator,
+    minutes: cookingMinutesValidator,
+  },
+  handler: (ctx, args) =>
+    changeList(ctx, args.groupSlug, {
+      list: 'cookingMinutes',
+      day: args.day,
+      minutes: args.minutes,
+    }),
+})
+
+/**
+ * One smart switch on or off (APP-573), the other two kept as they are in the
+ * row. `update` still takes the whole object, for a phone from before.
+ */
+export const setSmartSwitch = mutation({
+  args: { groupSlug: v.string(), key: smartSwitchValidator, on: v.boolean() },
+  handler: (ctx, args) =>
+    changeList(ctx, args.groupSlug, {
+      list: 'smart',
+      key: args.key,
       on: args.on,
     }),
 })

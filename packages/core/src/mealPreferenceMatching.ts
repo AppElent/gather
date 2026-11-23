@@ -68,6 +68,8 @@ interface Rule {
   except?: readonly string[]
   /** Often hides it: an `uncertain` entry, never a hide. */
   maybe?: readonly string[]
+  /** Blanked out of a line before looking for a `maybe` ("wild garlic" is not game). */
+  maybeExcept?: readonly string[]
   /** A line with one of these is left alone ("vegetarisch gehakt"). */
   lineGuard?: readonly string[]
 }
@@ -202,6 +204,14 @@ const GLUTEN: Rule = {
     'rice noodle',
     'glasnoedel',
     'glass noodle',
+    // The qualifier together with the noun it describes, so "noodles" is not
+    // left behind as wheat ("rice vermicelli noodles").
+    'rice vermicelli noodle',
+    'rijstvermicelli noedel',
+    'rijst vermicelli noedel',
+    'cellophane noodle',
+    'cellofaannoedel',
+    'bean thread noodle',
     'kikkererwtenbloem',
     'amandelbloem',
     'boekweit',
@@ -241,6 +251,18 @@ const GLUTEN: Rule = {
     'tortilla',
     'taco',
     'paneer',
+    // Rice and glass noodles are normally gluten-free, but a blend or a
+    // sauce packet may not be: check, never hide.
+    'rice noodle',
+    'rijstnoedel',
+    'glass noodle',
+    'glasnoedel',
+    'rice vermicelli',
+    'rijstvermicelli',
+    'rijst vermicelli',
+    'cellophane noodle',
+    'cellofaan',
+    'bean thread',
   ],
   lineGuard: ['glutenvrij', 'gluten free', 'glutenvrije'],
 }
@@ -697,6 +719,15 @@ const MEAT: Rule = {
     'wildragout',
     'wildpate',
     'hertenvlees',
+    'hertenbiefstuk',
+    'venison',
+    // "ree" is a whole word below: as a part it would sit inside "kreeft".
+    'reerug',
+    'reebout',
+    'reefilet',
+    'reebiefstuk',
+    'reestoof',
+    'reeragout',
     'struisvogel',
     ...PORK,
   ],
@@ -729,8 +760,11 @@ const MEAT: Rule = {
     'fijngehakt',
     'grofgehakt',
   ],
-  // "half om half" (gehakt or melk), "sukade" (beef or candied peel) and
-  // "wild" (game or wild garlic) are often meat: "controleer zelf".
+  // "half om half" (gehakt or melk), a bare "sukade" (the beef cut, or candied
+  // peel) and a bare "wild" (game) are often meat: "controleer zelf".
+  // "sukadelap" is a `part` term above and hides. Plainly candied peel
+  // ("sukadesnippers", "gekonfijte sukade") and "wild" followed by a plant or
+  // a grain are not meat (`maybeExcept`).
   maybe: [
     'bouillon',
     'stock',
@@ -742,6 +776,33 @@ const MEAT: Rule = {
     'half om half',
     'sukade',
     'wild',
+  ],
+  maybeExcept: [
+    'sukadesnippertjes',
+    'sukadesnippers',
+    'sukadeblokjes',
+    'sukadeblokje',
+    'sukade snippers',
+    'sukade blokjes',
+    'gekonfijte sukade',
+    'gekonfijt sukade',
+    'candied sukade',
+    'wild garlic',
+    'wild rocket',
+    'wild arugula',
+    'wild mushroom',
+    'wild berries',
+    'wild berry',
+    'wild blueberr',
+    'wild strawberr',
+    'wild herbs',
+    'wild asparagus',
+    'wild spinach',
+    'wild fennel',
+    'wild thyme',
+    'wild greens',
+    'wild rice',
+    'wild salmon',
   ],
   lineGuard: VEG_GUARD,
 }
@@ -872,7 +933,10 @@ export function normalizeText(text: string): string {
 
 function blank(line: string, phrases: readonly string[] | undefined): string {
   let out = line
-  for (const phrase of phrases ?? []) {
+  // The longest phrase first, so "rice vermicelli noodle" goes whole and not
+  // as "rice vermicelli", which would leave "noodle" behind.
+  const longestFirst = [...(phrases ?? [])].sort((a, b) => b.length - a.length)
+  for (const phrase of longestFirst) {
     if (out.includes(phrase)) out = out.split(phrase).join(' ')
   }
   return out
@@ -942,12 +1006,14 @@ function wordAround(line: string, at: number, length: number): Span {
 interface RuleHit {
   term: string
   uncertain: boolean
+  /** Which of the lines it was found in, so the label names that line's word. */
+  line: number
 }
 
 function matchRule(lines: readonly string[], rule: Rule): RuleHit | null {
   const guards = rule.lineGuard ?? []
-  let maybe: string | null = null
-  for (const raw of lines) {
+  let maybe: { term: string; line: number } | null = null
+  for (const [index, raw] of lines.entries()) {
     // When in doubt, "controleer zelf": a free-from word never removes a hit.
     // It clears only the term right after it in the same item ("glutenvrije
     // pasta", "vegetarisch gehakt", "halal kipfilet"), or a term it is part
@@ -989,22 +1055,99 @@ function matchRule(lines: readonly string[], rule: Rule): RuleHit | null {
         open ??= hit.term
       }
     }
-    if (open && !lineGuarded) return { term: open, uncertain: false }
+    if (open && !lineGuarded) return { term: open, uncertain: false, line: index }
     if (open) {
-      maybe ??= open
+      maybe ??= { term: open, line: index }
       continue
     }
     if (cleared) continue
     // Read the line as written: "wijnazijn" is blanked as wine for halal and
     // still worth a "controleer zelf". A maybe sits inside a compound too
     // ("groentebouillon") when it is long enough not to match by accident.
-    maybe ??= findTerm(
-      raw,
+    if (maybe) continue
+    const term = findTerm(
+      blank(raw, rule.maybeExcept),
       rule.maybe?.filter((term) => term.length >= 5),
       rule.maybe,
     )
+    if (term) maybe = { term, line: index }
   }
-  return maybe ? { term: maybe, uncertain: true } : null
+  return maybe ? { ...maybe, uncertain: true } : null
+}
+
+/**
+ * The recipe's own spelling of a word the matcher found in normalised text:
+ * "sate" is shown as "saté", "nenkoek" (what is left of "koekenpannenkoek"
+ * once "koekenpan" is blanked) as the whole word again. Looks only in the
+ * original line the hit came from, for the word, or the run of words, whose
+ * normalised form is `term`; else for one that ends or starts with it (a
+ * blanked front or back leaves the other end); else for one that holds it.
+ * When none does, the normalised term stays.
+ */
+function originalSpelling(term: string, source: string): string {
+  const size = term.split(' ').length
+  const words = source.split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+  const windows: { text: string; normal: string }[] = []
+  for (let at = 0; at + size <= words.length; at++) {
+    const text = words.slice(at, at + size).join(' ')
+    windows.push({ text, normal: normalizeText(text).trim() })
+  }
+  const hit =
+    windows.find((window) => window.normal === term) ??
+    windows.find((window) => window.normal.endsWith(term)) ??
+    windows.find((window) => window.normal.startsWith(term)) ??
+    windows.find((window) => window.normal.includes(term))
+  return hit ? hit.text.toLocaleLowerCase() : term
+}
+
+/**
+ * Second parts that make "kip" + "filet" a kipfilet. A list, not "any word
+ * that starts with it": "vis" must not hide "visite" or "visum", "ham" not
+ * "hamburger", "ui" not "uitgelekt". "burger" is left out for that reason.
+ */
+const COMPOUND_TAILS = [
+  'filet',
+  'fillet',
+  'soep',
+  'saus',
+  'bouillon',
+  'stoof',
+  'ragout',
+  'gehakt',
+  'worst',
+  'spies',
+  'schnitzel',
+  'salade',
+  'poot',
+  'dij',
+  'vleugel',
+  'borst',
+  'reepje',
+  'blokje',
+  'stukje',
+  'pan',
+  'stick',
+  'lap',
+  'koek',
+]
+
+/**
+ * Compounds that read like a dislike plus a tail but are something else:
+ * spekkoek is a layered cake, not bacon.
+ */
+const NOT_COMPOUNDS = ['spekkoek']
+
+/**
+ * Whether a short dislike starts a compound in `corpus`: directly ("visfilet",
+ * "vissoep"), after a linking s or er ("eiersalade"), or after the plural "en",
+ * doubled where Dutch doubles it ("kippendij", "kippenbouillon", "uiensoep").
+ */
+function startsCompound(corpus: string, form: string): boolean {
+  const last = form.at(-1) ?? ''
+  const stems = [form, `${form}${last}en`, `${form}en`, `${form}s`, `${form}er`]
+  return new RegExp(
+    ` (?:${stems.join('|')})(?:${COMPOUND_TAILS.join('|')})[a-z]* `,
+  ).test(blank(corpus, NOT_COMPOUNDS.map((word) => ` ${word}`)))
 }
 
 /** Forms of a dislike to look for: as typed, and without a plural ending. */
@@ -1033,22 +1176,26 @@ export function recipeClashes(
   weekday: number,
 ): readonly RecipeClash[] {
   const clashes: RecipeClash[] = []
-  const ingredients = recipe.ingredients
-    .map(normalizeText)
-    .filter((line) => line.trim() !== '')
-  const lines = [normalizeText(recipe.title), ...ingredients]
-  const knowsIngredients = ingredients.length > 0
+  // Matching is on normalised text; what is shown is the recipe's own word,
+  // from the same line: `sources[i]` is what `lines[i]` was made from.
+  const sources = [
+    recipe.title,
+    ...recipe.ingredients.filter((line) => normalizeText(line).trim() !== ''),
+  ]
+  const lines = sources.map(normalizeText)
+  const knowsIngredients = lines.length > 1
   const tags = recipe.tags.map((tag) => normalizeText(tag).trim())
+  const spelled = (hit: RuleHit) => originalSpelling(hit.term, sources[hit.line] ?? '')
 
   for (const allergen of prefs.allergens) {
     const hit = matchRule(lines, ALLERGEN_RULES[allergen])
     if (hit && !hit.uncertain) {
-      clashes.push({ kind: 'allergen', id: allergen, label: hit.term })
+      clashes.push({ kind: 'allergen', id: allergen, label: spelled(hit) })
     } else if (hit) {
       clashes.push({
         kind: 'allergen',
         id: allergen,
-        label: hit.term,
+        label: spelled(hit),
         uncertain: true,
       })
     } else if (!knowsIngredients) {
@@ -1076,14 +1223,19 @@ export function recipeClashes(
     if (!certain) {
       for (const rule of rules.unsure ?? []) {
         const hit = matchRule(lines, rule)
-        if (hit && !unsure) unsure = { term: hit.term, uncertain: true }
+        if (hit && !unsure) unsure = { ...hit, uncertain: true }
       }
     }
     const tagged = tags.some((tag) => rules.tags.includes(tag))
     if (certain) {
-      clashes.push({ kind: 'diet', id: diet, label: certain.term })
+      clashes.push({ kind: 'diet', id: diet, label: spelled(certain) })
     } else if (unsure && !tagged) {
-      clashes.push({ kind: 'diet', id: diet, label: unsure.term, uncertain: true })
+      clashes.push({
+        kind: 'diet',
+        id: diet,
+        label: spelled(unsure),
+        uncertain: true,
+      })
     } else if (!knowsIngredients && !tagged) {
       clashes.push({ kind: 'diet', id: diet, label: diet, uncertain: true })
     }
@@ -1092,13 +1244,19 @@ export function recipeClashes(
   const corpus = [...lines, ...tags.map((tag) => ` ${tag} `)].join(' ')
   // A dislike hides the recipe, so a short one must be a whole word, give or
   // take a plural or diminutive ("ui", "uien", "uitjes", "uienringen"), never
-  // part of another word ("suiker", "uitgelekt", "eigeel", "hamburger"). A
-  // longer one also counts inside a compound ("kastanjechampignons").
+  // part of another word ("suiker", "uitgelekt", "eigeel", "hamburger"). Or
+  // the front of a compound with a known second part ("kipfilet", "vissoep",
+  // "kippenbouillon"). A longer one also counts inside a compound
+  // ("kastanjechampignons").
   const found = (form: string) =>
     form.length >= 5
       ? corpus.includes(form)
-      : new RegExp(` ${form}(?:s|en|eren|je|jes|tje|tjes)? `).test(corpus) ||
-        corpus.includes(` ${form}en`)
+      : // "kip" is "kippen" in the plural: the last letter doubles before "en".
+        new RegExp(
+          ` ${form}(?:s|en|eren|je|jes|tje|tjes|${form.at(-1)}en)? `,
+        ).test(corpus) ||
+        corpus.includes(` ${form}en`) ||
+        startsCompound(corpus, form)
   for (const dislike of prefs.dislikes) {
     if (dislikeForms(dislike).some(found))
       clashes.push({ kind: 'dislike', label: dislike })
@@ -1146,12 +1304,61 @@ export function describeClash(
   if (clash.uncertain) {
     // Without a term from the recipe, the label is the id: name the allergen
     // or diet; with one, name both ("Controleer zelf: bouillon (Selderij)").
-    const what = clash.label === clash.id ? name : `${clash.label} (${name})`
-    return fmt(m.filter.checkYourselfFor, { what })
+    return fmt(m.filter.checkYourselfFor, { what: unsureSubject(clash, m) })
   }
   return clash.kind === 'allergen'
     ? fmt(m.filter.contains, { term: clash.label })
     : fmt(m.filter.notDiet, { diet: name.toLocaleLowerCase(), term: clash.label })
+}
+
+/**
+ * The one line a recipe row shows for its clashes (APP-446). A certain clash
+ * is described on its own, the first one. Otherwise every "controleer zelf"
+ * folds into a single line, "Controleer zelf: Gluten, Melk": a recipe with only
+ * a title has one per chosen allergen, and a row that said just the first
+ * would read as "only gluten needs a look". Never hidden, never silent:
+ * undefined only when nothing clashes.
+ */
+export function describeClashes(
+  clashes: readonly RecipeClash[],
+  m: Messages['mealPreferences'],
+): string | undefined {
+  const certain = clashes.find((clash) => !clash.uncertain)
+  if (certain) return describeClash(certain, m)
+  // One word that is unsure for several reasons is named once:
+  // "bouillon (Selderij, Vegetarisch)", not "bouillon (Selderij), bouillon
+  // (Vegetarisch)". Without a word, the allergen or diet stands on its own.
+  const subjects = new Map<string, string[]>()
+  for (const clash of clashes) {
+    if (clash.kind !== 'allergen' && clash.kind !== 'diet') continue
+    const name = clashName(clash, m)
+    const key = clash.label === clash.id ? `\u0000${name}` : clash.label
+    const names = subjects.get(key) ?? []
+    if (!names.includes(name)) names.push(name)
+    subjects.set(key, names)
+  }
+  const what = [...subjects].map(([key, names]) =>
+    key.startsWith('\u0000') ? names.join(', ') : `${key} (${names.join(', ')})`,
+  )
+  return what.length > 0
+    ? fmt(m.filter.checkYourselfFor, { what: what.join(', ') })
+    : undefined
+}
+
+function clashName(
+  clash: Extract<RecipeClash, { kind: 'allergen' | 'diet' }>,
+  m: Messages['mealPreferences'],
+): string {
+  return clash.kind === 'allergen' ? m.allergies.names[clash.id] : m.diet.names[clash.id]
+}
+
+/** What a "controleer zelf" is about: the allergen or diet, with the recipe's word when it has one. */
+function unsureSubject(
+  clash: Extract<RecipeClash, { kind: 'allergen' | 'diet' }>,
+  m: Messages['mealPreferences'],
+): string {
+  const name = clashName(clash, m)
+  return clash.label === clash.id ? name : `${clash.label} (${name})`
 }
 
 /**

@@ -27,7 +27,7 @@ export function RecipeToGroceriesSheet({
 }) {
   const { t, locale } = useI18n()
   const words = t.tasks.grocery.addLines
-  const { lines, aiCount } = useRecipeLines({
+  const { lines, aiCount, readingAsText } = useRecipeLines({
     id: recipe._id,
     ingredients: recipe.ingredients,
     servings: recipe.servings,
@@ -49,6 +49,7 @@ export function RecipeToGroceriesSheet({
         recipe.servings ? { value: servings, onChange: setServings } : undefined
       }
       aiCount={aiCount}
+      readingAsText={readingAsText}
       onClose={onClose}
     />
   )

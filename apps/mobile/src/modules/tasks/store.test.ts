@@ -30,10 +30,12 @@ import {
   ensureExternalLists,
   externalEntry,
   externalSnapshot,
+  indexModel,
   listFace,
   localTaskQueries,
   mergeTasks,
   onOccurrenceCompleted,
+  settledDetails,
   smartModel,
   syncExternalList,
   taskSections,
@@ -691,5 +693,220 @@ describe('smart lists (APP-301)', () => {
         ],
       },
     ])
+  })
+})
+
+describe('subtasks (APP-304)', () => {
+  const today = '2026-11-19'
+  const me = 'me' as Id<'users'>
+  const step = (id: string, parent: string, done = false) => ({
+    ...taskRow(id, 'chores', done),
+    parentTaskId: parent as Id<'tasks'>,
+  })
+
+  test('a list’s parents carry how far along their subtasks are', () => {
+    const { tasks } = mergeTasks(
+      [listRow('chores', 'local')],
+      {
+        chores: [
+          taskRow('attic', 'chores'),
+          step('boxes', 'attic', true),
+          step('sweep', 'attic'),
+          taskRow('bins', 'chores'),
+        ],
+      },
+      new Map(),
+    )
+    const byId = new Map(tasks.map((task) => [task.id, task]))
+    expect(byId.get('attic')?.subtasks).toEqual({ done: 1, total: 2 })
+    expect(byId.get('sweep')?.parentTaskId).toBe('attic')
+    expect(byId.get('bins')?.subtasks).toBeUndefined()
+  })
+
+  test('a smart list names a subtask’s parent and counts a parent’s steps', () => {
+    const model = smartModel(
+      [listRow('chores', 'local')],
+      {
+        me,
+        tasks: [
+          { ...taskRow('attic', 'chores'), dueDate: today },
+          { ...step('sweep', 'attic'), dueDate: today },
+        ],
+        subtasks: [{ taskId: 'attic' as Id<'tasks'>, done: 1, total: 3 }],
+        parents: [{ taskId: 'attic' as Id<'tasks'>, title: 'Clear the attic' }],
+      },
+      new Map(),
+      today,
+    )
+    const byId = new Map(model.byList.today.map((task) => [task.id, task]))
+    expect(byId.get('attic')?.subtasks).toEqual({ done: 1, total: 3 })
+    expect(byId.get('sweep')?.parentTitle).toBe('Clear the attic')
+  })
+
+  test('a Todoist subtask names its parent', () => {
+    const entry = externalEntry(
+      'work',
+      {
+        status: 'ok',
+        tasks: [
+          {
+            externalId: 'child',
+            title: 'Child',
+            done: false,
+            parentExternalId: 'parent',
+          },
+        ],
+      } as never,
+      [],
+    )
+    expect(entry.tasks[0].parentTaskId).toBe('parent')
+  })
+
+  const storeOf = (rows: Doc<'tasks'>[]) => {
+    const written: Doc<'tasks'>[][] = []
+    const store = {
+      getAllQueries: listQueriesOnly([
+        { args: { listId: 'chores' }, value: rows },
+      ]),
+      setQuery: (_query: unknown, _args: unknown, value: Doc<'tasks'>[]) =>
+        written.push(value),
+    } as unknown as OptimisticLocalStore
+    return { store, written }
+  }
+  const doneOf = (rows: Doc<'tasks'>[]) =>
+    Object.fromEntries(rows.map((row) => [row._id, row.done]))
+
+  test('Complete all ticks the open subtasks with it; Only this leaves them', () => {
+    const rows = [taskRow('attic', 'chores'), step('sweep', 'attic')]
+    const all = storeOf(rows)
+    toggleInPlace(all.store, {
+      taskId: 'attic' as Id<'tasks'>,
+      withSubtasks: true,
+    })
+    expect(doneOf(all.written[0])).toEqual({ attic: true, sweep: true })
+
+    const only = storeOf(rows)
+    toggleInPlace(only.store, { taskId: 'attic' as Id<'tasks'> })
+    expect(doneOf(only.written[0])).toEqual({ attic: true, sweep: false })
+  })
+
+  test('a repeating parent’s subtasks reopen with its next occurrence', () => {
+    const { store, written } = storeOf([
+      {
+        ...taskRow('bins', 'chores'),
+        dueDate: '2026-11-21',
+        repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [6] },
+      },
+      step('rinse', 'bins', true),
+    ])
+    toggleInPlace(store, { taskId: 'bins' as Id<'tasks'>, today })
+    expect(doneOf(written[0])).toEqual({ bins: false, rinse: false })
+  })
+})
+
+describe('the Tasks index model (APP-430)', () => {
+  const counts = [
+    { listId: 'house' as Id<'taskLists'>, open: 3 },
+    { listId: 'trip' as Id<'taskLists'>, open: 3, done: 1, total: 4 },
+  ]
+  const lists = [
+    listRow('house', 'local'),
+    { ...listRow('trip', 'local'), kind: 'packing' as const },
+    listRow('fresh', 'local'),
+    listRow('work', 'todoist'),
+  ]
+  const linkedEntry = (
+    sync: 'synced' | 'loading' | 'failed',
+    rows: { id: string; done: boolean; parent?: string }[],
+  ) => ({
+    sync,
+    tasks: rows.map((row, order) => ({
+      id: row.id,
+      listId: 'work',
+      title: row.id,
+      done: row.done,
+      labels: [],
+      order,
+      ...(row.parent ? { parentTaskId: row.parent } : {}),
+    })),
+  })
+
+  test('local counts come from Convex, a list it does not name yet is empty', () => {
+    const model = indexModel(lists, counts, new Map())
+    expect(model.counts.get('house')).toMatchObject({ open: 3 })
+    expect(model.counts.get('trip')).toEqual({ open: 3, done: 1, total: 4 })
+    expect(model.counts.get('fresh')).toEqual({ open: 0 })
+    expect(model.lists.map((list) => list.sync)).toEqual([
+      'live',
+      'live',
+      'live',
+      'loading',
+    ])
+  })
+
+  test('nothing is counted before Convex answers', () => {
+    const model = indexModel(lists, undefined, new Map())
+    expect(model.counts.size).toBe(0)
+    expect(model.lists.slice(0, 3).map((list) => list.sync)).toEqual([
+      'loading',
+      'loading',
+      'loading',
+    ])
+  })
+
+  test('a linked list is counted from its provider rows, subtasks left out', () => {
+    const linked = new Map([
+      [
+        'work',
+        linkedEntry('synced', [
+          { id: 'a', done: false },
+          { id: 'b', done: true },
+          { id: 'step', done: false, parent: 'a' },
+        ]),
+      ],
+    ])
+    const model = indexModel(lists, counts, linked)
+    expect(model.counts.get('work')).toEqual({ open: 1, done: 1, total: 2 })
+    expect(model.openTotal).toBe(3 + 3 + 0 + 1)
+  })
+
+  test('a linked list not yet answered has no count; a failed one keeps its last rows', () => {
+    expect(
+      indexModel(lists, counts, new Map([['work', linkedEntry('loading', [])]]))
+        .counts.has('work'),
+    ).toBe(false)
+    const failed = indexModel(
+      lists,
+      counts,
+      new Map([['work', linkedEntry('failed', [{ id: 'a', done: false }])]]),
+    )
+    expect(failed.lists[3].sync).toBe('failed')
+    expect(failed.counts.get('work')?.open).toBe(1)
+  })
+})
+
+describe('what a composed task’s note and reminder came to', () => {
+  const reminder = { date: '2026-11-23', time: '09:00' }
+  const ok: PromiseSettledResult<unknown> = { status: 'fulfilled', value: null }
+  const no: PromiseSettledResult<unknown> = { status: 'rejected', reason: new Error() }
+
+  test('a reminder that went in is set even when the note failed', () => {
+    expect(settledDetails({ notes: 'keys', reminder }, no, ok)).toEqual({
+      notesFailed: true,
+      reminderFailed: false,
+      reminderSet: true,
+      failed: { notes: 'keys', reminder: undefined },
+    })
+  })
+
+  test('a reminder written again on a retry is set', () => {
+    expect(settledDetails({ reminder }, ok, ok).reminderSet).toBe(true)
+  })
+
+  test('no reminder, or a failed one, is not set', () => {
+    expect(settledDetails({ notes: 'keys' }, ok, ok).reminderSet).toBe(false)
+    const failed = settledDetails({ reminder }, ok, no)
+    expect(failed).toMatchObject({ reminderSet: false, reminderFailed: true })
+    expect(failed.failed.reminder).toEqual(reminder)
   })
 })

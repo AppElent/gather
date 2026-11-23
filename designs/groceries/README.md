@@ -36,6 +36,7 @@ behaviour work as in Tasks unless this study says otherwise. Group: **Kitchen**
 | `Aisles.dc.html` | Aisle order of a store | APP-313 |
 | `Stock.dc.html` | In huis | APP-314 |
 | `Shop.dc.html`, `Shop-Dark.dc.html` | Shopping mode | APP-315 |
+| `Who.dc.html` (shared part; props `theme`, `size`, `text`), `Who-Dark`, `Who-SE`, `Who-Large` | Shopping mode: who checked an item, approved 21 Nov 2026; data model in [`APP-543-data-model.md`](APP-543-data-model.md) | APP-543 |
 | `canvas.json` | Positions, titles, sticky notes (the brief and rationale) | |
 | `Web*.dc.html`, [`web.md`](web.md) | The web version and its companion, approved 19 Nov 2026 (also the APP-300 Module layout) | APP-316, 300 |
 
@@ -136,12 +137,11 @@ Keyboard-anchored, as Tasks quick add. Above the field, an autocomplete card
 (`surface`, up to 3 rows): history first, then the dictionary. Row: glyph
 (history or book), the name with the typed part in 600, footnote why (`Vaak
 gekocht · elke 4 dagen · staat al op de lijst (2 pak)` / `Often bought · every 4
-days · already on the list (2)`, `Woordenboek · Zuivel en eieren` / `Dictionary
-· Dairy and eggs`), trailing amount (`+2 pak` when it will merge). Chips: the
+days · already on the list (2)`, `Bekend product · Zuivel en eieren` / `Known
+product · Dairy and eggs`), trailing amount (`+2 pak` when it will merge). Chips: the
 target list (kitchen `tile-xs` + name + chevron, opens Stores when there is more
-than one grocery list), amount, aisle. Hint: `Hoeveelheid en afdeling worden
-herkend, zonder AI en ook offline` / `Amount and aisle are recognised, without
-AI and offline`. Adding a name already on the list with a compatible unit adds
+than one grocery list), amount, aisle. Hint: `Hoeveelheid en afdeling ingevuld
+op basis van wat je typt` / `Amount and aisle filled in from what you type`. Adding a name already on the list with a compatible unit adds
 up the amounts.
 
 ## 3. Item sheet (APP-309, 314)
@@ -263,6 +263,30 @@ the bottom: an undo pill after each tap (`{name} afgevinkt` + `Ongedaan maken`
 `Done shopping`, which moves checked items to Recent and staples back to in
 stock. Leaving, or 30 minutes without a tap, ends the mode and lets the screen
 sleep.
+
+### Who checked it (APP-543)
+
+Approved by Eric, 21 November 2026, with its [data model](APP-543-data-model.md).
+Canvas page `APP-543 Wie vinkte af`.
+
+- Shopping mode only; the normal list and Recent are unchanged.
+- A row checked by another Member shows, under the name, an 18 pt disc with
+  their initial (a soft per-person tint) and `{name} vinkte af, {when}` /
+  `{name} checked this, {when}`, footnote, `muted`.
+- `{when}` from `doneAt`: `net nu` / `just now` (under a minute),
+  `{n} min geleden` / `{n} min ago` (under an hour), `om 13:12` / `at 13:12`
+  (today), `gisteren` / `yesterday`, else the short weekday. It ticks while the
+  screen is open.
+- A check that arrives live: the row has `kitchen-wash` and the line is
+  semibold for 3 seconds; VoiceOver announces `{name} vinkte {item} af` /
+  `{name} checked {item}` (polite). The row's label adds `afgevinkt door
+  {name}, {when}` / `checked by {name}, {when}`.
+- Your own checks get no line (the undo pill covers them). Reopening an item
+  removes the line. While another Member's check stands, the line replaces the
+  recipe meta.
+- No line when `doneBy` is absent (checked before APP-543) or names somebody
+  who is no longer a Member of the Group; the row is just struck through.
+- Largest text size: the amount moves under the name and the line wraps.
 
 ## States to build and check
 

@@ -109,7 +109,7 @@ export default function AppLayout() {
             }}
           >
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="deep-link" />
+            <Stack.Screen name="open-notification" />
             <Stack.Screen name="drop" />
           </Stack>
         </GroupProvider>

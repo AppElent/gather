@@ -233,7 +233,7 @@ export function visibleMarksForDate(
   date: string,
   events: readonly CalendarEvent[],
   people: readonly CalendarPerson[],
-  limit = 3,
+  limit = 1,
 ) {
   const marks = marksForDate(date, events, people)
   return {

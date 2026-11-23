@@ -32,7 +32,8 @@ const CODE_MAP: Record<string, ErrorKey> = {
   form_password_pwned: 'passwordPwned',
   form_password_validation_failed: 'passwordDoesNotMeetRequirements',
   form_code_incorrect: 'codeIncorrect',
-  verification_failed: 'codeExpired',
+  // Too many wrong codes: this code is spent, a new one works (APP-527).
+  verification_failed: 'codeAttemptsExceeded',
   verification_expired: 'codeExpired',
   strategy_for_user_invalid: 'emailCodeUnavailable',
   too_many_requests: 'tooManyRequests',

@@ -39,6 +39,21 @@ export type CalendarRefusalCode = (typeof CALENDAR_REFUSAL_CODES)[number]
  */
 export const ACCOUNT_DELETED = 'Account deleted'
 
+/**
+ * Why the account portal (account.appelent.nl) may not delete Gather's data
+ * now, as `accountPortal.deletionBlocker` returns it: the account is already
+ * being deleted, in the scheduled steps that follow `accounts.deleteAccount`.
+ * A stable code, because the portal owns the words.
+ */
+export const DELETION_IN_PROGRESS = 'deletionInProgress'
+
+/**
+ * The refusal for an export cursor this server did not hand out — not JSON,
+ * the wrong shape, or a step the export does not have — from
+ * `accountPortal.exportPage` and `dataExport.page` alike.
+ */
+export const INVALID_EXPORT_CURSOR = { kind: 'invalidCursor' } as const
+
 export function refusal(
   kind: (typeof TASTING_REFUSALS)[number],
 ): { kind: string } {
@@ -127,6 +142,39 @@ export function readLoyaltyCardRefusal(
 }
 
 /**
+ * Why an Energy write was refused (APP-492). `notFound` covers "no such
+ * address" and "an address in another Group" alike, and `houseNotFound` a
+ * House link to a House outside the Group (ADR-0009). A meter reading below
+ * the one before it is `readingLower` (a new meter is a new channel), one
+ * above a later reading `readingHigher` (APP-494).
+ */
+export const ENERGY_REFUSAL_CODES = [
+  'needsName',
+  'tooLong',
+  'houseNotFound',
+  'notFound',
+  // APP-494: meter readings, their channels and contracts.
+  'readingInvalid',
+  'readingLower',
+  'readingHigher',
+  'readingInFuture',
+  'channelsExist',
+  'contractInvalid',
+  'contractDateTaken',
+] as const
+export type EnergyRefusalCode = (typeof ENERGY_REFUSAL_CODES)[number]
+
+/** Namespaced on the wire, like the calendar's, so kinds cannot collide. */
+export function energyRefusal(code: EnergyRefusalCode): { kind: string } {
+  return { kind: `energy:${code}` }
+}
+
+export function readEnergyRefusal(error: unknown): EnergyRefusalCode | null {
+  const kind = refusalKind(error)
+  return ENERGY_REFUSAL_CODES.find((code) => `energy:${code}` === kind) ?? null
+}
+
+/**
  * Why a task write was refused.
  *
  * - `assignee-not-member` (APP-302): a person who is not a current Member of
@@ -139,6 +187,13 @@ export function readLoyaltyCardRefusal(
  *   have come from, such as one in the future (APP-403).
  * - `clear-superseded`: the list was cleared again, or already put back,
  *   since the clear being undone; nothing changed (APP-403).
+ * - `subtask-depth` (APP-304): a subtask cannot have subtasks, and a task
+ *   with subtasks cannot become one.
+ * - `subtask-list`: a subtask sits on its parent's list, in its parent's
+ *   section.
+ * - `subtask-grocery`: a grocery list holds items, not subtasks.
+ * - `subtask-repeat`: a subtask does not repeat on its own; it reopens with
+ *   its parent.
  */
 export const TASK_REFUSAL_CODES = [
   'assignee-not-member',
@@ -147,6 +202,10 @@ export const TASK_REFUSAL_CODES = [
   'not-grocery-list',
   'invalid-undo',
   'clear-superseded',
+  'subtask-depth',
+  'subtask-list',
+  'subtask-repeat',
+  'subtask-grocery',
 ] as const
 export type TaskRefusalCode = (typeof TASK_REFUSAL_CODES)[number]
 
@@ -158,6 +217,57 @@ export function taskRefusal(code: TaskRefusalCode): { kind: string } {
 export function readTaskRefusal(error: unknown): TaskRefusalCode | null {
   const kind = refusalKind(error)
   return TASK_REFUSAL_CODES.find((code) => `tasks:${code}` === kind) ?? null
+}
+
+/**
+ * Why a Group-scoped call was refused at the Group itself (APP-429), before
+ * any row was read. `convex/lib/groupAccess.ts` builds them.
+ *
+ * - `not-signed-in`: no caller, or a caller with no Gather account yet. The
+ *   sign-in helpers in `convex/lib/sharing.ts` throw it too (APP-581), so every
+ *   signed-out refusal reads the same, Group or not.
+ * - `unknown-slug`: no Group has that slug.
+ * - `unknown-group`: no Group has that id (APP-581), from the Group mutations
+ *   in `convex/groups.ts` that name a Group by id.
+ * - `not-a-member`: the Group exists and the caller is not in it.
+ *
+ * The data also carries the English sentence these refusals threw before they
+ * were keyed, as `message`. Clients that predate the kinds read nothing from an
+ * object (they fall back to their own wording); clients that know `message`
+ * keep showing the sentence they always showed until they get one of their own.
+ */
+export const GROUP_REFUSAL_CODES = [
+  'not-signed-in',
+  'unknown-slug',
+  'unknown-group',
+  'not-a-member',
+] as const
+export type GroupRefusalCode = (typeof GROUP_REFUSAL_CODES)[number]
+
+/** Namespaced on the wire, like the calendar's, so kinds cannot collide. */
+export function groupRefusal(
+  code: GroupRefusalCode,
+  message: string,
+): { kind: string; message: string } {
+  return { kind: `groups:${code}`, message }
+}
+
+export function readGroupRefusal(error: unknown): GroupRefusalCode | null {
+  const kind = refusalKind(error)
+  return GROUP_REFUSAL_CODES.find((code) => `groups:${code}` === kind) ?? null
+}
+
+/**
+ * A refused Group in the reader's own words: the sentence `sentences` holds
+ * for its kind (`messages.common.errors.groupRefusals`), or null when the
+ * thrown value is not a Group refusal.
+ */
+export function groupRefusalSentence(
+  error: unknown,
+  sentences: Readonly<Record<GroupRefusalCode, string>>,
+): string | null {
+  const code = readGroupRefusal(error)
+  return code === null ? null : sentences[code]
 }
 
 /** The `kind` a thrown value carries, whichever vocabulary it comes from. */
@@ -187,8 +297,18 @@ export function readCalendarRefusal(
   )
 }
 
-/** The sentence a server chose to show, when it threw one rather than a kind. */
+/**
+ * The sentence a server chose to show: the data itself when it threw a
+ * sentence, or the `message` a keyed refusal carries for readers that have no
+ * wording of their own for its kind. Only Group refusals carry a `message`
+ * today (`groupRefusal`); give another vocabulary one only to keep a sentence
+ * that installed readers already show.
+ */
 export function refusalSentence(error: unknown): string | null {
   const data = errorData(error)
-  return typeof data === 'string' ? data : null
+  if (typeof data === 'string') return data
+  if (typeof data === 'object' && data !== null && 'message' in data) {
+    return typeof data.message === 'string' ? data.message : null
+  }
+  return null
 }

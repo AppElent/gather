@@ -56,6 +56,10 @@ export const byId = {
     label: 'Loyalty cards',
     description: 'Your store cards, ready at the till.',
   },
+  energy: {
+    label: 'Energy',
+    description: 'What your home uses, produces and pays, hour by hour.',
+  },
   cheeses: {
     label: 'Cheeses',
     description: 'Rate the cheeses you try.',

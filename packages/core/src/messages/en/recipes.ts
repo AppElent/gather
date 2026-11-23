@@ -155,6 +155,7 @@ export const recipes = {
     /** The summary under a recipe without a photo. */
     ingredientCount: { one: '{count} ingredient', other: '{count} ingredients' },
     importedFrom: 'Imported from',
+    madeByAi: 'Made up by Gather (AI). Check for allergies yourself.',
     staleNutrition:
       'Ingredients changed since nutrition was calculated — re-estimate?',
     reEstimate: 'Re-estimate with AI',

@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.4.0
+version: 2.5.0
 status: current
 ---
 
@@ -22,6 +22,13 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   it.
 - `tasks`, `calendarEvents` and `babyEvents` hang off a parent rather than a
   Group, so each is deleted inside its parent's entry.
+- **Energy** (ADR-0051): every Energy table but `energyPrices` carries a
+  `groupId` and is read by `by_group`. A Group's price feeds take the account
+  prices fetched through them (`energyPrices` by `feedId`); market prices have
+  no feed and no Group and stay. Deleting a House only clears an Address's
+  link to it. The cascade deletes a Group in one transaction, which holds
+  while the hourly intervals are few; paging them is APP-495's, before Home
+  Assistant fills them.
 - A repeating task's completion history (`taskCompletions`, APP-303) carries
   its `groupId`, so it goes with the Group, and with its task or list when
   either is deleted. A Member who leaves a shared Group stays named on the
@@ -67,8 +74,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
 - **A solo Group dies with the person; a shared Group they only leave.** What
   they added to a household stays with the household. `detachFromGroup` takes
   them out of it the same way whether they left or deleted their account: a cost
-  split naming them is cleared, and a saved split scenario keeps their name
-  without their id.
+  split naming them is cleared, a saved split scenario keeps their name
+  without their id, and a calendar event drops them from its assignees.
 - **Two choices, Gather's data first** ([ADR-0050](../adr/0050-deleting-gather-data-keeps-the-appelent-login.md)).
   Gather shares its Clerk login with Foundry, Fairway and Arcade Club. "Delete
   Gather data only" runs the purge with `keepLogin`, never calls
@@ -76,6 +83,13 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   says the login still works elsewhere (the web's sign-in page at
   `?deleted=gather`, an alert on the phone). "Delete my whole AppElent
   account" is the run below and names the apps it takes with it.
+- **The account portal's blocker is a purge already running.**
+  `accountPortal.deletionBlocker` returns `deletionInProgress`
+  (`@gather/core/refusals`) while the caller's row has `deletedAt`; a shared
+  Group is left, never a blocker. Only the whole-account purge keeps the
+  subject long enough to show it; "Gather data only" releases the subject, so
+  the portal sees a never-used caller at once. Its `deleteAppData` follows
+  APP-392.
 - **One purge behind every way in.** `purgeSubject` (`convex/accounts.ts`)
   starts the purge for every `users` row of a Clerk subject, duplicates
   included, and never twice for a row already being purged. `deleteAccount`

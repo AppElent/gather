@@ -34,6 +34,7 @@ where this study is silent.
 | `Detail.dc.html`, `Detail-Dark.dc.html` | Task form | APP-302, 303, 304, 305 |
 | `Repeat.dc.html` | Repeat sheet | APP-303 |
 | `QuickAdd.dc.html` | Quick add with recognised chips | APP-307 |
+| `quick-add_final/`, `quick-add_final.md` | Keyboard composer for tasks, notes and events (approved 22 Nov 2026; supersedes the §5 layout, keeps its recognition) | APP-587, 588, 589 |
 | `canvas.json` | Positions, titles, sticky notes (the brief and rationale) | |
 
 The artboards are a visual reference. Build from this companion and the phone's
@@ -194,6 +195,8 @@ Unchanged closes at once; changed asks Keep editing or Discard.
   up. Subtasks reopen.`
 
 ## 5. Quick add (APP-307)
+
+> Layout superseded by the keyboard composer, `quick-add_final.md` (APP-587). The recognition rules below still hold.
 
 The keyboard-anchored composer (16 Sept) over the list. As you type, recognised
 parts are highlighted inline (`home-wash` behind the word, 600) and appear as

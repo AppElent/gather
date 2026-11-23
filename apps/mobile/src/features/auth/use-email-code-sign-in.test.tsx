@@ -185,7 +185,7 @@ describe('verify', () => {
   test.each([
     ['form_code_incorrect', en.errors.codeIncorrect],
     ['verification_expired', en.errors.codeExpired],
-    ['verification_failed', en.errors.codeExpired],
+    ['verification_failed', en.errors.codeAttemptsExceeded],
     ['too_many_requests', en.errors.tooManyRequests],
   ])(
     'a %s failure never finalizes and reads as itself',

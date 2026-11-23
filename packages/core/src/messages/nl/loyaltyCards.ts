@@ -15,6 +15,18 @@ export const loyaltyCards = {
     emptyBody:
       'Voeg de klantkaarten van je huishouden toe, dan kan iedereen in {group} ze bij de kassa laten zien.',
     emptyAction: 'Voeg je eerste kaart toe',
+    reorder: 'Volgorde wijzigen',
+    reorderDone: 'Klaar',
+    reorderHint: 'Sleep een kaart aan het handvat.',
+    reorderShared:
+      'Iedereen in {group} ziet deze volgorde. Een kaart die je later toevoegt, komt bovenaan.',
+    reorderDrag: '{store} verplaatsen',
+    moveUp: '{store} omhoog',
+    moveDown: '{store} omlaag',
+    moveUpAction: 'Omhoog verplaatsen',
+    moveDownAction: 'Omlaag verplaatsen',
+    moved: '{store} verplaatst naar positie {position} van {total}',
+    more: 'Meer acties',
   },
   picker: {
     title: 'Kaart toevoegen',

@@ -1,5 +1,5 @@
 import { type ReactNode, useId, useRef, useState } from 'react'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { inputClass } from '../recipes/fields'
 import { SurfaceCard } from './ShellPrimitives'
@@ -166,6 +166,7 @@ export function useConfirmAction() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const didNotWork = useMessages().common.errors.didNotWork
+  const errorText = useErrorMessage()
 
   function confirm(next: ConfirmRequest) {
     setError(null)
@@ -187,7 +188,7 @@ export function useConfirmAction() {
       await request.run()
       setRequest(null)
     } catch (e) {
-      setError(errorMessage(e, request.errorFallback ?? didNotWork))
+      setError(errorText(e, request.errorFallback ?? didNotWork))
     } finally {
       setBusy(false)
     }

@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import type { ShellGroup } from '../app/useCurrentGroup'
@@ -33,6 +33,7 @@ export function GroupMembersSettings({ group }: GroupMembersSettingsProps) {
   const setRole = useMutation(api.groups.setMemberRole)
   const [error, setError] = useState<string | null>(null)
   const { members: membersText } = useMessages().settings
+  const errorText = useErrorMessage()
   const [busyUserId, setBusyUserId] = useState<string | null>(null)
 
   const isAdmin = group.role === 'admin'
@@ -48,7 +49,7 @@ export function GroupMembersSettings({ group }: GroupMembersSettingsProps) {
         role,
       })
     } catch (e) {
-      setError(errorMessage(e, membersText.roleFailed))
+      setError(errorText(e, membersText.roleFailed))
     } finally {
       setBusyUserId(null)
     }

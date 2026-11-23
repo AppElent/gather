@@ -6,7 +6,7 @@ import { api } from '../../../convex/_generated/api'
 import { Icon } from '../../components/app/Icon'
 import { SurfaceCard } from '../../components/app/ShellPrimitives'
 import { useCurrentGroup } from '../../components/app/useCurrentGroup'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 
@@ -36,6 +36,7 @@ function GroupsPage() {
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const { groups: text } = useMessages().shell
+  const errorText = useErrorMessage()
 
   return (
     <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-4">
@@ -117,7 +118,7 @@ function GroupsPage() {
                     return navigate(linkTo('home'))
                   })
                   .catch((err) =>
-                    setError(errorMessage(err, text.createFailed)),
+                    setError(errorText(err, text.createFailed)),
                   )
             }}
           >
@@ -153,7 +154,7 @@ function GroupsPage() {
                     setCode('')
                     return navigate(linkTo('home'))
                   })
-                  .catch((err) => setError(errorMessage(err, text.joinFailed)))
+                  .catch((err) => setError(errorText(err, text.joinFailed)))
             }}
           >
             <h2 className="m-0 text-base font-semibold">{text.joinTitle}</h2>
