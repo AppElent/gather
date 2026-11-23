@@ -7,6 +7,7 @@
  * the keyboard dance and Dynamic Type are not.
  */
 
+import { localIsoDate } from '@gather/core/civil-date'
 import { Stack, useNavigation, usePathname, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -22,10 +23,14 @@ import { LoadingSkeleton } from '../components/LoadingSkeleton'
 import { api } from '../convex/api'
 import { useQuery } from '../convex/queries'
 import { useGroup } from '../group/GroupProvider'
-import { useI18n } from '../i18n'
+import { fmt, useI18n } from '../i18n'
 import { moduleShown } from '../modules/buildModules'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
+import { ModuleTile, moduleTile } from '../ui/module-tile'
+import { SectionLabel } from '../ui/section-label'
+import { FilterChipRow, MenuChip, type MenuChoice, ModuleChip } from './FilterChips'
+import { ModuleSheet } from './ModuleSheet'
 import {
   type RecentRecordInput,
   recordsForGroup,
@@ -36,13 +41,27 @@ import {
   readRecentRecords,
   saveRecentRecord,
 } from './recentRecordsStore'
+import {
+  applyFilters,
+  groupByModule,
+  initialFilters,
+  moduleFilters,
+  moduleOf,
+  narrowed,
+  type SearchFilters,
+  type SearchModuleId,
+  STATUS_VALUES,
+  searchModulesShown,
+  typesFor,
+  WHEN_VALUES,
+  withModule,
+} from './searchFilters'
 import { onSearchFocusRequest } from './searchFocus'
 import { searchOrigin } from './searchOrigin'
 import {
   hrefFor,
   type QueryResult,
   recordShown,
-  searchableTypes,
   toRecent,
 } from './searchResults'
 
@@ -91,9 +110,22 @@ function tabNavigator(from: Navigator) {
   return navigator
 }
 
-export function SearchScreen() {
+/** "Any" in a filter's menu: the choice that clears it. */
+const ANY = 'any'
+
+/**
+ * The one search screen (APP-613). The Search tab renders it with no preset
+ * (All Modules); a Module's search button pushes it inside All's stack with
+ * that Module preset. Everything the two share — the native bar, the filters,
+ * the results, Recents — is here; what differs is where results open, what
+ * Cancel does and the tab-only focus wiring.
+ */
+export function SearchScreen({ preset }: { preset?: SearchModuleId } = {}) {
+  const pushed = preset !== undefined
+  const stack = pushed ? 'all' : 'search'
   const { group } = useGroup()
   const { t } = useI18n()
+  const words = t.search.filters
   // No group: Search is a front door and belongs to no Module, so it takes ink
   // rather than a tint (ADR-0017).
   const tokens = useTokens()
@@ -102,6 +134,10 @@ export function SearchScreen() {
   const navigation = useNavigation<Navigator>()
   const searchRef = useRef<SearchBarCommands>(null)
   const [text, setText] = useState('')
+  const [filters, setFilters] = useState<SearchFilters>(() =>
+    initialFilters(preset ?? null),
+  )
+  const [choosingModule, setChoosingModule] = useState(false)
   const [recents, setRecents] = useState(readRecentRecords)
   const [expanded, setExpanded] = useState(false)
   const debounced = useDebouncedQuery(text)
@@ -114,16 +150,26 @@ export function SearchScreen() {
       ? {
           groupSlug: group.slug,
           query: debounced,
-          accepts: searchableTypes(moduleShown),
+          accepts: typesFor(filters.module, moduleShown),
         }
       : 'skip',
   )
+  const members = useQuery(api.groups.members, { slug: group.slug })
+  const me = useQuery(api.users.me, {})
+  const modules = useMemo(() => searchModulesShown(moduleShown), [])
+  const moduleLabel = filters.module
+    ? t.modules.byId[filters.module].label
+    : null
+
   const groupRecents = useMemo(
     () =>
-      recordsForGroup(recents, group.slug).filter((record) =>
-        recordShown(record, moduleShown),
+      recordsForGroup(recents, group.slug).filter(
+        (record) =>
+          recordShown(record, moduleShown) &&
+          // A recent knows its Module and nothing else the filters read.
+          (!filters.module || moduleOf(record) === filters.module),
       ),
-    [group.slug, recents],
+    [group.slug, recents, filters.module],
   )
 
   /**
@@ -132,6 +178,8 @@ export function SearchScreen() {
    * keystroke past the debounce is a new query — so the rows would be replaced
    * by a skeleton on the way to the next rows, which is the flicker the
    * interaction rules forbid. Holding the last answer is what stops that.
+   * A Module change is a new query too; the held rows are filtered by the new
+   * Module meanwhile, so nothing from the old one shows.
    *
    * Adjusted during render rather than in an effect: React re-runs the
    * component before committing, so there is no second paint to see.
@@ -142,13 +190,13 @@ export function SearchScreen() {
   const shown = results ?? held
 
   // Arriving from another tab. Selecting Search means asking to type, not to
-  // look at a screen.
+  // look at a screen. A pushed search focuses through `autoFocus` on mount.
   useEffect(() => {
-    if (pathname === '/search') {
+    if (!pushed && pathname === '/search') {
       const frame = requestAnimationFrame(() => searchRef.current?.focus())
       return () => cancelAnimationFrame(frame)
     }
-  }, [pathname])
+  }, [pathname, pushed])
 
   /**
    * The Search tab was tapped — from anywhere, including from Search itself.
@@ -160,16 +208,15 @@ export function SearchScreen() {
    * screens in other tabs, and this stack stays mounted, so it does not remount
    * on the way back — without it the list would only ever show what Search
    * itself opened. One synchronous `kv-store` read, which is what that store is
-   * for.
+   * for. A search pushed in All is not the tab's, so it does not listen.
    */
-  useEffect(
-    () =>
-      onSearchFocusRequest(() => {
-        setRecents(readRecentRecords())
-        searchRef.current?.focus()
-      }),
-    [],
-  )
+  useEffect(() => {
+    if (pushed) return
+    return onSearchFocusRequest(() => {
+      setRecents(readRecentRecords())
+      searchRef.current?.focus()
+    })
+  }, [pushed])
 
   const clear = () => {
     setText('')
@@ -182,58 +229,75 @@ export function SearchScreen() {
   }
 
   const open = (record: RecentRecordInput) => {
-    const href = hrefFor(record)
+    const href = hrefFor(record, stack)
     if (!href) return
     saveRecentRecord(group.slug, record)
     setRecents(readRecentRecords())
     router.push(href)
   }
 
-  const typeLabel = (type: SearchRecordType) => t.search.types[type]
-  const rows = (items: readonly RecentRecordInput[]) =>
-    items.map((record, index) => (
-      <Pressable
-        key={`${record.type}:${record.id}`}
-        testID={`search-result-${record.type}-${record.id}`}
-        accessibilityRole="button"
-        accessibilityLabel={`${record.title}, ${typeLabel(record.type)}`}
-        onPress={() => open(record)}
-        android_ripple={{ color: tokens.surface2 }}
-        style={({ pressed }) => [
-          styles.row,
-          {
-            backgroundColor: tokens.surface,
-            borderBottomColor: tokens.hair,
-            borderBottomWidth:
-              index === items.length - 1 ? 0 : StyleSheet.hairlineWidth,
-          },
-          pressed && { backgroundColor: tokens.surface2 },
-        ]}
-      >
-        <View style={styles.rowText}>
-          <Text style={[styles.title, { color: tokens.ink }]}>
-            {record.title}
-          </Text>
-          {record.detail ? (
-            <Text
-              style={[styles.detail, { color: tokens.muted }]}
-            >
-              {record.detail}
-            </Text>
-          ) : null}
-        </View>
-        {/* The type, in Recent as well as in results: under a header that
-          already says "Recent", saying it again on every row says nothing. */}
-        <View style={[styles.badge, { backgroundColor: tokens.surface2 }]}>
-          <Text style={[styles.badgeText, { color: tokens.ink }]}>
-            {typeLabel(record.type)}
-          </Text>
-        </View>
-      </Pressable>
-    ))
+  const chooseModule = (module: SearchModuleId | null) =>
+    setFilters((current) => withModule(current, module))
 
-  const found = shown?.map((result) => toRecent(result, t))
-  const settledEmpty = ready && settled && results?.length === 0
+  const typeLabel = (type: SearchRecordType) => t.search.types[type]
+  const rows = (
+    items: readonly RecentRecordInput[],
+    leading: 'badge' | 'tile',
+  ) =>
+    items.map((record, index) => {
+      const tile = leading === 'tile' ? tileOf(record) : null
+      return (
+        <Pressable
+          key={`${record.type}:${record.id}`}
+          testID={`search-result-${record.type}-${record.id}`}
+          accessibilityRole="button"
+          accessibilityLabel={`${record.title}, ${typeLabel(record.type)}`}
+          onPress={() => open(record)}
+          android_ripple={{ color: tokens.surface2 }}
+          style={({ pressed }) => [
+            styles.row,
+            {
+              backgroundColor: tokens.surface,
+              borderBottomColor: tokens.hair,
+              borderBottomWidth:
+                index === items.length - 1 ? 0 : StyleSheet.hairlineWidth,
+            },
+            pressed && { backgroundColor: tokens.surface2 },
+          ]}
+        >
+          {tile ? (
+            <ModuleTile group={tile.group} glyph={tile.glyph} size="s" />
+          ) : null}
+          <View style={styles.rowText}>
+            <Text style={[styles.title, { color: tokens.ink }]}>
+              {record.title}
+            </Text>
+            {record.detail ? (
+              <Text style={[styles.detail, { color: tokens.muted }]}>
+                {record.detail}
+              </Text>
+            ) : null}
+          </View>
+          {/* Recent mixes every Module under one header, so each row says its
+            type; results carry their Module's tile instead. */}
+          {leading === 'badge' ? (
+            <View style={[styles.badge, { backgroundColor: tokens.surface2 }]}>
+              <Text style={[styles.badgeText, { color: tokens.ink }]}>
+                {typeLabel(record.type)}
+              </Text>
+            </View>
+          ) : null}
+        </Pressable>
+      )
+    })
+
+  const today = localIsoDate()
+  const filtered = shown ? applyFilters(shown, filters, today) : null
+  const found = filtered?.map((result) => ({
+    result,
+    record: toRecent(result, t),
+  }))
+  const answered = ready && settled && results !== undefined
   const canExpand = groupRecents.length > COLLAPSED_RECENTS
   const visibleRecents =
     canExpand && !expanded
@@ -241,18 +305,169 @@ export function SearchScreen() {
       : groupRecents
   const Chevron = UI_ICONS.ChevronDown
 
+  const whoChoices: MenuChoice[] = [
+    { id: ANY, title: words.anyone },
+    ...(me ? [{ id: me._id, title: words.me }] : []),
+    ...(members ?? [])
+      .filter((member) => member.userId !== me?._id)
+      .map((member) => ({ id: member.userId, title: member.name })),
+  ]
+  const whenChoices: MenuChoice[] = [
+    { id: ANY, title: words.anytime },
+    ...WHEN_VALUES.map((id) => ({ id, title: words.whenValues[id] })),
+  ]
+  const statusChoices: MenuChoice[] = [
+    { id: ANY, title: words.anyStatus },
+    ...STATUS_VALUES.map((id) => ({ id, title: words.statusValues[id] })),
+  ]
+  const titleOf = (choices: MenuChoice[], id: string | null) =>
+    id === null
+      ? null
+      : (choices.find((choice) => choice.id === id)?.title ?? null)
+
+  const chips = (
+    <FilterChipRow>
+      <ModuleChip
+        moduleLabel={moduleLabel}
+        onOpen={() => setChoosingModule(true)}
+        onClear={() => chooseModule(null)}
+      />
+      <MenuChip
+        testID="search-filter-who"
+        filter={words.who}
+        value={titleOf(whoChoices, filters.who)}
+        choices={whoChoices}
+        selectedId={filters.who ?? ANY}
+        onSelect={(id) =>
+          setFilters((current) => ({
+            ...current,
+            who: id === ANY ? null : id,
+          }))
+        }
+      />
+      <MenuChip
+        testID="search-filter-when"
+        filter={words.when}
+        value={filters.when ? words.whenValues[filters.when] : null}
+        choices={whenChoices}
+        selectedId={filters.when ?? ANY}
+        onSelect={(id) =>
+          setFilters((current) => ({
+            ...current,
+            when: WHEN_VALUES.find((value) => value === id) ?? null,
+          }))
+        }
+      />
+      {moduleFilters(filters.module).includes('status') ? (
+        <MenuChip
+          testID="search-filter-status"
+          filter={words.status}
+          value={filters.status ? words.statusValues[filters.status] : null}
+          choices={statusChoices}
+          selectedId={filters.status ?? ANY}
+          onSelect={(id) =>
+            setFilters((current) => ({
+              ...current,
+              status: STATUS_VALUES.find((value) => value === id) ?? null,
+            }))
+          }
+        />
+      ) : null}
+    </FilterChipRow>
+  )
+
+  const resultsBody = () => {
+    if (!found || (found.length === 0 && !answered)) {
+      // The first answer for this query. A shape of the list to come, so
+      // the layout does not jump when the rows land. The skeleton brings
+      // its own inset, so it steps back out of the content's.
+      return (
+        <View testID="group-search-loading" style={styles.skeleton}>
+          <LoadingSkeleton rows={SKELETON_ROWS} label={t.actions.loading} />
+        </View>
+      )
+    }
+    if (found.length === 0) {
+      // Nothing at all, or nothing these filters let through: two different
+      // ways back, and never an add button.
+      const byFilters = narrowed(filters) && (results?.length ?? 0) > 0
+      return (
+        <View style={styles.empty}>
+          <Text style={[styles.emptyText, { color: tokens.muted }]}>
+            {byFilters ? words.noResults : t.search.noResults}
+          </Text>
+          <Pressable
+            testID={byFilters ? 'search-clear-filters' : 'search-clear'}
+            accessibilityRole="button"
+            onPress={
+              byFilters
+                ? () => setFilters(initialFilters(filters.module))
+                : clear
+            }
+            style={({ pressed }) => [
+              styles.clear,
+              { borderColor: tokens.hair },
+              pressed && { backgroundColor: tokens.surface2 },
+            ]}
+          >
+            <Text style={[styles.clearText, { color: tokens.ink }]}>
+              {byFilters ? words.clear : t.search.clear}
+            </Text>
+          </Pressable>
+        </View>
+      )
+    }
+    // One Module chosen: one list, no header. All: grouped per Module.
+    if (filters.module) {
+      return (
+        <View style={[styles.card, { borderColor: tokens.hair }]}>
+          {rows(
+            found.map((each) => each.record),
+            'tile',
+          )}
+        </View>
+      )
+    }
+    return groupByModule(
+      found.map(({ result, record }) => ({ ...result, record })),
+    ).map(
+      (section) => (
+        <View
+          key={section.module}
+          style={styles.section}
+          testID={`search-group-${section.module}`}
+        >
+          <SectionLabel>{t.modules.byId[section.module].label}</SectionLabel>
+          <View style={[styles.card, { borderColor: tokens.hair }]}>
+            {rows(
+              section.records.map((row) => row.record),
+              'tile',
+            )}
+          </View>
+        </View>
+      ),
+    )
+  }
+
+  const title = pushed
+    ? moduleLabel
+      ? fmt(t.search.inModule, { module: moduleLabel })
+      : t.search.title
+    : t.search.title
+
   return (
     <>
       <Stack.Screen
         options={{
           headerShown: true,
           headerLargeTitle: true,
-          title: t.search.title,
+          title,
         }}
       />
-      {/* Dismiss does not just end the search session — it leaves the tab.
-        See `searchOrigin.ts`: iOS treats search as a mode over the page you
-        were on, and a Search tab you cancel out of has nowhere to put you.
+      {/* Dismiss does not just end the search session — it leaves. On the
+        tab, see `searchOrigin.ts`: iOS treats search as a mode over the page
+        you were on, and a Search tab you cancel out of has nowhere to put you.
+        A pushed search goes back to its Module, which is where it came from.
 
         `onCancelButtonPress` is `@platform ios` in react-native-screens' own
         types, so the behaviour is iOS-only for free. That asymmetry is
@@ -265,22 +480,34 @@ export function SearchScreen() {
         restoring native behaviour afterwards is unsupported — a one-way door
         that only matters if you stay in the room, and we don't.
 
-        `placement` is left at `automatic`, which is what integrates the field
-        into the bottom toolbar on iPhone. `cancelButtonText` is deprecated from
+        On the tab, `placement` is left at `automatic`, which is what
+        integrates the field into the bottom toolbar on iPhone. A pushed search
+        has no Search tab to dock into, and `automatic` draws no field there at
+        all, so it stacks the field under the title and keeps it shown. `cancelButtonText` is deprecated from
         iOS 26, where the cancel button has no text at all; it is kept for iOS
         25 and below. */}
       <Stack.SearchBar
         ref={searchRef}
-        placeholder={t.search.placeholder}
+        placeholder={
+          moduleLabel
+            ? fmt(t.search.placeholderModule, { module: moduleLabel })
+            : t.search.placeholder
+        }
         cancelButtonText={t.common.actions.cancel}
         autoFocus
+        placement={pushed ? 'stacked' : undefined}
+        hideWhenScrolling={pushed ? false : undefined}
         autoCapitalize="none"
         hideNavigationBar={false}
         onChangeText={(event) => setText(event.nativeEvent.text)}
         onCancelButtonPress={() => {
           setText('')
           setExpanded(false)
-          tabNavigator(navigation)?.navigate(searchOrigin())
+          if (pushed) {
+            if (router.canGoBack()) router.back()
+          } else {
+            tabNavigator(navigation)?.navigate(searchOrigin())
+          }
         }}
       />
       <ScrollView
@@ -292,6 +519,7 @@ export function SearchScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
       >
+        {chips}
         {!ready ? (
           groupRecents.length > 0 ? (
             <View style={styles.section}>
@@ -340,7 +568,7 @@ export function SearchScreen() {
                 </View>
               </View>
               <View style={[styles.card, { borderColor: tokens.hair }]}>
-                {rows(visibleRecents)}
+                {rows(visibleRecents, 'badge')}
               </View>
             </View>
           ) : (
@@ -348,41 +576,26 @@ export function SearchScreen() {
               {t.search.empty}
             </Text>
           )
-        ) : found === null || found === undefined ? (
-          // The first answer for this query. A shape of the list to come, so
-          // the layout does not jump when the rows land. The skeleton brings
-          // its own inset, so it steps back out of the content's.
-          <View testID="group-search-loading" style={styles.skeleton}>
-            <LoadingSkeleton rows={SKELETON_ROWS} label={t.actions.loading} />
-          </View>
-        ) : settledEmpty ? (
-          <View style={styles.empty}>
-            <Text style={[styles.emptyText, { color: tokens.muted }]}>
-              {t.search.noResults}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.search.clear}
-              onPress={clear}
-              style={({ pressed }) => [
-                styles.clear,
-                { borderColor: tokens.hair },
-                pressed && { backgroundColor: tokens.surface2 },
-              ]}
-            >
-              <Text style={[styles.clearText, { color: tokens.ink }]}>
-                {t.search.clear}
-              </Text>
-            </Pressable>
-          </View>
         ) : (
-          <View style={[styles.card, { borderColor: tokens.hair }]}>
-            {rows(found)}
-          </View>
+          resultsBody()
         )}
       </ScrollView>
+      {choosingModule ? (
+        <ModuleSheet
+          modules={modules}
+          selected={filters.module}
+          onSelect={chooseModule}
+          onClose={() => setChoosingModule(false)}
+        />
+      ) : null}
     </>
   )
+}
+
+/** A result's Module tile: its group colour and glyph, from the catalogue. */
+function tileOf(record: RecentRecordInput) {
+  const module = moduleOf(record)
+  return module ? moduleTile(module) : null
 }
 
 const styles = StyleSheet.create({

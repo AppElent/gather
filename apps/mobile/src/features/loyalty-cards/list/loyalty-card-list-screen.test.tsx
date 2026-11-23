@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * Reorder mode on the card list (APP-440): entered from the ⋯ menu or a row's
- * hold menu, it swaps the filter and the rows for the shared drag list, saves
+ * hold menu, it swaps the header's search and the rows for the shared drag list, saves
  * every drop as the whole order, and puts the old order back when the save is
  * refused. The drag itself is `DragList`'s, and its arithmetic is
  * `arrange.test.ts`; here the list is replaced by one that drops on a click.
@@ -151,8 +151,8 @@ vi.mock('../../../feedback/haptics', () => ({
 vi.mock('../../../components/LoadingSkeleton', () => ({
   LoadingSkeleton: () => null,
 }))
-vi.mock('../../../components/SearchField', () => ({
-  SearchField: () => createElement('input', { 'data-testid': 'search' }),
+vi.mock('../../../search/ModuleSearchButton', () => ({
+  ModuleSearchButton: () => createElement('div', { 'data-testid': 'search' }),
 }))
 vi.mock('../../../ui/button', () => ({ Button: () => null }))
 vi.mock('../../../ui/header-icon-button', () => ({

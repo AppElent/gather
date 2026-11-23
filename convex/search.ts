@@ -45,6 +45,13 @@ const resultValidator = v.object({
   date: v.optional(v.string()),
   startMinutes: v.optional(v.number()),
   endMinutes: v.optional(v.number()),
+  /** A task's state, for the phone's Status filter (APP-613). */
+  done: v.optional(v.boolean()),
+  /**
+   * The Member who added the record, for the phone's Who filter (APP-613).
+   * Optional so a row from before a type recorded it still validates.
+   */
+  createdBy: v.optional(v.string()),
   creationTime: v.number(),
 })
 
@@ -156,6 +163,7 @@ export const group = query({
             title: recipe.title,
             tags: recipe.tags,
             excerpt: '',
+            createdBy: recipe.createdByUserId,
             creationTime: recipe._creationTime,
           },
           recipe.tags,
@@ -175,6 +183,7 @@ export const group = query({
                 .split('\n')
                 .find((line) => line.trim())
                 ?.trim() ?? '',
+            createdBy: note.createdBy,
             creationTime: note._creationTime,
           },
           [note.body],
@@ -191,6 +200,7 @@ export const group = query({
             tags: [],
             excerpt: '',
             kind: subject.kind,
+            createdBy: subject.createdByUserId,
             creationTime: subject._creationTime,
           },
           [],
@@ -209,6 +219,8 @@ export const group = query({
               excerpt: '',
               listName: list.name,
               dueDate: task.dueDate,
+              done: task.done,
+              createdBy: task.createdBy,
               creationTime: task._creationTime,
             },
             [task.notes ?? '', list.name],
@@ -230,6 +242,7 @@ export const group = query({
               date: event.date,
               startMinutes: event.startMinutes,
               endMinutes: event.endMinutes,
+              createdBy: event.createdBy,
               creationTime: event._creationTime,
             },
             [calendar.name],
@@ -247,6 +260,7 @@ export const group = query({
             title: card.storeName,
             tags: [],
             excerpt: card.holder ?? '',
+            createdBy: card.createdByUserId,
             creationTime: card._creationTime,
           },
           [card.holder ?? ''],

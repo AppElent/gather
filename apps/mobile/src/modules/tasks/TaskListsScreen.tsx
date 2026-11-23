@@ -33,6 +33,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { fmt, type Messages, plural, useI18n } from '../../i18n'
 import { useHiddenSmartLists } from '../../prefs/hiddenSmartLists'
+import { ModuleHeaderActions } from '../../search/ModuleSearchButton'
 import { UI_ICONS } from '../../theme/icons'
 import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetAddRow, InsetList, InsetRow } from '../../ui/inset-list'
@@ -110,40 +111,42 @@ export function TaskLists() {
         options={{
           ...washScreenOptions(t.tasks.title),
           headerRight: () => (
-            <MenuView
-              testID="tasks-menu"
-              actions={[
-                {
-                  id: 'smart',
-                  title: t.tasks.smart.menu,
-                  displayInline: true,
-                  subactions: SMART_LISTS.map((id) => ({
-                    id,
-                    title: t.tasks.smart.lists[id].title,
-                    state: shown(id) ? ('on' as const) : ('off' as const),
-                  })),
-                },
-              ]}
-              onPressAction={(event) => {
-                const id = event.nativeEvent.event
-                if (SMART_LISTS.some((each) => each === id)) {
-                  toggleHidden(id as SmartListId)
-                }
-              }}
-            >
-              <View
-                style={styles.headerButton}
-                accessible
-                accessibilityRole="button"
-                accessibilityLabel={t.tasks.smart.menu}
+            <ModuleHeaderActions module="tasks">
+              <MenuView
+                testID="tasks-menu"
+                actions={[
+                  {
+                    id: 'smart',
+                    title: t.tasks.smart.menu,
+                    displayInline: true,
+                    subactions: SMART_LISTS.map((id) => ({
+                      id,
+                      title: t.tasks.smart.lists[id].title,
+                      state: shown(id) ? ('on' as const) : ('off' as const),
+                    })),
+                  },
+                ]}
+                onPressAction={(event) => {
+                  const id = event.nativeEvent.event
+                  if (SMART_LISTS.some((each) => each === id)) {
+                    toggleHidden(id as SmartListId)
+                  }
+                }}
               >
-                <UI_ICONS.Ellipsis
-                  size={22}
-                  color={tokens.ink}
-                  strokeWidth={2.2}
-                />
-              </View>
-            </MenuView>
+                <View
+                  style={styles.headerButton}
+                  accessible
+                  accessibilityRole="button"
+                  accessibilityLabel={t.tasks.smart.menu}
+                >
+                  <UI_ICONS.Ellipsis
+                    size={22}
+                    color={tokens.ink}
+                    strokeWidth={2.2}
+                  />
+                </View>
+              </MenuView>
+            </ModuleHeaderActions>
           ),
         }}
       />

@@ -66,6 +66,58 @@ describe('Group search', () => {
   })
 })
 
+describe('Group search filter fields', () => {
+  test("says whether a task is done and who added each record", async () => {
+    const t = testConvex()
+    const aliceId = await t.run(async (ctx) => {
+      const aliceId = await ctx.db.insert('users', {
+        clerkId: alice.subject,
+        name: alice.name,
+        email: alice.email,
+      })
+      const groupId = await seedGroup(ctx, {
+        name: 'Home',
+        slug: 'search-filters',
+        inviteCode: 'search-filters',
+      })
+      await seedMember(ctx, groupId, aliceId, 'admin')
+      const listId = await ctx.db.insert('taskLists', {
+        groupId,
+        name: 'Chores',
+        provider: 'local',
+        order: 0,
+      })
+      await ctx.db.insert('tasks', {
+        listId,
+        title: 'Buy milk',
+        done: true,
+        order: 0,
+        createdBy: aliceId,
+      })
+      await ctx.db.insert('notes', {
+        groupId,
+        title: 'Milk brands',
+        body: '',
+        createdBy: aliceId,
+        updatedAt: 1,
+      })
+      return aliceId
+    })
+
+    const results = await t.withIdentity(alice).query(api.search.group, {
+      groupSlug: 'search-filters',
+      query: 'milk',
+      accepts: ['task', 'note'],
+    })
+
+    expect(results).toMatchObject([
+      { title: 'Milk brands', type: 'note', createdBy: aliceId },
+      { title: 'Buy milk', type: 'task', done: true, createdBy: aliceId },
+    ])
+    expect(results[0]).not.toHaveProperty('done')
+  })
+})
+
 describe('Group search for loyalty cards', () => {
   const bob = {
     subject: 'search_bob',

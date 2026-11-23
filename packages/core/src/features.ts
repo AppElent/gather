@@ -277,7 +277,8 @@ export const FEATURES = defineFeatures([
     status: 'exclusive',
     platforms: ['mobile'],
     reason: `The Search tab is a phone destination (ADR-0018) for finding something mid-day (${ADR}).`,
-    routes: { mobile: ['(app)/(tabs)/search/**'] },
+    // A Module's search button pushes the same screen inside All (APP-613).
+    routes: { mobile: ['(app)/(tabs)/search/**', '(app)/(tabs)/all/search'] },
   },
   {
     id: 'quick-add',

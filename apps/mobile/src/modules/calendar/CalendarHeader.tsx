@@ -29,6 +29,7 @@ import { scheduleOnRN } from 'react-native-worklets'
 
 import { WeekdayStrip } from '../../components/MonthGridView'
 import { useI18n } from '../../i18n'
+import { useModuleSearch } from '../../search/ModuleSearchButton'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { headingCase } from './calendarLabels'
@@ -265,6 +266,7 @@ export function CalendarHeader(props: CalendarHeaderProps) {
   const { t, locale } = useI18n()
   const tokens = useTokens('home')
   const More = UI_ICONS.CircleEllipsis
+  const search = useModuleSearch('calendar')
   /** What the header shows, 0 week to 1 month: the finger's, then the spring's. */
   const shown = useSharedValue(props.progress)
   /** While a drag or a settle runs, the header is clipped to `shown`. */
@@ -484,6 +486,16 @@ export function CalendarHeader(props: CalendarHeaderProps) {
           <Text style={[styles.title, { color: tokens.ink }]}>{title}</Text>
         </Pressable>
         <View style={styles.actions}>
+          {/* Search first, as in every Module's header (APP-613). */}
+          <Pressable
+            testID="calendar-search"
+            accessibilityRole="button"
+            accessibilityLabel={search.label}
+            onPress={search.open}
+            style={[styles.iconButton, { backgroundColor: tokens.surface2 }]}
+          >
+            <UI_ICONS.Search size={19} color={tokens.ink} />
+          </Pressable>
           <MenuView
             shouldOpenOnLongPress={false}
             actions={[
