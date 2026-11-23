@@ -184,8 +184,14 @@ export function useSheetResume<O, V>({
         if (!sheet) return
         const mine = { sheet, json: latest.current.json }
         sent.current = mine
-        writes.onSettled(() => {
+        // An earlier save's failure may have kept its values under this open
+        // sheet; once this one lands, they are out of date. One kept since
+        // the save started is newer, and stays.
+        const older = keptDraft<V>(sheet.key)
+        writes.onSettled((landed) => {
           if (sent.current === mine) sent.current = null
+          if (landed && older !== undefined && keptDraft(sheet.key) === older)
+            keepDraft(sheet.key, undefined)
         })
       }),
     [writes],

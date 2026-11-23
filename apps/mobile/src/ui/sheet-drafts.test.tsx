@@ -222,7 +222,7 @@ function pendingWrites() {
       for (const listener of starts) listener()
     },
     settle: (landed: boolean) => {
-      for (const listener of listeners) listener(landed)
+      for (const listener of listeners.splice(0)) listener(landed)
     },
   }
 }
@@ -315,5 +315,20 @@ test('what was typed after the save started is kept, even if it lands', async ()
   restored.mockClear()
   expect(resume('saved')).toBe(true)
   expect(restored).toHaveBeenCalledWith('3')
+  view.unmount()
+})
+
+test('a newer save that lands forgets what an older failed one kept', async () => {
+  const save = pendingWrites()
+  const view = await typeAndShare(save.writes, save.start)
+  view.rerender(<Screen open={null} value="2" writes={save.writes} />)
+  expect(resume('saved')).toBe(false)
+  view.rerender(<Screen open="saved" value="1" writes={save.writes} />)
+  save.settle(false)
+  view.rerender(<Screen open="saved" value="4" writes={save.writes} />)
+  save.start()
+  save.settle(true)
+  view.rerender(<Screen open={null} value="4" writes={save.writes} />)
+  expect(resume('saved')).toBe(false)
   view.unmount()
 })
