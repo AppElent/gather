@@ -54,7 +54,7 @@ export function RecipeCard({ recipe, mode }: RecipeCardProps) {
 
   if (mode === 'compact') {
     return (
-      <div className="flex items-center gap-3 rounded-xl border p-2">
+      <div className="flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--hair)] bg-[var(--surface)] p-2">
         <Photo
           imageUrl={recipe.imageUrl}
           className="h-16 w-16 flex-shrink-0 rounded-lg"
@@ -63,7 +63,7 @@ export function RecipeCard({ recipe, mode }: RecipeCardProps) {
           <p className="font-medium">{recipe.title}</p>
           <Stars rating={recipe.rating} />
           {recipe.tags.length > 0 && (
-            <p className="mt-1 text-xs opacity-50">{recipe.tags.join(', ')}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">{recipe.tags.join(', ')}</p>
           )}
         </div>
       </div>
@@ -71,7 +71,7 @@ export function RecipeCard({ recipe, mode }: RecipeCardProps) {
   }
 
   return (
-    <div className="rounded-xl border p-4">
+    <div className="rounded-[var(--radius-card)] border border-[var(--hair)] bg-[var(--surface)] p-4">
       <Photo
         imageUrl={recipe.imageUrl}
         className="mb-3 h-32 w-full rounded-lg"
@@ -79,7 +79,7 @@ export function RecipeCard({ recipe, mode }: RecipeCardProps) {
       <p className="font-medium">{recipe.title}</p>
       <Stars rating={recipe.rating} />
       {recipe.tags.length > 0 && (
-        <p className="mt-1 text-xs opacity-50">{recipe.tags.join(', ')}</p>
+        <p className="mt-1 text-xs text-[var(--muted)]">{recipe.tags.join(', ')}</p>
       )}
     </div>
   )

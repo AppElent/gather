@@ -34,7 +34,7 @@ export function LanguageSettings() {
               onClick={() => setLocale(option)}
               className={`inline-flex min-h-9 items-center justify-center rounded-[var(--radius-control)] border px-3 text-sm font-semibold ${
                 isOn
-                  ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--surface)]'
+                  ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]'
                   : 'border-[var(--hair)] bg-[var(--surface)] text-[var(--ink)]'
               }`}
             >

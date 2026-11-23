@@ -337,7 +337,7 @@ export function LoyaltyCardForm({
         <button
           type="submit"
           disabled={submitting || uploading}
-          className="min-h-11 rounded-[var(--radius-control)] border border-[var(--ink)] bg-[var(--ink)] px-4 text-sm font-semibold text-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-11 rounded-[var(--radius-control)] border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--on-accent)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting
             ? messages.common.actions.saving

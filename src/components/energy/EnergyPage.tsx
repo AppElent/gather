@@ -51,7 +51,7 @@ export function EnergyPage() {
     <div className="mx-auto grid max-w-3xl gap-4">
       <header>
         <div className="min-w-0">
-          <h2 className="m-0 text-2xl font-semibold">
+          <h2 className="m-0 font-rounded text-2xl font-bold">
             {messages.modules.byId.energy.label}
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">

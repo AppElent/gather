@@ -37,7 +37,7 @@ export function AccountDeleteUnderway({
             type="button"
             data-testid="account-delete-retry"
             onClick={retryLogin}
-            className="inline-flex min-h-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--ink)] bg-[var(--ink)] px-3 text-sm font-semibold text-[var(--surface)]"
+            className="inline-flex min-h-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--accent)] bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--on-accent)]"
           >
             {messages.common.actions.retry}
           </button>

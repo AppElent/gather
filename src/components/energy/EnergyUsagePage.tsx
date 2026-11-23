@@ -98,7 +98,7 @@ export function EnergyUsagePage({
   return (
     <div className="mx-auto grid max-w-3xl gap-4">
       <Breadcrumbs trail={energyTrail(messages, copy.title)} className="mb-0" />
-      <h2 className="m-0 text-2xl font-semibold">{copy.title}</h2>
+      <h2 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h2>
       <Segmented
         label={copy.rangeLabel}
         value={range}

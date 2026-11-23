@@ -108,7 +108,7 @@ export function LoyaltyCardPage({
             catalogKey={card.catalogKey}
           />
           <div className="min-w-0">
-            <h2 className="m-0 truncate text-2xl font-semibold">
+            <h2 className="m-0 truncate font-rounded text-2xl font-bold">
               {card.storeName}
             </h2>
             {card.holder ? (

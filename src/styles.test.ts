@@ -46,10 +46,39 @@ function topLevelHeads(): string[] {
   return heads.filter(Boolean)
 }
 
+/** Rule heads one level inside a top-level `@media` or `@supports`. */
+function unlayeredNestedHeads(): string[] {
+  const heads: string[] = []
+  const stack: string[] = []
+  let start = 0
+  for (let i = 0; i < css.length; i++) {
+    const c = css[i]
+    if (c === '{') {
+      const head = css.slice(start, i).trim()
+      if (stack.length === 1 && /^@(media|supports)/.test(stack[0]))
+        heads.push(head)
+      stack.push(head)
+      start = i + 1
+    } else if (c === '}') {
+      stack.pop()
+      start = i + 1
+    } else if (c === ';') {
+      start = i + 1
+    }
+  }
+  return heads
+}
+
 describe('cascade layers', () => {
   test('no class rule is left unlayered', () => {
     const unlayered = topLevelHeads().filter((head) => head.includes('.'))
     expect(unlayered).toEqual([])
+  })
+
+  test('no class rule hides unlayered inside a top-level @media or @supports', () => {
+    expect(unlayeredNestedHeads().filter((head) => head.includes('.'))).toEqual(
+      [],
+    )
   })
 
   test('only layers, at-rules and :root live at the top level', () => {
@@ -111,11 +140,27 @@ const AUTH = ':root {\n  --auth-bg'
 const DARK_CHOICE = ':root[data-theme="dark"] {'
 const DARK_SYSTEM = ':root:not([data-theme="light"]) {'
 
+/**
+ * Every unlayered `:root {` block, merged in source order, so a later
+ * redeclaration wins here as it does in the browser.
+ */
+function rootBlocks(): Record<string, string> {
+  const merged: Record<string, string> = {}
+  let at = css.indexOf(':root {')
+  while (at > -1) {
+    const body = css.slice(at, css.indexOf('}', at))
+    for (const m of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g))
+      merged[m[1]] = m[2].trim()
+    at = css.indexOf(':root {', at + 1)
+  }
+  return merged
+}
+
 /** Every token a theme resolves to, with `var()` chains followed to a hex. */
 function theme(scheme: 'light' | 'dark'): Record<string, string> {
+  expect(block(AUTH)['--auth-bg']).toBeDefined()
   const raw = {
-    ...block(LIGHT),
-    ...block(AUTH),
+    ...rootBlocks(),
     ...(scheme === 'dark' ? block(DARK_CHOICE) : {}),
   }
   const resolve = (value: string, depth = 0): string => {
@@ -190,7 +235,10 @@ describe('the older looks stay gone', () => {
     for (const pattern of retired) expect(css).not.toMatch(pattern)
   })
 
-  test('no component names a retired token or colour', () => {
+  test('no component names a retired token or colour, or paints a gradient', () => {
+    // A photo's legibility scrim is the one gradient allowed.
+    const scrims = [join('components', 'recipes', 'RecipeCard.tsx')]
+    const gradients = /gradient\(|\bbg-(gradient-to|linear|radial|conic)-/
     const offenders: string[] = []
     const walk = (dir: string) => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -200,6 +248,8 @@ describe('the older looks stay gone', () => {
           const text = readFileSync(path, 'utf8')
           for (const pattern of retired)
             if (pattern.test(text)) offenders.push(`${path}: ${pattern}`)
+          if (gradients.test(text) && !scrims.some((s) => path.endsWith(s)))
+            offenders.push(`${path}: gradient`)
         }
       }
     }

@@ -247,7 +247,7 @@ export function MultiEventForm({
         <button
           type="submit"
           disabled={submitting || activeTypes.length === 0}
-          className="min-h-9 rounded-[var(--radius-control)] border border-[var(--ink)] bg-[var(--ink)] px-3 text-sm font-semibold text-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-9 rounded-[var(--radius-control)] border border-[var(--accent)] bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--on-accent)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting
             ? messages.common.actions.saving

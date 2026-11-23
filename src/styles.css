@@ -264,6 +264,12 @@
     text-decoration-color: currentColor;
   }
 
+  /* A link inside running text is underlined; a link styled as a row, card
+     or button sets its own decoration. */
+  :where(p) a {
+    text-decoration-line: underline;
+  }
+
   code {
     font-size: 0.9em;
     border: 1px solid var(--hair);

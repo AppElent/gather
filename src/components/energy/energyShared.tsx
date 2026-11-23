@@ -54,7 +54,7 @@ export const FIELD =
 export const WASH =
   'grid gap-1.5 rounded-[calc(var(--radius-control)*2)] bg-[var(--surface-2)] p-4'
 export const NUMERAL =
-  'text-4xl font-extrabold leading-tight tabular-nums sm:text-5xl'
+  'font-rounded text-4xl font-bold leading-tight tabular-nums sm:text-5xl'
 
 function readEnergyClock() {
   const today = amsterdamIsoDate()

@@ -138,7 +138,7 @@ export function TastingDialog({
       >
         <header className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <h2 id="tasting-dialog-title" className="m-0 text-xl font-semibold">
+            <h2 id="tasting-dialog-title" className="m-0 font-rounded text-xl font-bold">
               {step === 'pick'
                 ? fmt(copy.picker.title, { kind: words.one })
                 : tasting

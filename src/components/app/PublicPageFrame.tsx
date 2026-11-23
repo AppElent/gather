@@ -72,7 +72,7 @@ export function PublicPageFrame({
           <footer className="text-center text-xs text-[var(--muted)]">
             <Link
               to="/privacy"
-              className="text-[var(--muted)] underline-offset-2 hover:underline"
+              className="text-[var(--ink)] underline underline-offset-2"
             >
               {messages.privacy.title}
             </Link>

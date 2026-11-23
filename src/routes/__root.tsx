@@ -107,7 +107,7 @@ export function NotFoundPage() {
         </p>
         <Link
           to="/"
-          className="inline-flex min-h-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--ink)] bg-[var(--ink)] px-3 text-sm font-semibold text-[var(--surface)] no-underline"
+          className="inline-flex min-h-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--accent)] bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--on-accent)] no-underline"
         >
           {notFound.goHome}
         </Link>

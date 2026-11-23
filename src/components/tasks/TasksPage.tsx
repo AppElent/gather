@@ -47,7 +47,7 @@ export function TasksPage() {
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="m-0 text-2xl font-semibold">
+          <h2 className="m-0 font-rounded text-2xl font-bold">
             {messages.modules.byId.tasks.label}
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
