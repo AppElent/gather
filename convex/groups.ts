@@ -67,7 +67,10 @@ export const myGroups = query({
             role: 'admin' | 'member'
           } => row.group !== null,
         )
-        .map(async ({ group, role }) => ({
+        // Never the invite code: it is a capability, and connected apps (MCP,
+        // the TV) read this query too. Screens that show it ask
+        // `groups.inviteCode`, which refuses connected apps (ADR-0046).
+        .map(async ({ group: { inviteCode: _inviteCode, ...group }, role }) => ({
           ...group,
           imageUrl: group.imageId
             ? await ctx.storage.getUrl(group.imageId)
