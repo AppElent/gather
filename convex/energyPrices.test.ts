@@ -539,6 +539,32 @@ describe('ENTSO-E', () => {
     expect(asked[1]?.url).toContain('periodEnd=202611242300')
   })
 
+  test.each([400, 429])('a token answered with %i does not stop the next', async (status) => {
+    const { t, otherId, carolId } = await seedSite()
+    await t.run(async (ctx) => {
+      const siteId = await insertSite(ctx, otherId, carolId)
+      for (const secret of ['odd-token', TOKEN]) {
+        await ctx.db.insert('energyPriceFeeds', {
+          groupId: otherId,
+          siteId,
+          provider: 'entsoe',
+          scope: 'market',
+          secret,
+          includesTaxes: false,
+          status: 'ok',
+        })
+      }
+    })
+    handler = (url, init) => {
+      if (!url.includes('entsoe')) return energyZeroOnly(url, init)
+      return url.includes(TOKEN) ? { body: entsoeAnswer } : { status, body: 'no' }
+    }
+    await t.action(internal.energyPriceFetch.fetchEntsoe, {})
+    await drain(t)
+    expect((await feeds(t)).map((feed) => feed.status)).toEqual(['ok', 'ok'])
+    expect((await prices(t)).filter((row) => row.provider === 'entsoe')).toHaveLength(192)
+  })
+
   test('without a token it is never asked', async () => {
     const { t } = await seedSite()
     await t.mutation(internal.energyPrices.startFetches, {})

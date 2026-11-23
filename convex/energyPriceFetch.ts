@@ -289,12 +289,16 @@ export const fetchEntsoe = internalAction({
         ))
         break
       } catch (error) {
-        problem = problemOf(error)
-        if (problem !== 'keyRejected') break
+        // Another token may still work: an odd or throttled one is no outage.
+        const own = problemOf(error)
+        if (own !== 'keyRejected') {
+          problem = own
+          continue
+        }
         await ctx.runMutation(internal.energyPrices.finishFetch, {
           feedId: key.feedId,
           secret: key.secret,
-          problem,
+          problem: own,
         })
       }
     }

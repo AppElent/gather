@@ -62,7 +62,7 @@ export function EnergyPriceFeedPage() {
       ) : (
         <FeedForm
           // A source somebody else saved replaces what was chosen here.
-          key={view.provider}
+          key={`${group.slug}:${view.provider}`}
           groupSlug={group.slug}
           view={view}
           now={now}
