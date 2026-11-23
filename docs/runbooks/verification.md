@@ -24,7 +24,8 @@ pnpm verify
 2. `pnpm typecheck`: the root `tsc` run (web, Convex, core).
 3. `pnpm --filter @gather/mobile typecheck`: the phone app's own `tsconfig`,
    which the root run does not use.
-4. `pnpm test`.
+4. `pnpm --filter @gather/tv typecheck`: the same for the Apple TV app.
+5. `pnpm test`.
 
 It does not build. Always run `pnpm build` after `pnpm verify`, as CI's
 `check` job does. To match CI fully, run the same sequence:

@@ -1,0 +1,39 @@
+{
+  "name": "@gather/tv",
+  "main": "expo-router/entry",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "EXPO_TV=1 expo start --port 8094",
+    "prebuild": "EXPO_TV=1 expo prebuild --platform ios --clean",
+    "ios": "EXPO_TV=1 expo run:ios --port 8094",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gather/core": "workspace:*",
+    "convex": "^1.50.0",
+    "expo": "58.0.22",
+    "expo-constants": "~58.0.14",
+    "expo-linking": "~58.0.15",
+    "expo-localization": "~58.0.5",
+    "expo-router": "~58.0.28",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "npm:react-native-tvos@0.88.1-0",
+    "react-native-safe-area-context": "~5.10.1",
+    "react-native-screens": "~4.30.1"
+  },
+  "devDependencies": {
+    "@react-native-tvos/config-tv": "^0.1.7",
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "expo",
+        "react-native"
+      ]
+    }
+  }
+}

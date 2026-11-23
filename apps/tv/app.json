@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Gather",
+    "slug": "gather",
+    "platforms": ["ios"],
+    "version": "1.0.0",
+    "scheme": "gather",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.appelent.gather",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-localization",
+      ["@react-native-tvos/config-tv", { "isTV": true }]
+    ],
+    "owner": "appelent"
+  }
+}

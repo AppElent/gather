@@ -50,6 +50,11 @@ overrides:
   # ^1.9.18: with 1.9.19 still inside minimumReleaseAge, a range left 1.9.15 in
   # place. Remove once the lockfile resolves solid-js >=1.9.18 without this entry.
   "solid-js@<1.9.18": "1.9.18"
+  # APP-643, ADR-0052: @expo/log-box is an auto-installed peer of the phone's
+  # expo-router, and pnpm would give the phone the newer copy that apps/tv's expo
+  # 58.0.22 asks for, which moves the phone's runtime fingerprint. 58.0.14 only
+  # drops an unused Android dependency. Remove when the phone's expo is >=58.0.22.
+  "@expo/log-box": "58.0.13"
 
 # @clerk/expo's config plugin imports @expo/config-plugins at runtime but only
 # declares it as a devDependency. EAS loads the plugin without pnpm's NODE_PATH

@@ -10,6 +10,8 @@
     "includes": [
       "**/src/**/*",
       "apps/mobile/app/**/*",
+      "apps/tv/app/**/*",
+      "apps/tv/*.{ts,js}",
       "convex/**/*",
       "scripts/**/*",
       "*.{ts,tsx,js,mjs,cjs}",
@@ -31,6 +33,7 @@
       "!scripts/workspace.mjs",
       "!apps/mobile/ios",
       "!apps/mobile/android",
+      "!apps/tv/ios",
       "!**/*.md"
     ]
   },
@@ -73,6 +76,28 @@
             "noReactNativeRawText": {
               "level": "error",
               "options": { "skip": ["Notice"] }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/tv/**", "!apps/tv/src/convex/api.ts"],
+      "linter": {
+        "enabled": true,
+        "rules": {
+          "correctness": { "noReactNativeRawText": "error" },
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["**/convex/_generated", "**/convex/_generated/**"],
+                    "message": "Import api, Doc and Id from apps/tv/src/convex/api (docs/standards/repo-layout.md)."
+                  }
+                ]
+              }
             }
           }
         }
