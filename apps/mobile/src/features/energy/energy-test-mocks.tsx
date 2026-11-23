@@ -127,11 +127,12 @@ const TextInput = forwardRef<{ focus: () => void }, Props>(
     })
   },
 )
-const Switch = ({ value, onValueChange, ...props }: Props) =>
+const Switch = ({ value, onValueChange, disabled, ...props }: Props) =>
   createElement('input', {
     ...common(props),
     type: 'checkbox',
     checked: Boolean(value),
+    disabled: disabled as boolean | undefined,
     onChange: () =>
       (onValueChange as ((next: boolean) => void) | undefined)?.(!value),
   })

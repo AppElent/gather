@@ -95,6 +95,9 @@ export const energy = {
     save: 'Bewaar',
     saving: 'Bewaren…',
     saved: 'Standen bewaard.',
+    measuredTitle: 'Je hoeft hier niets in te vullen',
+    measuredBody:
+      'Home Assistant meet je stroom. Eerder ingevulde standen blijven bewaard.',
     setupTitle: 'Welke meters lees je af?',
     setupBody:
       'Gather vraagt één stand per meter. Een meter toevoegen kan later onder Bronnen.',

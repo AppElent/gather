@@ -403,7 +403,7 @@ function ChannelRow({
           style={styles.switch}
           trackColor={{ false: tokens.surface2 }}
           value={proposal.on}
-          disabled={!proposal.available}
+          disabled={!proposal.available && !proposal.on}
           accessibilityLabel={fmt(copy.readChannel, { name })}
           accessibilityHint={note ?? undefined}
           onValueChange={(on) => onChange({ on })}

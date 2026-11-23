@@ -415,7 +415,7 @@ function ChannelRow({
         onChange={(on) => onChange({ on })}
         label={fmt(copy.readChannel, { name })}
         describedBy={note ? `${id}-note` : undefined}
-        disabled={!proposal.available}
+        disabled={!proposal.available && !proposal.on}
       />
     </div>
   )

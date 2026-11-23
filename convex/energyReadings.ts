@@ -15,6 +15,7 @@ import { addDays, isIsoDate } from '@gather/core/civil-date'
 import {
   amsterdamDayStart,
   checkEnergyReading,
+  energyChannelsOverlap,
   energyReadingMoment,
 } from '@gather/core/energy'
 import { energyRefusal } from '@gather/core/refusals'
@@ -26,11 +27,14 @@ import {
   energyTariffValidator,
   energyUnitValidator,
 } from './lib/energy'
+import { connectedChannels, reconcileManualChannels } from './lib/energyManual'
 import { primarySiteOf } from './lib/energyUsage'
 import { requireGroupBySlug } from './lib/groupAccess'
 
 /** Longest label a source is saved with ("Meterstanden"). */
 const SOURCE_LABEL_LIMIT = 60
+
+const METER_KINDS = ['gridImport', 'gridExport', 'gas'] as const
 
 const readingValidator = v.object({ value: v.number(), at: v.number() })
 
@@ -85,6 +89,16 @@ async function readingsAround(
   return { previous, onDay, next }
 }
 
+/** Kinds a typed meter can read and a connected source already measures whole. */
+async function measuredKinds(ctx: QueryCtx, siteId: Id<'energySites'>) {
+  const measured = await connectedChannels(ctx, siteId)
+  return METER_KINDS.filter((kind) =>
+    (['t1', 't2'] as const).every((tariff) =>
+      measured.some((each) => energyChannelsOverlap(each, { kind, tariff })),
+    ),
+  )
+}
+
 const point = (reading: Doc<'energyReadings'> | null) =>
   reading ? { value: reading.value, at: reading.at } : null
 
@@ -100,6 +114,8 @@ export const form = query({
     v.object({
       hasManualSource: v.boolean(),
       lastReadingAt: v.union(v.number(), v.null()),
+      /** Kinds that need no typed meter. Installed phones do not read it. */
+      measured: v.array(energyChannelKindValidator),
       channels: v.array(
         v.object({
           _id: v.id('energyChannels'),
@@ -145,6 +161,7 @@ export const form = query({
     return {
       hasManualSource: source !== null,
       lastReadingAt,
+      measured: await measuredKinds(ctx, site._id),
       channels: rows.sort(
         (a, b) =>
           CHANNEL_ORDER.indexOf(a.kind) - CHANNEL_ORDER.indexOf(b.kind) ||
@@ -277,7 +294,13 @@ export const setupChannels = mutation({
     electricity('gridImport')
     if (args.export) electricity('gridExport')
     if (args.gas) meters.push({ kind: 'gas', unit: 'm3' })
+    // A meter retired because a source measures it keeps its readings.
+    const retired = await ctx.db
+      .query('energyChannels')
+      .withIndex('by_source', (q) => q.eq('sourceId', sourceId))
+      .collect()
     for (const meter of meters) {
+      if (retired.some((each) => energyChannelsOverlap(each, meter))) continue
       await ctx.db.insert('energyChannels', {
         groupId: group._id,
         siteId: site._id,
@@ -285,6 +308,8 @@ export const setupChannels = mutation({
         ...meter,
       })
     }
+    // Never active next to a connected channel of the same meter (APP-495).
+    await reconcileManualChannels(ctx, site._id)
     return null
   },
 })

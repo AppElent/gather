@@ -586,7 +586,16 @@ describe('the hourly sync', () => {
         },
       ],
     }
-    expect(await t.mutation(internal.energySources.storeIntervals, write)).toBe(false)
+    // A channel that got another sensor is left out; another address stops it.
+    const before = await rows(t, 'energyIntervals')
+    expect(await t.mutation(internal.energySources.storeIntervals, write)).toBe(true)
+    expect(
+      await t.mutation(internal.energySources.storeIntervals, {
+        ...write,
+        baseUrl: 'https://old.example.com',
+      }),
+    ).toBe(false)
+    expect(await rows(t, 'energyIntervals')).toEqual(before)
     await t.mutation(internal.energySources.finishSync, {
       sourceId,
       baseUrl: ADDRESS,
@@ -756,6 +765,78 @@ describe('never counting one meter twice', () => {
     expect(day('2026-11-14')).toBeCloseTo(20)
     expect(day('2026-11-15')).toBeCloseTo(2.4)
     expect(day('2026-11-16')).toBeCloseTo(2.4)
+  })
+
+  const SETUP = {
+    ...HOME,
+    split: true,
+    export: false,
+    gas: true,
+    sourceLabel: 'Meterstanden',
+  }
+  const activeTyped = async (seeded: Seeded) => {
+    const sources = await rows(seeded.t, 'energySources')
+    const manual = sources.find((each) => each.kind === 'manual')?._id
+    return (await rows(seeded.t, 'energyChannels'))
+      .filter((each) => each.sourceId === manual && each.retiredAt === undefined)
+      .map((each) => each.kind)
+  }
+
+  test('meter setup adds no second meter next to a connected one', async () => {
+    const seeded = await seed()
+    await connect(seeded, [IMPORT])
+    const form = () =>
+      seeded.as.query(api.energyReadings.form, { ...HOME, day: '2026-11-20' })
+    expect((await form())?.measured).toEqual(['gridImport'])
+    await seeded.as.mutation(api.energyReadings.setupChannels, SETUP)
+    expect(await activeTyped(seeded)).toEqual(['gas'])
+    // The meter it left out is asked for once nothing measures it.
+    await seeded.as.mutation(api.energySources.disconnect, HOME)
+    expect(await activeTyped(seeded)).toEqual(['gridImport', 'gridImport', 'gas'])
+    expect((await form())?.measured).toEqual([])
+  })
+
+  test('setup while every meter is measured adds none, and keeps the readings', async () => {
+    const seeded = await withMeters()
+    await connect(seeded, [
+      IMPORT,
+      GAS,
+      { kind: 'gridExport', statisticId: 'sensor.p1_export_tariff_1' },
+    ])
+    const before = await rows(seeded.t, 'energyChannels')
+    expect(await activeTyped(seeded)).toEqual([])
+    await seeded.as.mutation(api.energyReadings.setupChannels, SETUP)
+    expect(await rows(seeded.t, 'energyChannels')).toEqual(before)
+  })
+
+  test('a day Home Assistant missed takes nothing from typed readings', async () => {
+    const seeded = await withMeters()
+    await connect(seeded, [IMPORT])
+    await seeded.t.run(async (ctx) => {
+      const channel = (await ctx.db.query('energyChannels').collect()).find(
+        (each) => each.externalRef === IMPORT.statisticId,
+      )
+      if (!channel) throw new Error('expected a channel')
+      // Off from Saturday the 14th to Monday the 16th, 10:00.
+      for (const [day, amount] of [
+        [14, 1],
+        [16, 48],
+      ] as const) {
+        await ctx.db.insert('energyIntervals', {
+          groupId: seeded.homeId,
+          channelId: channel._id,
+          hourStart: Date.UTC(2026, 10, day, 9),
+          amount,
+          estimated: false,
+        })
+      }
+    })
+    const days = (await month(seeded.as))?.days ?? []
+    const day = (name: string) => days.find((each) => each.day === name)
+    expect(day('2026-11-13')?.importKwh).toBeCloseTo(20)
+    expect(day('2026-11-15')?.hasData).toBe(false)
+    expect(day('2026-11-16')?.importKwh).toBeCloseTo(48)
+    expect(day('2026-11-17')?.importKwh).toBeCloseTo(20)
   })
 
   test('a total next to split counters counts once', async () => {

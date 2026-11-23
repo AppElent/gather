@@ -403,7 +403,7 @@ export const syncSource = internalAction({
       // the next hourly sync starts again from the last stored hour.
       const problem =
         error instanceof HomeAssistantError ? error.problem : 'syncFailed'
-      await finish(problem)
+      // The retry first: recording the problem is a write that can fail too.
       const attempt = args.attempt ?? 0
       if (
         problem !== 'badToken' &&
@@ -416,6 +416,7 @@ export const syncSource = internalAction({
           { ...args, attempt: attempt + 1 },
         )
       }
+      await finish(problem)
       if (!(error instanceof HomeAssistantError)) throw error
     } finally {
       client?.close()

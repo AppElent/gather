@@ -157,6 +157,25 @@ describe('EnergyConnectPage', () => {
     ])
   })
 
+  test('a channel whose sensor is gone can be switched off, not on again', async () => {
+    const [grid, gas] = tested.proposals
+    state.tested = {
+      ...tested,
+      proposals: [grid, { ...gas, available: false, existing: true, on: true }],
+    }
+    renderInGroup(<EnergyConnectPage />)
+    await testConnection()
+    const gone = () => screen.getAllByRole('switch')[1]
+    expect(gone()).toBeEnabled()
+    fireEvent.click(gone())
+    expect(gone()).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }))
+    await waitFor(() => expect(state.navigate).toHaveBeenCalled())
+    expect(callsTo('energyHomeAssistant:connect')).toMatchObject([
+      { channels: [{ kind: 'gridImport' }] },
+    ])
+  })
+
   test('changing the address asks for a new test', async () => {
     renderInGroup(<EnergyConnectPage />)
     await testConnection()

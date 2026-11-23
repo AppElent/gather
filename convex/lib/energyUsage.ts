@@ -7,7 +7,8 @@
  *
  * A channel of a manual source counts from its readings, spread over days
  * and marked estimated; any other channel counts from its intervals. A typed
- * meter never adds to a day on which an hourly channel measured the same thing.
+ * meter never adds to a day between the first and the last hour an hourly channel
+ * measured of the same thing: hours missed in between are in the next one it has.
  */
 import { addDays } from '@gather/core/civil-date'
 import {
@@ -18,6 +19,7 @@ import {
   type EnergyContractTerms,
   type EnergyCost,
   type EnergyDayUse,
+  energyChannelsOverlap,
   energyContractOn,
   energyDayCost,
   energyNetMetering,
@@ -295,27 +297,40 @@ function average(slots: readonly PriceSlot[], from: number, to: number) {
 }
 
 /**
- * What hourly sources measured, per kind: the hours a split meter's counters
- * cover, and per day the tariffs counted (`undefined` is every tariff).
+ * The days an hourly channel measured, from its first stored hour to its last.
+ * Home Assistant adds the hours it missed to the next one it has, so a day
+ * without rows in between is counted too (APP-495).
  */
-function measuredHours(
+async function measuredSpan(ctx: QueryCtx, channelId: Id<'energyChannels'>) {
+  const hours = () =>
+    ctx.db
+      .query('energyIntervals')
+      .withIndex('by_channel_hour', (q) => q.eq('channelId', channelId))
+  const [first, last] = await Promise.all([
+    hours().order('asc').first(),
+    hours().order('desc').first(),
+  ])
+  if (!first || !last) return null
+  return {
+    from: amsterdamDayOf(first.hourStart),
+    to: amsterdamDayOf(last.hourStart),
+  }
+}
+
+/** The hours each kind's split (tariff) counters cover. */
+function splitHours(
   hourly: readonly {
     channel: Doc<'energyChannels'>
     intervals: readonly Doc<'energyIntervals'>[]
   }[],
 ) {
   const split = new Set<string>()
-  const days = new Map<string, (Doc<'energyChannels'>['tariff'] | undefined)[]>()
   for (const { channel, intervals } of hourly) {
     for (const { hourStart } of intervals) {
       if (channel.tariff) split.add(`${channel.kind}:${hourStart}`)
-      const key = `${channel.kind}:${amsterdamDayOf(hourStart)}`
-      const tariffs = days.get(key)
-      if (!tariffs) days.set(key, [channel.tariff])
-      else if (!tariffs.includes(channel.tariff)) tariffs.push(channel.tariff)
     }
   }
-  return { split, days }
+  return split
 }
 
 export interface EnergyRange {
@@ -371,13 +386,13 @@ export async function computeEnergyRange(
           .collect(),
       })),
   )
-  const measured = measuredHours(hourly)
+  const split = splitHours(hourly)
   for (const { channel, intervals } of hourly) {
     for (const interval of intervals) {
       // A counter of every tariff next to the split ones it adds up.
       if (
         !channel.tariff &&
-        measured.split.has(`${channel.kind}:${interval.hourStart}`)
+        split.has(`${channel.kind}:${interval.hourStart}`)
       ) {
         continue
       }
@@ -394,6 +409,19 @@ export async function computeEnergyRange(
     }
   }
 
+  const spans: {
+    channel: Doc<'energyChannels'>
+    from: string
+    to: string
+  }[] = []
+  if (channels.some((each) => each.manual)) {
+    await Promise.all(
+      hourly.map(async ({ channel }) => {
+        const span = await measuredSpan(ctx, channel._id)
+        if (span) spans.push({ channel, ...span })
+      }),
+    )
+  }
   for (const { channel, manual } of channels) {
     if (!manual || channel.kind === 'batterySoc') continue
     const [before, inside, after] = await Promise.all([
@@ -427,11 +455,14 @@ export async function computeEnergyRange(
       const day = days[index] as string
       const bucket = dayBuckets.get(day)
       if (amount === null || !bucket) return
-      // The same meter, already counted from its hours that day.
-      const counted = measured.days.get(`${channel.kind}:${day}`)
-      if (counted?.some((tariff) => !tariff || !channel.tariff || tariff === channel.tariff)) {
-        return
-      }
+      // The same meter, already counted from its hours.
+      const counted = spans.some(
+        (each) =>
+          each.from <= day &&
+          day <= each.to &&
+          energyChannelsOverlap(each.channel, channel),
+      )
+      if (counted) return
       addTo(bucket, channel, amount, true)
     })
   }

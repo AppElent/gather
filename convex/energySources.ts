@@ -439,9 +439,9 @@ export const beginSync = internalMutation({
 
 /**
  * Store hourly amounts: one row per channel and hour, whatever is stored
- * again. Answers false when the connection changed meanwhile, so a running
- * sync stops instead of writing one sensor's hours into another's channel,
- * or rows into a Group that is gone.
+ * again. A channel edited meanwhile is left out, so one sensor's hours never
+ * land in another's channel. Answers false when the connection is gone or
+ * changed, so a running sync stops.
  */
 export const storeIntervals = internalMutation({
   args: {
@@ -470,7 +470,8 @@ export const storeIntervals = internalMutation({
         channel.externalRef !== batch.statisticId ||
         channel.retiredAt !== undefined
       ) {
-        return false
+        // Edited meanwhile: the other channels carry on.
+        continue
       }
       const stored = await ctx.db
         .query('energyIntervals')

@@ -183,8 +183,8 @@ export interface HaProposal {
   fromDashboard: boolean
 }
 
-const T1 = /(?:^|[._-])(?:tariff|tarief|t)[_-]?1(?:[._-]|$)|(?:^|[._-])(?:low|laag|dal|off_?peak)(?:[._-]|$)/i
-const T2 = /(?:^|[._-])(?:tariff|tarief|t)[_-]?2(?:[._-]|$)|(?:^|[._-])(?:high|hoog|normaal|normal|peak)(?:[._-]|$)/i
+const T1 = /(?:^|[._-])(?:tariff?|tarief|t)[_-]?1(?:[._-]|$)|(?:^|[._-])(?:low|laag|dal|off_?peak)(?:[._-]|$)/i
+const T2 = /(?:^|[._-])(?:tariff?|tarief|t)[_-]?2(?:[._-]|$)|(?:^|[._-])(?:high|hoog|normaal|normal|peak)(?:[._-]|$)/i
 
 function tariffOf(id: string): EnergyTariff | undefined {
   if (T1.test(id)) return 't1'

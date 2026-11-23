@@ -116,6 +116,9 @@ export const energy = {
     save: 'Save',
     saving: 'Saving…',
     saved: 'Readings saved.',
+    measuredTitle: 'Nothing to type here',
+    measuredBody:
+      'Home Assistant measures your electricity. Readings typed earlier are kept.',
     setupTitle: 'Which meters do you read?',
     setupBody:
       'Gather asks for one reading per meter. You can add a meter later under Sources.',

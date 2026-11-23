@@ -134,6 +134,22 @@ test('a test shows the version and a switch per channel, a supplied one off', as
   view.unmount()
 })
 
+test('a channel whose sensor is gone can be switched off, not on again', async () => {
+  const [grid, gas] = tested.proposals
+  energyState.actions['energyHomeAssistant:test'] = {
+    ...tested,
+    proposals: [grid, { ...gas, available: false, existing: true, on: true }],
+  }
+  const view = mount(createElement(EnergyConnectScreen))
+  await testConnection()
+  expect(switchOf(1)?.disabled).toBe(false)
+  switchOf(1)?.click()
+  await settle()
+  expect(switchOf(1)?.checked).toBe(false)
+  expect(switchOf(1)?.disabled).toBe(true)
+  view.unmount()
+})
+
 test('another sensor is picked from those that fit, and Connect sends what is on', async () => {
   const view = mount(createElement(EnergyConnectScreen))
   await testConnection()
