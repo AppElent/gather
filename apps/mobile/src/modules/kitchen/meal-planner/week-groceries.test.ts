@@ -238,7 +238,7 @@ describe('a line being read when the person ticks it (APP-423)', () => {
     const rows = tacos(answered, touched)
     // Shakshuka’s Koriander stays its own item row; Tacos’ is a row of its own.
     expect(rows.filter((l) => l.text === 'Koriander').map((l) => [l.key, l.detail])).toEqual([
-      ['item:koriander:0', 'Shakshuka 24'],
+      ['item:koriander:count', 'Shakshuka 24'],
       ['item:koriander:do:1', 'Tacos 26'],
     ])
     const { rows: shown, lines: adding } = pickRows({ lines: rows, items: [], ticks })
@@ -275,13 +275,13 @@ describe('a line being read when the person ticks it (APP-423)', () => {
     expect(adding).toEqual(expect.not.arrayContaining([expect.objectContaining({ title: 'Koriander' })]))
   })
 
-  test('a touched line leaving the combine does not shift the other rows’ keys (APP-590)', () => {
-    const lines2 = new Map(lines)
+  test('a row keeps its key when another line of that item is read or kept apart (APP-590)', () => {
     // Two Koriander lines whose units do not add up: two rows of one item.
-    lines2.set('shakshuka', [read('0', 'Koriander', 1)])
-    lines2.set('tacos', [read('0', 'Koriander', 10, 'g')])
-    const keys = (touched: ReadonlySet<string>) =>
-      weekGroceryLines({
+    const keys = (shakshuka: SourceLine, touched: ReadonlySet<string> = new Set()) => {
+      const lines2 = new Map(lines)
+      lines2.set('shakshuka', [shakshuka])
+      lines2.set('tacos', [read('0', 'Koriander', 10, 'g')])
+      return weekGroceryLines({
         meals: [
           { meal: week[1], servings: 4 },
           { meal: week[3], servings: 4 },
@@ -293,14 +293,19 @@ describe('a line being read when the person ticks it (APP-423)', () => {
       })
         .lines.filter((l) => l.text === 'Koriander')
         .map((l) => [l.key, l.detail])
-    expect(keys(new Set())).toEqual([
-      ['item:koriander:0', 'Shakshuka 24'],
-      ['item:koriander:1', 'Tacos 26'],
+    }
+    const reading: SourceLine = { key: '0', text: 'wat koriander', read: { kind: 'reading' } }
+    const answered = read('0', 'Koriander', 1)
+    // Shakshuka's line is still being read: Tacos' row is the only one.
+    expect(keys(reading)).toEqual([['item:koriander:mass', 'Tacos 26']])
+    // Read and joined, ahead of Tacos: Tacos' row keeps its key.
+    expect(keys(answered)).toEqual([
+      ['item:koriander:count', 'Shakshuka 24'],
+      ['item:koriander:mass', 'Tacos 26'],
     ])
-    // Shakshuka's line was touched while it was being read: Tacos' row keeps
-    // its key, so a tick on it stays on it.
-    expect(keys(new Set(['di:0']))).toEqual([
-      ['item:koriander:1', 'Tacos 26'],
+    // Read after the person touched it: it stays apart, Tacos' key holds too.
+    expect(keys(answered, new Set(['di:0']))).toEqual([
+      ['item:koriander:mass', 'Tacos 26'],
       ['item:koriander:di:0', 'Shakshuka 24'],
     ])
   })

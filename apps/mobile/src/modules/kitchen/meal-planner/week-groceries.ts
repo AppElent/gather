@@ -10,6 +10,7 @@ import { addDays } from '@gather/core/civil-date'
 import {
   combineGroceryLines,
   type GroceryAddLine,
+  type GroceryUnit,
   groceryKey,
   scaleGroceryQuantity,
 } from '@gather/core/groceries'
@@ -165,22 +166,18 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
     }
   })
 
-  // Stable while the days change, so a row keeps its tick: the item's name,
-  // and which of the lines with that name it is, counted as if nothing were
-  // touched, so a line leaving the combine does not shift the others' keys
-  // (APP-590).
-  const keyOf = itemKeys(read.map((entry) => entry.line))
-  const joiningAt = read.flatMap((entry, index) =>
-    input.touched?.has(entry.unreadKey) ? [] : [index],
-  )
   const used = new Set<string>()
   const combined = combineGroceryLines(joining.map((entry) => entry.line)).map(
     (line): SourceLine => {
       const from = line.from.map((index) => joining[index])
       const meals = [...new Map(from.map(({ meal }) => [meal._id, meal])).values()]
-      let key = keyOf[joiningAt[line.from[0]]]
-      // Two rows of one item (units that do not add up, split by a touch).
-      for (let n = 1; used.has(key); n++) key = `${keyOf[joiningAt[line.from[0]]]}~${n}`
+      // Stable while the days change, a line is read, or a touched line
+      // stays apart, so a row keeps its tick: the item's name and the measure
+      // its amount is in. Lines of one name and measure always combine, so
+      // no other line of that name can shift it (APP-590).
+      const base = `item:${groceryKey(line.title) || line.title}:${measureOf(line.unit)}`
+      let key = base
+      for (let n = 1; used.has(key); n++) key = `${base}:${n}`
       used.add(key)
       const readAs: LineRead = {
         kind: 'read',
@@ -204,19 +201,14 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
 }
 
 /**
- * Each line's row key when every line joins: `item:<name>:<n>`, the n-th line
- * of that name `combineGroceryLines` makes, by the index of the lines given.
+ * The measure an amount is in, for a row key: lines of one name in the same
+ * measure add up (`addGroceryAmounts`), so it tells an item's rows apart.
  */
-function itemKeys(lines: readonly GroceryAddLine[]): string[] {
-  const keys: string[] = []
-  const seen = new Map<string, number>()
-  for (const line of combineGroceryLines(lines)) {
-    const name = groceryKey(line.title) || line.title
-    const nth = seen.get(name) ?? 0
-    seen.set(name, nth + 1)
-    for (const index of line.from) keys[index] = `item:${name}:${nth}`
-  }
-  return keys
+function measureOf(unit: GroceryUnit | undefined): string {
+  if (unit === undefined || unit === 'stuks') return 'count'
+  if (unit === 'g' || unit === 'kg') return 'mass'
+  if (unit === 'ml' || unit === 'cl' || unit === 'dl' || unit === 'l') return 'volume'
+  return unit
 }
 
 type Via = Extract<LineRead, { kind: 'read' }>['via']
