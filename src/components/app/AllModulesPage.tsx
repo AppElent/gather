@@ -36,9 +36,9 @@ function ModuleFace({
   return (
     <Link
       {...moduleLink(module)}
-      className="grid min-w-0 grid-cols-[28px_minmax(0,1fr)] items-center gap-2 text-sm font-semibold text-[var(--app-fg)] no-underline"
+      className="grid min-w-0 grid-cols-[28px_minmax(0,1fr)] items-center gap-2 text-sm font-semibold text-[var(--ink)] no-underline"
     >
-      <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
+      <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--hair)] bg-[var(--surface)] text-[var(--muted)]">
         <Icon name={module.icon} className="h-4 w-4" />
       </span>
       <span className="truncate">{moduleText(module, messages).label}</span>
@@ -47,10 +47,10 @@ function ModuleFace({
 }
 
 const ROW =
-  'flex flex-wrap items-center justify-between gap-2 border-t border-[var(--app-border)] py-2 first:border-t-0 first:pt-0'
+  'flex flex-wrap items-center justify-between gap-2 border-t border-[var(--hair)] py-2 first:border-t-0 first:pt-0'
 
 const BUTTON =
-  'inline-flex min-h-8 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-2 text-xs font-semibold text-[var(--app-fg)] disabled:opacity-40'
+  'inline-flex min-h-8 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-2 text-xs font-semibold text-[var(--ink)] disabled:opacity-40'
 
 export function AllModulesPage() {
   const { slug: groupSlug } = useRequiredCurrentGroup()
@@ -115,8 +115,8 @@ export function AllModulesPage() {
   return (
     <div className="mx-auto grid max-w-4xl gap-4">
       <header>
-        <h1 className="m-0 text-2xl font-semibold">{allModules.title}</h1>
-        <p className="mt-1 mb-0 text-sm leading-6 text-[var(--app-muted)]">
+        <h1 className="m-0 text-2xl font-bold">{allModules.title}</h1>
+        <p className="mt-1 mb-0 text-sm leading-6 text-[var(--muted)]">
           {allModules.intro}
         </p>
       </header>
@@ -129,7 +129,7 @@ export function AllModulesPage() {
           {announcement}
         </p>
         {pinned.length === 0 ? (
-          <p className="m-0 text-sm text-[var(--app-muted)]">
+          <p className="m-0 text-sm text-[var(--muted)]">
             {loaded ? allModules.nothingPinned : loading}
           </p>
         ) : (

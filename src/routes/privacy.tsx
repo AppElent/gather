@@ -24,7 +24,7 @@ export function PrivacyPage() {
       title={copy.title}
       subtitle={copy.intro.body.who}
     >
-      <article className="grid gap-6 text-sm leading-6 text-[var(--app-muted)]">
+      <article className="grid gap-6 text-sm leading-6 text-[var(--muted)]">
         <p className="m-0">{copy.intro.body.contact}</p>
         <Section title={copy.collect.title}>
           <List items={copy.collect.items} />
@@ -72,7 +72,7 @@ function Section({
 }) {
   return (
     <section id={id} className="grid scroll-mt-6 gap-2">
-      <h2 className="m-0 text-base font-semibold text-[var(--app-fg)]">
+      <h2 className="m-0 text-base font-semibold text-[var(--ink)]">
         {title}
       </h2>
       {children}

@@ -35,12 +35,38 @@ Designers and coding agents start from it; product decisions below still bind th
 
 ## Web
 
-A sea/lagoon palette (`--sea-ink`, `--lagoon`, light and dark) defined in
-`src/styles.css`, with `.demo-panel`/`.demo-card` as the card surface. The same
-file overrides the `--auth-*` tokens from `src/lib/auth/tokens.css` to that
-palette and supplies `.rm-panel`/`.rm-label`, which `src/lib/auth/`'s
-`ProfilePanel` and `AppearanceSettings` use, styled to match `.demo-panel` and
-`.demo-section-title`. Shell components live in
+The web wears the phone's tokens (Tiles & Today, APP-636). `src/styles.css`
+declares them as custom properties for light and dark (`[data-theme]` and
+`prefers-color-scheme`):
+
+- Neutrals `--ground`, `--surface`, `--surface-2`, `--ink`, `--muted`,
+  `--hair`, `--hair-strong`, `--danger`, `--on-ink`, equal to
+  `apps/mobile/src/theme/palette.ts`.
+- Per group (`kitchen`, `home`, `tasting`, `money`) `--<group>-fill`, `-on`,
+  `-text` and `-wash`, equal to `@gather/core/module-tints`.
+- `--accent`, `--on-accent` and `--accent-text`: ink outside a Module, the
+  group's `fill`, `on` and `text` inside one. The shell sets `data-group` on a
+  Module's `<main>`. A neutral action uses `ink`/`on-ink`, a Module's primary
+  action its `--accent`/`--on-accent`. Links take `--accent-text`. Group
+  colour never goes on navigation, rows or selection.
+- Type: `--font-rounded` (`font-rounded`; `ui-rounded`, SF Pro Rounded,
+  Nunito) at 700 for titles and numerals, the system stack for text; body 16px,
+  subhead 15, footnote 13. No web font is loaded.
+- Shape: `--radius-card` 22px, tiles 20/28/36/56px with radii 6/9/11/17,
+  `--radius-pill`, `--radius-control` 12px for fields and square controls;
+  `--size-row-min` 52px, `--size-control-min` 44px. No shadows or gradients on
+  content.
+
+`src/styles.test.ts` fails when a colour drifts from the phone, when a retired
+token (the sea/lagoon palette, `--app-*`, Fraunces, Manrope, gradients) comes
+back, or when text or an edge drops below its contrast. Components use these
+tokens, never a Tailwind palette colour or a hex (photo overlays, scrims, a
+switch knob, brand marks and the barcode's white card excepted). The look is
+shared now; ADR-0017's rule that the clients share their words still holds.
+
+The same file maps the `--auth-*` tokens from `src/lib/auth/tokens.css` onto
+these and supplies `.rm-panel`/`.rm-label`, which `src/lib/auth/`'s
+`ProfilePanel` and `AppearanceSettings` use as a card. Shell components live in
 `src/components/app/`; destructive actions confirm through `ConfirmAction`,
 and every modal takes its focus handling (initial focus, Tab trap, Escape,
 return to opener) from `useModalFocus`. Kitchen form fields take their class
@@ -63,4 +89,5 @@ gather's component, address helper and trail examples are in
 ## Native
 
 Read [gather's mobile design system](apps/mobile/DESIGN_SYSTEM.md). The phone
-owns its look and shares its words with the web ([ADR-0017](docs/adr/0017-the-phone-owns-its-look-and-shares-its-words.md)).
+owns its look and shares its words with the web ([ADR-0017](docs/adr/0017-the-phone-owns-its-look-and-shares-its-words.md));
+the web now takes that look's tokens (see [Web](#web)).

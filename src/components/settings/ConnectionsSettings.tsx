@@ -13,7 +13,7 @@ import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
 
 const buttonClass =
-  'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold'
+  'inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold'
 
 export interface ConnectionsSettingsProps {
   /** The Group these connections belong to. */
@@ -58,23 +58,23 @@ export function ConnectionsSettings({
       <h2 className="m-0 mb-1 text-base font-semibold">
         {connectionsText.title}
       </h2>
-      <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
+      <p className="m-0 mb-3 text-sm text-[var(--muted)]">
         {fmt(connectionsText.intro, { group: groupName })}
       </p>
-      {error && <p className="m-0 mb-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="m-0 mb-2 text-sm text-[var(--danger)]">{error}</p>}
       <ul className="m-0 grid list-none gap-2 p-0">
         {EXTERNAL_PROVIDER_IDS.map((provider) => {
           const conn = connections?.find((c) => c.provider === provider)
           return (
             <li
               key={provider}
-              className="flex items-center justify-between gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2"
+              className="flex items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--hair)] px-3 py-2"
             >
               <div>
                 <span className="text-sm font-semibold">
                   {PROVIDER_LABELS[provider]}
                 </span>
-                <p className="m-0 text-xs text-[var(--app-muted)]">
+                <p className="m-0 text-xs text-[var(--muted)]">
                   {conn
                     ? fmt(connectionsText.connectedBy, {
                         account: conn.accountLabel,

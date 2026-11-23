@@ -16,7 +16,7 @@ export interface TaskEditorProps {
 }
 
 const inputClass =
-  'min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm'
+  'min-h-9 rounded-[var(--radius-control)] border border-[var(--hair)] bg-transparent px-2 text-sm'
 
 export function TaskEditor({
   initial,
@@ -89,14 +89,14 @@ export function TaskEditor({
       <div className="flex gap-2">
         <button
           type="submit"
-          className="min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
+          className="min-h-9 rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold"
         >
           {submitLabel}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="min-h-9 px-2 text-sm text-[var(--app-muted)]"
+          className="min-h-9 px-2 text-sm text-[var(--muted)]"
         >
           {messages.common.actions.cancel}
         </button>

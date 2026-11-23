@@ -93,14 +93,14 @@ export function SignedInDevices() {
         <h2 id="signed-in-devices-title" className="rm-label">
           {words.title}
         </h2>
-        <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
+        <p className="m-0 mb-3 text-sm text-[var(--muted)]">
           {words.description}
         </p>
 
         {failed ? (
           <p
             role="alert"
-            className="m-0 mb-3 rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 py-2 text-sm text-[var(--app-danger)]"
+            className="m-0 mb-3 rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 py-2 text-sm text-[var(--danger)]"
           >
             {words.failed}
           </p>
@@ -108,12 +108,12 @@ export function SignedInDevices() {
 
         {rows === null ? (
           failed ? null : (
-            <p className="m-0 text-sm text-[var(--app-muted)]">
+            <p className="m-0 text-sm text-[var(--muted)]">
               {messages.common.errors.loading}
             </p>
           )
         ) : (
-          <ul className="m-0 list-none divide-y divide-[var(--app-border)] rounded-[var(--app-radius)] border border-[var(--app-border)] p-0">
+          <ul className="m-0 list-none divide-y divide-[var(--hair)] rounded-[var(--radius-control)] border border-[var(--hair)] p-0">
             {rows.map((row) => (
               <li
                 key={row.id}
@@ -123,7 +123,7 @@ export function SignedInDevices() {
                   <span className="text-sm font-semibold">
                     {row.current ? words.thisDevice : row.device}
                   </span>
-                  <span className="text-xs text-[var(--app-muted)]">
+                  <span className="text-xs text-[var(--muted)]">
                     {[
                       row.where,
                       fmt(words.lastActive, {
@@ -143,7 +143,7 @@ export function SignedInDevices() {
                     data-testid={`account-revoke-${row.id}`}
                     aria-label={fmt(words.revokeTitle, { device: row.device })}
                     onClick={() => ask(row)}
-                    className="inline-flex min-h-9 shrink-0 items-center rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 text-sm font-semibold text-[var(--app-danger)]"
+                    className="inline-flex min-h-9 shrink-0 items-center rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 text-sm font-semibold text-[var(--danger)]"
                   >
                     {words.signOutOf}
                   </button>

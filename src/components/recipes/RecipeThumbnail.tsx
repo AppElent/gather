@@ -20,7 +20,7 @@ export function RecipeThumbnail({
   return (
     <span
       aria-hidden="true"
-      className={`flex items-center justify-center overflow-hidden rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-bg)] ${className}`}
+      className={`flex items-center justify-center overflow-hidden rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--ground)] ${className}`}
     >
       {src ? (
         <img

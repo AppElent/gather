@@ -4,7 +4,7 @@ export function ErrorNotice({ message }: { message: string | null }) {
   return (
     <p
       role="alert"
-      className="m-0 rounded-[var(--app-radius)] border border-[var(--app-danger)] px-3 py-2 text-sm text-[var(--app-danger)]"
+      className="m-0 rounded-[var(--radius-control)] border border-[var(--danger)] px-3 py-2 text-sm text-[var(--danger)]"
     >
       {message}
     </p>

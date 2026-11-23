@@ -14,7 +14,7 @@ export function NutritionPanel({ nutrition, unitLabel, source }: Props) {
   const present = NUTRIENT_KEYS.filter((key) => nutrition[key] !== undefined)
   if (present.length === 0) return null
   return (
-    <section className="mb-4 rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
+    <section className="mb-4 rounded-[var(--radius-control)] border border-[var(--hair)] p-3">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-medium">
           {messages.recipes.detail.nutrition}{' '}
@@ -23,7 +23,7 @@ export function NutritionPanel({ nutrition, unitLabel, source }: Props) {
           )}
         </h2>
         {source && (
-          <span className="rounded-full border border-[var(--app-border)] px-2 py-0.5 text-xs opacity-70">
+          <span className="rounded-full border border-[var(--hair)] px-2 py-0.5 text-xs opacity-70">
             {nutrients.sources[source]}
           </span>
         )}

@@ -33,7 +33,7 @@ export function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
           aria-checked={mode === optionMode}
           aria-label={viewMode[optionMode]}
           onClick={() => onChange(optionMode)}
-          className={`rounded-md p-1.5 ${mode === optionMode ? 'bg-black/10 dark:bg-white/20' : ''}`}
+          className={`rounded-md p-1.5 ${mode === optionMode ? 'bg-[var(--surface-2)]' : ''}`}
         >
           <Icon className="h-4 w-4" />
         </button>

@@ -13,10 +13,10 @@ import { linkTo } from '../../lib/links'
 export const Route = createFileRoute('/_app/groups')({ component: GroupsPage })
 
 const BUTTON =
-  'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold'
+  'inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold'
 
 const INPUT =
-  'min-h-9 w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-3 text-sm'
+  'min-h-9 w-full rounded-[var(--radius-control)] border border-[var(--hair)] bg-transparent px-3 text-sm'
 
 /**
  * Every Group you are in, and the two ways to end up in another one.
@@ -41,8 +41,8 @@ function GroupsPage() {
   return (
     <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-4">
       <header>
-        <h1 className="m-0 text-2xl font-semibold">{text.title}</h1>
-        <p className="mt-1 mb-0 text-sm leading-6 text-[var(--app-muted)]">
+        <h1 className="m-0 text-2xl font-bold">{text.title}</h1>
+        <p className="mt-1 mb-0 text-sm leading-6 text-[var(--muted)]">
           {text.intro}
         </p>
       </header>
@@ -50,14 +50,14 @@ function GroupsPage() {
       {error && (
         <p
           role="alert"
-          className="m-0 rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 py-2 text-sm text-[var(--app-danger)]"
+          className="m-0 rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 py-2 text-sm text-[var(--danger)]"
         >
           {error}
         </p>
       )}
 
       {groups === undefined ? (
-        <div className="h-24 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]" />
+        <div className="h-24 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]" />
       ) : (
         <SurfaceCard ariaLabel={text.yours}>
           <ul className="m-0 grid list-none gap-1 p-0">
@@ -69,7 +69,7 @@ function GroupsPage() {
                 <Link
                   {...linkTo('groupSettings')}
                   onClick={() => setCurrentGroup(g._id)}
-                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-[var(--app-radius)] px-2 py-2 text-sm font-semibold text-[var(--app-fg)] no-underline hover:bg-[var(--app-surface-muted)]"
+                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-[var(--radius-control)] px-2 py-2 text-sm font-semibold text-[var(--ink)] no-underline hover:bg-[var(--surface-2)]"
                 >
                   {/* A Group's name is somebody else's input and can be one long
                       word; `minmax(0,1fr)` above is what lets it truncate
@@ -82,7 +82,7 @@ function GroupsPage() {
                         className="h-7 w-7 shrink-0 rounded-[7px] object-cover"
                       />
                     ) : (
-                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px] bg-[var(--app-surface-muted)]">
+                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px] bg-[var(--surface-2)]">
                         {g.icon ? (
                           <Icon name={g.icon} className="h-4 w-4" />
                         ) : (
@@ -93,7 +93,7 @@ function GroupsPage() {
                     <span className="truncate">{g.name}</span>
                   </span>
                   <ChevronRight
-                    className="h-4 w-4 shrink-0 text-[var(--app-muted)]"
+                    className="h-4 w-4 shrink-0 text-[var(--muted)]"
                     aria-hidden="true"
                   />
                 </Link>
@@ -123,7 +123,7 @@ function GroupsPage() {
             }}
           >
             <h2 className="m-0 text-base font-semibold">{text.createTitle}</h2>
-            <p className="m-0 text-sm text-[var(--app-muted)]">
+            <p className="m-0 text-sm text-[var(--muted)]">
               {text.createBody}
             </p>
             <input
@@ -158,7 +158,7 @@ function GroupsPage() {
             }}
           >
             <h2 className="m-0 text-base font-semibold">{text.joinTitle}</h2>
-            <p className="m-0 text-sm text-[var(--app-muted)]">
+            <p className="m-0 text-sm text-[var(--muted)]">
               {text.joinBody}
             </p>
             <input

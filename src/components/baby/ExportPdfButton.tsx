@@ -15,7 +15,7 @@ export function ExportPdfButton({ onClick }: ExportPdfButtonProps) {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex min-h-9 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold"
+      className="inline-flex min-h-9 items-center gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3 text-sm font-semibold"
     >
       {exportText.button}
     </button>

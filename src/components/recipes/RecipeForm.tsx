@@ -145,7 +145,7 @@ export function RecipeForm({
         />
       </label>
 
-      <fieldset className="rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
+      <fieldset className="rounded-[var(--radius-control)] border border-[var(--hair)] p-3">
         <legend className="px-1 text-sm font-medium">
           {form.nutritionLegend}
         </legend>
@@ -170,7 +170,7 @@ export function RecipeForm({
             <button
               type="button"
               disabled={estimating || lines(ingredients).length === 0}
-              className="rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-[var(--radius-control)] border border-[var(--hair)] px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               onClick={async () => {
                 setEstimating(true)
                 setEstimateError(null)
@@ -194,7 +194,7 @@ export function RecipeForm({
               {estimating ? form.estimating : form.estimate}
             </button>
             {estimateError && (
-              <p className="mt-2 text-sm text-red-800">{estimateError}</p>
+              <p className="mt-2 text-sm text-[var(--danger)]">{estimateError}</p>
             )}
           </div>
         )}
@@ -209,7 +209,7 @@ export function RecipeForm({
         <button
           type="submit"
           disabled={submitting || estimating}
-          className="w-fit rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-4 py-2 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-fit rounded-[var(--radius-control)] border border-[var(--ink)] bg-[var(--ink)] px-4 py-2 text-sm font-semibold text-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? messages.common.actions.saving : form.save}
         </button>

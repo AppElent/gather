@@ -37,7 +37,7 @@ export function RetailerPicker({
       </label>
       <div className="relative">
         <Search
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--app-muted)]"
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]"
           aria-hidden="true"
         />
         <input
@@ -56,14 +56,14 @@ export function RetailerPicker({
       <button
         type="button"
         onClick={onOtherStore}
-        className="flex min-h-14 items-center gap-3 rounded-[var(--app-radius)] border border-dashed border-[var(--app-border)] bg-[var(--app-surface)] p-3 text-left hover:bg-[var(--app-surface-muted)]"
+        className="flex min-h-14 items-center gap-3 rounded-[var(--radius-control)] border border-dashed border-[var(--hair)] bg-[var(--surface)] p-3 text-left hover:bg-[var(--surface-2)]"
       >
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[var(--app-radius)] bg-[var(--app-surface-muted)] text-[var(--app-muted)]">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[var(--radius-control)] bg-[var(--surface-2)] text-[var(--muted)]">
           <Plus className="h-5 w-5" aria-hidden="true" />
         </span>
         <span className="min-w-0">
           <span className="block font-semibold">{copy.otherStore}</span>
-          <span className="block text-sm text-[var(--app-muted)]">
+          <span className="block text-sm text-[var(--muted)]">
             {copy.otherStoreHint}
           </span>
         </span>
@@ -83,25 +83,25 @@ export function RetailerPicker({
           {[0, 1, 2, 3].map((key) => (
             <div
               key={key}
-              className="h-14 animate-pulse rounded-[var(--app-radius)] bg-[var(--app-surface-muted)]"
+              className="h-14 animate-pulse rounded-[var(--radius-control)] bg-[var(--surface-2)]"
             />
           ))}
         </div>
       ) : shown.length === 0 ? (
-        <p className="m-0 text-sm text-[var(--app-muted)]" aria-hidden="true">
+        <p className="m-0 text-sm text-[var(--muted)]" aria-hidden="true">
           {fmt(copy.noMatches, { query })}
         </p>
       ) : (
-        <ul className="m-0 grid list-none overflow-hidden rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-0">
+        <ul className="m-0 grid list-none overflow-hidden rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] p-0">
           {shown.map((retailer) => (
             <li
               key={retailer.seedKey}
-              className="border-b border-[var(--app-border)] last:border-b-0"
+              className="border-b border-[var(--hair)] last:border-b-0"
             >
               <button
                 type="button"
                 onClick={() => onPick(retailer)}
-                className="flex min-h-14 w-full items-center gap-3 p-3 text-left hover:bg-[var(--app-surface-muted)]"
+                className="flex min-h-14 w-full items-center gap-3 p-3 text-left hover:bg-[var(--surface-2)]"
               >
                 <StoreTile
                   name={retailer.name}
@@ -114,7 +114,7 @@ export function RetailerPicker({
                   <span className="block truncate font-semibold">
                     {retailer.name}
                   </span>
-                  <span className="block truncate text-sm text-[var(--app-muted)]">
+                  <span className="block truncate text-sm text-[var(--muted)]">
                     {messages.loyaltyCards.categories[retailer.category]}
                   </span>
                 </span>

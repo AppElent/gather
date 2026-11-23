@@ -25,13 +25,13 @@ export function BabyListPage() {
           <h2 className="m-0 text-2xl font-semibold">
             {messages.modules.byId['baby-log'].label}
           </h2>
-          <p className="mt-1 text-sm text-[var(--app-muted)]">
+          <p className="mt-1 text-sm text-[var(--muted)]">
             {list.subtitle}
           </p>
         </div>
         <Link
           {...linkTo('newChild')}
-          className="inline-flex min-h-9 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold text-[var(--app-fg)] no-underline"
+          className="inline-flex min-h-9 items-center gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--ink)] no-underline"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           {list.addChild}
@@ -43,7 +43,7 @@ export function BabyListPage() {
           {[0, 1].map((i) => (
             <div
               key={i}
-              className="h-24 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]"
+              className="h-24 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]"
             />
           ))}
         </div>
@@ -51,12 +51,12 @@ export function BabyListPage() {
         <SurfaceCard>
           <div className="grid gap-3 text-center">
             <h3 className="m-0 text-base font-semibold">{list.emptyTitle}</h3>
-            <p className="m-0 text-sm text-[var(--app-muted)]">
+            <p className="m-0 text-sm text-[var(--muted)]">
               {list.emptyBody}
             </p>
             <Link
               {...linkTo('newChild')}
-              className="mx-auto inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold no-underline"
+              className="mx-auto inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold no-underline"
             >
               {list.emptyAction}
             </Link>
@@ -79,13 +79,13 @@ export function BabyListPage() {
                       className="h-14 w-14 shrink-0 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="h-14 w-14 shrink-0 rounded-full bg-[var(--app-surface-muted)]" />
+                    <div className="h-14 w-14 shrink-0 rounded-full bg-[var(--surface-2)]" />
                   )}
                   <div className="min-w-0">
-                    <h3 className="m-0 truncate text-base font-semibold text-[var(--app-fg)]">
+                    <h3 className="m-0 truncate text-base font-semibold text-[var(--ink)]">
                       {b.name}
                     </h3>
-                    <p className="m-0 text-sm text-[var(--app-muted)]">
+                    <p className="m-0 text-sm text-[var(--muted)]">
                       {formatAge(b.birthDate, child.age, locale)}
                     </p>
                   </div>

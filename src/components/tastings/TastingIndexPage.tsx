@@ -41,7 +41,7 @@ export function TastingIndexPage({ kind }: { kind: TastingKind }) {
     <button
       type="button"
       aria-label={copy.index.add}
-      className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
+      className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
       onClick={() => setDialogOpen(true)}
     >
       <Plus className="h-4 w-4" aria-hidden="true" />
@@ -53,11 +53,11 @@ export function TastingIndexPage({ kind }: { kind: TastingKind }) {
     <div className="mx-auto grid max-w-4xl gap-4">
       <header className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="m-0 text-2xl font-semibold">
+          <h1 className="m-0 text-2xl font-bold">
             {messages.modules.byId[moduleId].label}
           </h1>
           {subjects ? (
-            <p className="mt-1 text-sm text-[var(--app-muted)]">
+            <p className="mt-1 text-sm text-[var(--muted)]">
               {fmt(copy.index.summary, {
                 subjects: plural(
                   locale,
@@ -77,7 +77,7 @@ export function TastingIndexPage({ kind }: { kind: TastingKind }) {
           {[0, 1, 2].map((key) => (
             <div
               key={key}
-              className="h-20 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]"
+              className="h-20 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]"
             />
           ))}
         </div>
@@ -86,7 +86,7 @@ export function TastingIndexPage({ kind }: { kind: TastingKind }) {
           <h2 className="m-0 text-lg font-semibold">
             {fmt(copy.empty.title, { kind: words.many })}
           </h2>
-          <p className="m-0 max-w-lg text-sm text-[var(--app-muted)]">
+          <p className="m-0 max-w-lg text-sm text-[var(--muted)]">
             {fmt(copy.empty.body, { group: groupName })}
           </p>
           {addButton}
@@ -96,11 +96,11 @@ export function TastingIndexPage({ kind }: { kind: TastingKind }) {
           <label className="relative block">
             <span className="sr-only">{copy.index.search}</span>
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--app-muted)]"
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]"
               aria-hidden="true"
             />
             <input
-              className="min-h-11 w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] pl-10 pr-10"
+              className="min-h-11 w-full rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] pl-10 pr-10"
               type="search"
               placeholder={copy.index.search}
               value={query}
@@ -119,26 +119,26 @@ export function TastingIndexPage({ kind }: { kind: TastingKind }) {
           </label>
           {rows.length === 0 ? (
             <SurfaceCard className="text-center">
-              <p className="m-0 text-sm text-[var(--app-muted)]">
+              <p className="m-0 text-sm text-[var(--muted)]">
                 {copy.index.searchEmpty}
               </p>
             </SurfaceCard>
           ) : (
-            <div className="overflow-hidden rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)]">
+            <div className="overflow-hidden rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)]">
               {rows.map((subject) => (
                 <Link
                   key={subject._id}
                   {...nav.subject(subject._id)}
-                  className="flex min-h-20 items-center gap-3 border-b border-[var(--app-border)] p-3 text-inherit no-underline last:border-b-0 hover:bg-[var(--app-surface-muted)]"
+                  className="flex min-h-20 items-center gap-3 border-b border-[var(--hair)] p-3 text-inherit no-underline last:border-b-0 hover:bg-[var(--surface-2)]"
                 >
                   {subject.photoUrl ? (
                     <img
                       src={subject.photoUrl}
                       alt=""
-                      className="h-12 w-12 rounded-[var(--app-radius)] object-cover"
+                      className="h-12 w-12 rounded-[var(--radius-control)] object-cover"
                     />
                   ) : (
-                    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[var(--app-radius)] bg-[var(--app-surface-muted)] text-[var(--app-muted)]">
+                    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[var(--radius-control)] bg-[var(--surface-2)] text-[var(--muted)]">
                       <Image className="h-5 w-5" aria-hidden="true" />
                     </span>
                   )}
@@ -146,13 +146,13 @@ export function TastingIndexPage({ kind }: { kind: TastingKind }) {
                     <span className="block truncate font-semibold">
                       {subject.name}
                     </span>
-                    <span className="block truncate text-sm text-[var(--app-muted)]">
+                    <span className="block truncate text-sm text-[var(--muted)]">
                       {subjectFacts(messages, kind, subject.attributes)}
                     </span>
                   </span>
                   <span className="shrink-0 text-right">
                     {subject.average === null ? (
-                      <span className="text-xs text-[var(--app-muted)]">
+                      <span className="text-xs text-[var(--muted)]">
                         {copy.index.noScore}
                       </span>
                     ) : (
@@ -160,7 +160,7 @@ export function TastingIndexPage({ kind }: { kind: TastingKind }) {
                         <span className="block font-semibold">
                           {subject.average.toFixed(1)} ★
                         </span>
-                        <span className="block text-xs text-[var(--app-muted)]">
+                        <span className="block text-xs text-[var(--muted)]">
                           {plural(
                             locale,
                             subject.count,

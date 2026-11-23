@@ -10,7 +10,7 @@ import { useMessages } from '../../lib/i18n'
 import { EventIcon } from './EventIcon'
 
 const inputClass =
-  'w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)] disabled:cursor-not-allowed disabled:opacity-60'
+  'w-full rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-60'
 
 export interface BabyFormValues {
   name: string
@@ -99,7 +99,7 @@ export function BabyForm({ initial, submitting, onSubmit }: BabyFormProps) {
       </label>
       <fieldset className="m-0 border-0 p-0">
         <legend className="mb-1 text-sm font-medium">{tracked_.title}</legend>
-        <p className="mt-0 mb-2 text-xs text-[var(--app-muted)]">
+        <p className="mt-0 mb-2 text-xs text-[var(--muted)]">
           {tracked_.keepsEntries}
         </p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -108,10 +108,10 @@ export function BabyForm({ initial, submitting, onSubmit }: BabyFormProps) {
             return (
               <label
                 key={type}
-                className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--app-radius)] border px-2.5 text-sm font-semibold ${
+                className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border px-2.5 text-sm font-semibold ${
                   on
-                    ? 'border-[var(--app-accent)] bg-[var(--app-surface)]'
-                    : 'border-[var(--app-border)] opacity-60'
+                    ? 'border-[var(--ink)] bg-[var(--surface)]'
+                    : 'border-[var(--hair)] opacity-60'
                 }`}
               >
                 <input
@@ -136,7 +136,7 @@ export function BabyForm({ initial, submitting, onSubmit }: BabyFormProps) {
       <button
         type="submit"
         disabled={submitting}
-        className="w-fit rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-4 py-2 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-fit rounded-[var(--radius-control)] border border-[var(--ink)] bg-[var(--ink)] px-4 py-2 text-sm font-semibold text-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting
           ? messages.common.actions.saving

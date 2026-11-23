@@ -16,7 +16,7 @@ export function LandingRedirect() {
   }, [current, groups, navigate])
 
   return (
-    <p className="py-16 text-center text-sm text-[var(--app-muted)]">
+    <p className="py-16 text-center text-sm text-[var(--muted)]">
       Taking you there…
     </p>
   )

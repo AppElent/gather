@@ -44,7 +44,7 @@ export function EditLoyaltyCardPage({ cardId }: { cardId: string }) {
     return (
       <div className="mx-auto max-w-2xl">
         <Breadcrumbs trail={trail} />
-        <p className="text-sm text-[var(--app-muted)]">
+        <p className="text-sm text-[var(--muted)]">
           {card === null
             ? copy.detail.notFound
             : messages.common.errors.loading}
@@ -88,7 +88,7 @@ function EditForm({
         <button
           type="button"
           aria-label={messages.common.actions.delete}
-          className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-danger)] text-[var(--app-danger)] lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
+          className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--danger)] text-[var(--danger)] lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
           onClick={() =>
             confirm({
               title: fmt(copy.deleteTitle, { store: card.storeName }),

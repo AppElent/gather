@@ -96,18 +96,18 @@ export function NotFoundPage() {
       title={notFound.title}
       subtitle={notFound.subtitle}
       actions={
-        <Link to="/sign-in" className="text-[var(--app-muted)] no-underline">
+        <Link to="/sign-in" className="text-[var(--muted)] no-underline">
           {notFound.signIn}
         </Link>
       }
     >
       <div className="grid gap-4">
-        <p className="m-0 text-sm leading-6 text-[var(--app-muted)]">
+        <p className="m-0 text-sm leading-6 text-[var(--muted)]">
           {notFound.body}
         </p>
         <Link
           to="/"
-          className="inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)] no-underline"
+          className="inline-flex min-h-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--ink)] bg-[var(--ink)] px-3 text-sm font-semibold text-[var(--surface)] no-underline"
         >
           {notFound.goHome}
         </Link>
@@ -131,17 +131,17 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         {/* Written here rather than in the route's `head.meta`: two entries
             share the name `theme-color` and the head manager keeps only the
-            last one. The values are `--bg-base` from each scheme in
+            last one. The values are `--ground` from each scheme in
             styles.css, so the browser chrome matches the page behind it. */}
         <meta
           name="theme-color"
           media="(prefers-color-scheme: light)"
-          content="#e7f3ec"
+          content="#f2f3f1"
         />
         <meta
           name="theme-color"
           media="(prefers-color-scheme: dark)"
-          content="#0a1418"
+          content="#0f1110"
         />
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: theme no-flash script must run before hydration; content is a static constant from lib/auth/theme */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />

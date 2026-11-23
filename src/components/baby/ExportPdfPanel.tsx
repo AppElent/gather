@@ -139,21 +139,21 @@ export function ExportPdfPanel({
         </div>
       </fieldset>
 
-      {error && <p className="mt-3 text-sm text-red-800">{error}</p>}
+      {error && <p className="mt-3 text-sm text-[var(--danger)]">{error}</p>}
 
       <div className="mt-4 flex gap-2">
         <button
           type="button"
           disabled={exporting || types.length === 0}
           onClick={runExport}
-          className="min-h-9 rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-9 rounded-[var(--radius-control)] border border-[var(--ink)] bg-[var(--ink)] px-3 text-sm font-semibold text-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {exporting ? exportText.generating : exportText.download}
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="min-h-9 px-2 text-sm text-[var(--app-muted)]"
+          className="min-h-9 px-2 text-sm text-[var(--muted)]"
         >
           {messages.common.actions.cancel}
         </button>

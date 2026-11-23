@@ -35,7 +35,7 @@ export function TrendChart({ points, unit }: TrendChartProps) {
 
   if (points.length < 2) {
     return (
-      <p className="m-0 text-sm text-[var(--app-muted)]">{child.trendEmpty}</p>
+      <p className="m-0 text-sm text-[var(--muted)]">{child.trendEmpty}</p>
     )
   }
 
@@ -80,29 +80,29 @@ export function TrendChart({ points, unit }: TrendChartProps) {
           y1={padding.top}
           x2={padding.left}
           y2={HEIGHT - padding.bottom}
-          stroke="var(--app-border)"
+          stroke="var(--hair)"
         />
         <line
           x1={padding.left}
           y1={HEIGHT - padding.bottom}
           x2={width - padding.right}
           y2={HEIGHT - padding.bottom}
-          stroke="var(--app-border)"
+          stroke="var(--hair)"
         />
-        <text x={4} y={toY(maxY) + 4} fontSize="10" fill="var(--app-muted)">
+        <text x={4} y={toY(maxY) + 4} fontSize="10" fill="var(--muted)">
           {maxY.toFixed(1)}
         </text>
-        <text x={4} y={toY(minY) + 4} fontSize="10" fill="var(--app-muted)">
+        <text x={4} y={toY(minY) + 4} fontSize="10" fill="var(--muted)">
           {minY.toFixed(1)}
         </text>
-        <path d={path} fill="none" stroke="var(--app-accent)" strokeWidth={2} />
+        <path d={path} fill="none" stroke="var(--accent)" strokeWidth={2} />
         {sorted.map((p) => (
           <circle
             key={p.x}
             cx={toX(p.x)}
             cy={toY(p.y)}
             r={2.5}
-            fill="var(--app-accent)"
+            fill="var(--accent)"
           />
         ))}
         <text
@@ -110,7 +110,7 @@ export function TrendChart({ points, unit }: TrendChartProps) {
           y={HEIGHT - 6}
           fontSize="10"
           textAnchor="end"
-          fill="var(--app-muted)"
+          fill="var(--muted)"
         >
           {new Date(maxX).toLocaleDateString()}
         </text>
@@ -118,7 +118,7 @@ export function TrendChart({ points, unit }: TrendChartProps) {
           x={padding.left}
           y={HEIGHT - 6}
           fontSize="10"
-          fill="var(--app-muted)"
+          fill="var(--muted)"
         >
           {new Date(minX).toLocaleDateString()}
         </text>

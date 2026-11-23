@@ -13,7 +13,7 @@
  */
 
 import type { Messages } from '@gather/core/messages'
-import type { ModuleDef } from '@gather/core/modules'
+import type { ModuleDef, ModuleGroup } from '@gather/core/modules'
 import { MODULES, moduleById, moduleText } from '@gather/core/modules'
 import { pinnedModules } from '@gather/core/pins'
 import {
@@ -229,6 +229,16 @@ export function getRouteContext(
   }
 
   return routes.fallback
+}
+
+/**
+ * The group whose colours a page wears: the Module's, from anywhere inside it,
+ * and none on the shell's own pages (Start, All modules, settings), which stay
+ * neutral. The shell puts it on the page as `data-group`.
+ */
+export function getRouteGroup(pathname: string): ModuleGroup | undefined {
+  const target = indexSurfaceOf(pathname)
+  return target ? moduleById(target)?.group : undefined
 }
 
 function normalizePath(pathname: string) {

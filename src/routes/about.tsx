@@ -18,18 +18,18 @@ export function AboutPage() {
       title={about.title}
       subtitle={about.subtitle}
     >
-      <div className="grid gap-3 text-sm leading-6 text-[var(--app-muted)]">
+      <div className="grid gap-3 text-sm leading-6 text-[var(--muted)]">
         <p className="m-0">{about.modules}</p>
         <p className="m-0">{about.pins}</p>
         <p className="m-0 text-xs">{about.trademarks}</p>
       </div>
       <section
         aria-labelledby="about-data-sources"
-        className="mt-6 grid gap-2 text-xs leading-5 text-[var(--app-muted)]"
+        className="mt-6 grid gap-2 text-xs leading-5 text-[var(--muted)]"
       >
         <h2
           id="about-data-sources"
-          className="m-0 text-sm font-semibold text-[var(--app-fg)]"
+          className="m-0 text-sm font-semibold text-[var(--ink)]"
         >
           {about.dataSources.title}
         </h2>

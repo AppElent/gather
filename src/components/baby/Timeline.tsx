@@ -36,7 +36,7 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
   if (events.length === 0) {
     return (
       <SurfaceCard>
-        <p className="m-0 text-sm text-[var(--app-muted)]">
+        <p className="m-0 text-sm text-[var(--muted)]">
           {log.timeline.empty}
         </p>
       </SurfaceCard>
@@ -55,11 +55,11 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
     <div className="grid gap-4">
       {Array.from(groups.entries()).map(([key, dayEvents]) => (
         <div key={key}>
-          <p className="m-0 mb-2 text-xs font-semibold uppercase text-[var(--app-muted)]">
+          <p className="m-0 mb-2 text-xs font-semibold uppercase text-[var(--muted)]">
             {formatEventDateHeading(dayEvents[0].timestamp, locale)}
           </p>
           <SurfaceCard>
-            <ul className="m-0 list-none divide-y divide-[var(--app-border)] p-0">
+            <ul className="m-0 list-none divide-y divide-[var(--hair)] p-0">
               {dayEvents.map((event) =>
                 editingId === event._id ? (
                   <li key={event._id} className="p-3">
@@ -79,7 +79,7 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
                       className="flex flex-1 items-start gap-3 p-3 text-left text-sm"
                       onClick={() => setEditingId(event._id)}
                     >
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)] text-[var(--app-muted)]">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)] text-[var(--muted)]">
                         <EventIcon type={event.type} />
                       </span>
                       <div className="min-w-0 flex-1">
@@ -87,7 +87,7 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
                           <span className="font-semibold">
                             {eventTypes[event.type]}
                           </span>
-                          <span className="text-xs text-[var(--app-muted)]">
+                          <span className="text-xs text-[var(--muted)]">
                             {formatEventTimestamp(event.timestamp, locale)}
                           </span>
                         </div>
@@ -95,7 +95,7 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
                           {summarizeBabyEvent(event, log)}
                         </p>
                         {event.notes && (
-                          <p className="m-0 mt-0.5 text-[var(--app-muted)]">
+                          <p className="m-0 mt-0.5 text-[var(--muted)]">
                             {event.notes}
                           </p>
                         )}
@@ -109,12 +109,12 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
                             alt={fmt(log.entry.photoOf, {
                               type: eventTypes[event.type],
                             })}
-                            className="mt-2 max-h-64 w-auto max-w-full rounded-[var(--app-radius)] border border-[var(--app-border)]"
+                            className="mt-2 max-h-64 w-auto max-w-full rounded-[var(--radius-control)] border border-[var(--hair)]"
                           />
                         )}
                       </div>
                       <ChevronRight
-                        className="mt-1 h-4 w-4 shrink-0 text-[var(--app-muted)]"
+                        className="mt-1 h-4 w-4 shrink-0 text-[var(--muted)]"
                         aria-hidden="true"
                       />
                     </button>
@@ -123,7 +123,7 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
                       aria-label={fmt(log.timeline.deleteEntry, {
                         type: eventTypes[event.type],
                       })}
-                      className="grid min-h-9 min-w-9 shrink-0 place-items-center self-center rounded-[var(--app-radius)] text-red-800"
+                      className="grid min-h-9 min-w-9 shrink-0 place-items-center self-center rounded-[var(--radius-control)] text-[var(--danger)]"
                       onClick={() =>
                         confirm({
                           title: log.timeline.deleteTitle,

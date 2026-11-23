@@ -12,7 +12,7 @@ export interface SidebarProps {
 }
 
 const FOOTER_LINK =
-  'grid min-h-9 items-center rounded-[var(--app-radius)] px-2 text-sm text-[var(--app-muted)] no-underline'
+  'grid min-h-9 items-center rounded-[var(--radius-control)] px-2 text-sm text-[var(--muted)] no-underline'
 
 /**
  * Home, your pins, All — and nothing else.
@@ -40,14 +40,14 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
       className={
         isDrawer
           ? 'flex min-h-full flex-col gap-6 overflow-y-auto p-4'
-          : 'hidden h-svh w-66 shrink-0 flex-col gap-6 overflow-y-auto border-r border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-surface)_86%,transparent)] p-4 md:flex'
+          : 'hidden h-svh w-66 shrink-0 flex-col gap-6 overflow-y-auto border-r border-[var(--hair)] bg-[color-mix(in_oklch,var(--surface)_86%,transparent)] p-4 md:flex'
       }
       aria-label={sidebar.label}
     >
       <GroupSwitcher onNavigate={onNavigate} />
 
       {items.length === 0 ? (
-        <p className="m-0 px-2 text-sm leading-6 text-[var(--app-muted)]">
+        <p className="m-0 px-2 text-sm leading-6 text-[var(--muted)]">
           {sidebar.noGroup}
         </p>
       ) : (
@@ -60,13 +60,13 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
               // The router also marks a link `aria-current` when its address
               // prefixes this page; see `activeNavItemId` for why the two agree.
               aria-current={item.id === activeId ? 'page' : undefined}
-              className={`grid min-h-10 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline ${
+              className={`grid min-h-10 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--radius-control)] border border-transparent px-2 text-sm font-semibold text-[var(--ink)] no-underline ${
                 item.id === activeId
-                  ? 'border-[var(--app-fg)] bg-[var(--app-surface)]'
+                  ? 'border-[var(--ink)] bg-[var(--surface)]'
                   : ''
               }`}
             >
-              <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
+              <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--hair)] bg-[var(--surface)] text-[var(--muted)]">
                 <Icon name={item.icon} className="h-4 w-4" />
               </span>
               <span className="truncate">{item.label}</span>

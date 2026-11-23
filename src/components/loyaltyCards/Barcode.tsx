@@ -52,7 +52,7 @@ export function Barcode({ format, value, label, size = 'large' }: BarcodeProps) 
         : 'mx-auto w-full max-w-sm'
 
   return (
-    <div className="rounded-[var(--app-radius)] bg-white p-4 text-black">
+    <div className="rounded-[var(--radius-control)] bg-white p-4 text-black">
       {drawn === null ? (
         <p className="m-0 py-8 text-center text-sm text-neutral-600">
           {copy.drawing}

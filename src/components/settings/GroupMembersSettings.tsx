@@ -7,7 +7,7 @@ import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import type { ShellGroup } from '../app/useCurrentGroup'
 
 const buttonClass =
-  'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold disabled:opacity-60'
+  'inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold disabled:opacity-60'
 
 export interface GroupMembersSettingsProps {
   group: ShellGroup
@@ -58,18 +58,18 @@ export function GroupMembersSettings({ group }: GroupMembersSettingsProps) {
   return (
     <SurfaceCard ariaLabel={membersText.title}>
       <h2 className="m-0 mb-1 text-base font-semibold">{membersText.title}</h2>
-      <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
+      <p className="m-0 mb-3 text-sm text-[var(--muted)]">
         {isAdmin ? membersText.personalNote : membersText.sharedNote}
       </p>
 
       {error && (
-        <p role="alert" className="m-0 mb-2 text-sm text-[var(--app-danger)]">
+        <p role="alert" className="m-0 mb-2 text-sm text-[var(--danger)]">
           {error}
         </p>
       )}
 
       {members === undefined ? (
-        <div className="h-16 animate-pulse rounded-[var(--app-radius)] bg-[var(--app-surface-muted)]" />
+        <div className="h-16 animate-pulse rounded-[var(--radius-control)] bg-[var(--surface-2)]" />
       ) : (
         <ul className="m-0 grid list-none gap-2 p-0">
           {members.map((member) => {
@@ -80,7 +80,7 @@ export function GroupMembersSettings({ group }: GroupMembersSettingsProps) {
             return (
               <li
                 key={member.userId}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] px-3 py-2"
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="truncate text-sm font-semibold">

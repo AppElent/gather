@@ -52,7 +52,7 @@ export function CommandPalette({
         role="dialog"
         aria-modal="true"
         aria-label={messages.shell.palette.placeholder}
-        className="w-full max-w-md rounded-xl border bg-white p-2 shadow-lg dark:bg-neutral-900"
+        className="w-full max-w-md rounded-[var(--radius-card)] border border-[var(--hair)] bg-[var(--surface)] text-[var(--ink)] p-2 shadow-lg"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
@@ -67,7 +67,7 @@ export function CommandPalette({
             <li key={target.id}>
               <button
                 type="button"
-                className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10"
+                className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-[var(--surface-2)]"
                 onClick={() => {
                   setOpen(false)
                   setQ('')

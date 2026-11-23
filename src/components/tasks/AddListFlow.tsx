@@ -27,9 +27,9 @@ type Step =
     }
 
 const buttonClass =
-  'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold'
+  'inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold'
 const inputClass =
-  'min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm'
+  'min-h-9 rounded-[var(--radius-control)] border border-[var(--hair)] bg-transparent px-2 text-sm'
 
 export interface AddListFlowProps {
   /** The Group the list is being added to. */
@@ -143,13 +143,13 @@ export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
         <h3 className="m-0 text-base font-semibold">{addList.title}</h3>
         <button
           type="button"
-          className="text-sm text-[var(--app-muted)]"
+          className="text-sm text-[var(--muted)]"
           onClick={onDone}
         >
           {messages.common.actions.cancel}
         </button>
       </div>
-      {error && <p className="m-0 mb-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="m-0 mb-2 text-sm text-[var(--danger)]">{error}</p>}
 
       {step.kind === 'provider' && (
         <div className="grid gap-2">
@@ -207,13 +207,13 @@ export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
 
       {step.kind === 'source' && (
         <div className="grid gap-2">
-          <p className="m-0 text-sm text-[var(--app-muted)]">
+          <p className="m-0 text-sm text-[var(--muted)]">
             {step.provider === 'notion'
               ? addList.pickNotion
               : addList.pickTodoist}
           </p>
           {step.sources.length === 0 && (
-            <p className="m-0 text-sm text-[var(--app-muted)]">
+            <p className="m-0 text-sm text-[var(--muted)]">
               {step.provider === 'notion'
                 ? addList.nothingFoundNotion
                 : addList.nothingFoundTodoist}
@@ -249,7 +249,7 @@ export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
 }
 
 const selectClass =
-  'min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm'
+  'min-h-9 rounded-[var(--radius-control)] border border-[var(--hair)] bg-transparent px-2 text-sm'
 
 function MappingSelect({
   label,
@@ -335,7 +335,7 @@ function NotionMappingForm({
 
   return (
     <form onSubmit={submit} className="grid gap-3">
-      <p className="m-0 text-sm text-[var(--app-muted)]">{text.intro}</p>
+      <p className="m-0 text-sm text-[var(--muted)]">{text.intro}</p>
       <label className="grid gap-1 text-sm">
         {listNameLabel}
         <input
@@ -385,7 +385,7 @@ function NotionMappingForm({
       <button
         type="submit"
         disabled={busy || !title || !done}
-        className="inline-flex min-h-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
+        className="inline-flex min-h-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold"
       >
         {text.create}
       </button>
