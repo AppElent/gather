@@ -131,58 +131,64 @@ export function GroceryFields({
   const actions = useTaskActions()
   const [draft, setDraft] = useState(amountDraft(task.quantity, locale))
 
-  // Somebody else's edit arrives while the field is not being typed in.
-  useEffect(
-    () => setDraft(amountDraft(task.quantity, locale)),
-    [task.quantity, locale],
-  )
-
-  const shown = useRef(task)
-  shown.current = task
   // The last amount written, until it settles: a quick second tap follows it,
   // not the row, which may still show the one before. It is sent once that
   // write landed, and not at all when it was refused.
   const sent = useRef<{ to: WholeAmount; done: Promise<unknown> } | null>(null)
+  const [pending, setPending] = useState(false)
+
+  // Somebody else's edit arrives while the field is not being typed in. Not
+  // while our own writes are on their way: the row may show one before the last.
+  useEffect(() => {
+    if (!pending) setDraft(amountDraft(task.quantity, locale))
+  }, [task.quantity, locale, pending])
+
+  /** The amount a change starts from: the last one written, or the row's. */
+  const latest = (): WholeAmount =>
+    sent.current?.to ?? {
+      quantity: task.quantity ?? null,
+      unit: task.unit ?? null,
+    }
 
   /** Over the amount it was chosen from; another Member's change stands. */
   const write = (quantity: number | null, unit: GroceryUnit | null) => {
     haptics.selectionChanged()
     const to = { quantity, unit }
     const before = sent.current
-    const expected = before?.to ?? {
-      quantity: task.quantity ?? null,
-      unit: task.unit ?? null,
-    }
+    const expected = latest()
     const send = () => actions.setAmount(task.id, to, expected)
     const entry = { to, done: before ? before.done.then(send) : send() }
     sent.current = entry
+    setPending(true)
     entry.done
       .catch(() => {
         // One answer for a run of taps, from the last of them.
-        if (sent.current !== entry) return
-        haptics.actionFailed()
-        setDraft(amountDraft(shown.current.quantity, locale))
+        if (sent.current === entry) haptics.actionFailed()
       })
       .finally(() => {
-        if (sent.current === entry) sent.current = null
+        if (sent.current !== entry) return
+        sent.current = null
+        setPending(false)
       })
   }
 
   // What the field holds now, typed but maybe not yet committed: a step or a
   // unit tapped while typing starts from what was typed, not from before it.
-  const current = () => parseAmount(draft) ?? task.quantity
+  const current = () => parseAmount(draft) ?? latest().quantity ?? undefined
 
   const step = (direction: 1 | -1) => {
-    const next = stepGroceryQuantity(current(), task.unit, direction)
+    const { unit } = latest()
+    const next = stepGroceryQuantity(current(), unit ?? undefined, direction)
     if (next === null) return
     setDraft(amountDraft(next, locale))
-    write(next, task.unit ?? null)
+    write(next, unit)
   }
 
   const commitDraft = () => {
     const typed = draft.trim()
     if (!typed) {
-      if (task.quantity !== undefined) write(null, task.unit ?? null)
+      const { quantity, unit } = latest()
+      if (quantity !== null) write(null, unit)
       return
     }
     const value = parseAmount(typed)
@@ -194,7 +200,8 @@ export function GroceryFields({
     }
     const rounded = value
     setDraft(amountDraft(rounded, locale))
-    if (rounded !== task.quantity) write(rounded, task.unit ?? null)
+    const { quantity, unit } = latest()
+    if (rounded !== quantity) write(rounded, unit)
   }
 
   const canDecrease =

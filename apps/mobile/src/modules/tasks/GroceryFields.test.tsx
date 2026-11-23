@@ -4,7 +4,7 @@
  * made over, so it never writes over another Member's. React Native, the
  * store and the theme are replaced; the component is real.
  */
-import { act, createElement, type ReactNode } from 'react'
+import { act, createElement, type ReactNode, useState } from 'react'
 import { beforeEach, expect, test, vi } from 'vitest'
 
 import { mount, settle } from '../../testing/dom'
@@ -87,10 +87,19 @@ beforeEach(() => {
 })
 
 function open() {
-  const view = mount(createElement(GroceryFields, { task: melk, writable: true }))
+  // The harness mounts once; the row under it is told of a change here.
+  let show: (task: Task) => void = () => {}
+  const Screen = () => {
+    const [task, setTask] = useState(melk)
+    show = setTask
+    return createElement(GroceryFields, { task, writable: true })
+  }
+  const view = mount(createElement(Screen))
   const find = (id: string) =>
     view.container.querySelector<HTMLElement>(`[data-testid="${id}"]`)!
   return {
+    show: (task: Task) => act(() => show(task)),
+    unit: (unit: string) => act(() => find(`grocery-unit-${unit}`).click()),
     clear: () => act(() => find('grocery-clear-amount').click()),
     more: () => act(() => find('grocery-increase').click()),
     shown: () => (find('grocery-quantity') as HTMLInputElement).value,
@@ -129,4 +138,31 @@ test('what followed a refused step is not sent: it could write over the other am
   await settle()
   expect(state.writes).toHaveLength(1)
   expect(shown()).toBe('1')
+})
+
+test('a step after the first landed still follows the one on its way', async () => {
+  const { more, show, shown } = open()
+  more()
+  more()
+  await act(async () => state.writes[0]!.land())
+  await settle()
+  // The row shows the first, while the second is on its way.
+  show({ ...melk, ...pak(2) })
+  expect(shown()).toBe('3')
+  more()
+  await act(async () => state.writes[1]!.land())
+  await settle()
+  expect(state.writes[2]).toMatchObject({ expected: pak(3), to: pak(4) })
+})
+
+test('a step after a new unit keeps that unit', async () => {
+  const { more, unit } = open()
+  unit('fles')
+  more()
+  await act(async () => state.writes[0]!.land())
+  await settle()
+  expect(state.writes[1]).toMatchObject({
+    expected: { quantity: 1, unit: 'fles' },
+    to: { quantity: 2, unit: 'fles' },
+  })
 })
