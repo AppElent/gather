@@ -25,10 +25,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
-import { ModuleHeaderActions } from '../../search/ModuleSearchButton'
 import { TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
 import { ADD_BUTTON_CLEARANCE } from '../../ui/keyboard-composer'
+import { ModuleHeaderButtons } from '../../ui/module-header-buttons'
 import { SectionLabel } from '../../ui/section-label'
 import { AddNote } from './AddNoteComposer'
 import { confirmDeleteNote } from './notesActions'
@@ -124,7 +124,13 @@ export function Notes() {
         options={{
           headerShown: true,
           title: t.notes.title,
-          headerRight: () => <ModuleHeaderActions module="notes" />,
+          headerRight: () => (
+            <ModuleHeaderButtons
+              testID="notes"
+              moduleLabel={t.notes.title}
+              search="notes"
+            />
+          ),
         }}
       />
       <ScrollView

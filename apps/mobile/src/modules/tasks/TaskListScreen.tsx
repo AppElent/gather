@@ -95,6 +95,7 @@ export function TaskList({
   menuExtras = [],
   addPlaceholder,
   washAccessory,
+  headerAfter,
 }: {
   listId: string
   /** The Module whose tile heads the list: Tasks, or the one that owns it. */
@@ -108,6 +109,11 @@ export function TaskList({
   addPlaceholder?: string
   /** Under the wash's summary: the grocery list's store pill (APP-313). */
   washAccessory?: ReactNode
+  /**
+   * After the list's ⋯ in the bar, when the list is a Module's root: that
+   * Module's search and settings gear (`ModuleHeaderButtons`, APP-611).
+   */
+  headerAfter?: ReactNode
 }) {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
@@ -362,6 +368,7 @@ export function TaskList({
                 </Text>
               </Pressable>
             ) : (
+              <View style={styles.headerRow}>
               <MenuView
                 testID="list-menu"
                 actions={[
@@ -460,6 +467,8 @@ export function TaskList({
                   />
                 </View>
               </MenuView>
+              {headerAfter}
+              </View>
             ),
         }}
       />
@@ -890,6 +899,7 @@ const styles = StyleSheet.create({
    * native item, not ours to undo.
    */
   headerDone: { ...TYPE.bodyStrong },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   readOnly: {
     flexDirection: 'row',
     alignItems: 'flex-start',

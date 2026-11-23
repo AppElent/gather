@@ -18,8 +18,10 @@ import {
   readPreference,
   writePreference,
 } from '../../prefs/localPreference'
+import { moduleSettingsHref } from '../../settings/module-pages'
 import { SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, InsetRow } from '../../ui/inset-list'
+import { ModuleHeaderButtons } from '../../ui/module-header-buttons'
 import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { WashHeader, type WashSummary } from '../../ui/wash-header'
@@ -137,6 +139,18 @@ export function GroceriesScreen() {
           addPlaceholder={t.kitchen.addGroceryItem}
           washAccessory={
             <StorePill name={selected.name} onPress={() => setSheet('lists')} />
+          }
+          headerAfter={
+            <ModuleHeaderButtons
+              testID="groceries"
+              moduleLabel={t.modules.byId.groceries.label}
+              // The list on screen, not the last-used one in storage: a
+              // recipe's add sheet can have written another list there.
+              settingsHref={{
+                pathname: moduleSettingsHref('groceries', 'all'),
+                params: { listId: selected._id },
+              }}
+            />
           }
           menuExtras={[
             {

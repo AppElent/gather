@@ -20,20 +20,20 @@
  * It also hides the splash: on a cold start with a retained session this is the
  * first screen mounted.
  */
-import { moduleText } from '@gather/core/modules'
-import { router, Stack } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { useAvailability } from '../../../../src/availability/AvailabilityProvider'
-import { useGroup } from '../../../../src/group/GroupProvider'
 import {
   clockTime,
   overdueListCount,
   overdueListId,
   spelledDate,
-} from '../../../../src/home/today'
+} from '@gather/core/home-today'
+import { moduleText } from '@gather/core/modules'
+import { router, Stack } from 'expo-router'
+import { useState } from 'react'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useAvailability } from '../../../../src/availability/AvailabilityProvider'
+import { useGroup } from '../../../../src/group/GroupProvider'
 import { useToday } from '../../../../src/home/use-today'
 import { fmt, plural, useI18n } from '../../../../src/i18n'
 import { EVENT_ICONS } from '../../../../src/modules/baby/icons'

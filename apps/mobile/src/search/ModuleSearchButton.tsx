@@ -3,13 +3,10 @@
  * header that pushes the one search screen inside All's stack, with that
  * Module preset as the filter. Back returns to the Module.
  *
- * The header order is fixed: search first, then the Module's settings gear
- * (APP-611), then the screen's own actions. `ModuleHeaderActions` is the one
- * place that order lives, so the gear is added beside the glass here.
+ * A Module root draws it through `ModuleHeaderButtons`
+ * (`ui/module-header-buttons.tsx`), which owns the header's order.
  */
 import { type Href, useRouter } from 'expo-router'
-import type { ReactNode } from 'react'
-import { StyleSheet, View } from 'react-native'
 
 import { fmt, useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
@@ -44,23 +41,3 @@ export function ModuleSearchButton({ module }: { module: SearchModuleId }) {
     </HeaderIconButton>
   )
 }
-
-/** A Module root's header buttons: search, then whatever the screen adds. */
-export function ModuleHeaderActions({
-  module,
-  children,
-}: {
-  module: SearchModuleId
-  children?: ReactNode
-}) {
-  return (
-    <View style={styles.row}>
-      <ModuleSearchButton module={module} />
-      {children}
-    </View>
-  )
-}
-
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-})

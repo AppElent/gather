@@ -39,9 +39,9 @@ import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
-import { ModuleHeaderActions } from '../../search/ModuleSearchButton'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { InsetListItem, InsetRow } from '../../ui/inset-list'
+import { ModuleHeaderButtons } from '../../ui/module-header-buttons'
 import { moduleTile } from '../../ui/module-tile'
 import { RecordThumb } from '../../ui/record-thumb'
 import { washScreenOptions } from '../../ui/screen-header'
@@ -99,25 +99,30 @@ export function CollectionScreen() {
       options={{
         ...washScreenOptions(t.modules.byId.recipes.label),
         headerRight: () => (
-          <ModuleHeaderActions module="recipes">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={text.add}
-              testID="recipes-add"
-              hitSlop={12}
-              onPress={openAdd}
-              style={({ pressed }) => [
-                styles.headerButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <RECIPE_UI_ICONS.Plus
-                size={22}
-                color={tokens.ink}
-                strokeWidth={2.1}
-              />
-            </Pressable>
-          </ModuleHeaderActions>
+          <ModuleHeaderButtons
+            testID="recipes"
+            moduleLabel={t.modules.byId.recipes.label}
+            search="recipes"
+            before={
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={text.add}
+                  testID="recipes-add"
+                  hitSlop={12}
+                  onPress={openAdd}
+                  style={({ pressed }) => [
+                    styles.headerButton,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <RECIPE_UI_ICONS.Plus
+                    size={22}
+                    color={tokens.ink}
+                    strokeWidth={2.1}
+                  />
+                </Pressable>
+            }
+          />
         ),
       }}
     />

@@ -249,16 +249,9 @@ export const shell = {
   },
 
   home: {
-    sharedSubtitle: 'Wat iedereen in deze Groep heeft gedaan.',
-    whoIsHere: 'Wie er zijn',
-    admin: 'Beheerder',
-    sharedNote: {
-      before:
-        'Iedereen hier ziet alles in {group}. Om iemand uit te nodigen of te vertrekken, ga je naar',
-      link: 'Groepen',
-      after: '.',
-    },
     recentActivity: 'Recente activiteit',
+    seeAll: 'Alles bekijken',
+    showFewer: 'Minder tonen',
     nothingYet: 'Er is nog niets gebeurd in {group}.',
     nothingYetShared:
       'Alles wat iemand hier toevoegt komt in deze lijst, met zijn of haar naam erbij.',

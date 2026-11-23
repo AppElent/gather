@@ -276,3 +276,24 @@ describe('Pins I have no business setting', () => {
     await expect(pinsOf(t, asBob, mine)).rejects.toThrow()
   })
 })
+
+describe('my name in my Groups (APP-663)', () => {
+  test('comes from my first name when the token has no full name', async () => {
+    const t = testConvex()
+    const identity = { subject: 'clerk_sanne', givenName: 'Sanne' }
+    await t.withIdentity(identity).mutation(api.users.ensureUser, {})
+    const me = await t.withIdentity(identity).query(api.users.me, {})
+    expect(me?.name).toBe('Sanne')
+  })
+
+  test('replaces the "Member" an account was saved with once a name arrives', async () => {
+    const t = testConvex()
+    await t.withIdentity({ subject: 'clerk_sanne' }).mutation(api.users.ensureUser, {})
+    const before = await t.withIdentity({ subject: 'clerk_sanne' }).query(api.users.me, {})
+    expect(before?.name).toBe('Member')
+    const named = { subject: 'clerk_sanne', givenName: 'Sanne', familyName: 'Bos' }
+    await t.withIdentity(named).mutation(api.users.ensureUser, {})
+    const after = await t.withIdentity(named).query(api.users.me, {})
+    expect(after?.name).toBe('Sanne Bos')
+  })
+})

@@ -2,6 +2,7 @@ import { ACCOUNT_DELETED } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { rejectConnectedApps } from './lib/connectedApps'
+import { storedName } from './lib/displayName'
 import { requireGroupBySlug } from './lib/groupAccess'
 import {
   getCurrentUser,
@@ -40,7 +41,7 @@ export const ensureUser = mutation({
 
     if (existing) {
       const patch: Record<string, string> = {}
-      const name = identity.name ?? existing.name
+      const name = storedName(identity, existing.name)
       const email = identity.email ?? existing.email
       if (name !== existing.name) patch.name = name
       if (email !== existing.email) patch.email = email
@@ -51,7 +52,7 @@ export const ensureUser = mutation({
       return existing._id
     }
 
-    const name = identity.name ?? 'Member'
+    const name = storedName(identity)
     const userId = await ctx.db.insert('users', {
       clerkId: identity.subject,
       name,

@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { SearchField } from '../../../../src/components/SearchField'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
+import { moduleShown } from '../../../../src/modules/buildModules'
 import { openProblemReport } from '../../../../src/observability/init'
 import {
   openBrowserAsync,
@@ -77,6 +78,7 @@ export default function Settings() {
     // to. `settingsSections` takes it as a parameter so the list stays testable
     // both ways from a plain Node runtime.
     __DEV__,
+    moduleShown,
   )
   const searching = query.trim().length > 0
   const hits = searchSettings(sections, query)
@@ -157,6 +159,11 @@ export default function Settings() {
                     <Row key={entry.id} entry={entry} first={index === 0} />
                   ))}
                 </View>
+                {section.footer ? (
+                  <Text style={[styles.groupFooter, { color: tokens.muted }]}>
+                    {section.footer}
+                  </Text>
+                ) : null}
               </View>
             )
           })}
@@ -378,6 +385,7 @@ const styles = StyleSheet.create({
     marginBottom: 7,
   },
   groupTitle: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  groupFooter: { ...TYPE.footnote, paddingHorizontal: 4 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
