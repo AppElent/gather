@@ -35,6 +35,7 @@ export function ConnectedCalendarScreen() {
   const setPreferences = useMutation(api.calendar.setPreferences)
   const visibility = useMutation(api.calendar.setCalendarVisibility)
   const [editorVisible, setEditorVisible] = useState(false)
+  const [composerOpen, setComposerOpen] = useState(false)
   const editor = useCalendarEditor()
   const { userId } = useAuth()
   const me = useQuery(api.users.me)
@@ -117,6 +118,11 @@ export function ConnectedCalendarScreen() {
         { text: t.calendar.stay, style: 'cancel', onPress: () => resolve('stay') },
       ])
     })
+  // Back once the editor has saved, closed or set its draft aside.
+  const composerHidden =
+    editorVisible &&
+    Boolean(editor.draft) &&
+    editor.draft?.status !== 'dismissed'
   const openEvent = (event: CalendarEvent) =>
     withDraftGuard(() => {
       editor.openEdit(event)
@@ -137,6 +143,10 @@ export function ConnectedCalendarScreen() {
         sourceNodes={sourceNodes}
         onOpenCalendars={() => setManagement(true)}
         onOpenPeople={() => setFilterSheet('people')}
+        // The floating button's composer: already open, it stays the one.
+        onAddEvent={() => {
+          if (!composerHidden) setComposerOpen(true)
+        }}
         onViewChange={saveView}
         onEvent={openEvent}
         onDeleteEvent={(event) =>
@@ -182,12 +192,9 @@ export function ConnectedCalendarScreen() {
         calendars={data.calendars}
         people={data.people}
         date={activeDate}
-        // Back once the editor has saved, closed or set its draft aside.
-        hidden={
-          editorVisible &&
-          Boolean(editor.draft) &&
-          editor.draft?.status !== 'dismissed'
-        }
+        hidden={composerHidden}
+        open={composerOpen}
+        onOpenChange={setComposerOpen}
         onAllDetails={openDetails}
       />
       {editorVisible && editor.draft?.status !== 'dismissed' ? (
