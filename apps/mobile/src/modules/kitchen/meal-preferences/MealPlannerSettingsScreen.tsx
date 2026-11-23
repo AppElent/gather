@@ -5,12 +5,14 @@
  */
 import { Stack } from 'expo-router'
 
+import { useGroup } from '../../../group/GroupProvider'
 import { fmt, useI18n } from '../../../i18n'
 import { washScreenOptions } from '../../../ui/screen-header'
 import { MealPreferencesScreen } from './MealPreferencesScreen'
 
 export function MealPlannerSettingsScreen() {
   const { t } = useI18n()
+  const { group } = useGroup()
   return (
     <>
       <Stack.Screen
@@ -20,7 +22,9 @@ export function MealPlannerSettingsScreen() {
           }),
         )}
       />
-      <MealPreferencesScreen />
+      {/* Keyed by Group: the Settings stack survives a Group switch, and a
+        half-typed draft must not be saved into the Group switched to. */}
+      <MealPreferencesScreen key={group._id} />
     </>
   )
 }

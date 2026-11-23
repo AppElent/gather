@@ -444,8 +444,6 @@ export const tasks = {
    */
   smart: {
     section: 'Smart lists',
-    /** The index's ⋯ menu, which shows or hides each one on this phone. */
-    menu: 'Show or hide smart lists',
     lists: {
       today: { title: 'Today', subtitle: 'Due today or overdue' },
       mine: { title: 'My tasks', subtitle: 'Assigned to you' },

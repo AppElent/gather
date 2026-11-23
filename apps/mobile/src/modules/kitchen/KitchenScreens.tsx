@@ -18,7 +18,7 @@ import {
   readPreference,
   writePreference,
 } from '../../prefs/localPreference'
-import { moduleSettingsRoute } from '../../settings/module-pages'
+import { moduleSettingsHref } from '../../settings/module-pages'
 import { SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, InsetRow } from '../../ui/inset-list'
 import { ModuleHeaderButtons } from '../../ui/module-header-buttons'
@@ -144,7 +144,12 @@ export function GroceriesScreen() {
             <ModuleHeaderButtons
               testID="groceries"
               moduleLabel={t.modules.byId.groceries.label}
-              settingsHref={moduleSettingsRoute('groceries', 'all')}
+              // The list on screen, not the last-used one in storage: a
+              // recipe's add sheet can have written another list there.
+              settingsHref={{
+                pathname: moduleSettingsHref('groceries', 'all'),
+                params: { listId: selected._id },
+              }}
             />
           }
           menuExtras={[

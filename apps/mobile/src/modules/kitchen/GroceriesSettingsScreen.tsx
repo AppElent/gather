@@ -24,7 +24,17 @@ import {
 import { groceryListsOf, openGroceryList } from '../tasks/groceryList'
 import { useTaskActions, useTaskLists } from '../tasks/store'
 
-export function GroceriesSettingsScreen({ door }: { door: ModuleSettingsDoor }) {
+export function GroceriesSettingsScreen({
+  door,
+  listId,
+}: {
+  door: ModuleSettingsDoor
+  /**
+   * The list the gear was pressed on. Absent from Settings › Modules, which
+   * opens the list the Module would open.
+   */
+  listId?: string
+}) {
   const { t } = useI18n()
   const tokens = useTokens('kitchen')
   const router = useRouter()
@@ -42,10 +52,10 @@ export function GroceriesSettingsScreen({ door }: { door: ModuleSettingsDoor }) 
   if (lists === undefined)
     return <View style={{ flex: 1, backgroundColor: tokens.ground }} />
 
-  const list = openGroceryList(
-    groceryListsOf(lists),
-    readPreference(lastGroceryListKey(group.slug)),
-  )
+  const groceryLists = groceryListsOf(lists)
+  const list =
+    groceryLists.find((each) => each._id === listId) ??
+    openGroceryList(groceryLists, readPreference(lastGroceryListKey(group.slug)))
 
   if (!list)
     return (
@@ -86,7 +96,9 @@ export function GroceriesSettingsScreen({ door }: { door: ModuleSettingsDoor }) 
           testID="groceries-settings-suggestions"
           title={t.tasks.grocery.suggestions.title}
           value={suggesting}
-          disabled={!list.writable}
+          // One write at a time: a second toggle before the first settles
+          // would have its pending value cleared by the first one's answer.
+          disabled={!list.writable || intended !== null}
           onValueChange={(on) => {
             setIntended(on)
             actions
