@@ -53,13 +53,14 @@ export const tasks = {
       reconnect:
         'Gather mag deze lijst niet wijzigen. Verbind {provider} opnieuw in de Groepsinstellingen op het web en ververs daarna de lijst. Er is niets gewijzigd.',
       'not-found':
-        'Deze taak staat niet meer in de {provider}-lijst. De lijst is opnieuw geladen.',
+        'Deze taak staat niet meer in de {provider}-lijst. De lijst wordt opnieuw geladen.',
       stale:
         'Deze lijst loopt niet gelijk met {provider}. Ververs hem en probeer het opnieuw.',
       failed:
-        '{provider} heeft deze wijziging niet bevestigd. De lijst is opnieuw geladen: kijk eerst voordat je het opnieuw probeert.',
+        '{provider} heeft deze wijziging niet bevestigd. Bekijk de lijst voordat je het opnieuw probeert.',
     },
     moveUnder: 'Onder een taak plaatsen…',
+    parentTask: 'Hoofdtaak',
     topLevel: 'Niet onder een taak',
     noParents: 'Er is geen taak op deze lijst waar hij onder kan.',
     addSubtask: 'Subtaak toevoegen aan {task}',

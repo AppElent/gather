@@ -72,14 +72,15 @@ export const tasks = {
       reconnect:
         'Gather is not allowed to change this list. Reconnect {provider} in the group’s settings on the web, then refresh the list. Nothing was changed.',
       'not-found':
-        'This task is not in the {provider} list any more. The list was loaded again.',
+        'This task is not in the {provider} list any more. The list is loading again.',
       stale:
         'This list is not up to date with {provider}. Refresh it, then try again.',
       failed:
-        '{provider} did not confirm this change. The list was loaded again: check it before you try again.',
+        '{provider} did not confirm this change. Check the list before you try again.',
     },
     /** A task going under another one on its list, and back out. */
     moveUnder: 'Move under a task…',
+    parentTask: 'Parent task',
     topLevel: 'Not under a task',
     noParents: 'There is no task on this list it can go under.',
     addSubtask: 'Add a subtask to {task}',

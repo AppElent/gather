@@ -520,6 +520,16 @@ function TaskComposerCard({
         setNotice(failure?.body ?? t.tasks.quickAdd.failed)
         load(snapshot)
         settle(false)
+      } else if (
+        failure &&
+        !mounted.current &&
+        !keptDraft<TaskDraft>(place.current.draftId)
+      ) {
+        // The list went read-only and took the composer with it: a retry could
+        // not work yet, so the task waits as this place's draft.
+        keepDraft(place.current.draftId, snapshot)
+        settle(false)
+        showAlert(failure.title, failure.body)
       } else {
         void offerRetry(saving, saveKey, send, error).then(settle)
       }

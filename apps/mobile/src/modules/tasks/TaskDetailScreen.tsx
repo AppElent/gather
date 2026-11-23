@@ -180,6 +180,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
           </Pressable>
           <TextInput
             testID="detail-title"
+            // Return saves a linked title; a line break has no place in one.
+            submitBehavior={task.linked ? 'blurAndSubmit' : undefined}
             editable={writable}
             value={title.draft}
             onChangeText={title.change}
@@ -341,7 +343,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                   strokeWidth={2}
                 />
               }
-              label={t.tasks.linkedWrite.moveUnder}
+              label={t.tasks.linkedWrite.parentTask}
               value={
                 state.tasks.find((each) => each.id === task.parentTaskId)?.title
               }
