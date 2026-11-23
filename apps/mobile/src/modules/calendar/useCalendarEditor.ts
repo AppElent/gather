@@ -50,7 +50,7 @@ export function useCalendarEditor() {
   const removeEvent = useMutation(api.calendar.removeCalendarEvent)
 
   const create = useCallback(
-    (payload: CalendarSavePayload) =>
+    (payload: CalendarSavePayload, draftId: string) =>
       addEvent({
         groupSlug: group.slug,
         calendarId: payload.calendarId as Id<'calendars'>,
@@ -62,6 +62,8 @@ export function useCalendarEditor() {
         assigneeIds: payload.assigneeIds as Id<'users'>[],
         location: payload.location ?? undefined,
         notes: payload.notes ?? undefined,
+        // One event per draft, however often Save is pressed or retried.
+        idempotencyKey: draftId,
       }),
     [addEvent, group.slug],
   )
@@ -147,7 +149,7 @@ export function useCalendarEditor() {
       const payload = { ...draftPayload(draft), calendarId }
       if (draft.mode === 'edit' && draft.eventId)
         await update(draft.eventId, draft.baseRevision, payload)
-      else await create(payload)
+      else await create(payload, draft.draftId)
       clearCalendarDraft(userId, groupId)
       if (mounted.current) {
         dispatch({ type: 'saveSuccess' })
@@ -176,6 +178,11 @@ export function useCalendarEditor() {
         type: 'open',
         draft: createCalendarDraft(userId, groupId, date, calendarId),
       }),
+    /** A draft made elsewhere (the composer's All details), in the sheet. */
+    openDraft: (draft: CalendarDraft) => {
+      dispatch({ type: 'open', draft })
+      dispatch({ type: 'expand' })
+    },
     openEdit: (event: CalendarEvent) =>
       dispatch({
         type: 'open',

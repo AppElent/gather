@@ -1,3 +1,4 @@
+import { useAuth } from '@clerk/expo'
 import type {
   CalendarEvent,
   CalendarPeopleFilter,
@@ -8,15 +9,18 @@ import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { Alert } from 'react-native'
 import { api, type Id } from '../../convex/api'
+import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
+import { AddEvent, type HandOver } from './AddEventComposer'
 import { CalendarEditor } from './CalendarEditor'
 import { CalendarEventSource } from './CalendarEventSource'
 import { CalendarFilters } from './CalendarFilters'
 import { CalendarManagementSheet } from './CalendarManagementSheet'
 import { CalendarScreen } from './CalendarScreen'
 import { isDraftDirty } from './calendarDraft'
+import { type EventDraft, toCalendarDraft } from './eventComposerDraft'
 import { useCalendarData } from './useCalendarData'
 import { useCalendarEditor } from './useCalendarEditor'
 
@@ -32,6 +36,8 @@ export function ConnectedCalendarScreen() {
   const visibility = useMutation(api.calendar.setCalendarVisibility)
   const [editorVisible, setEditorVisible] = useState(false)
   const editor = useCalendarEditor()
+  const { userId } = useAuth()
+  const me = useQuery(api.users.me)
 
   const saveView = (view: CalendarView) => {
     void setPreferences({ groupSlug: group.slug, view })
@@ -78,16 +84,38 @@ export function ConnectedCalendarScreen() {
       { text: t.calendar.stay, style: 'cancel' },
     ])
   }
-  const openNew = (date: string) =>
-    withDraftGuard(() => {
-      const firstCalendar =
-        data.calendars
-          .slice()
-          .sort(
-            (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id),
-          )[0]?.id ?? null
-      editor.openNew(date, firstCalendar)
-      setEditorVisible(true)
+  /**
+   * The composer's All details: the full editor takes its draft, unless the
+   * editor still holds unsaved changes of its own and the person keeps them.
+   */
+  const openDetails = (draft: EventDraft) =>
+    new Promise<HandOver>((resolve) => {
+      const take = () => {
+        editor.openDraft(toCalendarDraft(draft, me?._id ?? '', group._id))
+        setEditorVisible(true)
+        resolve('taken')
+      }
+      const held = editor.draft
+      if (!held || !isDraftDirty(held)) return take()
+      Alert.alert(t.calendar.unsavedChanges, undefined, [
+        {
+          text: t.calendar.resumeDraft,
+          onPress: () => {
+            editor.resume()
+            setEditorVisible(true)
+            resolve('resumed')
+          },
+        },
+        {
+          text: t.calendar.continueAnyway,
+          style: 'destructive',
+          onPress: () => {
+            editor.discard()
+            take()
+          },
+        },
+        { text: t.calendar.stay, style: 'cancel', onPress: () => resolve('stay') },
+      ])
     })
   const openEvent = (event: CalendarEvent) =>
     withDraftGuard(() => {
@@ -110,7 +138,6 @@ export function ConnectedCalendarScreen() {
         onOpenCalendars={() => setManagement(true)}
         onOpenPeople={() => setFilterSheet('people')}
         onViewChange={saveView}
-        onAdd={openNew}
         onEvent={openEvent}
         onDeleteEvent={(event) =>
           confirmDestructive({
@@ -150,6 +177,19 @@ export function ConnectedCalendarScreen() {
           onClose={() => setManagement(false)}
         />
       ) : null}
+      <AddEvent
+        key={userId ?? 'signed-out'}
+        calendars={data.calendars}
+        people={data.people}
+        date={activeDate}
+        // Back once the editor has saved, closed or set its draft aside.
+        hidden={
+          editorVisible &&
+          Boolean(editor.draft) &&
+          editor.draft?.status !== 'dismissed'
+        }
+        onAllDetails={openDetails}
+      />
       {editorVisible && editor.draft?.status !== 'dismissed' ? (
         <CalendarEditor
           controller={editor}

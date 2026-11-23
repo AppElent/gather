@@ -886,6 +886,12 @@ export const nl = {
     tryAgain: 'Opnieuw proberen',
     discard: 'Weggooien',
     ok: 'OK',
+    addEvent: 'Afspraak toevoegen',
+    eventTitle: 'Wat ga je doen?',
+    eventNote: 'Notitie',
+    eventBody: 'Notitie: wat mee te nemen, adres…',
+    eventFailed: 'Die afspraak kon niet worden bewaard. Probeer het opnieuw.',
+    eventNotSaved: '“{title}” is niet bewaard.',
   },
 
   tasks: {

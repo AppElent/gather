@@ -59,7 +59,6 @@ export interface CalendarScreenProps {
   today: string
   /** Told whenever the visible date moves, so the events around it are loaded. */
   onActiveDate: (date: string) => void
-  onAdd: (date: string) => void
   onEvent: (event: CalendarEvent) => void
   onDeleteEvent: (event: CalendarEvent) => void
   preferredView: CalendarView
@@ -75,7 +74,6 @@ export function CalendarScreen({
   data,
   today,
   onActiveDate,
-  onAdd,
   onEvent,
   onDeleteEvent,
   preferredView,
@@ -171,7 +169,6 @@ export function CalendarScreen({
             setNavigation((current) => setCalendarView(current, view))
             onViewChange(view)
           }}
-          onAdd={() => onAdd(shownDate)}
           onOpenCalendars={onOpenCalendars}
           onOpenPeople={onOpenPeople}
         />
