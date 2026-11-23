@@ -18,9 +18,11 @@
 import { useAuth } from '@clerk/expo'
 import type { MenuAction } from '@expo/ui/community/menu'
 import {
+  addGroceryAmounts,
   capitalise,
   GROCERY_AISLES,
   type GroceryUnit,
+  groceryLineText,
   isGroceryAisle,
 } from '@gather/core/groceries'
 import { useRouter } from 'expo-router'
@@ -83,6 +85,7 @@ import {
   useTaskList,
   useTaskLists,
 } from './store'
+import type { Task } from './types'
 
 const PILL = 48
 const BAR_PADDING = 10
@@ -156,6 +159,8 @@ interface Added {
   name: string
   /** Said instead of "{name} added": an open item whose amount grew. */
   text?: string
+  /** The list its undo reads, for an open item that was changed. */
+  listId?: string
   undo: () => Promise<unknown>
 }
 
@@ -171,6 +176,57 @@ interface Landed {
   /** Nothing changed: said on the status line, with no undo. */
   already?: boolean
   retry?: () => Promise<unknown>
+}
+
+/** The items on screen, and whether the list Undo reads has answered. */
+interface Rows {
+  tasks: readonly Task[]
+  undoListId: string
+  undoLoaded: boolean
+}
+
+const amountKey = (quantity?: number, unit?: GroceryUnit) =>
+  JSON.stringify([quantity ?? null, unit ?? null])
+
+function amountFrom(key: string): { quantity?: number; unit?: GroceryUnit } {
+  const [quantity, unit] = JSON.parse(key) as [number | null, GroceryUnit | null]
+  return { quantity: quantity ?? undefined, unit: unit ?? undefined }
+}
+
+/**
+ * This opening's writes to open items. One item's go one after another, and a
+ * value written stands until the list shows it: the row may be a moment behind.
+ */
+class OpenItemWrites {
+  private tails = new Map<string, Promise<unknown>>()
+  private written = new Map<string, { past: string[]; to: string }>()
+
+  queued<T>(id: string, write: () => Promise<T>): Promise<T> {
+    const next = (this.tails.get(id) ?? Promise.resolve()).then(write)
+    const tail: Promise<unknown> = next
+      .catch(() => {})
+      .then(() => {
+        if (this.tails.get(id) === tail) this.tails.delete(id)
+      })
+    this.tails.set(id, tail)
+    return next
+  }
+
+  busy(id: string) {
+    return this.tails.has(id)
+  }
+
+  now(key: string, shown: string) {
+    const entry = this.written.get(key)
+    if (entry?.past.includes(shown)) return entry.to
+    this.written.delete(key)
+    return shown
+  }
+
+  wrote(key: string, from: string, to: string) {
+    const past = [...(this.written.get(key)?.past ?? []), from]
+    this.written.set(key, { past: past.filter((value) => value !== to), to })
+  }
 }
 
 function GroceryComposerCard({
@@ -255,11 +311,34 @@ function GroceryComposerCard({
     ? quickAddTarget(offered, draft.listId ?? openedOn)
     : undefined
   const { tasks } = useTaskList(target?._id ?? openedOn)
-  const open = useRef(tasks)
-  open.current = tasks
+  // What Undo would take back may be on a list the chip has left since.
+  const undoListId = added.at(-1)?.listId ?? target?._id ?? openedOn
+  const undoList = useTaskList(undoListId)
+  const undoSync = undoList.list?.sync
+  const rows = useRef<Rows>({ tasks: [], undoListId, undoLoaded: false })
+  rows.current = {
+    tasks: [...tasks, ...undoList.tasks],
+    undoListId,
+    undoLoaded:
+      undoSync === 'live' ||
+      undoSync === 'synced' ||
+      (lists !== undefined && !lists.some((list) => list._id === undoListId)),
+  }
+  const [writes] = useState(() => new OpenItemWrites())
+  // Forgotten once the list shows it, so a later change back is believed.
+  useEffect(() => {
+    for (const task of rows.current.tasks) {
+      writes.now(`amount:${task.id}`, amountKey(task.quantity, task.unit))
+      writes.now(`notes:${task.id}`, task.notes ?? '')
+    }
+  })
 
   const item = composedGrocery(draft)
-  const detected = useTypedAisle(target?._id, item.title)
+  // With its amount, as the server reads it: "2 blik tomaten" is in tins.
+  const detected = useTypedAisle(
+    target?._id,
+    item.title ? groceryLineText(item.title, item.quantity, item.unit) : '',
+  )
   const aisle = draft.aisle ?? detected
   const hasAmount = item.quantity !== undefined || item.unit !== undefined
   const amount = hasAmount
@@ -310,62 +389,120 @@ function GroceryComposerCard({
     }
   }
 
-  /** A completion that is open already: its amount, and what was chosen. */
+  /**
+   * A completion that is open already: its amount, and what was chosen. What
+   * it adds to is read when it is sent, after the saves before it, so two
+   * quick picks add up.
+   */
   const saveOnto = (
     pick: GroceryPick & { open: NonNullable<GroceryPick['open']> },
     saving: ComposedGrocery,
     saveKey: string,
   ): Saving => {
-    const { open: item, merged } = pick
+    const { open: item } = pick
     const name = capitalise(pick.title)
-    const note = saving.note
-      ? [item.notes?.trim(), saving.note].filter(Boolean).join('\n')
-      : undefined
     const before = staples && new Set<string>(staples.map((staple) => staple._id))
+    const rowNow = () => rows.current.tasks.find((task) => task.id === item.id)
+    const amountOf = (row: Task) =>
+      writes.now(`amount:${item.id}`, amountKey(row.quantity, row.unit))
+    const notesOf = (row: Task) => writes.now(`notes:${item.id}`, row.notes ?? '')
+    const setAmount = async (from: string, to: string) => {
+      const { quantity, unit } = amountFrom(to)
+      await actions.setAmount(item.id, quantity ?? null, unit ?? null)
+      writes.wrote(`amount:${item.id}`, from, to)
+    }
+    const setNotes = async (from: string, to: string) => {
+      await actions.setNotes(item.id, to)
+      writes.wrote(`notes:${item.id}`, from, to)
+    }
     return {
       name,
-      send: async () => {
-        if (merged)
-          await actions.setAmount(
-            item.id,
-            merged.quantity ?? null,
-            merged.unit ?? null,
-          )
-        if (note) await actions.setNotes(item.id, note)
-        const staple = saving.staple ? await actions.addStaple(item.title) : undefined
-        if (!merged && !note && !staple) return { taskId: item.id, already: true }
-        const made = staple && before && !before.has(staple) ? staple : undefined
-        return {
-          taskId: item.id,
-          added: {
-            key: saveKey,
-            name,
-            text: merged
-              ? fmt(own.merged, {
-                  name,
-                  amount: amountText(merged.quantity, merged.unit) ?? '1',
-                })
-              : undefined,
-            undo: async () => {
-              // Another Member may have changed it since: theirs stands.
-              const now = open.current.find((task) => task.id === item.id)
-              if (
-                merged &&
-                now?.quantity === merged.quantity &&
-                now?.unit === merged.unit
-              )
-                await actions.setAmount(
-                  item.id,
-                  item.quantity ?? null,
-                  item.unit ?? null,
-                )
-              if (note && now?.notes === note)
-                await actions.setNotes(item.id, item.notes ?? '')
-              if (made) await actions.removeStaple(made)
+      send: () =>
+        writes.queued(item.id, async () => {
+          const did: {
+            amount?: { from: string; to: string }
+            note?: { from: string; to: string }
+            staple?: GroceryDetails['stapleId']
+          } = {}
+          let undone = false
+          const from = amountOf(rowNow() ?? item)
+          const merged = pick.merged
+            ? addGroceryAmounts(amountFrom(from), {
+                quantity: saving.quantity,
+                unit: saving.unit,
+              })
+            : null
+          if (merged) {
+            const to = amountKey(merged.quantity, merged.unit)
+            await setAmount(from, to)
+            did.amount = { from, to }
+          }
+          /** Answers the details that did not save, to send only those again. */
+          const details = async (wanted: { note?: string; staple?: boolean }) => {
+            const addNote = async (note: string) => {
+              const had = notesOf(rowNow() ?? item)
+              const to = [had.trim(), note].filter(Boolean).join('\n')
+              await setNotes(had, to)
+              did.note = { from: had, to }
+            }
+            const addStaple = async () => {
+              const id = await actions.addStaple(item.title)
+              if (id && before && !before.has(id)) did.staple = id
+            }
+            const [note, staple] = await Promise.allSettled([
+              wanted.note ? addNote(wanted.note) : null,
+              wanted.staple ? addStaple() : null,
+            ])
+            return {
+              note: note.status === 'rejected' ? wanted.note : undefined,
+              staple: staple.status === 'rejected',
+            }
+          }
+          const retryOf =
+            (failed: Awaited<ReturnType<typeof details>>) => async () => {
+              if (undone) return
+              const left = await writes.queued(item.id, () => details(failed))
+              if (left.note || left.staple) offerDetails(retryOf(left))
+            }
+          const asked = Number(Boolean(saving.note)) + Number(saving.staple)
+          const failed = await details(saving)
+          const missed = Number(Boolean(failed.note)) + Number(failed.staple)
+          if (!merged && asked === 0) return { taskId: item.id, already: true }
+          if (!merged && missed === asked) throw new Error('Nothing saved')
+          return {
+            taskId: item.id,
+            ...(missed ? { retry: retryOf(failed) } : {}),
+            added: {
+              key: saveKey,
+              name,
+              listId: item.listId,
+              text: merged
+                ? fmt(own.merged, {
+                    name,
+                    amount: amountText(merged.quantity, merged.unit) ?? '1',
+                  })
+                : undefined,
+              undo: async () => {
+                // A later change of ours is on its way: not under its feet.
+                if (writes.busy(item.id)) throw new Error('Still saving')
+                const row = rowNow()
+                if (did.amount || did.note) {
+                  const loaded =
+                    rows.current.undoListId === item.listId && rows.current.undoLoaded
+                  // Gone is undone; not loaded is not known.
+                  if (!row && !loaded) throw new Error('Not loaded')
+                }
+                undone = true
+                // Another Member may have changed it since: theirs stands.
+                if (row && did.amount && amountOf(row) === did.amount.to)
+                  await setAmount(did.amount.to, did.amount.from)
+                if (row && did.note && notesOf(row) === did.note.to)
+                  await setNotes(did.note.to, did.note.from)
+                if (did.staple) await actions.removeStaple(did.staple)
+              },
             },
-          },
-        }
-      },
+          }
+        }),
     }
   }
 

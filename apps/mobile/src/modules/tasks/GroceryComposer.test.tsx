@@ -43,6 +43,12 @@ const state = vi.hoisted(() => ({
   pushed: [] as unknown[],
   lists: [] as Record<string, unknown>[],
   tasks: [] as Record<string, unknown>[],
+  elsewhere: {} as Record<
+    string,
+    { tasks: Record<string, unknown>[]; sync: string }
+  >,
+  amountFails: false,
+  notesFail: false,
 }))
 
 vi.mock('react-native', async () => {
@@ -196,7 +202,10 @@ vi.mock('./quickAdd', () => ({
 vi.mock('./groceryList', () => ({ groceryListsOf: (lists: unknown) => lists }))
 vi.mock('./store', () => ({
   useTaskLists: () => state.lists,
-  useTaskList: () => ({ tasks: state.tasks }),
+  useTaskList: (id: string) => ({
+    tasks: state.elsewhere[id]?.tasks ?? state.tasks,
+    list: { sync: state.elsewhere[id]?.sync ?? 'live' },
+  }),
   useTaskActions: () => ({
     addComposedGrocery: async (
       listId: string,
@@ -221,9 +230,12 @@ vi.mock('./store', () => ({
       state.deleted.push(id)
     },
     setAmount: async (...args: unknown[]) => {
+      if (state.hold) await state.hold
+      if (state.amountFails) throw new Error('offline')
       state.amounts.push(args)
     },
     setNotes: async (...args: unknown[]) => {
+      if (state.notesFail) throw new Error('offline')
       state.notes.push(args)
     },
   }),
@@ -258,9 +270,14 @@ beforeEach(() => {
     focusBody: 0,
     pushed: [],
     tasks: [],
+    elsewhere: {},
+    amountFails: false,
+    notesFail: false,
     server: new Map([
       ['melk', 'dairy'],
       ['kaas', 'dairy'],
+      ['2 pak melk', 'dairy'],
+      ['2 blik tomaten', 'tins_sauces'],
     ]),
     lists: [
       { _id: listId, name: 'Albert Heijn', writable: true },
@@ -591,8 +608,8 @@ test('a completion adds its name with what was chosen', async () => {
 })
 
 test('a completion that is open gets the amount, and undo gives it back', async () => {
-  const item = { id: 'open', title: 'Melk', quantity: 1, unit: 'pak' }
-  state.tasks = [{ ...item, quantity: 3 }]
+  const item = { id: 'open', listId, title: 'Melk', quantity: 1, unit: 'pak' }
+  state.tasks = [item]
   const { type, press } = open()
   type('2 pak me')
   const onPick = state.completions!.onPick as (pick: unknown) => void
@@ -627,4 +644,126 @@ test('a completion that is open and has nothing to add says so, without undo', a
 test('the card has one size', () => {
   open()
   expect(state.shell!.expandable).toBe(false)
+})
+
+test('the aisle is read with the amount, as the server reads it', () => {
+  const { type, chip } = open()
+  type('2 blik tomaten')
+  expect(chip('aisle')!.label).toBe(g.aisles.tins_sauces)
+})
+
+const melk = () => ({
+  id: 'open',
+  listId,
+  title: 'Melk',
+  quantity: 1,
+  unit: 'pak',
+})
+
+/** Taps the completion of the open `melk`, as the rows show it. */
+const pickMelk = async () => {
+  const onPick = state.completions!.onPick as (pick: unknown) => void
+  await act(async () =>
+    onPick({
+      title: 'melk',
+      quantity: 2,
+      unit: 'pak',
+      open: melk(),
+      merged: { quantity: 3, unit: 'pak' },
+    }),
+  )
+  await settle()
+}
+
+test('two quick merges onto one item add up, and each is undone', async () => {
+  state.tasks = [melk()]
+  let release = () => {}
+  state.hold = new Promise((resolve) => {
+    release = resolve
+  })
+  const { type, press } = open()
+  type('2 pak me')
+  await pickMelk()
+  type('2 pak me')
+  await pickMelk()
+  await act(async () => release())
+  await settle()
+  expect(state.amounts).toEqual([
+    ['open', 3, 'pak'],
+    ['open', 5, 'pak'],
+  ])
+  await press('grocery-undo')
+  expect(state.amounts.at(-1)).toEqual(['open', 3, 'pak'])
+  await press('grocery-undo')
+  expect(state.amounts.at(-1)).toEqual(['open', 1, 'pak'])
+})
+
+test('a merge that failed adds to the amount there is when it is tried again', async () => {
+  state.tasks = [melk()]
+  state.amountFails = true
+  const { type, alert } = open()
+  type('2 pak me')
+  await pickMelk()
+  state.amountFails = false
+  type('2 pak me')
+  await pickMelk()
+  await alert(en.composer.tryAgain)
+  expect(state.amounts).toEqual([
+    ['open', 3, 'pak'],
+    ['open', 5, 'pak'],
+  ])
+})
+
+test("another Member's amount stands when a merge is undone", async () => {
+  state.tasks = [melk()]
+  const { type, press } = open()
+  type('2 pak me')
+  await pickMelk()
+  state.tasks = [{ ...melk(), quantity: 7 }]
+  type('k')
+  await press('grocery-undo')
+  expect(state.amounts).toHaveLength(1)
+})
+
+test('a merge is undone after switching lists, once its list is there', async () => {
+  state.elsewhere = {
+    [listId]: { tasks: [melk()], sync: 'live' },
+    lidl: { tasks: [], sync: 'live' },
+  }
+  const { type, chip, press, find } = open()
+  type('2 pak me')
+  await pickMelk()
+  state.elsewhere[listId] = { tasks: [], sync: 'loading' }
+  await act(async () => chip('list')!.onMenu!('list:lidl'))
+  await press('grocery-undo')
+  expect(state.amounts).toHaveLength(1)
+  expect(find('notice')!.textContent).toBe(en.composer.grocery.undoFailed)
+  expect(find('grocery-undo')).not.toBeNull()
+  state.elsewhere[listId] = { tasks: [melk()], sync: 'live' }
+  type('k')
+  await press('grocery-undo')
+  expect(state.amounts.at(-1)).toEqual(['open', 1, 'pak'])
+})
+
+test('a merge whose note failed can be undone, and only the note is sent again', async () => {
+  state.tasks = [melk()]
+  state.notesFail = true
+  const { type, menu, alert, find, press } = open()
+  type('2 pak me')
+  await menu('more:note')
+  act(() =>
+    (state.shell!.body as { onChange: (text: string) => void }).onChange(
+      'halfvol',
+    ),
+  )
+  await pickMelk()
+  expect(find('grocery-undo')).not.toBeNull()
+  expect(state.alerts.at(-1)!.title).toBe(en.composer.grocery.detailsFailed)
+  state.notesFail = false
+  await alert(en.composer.tryAgain)
+  expect(state.amounts).toHaveLength(1)
+  expect(state.notes).toEqual([['open', 'halfvol']])
+  await press('grocery-undo')
+  expect(state.amounts.at(-1)).toEqual(['open', 1, 'pak'])
+  expect(state.notes.at(-1)).toEqual(['open', ''])
 })

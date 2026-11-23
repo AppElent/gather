@@ -60,6 +60,10 @@ Rules:
   offered again.
 - Undo goes one item back at a time. It removes a staple only when that save
   made it, and an open item's amount only when nobody changed it since.
+  After a list switch it reads the list the item is on; not loaded yet, it says
+  the undo failed and stays.
+- An amount added to an open item counts from what it is when the save is sent,
+  so quick picks add up. The open item keeps its aisle.
 - Alle details saves the item first, then opens its screen.
 
 ## States
