@@ -7,9 +7,11 @@ import { tastingKindValidator } from './lib/tastings'
 const RESULT_LIMIT = 30
 const GROUP_RECORD_LIMIT = 200
 /**
- * Recipes Shared into the Group come out of the recipe budget rather than on
- * top of it, so the bytes this query can read stay what they were. Rows, not
- * bytes, are what the budgets bound, and a recipe or note can be large.
+ * At most this many recipes Shared into the Group are searched. They come out
+ * of the recipe budget rather than on top of it (the Group's own recipes get
+ * what the shares leave), so this query never reads more recipe documents
+ * than it did before shares were searched. Rows, not bytes, are what the
+ * budgets bound, and a recipe or note can be large.
  */
 const SHARED_RECIPE_LIMIT = 50
 const PARENT_LIMIT = 20
@@ -120,23 +122,25 @@ export const group = query({
     const groupId = group._id
     const none = Promise.resolve([])
 
-    const [recipes, shares, notes, subjects, calendars, taskLists, loyaltyCards] =
+    // Share rows are small; read first so the Group's own recipes can take
+    // whatever of the recipe budget the shares leave.
+    const shares = accepts.has('recipe')
+      ? await ctx.db
+          .query('recipeShares')
+          .withIndex('by_group', (q) => q.eq('groupId', groupId))
+          .order('desc')
+          .take(SHARED_RECIPE_LIMIT)
+      : []
+    const sharedIds = [...new Set(shares.map((share) => share.recipeId))]
+
+    const [recipes, notes, subjects, calendars, taskLists, loyaltyCards] =
       await Promise.all([
         accepts.has('recipe')
           ? ctx.db
               .query('recipes')
               .withIndex('by_group', (q) => q.eq('groupId', groupId))
               .order('desc')
-              .take(GROUP_RECORD_LIMIT - SHARED_RECIPE_LIMIT)
-          : none,
-        // Recipes Shared into the Group are in its collection too, so they
-        // are found here as well (`lib/recipeShares.ts`).
-        accepts.has('recipe')
-          ? ctx.db
-              .query('recipeShares')
-              .withIndex('by_group', (q) => q.eq('groupId', groupId))
-              .order('desc')
-              .take(SHARED_RECIPE_LIMIT)
+              .take(GROUP_RECORD_LIMIT - sharedIds.length)
           : none,
         accepts.has('note')
           ? ctx.db
@@ -181,15 +185,11 @@ export const group = query({
           : none,
       ])
 
-    // A share row re-checked against the recipe it names, so one that lags
-    // `sharedGroupIds` never shows a recipe the Group cannot see.
-    const sharedIn = (
-      await Promise.all(
-        [...new Set(shares.map((share) => share.recipeId))].map((id) =>
-          ctx.db.get(id),
-        ),
-      )
-    ).filter(
+    // Recipes Shared into the Group are in its collection too
+    // (`lib/recipeShares.ts`). Each share row is re-checked against the recipe
+    // it names, so one that lags `sharedGroupIds` never shows a recipe the
+    // Group cannot see.
+    const sharedIn = (await Promise.all(sharedIds.map((id) => ctx.db.get(id)))).filter(
       (recipe): recipe is NonNullable<typeof recipe> =>
         recipe !== null &&
         recipe.groupId !== groupId &&

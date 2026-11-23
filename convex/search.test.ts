@@ -350,3 +350,46 @@ describe('Group search narrowed to one Module (APP-613)', () => {
     expect(results.map((result) => result.title)).toEqual(['Boiler manual'])
   })
 })
+
+describe('Group search recipe budget', () => {
+  const dan = {
+    subject: 'search_dan',
+    name: 'Dan',
+    email: 'search-dan@example.com',
+  }
+
+  test('a Group with no shares keeps the whole recipe budget for its own', async () => {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const danId = await ctx.db.insert('users', {
+        clerkId: dan.subject,
+        name: dan.name,
+        email: dan.email,
+      })
+      const groupId = await seedGroup(ctx, {
+        name: 'Kitchen',
+        slug: 'search-recipe-budget',
+        inviteCode: 'search-recipe-budget',
+      })
+      await seedMember(ctx, groupId, danId, 'admin')
+      const recipe = {
+        groupId,
+        sharedGroupIds: [],
+        createdByUserId: danId,
+        ingredients: [],
+        steps: [],
+        tags: [],
+      }
+      await ctx.db.insert('recipes', { ...recipe, title: 'Oldest pie' })
+      for (let index = 0; index < 199; index += 1)
+        await ctx.db.insert('recipes', { ...recipe, title: `Recipe ${index}` })
+    })
+
+    const results = await t.withIdentity(dan).query(api.search.group, {
+      groupSlug: 'search-recipe-budget',
+      query: 'oldest',
+      accepts: ['recipe'],
+    })
+    expect(results.map((result) => result.title)).toEqual(['Oldest pie'])
+  })
+})
