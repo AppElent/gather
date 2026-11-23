@@ -7,7 +7,8 @@ import { getGatedIdentity } from './connectedApps'
 /**
  * The sentence a signed-out caller was refused with before the refusal was
  * keyed. It rides along as the keyed refusal's `message`, and the account
- * portal paths (`accountPortal.ts`, `accounts.ts`) still throw it bare.
+ * portal paths (`accountPortal.ts`, `accounts.ts`) and `aiUsage.ts` still throw
+ * it bare.
  */
 export const NOT_SIGNED_IN = 'Not authenticated'
 
