@@ -120,6 +120,8 @@ export const shell = {
     unpinModule: 'Unpin {module}',
     moveUp: 'Move {module} up',
     moveDown: 'Move {module} down',
+    /** Said to a screen reader after a pin moves. Positions count from 1. */
+    moved: '{module} moved to position {position} of {total}',
   },
 
   placeholder: {

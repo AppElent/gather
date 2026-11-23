@@ -3,7 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { useConfirmAction } from '../app/ConfirmAction'
@@ -51,6 +51,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
   const generateImageUploadUrl = useMutation(api.groups.generateImageUploadUrl)
   const { confirm, dialog } = useConfirmAction()
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const group_ = messages.settings.group
   const actions = messages.common.actions
   const [name, setName] = useState(group.name)
@@ -75,7 +76,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
     try {
       await rename({ groupId: group._id, name: trimmed })
     } catch (err) {
-      setError(errorMessage(err, group_.renameFailed))
+      setError(errorText(err, group_.renameFailed))
     } finally {
       setSaving(false)
     }
@@ -91,7 +92,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
         imageId: imageId ?? null,
       })
     } catch (err) {
-      setError(errorMessage(err, group_.renameFailed))
+      setError(errorText(err, group_.renameFailed))
     } finally {
       setSaving(false)
     }

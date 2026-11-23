@@ -3,7 +3,7 @@ import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { RetailerSuggestion } from '../../../convex/loyaltyCards'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
@@ -28,6 +28,7 @@ export function NewLoyaltyCardPage() {
   const generateUploadUrl = useMutation(api.loyaltyCards.generateUploadUrl)
   const navigate = useNavigate()
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const copy = messages.loyaltyCards
   const [choice, setChoice] = useState<Choice>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -119,7 +120,7 @@ export function NewLoyaltyCardPage() {
                 })
               } catch (caught) {
                 setError(
-                  errorMessage(caught, copy.form.saveFailed, copy.refusals),
+                  errorText(caught, copy.form.saveFailed, copy.refusals),
                 )
                 setSubmitting(false)
               }

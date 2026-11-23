@@ -47,6 +47,11 @@ export interface CalendarScreenData {
   events: CalendarEvent[]
   people: CalendarPerson[]
   hiddenCalendarIds: string[]
+  /**
+   * Whether a month's events are all in, so its empty days really are empty.
+   * Left out, every month counts as loaded.
+   */
+  monthLoaded?: (month: string) => boolean
 }
 
 export interface CalendarScreenProps {
@@ -103,17 +108,17 @@ export function CalendarScreen({
   /** Bumped on every deliberate jump, even to the date already selected. */
   const [jumpId, setJumpId] = useState(0)
   const shownDate = scrolledDate ?? navigation.activeDate
-  const [expandedByMonth, setExpandedByMonth] = useState<
-    Record<string, readonly string[]>
-  >({})
-  const activeMonth = navigation.activeDate.slice(0, 7)
+  /**
+   * Empty days the person opened. Kept across months, not per selected
+   * month: with one long list, a gap opened in one month stays open after a
+   * jump to another.
+   */
+  const [expandedDates, setExpandedDates] = useState<readonly string[]>([])
   useEffect(() => {
     onActiveDate(shownDate)
   }, [shownDate, onActiveDate])
   /** The whole months the agenda has loaded; scrolling grows it at either end. */
   const [range, setRange] = useState(() => agendaRangeAround(today))
-
-  const expandedDates = expandedByMonth[activeMonth] ?? []
 
   const jumpToDate = useCallback((date: string) => {
     setScrolledDate(null)
@@ -205,17 +210,13 @@ export function CalendarScreen({
           today={today}
           events={data.events}
           people={data.people}
+          monthLoaded={data.monthLoaded}
           expandedDates={expandedDates}
           onSelectDate={jumpToDate}
           onEvent={onEvent}
           onDeleteEvent={onDeleteEvent}
           onExpandGap={(dates) => {
-            setExpandedByMonth((current) => ({
-              ...current,
-              [activeMonth]: [
-                ...new Set([...(current[activeMonth] ?? []), ...dates]),
-              ],
-            }))
+            setExpandedDates((current) => [...new Set([...current, ...dates])])
             if (dates[0]) jumpToDate(dates[0])
           }}
           onVisibleDate={setScrolledDate}

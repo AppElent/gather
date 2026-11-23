@@ -17,6 +17,7 @@ const state = vi.hoisted(() => ({
   habits: [] as GroceryHabit[],
   added: [] as unknown[],
   amounts: [] as unknown[][],
+  moved: [] as unknown[][],
 }))
 
 vi.mock('react-native', async () => {
@@ -82,6 +83,10 @@ vi.mock('./store', () => ({
   useTaskActions: () => ({
     addGrocery: async (_listId: string, item: unknown) => {
       state.added.push(item)
+      return 'new-melk'
+    },
+    setAisle: async (...args: unknown[]) => {
+      state.moved.push(args)
     },
     setAmount: async (...args: unknown[]) => {
       state.amounts.push(args)
@@ -114,13 +119,15 @@ beforeEach(() => {
   state.habits = [melk]
   state.added = []
   state.amounts = []
+  state.moved = []
 })
 
-async function pick(line: string, tasks: Task[]) {
+async function pick(line: string, tasks: Task[], aisle?: 'bakery') {
   const view = mount(
     <GroceryCompletions
       listId="list"
       line={line}
+      aisle={aisle}
       tasks={tasks}
       onPicked={() => {}}
     />,
@@ -164,4 +171,21 @@ test('the typed part of the name is its own text, for the 600 weight', async () 
     (span) => span.textContent,
   )
   expect(spans).toContain('me')
+})
+
+test('an aisle chosen in the composer goes with a picked new item (APP-536)', async () => {
+  await pick('me', [], 'bakery')
+  expect(state.added).toEqual([{ title: 'melk', quantity: 1, unit: 'pak' }])
+  expect(state.moved).toEqual([['new-melk', 'bakery']])
+})
+
+test('without a chosen aisle a picked item is only added', async () => {
+  await pick('me', [])
+  expect(state.moved).toEqual([])
+})
+
+test('an item already open keeps its aisle when picked', async () => {
+  await pick('2 pak me', [openMelk], 'bakery')
+  expect(state.amounts).toEqual([['open-melk', 3, 'pak']])
+  expect(state.moved).toEqual([])
 })

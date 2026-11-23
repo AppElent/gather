@@ -9,7 +9,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { errorMessage } from '../../lib/errorMessage'
+import { useErrorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
@@ -90,6 +90,7 @@ function EditSubjectForm({
 }) {
   const nav = TASTING_LINKS[kind]
   const messages = useMessages()
+  const errorText = useErrorMessage()
   const copy = messages.tastings
   const update = useMutation(api.tastings.updateSubject)
   const generateUploadUrl = useMutation(api.tastings.generateUploadUrl)
@@ -137,7 +138,7 @@ function EditSubjectForm({
             navigate(nav.subject(subject._id))
           } catch (cause) {
             setError(
-              errorMessage(
+              errorText(
                 cause,
                 messages.common.errors.somethingWentWrong,
                 copy.composer.problems,

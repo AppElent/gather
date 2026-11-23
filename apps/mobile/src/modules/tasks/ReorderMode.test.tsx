@@ -20,6 +20,16 @@ interface Pan {
 }
 
 const grips = vi.hoisted(() => new Map<string, Pan>())
+type Row = {
+  accessibilityActions?: { name: string; label: string }[]
+  onAccessibilityAction?: (event: {
+    nativeEvent: { actionName: string }
+  }) => void
+}
+const a11y = vi.hoisted(() => ({
+  rows: new Map<string, unknown>(),
+  announced: [] as string[],
+}))
 
 vi.mock('react-native', async () => {
   const React = await import('react')
@@ -39,10 +49,17 @@ vi.mock('react-native', async () => {
   class Value {
     setValue() {}
   }
+  const row = (props: Props) => {
+    if (typeof props.testID === 'string') a11y.rows.set(props.testID, props)
+    return dom('div')(props)
+  }
   return {
     View: dom('div'),
     Text: dom('span'),
-    Animated: { View: dom('div'), Value },
+    Animated: { View: row, Value },
+    AccessibilityInfo: {
+      announceForAccessibility: (text: string) => a11y.announced.push(text),
+    },
     StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 1 },
   }
 })
@@ -114,7 +131,15 @@ const task = (id: string, title: string, category?: string) => ({
   order: 0,
 })
 
-beforeEach(() => grips.clear())
+beforeEach(() => {
+  grips.clear()
+  a11y.rows.clear()
+  a11y.announced = []
+})
+
+const rowOf = (id: string) => a11y.rows.get(`reorder-${id}`) as Row
+const run = (id: string, actionName: 'moveUp' | 'moveDown') =>
+  act(() => rowOf(id).onAccessibilityAction?.({ nativeEvent: { actionName } }))
 
 test('an item dragged under the next aisle commits in that aisle', () => {
   const tasks = [task('a', 'Appels', 'produce'), task('c', 'Cola', 'drinks')]
@@ -182,6 +207,78 @@ test('nothing lands above the first aisle, and a tap commits nothing', () => {
   act(() => peren.finalize())
   // Rearranged within its aisle: no aisle change goes with it.
   expect(commits).toEqual([[['p', 'a'], ['produce', 'produce'], undefined]])
+
+  view.unmount()
+})
+
+test('VoiceOver moves a task one row at a time and says where it went', () => {
+  const tasks = [task('a', 'Bread'), task('b', 'Milk'), task('c', 'Eggs')]
+  const commits: unknown[][] = []
+  const view = mount(
+    <ReorderMode
+      tasks={tasks as never}
+      display={display}
+      today="2026-11-21"
+      scrollRef={{ current: null }}
+      onDragging={() => {}}
+      onCommit={(...args) => commits.push(args)}
+    />,
+  )
+
+  // The first row cannot go up, the last cannot go down.
+  expect(rowOf('a').accessibilityActions?.map((each) => each.name)).toEqual([
+    'moveDown',
+  ])
+  expect(rowOf('b').accessibilityActions).toEqual([
+    { name: 'moveUp', label: 'Move up' },
+    { name: 'moveDown', label: 'Move down' },
+  ])
+  expect(rowOf('c').accessibilityActions?.map((each) => each.name)).toEqual([
+    'moveUp',
+  ])
+
+  run('c', 'moveUp')
+  expect(commits).toEqual([[['a', 'c', 'b'], undefined, undefined]])
+  expect(a11y.announced).toEqual(['Eggs moved to position 2 of 3'])
+
+  view.unmount()
+})
+
+test('VoiceOver moves a grocery item past a heading into that aisle, and names it', () => {
+  const tasks = [
+    task('a', 'Appels', 'produce'),
+    task('p', 'Peren', 'produce'),
+    task('c', 'Cola', 'drinks'),
+  ]
+  const commits: unknown[][] = []
+  const aisles = ['produce', 'drinks'] as const
+  const view = mount(
+    <ReorderMode
+      tasks={tasks as never}
+      sections={[
+        { id: 'produce', name: 'Produce' },
+        { id: 'drinks', name: 'Drinks' },
+      ]}
+      arrangement={aisleArrangement(tasks, aisles)}
+      display={display}
+      today="2026-11-21"
+      scrollRef={{ current: null }}
+      onDragging={() => {}}
+      onCommit={(...args) => commits.push(args)}
+    />,
+  )
+
+  // Nothing goes above the first aisle's heading.
+  expect(rowOf('a').accessibilityActions?.map((each) => each.name)).toEqual([
+    'moveDown',
+  ])
+
+  // Peren, one row down: past the Drinks heading, so first in Drinks.
+  run('p', 'moveDown')
+  expect(commits).toEqual([
+    [['a', 'p', 'c'], ['produce', 'drinks', 'drinks'], { id: 'p', sectionId: 'drinks' }],
+  ])
+  expect(a11y.announced).toEqual(['Peren moved to Drinks, position 1 of 2'])
 
   view.unmount()
 })

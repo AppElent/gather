@@ -39,7 +39,10 @@
  */
 
 import { isAiLimitReached } from '@gather/core/ai-limit'
-import { refusalSentence } from '@gather/core/refusals'
+import {
+  groupRefusalSentence,
+  refusalSentence,
+} from '@gather/core/refusals'
 import { useAction, useMutation } from 'convex/react'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -130,6 +133,11 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
 
   const problem = recipeFormProblem(values)
   const text = t.recipes
+  // A refused Group in the reader's language; any other sentence the server
+  // chose as it was thrown (APP-580).
+  const problemText = (error: unknown) =>
+    groupRefusalSentence(error, t.common.errors.groupRefusals) ??
+    refusalSentence(error)
 
   /**
    * A Drop has already been confirmed, so its import runs on arrival.
@@ -172,7 +180,7 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
       setImportProblem(
         isAiLimitReached(error)
           ? text.form.aiLimitReached
-          : (refusalSentence(error) ?? text.create.importFailed),
+          : (problemText(error) ?? text.create.importFailed),
       )
     } finally {
       setImporting(false)
@@ -214,7 +222,7 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
       router.push(moduleHref('/all/recipes/recipe', { recipeId: id }))
     } catch (error) {
       haptics.actionFailed()
-      setSaveProblem(refusalSentence(error) ?? text.form.saveFailed)
+      setSaveProblem(problemText(error) ?? text.form.saveFailed)
       setSaving(false)
     }
   }

@@ -6,6 +6,7 @@ import {
   claimsNutrition,
   completeSwaps,
   isAiRecipe,
+  rulesReason,
   rulesSwaps,
   type SwapInput,
   swapPool,
@@ -83,6 +84,44 @@ describe('Iets anders', () => {
     const all = completeSwaps(ai, input())
     expect(all.map((p) => p.source)).toEqual(['ai', 'rules', 'rules'])
     expect(new Set(all.map((p) => p.title)).size).toBe(3)
+  })
+})
+
+describe('the rules reason line', () => {
+  const stocked = (useStock: boolean) =>
+    input({
+      stock: { inStock: ['Rijst', 'Spinazie'], low: ['Kipdij'] },
+      prefs: { ...prefs, smart: { ...prefs.smart, useStock } },
+    })
+
+  test('names the stock it uses, running low first, and the time it fits', () => {
+    const picks = rulesSwaps(stocked(true))
+    const byId = Object.fromEntries(picks.map((p) => [p.recipeId ?? p.quickMealId, p.rulesReason]))
+    expect(byId.teriyaki).toEqual({ low: ['Kipdij'], inStock: ['Rijst'], fitsMinutes: 30 })
+    expect(byId.gnocchi).toEqual({ low: [], inStock: ['Spinazie'], fitsMinutes: 30 })
+    expect(byId.wraps).toEqual({ low: [], inStock: [], fitsMinutes: 30 })
+  })
+
+  test('leaves stock out when the Group does not plan with it', () => {
+    const [first] = rulesSwaps(stocked(false))
+    expect(first.rulesReason?.low).toEqual([])
+    expect(first.rulesReason?.inStock).toEqual([])
+  })
+
+  test('says nothing about time over the limit, without a limit or for a quick meal without minutes', () => {
+    expect(rulesReason({ prepMinutes: 45, ingredients: [] }, input()).fitsMinutes).toBeUndefined()
+    const open = input({ targets: [{ date: '2026-11-26', slot: 'dinner', maxMinutes: null, eaters: 3 }] })
+    expect(rulesReason({ prepMinutes: 10 }, open).fitsMinutes).toBeUndefined()
+    expect(rulesReason({}, input()).fitsMinutes).toBeUndefined()
+  })
+
+  test('quick meals that fill in carry a reason too; the model’s picks do not', () => {
+    const picks = rulesSwaps(input({ chip: 'faster', recipes: RECIPES.slice(0, 2) }))
+    expect(picks[1].rulesReason).toEqual({ low: [], inStock: [], fitsMinutes: 30 })
+    const ai = acceptAiSwaps([{ recipeId: 'gnocchi', reason: 'Spinazie in huis' }], swapPool(input()))
+    const all = completeSwaps(ai, input())
+    expect(all[0].rulesReason).toBeUndefined()
+    expect(all.slice(1).every((p) => p.rulesReason !== undefined)).toBe(true)
   })
 })
 

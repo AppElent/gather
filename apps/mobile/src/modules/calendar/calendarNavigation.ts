@@ -114,31 +114,55 @@ export function agendaRangeAround(date: string): AgendaRange {
   return { from: addMonths(month, -1), toExclusive: addMonths(month, 2) }
 }
 
-/** One more month at the start (`-1`) or the end (`1`). */
+/**
+ * The most whole months the agenda keeps. Scrolling for years would otherwise
+ * keep every month's rows, and rebuild them all on every event change.
+ */
+export const AGENDA_MAX_MONTHS = 9
+
+function monthCount(range: AgendaRange): number {
+  const [fromYear, fromMonth] = range.from.split('-').map(Number)
+  const [toYear, toMonth] = range.toExclusive.split('-').map(Number)
+  return (toYear - fromYear) * 12 + (toMonth - fromMonth)
+}
+
+/**
+ * One more month at the start (`-1`) or the end (`1`). Past `maxMonths` the
+ * month at the other end goes, the one furthest from where the person is.
+ */
 export function extendAgendaRange(
   range: AgendaRange,
   direction: -1 | 1,
+  maxMonths = AGENDA_MAX_MONTHS,
 ): AgendaRange {
+  const grown =
+    direction < 0
+      ? { ...range, from: addMonths(range.from, -1) }
+      : { ...range, toExclusive: addMonths(range.toExclusive, 1) }
+  const excess = monthCount(grown) - maxMonths
+  if (excess <= 0) return grown
   return direction < 0
-    ? { ...range, from: addMonths(range.from, -1) }
-    : { ...range, toExclusive: addMonths(range.toExclusive, 1) }
+    ? { ...grown, toExclusive: addMonths(grown.toExclusive, -excess) }
+    : { ...grown, from: addMonths(grown.from, excess) }
 }
 
 /**
  * A deliberate jump keeps what is loaded when the date is in or next to it,
  * and grows it to a month either side of the date, so the day can reach the
- * top of the list. A date further away starts over around it.
+ * top of the list. A date further away starts over around it. Past
+ * `maxMonths`, months go from the end further from the date.
  */
 export function agendaRangeForJump(
   range: AgendaRange,
   date: string,
+  maxMonths = AGENDA_MAX_MONTHS,
 ): AgendaRange {
   const around = agendaRangeAround(date)
   const touches =
     compareIsoDates(around.from, range.toExclusive) <= 0 &&
     compareIsoDates(around.toExclusive, range.from) >= 0
   if (!touches) return around
-  return {
+  let merged = {
     from:
       compareIsoDates(around.from, range.from) < 0 ? around.from : range.from,
     toExclusive:
@@ -146,6 +170,18 @@ export function agendaRangeForJump(
         ? around.toExclusive
         : range.toExclusive,
   }
+  while (monthCount(merged) > Math.max(maxMonths, 3)) {
+    const before = monthCount({ from: merged.from, toExclusive: around.from })
+    const after = monthCount({
+      from: around.toExclusive,
+      toExclusive: merged.toExclusive,
+    })
+    merged =
+      before >= after
+        ? { ...merged, from: addMonths(merged.from, 1) }
+        : { ...merged, toExclusive: addMonths(merged.toExclusive, -1) }
+  }
+  return merged
 }
 
 /** The first day of every month in the range, in order. */

@@ -1,10 +1,29 @@
+import { groupRefusal } from '@gather/core/refusals'
 import { ConvexError } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { ActionCtx, QueryCtx } from '../_generated/server'
 import { getGatedIdentity } from './connectedApps'
 
-/** The refusal for a signed-out caller. A readable sentence, not a key. */
+/**
+ * The sentence a signed-out caller was refused with before the refusal was
+ * keyed. It rides along as the keyed refusal's `message`, and the account
+ * portal paths (`accountPortal.ts`, `accounts.ts`) and `aiUsage.ts` still throw
+ * it bare.
+ */
 export const NOT_SIGNED_IN = 'Not authenticated'
+
+/**
+ * The keyed refusal for a signed-out caller (APP-581):
+ * `{ kind: 'groups:not-signed-in', message: 'Not authenticated' }`, the same
+ * one `groupAccess` throws, so web, phone and MCP read every sign-in refusal
+ * one way. Never compare against the message: read the kind.
+ */
+export function notSignedInError(): ConvexError<{
+  kind: string
+  message: string
+}> {
+  return new ConvexError(groupRefusal('not-signed-in', NOT_SIGNED_IN))
+}
 
 /**
  * Pick the row standing for a Clerk subject when the table holds more than one.
@@ -53,14 +72,14 @@ export async function getCurrentUser(ctx: QueryCtx) {
  */
 export async function requireIdentity(ctx: Pick<ActionCtx, 'auth'>) {
   const identity = await getGatedIdentity(ctx)
-  if (!identity) throw new ConvexError(NOT_SIGNED_IN)
+  if (!identity) throw notSignedInError()
   return identity
 }
 
 /** The calling Clerk user's `users` row, or a refusal. */
 export async function requireCurrentUser(ctx: QueryCtx) {
   const user = await getCurrentUser(ctx)
-  if (!user) throw new ConvexError(NOT_SIGNED_IN)
+  if (!user) throw notSignedInError()
   return user
 }
 

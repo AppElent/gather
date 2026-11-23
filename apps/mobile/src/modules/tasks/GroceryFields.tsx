@@ -118,6 +118,14 @@ export function GroceryPreview({
   const amount = amountText(fields.quantity, fields.unit)
   const detected = aisleOf(typed)
   const aisle = chosen ?? detected
+  const aisleFilled = chosen === undefined && detected !== 'other'
+  const hint = amount
+    ? aisleFilled
+      ? words.recognised
+      : words.recognisedAmount
+    : aisleFilled
+      ? words.recognisedAisle
+      : null
   const tint = tokens.tintOf('kitchen')
   const chip = [styles.chip, { backgroundColor: tint.wash, color: tint.text }]
   return (
@@ -163,12 +171,11 @@ export function GroceryPreview({
           </View>
         </View>
       </MenuView>
-      {/* What was filled in from the line: an amount, or an aisle the
-          Member has not chosen themselves. */}
-      {amount || (chosen === undefined && detected !== 'other') ? (
-        <Text style={[styles.hint, { color: tokens.muted }]}>
-          {words.recognised}
-        </Text>
+      {/* What was filled in from the line: an amount, an aisle the Member
+          has not chosen themselves, or both; a chosen aisle was not filled
+          in (APP-536). */}
+      {hint ? (
+        <Text style={[styles.hint, { color: tokens.muted }]}>{hint}</Text>
       ) : null}
     </View>
   )

@@ -179,8 +179,18 @@ export const tasks = {
     /** An item's own screen says item, not task (APP-387). */
     itemPlaceholder: 'What do you need?',
     deleteItem: 'Delete item',
+    /**
+     * The Labels sheet on a grocery item (APP-557). A label is shared by every
+     * task and item in the Group, so removing one everywhere names no kind.
+     */
+    labelsOnItem: 'On this item',
+    removeLabelEverywhere: 'Remove everywhere',
     /** Under the composer while a line is typed. */
     recognised: 'Amount and aisle filled in from what you type',
+    /** The same, when only the amount was read: the aisle was chosen, or not known. */
+    recognisedAmount: 'Amount filled in from what you type',
+    /** The same, when only the aisle was filled in. */
+    recognisedAisle: 'Aisle filled in from what you type',
     /** Read out for the composer's aisle chip, which opens the aisle menu. */
     changeAisleHint: 'Choose the aisle it is added in',
     // The list in aisle sections, the Checked row and Recent (APP-310;

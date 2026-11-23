@@ -98,6 +98,20 @@ describe('a refused Group is keyed', () => {
     expect(refusalSentence(error)).toBe('Not a member of that group')
   })
 
+  test('unknown-group: a mutation names a Group id that no longer exists (APP-581)', async () => {
+    const { t, home } = await seed()
+    await t.run(async (ctx) => {
+      await ctx.db.delete(home)
+    })
+    const error = await refusalOf(
+      t
+        .withIdentity(alice)
+        .mutation(api.groups.renameGroup, { groupId: home, name: 'Mine' }),
+    )
+    expect(readGroupRefusal(error)).toBe('unknown-group')
+    expect(refusalSentence(error)).toBe('Group not found')
+  })
+
   test('an action refuses with the same kinds as the query it asks', async () => {
     const { t } = await seed()
     const strangerError = await refusalOf(
@@ -115,5 +129,39 @@ describe('a refused Group is keyed', () => {
       }),
     )
     expect(readGroupRefusal(typoError)).toBe('unknown-slug')
+  })
+})
+
+/**
+ * The sign-in helpers (`requireCurrentUser`, `requireIdentity`) throw the same
+ * keyed refusal as a Group's door (APP-581), outside any Group.
+ */
+describe('a signed-out caller is refused with a key', () => {
+  test('requireCurrentUser: a mutation with no caller', async () => {
+    const { t, home } = await seed()
+    const error = await refusalOf(
+      t.mutation(api.groups.renameGroup, { groupId: home, name: 'Mine' }),
+    )
+    expect(readGroupRefusal(error)).toBe('not-signed-in')
+    expect(refusalSentence(error)).toBe('Not authenticated')
+  })
+
+  test('requireCurrentUser: an identity with no Gather account yet', async () => {
+    const { t, home } = await seed()
+    const stranger = { subject: 'clerk_nobody', name: 'Nobody' }
+    const error = await refusalOf(
+      t
+        .withIdentity(stranger)
+        .mutation(api.groups.renameGroup, { groupId: home, name: 'Mine' }),
+    )
+    expect(readGroupRefusal(error)).toBe('not-signed-in')
+    expect(refusalSentence(error)).toBe('Not authenticated')
+  })
+
+  test('requireIdentity: provisioning the account with no caller', async () => {
+    const { t } = await seed()
+    const error = await refusalOf(t.mutation(api.users.ensureUser, {}))
+    expect(readGroupRefusal(error)).toBe('not-signed-in')
+    expect(refusalSentence(error)).toBe('Not authenticated')
   })
 })

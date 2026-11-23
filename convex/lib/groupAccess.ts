@@ -87,6 +87,7 @@ export type GroupResolution =
 export const GROUP_REFUSAL_MESSAGES: Record<GroupRefusal, string> = {
   'not-signed-in': NOT_SIGNED_IN,
   'unknown-slug': 'No group has that slug',
+  'unknown-group': 'Group not found',
   'not-a-member': 'Not a member of that group',
 }
 

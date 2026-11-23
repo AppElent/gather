@@ -14,6 +14,8 @@ import { mount } from '../../testing/dom'
 const state = vi.hoisted(() => ({
   added: [] as unknown[][],
   moved: [] as unknown[][],
+  parsed: [] as unknown[][],
+  moveFails: false,
   server: new Map<string, string>(),
 }))
 
@@ -153,9 +155,15 @@ vi.mock('./store', () => ({
       state.added.push(args)
       return Promise.resolve('task')
     },
+    addParsedTask: (...args: unknown[]) => {
+      state.parsed.push(args)
+      return Promise.resolve({ taskId: 'task', reminderFailed: false })
+    },
     setAisle: (...args: unknown[]) => {
       state.moved.push(args)
-      return Promise.resolve()
+      return state.moveFails
+        ? Promise.reject(new Error('refused'))
+        : Promise.resolve()
     },
   }),
 }))
@@ -164,20 +172,29 @@ vi.mock('../kitchen/add-to-groceries/use-aisles', () => ({
   useAisleOf: () => (title: string) => state.server.get(title) ?? 'other',
 }))
 
-import { TaskComposer } from './TaskRow'
+import { haptics } from '../../feedback/haptics'
+import { type KeptGroceryLine, TaskComposer } from './TaskRow'
 
 beforeEach(() => {
   state.added = []
   state.moved = []
+  state.parsed = []
+  state.moveFails = false
+  vi.mocked(haptics.itemSaved).mockClear()
+  vi.mocked(haptics.actionFailed).mockClear()
   state.server = new Map([['kaas', 'dairy']])
 })
 
-function render() {
+function render({
+  grocery = true,
+  keep,
+}: { grocery?: boolean; keep?: { current: KeptGroceryLine | undefined } } = {}) {
   const view = mount(
     createElement(TaskComposer, {
       listId: 'groceries',
       placeholder: 'Add an item…',
-      grocery: true,
+      grocery,
+      keep,
     }),
   )
   const input = () =>
@@ -207,7 +224,11 @@ function render() {
         new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
       )
     })
-  return { view, chip, type, choose, submit }
+  const hint = () =>
+    [...view.container.querySelectorAll('[data-testid="grocery-preview"] > span')]
+      .map((node) => node.textContent)
+      .find((text) => text?.includes('filled in'))
+  return { view, chip, type, choose, submit, hint }
 }
 
 test('the aisle the list would give the line shows before it is added', () => {
@@ -261,4 +282,67 @@ test('a choice goes with its line only', async () => {
   expect(chip()?.getAttribute('aria-label')).toBe('Aisle, Other')
   await submit()
   expect(state.moved).toEqual([['task', 'bakery']])
+})
+
+// APP-536: the follow-ups from the APP-524 review.
+
+test('the hint speaks only for what was filled in from the line', () => {
+  state.server.set('2 kaas', 'dairy')
+  const { type, choose, hint } = render()
+  type('2 kaas')
+  expect(hint()).toBe(en.tasks.grocery.recognised)
+  // The aisle is now the Member's own: only the amount was read.
+  choose('bakery')
+  expect(hint()).toBe(en.tasks.grocery.recognisedAmount)
+  // An amount and a name nothing knows: the aisle was not filled in either.
+  type('2 zeldzame zwam')
+  expect(hint()).toBe(en.tasks.grocery.recognisedAmount)
+  type('kaas')
+  expect(hint()).toBe(en.tasks.grocery.recognisedAisle)
+  type('zeldzame zwam')
+  expect(hint()).toBeUndefined()
+})
+
+test('if only the aisle move fails, the item is still added', async () => {
+  state.moveFails = true
+  const { type, choose, submit } = render()
+  type('kaas')
+  choose('bakery')
+  await submit()
+  await act(async () => {})
+  expect(state.added).toEqual([['groceries', 'kaas', true, undefined]])
+  expect(state.moved).toEqual([['task', 'bakery']])
+  expect(haptics.itemSaved).toHaveBeenCalledTimes(1)
+  expect(haptics.actionFailed).toHaveBeenCalledTimes(1)
+})
+
+test('a list of tasks has no aisle chip and never moves what it adds', async () => {
+  const { chip, type, submit } = render({ grocery: false })
+  type('kaas')
+  expect(chip()).toBeNull()
+  await submit()
+  await act(async () => {})
+  expect(state.parsed).toHaveLength(1)
+  expect(state.added).toEqual([])
+  expect(state.moved).toEqual([])
+})
+
+test('a half-typed line and its chosen aisle come back after the composer was away', async () => {
+  const keep = { current: undefined as KeptGroceryLine | undefined }
+  const first = render({ keep })
+  first.type('kaas')
+  first.choose('bakery')
+  // Reorder mode takes the composer away and brings it back.
+  first.view.unmount()
+  const again = render({ keep })
+  expect(
+    again.view.container.querySelector<HTMLInputElement>(
+      '[data-testid="task-composer"]',
+    )?.value,
+  ).toBe('kaas')
+  expect(again.chip()?.getAttribute('aria-label')).toBe('Aisle, Bread and bakery')
+  await again.submit()
+  expect(state.moved).toEqual([['task', 'bakery']])
+  // Once added, nothing is kept for the next time.
+  expect(keep.current).toEqual({ line: '' })
 })

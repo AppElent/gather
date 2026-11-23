@@ -36,7 +36,13 @@
  */
 import type { TaskSection } from '@gather/core/task-lists'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Animated, StyleSheet, Text, View } from 'react-native'
+import {
+  AccessibilityInfo,
+  Animated,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 import {
   Gesture,
   GestureDetector,
@@ -155,6 +161,67 @@ export function ReorderMode({
   const heightOf = (id: string | undefined) =>
     (id && heights.current.get(id)) || SIZE.rowMin
 
+  /** Moves the row at `from` to `to` and saves the whole column. */
+  const drop = (before: string[], from: number, to: number) => {
+    const next = movedTo(before, from, to)
+    setOrder(next)
+    const { ids, sectionIds } = committed(next)
+    const id = before[from]
+    // Only a task moves sections; a heading key is never one.
+    const sectionId =
+      headingSection(id) === undefined
+        ? sectionMove(before, next, id)
+        : undefined
+    onCommit(
+      ids,
+      sectionIds,
+      sectionId === undefined ? undefined : { id, sectionId },
+    )
+    haptics.itemSaved()
+    return next
+  }
+
+  /**
+   * VoiceOver's Move up and Move down (APP-572): a screen reader cannot drag
+   * a grip, so a task moves one row at a time. Past a heading is into that
+   * section, as a drop there would be, and what is said names it.
+   */
+  const step = (index: number, by: -1 | 1) => {
+    const to = index + by
+    if (to < firstDropIndex(rows) || to >= rows.length) return
+    const next = drop(rows, index, to)
+    const id = rows[index]
+    const at = next.indexOf(id)
+    let start = 0
+    let heading: string | null | undefined
+    for (let i = at - 1; i >= 0; i--) {
+      heading = headingSection(next[i])
+      if (heading !== undefined) {
+        start = i + 1
+        break
+      }
+    }
+    let end = next.length
+    for (let i = at + 1; i < next.length; i++) {
+      if (headingSection(next[i]) !== undefined) {
+        end = i
+        break
+      }
+    }
+    const words = t.tasks.list
+    const said = (heading === undefined ? words.movedTo : words.movedToSection)
+      .replace('{task}', byId.get(id)?.title ?? '')
+      .replace(
+        '{section}',
+        heading === null || heading === undefined
+          ? t.tasks.sections.none
+          : (names.get(heading) ?? t.tasks.sections.none),
+      )
+      .replace('{position}', String(at - start + 1))
+      .replace('{total}', String(end - start))
+    AccessibilityInfo.announceForAccessibility(said)
+  }
+
   // The handlers are held in a ref because a grip's gesture is built once per
   // index and must not close over the arrangement as it was three drops ago.
   const handlers = useRef<DragHandlers>({
@@ -204,22 +271,7 @@ export function ReorderMode({
       // A tap on the grip that never moved is not a rearrangement, and must
       // not buzz as though something were saved.
       if (current && current.from !== current.to) {
-        const before = live.current.order
-        const next = movedTo(before, current.from, current.to)
-        setOrder(next)
-        const { ids, sectionIds } = committed(next)
-        const id = before[current.from]
-        // Only a task moves sections; a heading key is never one.
-        const sectionId =
-          headingSection(id) === undefined
-            ? sectionMove(before, next, id)
-            : undefined
-        onCommit(
-          ids,
-          sectionIds,
-          sectionId === undefined ? undefined : { id, sectionId },
-        )
-        haptics.itemSaved()
+        drop(live.current.order, current.from, current.to)
       }
       lift.setValue(0)
       setDrag(null)
@@ -297,6 +349,8 @@ export function ReorderMode({
           }
           const task = byId.get(key) as Task
           const dragging = drag?.from === index
+          const canUp = index - 1 >= firstDropIndex(rows)
+          const canDown = index < rows.length - 1
           // On a sectioned list each section is its own inset card: the first
           // and last task under a heading carry its corners.
           const firstInSection =
@@ -325,7 +379,21 @@ export function ReorderMode({
             <Animated.View
               key={task.id}
               testID={`reorder-${task.id}`}
-              accessibilityLabel={task.title}
+              accessible
+              accessibilityLabel={meta ? `${task.title}, ${meta}` : task.title}
+              accessibilityActions={[
+                ...(canUp
+                  ? [{ name: 'moveUp', label: t.tasks.list.moveUpAction }]
+                  : []),
+                ...(canDown
+                  ? [{ name: 'moveDown', label: t.tasks.list.moveDownAction }]
+                  : []),
+              ]}
+              onAccessibilityAction={(event) => {
+                const action = event.nativeEvent.actionName
+                if (action === 'moveUp') step(index, -1)
+                if (action === 'moveDown') step(index, 1)
+              }}
               onLayout={(event) => {
                 heights.current.set(task.id, event.nativeEvent.layout.height)
               }}

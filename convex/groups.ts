@@ -31,7 +31,7 @@ async function requireMembership(
 }> {
   const user = await requireCurrentUser(ctx)
   const group = await ctx.db.get(groupId)
-  if (!group) throw new ConvexError('Group not found')
+  if (!group) throw groupRefusalError('unknown-group')
   const membership = await getMembership(ctx, groupId, user._id)
   if (!membership) throw groupRefusalError('not-a-member')
   return { user, group, membership }
