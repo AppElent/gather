@@ -228,6 +228,11 @@ describe('searching notes', () => {
     expect(await titles(t, 'İstanbul')).toEqual(['İstanbul'])
     expect(await titles(t, `${'x'.repeat(40)} İstanbul`)).toEqual(['İstanbul'])
     expect(await titles(t, 'x'.repeat(40))).toEqual([])
+    // 24 bytes as written, over 31 once lowercased.
+    await addNote(t, 'İ'.repeat(12))
+    expect(await titles(t, 'İ'.repeat(12))).toEqual(['İ'.repeat(12)])
+    await addNote(t, 'ΟΣ:Α')
+    expect(await titles(t, 'οσ')).toEqual(['ΟΣ:Α'])
   })
 
   test('a search with more words than Convex allows is cut, not refused', async () => {

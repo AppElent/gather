@@ -21,13 +21,16 @@ function wordsOf(text: string): string[] {
   return text.split(/[^\p{L}\p{N}]+/u).filter(Boolean)
 }
 
+/** Lowercase letter by letter, as Convex does: a final "Σ" becomes "σ". */
+function lower(word: string): string {
+  return Array.from(word, (letter) => letter.toLowerCase()).join('')
+}
+
 /** The words of a search that the indexes can match. */
 function termsOf(text: string): string[] {
   const encoder = new TextEncoder()
   return wordsOf(text)
-    .filter(
-      (word) => encoder.encode(word.toLowerCase()).length <= MAX_TERM_BYTES,
-    )
+    .filter((word) => encoder.encode(word).length <= MAX_TERM_BYTES)
     .slice(0, MAX_TERMS)
 }
 
@@ -73,11 +76,11 @@ export async function findNotes(
   const notes = new Map(
     [...byTitle, ...byBody].map((note) => [note._id, note] as const),
   )
-  const whole = terms.slice(0, -1).map((term) => term.toLowerCase())
-  const typing = terms[terms.length - 1].toLowerCase()
+  const whole = terms.slice(0, -1).map(lower)
+  const typing = lower(terms[terms.length - 1])
   return [...notes.values()].filter((note) => {
     const words = new Set(
-      wordsOf(`${note.title}\n${note.body}`).map((word) => word.toLowerCase()),
+      wordsOf(`${note.title}\n${note.body}`).map(lower),
     )
     return (
       whole.every((term) => words.has(term)) &&
