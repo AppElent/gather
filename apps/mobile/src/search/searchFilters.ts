@@ -2,8 +2,8 @@
  * The filters on the search screen (APP-613): Module, Who, When, and the
  * Module's own (Status for Tasks).
  *
- * One screen serves the Search tab (Module: All) and every Module's search
- * button (that Module preset). The Module filter decides what the server is
+ * One screen serves the Search tab (the Module you tapped it from, else All;
+ * APP-660) and every Module's search button (that Module preset). The Module filter decides what the server is
  * asked for (`typesFor`), because `search.group` keeps 30 rows and a Module
  * asked for by itself should get all 30. Who, When and Status narrow the
  * answer here, on fields the server sends with every row.
