@@ -165,6 +165,16 @@ describe('the header', () => {
 })
 
 describe('an empty day', () => {
+  test('keeps the two-column grid, so a late Now card does not move the page', () => {
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    const day = screen.getByTestId('start-day')
+    expect(day.childElementCount).toBe(0)
+    expect(day.parentElement?.className).toContain(
+      'lg:grid-cols-[minmax(0,1fr)_360px]',
+    )
+  })
+
   test('has no Now card, no rail and no Anytime list, and says what to do next', () => {
     state.lists = [HOUSE]
     state.tasks = { list_house: [task('Later', 'list_house', { dueDate: '2026-12-05' })] }
@@ -275,6 +285,29 @@ describe('the Today rail', () => {
     expect(rail.textContent).not.toContain('Bath')
   })
 
+  test('an entry logged inside the current minute is past, never upcoming', () => {
+    state.babies = [{ _id: 'baby_juno', name: 'Juno' }]
+    state.events = { baby_juno: [] }
+    const { rerender } = renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    // The minute clock still says 14:14:00; the entry is from 14:14:30.
+    vi.setSystemTime(NOW.getTime() + 31_000)
+    state.events = {
+      baby_juno: [
+        {
+          _id: 'e1',
+          type: 'note',
+          timestamp: NOW.getTime() + 30_000,
+          data: { text: 'Just now' },
+        },
+      ],
+    }
+    rerender(<GroupHome />)
+
+    const rows = [...screen.getByTestId('start-rail').querySelectorAll('li')]
+    expect(rows.map((row) => row.dataset.rail)).toEqual(['past', 'now'])
+  })
+
   test('puts upcoming items after the capsule, in ink 600 on their group tile', () => {
     const item = (id: string, hours: number): RailItem => ({
       id,
@@ -311,6 +344,16 @@ describe('Pinned', () => {
     expect(
       within(pinned).getByRole('link', { name: 'Tasks' }).dataset.group,
     ).toBe('home')
+  })
+
+  test('a long Module name hyphenates rather than breaking mid-word', () => {
+    state.pins = ['recipes']
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
+
+    const label = within(screen.getByRole('region', { name: 'Pinned' }))
+      .getByText('Recipes')
+    expect(label.className).toContain('hyphens-auto')
+    expect(label.className).not.toContain('wrap-anywhere')
   })
 
   test('is absent when nothing is pinned', () => {

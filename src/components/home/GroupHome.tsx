@@ -114,7 +114,7 @@ export function GroupHome() {
       <section aria-labelledby="start-today" className="grid gap-2">
         <StartHeading id="start-today">{words.heading}</StartHeading>
         <TodayRail
-          now={day.now}
+          now={day.railNow}
           nowLabel={fmt(words.now, { time: clockTime(day.now) })}
           items={day.rail.map((entry) => ({
             id: entry.id,
@@ -140,10 +140,7 @@ export function GroupHome() {
                 key={task._id}
                 link={linkTo('tasks')}
                 leading={
-                  <span
-                    aria-hidden="true"
-                    className="h-[22px] w-[22px] shrink-0 rounded-full border-2 border-[var(--home-text)]"
-                  />
+                  TASKS ? <Tile group={TASKS.group} icon={TASKS.icon} /> : null
                 }
                 title={task.title}
                 meta={list ? fmt(words.overdue.inList, { list }) : undefined}
@@ -158,7 +155,7 @@ export function GroupHome() {
     day.pinned && day.pinned.length > 0 ? (
       <section aria-labelledby="start-pinned" className="grid gap-2">
         <StartHeading id="start-pinned">{words.pinned}</StartHeading>
-        <ul className="m-0 grid list-none grid-cols-3 gap-3 p-0">
+        <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-3 p-0">
           {day.pinned.map((module) => (
             <PinnedCard
               key={module.id}
@@ -171,8 +168,6 @@ export function GroupHome() {
         </ul>
       </section>
     ) : null
-
-  const hasDay = Boolean(nowCard || rail || anytime)
 
   return (
     // `grid-cols-[minmax(0,1fr)]` rather than a bare `grid`: an implicit track
@@ -193,20 +188,18 @@ export function GroupHome() {
         </p>
       </header>
 
-      <div
-        className={
-          hasDay
-            ? 'grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6'
-            : 'grid grid-cols-[minmax(0,1fr)] items-start gap-5'
-        }
-      >
-        {hasDay ? (
-          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
-            {nowCard}
-            {rail}
-            {anytime}
-          </div>
-        ) : null}
+      {/* Always two columns from 1024 px, so the page does not jump when a
+          Now card arrives after the first paint. On a quiet day the left
+          column is simply empty, as the phone leaves those parts out. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
+        <div
+          data-testid="start-day"
+          className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 empty:hidden lg:empty:block"
+        >
+          {nowCard}
+          {rail}
+          {anytime}
+        </div>
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
           {pinned}
           <RecentActivity groupSlug={groupSlug} groupName={groupName} />
@@ -252,7 +245,7 @@ function RecentActivity({
               type="button"
               aria-expanded={expanded}
               onClick={() => setExpanded((open) => !open)}
-              className="justify-self-start rounded-[var(--radius-pill)] px-1 py-1 text-subhead font-semibold text-[var(--ink)] underline-offset-2 hover:underline"
+              className="min-h-11 justify-self-start rounded-[var(--radius-pill)] px-1 text-subhead font-semibold text-[var(--ink)] underline-offset-2 hover:underline"
             >
               {expanded ? home.showFewer : home.seeAll}
             </button>

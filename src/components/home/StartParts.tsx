@@ -305,7 +305,9 @@ export function PinnedCard({
         className={`flex h-32 flex-col justify-between rounded-[var(--radius-card)] ${FILL} p-3 no-underline`}
       >
         <Icon name={icon} className="h-[22px] w-[22px]" />
-        <span className="font-rounded text-[17px] leading-[21px] font-bold wrap-anywhere">
+        {/* Hyphenated in the page's language, never broken mid-word:
+            "Maaltijd-planner", not "Maaltijdpla / nner". */}
+        <span className="font-rounded text-[17px] leading-[21px] font-bold hyphens-auto [overflow-wrap:break-word]">
           {label}
         </span>
       </Link>

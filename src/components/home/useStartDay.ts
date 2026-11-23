@@ -85,16 +85,20 @@ export function useStartDay(groupSlug: string) {
 
   // The cutoff is read fresh whenever the entries change, as on the phone: an
   // entry logged at 21:11:30 arrives after the clock said 21:11:00.
-  const rail = useMemo(
-    () =>
-      railEntries(children ?? [], events, {
+  // The rail draws its past/upcoming split from the same cutoff, so an entry
+  // admitted here is never drawn after the Now capsule.
+  const { rail, railNow } = useMemo(() => {
+    const cutoff = Math.max(now, Date.now())
+    return {
+      railNow: cutoff,
+      rail: railEntries(children ?? [], events, {
         dayStart,
-        now: Math.max(now, Date.now()),
+        now: cutoff,
         babyLog: messages.baby.log,
         words: messages.shell.today,
       }),
-    [children, events, dayStart, now, messages],
-  )
+    }
+  }, [children, events, dayStart, now, messages])
 
   const today = localIsoDate(now)
 
@@ -105,6 +109,8 @@ export function useStartDay(groupSlug: string) {
     overdue: overdueTasks(tasks, today),
     dueToday: dueTodayTasks(tasks, today),
     rail,
+    /** The cutoff `rail` was chosen with: where the Now capsule sits. */
+    railNow,
     /** `undefined` until Convex answers, so the section does not flash. */
     pinned: pins === undefined ? undefined : pinnedModules(pins ?? undefined),
   }
