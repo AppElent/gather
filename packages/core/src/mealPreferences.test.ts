@@ -1105,13 +1105,13 @@ describe('recipeClashes: the APP-446 follow-ups', () => {
       )
     })
 
-    test('allergens and diets share the line, a term from the recipe is named', () => {
+    test('allergens and diets share the line; one word is named once with every reason', () => {
       const found = clashes('1 blokje bouillon', {
         allergens: ['celery'],
         diets: ['vegetarian'],
       })
       expect(describeClashes(found, m)).toBe(
-        `Controleer zelf: bouillon (${m.allergies.names.celery}), bouillon (${m.diet.names.vegetarian})`,
+        `Controleer zelf: bouillon (${m.allergies.names.celery}, ${m.diet.names.vegetarian})`,
       )
     })
 
@@ -1290,5 +1290,67 @@ describe('recipeClashes: the APP-446 follow-ups', () => {
       expect(certain(clashes('500 g wildstoof', { diets: ['vegetarian'] }))).toHaveLength(1)
       expect(certain(clashes('2 sukadelappen', { diets: ['vegetarian'] }))).toHaveLength(1)
     })
+  })
+
+  describe('APP-575: more compounds, tidier labels', () => {
+    test.each([
+      ['1 vispan', 'vis'],
+      ['8 vissticks', 'vis'],
+      ['2 hamlappen', 'ham'],
+      ['4 eierkoeken', 'ei'],
+      ['500 g runderlappen', 'rund'],
+      ['2 speklappen', 'spek'],
+    ])('%s is a %s dislike', (line, dislike) => {
+      expect(clashes(line, { dislikes: [dislike] })).toEqual([
+        { kind: 'dislike', label: dislike },
+      ])
+    })
+
+    test.each([
+      ['4 plakjes spekkoek', 'spek'],
+      ['4 hamburgerbroodjes', 'ham'],
+      ['2 kipburgers', 'kip'],
+      ['een visite', 'vis'],
+    ])('%s is not a %s dislike', (line, dislike) => {
+      expect(clashes(line, { dislikes: [dislike] })).toEqual([])
+    })
+
+    test('the label is the word from the line that matched, not another that holds it', () => {
+      const found = recipeClashes(
+        recipe('Toetje', ['200 g glutenvrije pannenkoekenmix', '1 koekenpannenkoek']),
+        prefsWith({ allergens: ['gluten'] }),
+        0,
+      )
+      expect(found).toEqual([{ kind: 'allergen', id: 'gluten', label: 'koekenpannenkoek' }])
+    })
+
+    test('a word unsure for an allergen and a diet, beside one without a word', () => {
+      const found: RecipeClash[] = [
+        { kind: 'allergen', id: 'celery', label: 'bouillon', uncertain: true },
+        { kind: 'allergen', id: 'milk', label: 'milk', uncertain: true },
+        { kind: 'diet', id: 'vegetarian', label: 'bouillon', uncertain: true },
+      ]
+      expect(describeClashes(found, m)).toBe(
+        `Controleer zelf: bouillon (${m.allergies.names.celery}, ${m.diet.names.vegetarian}), ${m.allergies.names.milk}`,
+      )
+    })
+
+    test('sukadelappen hides for vegetarians and vegans', () => {
+      for (const diet of ['vegetarian', 'vegan'] as const) {
+        const found = clashes('2 sukadelappen', { diets: [diet] })
+        expect(certain(found)).toHaveLength(1)
+        expect(fitsPreferences(found)).toBe(false)
+      }
+    })
+
+    test.each(['400 g venison', '300 g reerug'])(
+      'halal on %s is "controleer zelf", never a hide',
+      (line) => {
+        const found = clashes(line, { diets: ['halal'] })
+        expect(found).toHaveLength(1)
+        expect(found[0]?.uncertain).toBe(true)
+        expect(fitsPreferences(found)).toBe(true)
+      },
+    )
   })
 })

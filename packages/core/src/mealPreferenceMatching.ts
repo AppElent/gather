@@ -1006,12 +1006,14 @@ function wordAround(line: string, at: number, length: number): Span {
 interface RuleHit {
   term: string
   uncertain: boolean
+  /** Which of the lines it was found in, so the label names that line's word. */
+  line: number
 }
 
 function matchRule(lines: readonly string[], rule: Rule): RuleHit | null {
   const guards = rule.lineGuard ?? []
-  let maybe: string | null = null
-  for (const raw of lines) {
+  let maybe: { term: string; line: number } | null = null
+  for (const [index, raw] of lines.entries()) {
     // When in doubt, "controleer zelf": a free-from word never removes a hit.
     // It clears only the term right after it in the same item ("glutenvrije
     // pasta", "vegetarisch gehakt", "halal kipfilet"), or a term it is part
@@ -1053,43 +1055,47 @@ function matchRule(lines: readonly string[], rule: Rule): RuleHit | null {
         open ??= hit.term
       }
     }
-    if (open && !lineGuarded) return { term: open, uncertain: false }
+    if (open && !lineGuarded) return { term: open, uncertain: false, line: index }
     if (open) {
-      maybe ??= open
+      maybe ??= { term: open, line: index }
       continue
     }
     if (cleared) continue
     // Read the line as written: "wijnazijn" is blanked as wine for halal and
     // still worth a "controleer zelf". A maybe sits inside a compound too
     // ("groentebouillon") when it is long enough not to match by accident.
-    maybe ??= findTerm(
+    if (maybe) continue
+    const term = findTerm(
       blank(raw, rule.maybeExcept),
       rule.maybe?.filter((term) => term.length >= 5),
       rule.maybe,
     )
+    if (term) maybe = { term, line: index }
   }
-  return maybe ? { term: maybe, uncertain: true } : null
+  return maybe ? { ...maybe, uncertain: true } : null
 }
 
 /**
  * The recipe's own spelling of a word the matcher found in normalised text:
  * "sate" is shown as "saté", "nenkoek" (what is left of "koekenpannenkoek"
- * once "koekenpan" is blanked) as the whole word again. Looks for the word, or
- * the run of words, whose normalised form is `term` (else one that holds it) in
- * the recipe's original lines; when none does, the normalised term stays.
+ * once "koekenpan" is blanked) as the whole word again. Looks only in the
+ * original line the hit came from, for the word, or the run of words, whose
+ * normalised form is `term`; else for one that ends or starts with it (a
+ * blanked front or back leaves the other end); else for one that holds it.
+ * When none does, the normalised term stays.
  */
-function originalSpelling(term: string, sources: readonly string[]): string {
+function originalSpelling(term: string, source: string): string {
   const size = term.split(' ').length
+  const words = source.split(/[^\p{L}\p{N}]+/u).filter(Boolean)
   const windows: { text: string; normal: string }[] = []
-  for (const source of sources) {
-    const words = source.split(/[^\p{L}\p{N}]+/u).filter(Boolean)
-    for (let at = 0; at + size <= words.length; at++) {
-      const text = words.slice(at, at + size).join(' ')
-      windows.push({ text, normal: normalizeText(text).trim() })
-    }
+  for (let at = 0; at + size <= words.length; at++) {
+    const text = words.slice(at, at + size).join(' ')
+    windows.push({ text, normal: normalizeText(text).trim() })
   }
   const hit =
     windows.find((window) => window.normal === term) ??
+    windows.find((window) => window.normal.endsWith(term)) ??
+    windows.find((window) => window.normal.startsWith(term)) ??
     windows.find((window) => window.normal.includes(term))
   return hit ? hit.text.toLocaleLowerCase() : term
 }
@@ -1119,7 +1125,17 @@ const COMPOUND_TAILS = [
   'reepje',
   'blokje',
   'stukje',
+  'pan',
+  'stick',
+  'lap',
+  'koek',
 ]
+
+/**
+ * Compounds that read like a dislike plus a tail but are something else:
+ * spekkoek is a layered cake, not bacon.
+ */
+const NOT_COMPOUNDS = ['spekkoek']
 
 /**
  * Whether a short dislike starts a compound in `corpus`: directly ("visfilet",
@@ -1131,7 +1147,7 @@ function startsCompound(corpus: string, form: string): boolean {
   const stems = [form, `${form}${last}en`, `${form}en`, `${form}s`, `${form}er`]
   return new RegExp(
     ` (?:${stems.join('|')})(?:${COMPOUND_TAILS.join('|')})[a-z]* `,
-  ).test(corpus)
+  ).test(blank(corpus, NOT_COMPOUNDS.map((word) => ` ${word}`)))
 }
 
 /** Forms of a dislike to look for: as typed, and without a plural ending. */
@@ -1160,25 +1176,26 @@ export function recipeClashes(
   weekday: number,
 ): readonly RecipeClash[] {
   const clashes: RecipeClash[] = []
-  const ingredients = recipe.ingredients
-    .map(normalizeText)
-    .filter((line) => line.trim() !== '')
-  const lines = [normalizeText(recipe.title), ...ingredients]
-  const knowsIngredients = ingredients.length > 0
+  // Matching is on normalised text; what is shown is the recipe's own word,
+  // from the same line: `sources[i]` is what `lines[i]` was made from.
+  const sources = [
+    recipe.title,
+    ...recipe.ingredients.filter((line) => normalizeText(line).trim() !== ''),
+  ]
+  const lines = sources.map(normalizeText)
+  const knowsIngredients = lines.length > 1
   const tags = recipe.tags.map((tag) => normalizeText(tag).trim())
-  // Matching is on normalised text; what is shown is the recipe's own word.
-  const sources = [recipe.title, ...recipe.ingredients]
-  const spelled = (term: string) => originalSpelling(term, sources)
+  const spelled = (hit: RuleHit) => originalSpelling(hit.term, sources[hit.line] ?? '')
 
   for (const allergen of prefs.allergens) {
     const hit = matchRule(lines, ALLERGEN_RULES[allergen])
     if (hit && !hit.uncertain) {
-      clashes.push({ kind: 'allergen', id: allergen, label: spelled(hit.term) })
+      clashes.push({ kind: 'allergen', id: allergen, label: spelled(hit) })
     } else if (hit) {
       clashes.push({
         kind: 'allergen',
         id: allergen,
-        label: spelled(hit.term),
+        label: spelled(hit),
         uncertain: true,
       })
     } else if (!knowsIngredients) {
@@ -1206,17 +1223,17 @@ export function recipeClashes(
     if (!certain) {
       for (const rule of rules.unsure ?? []) {
         const hit = matchRule(lines, rule)
-        if (hit && !unsure) unsure = { term: hit.term, uncertain: true }
+        if (hit && !unsure) unsure = { ...hit, uncertain: true }
       }
     }
     const tagged = tags.some((tag) => rules.tags.includes(tag))
     if (certain) {
-      clashes.push({ kind: 'diet', id: diet, label: spelled(certain.term) })
+      clashes.push({ kind: 'diet', id: diet, label: spelled(certain) })
     } else if (unsure && !tagged) {
       clashes.push({
         kind: 'diet',
         id: diet,
-        label: spelled(unsure.term),
+        label: spelled(unsure),
         uncertain: true,
       })
     } else if (!knowsIngredients && !tagged) {
@@ -1308,14 +1325,31 @@ export function describeClashes(
 ): string | undefined {
   const certain = clashes.find((clash) => !clash.uncertain)
   if (certain) return describeClash(certain, m)
-  const what = clashes.flatMap((clash) =>
-    clash.kind === 'allergen' || clash.kind === 'diet'
-      ? [unsureSubject(clash, m)]
-      : [],
+  // One word that is unsure for several reasons is named once:
+  // "bouillon (Selderij, Vegetarisch)", not "bouillon (Selderij), bouillon
+  // (Vegetarisch)". Without a word, the allergen or diet stands on its own.
+  const subjects = new Map<string, string[]>()
+  for (const clash of clashes) {
+    if (clash.kind !== 'allergen' && clash.kind !== 'diet') continue
+    const name = clashName(clash, m)
+    const key = clash.label === clash.id ? `\u0000${name}` : clash.label
+    const names = subjects.get(key) ?? []
+    if (!names.includes(name)) names.push(name)
+    subjects.set(key, names)
+  }
+  const what = [...subjects].map(([key, names]) =>
+    key.startsWith('\u0000') ? names.join(', ') : `${key} (${names.join(', ')})`,
   )
   return what.length > 0
-    ? fmt(m.filter.checkYourselfFor, { what: [...new Set(what)].join(', ') })
+    ? fmt(m.filter.checkYourselfFor, { what: what.join(', ') })
     : undefined
+}
+
+function clashName(
+  clash: Extract<RecipeClash, { kind: 'allergen' | 'diet' }>,
+  m: Messages['mealPreferences'],
+): string {
+  return clash.kind === 'allergen' ? m.allergies.names[clash.id] : m.diet.names[clash.id]
 }
 
 /** What a "controleer zelf" is about: the allergen or diet, with the recipe's word when it has one. */
@@ -1323,8 +1357,7 @@ function unsureSubject(
   clash: Extract<RecipeClash, { kind: 'allergen' | 'diet' }>,
   m: Messages['mealPreferences'],
 ): string {
-  const name =
-    clash.kind === 'allergen' ? m.allergies.names[clash.id] : m.diet.names[clash.id]
+  const name = clashName(clash, m)
   return clash.label === clash.id ? name : `${clash.label} (${name})`
 }
 
