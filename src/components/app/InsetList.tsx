@@ -157,7 +157,7 @@ export function InsetRow({
   return (
     <li
       className={`group/row relative flex min-h-[var(--size-row-min)] items-stretch gap-3 pl-4 first:rounded-t-[var(--radius-card)] last:rounded-b-[var(--radius-card)] ${
-        interactive ? 'hover:bg-[var(--surface-2)]' : ''
+        interactive && !controls ? 'hover:bg-[var(--surface-2)]' : ''
       } ${selected ? 'bg-[var(--surface-2)]' : ''}`}
     >
       {leading ? (
