@@ -459,6 +459,25 @@ export const en = {
 
     /** The card at the top of the list; `{name}` is a name or an email. */
     identity: 'Account: {name}',
+
+    /**
+     * A Module's own settings page (APP-611). Two doors lead to it: the gear
+     * at the right of the Module's bar, and its row under Modules here.
+     * `{module}` is the Module's name as the catalogue spells it.
+     */
+    modulePage: {
+      title: '{module} settings',
+      /** The gear's accessible name. */
+      open: '{module} settings',
+      /** Under the Modules group: the rows are the gear's pages. */
+      footer: 'The same pages as the gear at the top right of each Module.',
+      /** Under a group of settings written to this phone only. */
+      phoneOnly: 'Kept on this phone, the same in every group.',
+      /** Under a grocery list's settings; `{list}` and `{group}` are names. */
+      sharedList: 'For {list}, shared with everyone in {group}.',
+      /** Under settings the whole Group shares; `{group}` is its name. */
+      shared: 'Shared with everyone in {group}.',
+    },
   },
 
   /**

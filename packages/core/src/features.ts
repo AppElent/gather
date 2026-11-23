@@ -330,7 +330,11 @@ export const FEATURES = defineFeatures([
     platforms: ['web', 'mobile'],
     routes: {
       web: ['_app/tasks'],
-      mobile: ['(app)/(tabs)/all/tasks/**', '(app)/(tabs)/search/tasks/**'],
+      mobile: [
+        '(app)/(tabs)/all/tasks/**',
+        '(app)/(tabs)/search/tasks/**',
+        '(app)/(tabs)/settings/tasks',
+      ],
     },
   },
   {
@@ -414,7 +418,11 @@ export const FEATURES = defineFeatures([
     platforms: ['mobile'],
     reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-316. In stock replaced the Pantry Module (APP-314); its old phone route redirects there.`,
     routes: {
-      mobile: ['(app)/(tabs)/all/groceries/**', '(app)/(tabs)/all/pantry/**'],
+      mobile: [
+        '(app)/(tabs)/all/groceries/**',
+        '(app)/(tabs)/all/pantry/**',
+        '(app)/(tabs)/settings/groceries/**',
+      ],
     },
   },
   {
@@ -423,7 +431,12 @@ export const FEATURES = defineFeatures([
     status: 'pending-port',
     platforms: ['mobile'],
     reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-322.`,
-    routes: { mobile: ['(app)/(tabs)/all/meal-planner/**'] },
+    routes: {
+      mobile: [
+        '(app)/(tabs)/all/meal-planner/**',
+        '(app)/(tabs)/settings/meal-planner',
+      ],
+    },
   },
   {
     id: 'recurring-costs',

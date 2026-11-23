@@ -25,7 +25,7 @@ describe('the Settings list', () => {
       sections.map(({ id, entries }) => [id, entries.map((e) => e.id)]),
     ).toEqual([
       ['account', ['account', 'groups', 'notifications']],
-      ['modules', ['baby-log']],
+      ['modules', ['baby-log', 'groceries', 'meal-planner', 'tasks']],
       ['phone', ['appearance', 'language']],
       ['about', ['privacy', 'data-sources']],
     ])
@@ -71,11 +71,57 @@ describe('the Settings list', () => {
   test("a Module's row names the Group it edits, since nothing else on the screen does", () => {
     expect(sections[1].entries.map(({ value }) => value)).toEqual([
       'Huize Jansen',
+      'Huize Jansen',
+      'Huize Jansen',
+      // Tasks settings are this phone's, the same in every Group.
+      undefined,
     ])
   })
 
   test('a Group name is searchable, which is what putting it in the value buys', () => {
-    expect(idsFor('huize')).toEqual(['baby-log'])
+    expect(idsFor('huize')).toEqual(['baby-log', 'groceries', 'meal-planner'])
+  })
+
+  test('every Module row opens the page its gear opens, in the Settings stack (APP-611)', () => {
+    expect(sections[1].entries.map(({ href }) => href)).toEqual([
+      '/settings/baby-log',
+      '/settings/groceries',
+      '/settings/meal-planner',
+      '/settings/tasks',
+    ])
+    expect(sections[1].footer).toBe(en.settings.modulePage.footer)
+  })
+
+  test('a Module this build hides has no row', () => {
+    const live = settingsSections(
+      en,
+      {
+        appearance: 'dark',
+        locale: 'en',
+        groupName: 'Huize Jansen',
+        accountName: 'Eric Jansen',
+        accountEmail: 'eric@example.com',
+      },
+      false,
+      (id) => id !== 'baby-log',
+    )
+    expect(live[1].entries.map(({ id }) => id)).toEqual([
+      'groceries',
+      'meal-planner',
+      'tasks',
+    ])
+  })
+
+  test('the Module rows are in alphabetical order in each language', () => {
+    const dutch = settingsSections(nl, {
+      appearance: 'dark',
+      locale: 'nl',
+      groupName: 'Huize Jansen',
+      accountName: 'Eric Jansen',
+      accountEmail: 'eric@example.com',
+    })
+    const labels = dutch[1].entries.map(({ label }) => label)
+    expect(labels).toEqual([...labels].sort((a, b) => a.localeCompare(b)))
   })
 
   test('keeps Labs out of a build that was not told it has one', () => {

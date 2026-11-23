@@ -18,8 +18,10 @@ import {
   readPreference,
   writePreference,
 } from '../../prefs/localPreference'
+import { moduleSettingsRoute } from '../../settings/module-pages'
 import { SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, InsetRow } from '../../ui/inset-list'
+import { ModuleHeaderButtons } from '../../ui/module-header-buttons'
 import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { WashHeader, type WashSummary } from '../../ui/wash-header'
@@ -137,6 +139,13 @@ export function GroceriesScreen() {
           addPlaceholder={t.kitchen.addGroceryItem}
           washAccessory={
             <StorePill name={selected.name} onPress={() => setSheet('lists')} />
+          }
+          headerAfter={
+            <ModuleHeaderButtons
+              testID="groceries"
+              moduleLabel={t.modules.byId.groceries.label}
+              settingsHref={moduleSettingsRoute('groceries', 'all')}
+            />
           }
           menuExtras={[
             {

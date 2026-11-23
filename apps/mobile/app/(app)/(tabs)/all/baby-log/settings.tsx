@@ -1,17 +1,15 @@
-import { Stack, useLocalSearchParams } from 'expo-router'
-import { useI18n } from '../../../../../src/i18n'
-import { ChildSettings } from '../../../../../src/modules/baby/ChildSettings'
+import { Redirect, useLocalSearchParams } from 'expo-router'
+import { BabyLogSettingsScreen } from '../../../../../src/modules/baby/BabyLogSettingsScreen'
+import { moduleHref } from '../../../../../src/modules/moduleDestination'
 
-export default function BabyLogChildSettings() {
-  const { childId } = useLocalSearchParams<{ childId: string }>()
-  const { t } = useI18n()
-
-  return (
-    <>
-      <Stack.Screen
-        options={{ headerShown: true, title: t.baby.log.child.settings }}
-      />
-      <ChildSettings childId={childId} />
-    </>
-  )
+/**
+ * Baby log settings, behind the Module's gear (APP-611). Until APP-611 this
+ * address was one Child's settings (`?childId=`); a link from then still
+ * lands on that Child, now at `child`.
+ */
+export default function BabyLogSettingsRoute() {
+  const { childId } = useLocalSearchParams<{ childId?: string }>()
+  if (childId)
+    return <Redirect href={moduleHref('/all/baby-log/child', { childId })} />
+  return <BabyLogSettingsScreen door="all" />
 }

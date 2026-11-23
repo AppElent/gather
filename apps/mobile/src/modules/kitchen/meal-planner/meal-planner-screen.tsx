@@ -39,6 +39,7 @@ import { useQuery } from '../../../convex/queries'
 import { haptics } from '../../../feedback/haptics'
 import { useGroup } from '../../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../../i18n'
+import { moduleSettingsRoute } from '../../../settings/module-pages'
 import { UI_ICONS } from '../../../theme/icons'
 import {
   RADIUS,
@@ -49,6 +50,7 @@ import {
   useTokens,
 } from '../../../theme/tokens'
 import { InsetList, InsetRow } from '../../../ui/inset-list'
+import { ModuleHeaderButtons } from '../../../ui/module-header-buttons'
 import { moduleTile } from '../../../ui/module-tile'
 import { washScreenOptions } from '../../../ui/screen-header'
 import { isAccessibilityTextSize } from '../../../ui/text-scale'
@@ -83,7 +85,7 @@ import { WeekGroceriesSheet } from './week-groceries-sheet'
 import { type Draft, draftIn } from './week-plan'
 
 /** Eetvoorkeuren, from the bar menu and the button beside Boodschappen. */
-const PREFERENCES_PATH: ModulePath = '/all/meal-planner/preferences'
+const PREFERENCES_PATH: ModulePath = '/all/meal-planner/settings'
 
 /** The width iOS keeps for its back swipe at the left edge. */
 const EDGE_SWIPE = 24
@@ -394,14 +396,14 @@ export function MealPlannerScreen() {
           // week, so only the edge swipe goes back.
           fullScreenGestureEnabled: false,
           headerRight: () => (
+            <ModuleHeaderButtons
+              testID="meal-planner"
+              moduleLabel={t.modules.byId['meal-planner'].label}
+              settingsHref={moduleSettingsRoute('meal-planner', 'all')}
+              before={
             <MenuView
               testID="meal-planner-menu"
               actions={[
-                {
-                  id: 'preferences',
-                  title: words.preferences,
-                  image: 'slider.horizontal.3' as const,
-                },
                 {
                   id: 'share',
                   title: words.share,
@@ -409,7 +411,6 @@ export function MealPlannerScreen() {
                 },
               ]}
               onPressAction={({ nativeEvent }) => {
-                if (nativeEvent.event === 'preferences') openPreferences()
                 if (nativeEvent.event === 'share') share()
               }}
             >
@@ -426,6 +427,8 @@ export function MealPlannerScreen() {
                 />
               </View>
             </MenuView>
+              }
+            />
           ),
         }}
       />

@@ -18,6 +18,12 @@ import type { AppearancePreference } from '@gather/core/appearance'
 import type { Locale } from '@gather/core/i18n'
 
 import type { Messages } from '../i18n'
+import {
+  MODULE_SETTINGS_PAGES,
+  MODULE_SETTINGS_SCOPE,
+  type ModuleSettingsId,
+  moduleSettingsHref,
+} from './module-pages'
 
 export type SettingsSectionId =
   | 'account'
@@ -38,7 +44,7 @@ export type SettingsEntryId =
   | 'notifications'
   | 'appearance'
   | 'language'
-  | 'baby-log'
+  | ModuleSettingsId
   | 'privacy'
   | 'data-sources'
   | 'labs'
@@ -58,7 +64,7 @@ export type SettingsHref =
   | '/settings/language'
   | '/settings/labs'
   | '/settings/labs/finance'
-  | '/settings/baby-log'
+  | `/settings/${ModuleSettingsId}`
 
 /**
  * The web's privacy statement, which the stores link to as well. It lives on
@@ -106,6 +112,8 @@ export interface SettingsSection {
   id: SettingsSectionId
   title: string
   entries: SettingsEntry[]
+  /** A line under the group, saying what its rows have in common. */
+  footer?: string
 }
 
 /** The live values the list shows on the right of a row. */
@@ -140,7 +148,26 @@ export function settingsSections(
    * a production build has no Labs to link to.
    */
   labs = false,
+  /**
+   * Whether this build shows a Module (`modules/moduleVisibility.ts`): a
+   * store build has no row for a Module it hides. A parameter for the same
+   * reason as `labs`.
+   */
+  moduleShown: (moduleId: string) => boolean = () => true,
 ): SettingsSection[] {
+  const modules = MODULE_SETTINGS_PAGES.filter(moduleShown)
+    .map(
+      (id): SettingsEntry => ({
+        id,
+        label: t.modules.byId[id].label,
+        ...(MODULE_SETTINGS_SCOPE[id] === 'group'
+          ? { value: values.groupName }
+          : {}),
+        href: moduleSettingsHref(id, 'settings'),
+      }),
+    )
+    .sort((a, b) => a.label.localeCompare(b.label))
+
   return [
     {
       id: 'account',
@@ -200,19 +227,14 @@ export function settingsSections(
     {
       /**
        * A Module's own preferences live *inside* Settings and never beside it
-       * (ADR-0018). The rows are per Group, which is why each carries the
-       * Group's name as its value.
+       * (ADR-0018). Each row is the same page the Module's gear opens
+       * (APP-611); a row whose settings are the Group's carries the Group's
+       * name as its value.
        */
       id: 'modules',
       title: t.settings.sections.modules,
-      entries: [
-        {
-          id: 'baby-log',
-          label: t.modules.byId['baby-log'].label,
-          value: values.groupName,
-          href: '/settings/baby-log',
-        },
-      ],
+      entries: modules,
+      footer: t.settings.modulePage.footer,
     },
     {
       id: 'phone',
