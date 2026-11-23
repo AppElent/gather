@@ -75,7 +75,7 @@ test('an added task shows once Todoist took it', async () => {
   expect(writeTask).toHaveBeenCalledWith({
     listId: 'list',
     groupSlug: 'home',
-    write: { kind: 'create', title: 'Hat' },
+    write: { kind: 'create', title: 'Hat', requestKey: expect.any(String) },
   })
 })
 
@@ -111,16 +111,27 @@ test('offline nothing is sent, the title stays and the list is read-only', async
   for (const box of screen.getAllByRole('checkbox')) expect(box).toBeDisabled()
 })
 
-test('a write that never answers gives up with an error', async () => {
+test('a late write gives up with an error, read-only until it is answered', async () => {
   renderList()
   await screen.findByText('Pack')
   vi.useFakeTimers()
   try {
-    writeTask.mockReturnValue(new Promise(() => {}))
+    let answer = (_: unknown) => {}
+    writeTask.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)))
     add('Hat')
     await act(() => vi.advanceTimersByTimeAsync(30_000))
     expect(screen.getByRole('alert')).toBeInTheDocument()
     expect(screen.getByLabelText('New task in Trip')).toHaveValue('Hat')
+    for (const box of screen.getAllByRole('checkbox')) expect(box).toBeDisabled()
+    await act(async () => answer({ status: 'ok', tasks: [], refresh: true }))
+    expect(getTasks).toHaveBeenCalledTimes(2)
+    for (const box of screen.getAllByRole('checkbox')) expect(box).toBeEnabled()
+    // The same title again carries the same key.
+    writeTask.mockResolvedValue({ status: 'ok', tasks: [], refresh: false })
+    add('Hat')
+    const [first, second] = writeTask.mock.calls.map(([sent]) => sent.write)
+    expect(second.requestKey).toBe(first.requestKey)
+    await act(() => vi.advanceTimersByTimeAsync(0))
   } finally {
     vi.useRealTimers()
   }

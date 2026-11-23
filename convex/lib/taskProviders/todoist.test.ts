@@ -580,16 +580,20 @@ describe('Todoist writes (APP-448)', () => {
     await expect(run(refusing(503).fetchImpl)).rejects.toThrow(/503/)
   })
 
-  test('a task this person may not change is not a lost connection', async () => {
+  test.each([
+    ['FORBIDDEN', /403/],
+    ['MAX_ITEMS_LIMIT_REACHED', /403/],
+    ['AUTH_INSUFFICIENT_TOKEN_SCOPE', ProviderAuthError],
+  ])('a 403 tagged %s', async (error_tag, expected) => {
     const forbidden = () =>
-      new Response(JSON.stringify({ error_tag: 'FORBIDDEN' }), { status: 403 })
+      new Response(JSON.stringify({ error_tag }), { status: 403 })
     const todoist = fakeTodoist({
       'GET /tasks/t1': apiTask(),
       'DELETE /tasks/t1': forbidden,
     })
     await expect(
       writer.deleteTask('tok', config, 't1', todoist.fetchImpl),
-    ).rejects.toThrow(/403/)
+    ).rejects.toThrow(expected)
   })
 
   test('a task gone before its Sync command is not found', async () => {

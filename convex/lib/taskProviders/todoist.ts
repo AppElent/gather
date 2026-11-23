@@ -55,11 +55,11 @@ function errorTag(body: string): string | undefined {
 
 /**
  * Whether reconnecting is the answer. A 403 is what a write on an old
- * `data:read` connection gets, and also, tagged FORBIDDEN, what a task this
- * person may not change gets, which reconnecting does not help.
+ * `data:read` connection gets, and also, under another tag, what a full project
+ * or a task this person may not change gets, which reconnecting does not help.
  */
 function isAuthRefusal(status: number | undefined, tag?: string): boolean {
-  return status === 401 || (status === 403 && tag !== 'FORBIDDEN')
+  return status === 401 || (status === 403 && (!tag || tag.startsWith('AUTH_')))
 }
 
 async function todoistRequest<T>(

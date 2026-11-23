@@ -1100,6 +1100,37 @@ describe('a linked list is written to in its provider first (APP-448)', () => {
     expect(rows('hung')).toEqual(['a'])
   })
 
+  test('a write answered too late keeps the list read-only until it is', async () => {
+    const fetchTasks = answering(row('a'))
+    await syncExternalList('late', fetchTasks)
+    let answer = () => {}
+    vi.useFakeTimers()
+    try {
+      const request = writeLinkedTask(
+        'late',
+        { kind: 'setDone', taskId: 'a', done: true },
+        () =>
+          new Promise((resolve) => {
+            answer = () =>
+              resolve({ status: 'ok', tasks: [], refresh: true })
+          }),
+        fetchTasks,
+      ).catch((error) => error)
+      await vi.advanceTimersByTimeAsync(PROVIDER_WAIT_MS)
+      expect(await request).toMatchObject({ reason: 'failed' })
+    } finally {
+      vi.useRealTimers()
+    }
+    expect(writable('late')).toBe(false)
+    // A refresh that overtakes the write does not make it writable either.
+    await syncExternalList('late', fetchTasks)
+    expect(writable('late')).toBe(false)
+
+    answer()
+    await vi.waitFor(() => expect(writable('late')).toBe(true))
+    expect(fetchTasks).toHaveBeenCalledTimes(3)
+  })
+
   test('a refresh already running keeps a task pending', async () => {
     await syncExternalList('refreshing', answering(row('a')))
     let answer = (_: Awaited<ReturnType<ReturnType<typeof answering>>>) => {}

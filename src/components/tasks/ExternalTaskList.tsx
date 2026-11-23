@@ -77,6 +77,10 @@ export function ExternalTaskList({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [addingTo, setAddingTo] = useState<string | null>(null)
   const writing = useRef(false)
+  /** Writes that outlasted their wait, and may still land. */
+  const unanswered = useRef(0)
+  /** The retry key of each title being added, until Todoist took it. */
+  const addKeys = useRef(new Map<string, string>())
   const { confirm, dialog } = useConfirmAction()
   const messages = useMessages()
   const { external, linkedWrite, local, subtasks: subtaskWords } = messages.tasks
@@ -87,7 +91,12 @@ export function ExternalTaskList({
     try {
       const result = await within(getTasks({ listId, groupSlug }))
       if (result.status === 'ok') setRows(result.tasks)
-      setState(result.status)
+      // An unanswered write may still change what was just read.
+      setState(
+        result.status === 'ok' && unanswered.current > 0
+          ? 'error'
+          : result.status,
+      )
     } catch {
       setState('error')
     }
@@ -120,10 +129,14 @@ export function ExternalTaskList({
     writing.current = true
     setBusy(true)
     setProblem(null)
+    const sent = writeTask({ listId, groupSlug, write: change })
+    let settled = false
+    const settle = () => {
+      settled = true
+    }
+    sent.then(settle, settle)
     try {
-      const result = await within(
-        writeTask({ listId, groupSlug, write: change }),
-      )
+      const result = await within(sent)
       if (result.status === 'reconnect') {
         setState('reconnect')
         return false
@@ -139,12 +152,37 @@ export function ExternalTaskList({
     } catch {
       // Nobody knows whether it landed: show what the provider has.
       failed('failed')
-      await load()
+      if (settled) {
+        await load()
+        return false
+      }
+      unanswered.current += 1
+      setState('error')
+      const answered = () => {
+        unanswered.current -= 1
+        void load()
+      }
+      sent.then(answered, answered)
       return false
     } finally {
       writing.current = false
       setBusy(false)
     }
+  }
+
+  /** Adding the same title again after a failure makes one task. */
+  async function addTask(title: string, parentId?: string): Promise<boolean> {
+    const place = `${parentId ?? ''}:${title}`
+    const requestKey = addKeys.current.get(place) ?? crypto.randomUUID()
+    addKeys.current.set(place, requestKey)
+    const added = await write({
+      kind: 'create',
+      title,
+      requestKey,
+      ...(parentId ? { parentId } : {}),
+    })
+    if (added) addKeys.current.delete(place)
+    return added
   }
 
   async function saveEdit(task: UnifiedTask, values: TaskEditorValues) {
@@ -316,9 +354,7 @@ export function ExternalTaskList({
                 placeholder={subtaskWords.add}
                 fieldLabel={fmt(linkedWrite.addSubtask, { task: task.title })}
                 buttonLabel={subtaskWords.add}
-                onAdd={(title) =>
-                  write({ kind: 'create', title, parentId: task.externalId })
-                }
+                onAdd={(title) => addTask(title, task.externalId)}
               />
             ) : null}
           </div>
@@ -398,7 +434,7 @@ export function ExternalTaskList({
           placeholder={local.quickAdd}
           fieldLabel={fmt(local.newTaskIn, { name })}
           buttonLabel={local.addTask}
-          onAdd={(title) => write({ kind: 'create', title })}
+          onAdd={(title) => addTask(title)}
         />
       ) : null}
       {state === 'ok' && rows.length === 0 ? (

@@ -109,6 +109,12 @@ const queues = new Map<string, Promise<unknown>>()
 const onTheirWay = new Map<string, Map<string, number>>()
 
 /**
+ * Lists with a write that outlasted its wait. It may still land, so their rows
+ * are not the provider's until it is answered.
+ */
+const unanswered = new Map<string, number>()
+
+/**
  * How long a write or fetch may take, waiting its turn included. Convex holds
  * an action that lost its connection until it is back, and an answer by then
  * is no use: the list would wait for it, and a write would land unasked.
@@ -265,10 +271,30 @@ export async function writeLinkedTask(
         throw new LinkedWriteError('stale', listId)
       }
       let result: WriteResult
+      const sent = send(listId, write)
+      let settled = false
+      const settle = () => {
+        settled = true
+      }
+      sent.then(settle, settle)
       try {
-        result = await within(send(listId, write))
+        result = await within(sent)
       } catch {
-        refresh = true
+        refresh = settled
+        if (!settled) {
+          const entry = external.get(listId)
+          if (entry) put(listId, { sync: 'failed', tasks: entry.tasks })
+          unanswered.set(listId, (unanswered.get(listId) ?? 0) + 1)
+          const answered = async () => {
+            const left = (unanswered.get(listId) ?? 1) - 1
+            if (left > 0) unanswered.set(listId, left)
+            else unanswered.delete(listId)
+            // A fetch begun before this one's answer may not hold it.
+            await inFlight.get(listId)
+            void syncExternalList(listId, fetchTasks)
+          }
+          void sent.then(answered, answered)
+        }
         throw new LinkedWriteError('failed', listId)
       }
       const entry = external.get(listId) ?? { sync: 'synced', tasks: [] }
@@ -312,7 +338,8 @@ export function syncExternalList(
     const entry: ExternalEntry = result
       ? externalEntry(listId, result, previous)
       : { sync: 'failed', tasks: previous }
-    put(listId, entry)
+    // An unanswered write may still change what was just read.
+    put(listId, unanswered.has(listId) ? { ...entry, fresh: false } : entry)
     return entry.sync
   }).finally(() => inFlight.delete(listId))
   inFlight.set(listId, run)
