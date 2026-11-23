@@ -23,6 +23,7 @@ import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
 import { RADIUS, TYPE } from '../../theme/tokens'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { moduleHref } from '../moduleDestination'
 import { dateForMonth } from './format'
 import { FINANCE_ICONS } from './icons'
@@ -58,9 +59,17 @@ export function MortgageScreen({
   const addPart = useMutation(api.mortgages.addPart)
   const duplicate = useMutation(api.mortgages.duplicate)
   const remove = useMutation(api.mortgages.remove)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, writes } = useFinanceWrite()
 
   const [copyName, setCopyName] = useState<string | null>(null)
+  // A share closed the sheet: open on the name that was typed (APP-622).
+  const resume = useSheetResume({
+    place: `finances:mortgage:${calculationId}:copy`,
+    open: copyName !== null,
+    values: copyName,
+    restore: setCopyName,
+    writes,
+  })
   const Clock = FINANCE_ICONS.Clock
 
   if (calculation === undefined) {
@@ -273,11 +282,13 @@ export function MortgageScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={text.actions.duplicate}
-            onPress={() =>
-              setCopyName(
-                fmt(text.house.copySuffix, { name: calculation.name }),
-              )
-            }
+            onPress={() => {
+              if (!resume(true)) {
+                setCopyName(
+                  fmt(text.house.copySuffix, { name: calculation.name }),
+                )
+              }
+            }}
             style={({ pressed }) => [
               styles.ghost,
               { borderColor: tokens.hair },

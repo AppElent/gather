@@ -30,6 +30,7 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 import { Chip, priorityColor } from './components'
 import { labelsWords } from './detailWords'
 import { TASK_ICONS } from './icons'
@@ -255,9 +256,16 @@ export function LabelsSheet({
     t,
     lists?.find((list) => list._id === task.listId)?.grocery === true,
   )
-  const [draft, setDraft] = useState('')
+  // A share keeps the word being typed, and which label it renames (APP-622).
+  const kept = useSheetDraft<{ draft: string; renaming: string | null }>(
+    `tasks:labels:${task.id}`,
+  )
+  const [draft, setDraft] = useState(kept.kept?.draft ?? '')
   /** The label being renamed, if the field is doing that instead of adding. */
-  const [renaming, setRenaming] = useState<string | null>(null)
+  const [renaming, setRenaming] = useState<string | null>(
+    kept.kept?.renaming ?? null,
+  )
+  kept.track({ draft, renaming })
 
   const labels = task.labels
   // Everything anybody has typed, minus what is already on this task, with a
@@ -489,17 +497,22 @@ export function MoveToListSheet({
 export function RenameSheet({
   title,
   value,
+  place,
   onSave,
   onClose,
 }: {
   title: string
   value: string
+  /** Where a share keeps the unsaved name (APP-622): the task's or list's. */
+  place: string
   onSave: (next: string) => void
   onClose: () => void
 }) {
   const tokens = useTokens('home')
   const { t } = useI18n()
-  const [draft, setDraft] = useState(value)
+  const kept = useSheetDraft<{ draft: string }>(place)
+  const [draft, setDraft] = useState(kept.kept?.draft ?? value)
+  kept.track({ draft })
   const valid = draft.trim().length > 0
 
   const save = () => {

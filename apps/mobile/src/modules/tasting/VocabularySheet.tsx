@@ -29,6 +29,7 @@ import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 import { term } from './words'
 
 export function VocabularySheet({
@@ -48,7 +49,12 @@ export function VocabularySheet({
   const tokens = useTokens('tasting')
   const { t } = useI18n()
   const Search = UI_ICONS.Search
-  const [query, setQuery] = useState('')
+  // A share keeps the search (APP-622).
+  const draft = useSheetDraft<{ query: string }>(
+    `tasting:vocabulary:${vocabulary}`,
+  )
+  const [query, setQuery] = useState(draft.kept?.query ?? '')
+  draft.track({ query })
 
   const options = useMemo(() => {
     const needle = query.trim().toLowerCase()

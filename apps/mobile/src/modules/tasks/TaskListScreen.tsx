@@ -702,6 +702,7 @@ export function TaskList({
         <RenameSheet
           title={t.tasks.list.rename}
           value={list.name}
+          place={`tasks:rename-list:${list.id}`}
           onSave={(next) => actions.renameList(list.id, next)}
           onClose={() => setRenamingList(false)}
         />

@@ -6,6 +6,7 @@ import {
   hasOpenSheets,
   LATE_SHEET_DELAY_MS,
   type OpenSheet,
+  onSheetsClosing,
   openSheet,
 } from './openSheets'
 
@@ -151,5 +152,44 @@ describe('openSheets', () => {
     await closing
     const next = sheet()
     expect(next.dismiss).not.toHaveBeenCalled()
+  })
+
+  it('tells its listeners before asking any sheet to close', async () => {
+    const order: string[] = []
+    const stop = onSheetsClosing(() => order.push('listener'))
+    const broken = onSheetsClosing(() => {
+      throw new Error('no draft')
+    })
+    const handle = openSheet(() => {
+      order.push('dismiss')
+      handle.closed()
+    })
+    registered.push(handle)
+    await closeOpenSheets()
+    expect(order).toEqual(['listener', 'dismiss'])
+
+    // Not told when nothing is open, nor once unsubscribed.
+    await closeOpenSheets()
+    stop()
+    broken()
+    const again = openSheet(() => again.closed())
+    registered.push(again)
+    await closeOpenSheets()
+    expect(order).toEqual(['listener', 'dismiss'])
+  })
+
+  it('tells its listeners about a sheet that opened mid-close', async () => {
+    vi.useFakeTimers()
+    const a = sheet()
+    const told = vi.fn()
+    const closing = closeOpenSheets()
+    const late = sheet()
+    const stop = onSheetsClosing(told)
+    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
+    expect(told).toHaveBeenCalledTimes(1)
+    a.later()
+    late.later()
+    await closing
+    stop()
   })
 })

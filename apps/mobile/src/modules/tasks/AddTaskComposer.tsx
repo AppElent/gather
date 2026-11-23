@@ -172,6 +172,7 @@ export function AddTask({ place, preset, sectionId }: AddTaskProps) {
       ) : null}
       {repeatFor ? (
         <RepeatSheet
+          place={place}
           task={{ repeat: repeatFor.repeat, dueDate: repeatFor.dueDate }}
           onSave={(rule) => {
             const draft = keptDraft<TaskDraft>(key) ?? emptyDraft(withLast)

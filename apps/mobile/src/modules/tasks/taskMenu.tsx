@@ -211,6 +211,7 @@ export function useTaskSheets({
         <RenameSheet
           title={t.tasks.list.renameTask}
           value={task.title}
+          place={`tasks:rename-task:${task.id}`}
           onSave={(next) => actions.renameTask(task.id, next)}
           onClose={close}
         />
