@@ -213,6 +213,9 @@ export const nl = {
         'Sleep aan een greep om te herschikken. Een module blijft in zijn eigen categorie.',
       dragModule: '{module} herschikken',
       dragSection: '{section} herschikken',
+      moveUpAction: 'Omhoog verplaatsen',
+      moveDownAction: 'Omlaag verplaatsen',
+      moved: '{item} verplaatst naar positie {position} van {total}',
     },
 
     placeholder: coreNl.shell.placeholder,
@@ -940,6 +943,10 @@ export const nl = {
         'Sleep een item onder een andere afdeling om het daarheen te verplaatsen. Afvinken, bewerken en vegen staan uit tot je op Klaar tikt.',
       reorderChecked: 'Afgevinkte items zijn verborgen terwijl je ordent.',
       reorderReset: 'Die verplaatsing is niet bewaard. Zo staat de lijst er nu bij.',
+      moveUpAction: 'Omhoog verplaatsen',
+      moveDownAction: 'Omlaag verplaatsen',
+      movedTo: '{task} verplaatst naar positie {position} van {total}',
+      movedToSection: '{task} verplaatst naar {section}, positie {position} van {total}',
       readOnly:
         'Deze lijst staat in {provider}. Gather kan hem lezen, maar er niet in schrijven — dus hier is geen invoerregel.',
       refreshed: 'Zojuist gesynchroniseerd',

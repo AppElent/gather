@@ -298,6 +298,11 @@ export const en = {
         'Drag a handle to rearrange. A module stays in its own category.',
       dragModule: 'Reorder {module}',
       dragSection: 'Reorder {section}',
+      /** VoiceOver's actions on a row in Edit mode, which cannot drag a grip. */
+      moveUpAction: 'Move up',
+      moveDownAction: 'Move down',
+      /** Said after one of them. `{item}` is a module or a category; positions count from 1. */
+      moved: '{item} moved to position {position} of {total}',
     },
 
     placeholder: coreEn.shell.placeholder,
@@ -1218,6 +1223,12 @@ export const en = {
       reorderChecked: 'Checked items are hidden while you rearrange.',
       /** Reorder mode put back to the saved order after a refused drop (APP-534). */
       reorderReset: "That move didn't save. This is the list as it is now.",
+      /** VoiceOver's actions on a row in reorder mode, which cannot drag a grip (APP-572). */
+      moveUpAction: 'Move up',
+      moveDownAction: 'Move down',
+      /** Said after one of them. Positions count from 1, within the section. */
+      movedTo: '{task} moved to position {position} of {total}',
+      movedToSection: '{task} moved to {section}, position {position} of {total}',
       /** A list Gather may read and not write (ADR-0021). */
       readOnly:
         'This list lives in {provider}. Gather can read it, but not write to it — so there is no composer here.',
