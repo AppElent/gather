@@ -161,6 +161,19 @@ export const ENERGY_REFUSAL_CODES = [
   'channelsExist',
   'contractInvalid',
   'contractDateTaken',
+  // APP-495: Home Assistant.
+  'adminOnly',
+  'addressNotHttps',
+  'addressInvalid',
+  'addressPrivate',
+  'tokenNeeded',
+  'channelTwice',
+  'channelsMixed',
+  'statisticNotFound',
+  'pickChannel',
+  'sourceUnreachable',
+  'sourceNotHomeAssistant',
+  'sourceBadToken',
 ] as const
 export type EnergyRefusalCode = (typeof ENERGY_REFUSAL_CODES)[number]
 

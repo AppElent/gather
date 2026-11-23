@@ -44,6 +44,31 @@ export const releaseFiles = internalMutation({
   },
 })
 
+/** Interval and reading rows one step deletes. */
+const ENERGY_ROWS_PER_STEP = 1000
+
+/**
+ * Delete a destroyed Group's hourly usage or typed readings, a page per step:
+ * a year of hours for seven channels is some 61,000 rows, which no single
+ * transaction holds (APP-495).
+ */
+export const purgeEnergyRows = internalMutation({
+  args: {
+    groupId: v.id('groups'),
+    table: v.union(v.literal('energyIntervals'), v.literal('energyReadings')),
+  },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query(args.table)
+      .withIndex('by_group', (q) => q.eq('groupId', args.groupId))
+      .take(ENERGY_ROWS_PER_STEP)
+    for (const row of rows) await ctx.db.delete(row._id)
+    if (rows.length === ENERGY_ROWS_PER_STEP) {
+      await ctx.scheduler.runAfter(0, internal.cascade.purgeEnergyRows, args)
+    }
+  },
+})
+
 /**
  * Delete a person's account, one Group per step, then the person.
  *

@@ -1,0 +1,60 @@
+import { energyChannelsOverlap } from '@gather/core/energy'
+import type { Doc, Id } from '../_generated/dataModel'
+import type { MutationCtx } from '../_generated/server'
+
+/**
+ * Each channel comes from one source (APP-495): a typed meter that a
+ * connected Home Assistant channel also measures is retired, so the readings
+ * form stops asking for it, and comes back once nothing else measures it.
+ * Its readings stay either way. Nothing else retires a typed meter today; a
+ * meter swap that does must tell the two apart.
+ */
+export async function reconcileManualChannels(
+  ctx: MutationCtx,
+  siteId: Id<'energySites'>,
+) {
+  const [sources, channels] = await Promise.all([
+    ctx.db
+      .query('energySources')
+      .withIndex('by_site', (q) => q.eq('siteId', siteId))
+      .collect(),
+    ctx.db
+      .query('energyChannels')
+      .withIndex('by_site', (q) => q.eq('siteId', siteId))
+      .collect(),
+  ])
+  const manual = new Set(
+    sources.filter((each) => each.kind === 'manual').map((each) => each._id),
+  )
+  const connected = new Set(
+    sources
+      .filter((each) => each.kind === 'homeAssistant' && each.secret)
+      .map((each) => each._id),
+  )
+  const measured = channels.filter(
+    (each) => connected.has(each.sourceId) && each.retiredAt === undefined,
+  )
+  const active: Doc<'energyChannels'>[] = []
+  // Newest first, so of two retired meters the newer one comes back.
+  const typed = channels
+    .filter((each) => manual.has(each.sourceId))
+    .sort(
+      (a, b) =>
+        Number(a.retiredAt !== undefined) - Number(b.retiredAt !== undefined) ||
+        b._creationTime - a._creationTime,
+    )
+  for (const channel of typed) {
+    const covered = measured.some((each) => energyChannelsOverlap(each, channel))
+    if (covered) {
+      if (channel.retiredAt === undefined) {
+        await ctx.db.patch(channel._id, { retiredAt: Date.now() })
+      }
+      continue
+    }
+    if (channel.retiredAt !== undefined) {
+      if (active.some((each) => energyChannelsOverlap(each, channel))) continue
+      await ctx.db.patch(channel._id, { retiredAt: undefined })
+    }
+    active.push(channel)
+  }
+}

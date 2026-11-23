@@ -6,7 +6,8 @@
  * month queries, so no single query ever reads a whole year of hours.
  *
  * A channel of a manual source counts from its readings, spread over days
- * and marked estimated; any other channel counts from its intervals.
+ * and marked estimated; any other channel counts from its intervals. A typed
+ * meter never adds to a day on which an hourly channel measured the same thing.
  */
 import { addDays } from '@gather/core/civil-date'
 import {
@@ -293,6 +294,30 @@ function average(slots: readonly PriceSlot[], from: number, to: number) {
   return count === 0 ? null : total / count
 }
 
+/**
+ * What hourly sources measured, per kind: the hours a split meter's counters
+ * cover, and per day the tariffs counted (`undefined` is every tariff).
+ */
+function measuredHours(
+  hourly: readonly {
+    channel: Doc<'energyChannels'>
+    intervals: readonly Doc<'energyIntervals'>[]
+  }[],
+) {
+  const split = new Set<string>()
+  const days = new Map<string, (Doc<'energyChannels'>['tariff'] | undefined)[]>()
+  for (const { channel, intervals } of hourly) {
+    for (const { hourStart } of intervals) {
+      if (channel.tariff) split.add(`${channel.kind}:${hourStart}`)
+      const key = `${channel.kind}:${amsterdamDayOf(hourStart)}`
+      const tariffs = days.get(key)
+      if (!tariffs) days.set(key, [channel.tariff])
+      else if (!tariffs.includes(channel.tariff)) tariffs.push(channel.tariff)
+    }
+  }
+  return { split, days }
+}
+
 export interface EnergyRange {
   days: EnergyDay[]
   /** Per hour, only when asked for and only from hourly sources. */
@@ -328,51 +353,36 @@ export async function computeEnergyRange(
     }
   }
 
-  for (const { channel, manual } of channels) {
-    if (manual) {
-      if (channel.kind === 'batterySoc') continue
-      const [before, inside, after] = await Promise.all([
-        ctx.db
-          .query('energyReadings')
-          .withIndex('by_channel_at', (q) =>
-            q.eq('channelId', channel._id).lt('at', start),
-          )
-          .order('desc')
-          .first(),
-        ctx.db
-          .query('energyReadings')
-          .withIndex('by_channel_at', (q) =>
-            q.eq('channelId', channel._id).gte('at', start).lt('at', end),
+  // Hourly sources first: what they measured decides what may still be added
+  // from typed readings and from counters that overlap (APP-495).
+  const hourly = await Promise.all(
+    channels
+      .filter((each) => !each.manual)
+      .map(async ({ channel }) => ({
+        channel,
+        intervals: await ctx.db
+          .query('energyIntervals')
+          .withIndex('by_channel_hour', (q) =>
+            q
+              .eq('channelId', channel._id)
+              .gte('hourStart', start)
+              .lt('hourStart', end),
           )
           .collect(),
-        ctx.db
-          .query('energyReadings')
-          .withIndex('by_channel_at', (q) =>
-            q.eq('channelId', channel._id).gte('at', end),
-          )
-          .first(),
-      ])
-      const readings = [
-        ...(before ? [before] : []),
-        ...inside,
-        ...(after ? [after] : []),
-      ]
-      const spread = spreadReadingsOverDays(readings, days)
-      spread.forEach((amount, index) => {
-        const bucket = dayBuckets.get(days[index] as string)
-        if (amount !== null && bucket) addTo(bucket, channel, amount, true)
-      })
-      continue
-    }
-    const intervals = await ctx.db
-      .query('energyIntervals')
-      .withIndex('by_channel_hour', (q) =>
-        q.eq('channelId', channel._id).gte('hourStart', start).lt('hourStart', end),
-      )
-      .collect()
-    // State of charge is a level, not an amount: a day's figure is the
-    // average of its hours, so it is only kept per hour.
+      })),
+  )
+  const measured = measuredHours(hourly)
+  for (const { channel, intervals } of hourly) {
     for (const interval of intervals) {
+      // A counter of every tariff next to the split ones it adds up.
+      if (
+        !channel.tariff &&
+        measured.split.has(`${channel.kind}:${interval.hourStart}`)
+      ) {
+        continue
+      }
+      // State of charge is a level, not an amount: a day's figure is the
+      // average of its hours, so it is only kept per hour.
       const dayBucket = dayBuckets.get(amsterdamDayOf(interval.hourStart))
       if (dayBucket && channel.kind !== 'batterySoc') {
         addTo(dayBucket, channel, interval.amount, interval.estimated)
@@ -382,6 +392,48 @@ export async function computeEnergyRange(
         addTo(hourBucket, channel, interval.amount, interval.estimated)
       }
     }
+  }
+
+  for (const { channel, manual } of channels) {
+    if (!manual || channel.kind === 'batterySoc') continue
+    const [before, inside, after] = await Promise.all([
+      ctx.db
+        .query('energyReadings')
+        .withIndex('by_channel_at', (q) =>
+          q.eq('channelId', channel._id).lt('at', start),
+        )
+        .order('desc')
+        .first(),
+      ctx.db
+        .query('energyReadings')
+        .withIndex('by_channel_at', (q) =>
+          q.eq('channelId', channel._id).gte('at', start).lt('at', end),
+        )
+        .collect(),
+      ctx.db
+        .query('energyReadings')
+        .withIndex('by_channel_at', (q) =>
+          q.eq('channelId', channel._id).gte('at', end),
+        )
+        .first(),
+    ])
+    const readings = [
+      ...(before ? [before] : []),
+      ...inside,
+      ...(after ? [after] : []),
+    ]
+    const spread = spreadReadingsOverDays(readings, days)
+    spread.forEach((amount, index) => {
+      const day = days[index] as string
+      const bucket = dayBuckets.get(day)
+      if (amount === null || !bucket) return
+      // The same meter, already counted from its hours that day.
+      const counted = measured.days.get(`${channel.kind}:${day}`)
+      if (counted?.some((tariff) => !tariff || !channel.tariff || tariff === channel.tariff)) {
+        return
+      }
+      addTo(bucket, channel, amount, true)
+    })
   }
 
   const contracts = await ctx.db
