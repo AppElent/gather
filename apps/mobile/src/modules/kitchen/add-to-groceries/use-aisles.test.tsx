@@ -12,14 +12,18 @@ import { useAisleOf } from './use-aisles'
 
 const server = vi.hoisted(() => ({
   /** What the query answers for the titles asked; undefined while loading. */
-  answer: undefined as unknown as (titles: string[]) => GroceryAisle[] | undefined,
+  answer: undefined as unknown as (
+    titles: string[],
+  ) => GroceryAisle[] | Error | undefined,
   /** The same answer object for the same question, as Convex returns it. */
   answers: new Map<string, unknown>(),
   asked: [] as unknown[],
 }))
 
 /** Change what the server answers; the next render gets a new answer. */
-function answerWith(answer: (titles: string[]) => GroceryAisle[] | undefined) {
+function answerWith(
+  answer: (titles: string[]) => GroceryAisle[] | Error | undefined,
+) {
   server.answer = answer
   server.answers = new Map()
 }
@@ -28,13 +32,16 @@ vi.mock('../../../convex/api', () => ({
   api: { groceryLines: { aisles: 'groceryLines.aisles' } },
 }))
 vi.mock('../../../convex/queries', () => ({
-  useQuery: (_ref: unknown, args: unknown) => {
+  // One request, `aisles`, or none while skipped; a failed question comes
+  // back as its Error, as Convex's `useQueries` hands it over.
+  useLiveQueries: (requests: Record<string, { args: unknown }>) => {
+    const args = requests.aisles?.args ?? 'skip'
     server.asked.push(args)
-    if (args === 'skip') return undefined
+    if (args === 'skip') return {}
     const key = JSON.stringify(args)
     if (!server.answers.has(key))
       server.answers.set(key, server.answer((args as { titles: string[] }).titles))
-    return server.answers.get(key)
+    return { aisles: server.answers.get(key) }
   },
 }))
 
@@ -116,6 +123,22 @@ describe('useAisleOf', () => {
     const { result } = render({ listId: undefined, titles: [EGGS] })
     expect(server.asked.every((args) => args === 'skip')).toBe(true)
     expect(result.current(EGGS)).toBe('dairy')
+  })
+
+  test('a failed question is answered by the phone instead of throwing (APP-536)', () => {
+    answerWith(() => new Error('This is not a grocery list'))
+    const { result } = render({ listId: 'list-1', titles: [EGGS, UNKNOWN] })
+    expect(result.current(EGGS)).toBe('dairy')
+    expect(result.current(UNKNOWN)).toBe('other')
+  })
+
+  test('a failed question keeps what an earlier answer said', () => {
+    answerWith((titles) => titles.map(() => 'snacks' as const))
+    const { result, rerender } = render({ listId: 'list-1', titles: [EGGS] })
+    answerWith(() => new Error('offline'))
+    rerender({ listId: 'list-1', titles: [EGGS, ONION] })
+    expect(result.current(EGGS)).toBe('snacks')
+    expect(result.current(ONION)).toBe('produce')
   })
 
   test('without titles nothing is asked', () => {

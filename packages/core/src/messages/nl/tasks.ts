@@ -144,6 +144,8 @@ export const tasks = {
     itemPlaceholder: 'Wat heb je nodig?',
     deleteItem: 'Item verwijderen',
     recognised: 'Hoeveelheid en afdeling ingevuld op basis van wat je typt',
+    recognisedAmount: 'Hoeveelheid ingevuld op basis van wat je typt',
+    recognisedAisle: 'Afdeling ingevuld op basis van wat je typt',
     changeAisleHint: 'Kies de afdeling waarin het wordt toegevoegd',
     aisleSection: { one: '{aisle}, {count} item', other: '{aisle}, {count} items' },
     checked: 'Afgevinkt',

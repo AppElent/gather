@@ -6,7 +6,13 @@
  * thing wherever the task appears.
  */
 import type { GroceryAisle } from '@gather/core/groceries'
-import { type ReactNode, type RefObject, useRef, useState } from 'react'
+import {
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import {
   Alert,
   type HostInstance,
@@ -298,6 +304,15 @@ export function TaskRow({
   )
 }
 
+/**
+ * A grocery composer's half-typed line and the aisle chosen for it, kept by
+ * the screen while the composer is away, as in Reorder mode (APP-536).
+ */
+export interface KeptGroceryLine {
+  line: string
+  choice?: { line: string; aisle: GroceryAisle }
+}
+
 /** The line at the bottom of a writable list that adds to it. */
 export function TaskComposer({
   listId,
@@ -308,6 +323,7 @@ export function TaskComposer({
   parent,
   onFailed,
   scrollRef,
+  keep,
 }: {
   listId: string
   placeholder: string
@@ -329,6 +345,11 @@ export function TaskComposer({
    * with the keyboard kept open it would slide under it (APP-521).
    */
   scrollRef?: RefObject<GestureScrollView | null>
+  /**
+   * Where a grocery composer keeps its line while it is unmounted: it starts
+   * from what is kept there and writes back as it changes.
+   */
+  keep?: RefObject<KeptGroceryLine | undefined>
 }) {
   const tokens = useTokens('home')
   const actions = useTaskActions()
@@ -344,12 +365,20 @@ export function TaskComposer({
     restore,
     dismiss,
     reset,
-  } = useQuickAddLine(recognise)
+  } = useQuickAddLine(
+    recognise,
+    keep?.current ? { line: keep.current.line, dismissed: [] } : undefined,
+  )
   const { t } = useI18n()
   // The aisle a Member chose in the preview, for the line it was chosen for
   // (APP-524): a line typed differently since has not been given one.
-  const [choice, setChoice] = useState<{ line: string; aisle: GroceryAisle }>()
+  const [choice, setChoice] = useState<KeptGroceryLine['choice']>(
+    () => keep?.current?.choice,
+  )
   const aisle = choice?.line === draft.trim() ? choice.aisle : undefined
+  useEffect(() => {
+    if (keep) keep.current = { line: draft, ...(choice ? { choice } : {}) }
+  }, [keep, draft, choice])
   const fieldRef = useRef<HostInstance>(null)
 
   // Brings the field back above the keyboard once the new row has pushed it
@@ -475,8 +504,12 @@ export function TaskComposer({
         <GroceryCompletions
           listId={listId}
           line={draft}
+          aisle={aisle}
           tasks={tasks}
-          onPicked={() => setDraft('')}
+          onPicked={() => {
+            setDraft('')
+            setChoice(undefined)
+          }}
         />
       ) : null}
       {field}
