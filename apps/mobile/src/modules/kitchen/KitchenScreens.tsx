@@ -136,7 +136,6 @@ export function GroceriesScreen() {
           key={selected._id}
           listId={selected._id}
           moduleId="groceries"
-          addPlaceholder={t.kitchen.addGroceryItem}
           washAccessory={
             <StorePill name={selected.name} onPress={() => setSheet('lists')} />
           }

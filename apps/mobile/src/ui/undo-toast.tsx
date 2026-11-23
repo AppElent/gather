@@ -29,7 +29,8 @@ interface ToastMessage {
   undo?: { label: string; onPress: () => void }
 }
 
-export function useUndoToast() {
+/** `clearance`: the height of a bar pinned under the toast, to stay above. */
+export function useUndoToast(clearance = 0) {
   const [current, setCurrent] = useState<(ToastMessage & { id: number }) | null>(
     null,
   )
@@ -41,7 +42,7 @@ export function useUndoToast() {
   }, [])
   const hide = useCallback(() => setCurrent(null), [])
   const toast = current ? (
-    <UndoToast key={current.id} toast={current} onHide={hide} />
+    <UndoToast key={current.id} toast={current} onHide={hide} clearance={clearance} />
   ) : null
   return { show, hide, toast }
 }
@@ -49,9 +50,11 @@ export function useUndoToast() {
 function UndoToast({
   toast,
   onHide,
+  clearance,
 }: {
   toast: ToastMessage
   onHide: () => void
+  clearance: number
 }) {
   const tokens = useTokens()
   const insets = useSafeAreaInsets()
@@ -86,7 +89,7 @@ function UndoToast({
   return (
     <Animated.View
       pointerEvents="box-none"
-      style={[styles.wrap, { bottom: insets.bottom + SPACE[4], opacity }]}
+      style={[styles.wrap, { bottom: insets.bottom + clearance + SPACE[4], opacity }]}
     >
       <View
         accessibilityLiveRegion="polite"

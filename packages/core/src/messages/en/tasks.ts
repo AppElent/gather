@@ -185,14 +185,6 @@ export const tasks = {
      */
     labelsOnItem: 'On this item',
     removeLabelEverywhere: 'Remove everywhere',
-    /** Under the composer while a line is typed. */
-    recognised: 'Amount and aisle filled in from what you type',
-    /** The same, when only the amount was read: the aisle was chosen, or not known. */
-    recognisedAmount: 'Amount filled in from what you type',
-    /** The same, when only the aisle was filled in. */
-    recognisedAisle: 'Aisle filled in from what you type',
-    /** Read out for the composer's aisle chip, which opens the aisle menu. */
-    changeAisleHint: 'Choose the aisle it is added in',
     // The list in aisle sections, the Checked row and Recent (APP-310;
     // `designs/groceries/README.md` sections 1 and 4).
     /** Read out for an aisle section's heading: the aisle and its count. */

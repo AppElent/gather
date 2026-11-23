@@ -1,8 +1,8 @@
 /**
  * A grocery item's amount and aisle (APP-309; `designs/groceries/README.md`,
- * "Recognition" and "Item sheet"), in the three places a grocery list shows
- * them: trailing a row, under the composer while a line is typed, and on the
- * item's own screen.
+ * "Recognition" and "Item sheet"), where a grocery list shows them: trailing
+ * a row, on the composer's chips (`GroceryComposer`), and on the item's own
+ * screen.
  *
  * The item screen keeps the Tasks rule of no Save: a step, a unit or an aisle
  * writes as it is chosen, and the typed amount writes when the field is left.
@@ -15,7 +15,6 @@ import {
   GROCERY_AISLES,
   type GroceryAisle,
   type GroceryUnit,
-  groceryAddFields,
   isGroceryAisle,
   isGroceryQuantity,
   roundGroceryQuantity,
@@ -38,7 +37,7 @@ import type { Task } from './types'
 const ASK_AFTER_MS = 250
 
 /** The units offered as pills, in the design's order; others stay readable. */
-const OFFERED_UNITS: readonly GroceryUnit[] = [
+export const OFFERED_UNITS: readonly GroceryUnit[] = [
   'stuks',
   'pak',
   'fles',
@@ -77,108 +76,25 @@ export function GroceryAmount({ task }: { task: Task }) {
 }
 
 /**
- * Under the composer while a line is typed: what the line will be saved as.
- * The amount is read here, on the phone, without AI and offline. The aisle is
- * the one the list itself would give the line (`useAisleOf`: the Group's own
- * choices, then the list's history, then the dictionary), the phone's
- * dictionary until that answer is in.
- *
- * The aisle chip opens the aisle menu (APP-524; `designs/groceries/README.md`,
- * "Recognition", 3): an aisle chosen there is the one the line is added in.
- * Untouched, the server decides the aisle as it always has.
+ * The aisle a typed name would be added in, for the composer's chip: the one
+ * the list itself would give it (`useAisleOf`: the Group's own choices, then
+ * the list's history, then the dictionary), the phone's dictionary until that
+ * answer is in.
  */
-export function GroceryPreview({
-  listId,
-  line,
-  aisle: chosen,
-  onAisle,
-}: {
-  listId: string
-  line: string
-  /** The aisle a Member chose for this line, if any. */
-  aisle: GroceryAisle | undefined
-  onAisle: (aisle: GroceryAisle) => void
-}) {
-  const tokens = useTokens('kitchen')
-  const { t } = useI18n()
+export function useTypedAisle(
+  listId: string | undefined,
+  name: string,
+): GroceryAisle | undefined {
   const { group } = useGroup()
-  const words = t.tasks.grocery
-  const amountText = useGroceryAmountText()
-  const typed = line.trim()
-  // Asked once typing pauses, not per keystroke; until the answer for this
-  // line is in, the phone's dictionary answers.
+  const typed = name.trim()
+  // Asked once typing pauses, not per keystroke.
   const [asked, setAsked] = useState(typed)
   useEffect(() => {
     const timer = setTimeout(() => setAsked(typed), ASK_AFTER_MS)
     return () => clearTimeout(timer)
   }, [typed])
   const aisleOf = useAisleOf(group.slug, listId, asked ? [asked] : [])
-  if (!typed) return null
-  const fields = groceryAddFields(line)
-  const amount = amountText(fields.quantity, fields.unit)
-  const detected = aisleOf(typed)
-  const aisle = chosen ?? detected
-  const aisleFilled = chosen === undefined && detected !== 'other'
-  const hint = amount
-    ? aisleFilled
-      ? words.recognised
-      : words.recognisedAmount
-    : aisleFilled
-      ? words.recognisedAisle
-      : null
-  const tint = tokens.tintOf('kitchen')
-  const chip = [styles.chip, { backgroundColor: tint.wash, color: tint.text }]
-  return (
-    <View
-      testID="grocery-preview"
-      accessibilityLiveRegion="polite"
-      style={styles.preview}
-    >
-      {amount ? <Text style={chip}>{amount}</Text> : null}
-      <MenuView
-        testID="grocery-preview-aisle"
-        actions={GROCERY_AISLES.map((id) => ({
-          id,
-          title: words.aisles[id],
-          state: id === aisle ? ('on' as const) : ('off' as const),
-        }))}
-        onPressAction={(event) => {
-          const next = event.nativeEvent.event
-          // Any aisle tapped is a choice, the one shown too: "keep it in
-          // Other" holds against a later AI answer.
-          if (!isGroceryAisle(next) || next === chosen) return
-          haptics.selectionChanged()
-          onAisle(next)
-        }}
-      >
-        <View
-          accessibilityRole="button"
-          accessibilityLabel={`${words.aisle}, ${words.aisles[aisle]}`}
-          accessibilityHint={words.changeAisleHint}
-          style={styles.aisleTarget}
-        >
-          <View style={[styles.aisleChip, { backgroundColor: tint.wash }]}>
-          <Text style={[styles.chipText, { color: tint.text }]}>
-            {words.aisles[aisle]}
-          </Text>
-          <UI_ICONS.ChevronDown
-            size={12}
-            color={tint.text}
-            strokeWidth={2.6}
-            accessibilityElementsHidden
-            importantForAccessibility="no"
-          />
-          </View>
-        </View>
-      </MenuView>
-      {/* What was filled in from the line: an amount, an aisle the Member
-          has not chosen themselves, or both; a chosen aisle was not filled
-          in (APP-536). */}
-      {hint ? (
-        <Text style={[styles.hint, { color: tokens.muted }]}>{hint}</Text>
-      ) : null}
-    </View>
-  )
+  return typed ? aisleOf(typed) : undefined
 }
 
 function amountDraft(quantity: number | undefined, locale: string): string {
