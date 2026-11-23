@@ -137,9 +137,14 @@ export function GroceryFields({
   const sent = useRef<{ to: WholeAmount; done: Promise<unknown> } | null>(null)
   const [pending, setPending] = useState(false)
 
-  // The amount text was typed over and not committed yet: it stays while that
-  // is still the amount, and gives way to anybody's change of it.
-  const typedOver = useRef<WholeAmount | null>(null)
+  // The amount the field's text belongs to, and whether it was typed and not
+  // committed yet. Typing never moves the text to another amount: it stays
+  // while that amount stands, and gives way to anybody's change of it.
+  const draftOf = useRef<WholeAmount>({
+    quantity: task.quantity ?? null,
+    unit: task.unit ?? null,
+  })
+  const typing = useRef(false)
 
   /** The amount a change starts from: the last one written, or the row's. */
   const latest = (): WholeAmount =>
@@ -148,36 +153,39 @@ export function GroceryFields({
       unit: task.unit ?? null,
     }
 
-  /** Whether the field holds text typed over the amount there still is. */
-  const typedStands = (): boolean => {
-    const over = typedOver.current
-    if (!over) return false
+  /** Whether the field's text belongs to the amount there is now. */
+  const draftStands = (): boolean => {
     const { quantity, unit } = latest()
-    return over.quantity === quantity && over.unit === unit
+    return draftOf.current.quantity === quantity && draftOf.current.unit === unit
+  }
+
+  /** Puts an amount in the field, in place of what it holds. */
+  const show = (amount: WholeAmount) => {
+    draftOf.current = amount
+    typing.current = false
+    setDraft(amountDraft(amount.quantity ?? undefined, locale))
   }
 
   // The row's amount goes into the field. Not while our own writes are on
   // their way: the row may show one before the last.
   useEffect(() => {
     if (pending) return
-    const over = typedOver.current
-    if (
-      over &&
-      over.quantity === (task.quantity ?? null) &&
-      over.unit === (task.unit ?? null)
-    )
-      return
-    typedOver.current = null
+    const row = { quantity: task.quantity ?? null, unit: task.unit ?? null }
+    const of = draftOf.current
+    const same = of.quantity === row.quantity && of.unit === row.unit
+    if (typing.current && same) return
+    draftOf.current = row
+    typing.current = false
     setDraft(amountDraft(task.quantity, locale))
   }, [task.quantity, task.unit, locale, pending])
 
   /** Over the amount it was chosen from; another Member's change stands. */
   const write = (quantity: number | null, unit: GroceryUnit | null) => {
     haptics.selectionChanged()
-    typedOver.current = null
     const to = { quantity, unit }
     const before = sent.current
     const expected = latest()
+    show(to)
     const send = () => actions.setAmount(task.id, to, expected)
     const entry = { to, done: before ? before.done.then(send) : send() }
     sent.current = entry
@@ -196,9 +204,9 @@ export function GroceryFields({
 
   // What the field holds now, typed but maybe not yet committed: a step or a
   // unit tapped while typing starts from what was typed, not from before it.
-  // Text typed over an amount that has changed since does not count.
+  // Text that belongs to an amount that is gone does not count.
   const current = () =>
-    (typedStands() ? parseAmount(draft) : undefined) ??
+    (draftStands() ? parseAmount(draft) : undefined) ??
     latest().quantity ??
     undefined
 
@@ -206,43 +214,30 @@ export function GroceryFields({
     const { unit } = latest()
     const next = stepGroceryQuantity(current(), unit ?? undefined, direction)
     if (next === null) return
-    setDraft(amountDraft(next, locale))
     write(next, unit)
   }
 
-  const chooseUnit = (unit: GroceryUnit) => {
-    const quantity = current() ?? 1
-    setDraft(amountDraft(quantity, locale))
-    write(quantity, unit)
-  }
+  const chooseUnit = (unit: GroceryUnit) => write(current() ?? 1, unit)
 
   const type = (text: string) => {
-    typedOver.current = latest()
+    typing.current = true
     setDraft(text)
   }
 
   const commitDraft = () => {
-    // Nothing typed (a submit also blurs), or over an amount that is gone: the
-    // field is about to show the new one.
-    if (!typedStands()) return
-    typedOver.current = null
+    // Nothing typed: leaving the field changes nothing. A submit also blurs.
+    if (!typing.current) return
+    const { quantity, unit } = latest()
     const typed = draft.trim()
-    if (!typed) {
-      const { quantity, unit } = latest()
-      if (quantity !== null) write(null, unit)
-      return
-    }
-    const value = parseAmount(typed)
-    if (value === undefined) {
-      // Not an amount: put back the one that was there.
-      setDraft(amountDraft(latest().quantity ?? undefined, locale))
+    const value = typed ? parseAmount(typed) : null
+    if (value === undefined || !draftStands()) {
+      // Not an amount, or typed for one that is gone: show the one there is.
+      show(latest())
       haptics.actionFailed()
       return
     }
-    const rounded = value
-    setDraft(amountDraft(rounded, locale))
-    const { quantity, unit } = latest()
-    if (rounded !== quantity) write(rounded, unit)
+    if (value === quantity) show({ quantity, unit })
+    else write(value, unit)
   }
 
   const canDecrease =
@@ -270,10 +265,7 @@ export function GroceryFields({
               testID="grocery-clear-amount"
               accessibilityRole="button"
               hitSlop={12}
-              onPress={() => {
-                setDraft('')
-                write(null, null)
-              }}
+              onPress={() => write(null, null)}
             >
               <Text style={[styles.textButton, { color: tokens.accentText }]}>
                 {words.clearAmount}

@@ -281,3 +281,28 @@ test("a step at the refusal starts from another Member's amount", async () => {
   await refusedThen(increase)
   expect(state.writes[1]).toMatchObject({ expected: pak(5), to: pak(6) })
 })
+
+test("a keystroke at the refusal does not move text to another Member's unit", async () => {
+  const { unit, show } = open()
+  unit('g')
+  act(() => state.type('500'))
+  show({ ...melk, unit: 'kg' })
+  await refusedThen(() => state.type('5000'))
+  done()
+  expect(state.writes).toHaveLength(1)
+})
+
+test('Done before the row shows the unit that landed leaves no unsent text', async () => {
+  const { unit, show, shown } = open()
+  unit('g')
+  act(() => state.type('500'))
+  await act(async () => {
+    state.writes[0]!.land()
+    for (let turn = 0; turn < 10; turn++) await Promise.resolve()
+    state.submit()
+    show({ ...melk, unit: 'g' })
+  })
+  await settle()
+  expect(state.writes).toHaveLength(1)
+  expect(shown()).toBe('1')
+})
