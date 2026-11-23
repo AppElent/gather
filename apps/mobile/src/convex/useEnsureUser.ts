@@ -26,6 +26,8 @@
  * leave the person on a loading screen forever. `retry` runs it again.
  */
 
+import { useUser } from '@clerk/expo'
+import { clerkUserName } from '@gather/core/member-names'
 import { ACCOUNT_DELETED, refusalSentence } from '@gather/core/refusals'
 import { useConvexAuth, useMutation } from 'convex/react'
 import { useCallback, useEffect, useState } from 'react'
@@ -45,6 +47,10 @@ function isAccountDeletedError(error: unknown): boolean {
 export function useEnsureUser(): Provisioning {
   const { isAuthenticated } = useConvexAuth()
   const ensureUser = useMutation(api.users.ensureUser)
+  // The Convex token carries no name claims, so the name comes from Clerk
+  // here (APP-676); without it every Member was saved as "Member".
+  const { user } = useUser()
+  const name = clerkUserName(user)
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)
 
@@ -52,7 +58,7 @@ export function useEnsureUser(): Provisioning {
   useEffect(() => {
     if (!isAuthenticated) return
     let current = true
-    ensureUser({})
+    ensureUser({ name })
       .then(() => {
         if (current) setFailed(false)
       })
@@ -62,7 +68,7 @@ export function useEnsureUser(): Provisioning {
     return () => {
       current = false
     }
-  }, [isAuthenticated, ensureUser, attempt])
+  }, [isAuthenticated, ensureUser, attempt, name])
 
   const retry = useCallback(() => {
     setFailed(false)
