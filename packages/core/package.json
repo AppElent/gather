@@ -27,6 +27,7 @@
     "./meal-planner": "./src/mealPlanner.ts",
     "./meal-ideas": "./src/mealIdeas.ts",
     "./meal-preferences": "./src/mealPreferences.ts",
+    "./member-names": "./src/memberNames.ts",
     "./messages": "./src/messages.ts",
     "./module-arrangement": "./src/moduleArrangement.ts",
     "./module-tints": "./src/moduleTints.ts",
