@@ -479,9 +479,12 @@ export function TaskList({
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
-        // The composer is the last row: on a small iPhone the keyboard would
-        // cover it and a grocery line's recognised chips (APP-309).
-        automaticallyAdjustKeyboardInsets
+        // A grocery list's composer is its last row: on a small iPhone the
+        // keyboard would cover it and the line's recognised chips (APP-309).
+        // Any other list adds through the keyboard composer, which floats over
+        // the list: an inset there would scroll the tasks under the header
+        // every time the keyboard rose for it (APP-661).
+        automaticallyAdjustKeyboardInsets={grocery}
         scrollEnabled={!dragging}
         contentContainerStyle={{
           paddingBottom: insets.bottom + 24 + (addsWithButton ? ADD_BUTTON_CLEARANCE : 0),
