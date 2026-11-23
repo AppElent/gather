@@ -70,6 +70,7 @@ export function DragList({
   rowTestID = 'all',
   arrivals = 'last',
   moveActions,
+  rowAction,
 }: {
   items: DragItem[]
   scrollRef: React.RefObject<GestureScrollView | null>
@@ -101,6 +102,12 @@ export function DragList({
     /** Said after a move; positions count from 1. */
     moved: (label: string, position: number, total: number) => string
   }
+  /**
+   * What `trailing`'s button does, as one more action on the row. With
+   * `moveActions` the row is one stop for a screen reader, which hides the
+   * button inside it, so the row has to offer the same thing itself.
+   */
+  rowAction?: (item: DragItem) => { label: string; run: () => void }
 }) {
   const tokens = useTokens()
 
@@ -202,6 +209,7 @@ export function DragList({
           ? shiftFor(index, drag.from, drag.to, heightOf(rows[drag.from]?.id))
           : 0
         const Icon = item.icon
+        const extra = moveActions ? rowAction?.(item) : undefined
         return (
           <Animated.View
             key={item.id}
@@ -219,6 +227,7 @@ export function DragList({
                     ...(index < rows.length - 1
                       ? [{ name: 'moveDown', label: moveActions.down }]
                       : []),
+                    ...(extra ? [{ name: 'row', label: extra.label }] : []),
                   ],
                   onAccessibilityAction: (event: {
                     nativeEvent: { actionName: string }
@@ -226,6 +235,7 @@ export function DragList({
                     const action = event.nativeEvent.actionName
                     if (action === 'moveUp') moveBy(index, -1)
                     if (action === 'moveDown') moveBy(index, 1)
+                    if (action === 'row') extra?.run()
                   },
                 }
               : {})}

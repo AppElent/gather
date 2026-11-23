@@ -100,6 +100,7 @@ export const shell = {
     unpinModule: '{module} losmaken',
     moveUp: '{module} omhoog',
     moveDown: '{module} omlaag',
+    moved: '{module} verplaatst naar positie {position} van {total}',
   },
 
   placeholder: {

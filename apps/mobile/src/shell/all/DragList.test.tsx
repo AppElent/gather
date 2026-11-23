@@ -215,3 +215,29 @@ test('Move up and Move down save the same whole order a drop does, and say where
   expect(saved).toHaveLength(2)
   view.unmount()
 })
+
+test("the trailing button's job is one more action on a row that is one stop", () => {
+  const ran: string[] = []
+  const view = mount(
+    createElement(DragList, {
+      ...props,
+      items: items('a', 'b'),
+      onCommit: () => {},
+      rowTestID: 'row',
+      moveActions,
+      rowAction: (item: { id: string; label: string }) => ({
+        label: `Hide ${item.label}`,
+        run: () => ran.push(item.id),
+      }),
+    }),
+  )
+  expect(rowOf('a').accessibilityActions).toEqual([
+    { name: 'moveDown', label: 'Move down' },
+    { name: 'row', label: 'Hide Card a' },
+  ])
+  act(() =>
+    rowOf('b').onAccessibilityAction?.({ nativeEvent: { actionName: 'row' } }),
+  )
+  expect(ran).toEqual(['b'])
+  view.unmount()
+})
