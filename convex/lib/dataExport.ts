@@ -269,7 +269,7 @@ type Row = Record<string, unknown> & { _id: string; _creationTime: number }
  * The schema's own types cannot follow a table name that is a variable, so
  * this is the one place that says what is being relied on.
  */
-interface RangeQuery {
+interface RangeQuery extends AsyncIterable<Row> {
   collect(): Promise<Row[]>
   take(n: number): Promise<Row[]>
   paginate(options: PaginationOptions): Promise<{
@@ -583,12 +583,41 @@ export async function exportGroups(
   return groups.sort((a, b) => a.name.localeCompare(b.name))
 }
 
+/** Whether a count may go on: asked before each index range and each row. */
+export interface ReadGuard {
+  mayOpen: () => Promise<boolean>
+  mayReadRow: () => Promise<boolean>
+}
+
+/**
+ * The rows of one index range, read one at a time while `guard` allows it, so
+ * that no row's size can take the query past its limits. The caller learns
+ * that the range was cut short from the guard.
+ */
+export async function* guardedRows<T>(
+  range: () => AsyncIterable<T>,
+  guard: ReadGuard,
+): AsyncGenerator<T> {
+  if (!(await guard.mayOpen())) return
+  const rows = range()[Symbol.asyncIterator]()
+  try {
+    while (await guard.mayReadRow()) {
+      const next = await rows.next()
+      if (next.done) return
+      yield next.value
+    }
+  } finally {
+    // A range left early stays open on the server until it is closed.
+    await rows.return?.()
+  }
+}
+
 /**
  * How many of one Group's rows of `table` the export would hold, reading at
  * most `limit` of them, on the index the registry names. A child table is
  * counted across its parents, as it is paged. For the account portal's
- * `summary`, which caps every count rather than reading a whole table.
- * `mayRead` is asked before each index range; on false the count stops there.
+ * `summary`, which caps every count rather than reading a whole table; `guard`
+ * may stop it earlier.
  */
 export async function countGroupRows(
   ctx: QueryCtx,
@@ -597,39 +626,43 @@ export async function countGroupRows(
     me: Doc<'users'>
     group: Doc<'groups'>
     limit: number
-    mayRead: () => Promise<boolean>
+    guard: ReadGuard
   },
 ): Promise<number> {
-  const treatment = treatmentOf(args.table)
+  const { table, limit, guard } = args
+  const treatment = treatmentOf(table)
   if (!isIncluded(treatment) || treatment.scope !== 'group') {
-    throw new Error(`${args.table} is not exported per Group`)
+    throw new Error(`${table} is not exported per Group`)
   }
   const s: Scope = { scope: 'group', me: args.me, group: args.group }
   if ('self' in treatment) return 1
-  if (!(await args.mayRead())) return 0
-  if (!('parent' in treatment)) {
-    const rows = await scopeRange(ctx, args.table, treatment.index, s).take(
-      args.limit,
-    )
-    return rows.length
-  }
-  const parentTreatment = treatmentOf(treatment.parent)
-  if (!isIncluded(parentTreatment) || !('index' in parentTreatment)) {
-    throw new Error(`Export parent ${treatment.parent} is not read by index`)
-  }
-  const parents = await scopeRange(
-    ctx,
-    treatment.parent,
-    parentTreatment.index,
-    s,
-  ).collect()
+
   let count = 0
-  for (const parent of parents) {
-    if (count >= args.limit || !(await args.mayRead())) break
-    const rows = await tableQuery(ctx, args.table)
-      .withIndex(treatment.index, (q) => q.eq(treatment.field, parent._id))
-      .take(args.limit - count)
-    count += rows.length
+  const add = async (range: () => RangeQuery) => {
+    if (count >= limit) return
+    for await (const _ of guardedRows(range, guard)) {
+      count++
+      if (count >= limit) return
+    }
+  }
+  if (!('parent' in treatment)) {
+    await add(() => scopeRange(ctx, table, treatment.index, s))
+    return count
+  }
+  const { parent: parentTable, index, field } = treatment
+  const parentTreatment = treatmentOf(parentTable)
+  if (!isIncluded(parentTreatment) || !('index' in parentTreatment)) {
+    throw new Error(`Export parent ${parentTable} is not read by index`)
+  }
+  const parents = guardedRows(
+    () => scopeRange(ctx, parentTable, parentTreatment.index, s),
+    guard,
+  )
+  for await (const parent of parents) {
+    await add(() =>
+      tableQuery(ctx, table).withIndex(index, (q) => q.eq(field, parent._id)),
+    )
+    if (count >= limit) break
   }
   return count
 }

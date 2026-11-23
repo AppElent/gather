@@ -10,7 +10,7 @@ import {
   COUNT_LIMIT,
   COUNTED,
   type PortalExportPage,
-  SPARE_READ_BYTES,
+  ROW_BYTES,
 } from './accountPortal'
 import { CONNECTED_APP_REFUSED } from './lib/connectedApps'
 import { PAGE_SIZE } from './lib/dataExport'
@@ -643,15 +643,21 @@ describe('the read limits of one query', () => {
 
     const tables = COUNTED.flatMap((c) => c.tables as readonly string[])
     expect(tables).toHaveLength(30)
-    const parents = 3
+    // Counted tables without a `groupId` are read under a parent.
+    const parents = tables.filter(
+      (name) =>
+        !('groupId' in schema.tables[name as keyof typeof schema.tables].validator.fields),
+    ).length
+    expect(parents).toBe(3)
     const perGroup = 1 + tables.length + parents
     expect(perGroup).toBe(34)
     expect(2 + perGroup * 120).toBeLessThanOrEqual(RANGES)
     expect(2 + perGroup * 121).toBeGreaterThan(RANGES)
 
-    // Capped keys at 1 KiB a row fit; a spare read starts with 4 MiB left.
+    // Capped keys fit at 1 KiB a row, and a row is let in only with room for
+    // the largest document.
     expect(COUNTED.length * most * 1024).toBeLessThan(BYTES)
-    expect(most * 4 * 1024).toBeLessThanOrEqual(SPARE_READ_BYTES + 4096)
+    expect(ROW_BYTES).toBeGreaterThan(1024 * 1024)
   })
 
   test('every key capped fits', { timeout: 60_000 }, async () => {
@@ -810,31 +816,98 @@ describe('the read limits of one query', () => {
     // Read to the end before the ranges ran out: exact.
     expect(countOf(summary, 'recipes')).toMatchObject({ count: 0, more: false })
     // Not read to the end: never a bare zero.
-    expect(countOf(summary, 'energyRecords')).toMatchObject({ more: true })
+    for (const key of ['houseRecords', 'financeRecords', 'energyRecords']) {
+      expect(countOf(summary, key)).toEqual({ key, count: 0, more: true })
+    }
   })
 
-  test('large rows before the new keys do not fail them', { timeout: 60_000 }, async () => {
+  /** Seventeen rows of nearly 1 MiB: more than one query may read. */
+  const LARGE = 'x'.repeat(1000 * 1024)
+
+  test.each(['notes', 'houses', 'netWorthSnapshots'] as const)(
+    'large %s stop the count with more, and never throw',
+    { timeout: 60_000 },
+    async (table) => {
+      const t = limited()
+      const alice = await signUp(t, asAlice)
+      const { groupId, userId } = alice
+      for (let i = 0; i < 17; i++) {
+        await t.run(async (ctx) => {
+          if (table === 'notes') {
+            await ctx.db.insert('notes', {
+              groupId,
+              title: 'Long',
+              body: LARGE,
+              createdBy: userId,
+              updatedAt: 0,
+            })
+          } else if (table === 'houses') {
+            await ctx.db.insert('houses', {
+              groupId,
+              createdByUserId: userId,
+              name: LARGE,
+              order: i,
+            })
+          } else {
+            await ctx.db.insert('netWorthSnapshots', {
+              groupId,
+              takenByUserId: userId,
+              takenOn: '2026-10-01',
+              takenAt: 0,
+              rows: [
+                { kind: 'asset', source: 'manual', label: LARGE, amountCents: 1 },
+              ],
+              assetsCents: 1,
+              liabilitiesCents: 0,
+              netCents: 1,
+            })
+          }
+        })
+      }
+      const summary = await t
+        .withIdentity(asAlice)
+        .query(api.accountPortal.summary, {})
+      if (!summary) throw new Error('no summary')
+      const key = {
+        notes: 'notes',
+        houses: 'houseRecords',
+        netWorthSnapshots: 'financeRecords',
+      }[table]
+      const found = countOf(summary, key)
+      expect(found).toMatchObject({ more: true })
+      expect(found?.count).toBeGreaterThan(10)
+      expect(found?.count).toBeLessThan(17)
+      // The keys before it are exact.
+      expect(countOf(summary, 'recipes')).toMatchObject({ more: false })
+    },
+  )
+
+  test('more parents than documents says more, and never throws', { timeout: 60_000 }, async () => {
     const t = limited()
     const alice = await signUp(t, asAlice)
-    await fillModules(t, alice)
-    const body = 'x'.repeat(800 * 1024)
-    for (let i = 0; i < 17; i++) {
-      await t.run((ctx) =>
-        ctx.db.insert('notes', {
-          groupId: alice.groupId,
-          title: 'Long',
-          body,
-          createdBy: alice.userId,
-          updatedAt: 0,
-        }),
-      )
-    }
+    await seedIn(32_001, (from, to) =>
+      t.run(async (ctx) => {
+        for (let i = from; i < to; i++) {
+          await ctx.db.insert('taskLists', {
+            groupId: alice.groupId,
+            name: 'L',
+            provider: 'local',
+            order: i,
+          })
+        }
+      }),
+    )
     const summary = await t
       .withIdentity(asAlice)
       .query(api.accountPortal.summary, {})
     if (!summary) throw new Error('no summary')
-    expect(countOf(summary, 'notes')).toMatchObject({ count: 17, more: false })
-    expect(countOf(summary, 'houseRecords')).toMatchObject({ more: true })
+    expect(countOf(summary, 'taskLists')).toEqual({
+      key: 'taskLists',
+      count: COUNT_LIMIT,
+      more: true,
+    })
+    expect(countOf(summary, 'tasks')).toMatchObject({ count: 0, more: true })
+    expect(countOf(summary, 'energyRecords')).toMatchObject({ more: true })
   })
 })
 
