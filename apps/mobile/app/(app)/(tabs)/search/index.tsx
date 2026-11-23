@@ -3,7 +3,10 @@ import type { ErrorBoundaryProps } from 'expo-router'
 import { SearchError } from '../../../../src/search/SearchError'
 import { SearchScreen } from '../../../../src/search/SearchScreen'
 
-/** The Search tab: the one search screen in its own stack, on All Modules. */
+/**
+ * The Search tab: the one search screen in its own stack, on the Module you
+ * tapped it from (APP-660), or All Modules from anywhere else.
+ */
 export default function SearchTab() {
   return <SearchScreen stack="search" />
 }

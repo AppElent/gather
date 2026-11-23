@@ -19,7 +19,14 @@
  * ends are a route layout and a screen, and threading a provider between them to
  * carry one string is more machinery than the string is worth.
  */
+import { isTastingKind } from '@gather/core/tastings'
+
 import type { ShellTab } from '../shell/tabs'
+import {
+  isSearchModule,
+  type SearchModuleId,
+  searchModuleOfKind,
+} from './searchFilters'
 
 /** The tabs you can be standing on. `add` opens a sheet and is never a page. */
 export type OriginTab = Exclude<ShellTab['name'], 'search' | 'add'>
@@ -44,12 +51,45 @@ export function originTabFor(pathname: string): OriginTab | null {
     : null
 }
 
+/**
+ * The Module search can be narrowed to that a pathname stands in, or `null`
+ * (APP-660). Modules live under All as `/all/<module>/...`, a detail screen
+ * included; the tasting Modules share `/all/tasting/<kind>/...`, so theirs is
+ * the Kind's. Home, Settings, the All grid, a pushed `/all/search` and every
+ * Module search does not cover answer `null`.
+ */
+export function searchModuleFor(pathname: string): SearchModuleId | null {
+  const [, tab, segment, kind] = pathname.split('/')
+  if (tab !== 'all') return null
+  if (segment === 'tasting')
+    return isTastingKind(kind) ? searchModuleOfKind(kind) : null
+  return isSearchModule(segment) ? segment : null
+}
+
 let origin: OriginTab | null = null
+
+/**
+ * The page you were on outside Search, as the Search tab reads it on the way
+ * in: its Module (APP-660) and a count that moves with every page.
+ *
+ * The count is what tells "you came back" from "you tapped Search again while
+ * on it": the Search stack stays mounted, and a Module the person chose by
+ * hand is only replaced on a fresh arrival, even one from the same Module.
+ */
+export type SearchArrival = { visit: number; module: SearchModuleId | null }
+
+let arrival: SearchArrival = { visit: 0, module: null }
 
 /** Ignores `/search` itself, so entering search does not erase where you were. */
 export function rememberSearchOrigin(pathname: string) {
   const tab = originTabFor(pathname)
-  if (tab) origin = tab
+  if (!tab) return
+  origin = tab
+  arrival = { visit: arrival.visit + 1, module: searchModuleFor(pathname) }
+}
+
+export function searchArrival(): SearchArrival {
+  return arrival
 }
 
 export function searchOrigin(): OriginTab {

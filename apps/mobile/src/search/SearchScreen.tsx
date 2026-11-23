@@ -65,7 +65,7 @@ import {
   withModule,
 } from './searchFilters'
 import { onSearchFocusRequest } from './searchFocus'
-import { searchOrigin } from './searchOrigin'
+import { searchArrival, searchOrigin } from './searchOrigin'
 import {
   hrefFor,
   type QueryResult,
@@ -136,8 +136,8 @@ const ANY = 'any'
 
 /**
  * The one search screen (APP-613). The Search tab renders it in its own
- * stack (All Modules); a Module's search button pushes it inside All's stack
- * with that Module preset. Everything the two share — the native bar, the
+ * stack, on the Module you tapped it from or All Modules (APP-660); a Module's
+ * search button pushes it inside All's stack with that Module preset. Everything the two share — the native bar, the
  * filters, the results, Recents — is here; what differs follows from `stack`:
  * where results open, what Cancel does, the tab bar, and the tab-only focus
  * wiring. The preset only seeds the Module filter.
@@ -165,9 +165,13 @@ export function SearchScreen({
   const navigation = useNavigation<Navigator>()
   const searchRef = useRef<SearchBarCommands>(null)
   const [text, setText] = useState('')
+  // The tab starts on the Module you came from (APP-660); a pushed search on
+  // its preset. `applied` is the arrival the filter already answers, so a
+  // later tap on the tab only moves the Module when you have been elsewhere.
   const [filters, setFilters] = useState<SearchFilters>(() =>
-    initialFilters(preset ?? null),
+    initialFilters(pushed ? (preset ?? null) : searchArrival().module),
   )
+  const applied = useRef(pushed ? null : searchArrival().visit)
   const [choosingModule, setChoosingModule] = useState(false)
   const [recents, setRecents] = useState(readRecentRecords)
   const [expanded, setExpanded] = useState(false)
@@ -271,6 +275,14 @@ export function SearchScreen({
     if (pushed) return
     return onSearchFocusRequest(() => {
       setRecents(readRecentRecords())
+      // Arriving from a Module selects it; from Home, Settings or the All
+      // grid, All Modules. Tapping the tab while already on Search keeps the
+      // Module the person chose. The query is kept either way.
+      const { visit, module } = searchArrival()
+      if (visit !== applied.current) {
+        applied.current = visit
+        setFilters((current) => withModule(current, module))
+      }
       searchRef.current?.focus()
     })
   }, [pushed])
