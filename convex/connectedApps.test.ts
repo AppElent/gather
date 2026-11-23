@@ -156,6 +156,16 @@ describe('the connected-app gate', () => {
     const group = await t.run((ctx) => ctx.db.get(groupId))
     expect(group).not.toBeNull()
   })
+  test('a connected app lists its Groups without their invite codes', async () => {
+    const { t, groupId } = await seed()
+    for (const scope of ['gather:read', 'gather:read gather:write']) {
+      const groups = await t
+        .withIdentity(app(scope))
+        .query(api.groups.myGroups, {})
+      expect(groups.map((g) => g._id)).toEqual([groupId])
+      expect(groups[0]).not.toHaveProperty('inviteCode')
+    }
+  })
 })
 
 describe('idempotent creates', () => {

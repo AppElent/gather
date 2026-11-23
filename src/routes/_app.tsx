@@ -1,4 +1,5 @@
-import { useAuth } from '@clerk/react'
+import { useAuth, useUser } from '@clerk/react'
+import { clerkUserName } from '@gather/core/member-names'
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useConvexAuth, useMutation } from 'convex/react'
 import { useEffect } from 'react'
@@ -49,6 +50,10 @@ function SignedInGate() {
   const messages = useMessages()
   const { session } = messages.shell
   const ensureUser = useMutation(api.users.ensureUser)
+  // The Convex token carries no name claims, so the name comes from Clerk
+  // here (APP-676); without it every Member was saved as "Member".
+  const { user } = useUser()
+  const name = clerkUserName(user)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -58,8 +63,8 @@ function SignedInGate() {
   }, [isClerkLoaded, isSignedIn, navigate])
 
   useEffect(() => {
-    if (isAuthenticated) void ensureUser({})
-  }, [isAuthenticated, ensureUser])
+    if (isAuthenticated) void ensureUser({ name })
+  }, [isAuthenticated, ensureUser, name])
 
   if (isClerkLoaded && !isSignedIn) return null
 

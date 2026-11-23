@@ -230,6 +230,16 @@ describe('an ordinary Group', () => {
     expect(asked).toBe(group?.inviteCode)
   })
 
+  test('leaves its invite code out of the Group list', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+
+    const listed = (await groupsOf(t, asAlice)).find((g) => g._id === groupId)
+
+    expect(listed).toBeDefined()
+    expect(listed).not.toHaveProperty('inviteCode')
+  })
+
   test('does not hand its invite code to somebody outside it', async () => {
     const t = testConvex()
     const groupId = await household(t)

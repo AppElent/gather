@@ -586,7 +586,7 @@ describe('APP-460 follow-ups', () => {
     expect(await usedToday(t)).toBe(0)
   })
 
-  test('drafts say "controleer zelf" for an allergy a quick meal or recipe cannot rule out', async () => {
+  test('drafts say "controleer zelf" for an allergy a made-up quick meal or recipe cannot rule out', async () => {
     const { t, as, aliceId, home, tacos } = await proposed()
     await t.run(async (ctx) => {
       await ctx.db.insert('mealPreferences', {
@@ -601,7 +601,9 @@ describe('APP-460 follow-ups', () => {
     const drafts = await as.query(api.mealPlanDrafts.list, WEEK)
     const byDate = Object.fromEntries(drafts.map((d) => [d.date, d.check]))
     expect(byDate['2026-11-24']).toMatchObject({ kind: 'allergen', id: 'crustaceans', uncertain: true })
-    expect(byDate['2026-11-26']).toMatchObject({ kind: 'allergen', id: 'crustaceans', uncertain: true })
+    // A name the AI made up can't be cleared; the Group's own Tosti is a dish it knows (APP-477).
+    expect(byDate['2026-11-25']).toMatchObject({ kind: 'allergen', id: 'crustaceans', uncertain: true })
+    expect(byDate['2026-11-26']).toBeUndefined()
     // Gnocchi lists its ingredients, none of them shellfish.
     expect(byDate['2026-11-27']).toBeUndefined()
   })

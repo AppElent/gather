@@ -18,7 +18,7 @@ import { v } from 'convex/values'
 import { query } from './_generated/server'
 import { exportManifest, readExportPage } from './lib/dataExport'
 import { requireGroupBySlug } from './lib/groupAccess'
-import { getCurrentUser } from './lib/sharing'
+import { getCurrentUser, notSignedInError } from './lib/sharing'
 
 export const manifest = query({
   args: {},
@@ -41,7 +41,7 @@ export const page = query({
       return readExportPage(ctx, { ...args, me: user, group })
     }
     const user = await getCurrentUser(ctx)
-    if (!user || user.deletedAt) throw new Error('Not authenticated')
+    if (!user || user.deletedAt) throw notSignedInError()
     return readExportPage(ctx, { ...args, me: user, group: null })
   },
 })

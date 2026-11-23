@@ -39,3 +39,28 @@ export function memberFirstNames(
     }),
   )
 }
+
+/**
+ * The name an app reads from its signed-in Clerk user, sent to
+ * `users.ensureUser` (APP-676): the full name, else first and last name, else
+ * the username. Undefined when the account has none of them.
+ */
+export function clerkUserName(
+  user:
+    | {
+        fullName?: string | null
+        firstName?: string | null
+        lastName?: string | null
+        username?: string | null
+      }
+    | null
+    | undefined,
+): string | undefined {
+  if (!user) return undefined
+  const clean = (value?: string | null) =>
+    (value ?? '').trim().replace(/\s+/g, ' ')
+  const parts = [clean(user.firstName), clean(user.lastName)]
+    .filter(Boolean)
+    .join(' ')
+  return clean(user.fullName) || parts || clean(user.username) || undefined
+}
