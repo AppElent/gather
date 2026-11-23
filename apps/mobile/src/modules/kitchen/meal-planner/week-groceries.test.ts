@@ -366,5 +366,23 @@ describe('a line being read when the person ticks it (APP-423)', () => {
         ['item:olijfoli:el', true],
       ])
     })
+
+    test('a row that is still shown keeps its state to itself after a day leaves and returns', () => {
+      const formerRows = new Map<string, Set<string>>()
+      const own = {
+        pesto: read('0', 'Olijfolie', 2, 'el'),
+        shakshuka: { ...read('0', 'Olijfolie', 100), read: { kind: 'read', via: 'local', name: 'Olijfolie', quantity: 100, unit: 'ml' } } as SourceLine,
+        tacos: plain,
+      }
+      olie([0, 1, 3], own, formerRows)
+      // Monday leaves: Thursday's line joins Tuesday's ml row; then it returns.
+      olie([1, 3], own, formerRows)
+      const back = olie([0, 1, 3], own, formerRows)
+      const { rows } = pickRows({ lines: back, items: [], ticks: { 'item:olijfoli:volume': false } })
+      expect(rows.filter((r) => r.title === 'Olijfolie').map((r) => [r.key, r.on])).toEqual([
+        ['item:olijfoli:el', true],
+        ['item:olijfoli:volume', false],
+      ])
+    })
   })
 })

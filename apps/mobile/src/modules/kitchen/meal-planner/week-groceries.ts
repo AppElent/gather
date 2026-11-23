@@ -213,7 +213,18 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
       }
     },
   )
-  return { lines: [...combined, ...own, ...unread], toCheck }
+  // A row still shown keeps its own state: another row never takes it on,
+  // even when a line was in both at some point (APP-590).
+  const all = [...combined, ...own, ...unread]
+  const shown = new Set(all.map((line) => line.key))
+  return {
+    lines: all.map((line) =>
+      line.was?.some((former) => shown.has(former))
+        ? { ...line, was: line.was.filter((former) => !shown.has(former)) }
+        : line,
+    ),
+    toCheck,
+  }
 }
 
 /**
