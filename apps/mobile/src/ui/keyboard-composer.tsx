@@ -23,8 +23,8 @@
  *   keyboard, draws the wheel under the chips, and raises it again when done.
  * - **The whole small card drags, not just the handle** (APP-661). A finger
  *   seldom lands on a 20-point band, so a vertical drag anywhere on the
- *   small card expands or closes it; an expanded card drags by its top band,
- *   because its description scrolls. What counts as a drag is
+ *   small card expands or closes it; an expanded card, or one showing a
+ *   wheel or calendar, drags by its top band, because those scroll too. What counts as a drag is
  *   `composer-gestures.ts`.
  * - **The card closes; the draft stays.** Every way out (scrim, swipe down,
  *   Android Back) is `onClose`, and the kind keeps what was typed
@@ -277,7 +277,9 @@ function ComposerCard({
         drag.value = withSpring(0, { damping: 40, stiffness: 400 })
       })
   const handlePan = dragPan(8)
-  const cardPan = dragPan(10).enabled(!expanded)
+  // A wheel or calendar in the keyboard's place owns vertical swipes, so the
+  // card drags from its handle alone while one is open.
+  const cardPan = dragPan(10).enabled(!expanded && !panel)
   const dragStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: drag.value }],
   }))
