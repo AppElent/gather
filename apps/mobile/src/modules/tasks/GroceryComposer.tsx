@@ -161,6 +161,8 @@ interface Added {
   text?: string
   /** The list its undo reads, for an open item that was changed. */
   listId?: string
+  /** That open item: one undo of it at a time. */
+  itemId?: string
   undo: () => Promise<unknown>
 }
 
@@ -325,6 +327,22 @@ function GroceryComposerCard({
       (lists !== undefined && !lists.some((list) => list._id === undoListId)),
   }
   const [writes] = useState(() => new OpenItemWrites())
+  const undoing = useRef(new Set<string>())
+  // Staples saves of this opening made: each is undone by the first of them.
+  const madeStaples = useRef(new Set<string>())
+  const claimStaple = (
+    id: GroceryDetails['stapleId'],
+    before: ReadonlySet<string> | undefined,
+  ) => {
+    if (!id || !before || before.has(id) || madeStaples.current.has(id))
+      return false
+    madeStaples.current.add(id)
+    return true
+  }
+  const dropStaple = async (id: NonNullable<GroceryDetails['stapleId']>) => {
+    await actions.removeStaple(id)
+    madeStaples.current.delete(id)
+  }
   // Forgotten once the list shows it, so a later change back is believed.
   useEffect(() => {
     for (const task of rows.current.tasks) {
@@ -361,7 +379,7 @@ function GroceryComposerCard({
         const saved = await actions.addComposedGrocery(to, saving, saveKey)
         let made: GroceryDetails['stapleId']
         const noteStaple = ({ stapleId }: GroceryDetails) => {
-          if (stapleId && before && !before.has(stapleId)) made = stapleId
+          if (claimStaple(stapleId, before)) made = stapleId
         }
         noteStaple(saved)
         let deleted = false
@@ -381,7 +399,7 @@ function GroceryComposerCard({
             undo: async () => {
               if (!deleted) await actions.deleteTask(saved.taskId)
               deleted = true
-              if (made) await actions.removeStaple(made)
+              if (made) await dropStaple(made)
             },
           },
         }
@@ -447,7 +465,7 @@ function GroceryComposerCard({
             }
             const addStaple = async () => {
               const id = await actions.addStaple(item.title)
-              if (id && before && !before.has(id)) did.staple = id
+              if (claimStaple(id, before)) did.staple = id
             }
             const [note, staple] = await Promise.allSettled([
               wanted.note ? addNote(wanted.note) : null,
@@ -476,6 +494,7 @@ function GroceryComposerCard({
               key: saveKey,
               name,
               listId: item.listId,
+              itemId: item.id,
               text: merged
                 ? fmt(own.merged, {
                     name,
@@ -493,12 +512,15 @@ function GroceryComposerCard({
                   if (!row && !loaded) throw new Error('Not loaded')
                 }
                 undone = true
-                // Another Member may have changed it since: theirs stands.
-                if (row && did.amount && amountOf(row) === did.amount.to)
-                  await setAmount(did.amount.to, did.amount.from)
-                if (row && did.note && notesOf(row) === did.note.to)
-                  await setNotes(did.note.to, did.note.from)
-                if (did.staple) await actions.removeStaple(did.staple)
+                // In turn with this item's saves.
+                await writes.queued(item.id, async () => {
+                  // Another Member may have changed it since: theirs stands.
+                  if (row && did.amount && amountOf(row) === did.amount.to)
+                    await setAmount(did.amount.to, did.amount.from)
+                  if (row && did.note && notesOf(row) === did.note.to)
+                    await setNotes(did.note.to, did.note.from)
+                })
+                if (did.staple) await dropStaple(did.staple)
               },
             },
           }
@@ -635,13 +657,22 @@ function GroceryComposerCard({
   const undo = () => {
     const last = added.at(-1)
     if (!last) return
+    const { itemId } = last
+    // The one before it takes back what this one leaves: it waits for it.
+    if (itemId && undoing.current.has(itemId)) return
+    if (itemId) undoing.current.add(itemId)
     haptics.selectionChanged()
     setAdded((all) => all.filter((entry) => entry !== last))
-    last.undo().catch(() => {
-      haptics.actionFailed()
-      setAdded((all) => [...all, last])
-      setNotice(own.undoFailed)
-    })
+    void last
+      .undo()
+      .catch(() => {
+        haptics.actionFailed()
+        setAdded((all) => [...all, last])
+        setNotice(own.undoFailed)
+      })
+      .finally(() => {
+        if (itemId) undoing.current.delete(itemId)
+      })
   }
 
   // ---------------------------------------------------------------- chips

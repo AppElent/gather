@@ -767,3 +767,38 @@ test('a merge whose note failed can be undone, and only the note is sent again',
   expect(state.amounts.at(-1)).toEqual(['open', 1, 'pak'])
   expect(state.notes.at(-1)).toEqual(['open', ''])
 })
+
+test('a second undo of one item waits for the first', async () => {
+  state.tasks = [melk()]
+  const { type, press } = open()
+  type('2 pak me')
+  await pickMelk()
+  type('2 pak me')
+  await pickMelk()
+  let release = () => {}
+  state.hold = new Promise((resolve) => {
+    release = resolve
+  })
+  await press('grocery-undo')
+  await press('grocery-undo')
+  await act(async () => release())
+  await settle()
+  expect(state.amounts.slice(2)).toEqual([['open', 3, 'pak']])
+  await press('grocery-undo')
+  expect(state.amounts.at(-1)).toEqual(['open', 1, 'pak'])
+})
+
+test('a staple two saves share goes with the first of them', async () => {
+  // The staples on screen are still the ones from before both.
+  state.stapleId = 'shared'
+  const { type, menu, enter, press } = open()
+  for (let time = 0; time < 2; time += 1) {
+    type('melk')
+    await menu('more:staple')
+    await enter()
+  }
+  await press('grocery-undo')
+  expect(state.staplesRemoved).toEqual([])
+  await press('grocery-undo')
+  expect(state.staplesRemoved).toEqual(['shared'])
+})
