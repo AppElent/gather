@@ -55,22 +55,28 @@ export function AddMenu({
           ? 'flex h-11 w-full items-center gap-3 rounded-[var(--radius-control)] px-2.5 text-left text-[15px] text-[var(--ink)] hover:bg-[var(--surface)] aria-expanded:bg-[var(--surface)]'
           : 'flex h-[50px] w-full flex-col items-center justify-center gap-0.5 rounded-full text-[var(--ink)] aria-expanded:bg-[var(--surface-2)]'
       }
+      opens={variant === 'sidebar' ? 'down' : 'up'}
+      // On the bar the menu hangs from the bar, not from the Add slot, so it
+      // keeps inside a 320 px screen: the slot starts a quarter of the way in.
+      anchor={variant === 'sidebar' ? 'button' : 'parent'}
       menuClassName={
         variant === 'sidebar'
           ? 'top-full left-0 mt-1 w-64'
-          : 'bottom-full left-0 mb-4 w-72'
+          : 'bottom-full left-0 mb-4 w-72 max-w-full'
       }
     >
       {actions.length === 0 ? (
-        <>
-          <p className="m-0 px-2.5 py-2 text-[13px] text-[var(--muted)]">
-            {addMenu.empty}
-          </p>
-          <MenuLink link={linkTo('all')}>
-            <span className="tile" aria-hidden="true" />
-            {nav.allModules}
-          </MenuLink>
-        </>
+        // A menu owns only menu items, so the reason sits inside the one item
+        // there is, where a screen reader reads it with the item's name.
+        <MenuLink link={linkTo('all')}>
+          <span className="tile" aria-hidden="true" />
+          <span className="grid min-w-0">
+            <span>{nav.allModules}</span>
+            <span className="text-[13px] text-[var(--muted)]">
+              {addMenu.empty}
+            </span>
+          </span>
+        </MenuLink>
       ) : (
         actions.map((action) => (
           <MenuLink key={action.module} link={action.link}>

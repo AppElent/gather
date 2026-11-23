@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react'
@@ -20,6 +21,11 @@ import type { AppLink } from '../../lib/links'
  * button; Tab and a click elsewhere close it. Choosing an item closes it with
  * focus back on the button first, so a dialog the item opens returns there.
  *
+ * The menu never runs off the screen: it is held to the room between the
+ * button and the edge it opens towards, and scrolls inside that. Add above the
+ * tab bar in a phone held sideways has a few hundred pixels for any number of
+ * pins.
+ *
  * Row menus in Module pages are APP-639's `RowMenu`, not this.
  */
 
@@ -33,23 +39,36 @@ export interface ShellMenuProps {
   triggerClassName: string
   /** Where the menu sits relative to the button (position classes). */
   menuClassName: string
+  /**
+   * What `menuClassName` positions against: the button, or the nearest
+   * positioned element around it (the phone's tab bar, for Add).
+   */
+  anchor?: 'button' | 'parent'
+  /** Which way `menuClassName` opens it, so its height can be held to the room there. */
+  opens: 'up' | 'down'
   children: ReactNode
   /** Leave the button's name to its content when that already says it. */
   labelFromContent?: boolean
 }
 
+/** Kept free between an open menu and the edge of the screen, its own gap from the button included. */
+export const MENU_CLEARANCE = 32
+
 const MENU =
-  'absolute z-40 grid gap-0.5 rounded-[var(--radius-card)] border border-[var(--hair)] bg-[var(--surface)] p-1.5 text-[var(--ink)] shadow-lg'
+  'absolute z-40 grid overflow-y-auto overscroll-contain gap-0.5 rounded-[var(--radius-card)] border border-[var(--hair)] bg-[var(--surface)] p-1.5 text-[var(--ink)] shadow-lg'
 
 export function ShellMenu({
   label,
   trigger,
   triggerClassName,
   menuClassName,
+  opens,
+  anchor = 'button',
   children,
   labelFromContent = false,
 }: ShellMenuProps) {
   const [open, setOpen] = useState(false)
+  const [maxHeight, setMaxHeight] = useState<number>()
   const root = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
   const menu = useRef<HTMLDivElement>(null)
@@ -60,6 +79,20 @@ export function ShellMenu({
     Array.from(
       menu.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
     )
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const fit = () => {
+      const rect = button.current?.getBoundingClientRect()
+      if (!rect) return
+      const room =
+        opens === 'up' ? rect.top : window.innerHeight - rect.bottom
+      setMaxHeight(Math.max(0, room - MENU_CLEARANCE))
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+  }, [open, opens])
 
   useEffect(() => {
     if (!open) return
@@ -116,7 +149,7 @@ export function ShellMenu({
   }
 
   return (
-    <div ref={root} className="relative">
+    <div ref={root} className={anchor === 'button' ? 'relative' : undefined}>
       <button
         ref={button}
         type="button"
@@ -138,6 +171,7 @@ export function ShellMenu({
           aria-label={label}
           onKeyDown={onMenuKeyDown}
           className={`${MENU} ${menuClassName}`}
+          style={{ maxHeight }}
         >
           <CloseMenu value={close}>{children}</CloseMenu>
         </div>

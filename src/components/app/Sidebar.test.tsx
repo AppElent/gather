@@ -2,6 +2,8 @@ import { fireEvent, screen, within } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import type { Locale } from '../../lib/i18n'
+import { AccountMenu } from './AccountMenu'
+import { GroupSwitcher } from './GroupSwitcher'
 import { MobileDock } from './MobileDock'
 import { Sidebar } from './Sidebar'
 import { renderInGroup } from './testing'
@@ -139,10 +141,17 @@ describe('the sidebar', () => {
     render(sidebar())
 
     expect(screen.getByRole('link', { name: 'Settings' })).toBeDefined()
-    expect(screen.getByRole('button', { name: 'Account menu' })).toBeDefined()
+    expect(screen.getByRole('button', { name: /account menu/i })).toBeDefined()
     // Groups hang off the switcher, the way back into a Group.
     fireEvent.click(screen.getByRole('button', { name: /switch group/i }))
     expect(screen.getByRole('link', { name: 'Manage groups' })).toBeDefined()
+  })
+
+  test('names the switcher after the Current Group, at every width', () => {
+    render(<GroupSwitcher variant="round" />)
+    expect(
+      screen.getByRole('button', { name: 'Alice, switch group' }),
+    ).toBeDefined()
   })
 
   test('is Start, Add, the pins under Pinned, then All modules', () => {
@@ -220,7 +229,7 @@ describe('the sidebar', () => {
     expect(within(nav).getByRole('link', { name: 'Alle modules' })).toBeDefined()
     expect(screen.getByRole('button', { name: /zoeken in gather/i })).toBeDefined()
     expect(screen.getByRole('link', { name: 'Instellingen' })).toBeDefined()
-    expect(screen.getByRole('button', { name: 'Accountmenu' })).toBeDefined()
+    expect(screen.getByRole('button', { name: /accountmenu/i })).toBeDefined()
   })
 
   /**
@@ -249,10 +258,10 @@ describe('the sidebar', () => {
 describe('the account menu', () => {
   function open(handlers: Partial<Parameters<typeof Sidebar>[0]> = {}) {
     render(sidebar(handlers))
-    const button = screen.getByRole('button', { name: 'Account menu' })
+    const button = screen.getByRole('button', { name: /account menu/i })
     expect(button.getAttribute('aria-haspopup')).toBe('menu')
     fireEvent.click(button)
-    return { button, menu: screen.getByRole('menu', { name: 'Account menu' }) }
+    return { button, menu: screen.getByRole('menu', { name: /account menu/i }) }
   }
 
   test('carries what the topbar did: account, language, Ask Gather, report, sign out', () => {
@@ -293,7 +302,7 @@ describe('the account menu', () => {
 
   test('opens from the keyboard on the last item with ArrowUp', () => {
     render(sidebar())
-    fireEvent.keyDown(screen.getByRole('button', { name: 'Account menu' }), {
+    fireEvent.keyDown(screen.getByRole('button', { name: /account menu/i }), {
       key: 'ArrowUp',
     })
     expect(document.activeElement?.textContent).toBe('Sign out')
@@ -315,6 +324,29 @@ describe('the account menu', () => {
       screen.getByRole('menuitem', { name: 'Switch to Nederlands' }),
     )
     expect(screen.getByRole('link', { name: 'Instellingen' })).toBeDefined()
+  })
+
+  test('names the sidebar button after what it shows: your name', () => {
+    render(sidebar())
+    expect(
+      screen.getByRole('button', { name: 'Test User, account menu' }),
+    ).toBeDefined()
+  })
+
+  /**
+   * At phone width Settings is otherwise only a tab, and the tab bar is not
+   * drawn without a Current Group — yet Settings is where somebody new loads
+   * the Sample household. The round account button carries it at every width.
+   */
+  test('reaches Settings from the round button with no Current Group', () => {
+    groups.value = []
+    render(
+      <AccountMenu variant="round" onOpenGather={noop} onReportIssue={noop} />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+    expect(
+      screen.getByRole('menuitem', { name: 'Settings' }).getAttribute('href'),
+    ).toBe('/settings')
   })
 
   test('signs out', () => {
@@ -344,6 +376,36 @@ describe('Add', () => {
     )
   })
 
+  /**
+   * A phone held sideways is 375 px tall; with the bar at the bottom there are
+   * a few hundred pixels above Add for however many pins. The menu is held to
+   * that room and scrolls inside it rather than running off the top.
+   */
+  test('fits above the tab bar however many pins, and scrolls', () => {
+    pins.value = ['recipes', 'tasks', 'baby-log', 'loyalty-cards', 'cheeses', 'wines', 'beers']
+    window.innerHeight = 375
+    render(<MobileDock onOpenPalette={noop} />)
+    const button = screen.getByRole('button', { name: 'Add' })
+    button.getBoundingClientRect = () => ({ top: 290, bottom: 340 }) as DOMRect
+    fireEvent.click(button)
+
+    const menu = screen.getByRole('menu', { name: 'Add' })
+    expect(within(menu).getAllByRole('menuitem')).toHaveLength(7)
+    expect(menu.style.maxHeight).toBe('258px')
+    expect(menu.className).toContain('overflow-y-auto')
+  })
+
+  test('holds a menu that opens downwards to the room below it', () => {
+    window.innerHeight = 800
+    render(sidebar())
+    const button = screen.getByRole('button', { name: 'Add' })
+    button.getBoundingClientRect = () => ({ top: 150, bottom: 194 }) as DOMRect
+    fireEvent.click(button)
+    expect(screen.getByRole('menu', { name: 'Add' }).style.maxHeight).toBe(
+      '574px',
+    )
+  })
+
   test('sends somebody with nothing to add to All modules', () => {
     pins.value = ['energy']
     render(sidebar())
@@ -353,7 +415,7 @@ describe('Add', () => {
     expect(within(menu).getByText(/pin a module/i)).toBeDefined()
     expect(
       within(menu)
-        .getByRole('menuitem', { name: 'All modules' })
+        .getByRole('menuitem', { name: /all modules/i })
         .getAttribute('href'),
     ).toBe('/all')
   })

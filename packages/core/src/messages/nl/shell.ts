@@ -3,6 +3,7 @@ import type { shell as enShell } from '../en/shell'
 export const shell = {
   accountMenu: {
     label: 'Accountmenu',
+    named: '{name}, accountmenu',
     account: 'Account',
     askGather: 'Vraag het Gather',
     reportIssue: 'Probleem melden',
@@ -38,6 +39,7 @@ export const shell = {
 
   groupSwitcher: {
     label: 'Van Groep wisselen',
+    named: '{group}, van Groep wisselen',
     none: 'Geen Groep',
     elsewhere: 'Ga terug',
     personal: 'Je eigen Groep',

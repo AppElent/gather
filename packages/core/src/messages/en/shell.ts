@@ -15,6 +15,8 @@ export const shell = {
    */
   accountMenu: {
     label: 'Account menu',
+    /** The sidebar's button, which shows your name: a spoken name starts with it. */
+    named: '{name}, account menu',
     account: 'Account',
     askGather: 'Ask Gather',
     reportIssue: 'Report a problem',
@@ -66,6 +68,8 @@ export const shell = {
 
   groupSwitcher: {
     label: 'Switch group',
+    /** With a Current Group: its name first, as the sidebar card shows it. */
+    named: '{group}, switch group',
     none: 'No group',
     elsewhere: 'Go back to it',
     personal: 'Your own group',

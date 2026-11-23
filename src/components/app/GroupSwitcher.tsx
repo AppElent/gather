@@ -3,7 +3,7 @@ import { useQuery } from 'convex/react'
 import { ChevronsUpDown, Users } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import { plural, useI18n } from '../../lib/i18n'
+import { fmt, plural, useI18n } from '../../lib/i18n'
 import { indexSurfaceOf, linkTo } from '../../lib/links'
 import { Icon } from './Icon'
 import { useCurrentGroup } from './useCurrentGroup'
@@ -79,6 +79,13 @@ export function GroupSwitcher({ variant = 'sidebar' }: GroupSwitcherProps) {
       : plural(locale, members.length, today.members)
     : groupSwitcher.pick
 
+  // The name leads, as the sidebar card shows it (WCAG 2.5.3). At phone width
+  // the round button is the only place outside Start that says which household
+  // you are in, so it says it too.
+  const buttonLabel = current
+    ? fmt(groupSwitcher.named, { group: current.name })
+    : groupSwitcher.label
+
   return (
     <div ref={root} className="relative">
       {variant === 'sidebar' ? (
@@ -87,7 +94,7 @@ export function GroupSwitcher({ variant = 'sidebar' }: GroupSwitcherProps) {
           type="button"
           onClick={() => setOpen((wasOpen) => !wasOpen)}
           aria-expanded={open}
-          aria-label={groupSwitcher.label}
+          aria-label={buttonLabel}
           className="flex h-[52px] w-full items-center gap-2.5 rounded-[14px] bg-[var(--surface)] px-2.5 text-left text-[var(--ink)]"
         >
           <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-[10px] bg-[var(--ink)] text-[15px] font-bold text-[var(--on-ink)]">
@@ -122,7 +129,7 @@ export function GroupSwitcher({ variant = 'sidebar' }: GroupSwitcherProps) {
           type="button"
           onClick={() => setOpen((wasOpen) => !wasOpen)}
           aria-expanded={open}
-          aria-label={groupSwitcher.label}
+          aria-label={buttonLabel}
           className="grid h-11 w-11 place-items-center rounded-full bg-[var(--surface)] text-[var(--ink)]"
         >
           <Users className="h-[18px] w-[18px]" aria-hidden="true" />

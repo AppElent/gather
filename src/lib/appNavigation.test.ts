@@ -185,7 +185,7 @@ describe('where the jump-to palette can send you', () => {
   })
 })
 
-describe('the route context the topbar shows', () => {
+describe('the route context Ask Gather is given', () => {
   test('names the Group surfaces', () => {
     expect(getRouteContext('/home', en).title).toBe('Home')
     expect(getRouteContext('/all', en).title).toBe('All modules')

@@ -48,7 +48,7 @@ export function MobileDock({ onOpenPalette }: { onOpenPalette: () => void }) {
       aria-label={tabBar.label}
       className="fixed inset-x-4 bottom-[calc(20px+env(safe-area-inset-bottom))] z-30 flex items-center gap-2.5 md:hidden"
     >
-      <div className="tab-bar-glass flex h-[62px] min-w-0 flex-1 items-center rounded-full px-1.5">
+      <div className="tab-bar-glass relative flex h-[62px] min-w-0 flex-1 items-center rounded-full px-1.5">
         {tab('home', linkTo('home'), nav.home, 'Home')}
         <div className="min-w-0 flex-1">
           <AddMenu variant="tab" />

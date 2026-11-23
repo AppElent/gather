@@ -1,5 +1,5 @@
 import { useClerk, useUser } from '@clerk/react'
-import { Bug, Ellipsis, Languages, LogOut, Sparkles, UserRound } from 'lucide-react'
+import { Bug, Ellipsis, Languages, LogOut, Settings, Sparkles, UserRound } from 'lucide-react'
 import { fmt, type Locale, useI18n } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { MenuButton, MenuLink, MenuSeparator, ShellMenu } from './ShellMenu'
@@ -43,7 +43,13 @@ export function AccountMenu({
 
   return (
     <ShellMenu
-      label={accountMenu.label}
+      // The sidebar's button shows your name, so its spoken name starts with it
+      // (WCAG 2.5.3); the round one shows only initials.
+      label={
+        variant === 'sidebar' && name
+          ? fmt(accountMenu.named, { name })
+          : accountMenu.label
+      }
       trigger={
         variant === 'sidebar' ? (
           <>
@@ -60,6 +66,7 @@ export function AccountMenu({
           ? 'flex h-12 w-full items-center gap-3 rounded-[var(--radius-control)] px-2.5 text-left text-[15px] text-[var(--ink)] hover:bg-[var(--surface)] aria-expanded:bg-[var(--surface)]'
           : 'grid h-11 w-11 place-items-center rounded-full bg-[var(--surface)] text-[13px] font-bold text-[var(--ink)]'
       }
+      opens={variant === 'sidebar' ? 'up' : 'down'}
       menuClassName={
         variant === 'sidebar'
           ? 'bottom-full left-0 mb-2 w-64'
@@ -70,6 +77,18 @@ export function AccountMenu({
         <UserRound className="h-4 w-4 text-[var(--muted)]" aria-hidden="true" />
         {accountMenu.account}
       </MenuLink>
+      {/* At phone width Settings is otherwise only a tab, and the tab bar is
+          not drawn without a Current Group — yet Settings is where somebody
+          new loads the Sample household. The sidebar has its own link. */}
+      {variant === 'round' ? (
+        <MenuLink link={linkTo('settings')}>
+          <Settings
+            className="h-4 w-4 text-[var(--muted)]"
+            aria-hidden="true"
+          />
+          {messages.shell.nav.settings}
+        </MenuLink>
+      ) : null}
       <MenuButton onSelect={() => setLocale(next)}>
         <Languages className="h-4 w-4 text-[var(--muted)]" aria-hidden="true" />
         <span lang={next}>
