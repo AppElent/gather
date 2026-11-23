@@ -53,6 +53,7 @@ import { Card } from '../../ui/card'
 import { Field } from '../../ui/field'
 import { InsetList, InsetRow } from '../../ui/inset-list'
 import { moduleTile } from '../../ui/module-tile'
+import { radioProps } from '../../ui/radio-props'
 import { washScreenOptions } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
 import { WashHeader } from '../../ui/wash-header'
@@ -569,8 +570,7 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
             return (
               <Pressable
                 key={option.value}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: selected }}
+                {...radioProps(selected, words.form.sourceRadio)}
                 accessibilityLabel={`${option.label}. ${option.hint}`}
                 testID={`energy-source-${option.value}`}
                 onPress={() => {

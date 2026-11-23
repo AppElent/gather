@@ -14,7 +14,14 @@ import { useAction, useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
+import {
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
@@ -130,6 +137,7 @@ function ConnectForm({
   const done = () => router.dismissTo(moduleHref('/all/energy/sources'))
 
   const runTest = async () => {
+    Keyboard.dismiss()
     setBusy('test')
     stale()
     try {
@@ -163,7 +171,10 @@ function ConnectForm({
         history,
       })
       haptics.itemSaved()
-      done()
+      // The server has the token. iOS offers to save a filled secure field as
+      // a password when the screen closes, so it is emptied first.
+      setToken('')
+      requestAnimationFrame(done)
     } catch (caught) {
       refused(caught)
       setBusy(null)
@@ -223,7 +234,7 @@ function ConnectForm({
           }}
           placeholder={connected ? copy.tokenStored : undefined}
           secure
-          // Not this person's password, so nothing should offer to save it.
+          // Not this person's password, so nothing should offer to fill it.
           textContentType="none"
           autoComplete="off"
           autoCapitalize="none"
@@ -292,6 +303,8 @@ function ConnectForm({
               trailing={
                 <Switch
                   testID="energy-connect-history"
+                  style={styles.switch}
+                  trackColor={{ false: tokens.surface2 }}
                   value={history}
                   accessibilityLabel={copy.history}
                   accessibilityHint={copy.historySub}
@@ -387,6 +400,8 @@ function ChannelRow({
       trailing={
         <Switch
           testID={`energy-connect-switch-${index}`}
+          style={styles.switch}
+          trackColor={{ false: tokens.surface2 }}
           value={proposal.on}
           disabled={!proposal.available}
           accessibilityLabel={fmt(copy.readChannel, { name })}
@@ -456,4 +471,6 @@ const styles = StyleSheet.create({
   channel: { paddingVertical: SPACE[2], gap: 2, minHeight: 44 },
   sensor: { flexDirection: 'row', alignItems: 'center', gap: SPACE[1] },
   flex: { flexShrink: 1 },
+  // React Native gives every Switch `alignSelf: 'flex-start'`.
+  switch: { alignSelf: 'center' },
 })

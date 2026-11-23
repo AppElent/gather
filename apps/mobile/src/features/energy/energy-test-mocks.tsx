@@ -271,6 +271,8 @@ export const reactNativeMock = () => ({
   ScrollView: View,
   Pressable,
   TextInput,
+  Platform: { OS: 'ios' },
+  Keyboard: { dismiss: () => undefined },
   Switch,
   StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 1, flatten },
   useWindowDimensions: () => ({ width: 390, height: 844, fontScale: 1, scale: 3 }),

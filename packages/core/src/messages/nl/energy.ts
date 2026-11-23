@@ -19,6 +19,7 @@ export const energy = {
       'Koppel aan een huis uit Financiën om energie naast je hypotheek te zien. Niet nodig.',
     sourceHeading: 'Hoe komt je data binnen?',
     sourceLabel: 'Bron',
+    sourceRadio: 'keuzerondje',
     homeAssistant: 'Home Assistant koppelen',
     homeAssistantHint:
       'Per uur, met zon en batterij. Ook HomeWizard en Zonneplan die in Home Assistant staan.',

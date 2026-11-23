@@ -99,7 +99,7 @@ test('empty, the wash says there is no address and the step opens the form', asy
   byTestId('energy-add-first')?.click()
   await settle()
   expect((byTestId('energy-name') as HTMLInputElement).value).toBe('Home')
-  expect(byTestId('energy-source-homeAssistant')?.getAttribute('aria-checked')).toBe(
+  expect(byTestId('energy-source-homeAssistant')?.getAttribute('aria-selected')).toBe(
     'true',
   )
   view.unmount()

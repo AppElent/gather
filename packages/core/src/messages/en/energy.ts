@@ -30,6 +30,8 @@ export const energy = {
     sourceHeading: 'How does your data come in?',
     /** The radio group's name, for a screen reader. */
     sourceLabel: 'Source',
+    /** What one choice is, where the platform has no word for it (iOS). */
+    sourceRadio: 'radio button',
     homeAssistant: 'Connect Home Assistant',
     homeAssistantHint:
       'Per hour, with solar and battery. HomeWizard and Zonneplan in Home Assistant work too.',
