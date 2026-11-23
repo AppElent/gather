@@ -139,16 +139,22 @@ export function GroceryFields({
 
   // The amount text was typed over and not committed yet: it stays while that
   // is still the amount, and gives way to anybody's change of it.
-  const typedOver = useRef<{ quantity: number | null } | null>(null)
+  const typedOver = useRef<WholeAmount | null>(null)
 
   // The row's amount goes into the field. Not while our own writes are on
   // their way: the row may show one before the last.
   useEffect(() => {
     if (pending) return
-    if (typedOver.current?.quantity === (task.quantity ?? null)) return
+    const over = typedOver.current
+    if (
+      over &&
+      over.quantity === (task.quantity ?? null) &&
+      over.unit === (task.unit ?? null)
+    )
+      return
     typedOver.current = null
     setDraft(amountDraft(task.quantity, locale))
-  }, [task.quantity, locale, pending])
+  }, [task.quantity, task.unit, locale, pending])
 
   /** The amount a change starts from: the last one written, or the row's. */
   const latest = (): WholeAmount =>
@@ -192,12 +198,20 @@ export function GroceryFields({
     write(next, unit)
   }
 
+  const chooseUnit = (unit: GroceryUnit) => {
+    const quantity = current() ?? 1
+    setDraft(amountDraft(quantity, locale))
+    write(quantity, unit)
+  }
+
   const type = (text: string) => {
-    typedOver.current = { quantity: latest().quantity }
+    typedOver.current = latest()
     setDraft(text)
   }
 
   const commitDraft = () => {
+    // Nothing typed: leaving the field changes nothing. A submit also blurs.
+    if (!typedOver.current) return
     typedOver.current = null
     const typed = draft.trim()
     if (!typed) {
@@ -208,7 +222,7 @@ export function GroceryFields({
     const value = parseAmount(typed)
     if (value === undefined) {
       // Not an amount: put back the one that was there.
-      setDraft(amountDraft(task.quantity, locale))
+      setDraft(amountDraft(latest().quantity ?? undefined, locale))
       haptics.actionFailed()
       return
     }
@@ -305,7 +319,7 @@ export function GroceryFields({
                 accessibilityLabel={pillWord(unit)}
                 disabled={!writable}
                 hitSlop={{ top: 5, bottom: 5 }}
-                onPress={() => (on ? undefined : write(current() ?? 1, unit))}
+                onPress={() => (on ? undefined : chooseUnit(unit))}
                 style={({ pressed }) => [
                   styles.pill,
                   {

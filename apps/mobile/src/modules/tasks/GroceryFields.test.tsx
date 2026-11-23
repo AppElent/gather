@@ -13,6 +13,8 @@ import type { Task } from './types'
 
 const state = vi.hoisted(() => ({
   type: (_text: string) => {},
+  submit: () => {},
+  blur: () => {},
   writes: [] as { to: unknown; expected: unknown; land: () => void; fail: () => void }[],
 }))
 
@@ -31,8 +33,10 @@ vi.mock('react-native', async () => {
     View: dom('div'),
     Text: dom('span'),
     Pressable: dom('button'),
-    TextInput: ({ testID, value, onChangeText }: Props) => {
+    TextInput: ({ testID, value, onChangeText, onBlur, onSubmitEditing }: Props) => {
       state.type = onChangeText as (text: string) => void
+      state.submit = onSubmitEditing as () => void
+      state.blur = onBlur as () => void
       return React.createElement('input', {
         'data-testid': testID as string,
         value: value as string,
@@ -89,11 +93,17 @@ beforeEach(() => {
   state.writes = []
 })
 
-function open() {
+/** The keyboard's Done: the field submits, then blurs. */
+const done = () => {
+  act(() => state.submit())
+  act(() => state.blur())
+}
+
+function open(item: Task = melk) {
   // The harness mounts once; the row under it is told of a change here.
   let show: (task: Task) => void = () => {}
   const Screen = () => {
-    const [task, setTask] = useState(melk)
+    const [task, setTask] = useState(item)
     show = setTask
     return createElement(GroceryFields, { task, writable: true })
   }
@@ -171,9 +181,10 @@ test('a step after a new unit keeps that unit', async () => {
 })
 
 test('text typed while a unit is on its way stays', async () => {
-  const { unit, shown } = open()
+  const { unit, show, shown } = open()
   unit('fles')
   act(() => state.type('5'))
+  show({ ...melk, unit: 'fles' })
   await act(async () => state.writes[0]!.land())
   await settle()
   expect(shown()).toBe('5')
@@ -184,4 +195,58 @@ test("another Member's amount replaces text not committed yet", async () => {
   act(() => state.type('5'))
   show({ ...melk, ...pak(3) })
   expect(shown()).toBe('3')
+})
+
+test("another Member's unit replaces text typed for the one refused", async () => {
+  const { unit, show, shown } = open()
+  unit('g')
+  act(() => state.type('500'))
+  show({ ...melk, unit: 'kg' })
+  await act(async () => state.writes[0]!.fail())
+  await settle()
+  expect(shown()).toBe('1')
+  done()
+  expect(state.writes).toHaveLength(1)
+})
+
+test('Done after a unit on an item with no amount keeps its 1', async () => {
+  const { unit, shown } = open({ ...melk, quantity: undefined, unit: undefined })
+  unit('fles')
+  expect(shown()).toBe('1')
+  done()
+  await act(async () => state.writes[0]!.land())
+  await settle()
+  expect(state.writes).toHaveLength(1)
+})
+
+test('Done on text that is no amount keeps the step on its way', async () => {
+  const { more, shown } = open()
+  more()
+  act(() => state.type('abc'))
+  done()
+  expect(shown()).toBe('2')
+  await act(async () => state.writes[0]!.land())
+  await settle()
+  expect(state.writes).toHaveLength(1)
+})
+
+test('Done sends what was typed once', async () => {
+  open()
+  act(() => state.type('5'))
+  done()
+  await act(async () => state.writes[0]!.land())
+  await settle()
+  expect(state.writes.map(({ expected, to }) => [expected, to])).toEqual([
+    [pak(1), pak(5)],
+  ])
+})
+
+test('Done on an emptied field clears the quantity', () => {
+  open()
+  act(() => state.type(''))
+  done()
+  expect(state.writes[0]).toMatchObject({
+    expected: pak(1),
+    to: { quantity: null, unit: 'pak' },
+  })
 })
