@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the share sheet, a Drop, its destinations, host rules, or expo-share-intent.
-version: 1.2.0
+version: 1.3.0
 status: current
 ---
 
@@ -33,6 +33,38 @@ that already means making Group content visible to a second Group.
   sheet is presented above the stack and would hide the chooser
   (`src/components/openSheets.ts`). Arrivals are counted for the whole session,
   so a share after a finished or abandoned one opens the chooser again.
+- **A share keeps what was typed.** The person did not ask for that close,
+  so every sheet form with input keeps it, in memory, per account and Group
+  ([editors](../standards/editors.md), APP-622). A form whose state lives in
+  the sheet uses `useSheetDraft` (`src/ui/sheet-drafts.ts`, on the composer
+  draft store) and opens on the draft next time. A finance screen holds its
+  sheet's state itself, so it uses `useSheetResume`, which keeps the values in
+  the same store and puts them back instead of seeding. A close the person chose (Cancel, Close, a swipe) still
+  discards, as before. Nothing is kept while a save is on its way, unless that
+  save then fails, and a save that lands late closes nothing opened since. No form needed to ask instead. Covered:
+  - **Tasks:** quick sheet task line (`QuickAddTask`, APP-618), New list,
+    Rename task or list, Labels, Sections (new section, rename), Reminder, Repeat.
+  - **Baby log:** Quick log (types, fields, notes, time, photos), quick to-do
+    or question.
+  - **Calendar:** new calendar name; the event editor opened from an event
+    resumes its kept draft, a copy or a failed save included (it was already
+    kept from the calendar screen). The calendar keeps one draft per Group: an
+    event edited next replaces it. A draft being saved is locked.
+  - **Kitchen:** Add to groceries (ticks, retyped lines, list, servings or
+    days), Pick (search, filters, quick meal), Plan my week, Swap (wish, chip,
+    and the answers already paid for), a planned meal's changes (a share saves
+    nothing; any other close still saves).
+  - **Tasting:** the subject picker's typed name, a vocabulary's search.
+  - **Finances:** Add savings goal, saved so far and monthly, Add recurring
+    cost, its amount, note and split, Add holding, Add transaction, Update
+    price, buying-cost values, house and calculation fields, loan-part
+    fields, Duplicate calculation, Add payment and Save scenario, New
+    house, Add asset or liability.
+
+  Not forms, so nothing to keep: pickers and menus whose taps apply at once.
+  Custom allocation edits the Split screen's own state, which lives as long as
+  that screen. The keyboard composer is not a `NativeSheet` and keeps its own
+  draft.
 - **The commit clears the Drop.** A target that has not written by the time it
   navigates declares `keepsDrop` (today only `recipe-import`): its screen is
   pushed over the chooser with the Drop still pending, so Back still has

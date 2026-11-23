@@ -16,9 +16,9 @@ import {
   addGroceryAmounts,
   capitalise,
   daysAgo,
-  type GroceryAisle,
   type GroceryCompletion,
   type GroceryHabit,
+  type GroceryUnit,
   groceryCadence,
   groceryCompletions,
   groceryKey,
@@ -35,8 +35,19 @@ import { fmt, plural, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { useGroceryAmountText } from './GroceryFields'
+import type { GroceryAmountPick } from './groceryDraft'
 import { useGroceryHabits, useTaskActions } from './store'
 import type { Task, TaskList } from './types'
+
+/** A completion tapped: a new item, or one open already and its new amount. */
+export interface GroceryPick {
+  title: string
+  quantity?: number
+  unit?: GroceryUnit
+  open?: Task
+  /** What `open`'s amount becomes; none leaves it as it is. */
+  merged?: GroceryAmountPick
+}
 
 /** A card's width in the strip (the design's 148 pt). */
 const CARD_WIDTH = 148
@@ -228,33 +239,30 @@ export function SuggestionStrip({
 
 /**
  * Above the composer's field while a name is typed: up to three completions, history
- * first. A tap adds the completed name: with the amount typed, or else the
+ * first. A tap is the completed name: with the amount typed, or else the
  * usual amount from history. When the name is already open on the list, the
  * typed amount is added to that item where the units add up, and otherwise
- * nothing changes: no second row (APP-427). An aisle chosen in the composer
- * for the typed line goes with a new item (APP-536); an item already open
- * keeps its aisle.
+ * nothing changes: no second row (APP-427). The composer saves what is picked.
  */
 export function GroceryCompletions({
   listId,
   line,
-  aisle,
+  amount: typedAmount,
   tasks,
-  onPicked,
+  onPick,
 }: {
   listId: string
+  /** The name being typed, its amount taken off. */
   line: string
-  /** The aisle a Member chose in the composer for this line, if any. */
-  aisle?: GroceryAisle
+  /** The amount typed or tapped for it. */
+  amount?: GroceryAmountPick
   /** The list's items, to say a name is already open on it. */
   tasks: readonly Task[]
-  /** A completion was added; the composer clears its line. */
-  onPicked: () => void
+  onPick: (pick: GroceryPick) => void
 }) {
   const tokens = useTokens('kitchen')
   const { t } = useI18n()
   const s = t.tasks.grocery.suggestions
-  const actions = useTaskActions()
   const habits = useGroceryHabits(listId)
   const cadenceText = useCadenceText()
   const amountText = useGroceryAmountText()
@@ -265,14 +273,6 @@ export function GroceryCompletions({
     groceryNames(),
   )
   if (completions.length === 0) return null
-  const typed = parseGroceryLine(line)
-  const typedAmount =
-    typed.quantity !== null || typed.unit !== null
-      ? {
-          ...(typed.quantity !== null ? { quantity: typed.quantity } : {}),
-          ...(typed.unit !== null ? { unit: typed.unit } : {}),
-        }
-      : undefined
 
   const openNamed = (key: string) =>
     tasks.find(
@@ -326,8 +326,8 @@ export function GroceryCompletions({
   }
 
   return (
-    <View testID="grocery-completions" style={styles.completions}>
-      {completions.map((completion) => {
+    <View testID="grocery-completions">
+      {completions.map((completion, index) => {
         const item = itemOf(completion)
         const open = openNamed(item.key)
         const merged = open ? mergeInto(open) : null
@@ -345,39 +345,21 @@ export function GroceryCompletions({
             accessibilityRole="button"
             accessibilityLabel={fmt(s.pick, { name: item.title })}
             accessibilityHint={footnote(completion, item.key)}
-            onPress={() => {
-              onPicked()
-              const done = open
-                ? merged
-                  ? actions.setAmount(
-                      open.id,
-                      merged.quantity ?? null,
-                      merged.unit ?? null,
-                    )
-                  : Promise.resolve()
-                : actions
-                    .addGrocery(listId, {
-                      title: item.title,
-                      quantity: item.quantity,
-                      unit: item.unit,
-                    })
-                    .then((taskId) => {
-                      // Moved as the composer moves a typed line: the Group
-                      // keeps the choice for the name, and if only the move
-                      // fails the item is still added.
-                      if (aisle && taskId) {
-                        actions
-                          .setAisle(taskId, aisle)
-                          .catch(() => haptics.actionFailed())
-                      }
-                    })
-              done.then(
-                () => haptics.itemSaved(),
-                () => haptics.actionFailed(),
-              )
-            }}
+            onPress={() =>
+              onPick({
+                title: item.title,
+                quantity: item.quantity,
+                unit: item.unit,
+                ...(open ? { open } : {}),
+                ...(merged ? { merged } : {}),
+              })
+            }
             style={({ pressed }) => [
               styles.completion,
+              index > 0 && {
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: tokens.hair,
+              },
               pressed && { backgroundColor: tokens.surface2 },
             ]}
           >
@@ -451,12 +433,11 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   name: { ...TYPE.bodyStrong, flexShrink: 1 },
   why: { ...TYPE.footnote },
-  completions: { paddingTop: SPACE[1] },
   completion: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE[3],
-    minHeight: SIZE.hitMin,
+    minHeight: SIZE.rowMin,
     paddingHorizontal: SPACE[4],
     paddingVertical: SPACE[2],
   },

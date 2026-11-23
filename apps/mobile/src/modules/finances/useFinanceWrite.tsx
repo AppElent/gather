@@ -17,33 +17,74 @@
  * chip, a segment) always runs: each tap is a distinct choice, and dropping
  * one would lose it without a word.
  *
+ * A share that closes a sheet while its write is on its way ends what came
+ * after it too: by the time it lands, the sheet `then` would close may be a
+ * newly opened one (APP-622).
+ *
  * The words are `common.errors.didNotWork`: there is nothing more specific to
  * say about a refusal this Module never expects.
  */
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { onSheetsClosing } from '../../components/openSheets'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
+import type { SheetWrites } from '../../ui/sheet-drafts'
 import { StaleBanner } from './ui'
 
 export function useFinanceWrite() {
   const { t } = useI18n()
   const [failed, setFailed] = useState(false)
   const inFlight = useRef(false)
+  const started = useRef(new Set<() => void>())
+  const settled = useRef(new Set<(landed: boolean) => void>())
+  /** How many sheets a share has closed. */
+  const closings = useRef(0)
+
+  useEffect(
+    () =>
+      onSheetsClosing(() => {
+        closings.current += 1
+      }),
+    [],
+  )
+
+  const [writes] = useState<SheetWrites>(() => ({
+    onStart: (listener) => {
+      started.current.add(listener)
+      return () => {
+        started.current.delete(listener)
+      }
+    },
+    onSettled: (listener) => {
+      settled.current.add(listener)
+    },
+  }))
 
   const attempt = useCallback(
     <T,>(write: () => Promise<T>, then?: (value: T) => void) => {
       const guarded = then !== undefined
       if (guarded && inFlight.current) return
-      if (guarded) inFlight.current = true
+      if (guarded) {
+        inFlight.current = true
+        for (const listener of [...started.current]) listener()
+      }
+      const closingsThen = closings.current
+      const settle = (landed: boolean) => {
+        if (!guarded) return
+        inFlight.current = false
+        const listeners = [...settled.current]
+        settled.current.clear()
+        for (const listener of listeners) listener(landed)
+      }
       setFailed(false)
       write().then(
         (value) => {
-          if (guarded) inFlight.current = false
-          then?.(value)
+          settle(true)
+          if (closings.current === closingsThen) then?.(value)
         },
         () => {
-          if (guarded) inFlight.current = false
+          settle(false)
           haptics.actionFailed()
           setFailed(true)
         },
@@ -54,6 +95,7 @@ export function useFinanceWrite() {
 
   return {
     attempt,
+    writes,
     failure: failed ? <StaleBanner text={t.common.errors.didNotWork} /> : null,
   }
 }

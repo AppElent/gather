@@ -89,9 +89,10 @@ everything user-owned belongs to a Group or to a person
   page cursor), rechecks the membership on every page, keys a Group's rows
   `groups/<slug>/<table>` and puts the file's header under `export` on the
   first page; `summary` counts on the registry's indexes
-  (`countGroupRows`), at most 1,000 rows each. A caller with no account, or
-  one being deleted, gets `null` and an empty export; connected apps are
-  refused.
+  (`countGroupRows`), at most 1,000 rows a key, with House, Finance and
+  Energy one key each; a key cut short by the query's read limits says `more`.
+  A caller with no account, or one being deleted, gets `null` and an empty
+  export; connected apps are refused.
 - **The file is versioned.** It opens with `format: "gather.data-export"` and
   `version`, then `conventions`, `notIncluded`, `excludedTables` and
   `omittedFields`. Bump `EXPORT_VERSION` when a reader of the previous version

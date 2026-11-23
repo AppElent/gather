@@ -12,6 +12,9 @@
  * the sheet is opened to make, and the default name is usually fine. The kind's starter
  * items are resolved in the reader's language here, because the backend holds
  * no display strings; the list is then the Group's in that language.
+ *
+ * A share that closes the sheet keeps the form, with its idempotency key, as a
+ * draft that the next New list opens on (APP-622, `ui/sheet-drafts.ts`).
  */
 import {
   iconChoices,
@@ -33,12 +36,22 @@ import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, useInsetSeparator } from '../../ui/inset-list'
 import { ModuleTile } from '../../ui/module-tile'
 import { SectionLabel } from '../../ui/section-label'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 import { TASK_LIST_GLYPHS } from './icons'
 import { ColorSwatches, IconChoices } from './listFace'
 import { useTaskActions } from './store'
 
 /** The longest name the sheet takes: more never fits a row. */
 const NAME_MAX = 100
+
+/** What a share keeps of the form (`useSheetDraft`). */
+interface NewListDraft {
+  name: string
+  kind: TaskListKind
+  color: TaskListColor | null
+  icon: TaskListIcon | null
+  idempotencyKey: string
+}
 
 export function NewListSheet({
   onClose,
@@ -54,16 +67,24 @@ export function NewListSheet({
   const tokens = useTokens()
   const { t } = useI18n()
   const actions = useTaskActions()
-  const [name, setName] = useState('')
-  const [kind, setKind] = useState<TaskListKind>(initialKind)
+  // Per kind opened with: Grocery lists' New list is its own place.
+  const draft = useSheetDraft<NewListDraft>(`tasks:new-list:${initialKind}`)
+  const kept = draft.kept
+  const [name, setName] = useState(kept?.name ?? '')
+  const [kind, setKind] = useState<TaskListKind>(kept?.kind ?? initialKind)
   // `null` follows the kind: its colour until somebody picks one, its icon
   // until somebody picks one after choosing it.
-  const [color, setColor] = useState<TaskListColor | null>(null)
-  const [icon, setIcon] = useState<TaskListIcon | null>(null)
+  const [color, setColor] = useState<TaskListColor | null>(kept?.color ?? null)
+  const [icon, setIcon] = useState<TaskListIcon | null>(kept?.icon ?? null)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
   // One key per sheet: a retry after a dropped connection is the same list.
-  const [idempotencyKey] = useState(() => randomUUID())
+  // A kept draft keeps its key, so it can never make the list twice.
+  const [idempotencyKey] = useState(() => kept?.idempotencyKey ?? randomUUID())
+  draft.track(
+    { name, kind, color, icon, idempotencyKey },
+    { holding: busy },
+  )
 
   const template = TASK_LIST_TEMPLATES[kind]
   const kindCopy = t.tasks.kinds[kind]
@@ -93,10 +114,12 @@ export function NewListSheet({
         idempotencyKey,
       })
       haptics.itemSaved()
+      if (draft.gone()) return
       onClose()
       onCreated({ id: listId, kind })
     } catch {
       haptics.actionFailed()
+      draft.failed()
       setFailed(true)
       setBusy(false)
     }

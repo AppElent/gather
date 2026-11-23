@@ -46,6 +46,7 @@ import { api, type Doc, type Id } from '../../convex/api'
 import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { type ComposedTask, parsedTask } from './composerDraft'
+import type { ComposedGrocery } from './groceryDraft'
 import { deviceTimeZone } from './reminder'
 import type { ListDisplay, ListSync, Priority, Task, TaskList } from './types'
 
@@ -770,6 +771,14 @@ export function settledDetails(
   }
 }
 
+/** What an item's own writes after its add came to. */
+export interface GroceryDetails {
+  /** The staple it is now; its add answers one the Group already had too. */
+  stapleId?: Id<'groceryStaples'>
+  /** Writes again only what failed; none when all went in. */
+  retry?: () => Promise<GroceryDetails>
+}
+
 export function useTaskActions() {
   const { group } = useGroup()
   const groupSlug = group.slug
@@ -778,6 +787,8 @@ export function useTaskActions() {
     toggleInPlace,
   )
   const update = useMutation(api.tasks.update)
+  const addStaple = useMutation(api.groceryStaples.add)
+  const removeStaple = useMutation(api.groceryStaples.remove)
   const remove = useMutation(api.tasks.remove)
   const moveToList = useMutation(api.tasks.moveToList)
   const reorder = useMutation(api.tasks.reorder)
@@ -864,6 +875,30 @@ export function useTaskActions() {
     // `add` takes no notes and no reminder: both are their own writes, so
     // an installed server from before the composer is all this needs.
     return { taskId, ...(await composedDetails(taskId, task)) }
+  }
+
+  const groceryDetails = async (
+    taskId: string,
+    item: Pick<ComposedGrocery, 'title' | 'aisle' | 'note' | 'staple'>,
+  ): Promise<GroceryDetails> => {
+    const [aisle, note, staple] = await Promise.allSettled([
+      item.aisle ? patch(taskId, { category: item.aisle }) : null,
+      item.note ? patch(taskId, { notes: item.note }) : null,
+      item.staple ? addStaple({ groupSlug, name: item.title }) : null,
+    ])
+    const failed = {
+      title: item.title,
+      aisle: aisle.status === 'rejected' ? item.aisle : undefined,
+      note: note.status === 'rejected' ? item.note : undefined,
+      staple: staple.status === 'rejected',
+    }
+    return {
+      stapleId: staple.status === 'fulfilled' ? (staple.value ?? undefined) : undefined,
+      retry:
+        failed.aisle || failed.note || failed.staple
+          ? () => groceryDetails(taskId, failed)
+          : undefined,
+    }
   }
 
   return {
@@ -1115,6 +1150,30 @@ export function useTaskActions() {
         ...(item.quantity !== undefined ? { quantity: item.quantity } : {}),
         ...(item.unit !== undefined ? { unit: item.unit } : {}),
       }),
+    /**
+     * An item from the grocery composer (APP-664). The draft's own key goes
+     * along, so it is one item however often it is sent. `tasks.add` takes
+     * none of the details: each is its own write once the item is there, and
+     * `retry` writes only those that failed.
+     */
+    addComposedGrocery: async (
+      listId: string,
+      item: ComposedGrocery,
+      saveKey: string,
+    ): Promise<{ taskId: string } & GroceryDetails> => {
+      const taskId = await add({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        title: item.title,
+        idempotencyKey: saveKey,
+        ...(item.quantity !== undefined ? { quantity: item.quantity } : {}),
+        ...(item.unit !== undefined ? { unit: item.unit } : {}),
+      })
+      return { taskId, ...(await groceryDetails(taskId, item)) }
+    },
+    /** A name onto In stock, or the staple it already is (APP-314). */
+    addStaple: (name: string) => addStaple({ groupSlug, name }),
+    removeStaple: (id: Id<'groceryStaples'>) => removeStaple({ groupSlug, id }),
     /** A grocery list's "Maybe needed" strip on or off (APP-311). */
     setSuggestions: (listId: string, on: boolean) =>
       setSuggestions({ listId: listId as Id<'taskLists'>, groupSlug, on }),

@@ -39,6 +39,7 @@ import {
   exportGroups,
   exportLayout,
   exportManifest,
+  guardedRows,
   readExportPage,
 } from './lib/dataExport'
 import { getMembership, groupRefusalError } from './lib/groupAccess'
@@ -48,26 +49,109 @@ import { getUserByClerkId, NOT_SIGNED_IN } from './lib/sharing'
 export const PORTAL_CONTRACT = 1 as const
 const APP = 'gather' as const
 
-/** Rows a count reads at most; one more says "1,000 or more". */
+/** Rows a key counts at most; one more says "1,000 or more". */
 export const COUNT_LIMIT = 1000
 
 /**
- * What `summary` counts, in display order: one key per kind of data, each the
- * person's Groups' rows of one exported table. The portal owns the labels.
- * Grocery items are tasks in a grocery list, so `tasks` counts them too.
+ * What `summary` counts, in display order: one key per kind of data, the
+ * person's Groups' rows of its exported tables, summed under one cap. The
+ * portal owns the labels. Grocery items are tasks in a grocery list, so
+ * `tasks` counts them too. `energyPrices` is reference
+ * data, so no key counts it.
  */
-const COUNTED = [
-  { key: 'recipes', table: 'recipes' },
-  { key: 'meals', table: 'mealEntries' },
-  { key: 'plannedMeals', table: 'plannedDinners' },
-  { key: 'taskLists', table: 'taskLists' },
-  { key: 'tasks', table: 'tasks' },
-  { key: 'notes', table: 'notes' },
-  { key: 'calendarEvents', table: 'calendarEvents' },
-  { key: 'babyEvents', table: 'babyEvents' },
-  { key: 'tastings', table: 'tastings' },
-  { key: 'loyaltyCards', table: 'loyaltyCards' },
-] as const satisfies readonly { key: string; table: TableNames }[]
+export const COUNTED = [
+  { key: 'recipes', tables: ['recipes'] },
+  { key: 'meals', tables: ['mealEntries'] },
+  { key: 'plannedMeals', tables: ['plannedDinners'] },
+  { key: 'taskLists', tables: ['taskLists'] },
+  { key: 'tasks', tables: ['tasks'] },
+  { key: 'notes', tables: ['notes'] },
+  { key: 'calendarEvents', tables: ['calendarEvents'] },
+  { key: 'babyEvents', tables: ['babyEvents'] },
+  { key: 'tastings', tables: ['tastings'] },
+  { key: 'loyaltyCards', tables: ['loyaltyCards'] },
+  {
+    key: 'houseRecords',
+    tables: ['houses', 'mortgageCalculations', 'loanParts', 'homeBuyingCosts'],
+  },
+  {
+    key: 'financeRecords',
+    tables: [
+      'recurringCosts',
+      'savingsGoals',
+      'splitScenarios',
+      'holdings',
+      'holdingTransactions',
+      'financeSettings',
+      'netWorthEntries',
+      'netWorthSnapshots',
+    ],
+  },
+  {
+    key: 'energyRecords',
+    tables: [
+      'energySites',
+      'energyContracts',
+      'energySources',
+      'energyAssets',
+      'energyChannels',
+      'energyReadings',
+      'energyIntervals',
+      'energyPriceFeeds',
+    ],
+  },
+] as const satisfies readonly {
+  key: string
+  tables: readonly TableNames[]
+}[]
+
+/**
+ * Bytes left that one more row needs: a document is at most 1 MiB, and the
+ * rest is margin for what the query reads around it.
+ */
+export const ROW_BYTES = 1024 * 1024 + 64 * 1024
+
+/**
+ * Keeps the whole query inside Convex's read limits: 32,000 documents, 4,096
+ * index ranges (each `db.get` and `db.query`) and 16 MiB. It is asked before
+ * every range and every row, so no number or size of rows makes `summary`
+ * throw; a key it cuts short says `more` with what was read.
+ *
+ * Documents, every key capped: 1 caller + 1,001 memberships + 1,001 Groups +
+ * 13 keys x 1,001 rows = 15,016, which leaves 16,984 for the parents (task
+ * lists, calendars, babies) that their children are counted under.
+ *
+ * Index ranges: 1 for the caller, 1 for the memberships, 1 `get` per Group,
+ * then up to 30 tables + 3 parents per Group and 1 per parent row. That is 34
+ * per Group before parent rows, past 4,096 at 121 Groups.
+ *
+ * Bytes: the 13,013 capped rows fit up to about 1.2 KiB each.
+ */
+function readGuard(ctx: QueryCtx) {
+  const guard = {
+    stopped: false,
+    allow: async (ranges: number) => {
+      if (guard.stopped) return false
+      const left = await ctx.meta.getTransactionMetrics()
+      guard.stopped =
+        left.databaseQueries.remaining < ranges ||
+        left.documentsRead.remaining < 1 ||
+        left.bytesRead.remaining < ROW_BYTES
+      return !guard.stopped
+    },
+    mayOpen: () => guard.allow(1),
+    mayReadRow: () => guard.allow(0),
+  }
+  return guard
+}
+
+function capped(key: string, read: number, cut: boolean): PortalCount {
+  return {
+    key,
+    count: Math.min(read, COUNT_LIMIT),
+    more: cut || read > COUNT_LIMIT,
+  }
+}
 
 export interface PortalCount {
   key: string
@@ -142,14 +226,6 @@ async function activeCaller(ctx: QueryCtx): Promise<Doc<'users'> | null> {
   return user && !user.deletedAt ? user : null
 }
 
-function capped(key: string, read: number): PortalCount {
-  return {
-    key,
-    count: Math.min(read, COUNT_LIMIT),
-    more: read > COUNT_LIMIT,
-  }
-}
-
 export const summary = query({
   args: {},
   returns: summaryValidator,
@@ -157,29 +233,36 @@ export const summary = query({
     const me = await activeCaller(ctx)
     if (!me) return null
 
-    const memberships = await ctx.db
-      .query('memberships')
-      .withIndex('by_user', (q) => q.eq('userId', me._id))
-      .take(COUNT_LIMIT + 1)
+    const groupGuard = readGuard(ctx)
+    const memberships: Doc<'memberships'>[] = []
+    const range = () =>
+      ctx.db
+        .query('memberships')
+        .withIndex('by_user', (q) => q.eq('userId', me._id))
+    for await (const membership of guardedRows(range, groupGuard)) {
+      memberships.push(membership)
+      if (memberships.length > COUNT_LIMIT) break
+    }
     const groups: Doc<'groups'>[] = []
     for (const membership of memberships) {
+      if (!(await groupGuard.mayOpen())) break
       const group = await ctx.db.get(membership.groupId)
       if (group) groups.push(group)
     }
 
-    const counts = [capped('groups', groups.length)]
-    for (const { key, table } of COUNTED) {
+    const counts = [capped('groups', groups.length, groupGuard.stopped)]
+    for (const { key, tables } of COUNTED) {
+      const guard = readGuard(ctx)
       let read = 0
-      for (const group of groups) {
-        if (read > COUNT_LIMIT) break
-        read += await countGroupRows(ctx, {
-          table,
-          me,
-          group,
-          limit: COUNT_LIMIT + 1 - read,
-        })
+      for (const table of tables) {
+        for (const group of groups) {
+          if (read > COUNT_LIMIT || guard.stopped) break
+          const limit = COUNT_LIMIT + 1 - read
+          read += await countGroupRows(ctx, { table, me, group, limit, guard })
+        }
       }
-      counts.push(capped(key, read))
+      // Groups left unread hold rows no key has counted.
+      counts.push(capped(key, read, guard.stopped || groupGuard.stopped))
     }
     // Gather does not record when somebody last wrote.
     return { contract: PORTAL_CONTRACT, lastActiveAt: null, counts }

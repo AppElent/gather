@@ -376,7 +376,6 @@ export function MealPlannerScreen() {
       .finally(() => setRegenerating(null))
   }
   const onPlanned = (outcome: PlanOutcome) => {
-    setSheet(null)
     if (outcome.status === 'empty') showToast({ message: words.plan.empty })
     // Nothing fitted: the open proposal, if any, stays as it was.
     else if (outcome.count === 0) showToast({ message: words.plan.nothingFits })
@@ -716,10 +715,7 @@ export function MealPlannerScreen() {
               replacing: sheet.replacing,
             })
           }
-          onSaved={(message) => {
-            setSheet(null)
-            showToast({ message })
-          }}
+          onSaved={(message) => showToast({ message })}
         />
       ) : null}
       {data && sheet?.kind === 'groceries' ? (

@@ -15,8 +15,8 @@
  * - **A draft survives a close**: per account, Group and place, in memory
  *   (`ui/composer-drafts.ts`).
  *
- * Grocery lists keep their inline composer (APP-311, APP-524) and are not
- * offered here; linked lists are never offered (ADR-0021).
+ * Grocery lists have a composer of their own (`GroceryComposer.tsx`, APP-664)
+ * and are not offered here; linked lists are never offered (ADR-0021).
  */
 import { useAuth } from '@clerk/expo'
 import { DateTimePicker } from '@expo/ui/community/datetime-picker'
@@ -172,6 +172,7 @@ export function AddTask({ place, preset, sectionId }: AddTaskProps) {
       ) : null}
       {repeatFor ? (
         <RepeatSheet
+          place={place}
           task={{ repeat: repeatFor.repeat, dueDate: repeatFor.dueDate }}
           onSave={(rule) => {
             const draft = keptDraft<TaskDraft>(key) ?? emptyDraft(withLast)
