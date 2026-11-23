@@ -125,8 +125,13 @@ export function RecipesPage() {
                 </button>
               ) : null}
             </label>
+            <div className="ml-auto">
+              <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+            </div>
+            {/* Their own line: one that scrolls sideways on a phone, and as many
+                as they need from lg. */}
             {tags.length > 0 ? (
-              <fieldset className="m-0 flex min-w-0 flex-wrap gap-2 border-0 p-0">
+              <fieldset className="m-0 flex min-w-0 basis-full gap-2 overflow-x-auto border-0 p-0.5 lg:flex-wrap">
                 <legend className="sr-only">{list.tagFilter}</legend>
                 {['', ...tags].map((name) => {
                   const on = name === tag
@@ -136,7 +141,7 @@ export function RecipesPage() {
                       type="button"
                       aria-pressed={on}
                       onClick={() => setPickedTag(name)}
-                      className={`inline-flex min-h-9 items-center rounded-[var(--radius-pill)] px-3.5 text-subhead font-semibold ${
+                      className={`inline-flex min-h-9 shrink-0 items-center rounded-[var(--radius-pill)] px-3.5 text-subhead font-semibold ${
                         on
                           ? 'bg-[var(--ink)] text-[var(--on-ink)]'
                           : 'bg-[var(--surface)] text-[var(--ink)] hover:bg-[var(--surface-2)]'
@@ -148,9 +153,6 @@ export function RecipesPage() {
                 })}
               </fieldset>
             ) : null}
-            <div className="ml-auto">
-              <ViewModeToggle mode={viewMode} onChange={setViewMode} />
-            </div>
           </div>
 
           {shown.length === 0 ? (
