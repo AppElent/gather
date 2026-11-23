@@ -148,9 +148,10 @@ export const setMemberDefault = mutation({
 })
 
 /**
- * Switch one item of a safety list on or off, reading the list inside the
- * transaction. Two Members adding two allergens at once both keep theirs,
- * which a whole-list write could not promise.
+ * Change one item (a list entry, a slot's day or switch, one day's cooking
+ * time, one smart switch), reading the row inside the transaction. Two Members
+ * adding two allergens at once both keep theirs, which a whole-list write could
+ * not promise.
  */
 async function changeList(
   ctx: MutationCtx,
