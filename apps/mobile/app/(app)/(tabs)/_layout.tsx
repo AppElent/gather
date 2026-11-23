@@ -125,6 +125,10 @@ export default function TabsLayout() {
  */
 function SearchOriginTracker() {
   const pathname = usePathname()
-  useEffect(() => rememberSearchOrigin(pathname), [pathname])
+  const { group } = useGroup()
+  useEffect(
+    () => rememberSearchOrigin(pathname, group.slug),
+    [pathname, group.slug],
+  )
   return null
 }

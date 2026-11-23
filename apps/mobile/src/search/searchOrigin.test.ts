@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { originTabFor, searchModuleFor } from './searchOrigin'
+import { initialFilters, withModule } from './searchFilters'
+import { filtersOnArrival, originTabFor, searchModuleFor } from './searchOrigin'
 
 describe('Reading a tab out of a pathname', () => {
   test('takes the first segment, however deep the page', () => {
@@ -74,40 +75,65 @@ describe('Remembering it', () => {
       './searchOrigin'
     )
 
-    rememberSearchOrigin('/all/recipes/abc')
+    rememberSearchOrigin('/all/recipes/abc', 'home')
     expect(searchOrigin()).toBe('all')
 
-    rememberSearchOrigin('/search')
+    rememberSearchOrigin('/search', 'home')
     expect(searchOrigin()).toBe('all')
   })
 
-  test('each page outside Search is a new arrival carrying its Module', async () => {
-    const { rememberSearchOrigin, searchArrival } = await import(
+  test('remembers the Module of the last page outside Search, per Group', async () => {
+    const { rememberSearchOrigin, searchOriginModule } = await import(
       './searchOrigin'
     )
-    expect(searchArrival()).toEqual({ visit: 0, module: null })
+    expect(searchOriginModule('home')).toBeNull()
 
-    rememberSearchOrigin('/all/loyalty-cards')
-    const first = searchArrival()
-    expect(first.module).toBe('loyalty-cards')
+    rememberSearchOrigin('/all/loyalty-cards/card', 'home')
+    expect(searchOriginModule('home')).toBe('loyalty-cards')
 
-    rememberSearchOrigin('/all/loyalty-cards/card')
-    expect(searchArrival().module).toBe('loyalty-cards')
-    expect(searchArrival().visit).toBeGreaterThan(first.visit)
+    rememberSearchOrigin('/search', 'home')
+    rememberSearchOrigin('/search/notes/abc', 'home')
+    expect(searchOriginModule('home')).toBe('loyalty-cards')
 
-    rememberSearchOrigin('/home')
-    expect(searchArrival().module).toBeNull()
+    rememberSearchOrigin('/home', 'home')
+    expect(searchOriginModule('home')).toBeNull()
   })
 
-  test('Search itself is not an arrival, so a tap while on it changes nothing', async () => {
-    const { rememberSearchOrigin, searchArrival } = await import(
+  test('a Module remembered in another Group answers All', async () => {
+    const { rememberSearchOrigin, searchOriginModule } = await import(
       './searchOrigin'
     )
-    rememberSearchOrigin('/all/tasting/wine')
-    const before = searchArrival()
+    rememberSearchOrigin('/all/tasting/wine', 'old-group')
+    expect(searchOriginModule('old-group')).toBe('wines')
+    // Removed from the Group while on Search: Search remounts in the fallback.
+    expect(searchOriginModule('new-group')).toBeNull()
+  })
+})
 
-    rememberSearchOrigin('/search')
-    rememberSearchOrigin('/search/notes/abc')
-    expect(searchArrival()).toEqual(before)
+describe('The filters after a tap on the Search tab (APP-660)', () => {
+  const typed = { ...initialFilters('tasks'), status: 'done' as const, who: 'sam' }
+
+  test('coming from another Module selects it and keeps the rest', () => {
+    expect(filtersOnArrival(typed, 'tasks', 'loyalty-cards')).toEqual({
+      module: 'loyalty-cards',
+      who: 'sam',
+      when: null,
+      status: null,
+    })
+  })
+
+  test('coming from Home after a Module goes back to All Modules', () => {
+    expect(filtersOnArrival(typed, 'tasks', null).module).toBeNull()
+  })
+
+  test('a Module chosen by hand survives a round trip to the same Module', () => {
+    // Opened from Tasks, then Notes chosen by hand.
+    const chosen = withModule(initialFilters('tasks'), 'notes')
+    expect(filtersOnArrival(chosen, 'tasks', 'tasks')).toBe(chosen)
+  })
+
+  test('a chip cleared by hand stays cleared on a tap while on Search', () => {
+    const cleared = withModule(initialFilters('wines'), null)
+    expect(filtersOnArrival(cleared, 'wines', 'wines')).toBe(cleared)
   })
 })

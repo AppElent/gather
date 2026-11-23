@@ -65,7 +65,11 @@ import {
   withModule,
 } from './searchFilters'
 import { onSearchFocusRequest } from './searchFocus'
-import { searchArrival, searchOrigin } from './searchOrigin'
+import {
+  filtersOnArrival,
+  searchOrigin,
+  searchOriginModule,
+} from './searchOrigin'
 import {
   hrefFor,
   type QueryResult,
@@ -166,12 +170,13 @@ export function SearchScreen({
   const searchRef = useRef<SearchBarCommands>(null)
   const [text, setText] = useState('')
   // The tab starts on the Module you came from (APP-660); a pushed search on
-  // its preset. `applied` is the arrival the filter already answers, so a
-  // later tap on the tab only moves the Module when you have been elsewhere.
+  // its preset. `applied` is the origin Module the filter was last set from,
+  // so a later tap on the tab only moves the filter when you come from a
+  // different place, and a Module chosen by hand survives a round trip.
   const [filters, setFilters] = useState<SearchFilters>(() =>
-    initialFilters(pushed ? (preset ?? null) : searchArrival().module),
+    initialFilters(pushed ? (preset ?? null) : searchOriginModule(group.slug)),
   )
-  const applied = useRef(pushed ? null : searchArrival().visit)
+  const applied = useRef(pushed ? null : searchOriginModule(group.slug))
   const [choosingModule, setChoosingModule] = useState(false)
   const [recents, setRecents] = useState(readRecentRecords)
   const [expanded, setExpanded] = useState(false)
@@ -275,17 +280,17 @@ export function SearchScreen({
     if (pushed) return
     return onSearchFocusRequest(() => {
       setRecents(readRecentRecords())
-      // Arriving from a Module selects it; from Home, Settings or the All
-      // grid, All Modules. Tapping the tab while already on Search keeps the
-      // Module the person chose. The query is kept either way.
-      const { visit, module } = searchArrival()
-      if (visit !== applied.current) {
-        applied.current = visit
-        setFilters((current) => withModule(current, module))
-      }
+      // Arriving from another Module selects it; from Home, Settings or the
+      // All grid, All Modules. From the same place as last time, or tapping
+      // the tab while already on Search, keeps the Module the person chose.
+      // The query is kept either way.
+      const from = searchOriginModule(group.slug)
+      const before = applied.current
+      applied.current = from
+      setFilters((current) => filtersOnArrival(current, before, from))
       searchRef.current?.focus()
     })
-  }, [pushed])
+  }, [pushed, group.slug])
 
   const clear = () => {
     setText('')

@@ -24,8 +24,10 @@ import { isTastingKind } from '@gather/core/tastings'
 import type { ShellTab } from '../shell/tabs'
 import {
   isSearchModule,
+  type SearchFilters,
   type SearchModuleId,
   searchModuleOfKind,
+  withModule,
 } from './searchFilters'
 
 /** The tabs you can be standing on. `add` opens a sheet and is never a page. */
@@ -69,27 +71,40 @@ export function searchModuleFor(pathname: string): SearchModuleId | null {
 let origin: OriginTab | null = null
 
 /**
- * The page you were on outside Search, as the Search tab reads it on the way
- * in: its Module (APP-660) and a count that moves with every page.
- *
- * The count is what tells "you came back" from "you tapped Search again while
- * on it": the Search stack stays mounted, and a Module the person chose by
- * hand is only replaced on a fresh arrival, even one from the same Module.
+ * The Module of the page you were last on outside Search, and the Group it
+ * belongs to (APP-660). The Search tab reads it on the way in; a Module
+ * remembered in another Group answers `null`, so a Group switch or fallback
+ * that remounts Search does not carry the old Group's Module across.
  */
-export type SearchArrival = { visit: number; module: SearchModuleId | null }
-
-let arrival: SearchArrival = { visit: 0, module: null }
+let originModule: { module: SearchModuleId | null; groupSlug: string } | null =
+  null
 
 /** Ignores `/search` itself, so entering search does not erase where you were. */
-export function rememberSearchOrigin(pathname: string) {
+export function rememberSearchOrigin(pathname: string, groupSlug: string) {
   const tab = originTabFor(pathname)
   if (!tab) return
   origin = tab
-  arrival = { visit: arrival.visit + 1, module: searchModuleFor(pathname) }
+  originModule = { module: searchModuleFor(pathname), groupSlug }
 }
 
-export function searchArrival(): SearchArrival {
-  return arrival
+/** The Module the Search tab should start on in this Group, or All (`null`). */
+export function searchOriginModule(groupSlug: string): SearchModuleId | null {
+  return originModule?.groupSlug === groupSlug ? originModule.module : null
+}
+
+/**
+ * The filters after a tap on the Search tab (APP-660). `applied` is the origin
+ * Module they were last set from: coming from a different one (All counts as
+ * one) selects it, keeping the query and the shared filters; coming from the
+ * same one, or tapping while already on Search, keeps whatever the person
+ * chose since.
+ */
+export function filtersOnArrival(
+  filters: SearchFilters,
+  applied: SearchModuleId | null,
+  from: SearchModuleId | null,
+): SearchFilters {
+  return from === applied ? filters : withModule(filters, from)
 }
 
 export function searchOrigin(): OriginTab {
