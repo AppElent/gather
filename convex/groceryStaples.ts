@@ -6,6 +6,7 @@
 
 import { GROCERY_AISLES } from '@gather/core/groceries'
 import { ConvexError, v } from 'convex/values'
+import type { Id } from './_generated/dataModel'
 import { mutation, query } from './_generated/server'
 import { recentListItems, recogniseGroceryTitle } from './lib/groceryCategories'
 import {
@@ -60,10 +61,24 @@ export const list = query({
 /**
  * A new staple, in stock. A name the Group already keeps answers the staple
  * it has, so a double tap or a second Member adds nothing twice.
+ *
+ * With `report` it answers whether this call made the row, so an undo takes
+ * back only its own (APP-671). Without it, as installed apps call it, it
+ * answers the id alone.
  */
 export const add = mutation({
-  args: { groupSlug: v.string(), name: v.string() },
+  args: {
+    groupSlug: v.string(),
+    name: v.string(),
+    report: v.optional(v.boolean()),
+  },
+  returns: v.union(
+    v.id('groceryStaples'),
+    v.object({ id: v.id('groceryStaples'), created: v.boolean() }),
+  ),
   handler: async (ctx, args) => {
+    const answer = (id: Id<'groceryStaples'>, created: boolean) =>
+      args.report ? { id, created } : id
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
     const name = args.name.trim()
     if (!name || name.length > STAPLE_NAME_MAX)
@@ -71,7 +86,7 @@ export const add = mutation({
     const key = stapleKey(name)
     if (!key) throw new ConvexError('That is not a name')
     const existing = await findStaple(ctx, group._id, key)
-    if (existing) return existing._id
+    if (existing) return answer(existing._id, false)
     const list = await writableGroceryList(ctx, group)
     const { aisle } = await recogniseGroceryTitle(
       ctx,
@@ -79,7 +94,7 @@ export const add = mutation({
       name,
       list ? await recentListItems(ctx, list._id) : [],
     )
-    return await ctx.db.insert('groceryStaples', {
+    const id = await ctx.db.insert('groceryStaples', {
       groupId: group._id,
       name,
       key,
@@ -87,6 +102,7 @@ export const add = mutation({
       low: false,
       createdBy: user._id,
     })
+    return answer(id, true)
   },
 })
 

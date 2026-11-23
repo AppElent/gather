@@ -20,7 +20,7 @@ import {
   roundGroceryQuantity,
   stepGroceryQuantity,
 } from '@gather/core/groceries'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
@@ -30,7 +30,7 @@ import { UI_ICONS } from '../../theme/icons'
 import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
 import { useAisleOf } from '../kitchen/add-to-groceries/use-aisles'
-import { useTaskActions } from './store'
+import { useTaskActions, type WholeAmount } from './store'
 import type { Task } from './types'
 
 /** How long typing pauses before the composer asks the list for an aisle. */
@@ -137,11 +137,31 @@ export function GroceryFields({
     [task.quantity, locale],
   )
 
+  const shown = useRef(task)
+  shown.current = task
+  // The last amount written, until it settles: a quick second tap follows it,
+  // not the row, which may still show the one before.
+  const sent = useRef<WholeAmount | null>(null)
+
+  /** Over the amount it was chosen from; another Member's change stands. */
   const write = (quantity: number | null, unit: GroceryUnit | null) => {
     haptics.selectionChanged()
+    const to = { quantity, unit }
+    const expected = sent.current ?? {
+      quantity: task.quantity ?? null,
+      unit: task.unit ?? null,
+    }
+    sent.current = to
     actions
-      .setAmount(task.id, quantity, unit)
-      .catch(() => haptics.actionFailed())
+      .setAmount(task.id, to, expected)
+      .catch(() => {
+        haptics.actionFailed()
+        if (sent.current === to)
+          setDraft(amountDraft(shown.current.quantity, locale))
+      })
+      .finally(() => {
+        if (sent.current === to) sent.current = null
+      })
   }
 
   // What the field holds now, typed but maybe not yet committed: a step or a

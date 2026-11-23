@@ -35,8 +35,11 @@ const state = vi.hoisted(() => ({
   alerts: [] as { title: string; buttons: AlertButton[] }[],
   fresh: [] as string[],
   completions: null as null | Record<string, unknown>,
-  staples: [] as { _id: string }[] | undefined,
   stapleId: undefined as string | undefined,
+  /** The staples the Group has: an add of one of these makes nothing. */
+  stapleIds: new Set<string>(),
+  /** The open item's amount on the server. */
+  amount: { quantity: 1, unit: 'pak' },
   detailsRetry: undefined as undefined | (() => Promise<unknown>),
   server: new Map<string, string>(),
   focusBody: 0,
@@ -82,10 +85,6 @@ vi.mock('expo-router', () => ({
   useRouter: () => ({ push: (to: unknown) => state.pushed.push(to) }),
 }))
 vi.mock('@clerk/expo', () => ({ useAuth: () => ({ userId: 'user' }) }))
-vi.mock('../../convex/api', () => ({ api: { groceryStaples: { list: 'list' } } }))
-vi.mock('../../convex/queries', () => ({
-  useQuery: () => (state.staples ? { staples: state.staples } : undefined),
-}))
 vi.mock('../../feedback/haptics', () => ({
   haptics: new Proxy({}, { get: () => () => {} }),
 }))
@@ -200,6 +199,13 @@ vi.mock('./quickAdd', () => ({
     lists.find((list) => list._id === id) ?? lists[0],
 }))
 vi.mock('./groceryList', () => ({ groceryListsOf: (lists: unknown) => lists }))
+/** Made by the first add that asks for it, as the server reports it. */
+const addedStaple = () => {
+  if (!state.stapleId) return undefined
+  const created = !state.stapleIds.has(state.stapleId)
+  state.stapleIds.add(state.stapleId)
+  return { id: state.stapleId, created }
+}
 vi.mock('./store', () => ({
   useTaskLists: () => state.lists,
   useTaskList: (id: string) => ({
@@ -217,11 +223,11 @@ vi.mock('./store', () => ({
       if (state.fail) throw new Error('offline')
       return {
         taskId: `task-${key}`,
-        stapleId: state.stapleId,
+        staple: addedStaple(),
         retry: state.detailsRetry,
       }
     },
-    addStaple: async () => state.stapleId,
+    addStaple: async () => addedStaple(),
     removeStaple: async (id: string) => {
       state.staplesRemoved.push(id)
     },
@@ -229,10 +235,21 @@ vi.mock('./store', () => ({
       if (state.undoFails) throw new Error('offline')
       state.deleted.push(id)
     },
-    setAmount: async (...args: unknown[]) => {
+    // The server's side: what the item has when the write runs.
+    addAmount: async (id: string, more: { quantity?: number }) => {
       if (state.hold) await state.hold
       if (state.amountFails) throw new Error('offline')
-      state.amounts.push(args)
+      const from = state.amount
+      state.amount = { ...from, quantity: from.quantity + (more.quantity ?? 1) }
+      state.amounts.push([id, state.amount.quantity, state.amount.unit])
+      return { from, to: state.amount }
+    },
+    setAmount: async (id: string, to: typeof state.amount, expected: unknown) => {
+      if (state.hold) await state.hold
+      if (JSON.stringify(expected) !== JSON.stringify(state.amount))
+        throw { data: { kind: 'tasks:amount-changed' } }
+      state.amount = to
+      state.amounts.push([id, to.quantity, to.unit])
     },
     setNotes: async (...args: unknown[]) => {
       if (state.notesFail) throw new Error('offline')
@@ -264,8 +281,9 @@ beforeEach(() => {
     alerts: [],
     fresh: [],
     completions: null,
-    staples: [],
     stapleId: undefined,
+    stapleIds: new Set<string>(),
+    amount: { quantity: 1, unit: 'pak' },
     detailsRetry: undefined,
     focusBody: 0,
     pushed: [],
@@ -450,7 +468,7 @@ test('undo takes back the last item, then the one before it', async () => {
 })
 
 test('undo removes a staple only when this save made it', async () => {
-  state.staples = [{ _id: 'old' }]
+  state.stapleIds.add('old')
   state.stapleId = 'old'
   const { type, menu, enter, press } = open()
   type('melk')
@@ -719,7 +737,8 @@ test("another Member's amount stands when a merge is undone", async () => {
   const { type, press } = open()
   type('2 pak me')
   await pickMelk()
-  state.tasks = [{ ...melk(), quantity: 7 }]
+  // The row still shows ours: the server refuses, and theirs stands.
+  state.amount = { quantity: 7, unit: 'pak' }
   type('k')
   await press('grocery-undo')
   expect(state.amounts).toHaveLength(1)
@@ -789,7 +808,6 @@ test('a second undo of one item waits for the first', async () => {
 })
 
 test('a staple two saves share goes with the first of them', async () => {
-  // The staples on screen are still the ones from before both.
   state.stapleId = 'shared'
   const { type, menu, enter, press } = open()
   for (let time = 0; time < 2; time += 1) {
@@ -801,4 +819,29 @@ test('a staple two saves share goes with the first of them', async () => {
   expect(state.staplesRemoved).toEqual([])
   await press('grocery-undo')
   expect(state.staplesRemoved).toEqual(['shared'])
+})
+
+test('a merge adds to what another Member just made it', async () => {
+  state.tasks = [melk()]
+  // Not on the row yet.
+  state.amount = { quantity: 4, unit: 'pak' }
+  const { type, press } = open()
+  type('2 pak me')
+  await pickMelk()
+  expect(state.amounts).toEqual([['open', 6, 'pak']])
+  await press('grocery-undo')
+  expect(state.amounts.at(-1)).toEqual(['open', 4, 'pak'])
+})
+
+test('undo keeps a staple another Member added at the same moment', async () => {
+  // Not on screen when the save went, and not made by it.
+  state.stapleId = 'theirs'
+  state.stapleIds.add('theirs')
+  const { type, menu, enter, press } = open()
+  type('melk')
+  await menu('more:staple')
+  await enter()
+  await press('grocery-undo')
+  expect(state.deleted).toHaveLength(1)
+  expect(state.staplesRemoved).toEqual([])
 })

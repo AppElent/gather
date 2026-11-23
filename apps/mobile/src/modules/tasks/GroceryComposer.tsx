@@ -18,13 +18,13 @@
 import { useAuth } from '@clerk/expo'
 import type { MenuAction } from '@expo/ui/community/menu'
 import {
-  addGroceryAmounts,
   capitalise,
   GROCERY_AISLES,
   type GroceryUnit,
   groceryLineText,
   isGroceryAisle,
 } from '@gather/core/groceries'
+import { readTaskRefusal } from '@gather/core/refusals'
 import { useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -36,8 +36,6 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { api } from '../../convex/api'
-import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
@@ -80,10 +78,12 @@ import { TASK_ICONS } from './icons'
 import { QuickAddInput } from './QuickAddParts'
 import { quickAddTarget } from './quickAdd'
 import {
+  type AddedStaple,
   type GroceryDetails,
   useTaskActions,
   useTaskList,
   useTaskLists,
+  type WholeAmount,
 } from './store'
 import type { Task } from './types'
 
@@ -187,17 +187,9 @@ interface Rows {
   undoLoaded: boolean
 }
 
-const amountKey = (quantity?: number, unit?: GroceryUnit) =>
-  JSON.stringify([quantity ?? null, unit ?? null])
-
-function amountFrom(key: string): { quantity?: number; unit?: GroceryUnit } {
-  const [quantity, unit] = JSON.parse(key) as [number | null, GroceryUnit | null]
-  return { quantity: quantity ?? undefined, unit: unit ?? undefined }
-}
-
 /**
  * This opening's writes to open items. One item's go one after another, and a
- * value written stands until the list shows it: the row may be a moment behind.
+ * note written stands until the list shows it: the row may be a moment behind.
  */
 class OpenItemWrites {
   private tails = new Map<string, Promise<unknown>>()
@@ -244,14 +236,12 @@ function GroceryComposerCard({
 }) {
   const tokens = useTokens('kitchen')
   const { t } = useI18n()
-  const { group } = useGroup()
   const words = t.composer
   const own = words.grocery
   const g = t.tasks.grocery
   const actions = useTaskActions()
   const amountText = useGroceryAmountText()
   const lists = useTaskLists()
-  const staples = useQuery(api.groceryStaples.list, { groupSlug: group.slug })?.staples
 
   const [draft, setDraft] = useState<GroceryDraft>(
     () => keptDraft<GroceryDraft>(draftId) ?? emptyGroceryDraft(),
@@ -328,25 +318,29 @@ function GroceryComposerCard({
   }
   const [writes] = useState(() => new OpenItemWrites())
   const undoing = useRef(new Set<string>())
-  // Staples saves of this opening made: each is undone by the first of them.
-  const madeStaples = useRef(new Set<string>())
-  const claimStaple = (
-    id: GroceryDetails['stapleId'],
-    before: ReadonlySet<string> | undefined,
-  ) => {
-    if (!id || !before || before.has(id) || madeStaples.current.has(id))
-      return false
-    madeStaples.current.add(id)
-    return true
+  // The staples this opening's saves share, by which of them made each: undo
+  // takes one away with the last of its saves, and only if one of them made it.
+  const sharedStaples = useRef(
+    new Map<string, { created: boolean; saves: Set<string> }>(),
+  )
+  const noteStaple = (staple: AddedStaple, saveKey: string) => {
+    const shared = sharedStaples.current.get(staple.id)
+    sharedStaples.current.set(staple.id, {
+      created: staple.created || (shared?.created ?? false),
+      saves: new Set([...(shared?.saves ?? []), saveKey]),
+    })
   }
-  const dropStaple = async (id: NonNullable<GroceryDetails['stapleId']>) => {
-    await actions.removeStaple(id)
-    madeStaples.current.delete(id)
+  const dropStaple = async (id: AddedStaple['id'], saveKey: string) => {
+    const shared = sharedStaples.current.get(id)
+    if (!shared) return
+    shared.saves.delete(saveKey)
+    if (shared.saves.size > 0) return
+    if (shared.created) await actions.removeStaple(id)
+    sharedStaples.current.delete(id)
   }
   // Forgotten once the list shows it, so a later change back is believed.
   useEffect(() => {
     for (const task of rows.current.tasks) {
-      writes.now(`amount:${task.id}`, amountKey(task.quantity, task.unit))
       writes.now(`notes:${task.id}`, task.notes ?? '')
     }
   })
@@ -371,22 +365,22 @@ function GroceryComposerCard({
 
   /** A new item with everything chosen for it. */
   const saveNew = (to: string, saving: ComposedGrocery, saveKey: string): Saving => {
-    // Read before it is sent: undo takes back only a staple this save made.
-    const before = staples && new Set<string>(staples.map((staple) => staple._id))
     return {
       name: capitalise(saving.title),
       send: async () => {
         const saved = await actions.addComposedGrocery(to, saving, saveKey)
-        let made: GroceryDetails['stapleId']
-        const noteStaple = ({ stapleId }: GroceryDetails) => {
-          if (claimStaple(stapleId, before)) made = stapleId
+        let stapleId: AddedStaple['id'] | undefined
+        const keepStaple = ({ staple }: GroceryDetails) => {
+          if (!staple) return
+          noteStaple(staple, saveKey)
+          stapleId = staple.id
         }
-        noteStaple(saved)
+        keepStaple(saved)
         let deleted = false
         const retried = (retry: NonNullable<GroceryDetails['retry']>) => async () => {
           if (deleted) return undefined
           const again = await retry()
-          noteStaple(again)
+          keepStaple(again)
           if (again.retry) offerDetails(retried(again.retry))
           return undefined
         }
@@ -399,7 +393,7 @@ function GroceryComposerCard({
             undo: async () => {
               if (!deleted) await actions.deleteTask(saved.taskId)
               deleted = true
-              if (made) await dropStaple(made)
+              if (stapleId) await dropStaple(stapleId, saveKey)
             },
           },
         }
@@ -408,9 +402,9 @@ function GroceryComposerCard({
   }
 
   /**
-   * A completion that is open already: its amount, and what was chosen. What
-   * it adds to is read when it is sent, after the saves before it, so two
-   * quick picks add up.
+   * A completion that is open already: its amount, and what was chosen. The
+   * server adds it to what the item has then, so two quick picks, or another
+   * Member's, add up (APP-671).
    */
   const saveOnto = (
     pick: GroceryPick & { open: NonNullable<GroceryPick['open']> },
@@ -419,16 +413,8 @@ function GroceryComposerCard({
   ): Saving => {
     const { open: item } = pick
     const name = capitalise(pick.title)
-    const before = staples && new Set<string>(staples.map((staple) => staple._id))
     const rowNow = () => rows.current.tasks.find((task) => task.id === item.id)
-    const amountOf = (row: Task) =>
-      writes.now(`amount:${item.id}`, amountKey(row.quantity, row.unit))
     const notesOf = (row: Task) => writes.now(`notes:${item.id}`, row.notes ?? '')
-    const setAmount = async (from: string, to: string) => {
-      const { quantity, unit } = amountFrom(to)
-      await actions.setAmount(item.id, quantity ?? null, unit ?? null)
-      writes.wrote(`amount:${item.id}`, from, to)
-    }
     const setNotes = async (from: string, to: string) => {
       await actions.setNotes(item.id, to)
       writes.wrote(`notes:${item.id}`, from, to)
@@ -438,23 +424,17 @@ function GroceryComposerCard({
       send: () =>
         writes.queued(item.id, async () => {
           const did: {
-            amount?: { from: string; to: string }
+            amount?: { from: WholeAmount; to: WholeAmount }
             note?: { from: string; to: string }
-            staple?: GroceryDetails['stapleId']
+            staple?: AddedStaple['id']
           } = {}
           let undone = false
-          const from = amountOf(rowNow() ?? item)
-          const merged = pick.merged
-            ? addGroceryAmounts(amountFrom(from), {
-                quantity: saving.quantity,
-                unit: saving.unit,
-              })
-            : null
-          if (merged) {
-            const to = amountKey(merged.quantity, merged.unit)
-            await setAmount(from, to)
-            did.amount = { from, to }
-          }
+          if (pick.merged)
+            did.amount = await actions.addAmount(item.id, {
+              quantity: saving.quantity,
+              unit: saving.unit,
+            })
+          const merged = did.amount?.to
           /** Answers the details that did not save, to send only those again. */
           const details = async (wanted: { note?: string; staple?: boolean }) => {
             const addNote = async (note: string) => {
@@ -464,8 +444,9 @@ function GroceryComposerCard({
               did.note = { from: had, to }
             }
             const addStaple = async () => {
-              const id = await actions.addStaple(item.title)
-              if (claimStaple(id, before)) did.staple = id
+              const staple = await actions.addStaple(item.title)
+              noteStaple(staple, saveKey)
+              did.staple = staple.id
             }
             const [note, staple] = await Promise.allSettled([
               wanted.note ? addNote(wanted.note) : null,
@@ -498,7 +479,11 @@ function GroceryComposerCard({
               text: merged
                 ? fmt(own.merged, {
                     name,
-                    amount: amountText(merged.quantity, merged.unit) ?? '1',
+                    amount:
+                      amountText(
+                        merged.quantity ?? undefined,
+                        merged.unit ?? undefined,
+                      ) ?? '1',
                   })
                 : undefined,
               undo: async () => {
@@ -515,12 +500,17 @@ function GroceryComposerCard({
                 // In turn with this item's saves.
                 await writes.queued(item.id, async () => {
                   // Another Member may have changed it since: theirs stands.
-                  if (row && did.amount && amountOf(row) === did.amount.to)
-                    await setAmount(did.amount.to, did.amount.from)
+                  if (row && did.amount)
+                    await actions
+                      .setAmount(item.id, did.amount.from, did.amount.to)
+                      .catch((error) => {
+                        if (readTaskRefusal(error) !== 'amount-changed') throw error
+                      })
+                  did.amount = undefined
                   if (row && did.note && notesOf(row) === did.note.to)
                     await setNotes(did.note.to, did.note.from)
                 })
-                if (did.staple) await dropStaple(did.staple)
+                if (did.staple) await dropStaple(did.staple, saveKey)
               },
             },
           }
