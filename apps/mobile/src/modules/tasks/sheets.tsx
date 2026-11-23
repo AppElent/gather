@@ -33,7 +33,7 @@ import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { Chip, priorityColor } from './components'
 import { labelsWords } from './detailWords'
 import { TASK_ICONS } from './icons'
-import { useTaskActions, useTaskLists, useTaskState } from './store'
+import { useGroupLabels, useTaskActions, useTaskLists } from './store'
 import { weekendFrom } from './taskDates'
 import { type Priority, SUGGESTED_LABELS, type Task } from './types'
 
@@ -244,10 +244,9 @@ export function LabelsSheet({
 }) {
   const tokens = useTokens('home')
   const { t } = useI18n()
-  // Every task in the Group, because the suggestions are every word anybody
-  // has typed, and there is no label table to ask instead. Mounted only while
-  // the sheet is open.
-  const state = useTaskState()
+  // Every word anybody in the Group has typed, from one labels query rather
+  // than every list's rows (APP-565). Mounted only while the sheet is open.
+  const typed = useGroupLabels()
   const actions = useTaskActions()
   // A grocery item is an item, not a task (APP-557): the sheet asks the lists
   // which kind its task is on.
@@ -265,7 +264,7 @@ export function LabelsSheet({
   // few starters for a Group that has typed nothing yet.
   const elsewhere = Array.from(
     new Set([
-      ...state.tasks.flatMap((each) => each.labels),
+      ...typed,
       ...SUGGESTED_LABELS,
     ]),
   )

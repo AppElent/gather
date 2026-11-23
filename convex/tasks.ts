@@ -238,6 +238,66 @@ export const openCounts = query({
 })
 
 /**
+ * Which local list of the named Group holds a task, or null (APP-565): the
+ * task's detail screen subscribes to that list alone instead of every list in
+ * the Group. The id is a string because the screen also opens a linked list's
+ * task, whose id is the provider's and never a Convex id; that, a missing
+ * task and one in another Group's list are all null, so the answer cannot
+ * tell anyone a task exists elsewhere. The Group itself is refused first.
+ */
+export const listOf = query({
+  args: { groupSlug: v.string(), taskId: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const taskId = ctx.db.normalizeId('tasks', args.taskId)
+    const task = taskId && (await ctx.db.get(taskId))
+    if (!task) return null
+    const list = await ctx.db.get(task.listId)
+    return list?.groupId === group._id ? list._id : null
+  },
+})
+
+/**
+ * Every label typed on a task in the named Group's local lists, sorted and
+ * once each (APP-565): the Labels sheet's suggestions, in one subscription
+ * instead of one per list. A grocery list is read for its open items only
+ * (`by_list_and_done`), so its years of checked items never are. A linked
+ * list has no rows in Convex; the phone adds its last fetched labels.
+ */
+export const labels = query({
+  args: { groupSlug: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const lists = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const rows = await Promise.all(
+      lists
+        .filter((list) => list.provider === 'local')
+        .map((list) =>
+          isGroceryList(group, list)
+            ? ctx.db
+                .query('tasks')
+                .withIndex('by_list_and_done', (q) =>
+                  q.eq('listId', list._id).eq('done', false),
+                )
+                .collect()
+            : ctx.db
+                .query('tasks')
+                .withIndex('by_list', (q) => q.eq('listId', list._id))
+                .collect(),
+        ),
+    )
+    const found = new Set<string>()
+    for (const task of rows.flat()) {
+      for (const label of task.labels ?? []) found.add(label)
+    }
+    return Array.from(found).sort()
+  },
+})
+
+/**
  * The rows of a list, unauthorised — and safe to be, because its one caller is
  * `taskLists.getTasks`, which has already resolved the same list through
  * `requireInGroup` against the Group in the URL. Nothing else may call this;
