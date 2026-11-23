@@ -483,9 +483,9 @@ export async function computeEnergyRange(
 }
 
 /**
- * Net metering per month over the days given (a month so far): each costed
- * day under a contract with net metering gets its share of the month's
- * netting (`energyNetMetering`). Changes `days` in place.
+ * Net metering per month and contract over the days given (a month so far):
+ * each costed day under a contract with net metering gets its share of that
+ * contract's netting in the month (`energyNetMetering`). Changes `days` in place.
  */
 function netEachMonth(
   days: EnergyDay[],
@@ -497,7 +497,9 @@ function netEachMonth(
     if (!day.costWithoutNet || !contract || !netMeteringOn(contract, day.day)) {
       continue
     }
-    const key = day.day.slice(0, 7)
+    // Each contract settles its own days: a supplier switch mid-month nets
+    // the two parts apart.
+    const key = `${contract._id}:${day.day.slice(0, 7)}`
     months.set(key, [...(months.get(key) ?? []), day])
   }
   for (const netted of months.values()) {

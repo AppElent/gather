@@ -313,6 +313,26 @@ describe('net metering', () => {
     ).toBe(0)
   })
 
+  test('a supplier switch mid-month nets each contract on its own', async () => {
+    const { t, homeId } = await seedGreyAndSunny()
+    await t.run(async (ctx) => {
+      const site = await ctx.db
+        .query('energySites')
+        .withIndex('by_group', (q) => q.eq('groupId', homeId))
+        .first()
+      if (site) {
+        await insertContract(ctx, homeId, site._id, {
+          ...FIXED_TERMS,
+          validFrom: '2026-11-10',
+        })
+      }
+    })
+    const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
+    const sunny = month?.days.find((day) => day.day === '2026-11-10')
+    // The 10th's contract had no import to net against.
+    expect(sunny?.cost?.exportCents).toBe(-60)
+  })
+
   test('a day shows its share of the month, as the month does', async () => {
     const { t } = await seedGreyAndSunny()
     const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
