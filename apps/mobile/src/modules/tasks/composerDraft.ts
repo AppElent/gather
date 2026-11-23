@@ -25,7 +25,7 @@ import type {
   QuickAddPart,
 } from '@gather/core/task-quick-add'
 import { normalizeRepeat, type TaskRepeat } from '@gather/core/task-repeat'
-
+import { newSaveKey } from '../../ui/composer-drafts'
 import type { Priority } from './types'
 
 /** A reminder's wall clock on this phone; the zone is added when it saves. */
@@ -104,10 +104,6 @@ export function emptyDraft(preset: TaskPreset, saveKey = newSaveKey()): TaskDraf
   }
 }
 
-/** A key no other draft on this phone has; the server needs 8 to 100 characters. */
-export function newSaveKey(): string {
-  return `composer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
-}
 
 /**
  * After a save: empty and ready for the next one, on the same list, with the

@@ -47,7 +47,6 @@ export interface CalendarHeaderProps {
   /** A vertical header drag ended at `progress` (0 week, 1 month), moving at `velocity` points a second (positive is down). */
   onSettle: (progress: number, velocity: number) => void
   onView: (view: CalendarView) => void
-  onAdd: () => void
   onOpenCalendars: () => void
   onOpenPeople: () => void
   topInset?: number
@@ -265,7 +264,6 @@ const SPRING = {
 export function CalendarHeader(props: CalendarHeaderProps) {
   const { t, locale } = useI18n()
   const tokens = useTokens('home')
-  const Add = UI_ICONS.Plus
   const More = UI_ICONS.CircleEllipsis
   /** What the header shows, 0 week to 1 month: the finger's, then the spring's. */
   const shown = useSharedValue(props.progress)
@@ -486,15 +484,6 @@ export function CalendarHeader(props: CalendarHeaderProps) {
           <Text style={[styles.title, { color: tokens.ink }]}>{title}</Text>
         </Pressable>
         <View style={styles.actions}>
-          <Pressable
-            testID="calendar-new"
-            accessibilityRole="button"
-            accessibilityLabel={t.calendar.accessibility.add}
-            onPress={props.onAdd}
-            style={[styles.iconButton, { backgroundColor: tokens.surface2 }]}
-          >
-            <Add size={19} color={tokens.ink} />
-          </Pressable>
           <MenuView
             shouldOpenOnLongPress={false}
             actions={[

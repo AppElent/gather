@@ -1135,6 +1135,15 @@ export const en = {
     tryAgain: 'Try again',
     discard: 'Discard',
     ok: 'OK',
+    /** The add button on Calendar (APP-589), and the event's fields. */
+    addEvent: 'Add event',
+    eventTitle: 'What’s happening?',
+    eventNote: 'Note',
+    eventBody: 'Note: what to bring, address…',
+    /** An event's save failed while the composer still showed it. */
+    eventFailed: 'That event could not be saved. Try again.',
+    /** An event's save failed once the composer had moved on or closed. */
+    eventNotSaved: '“{title}” was not saved.',
   },
 
   /**

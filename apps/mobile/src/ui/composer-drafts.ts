@@ -16,6 +16,15 @@ const drafts = new Map<string, unknown>()
  */
 const pending = new Map<string, Promise<boolean>>()
 
+/**
+ * A key no other draft on this phone has, sent as a create's idempotency key
+ * so a draft saves one row however often it is sent. The server needs 8 to
+ * 100 characters.
+ */
+export function newSaveKey(): string {
+  return `composer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
+}
+
 export function draftKey(
   account: string | null | undefined,
   group: string,
