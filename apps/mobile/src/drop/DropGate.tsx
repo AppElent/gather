@@ -19,10 +19,17 @@
  * every tab stack — and each remount would re-push the chooser for a Drop
  * somebody is halfway through answering. Remembering *which arrival* was
  * already opened makes a replacement Drop reopen the chooser and a remount not.
+ *
+ * ## Sheets
+ *
+ * A `NativeSheet` is presented natively above the navigation stack, so a push
+ * lands behind it. An open sheet is closed first, the same way its own Close
+ * closes it (`openSheets.ts`), and the chooser is pushed once it is gone.
  */
 import { useRouter } from 'expo-router'
 import { useEffect, useRef } from 'react'
 
+import { closeOpenSheets, hasOpenSheets } from '../components/openSheets'
 import { useDrop } from './DropProvider'
 import { dropHref } from './paths'
 
@@ -34,7 +41,13 @@ export function DropGate() {
   useEffect(() => {
     if (!pending || pending.sequence === opened.current) return
     opened.current = pending.sequence
-    router.push(dropHref())
+    // A sheet is presented above the stack, so the chooser would open behind
+    // it (APP-618): close any that are up, as their Close does, then push.
+    if (!hasOpenSheets()) {
+      router.push(dropHref())
+      return
+    }
+    closeOpenSheets().then(() => router.push(dropHref()))
   }, [pending, router])
 
   return null
