@@ -140,27 +140,31 @@ export function GroceryFields({
   const shown = useRef(task)
   shown.current = task
   // The last amount written, until it settles: a quick second tap follows it,
-  // not the row, which may still show the one before.
-  const sent = useRef<WholeAmount | null>(null)
+  // not the row, which may still show the one before. It is sent once that
+  // write landed, and not at all when it was refused.
+  const sent = useRef<{ to: WholeAmount; done: Promise<unknown> } | null>(null)
 
   /** Over the amount it was chosen from; another Member's change stands. */
   const write = (quantity: number | null, unit: GroceryUnit | null) => {
     haptics.selectionChanged()
     const to = { quantity, unit }
-    const expected = sent.current ?? {
+    const before = sent.current
+    const expected = before?.to ?? {
       quantity: task.quantity ?? null,
       unit: task.unit ?? null,
     }
-    sent.current = to
-    actions
-      .setAmount(task.id, to, expected)
+    const send = () => actions.setAmount(task.id, to, expected)
+    const entry = { to, done: before ? before.done.then(send) : send() }
+    sent.current = entry
+    entry.done
       .catch(() => {
+        // One answer for a run of taps, from the last of them.
+        if (sent.current !== entry) return
         haptics.actionFailed()
-        if (sent.current === to)
-          setDraft(amountDraft(shown.current.quantity, locale))
+        setDraft(amountDraft(shown.current.quantity, locale))
       })
       .finally(() => {
-        if (sent.current === to) sent.current = null
+        if (sent.current === entry) sent.current = null
       })
   }
 

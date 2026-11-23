@@ -111,6 +111,28 @@ describe('staples', () => {
     expect([bobs.created, alices.created].sort()).toEqual([false, true])
   })
 
+  test('an undone staple stays when another Member marked it low', async () => {
+    const { t, as, asBob, groupId, bobId } = await seed()
+    await t.run((ctx) => seedMember(ctx, groupId, bobId, 'member'))
+    const undo = (id: Id<'groceryStaples'>) =>
+      as.mutation(api.groceryStaples.remove, {
+        groupSlug: SLUG,
+        id,
+        unlessLow: true,
+      })
+    const milk = await addStaple(as, 'Melk')
+    await undo(milk)
+    expect(await staple(t, milk)).toBeNull()
+    const bread = await addStaple(as, 'Brood')
+    await asBob.mutation(api.groceryStaples.setLow, {
+      groupSlug: SLUG,
+      id: bread,
+      low: true,
+    })
+    await undo(bread)
+    expect(await staple(t, bread)).toMatchObject({ low: true })
+  })
+
   test('a staple the Group had is reported as not made', async () => {
     const { as } = await seed()
     const id = await addStaple(as, 'Melk')

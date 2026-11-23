@@ -12,7 +12,7 @@ import { GroceryFields } from './GroceryFields'
 import type { Task } from './types'
 
 const state = vi.hoisted(() => ({
-  writes: [] as { to: unknown; expected: unknown; fail: () => void }[],
+  writes: [] as { to: unknown; expected: unknown; land: () => void; fail: () => void }[],
 }))
 
 vi.mock('react-native', async () => {
@@ -68,8 +68,13 @@ vi.mock('../kitchen/add-to-groceries/use-aisles', () => ({
 vi.mock('./store', () => ({
   useTaskActions: () => ({
     setAmount: (_id: string, to: unknown, expected: unknown) =>
-      new Promise<void>((_resolve, reject) => {
-        state.writes.push({ to, expected, fail: () => reject(new Error('changed')) })
+      new Promise<void>((resolve, reject) => {
+        state.writes.push({
+          to,
+          expected,
+          land: resolve,
+          fail: () => reject(new Error('changed')),
+        })
       }),
   }),
 }))
@@ -86,15 +91,19 @@ function open() {
   const find = (id: string) =>
     view.container.querySelector<HTMLElement>(`[data-testid="${id}"]`)!
   return {
+    clear: () => act(() => find('grocery-clear-amount').click()),
     more: () => act(() => find('grocery-increase').click()),
     shown: () => (find('grocery-quantity') as HTMLInputElement).value,
   }
 }
 
-test('a quick second step follows the first, though the row is behind', () => {
+test('a quick second step follows the first, though the row is behind', async () => {
   const { more } = open()
   more()
   more()
+  expect(state.writes).toHaveLength(1)
+  await act(async () => state.writes[0]!.land())
+  await settle()
   expect(state.writes.map(({ to, expected }) => [expected, to])).toEqual([
     [pak(1), pak(2)],
     [pak(2), pak(3)],
@@ -110,4 +119,14 @@ test('a refused step shows the amount there is, and the next starts from it', as
   expect(shown()).toBe('1')
   more()
   expect(state.writes[1]).toMatchObject({ expected: pak(1), to: pak(2) })
+})
+
+test('what followed a refused step is not sent: it could write over the other amount', async () => {
+  const { more, clear, shown } = open()
+  more()
+  clear()
+  await act(async () => state.writes[0]!.fail())
+  await settle()
+  expect(state.writes).toHaveLength(1)
+  expect(shown()).toBe('1')
 })

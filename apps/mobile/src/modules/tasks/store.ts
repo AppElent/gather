@@ -892,7 +892,8 @@ export function useTaskActions() {
 
   const addStaple = async (name: string): Promise<AddedStaple> => {
     const answer = await addStapleRow({ groupSlug, name, report: true })
-    // A server without `report` says nothing about who made it: not ours.
+    // Always the report when asked for one; an id alone says nothing of who
+    // made it, so it is not ours.
     return typeof answer === 'string' ? { id: answer, created: false } : answer
   }
 
@@ -1200,7 +1201,9 @@ export function useTaskActions() {
     },
     /** A name onto In stock, or the staple it already is (APP-314). */
     addStaple,
-    removeStaple: (id: Id<'groceryStaples'>) => removeStaple({ groupSlug, id }),
+    /** The undo of `addStaple`: one marked running low since stays. */
+    undoStaple: (id: Id<'groceryStaples'>) =>
+      removeStaple({ groupSlug, id, unlessLow: true }),
     /** A grocery list's "Maybe needed" strip on or off (APP-311). */
     setSuggestions: (listId: string, on: boolean) =>
       setSuggestions({ listId: listId as Id<'taskLists'>, groupSlug, on }),

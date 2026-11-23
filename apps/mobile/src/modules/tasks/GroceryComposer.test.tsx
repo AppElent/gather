@@ -228,7 +228,7 @@ vi.mock('./store', () => ({
       }
     },
     addStaple: async () => addedStaple(),
-    removeStaple: async (id: string) => {
+    undoStaple: async (id: string) => {
       state.staplesRemoved.push(id)
     },
     deleteTask: async (id: string) => {

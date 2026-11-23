@@ -335,7 +335,7 @@ function GroceryComposerCard({
     if (!shared) return
     shared.saves.delete(saveKey)
     if (shared.saves.size > 0) return
-    if (shared.created) await actions.removeStaple(id)
+    if (shared.created) await actions.undoStaple(id)
     sharedStaples.current.delete(id)
   }
   // Forgotten once the list shows it, so a later change back is believed.

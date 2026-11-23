@@ -125,11 +125,25 @@ export const setLow = mutation({
   },
 })
 
-/** No longer a staple. Whatever is on the grocery list stays there. */
+/**
+ * No longer a staple. Whatever is on the grocery list stays there. An undo of
+ * `add` says `unlessLow` (APP-671): a staple somebody marked running low since
+ * is in use, and stays.
+ */
 export const remove = mutation({
-  args: { groupSlug: v.string(), id: v.id('groceryStaples') },
+  args: {
+    groupSlug: v.string(),
+    id: v.id('groceryStaples'),
+    unlessLow: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id, NOT_FOUND)
+    const { doc: staple } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.id,
+      NOT_FOUND,
+    )
+    if (args.unlessLow && staple.low) return
     await ctx.db.delete(args.id)
   },
 })
