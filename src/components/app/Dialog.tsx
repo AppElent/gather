@@ -89,7 +89,7 @@ export function Dialog({
               type="button"
               aria-label={close}
               onClick={onClose}
-              className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-pill)] bg-[var(--surface-2)] text-[var(--ink)]"
+              className="grid size-8 pointer-coarse:size-[var(--size-control-min)] shrink-0 place-items-center rounded-[var(--radius-pill)] bg-[var(--surface-2)] text-[var(--ink)]"
             >
               <X className="size-3.5" strokeWidth={2.6} aria-hidden="true" />
             </button>

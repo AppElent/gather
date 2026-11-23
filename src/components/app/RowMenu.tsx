@@ -131,7 +131,7 @@ export function RowMenu({
         data-row-menu=""
         onClick={() => (open ? close(false) : show(0))}
         onKeyDown={onButtonKey}
-        className={`grid size-9 place-items-center rounded-[var(--radius-pill)] text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--ink)] focus-visible:opacity-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:opacity-100 ${
+        className={`grid size-9 pointer-coarse:size-[var(--size-control-min)] place-items-center rounded-[var(--radius-pill)] text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--ink)] focus-visible:opacity-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:opacity-100 ${
           open || alwaysVisible ? 'opacity-100' : 'opacity-0'
         }`}
       >

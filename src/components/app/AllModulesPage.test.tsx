@@ -105,6 +105,18 @@ describe('AllModulesPage', () => {
     expect(screen.queryByRole('button', { name: 'Move Tasks down' })).toBeNull()
   })
 
+  test('Reorder mode ends when only one pin is left', () => {
+    const { rerender } = renderInGroup(<AllModulesPage />)
+    reorder()
+    pins.value = ['recipes']
+    act(() => rerender(<AllModulesPage />))
+    expect(screen.queryByRole('button', { name: 'Move Recipes up' })).toBeNull()
+
+    pins.value = ['recipes', 'tasks']
+    act(() => rerender(<AllModulesPage />))
+    expect(screen.getByRole('button', { name: 'Reorder' })).toBeInTheDocument()
+  })
+
   test("a Module's row menu pins it", () => {
     renderInGroup(<AllModulesPage />)
     const menus = screen.getAllByRole('button', { name: /^Actions for / })

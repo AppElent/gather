@@ -51,7 +51,10 @@ export function AllModulesPage() {
   // What a screen reader says after a move: the arrow keeps focus, so
   // nothing else tells it the module went anywhere.
   const [announcement, setAnnouncement] = useState('')
-  const [reordering, setReordering] = useState(false)
+  const [reorderMode, setReorderMode] = useState(false)
+  // One pin has no order, and the Done button goes with the second one.
+  const reordering = reorderMode && pinned.length > 1
+  if (reorderMode && loaded && !reordering) setReorderMode(false)
   // The arrow to focus once a move lands a pin at an end, where the one just
   // pressed turns disabled and would drop focus to the page. The pins come
   // back from Convex, so this waits for the pressed arrow to turn disabled.
@@ -121,7 +124,7 @@ export function AllModulesPage() {
               <button
                 type="button"
                 className={buttonClass.small}
-                onClick={() => setReordering((on) => !on)}
+                onClick={() => setReorderMode((on) => !on)}
               >
                 {reordering ? allModules.reorderDone : allModules.reorder}
               </button>
