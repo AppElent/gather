@@ -290,7 +290,7 @@ describe('a year', () => {
 })
 
 /** A Home Assistant source with hourly import, export, solar and two batteries. */
-async function seedHourlySite(day: string) {
+async function seedHourlySite(day: string, terms: Contract = FIXED_TERMS) {
   const seeded = await seedEnergyGroups()
   const { t, homeId, aliceId } = seeded
   await t.run(async (ctx) => {
@@ -338,7 +338,7 @@ async function seedHourlySite(day: string) {
     await interval(solarId, noon, 2)
     await interval(socA, hours[0] as number, 40)
     await interval(socB, hours[0] as number, 60)
-    await insertContract(ctx, homeId, siteId, FIXED_TERMS)
+    await insertContract(ctx, homeId, siteId, terms)
   })
   return seeded
 }
@@ -371,6 +371,44 @@ describe('a day', () => {
       consumptionKwh: 13,
       costStatus: 'ok',
     })
+  })
+
+  test('a dynamic contract prices each hour, even when solar is only an estimate', async () => {
+    const { t } = await seedHourlySite('2026-11-10', DYNAMIC_TERMS)
+    await t.run(async (ctx) => {
+      // 0.10 a kWh in the night and morning, 0.30 from noon.
+      for (const [index, start] of amsterdamDayHours('2026-11-10').entries()) {
+        await ctx.db.insert('energyPrices', {
+          provider: 'energyzero',
+          carrier: 'electricity',
+          start,
+          minutes: 60,
+          eurPerUnit: index < 12 ? 0.1 : 0.3,
+        })
+      }
+      // More from the grid in the dear hours, so hour and day prices differ.
+      const noon = amsterdamDayHours('2026-11-10')[12] as number
+      for (const interval of await ctx.db.query('energyIntervals').collect()) {
+        if (interval.amount === 0.5 && interval.hourStart >= noon) {
+          await ctx.db.patch(interval._id, { amount: 1.5 })
+        }
+      }
+    })
+    const importCents = async () => {
+      const day = await t
+        .withIdentity(bob)
+        .query(api.energyUsage.day, { ...HOME, day: '2026-11-10' })
+      return day?.days[0]?.cost?.importCents
+    }
+    const hourly = await importCents()
+    await t.run(async (ctx) => {
+      // An estimate on a channel that is not grid import or export.
+      for (const interval of await ctx.db.query('energyIntervals').collect()) {
+        if (interval.amount === 2) await ctx.db.patch(interval._id, { estimated: true })
+      }
+    })
+    expect(hourly).toBeDefined()
+    expect(await importCents()).toBe(hourly)
   })
 
   test('on the day the clocks go back has 25 hours', async () => {

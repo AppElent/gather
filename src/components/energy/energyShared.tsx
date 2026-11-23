@@ -15,7 +15,7 @@ import { Link } from '@tanstack/react-router'
 import { useQueries } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { type ReactNode, useMemo } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, type Messages, useI18n } from '../../lib/i18n'
@@ -56,12 +56,32 @@ export const WASH =
 export const NUMERAL =
   'text-4xl font-extrabold leading-tight tabular-nums sm:text-5xl'
 
-/** Today in Amsterdam, which is the Group's calendar day (ADR-0040). */
+function readEnergyClock() {
+  const today = amsterdamIsoDate()
+  return { today, month: energyMonthOf(today), now: Date.now() }
+}
+
+/**
+ * Today in Amsterdam, which is the Group's calendar day (ADR-0040). It moves
+ * on at midnight and when the tab comes back, so a page left open overnight
+ * reaches the new day.
+ */
 export function useEnergyToday() {
-  return useMemo(() => {
-    const today = amsterdamIsoDate()
-    return { today, month: energyMonthOf(today), now: Date.now() }
+  const [clock, setClock] = useState(readEnergyClock)
+  useEffect(() => {
+    const refresh = () =>
+      setClock((current) => {
+        const next = readEnergyClock()
+        return next.today === current.today ? current : next
+      })
+    const timer = setInterval(refresh, 60_000)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', refresh)
+    }
   }, [])
+  return clock
 }
 
 /** The trail from Energy to a page below it. */

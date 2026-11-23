@@ -140,6 +140,8 @@ export function hasHourlySource(channels: readonly ChannelWithSource[]) {
 type Bucket = {
   hasData: boolean
   estimated: boolean
+  /** Only grid import and export: whether hourly pricing can be trusted. */
+  electricityEstimated: boolean
   importKwh: EnergyByTariff
   exportKwh: EnergyByTariff
   solar: number | null
@@ -154,6 +156,7 @@ function emptyBucket(): Bucket {
   return {
     hasData: false,
     estimated: false,
+    electricityEstimated: false,
     importKwh: { t1: 0, t2: 0, single: 0 },
     exportKwh: { t1: 0, t2: 0, single: 0 },
     solar: null,
@@ -173,6 +176,12 @@ function addTo(
 ) {
   bucket.hasData = true
   if (estimated) bucket.estimated = true
+  if (
+    estimated &&
+    (channel.kind === 'gridImport' || channel.kind === 'gridExport')
+  ) {
+    bucket.electricityEstimated = true
+  }
   const tariff = channel.tariff ?? 'single'
   switch (channel.kind) {
     case 'gridImport':
@@ -418,7 +427,7 @@ export async function computeEnergyRange(
     const dayStart = amsterdamDayStart(day)
     const dayEnd = amsterdamDayStart(addDays(day, 1))
     let hours: EnergyDayUse['hours']
-    if (contract.kind === 'dynamic' && hourlyChannels && !bucket.estimated) {
+    if (contract.kind === 'dynamic' && hourlyChannels && !bucket.electricityEstimated) {
       const priced: NonNullable<EnergyDayUse['hours']>[number][] = []
       for (let at = dayStart; at < dayEnd; at += HOUR_MS) {
         const hour = hourBuckets.get(at)
