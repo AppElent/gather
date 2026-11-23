@@ -204,3 +204,149 @@ describe('Group search for loyalty cards', () => {
     expect(results).toEqual([])
   })
 })
+
+describe('Group search narrowed to one Module (APP-613)', () => {
+  const carol = {
+    subject: 'search_carol',
+    name: 'Carol',
+    email: 'search-carol@example.com',
+  }
+
+  test('finds a recipe Shared into the Group, and not one whose share was withdrawn', async () => {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const carolId = await ctx.db.insert('users', {
+        clerkId: carol.subject,
+        name: carol.name,
+        email: carol.email,
+      })
+      const home = await seedGroup(ctx, {
+        name: 'Home',
+        slug: 'search-shared-home',
+        inviteCode: 'search-shared-home',
+      })
+      const club = await seedGroup(ctx, {
+        name: 'Club',
+        slug: 'search-shared-club',
+        inviteCode: 'search-shared-club',
+      })
+      await seedMember(ctx, home, carolId, 'admin')
+      const recipe = {
+        createdByUserId: carolId,
+        ingredients: [],
+        steps: [],
+        tags: [],
+      }
+      const shared = await ctx.db.insert('recipes', {
+        ...recipe,
+        groupId: club,
+        sharedGroupIds: [home],
+        title: 'Club lasagne',
+      })
+      // A share row that lags a withdrawn share names a recipe Home no
+      // longer sees.
+      const withdrawn = await ctx.db.insert('recipes', {
+        ...recipe,
+        groupId: club,
+        sharedGroupIds: [],
+        title: 'Club lasagne, withdrawn',
+      })
+      await ctx.db.insert('recipeShares', { recipeId: shared, groupId: home })
+      await ctx.db.insert('recipeShares', { recipeId: withdrawn, groupId: home })
+    })
+
+    const results = await t.withIdentity(carol).query(api.search.group, {
+      groupSlug: 'search-shared-home',
+      query: 'lasagne',
+      accepts: ['recipe'],
+    })
+    expect(results.map((result) => result.title)).toEqual(['Club lasagne'])
+  })
+
+  test('reads only the asked Kind, so other tasting Modules cannot crowd it out', async () => {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const carolId = await ctx.db.insert('users', {
+        clerkId: carol.subject,
+        name: carol.name,
+        email: carol.email,
+      })
+      const groupId = await seedGroup(ctx, {
+        name: 'Tastings',
+        slug: 'search-kinds',
+        inviteCode: 'search-kinds',
+      })
+      await seedMember(ctx, groupId, carolId, 'admin')
+      for (let index = 0; index < 40; index += 1)
+        await ctx.db.insert('tastingSubjects', {
+          groupId,
+          kind: 'beer',
+          name: `Rouge beer ${index}`,
+          attributes: {},
+          createdByUserId: carolId,
+        })
+      await ctx.db.insert('tastingSubjects', {
+        groupId,
+        kind: 'wine',
+        name: 'Rouge wine',
+        attributes: {},
+        createdByUserId: carolId,
+      })
+    })
+
+    const asCarol = t.withIdentity(carol)
+    const mixed = await asCarol.query(api.search.group, {
+      groupSlug: 'search-kinds',
+      query: 'rouge',
+      accepts: ['tasting'],
+    })
+    expect(mixed).toHaveLength(30)
+
+    const wines = await asCarol.query(api.search.group, {
+      groupSlug: 'search-kinds',
+      query: 'rouge',
+      accepts: ['tasting'],
+      kind: 'wine',
+    })
+    expect(wines).toMatchObject([{ title: 'Rouge wine', kind: 'wine' }])
+  })
+
+  test('reads past the shared budget when one Module is searched', async () => {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const carolId = await ctx.db.insert('users', {
+        clerkId: carol.subject,
+        name: carol.name,
+        email: carol.email,
+      })
+      const groupId = await seedGroup(ctx, {
+        name: 'Notes',
+        slug: 'search-many-notes',
+        inviteCode: 'search-many-notes',
+      })
+      await seedMember(ctx, groupId, carolId, 'admin')
+      await ctx.db.insert('notes', {
+        groupId,
+        title: 'Boiler manual',
+        body: '',
+        createdBy: carolId,
+        updatedAt: 1,
+      })
+      for (let index = 0; index < 220; index += 1)
+        await ctx.db.insert('notes', {
+          groupId,
+          title: `Note ${index}`,
+          body: '',
+          createdBy: carolId,
+          updatedAt: 1,
+        })
+    })
+
+    const results = await t.withIdentity(carol).query(api.search.group, {
+      groupSlug: 'search-many-notes',
+      query: 'boiler',
+      accepts: ['note'],
+    })
+    expect(results.map((result) => result.title)).toEqual(['Boiler manual'])
+  })
+})

@@ -1,12 +1,19 @@
 import { type Infer, v } from 'convex/values'
 
 import { query } from './_generated/server'
-import { requireGroupBySlug } from './lib/groupAccess'
+import { isVisibleToGroups, requireGroupBySlug } from './lib/groupAccess'
+import { tastingKindValidator } from './lib/tastings'
 
 const RESULT_LIMIT = 30
 const GROUP_RECORD_LIMIT = 200
 const PARENT_LIMIT = 20
 const CHILD_RECORD_LIMIT = 50
+/**
+ * A search narrowed to one Module (APP-613) reads only that Module's table, so
+ * it spends the budget the others would have used on its own records.
+ */
+const MODULE_RECORD_LIMIT = 500
+const MODULE_CHILD_RECORD_LIMIT = 150
 
 const resultTypeValidator = v.union(
   v.literal('recipe'),
@@ -95,6 +102,11 @@ export const group = query({
     query: v.string(),
     /** The result types this client can open; absent means the original five. */
     accepts: v.optional(v.array(resultTypeValidator)),
+    /**
+     * One tasting Kind, when the search is narrowed to that tasting Module
+     * (APP-613): Wines reads wines, so beers and cheeses cannot crowd it out.
+     */
+    kind: v.optional(tastingKindValidator),
   },
   returns: v.array(resultValidator),
   handler: async (ctx, args) => {
@@ -103,34 +115,89 @@ export const group = query({
     if (needle.length < 2) return []
     const accepts = new Set<ResultType>(args.accepts ?? ORIGINAL_TYPES)
 
-    const [recipes, notes, subjects, calendars, taskLists, loyaltyCards] = await Promise.all([
-      ctx.db
-        .query('recipes')
-        .withIndex('by_group', (q) => q.eq('groupId', group._id))
-        .take(GROUP_RECORD_LIMIT),
-      ctx.db
-        .query('notes')
-        .withIndex('by_group', (q) => q.eq('groupId', group._id))
-        .take(GROUP_RECORD_LIMIT),
-      ctx.db
-        .query('tastingSubjects')
-        .withIndex('by_group', (q) => q.eq('groupId', group._id))
-        .take(GROUP_RECORD_LIMIT),
-      ctx.db
-        .query('calendars')
-        .withIndex('by_group', (q) => q.eq('groupId', group._id))
-        .take(PARENT_LIMIT),
-      ctx.db
-        .query('taskLists')
-        .withIndex('by_group', (q) => q.eq('groupId', group._id))
-        .take(PARENT_LIMIT),
-      accepts.has('loyaltyCard')
-        ? ctx.db
-            .query('loyaltyCards')
-            .withIndex('by_group', (q) => q.eq('groupId', group._id))
-            .take(GROUP_RECORD_LIMIT)
-        : [],
-    ])
+    // Only the tables a type the caller asked for lives in are read, newest
+    // first, so the bound drops the oldest records rather than the newest.
+    const only = accepts.size === 1
+    const recordLimit = only ? MODULE_RECORD_LIMIT : GROUP_RECORD_LIMIT
+    const childLimit = only ? MODULE_CHILD_RECORD_LIMIT : CHILD_RECORD_LIMIT
+    const groupId = group._id
+    const none = Promise.resolve([])
+
+    const [recipes, shares, notes, subjects, calendars, taskLists, loyaltyCards] =
+      await Promise.all([
+        accepts.has('recipe')
+          ? ctx.db
+              .query('recipes')
+              .withIndex('by_group', (q) => q.eq('groupId', groupId))
+              .order('desc')
+              .take(recordLimit)
+          : none,
+        // Recipes Shared into the Group are in its collection too, so they
+        // are found here as well (`lib/recipeShares.ts`).
+        accepts.has('recipe')
+          ? ctx.db
+              .query('recipeShares')
+              .withIndex('by_group', (q) => q.eq('groupId', groupId))
+              .order('desc')
+              .take(recordLimit)
+          : none,
+        accepts.has('note')
+          ? ctx.db
+              .query('notes')
+              .withIndex('by_group', (q) => q.eq('groupId', groupId))
+              .order('desc')
+              .take(recordLimit)
+          : none,
+        accepts.has('tasting')
+          ? args.kind
+            ? ctx.db
+                .query('tastingSubjects')
+                .withIndex('by_group_kind', (q) =>
+                  q.eq('groupId', groupId).eq('kind', args.kind!),
+                )
+                .order('desc')
+                .take(recordLimit)
+            : ctx.db
+                .query('tastingSubjects')
+                .withIndex('by_group', (q) => q.eq('groupId', groupId))
+                .order('desc')
+                .take(recordLimit)
+          : none,
+        accepts.has('calendarEvent')
+          ? ctx.db
+              .query('calendars')
+              .withIndex('by_group', (q) => q.eq('groupId', groupId))
+              .take(PARENT_LIMIT)
+          : none,
+        accepts.has('task')
+          ? ctx.db
+              .query('taskLists')
+              .withIndex('by_group', (q) => q.eq('groupId', groupId))
+              .take(PARENT_LIMIT)
+          : none,
+        accepts.has('loyaltyCard')
+          ? ctx.db
+              .query('loyaltyCards')
+              .withIndex('by_group', (q) => q.eq('groupId', groupId))
+              .order('desc')
+              .take(recordLimit)
+          : none,
+      ])
+
+    // A share row re-checked against the recipe it names, so one that lags
+    // `sharedGroupIds` never shows a recipe the Group cannot see.
+    const sharedIn = (
+      await Promise.all(
+        [...new Set(shares.map((share) => share.recipeId))].map((id) =>
+          ctx.db.get(id),
+        ),
+      )
+    ).filter(
+      (recipe): recipe is NonNullable<typeof recipe> =>
+        recipe !== null &&
+        recipe.groupId !== groupId &&
+        isVisibleToGroups(recipe, [groupId]),
+    )
 
     const localLists = taskLists.filter((list) => list.provider === 'local')
     const [tasksByList, eventsByCalendar] = await Promise.all([
@@ -139,7 +206,8 @@ export const group = query({
           ctx.db
             .query('tasks')
             .withIndex('by_list', (q) => q.eq('listId', list._id))
-            .take(CHILD_RECORD_LIMIT)
+            .order('desc')
+            .take(childLimit)
             .then((tasks) => ({ list, tasks })),
         ),
       ),
@@ -148,14 +216,15 @@ export const group = query({
           ctx.db
             .query('calendarEvents')
             .withIndex('by_calendar', (q) => q.eq('calendarId', calendar._id))
-            .take(CHILD_RECORD_LIMIT)
+            .order('desc')
+            .take(childLimit)
             .then((events) => ({ calendar, events })),
         ),
       ),
     ])
 
     const results: SearchResult[] = [
-      ...recipes.flatMap((recipe) => {
+      ...[...recipes, ...sharedIn].flatMap((recipe) => {
         const found = matched(
           {
             id: recipe._id,

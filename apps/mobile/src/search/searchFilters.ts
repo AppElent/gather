@@ -64,6 +64,17 @@ export function searchModuleOfKind(kind: TastingKind): SearchModuleId {
   return MODULE_OF_KIND[kind]
 }
 
+/**
+ * The tasting Kind a Module stands for, sent with the search so one tasting
+ * Module's results are not crowded out of the 30 by the others'. Null for a
+ * Module that is not a tasting one, and for All.
+ */
+export function searchKindOf(module: SearchModuleId | null): TastingKind | null {
+  for (const [kind, each] of Object.entries(MODULE_OF_KIND))
+    if (each === module && isTastingKind(kind)) return kind
+  return null
+}
+
 /** The fields of a result or a recent the filters read. */
 export type FilterableRecord = {
   type: SearchRecordType

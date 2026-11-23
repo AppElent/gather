@@ -11,6 +11,8 @@ import {
   moduleFilters,
   moduleOf,
   narrowed,
+  type SearchModuleId,
+  searchKindOf,
   searchModuleOfKind,
   typesFor,
   withModule,
@@ -130,6 +132,12 @@ describe('searchModuleOfKind', () => {
   it('agrees with the catalogue’s Module for every Kind', () => {
     for (const [kind, spec] of Object.entries(TASTING_KIND_SPECS)) {
       expect(searchModuleOfKind(kind as TastingKind)).toBe(spec.moduleId)
+      expect(searchKindOf(spec.moduleId as SearchModuleId)).toBe(kind)
     }
+  })
+
+  it('names no Kind for a Module that is not a tasting one, or for All', () => {
+    expect(searchKindOf('tasks')).toBeNull()
+    expect(searchKindOf(null)).toBeNull()
   })
 })

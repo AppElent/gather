@@ -8,7 +8,13 @@
  */
 
 import { localIsoDate } from '@gather/core/civil-date'
-import { Stack, useNavigation, usePathname, useRouter } from 'expo-router'
+import {
+  Stack,
+  useIsFocused,
+  useNavigation,
+  usePathname,
+  useRouter,
+} from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Platform,
@@ -25,6 +31,7 @@ import { useQuery } from '../convex/queries'
 import { useGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
 import { moduleShown } from '../modules/buildModules'
+import { useHideTabBarWhile } from '../shell/tabBarVisibility'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import { ModuleTile, moduleTile } from '../ui/module-tile'
@@ -51,6 +58,7 @@ import {
   type SearchFilters,
   type SearchModuleId,
   STATUS_VALUES,
+  searchKindOf,
   searchModulesShown,
   typesFor,
   WHEN_VALUES,
@@ -62,6 +70,7 @@ import {
   hrefFor,
   type QueryResult,
   recordShown,
+  type SearchStack,
   toRecent,
 } from './searchResults'
 
@@ -91,6 +100,10 @@ type Navigator = {
   getState: () => { type?: string } | undefined
   getParent: () => Navigator | undefined
   navigate: (name: string) => void
+  addListener: (
+    event: 'transitionEnd',
+    listener: (event: { data: { closing: boolean } }) => void,
+  ) => () => void
 }
 
 /**
@@ -114,15 +127,25 @@ function tabNavigator(from: Navigator) {
 const ANY = 'any'
 
 /**
- * The one search screen (APP-613). The Search tab renders it with no preset
- * (All Modules); a Module's search button pushes it inside All's stack with
- * that Module preset. Everything the two share — the native bar, the filters,
- * the results, Recents — is here; what differs is where results open, what
- * Cancel does and the tab-only focus wiring.
+ * The one search screen (APP-613). The Search tab renders it in its own
+ * stack (All Modules); a Module's search button pushes it inside All's stack
+ * with that Module preset. Everything the two share — the native bar, the
+ * filters, the results, Recents — is here; what differs follows from `stack`:
+ * where results open, what Cancel does, the tab bar, and the tab-only focus
+ * wiring. The preset only seeds the Module filter.
  */
-export function SearchScreen({ preset }: { preset?: SearchModuleId } = {}) {
-  const pushed = preset !== undefined
-  const stack = pushed ? 'all' : 'search'
+export function SearchScreen({
+  stack,
+  preset,
+}: {
+  stack: SearchStack
+  preset?: SearchModuleId
+}) {
+  const pushed = stack === 'all'
+  // A pushed search is a mode over the Module, as on the tab: keyboard up,
+  // the field docked above it, no tab bar (`S613-2-InTaken`).
+  const focused = useIsFocused()
+  useHideTabBarWhile(pushed && focused)
   const { group } = useGroup()
   const { t } = useI18n()
   const words = t.search.filters
@@ -151,6 +174,8 @@ export function SearchScreen({ preset }: { preset?: SearchModuleId } = {}) {
           groupSlug: group.slug,
           query: debounced,
           accepts: typesFor(filters.module, moduleShown),
+          // Wines asks for wines, so beers and cheeses cannot take its 30 rows.
+          kind: searchKindOf(filters.module) ?? undefined,
         }
       : 'skip',
   )
@@ -160,6 +185,16 @@ export function SearchScreen({ preset }: { preset?: SearchModuleId } = {}) {
   const moduleLabel = filters.module
     ? t.modules.byId[filters.module].label
     : null
+
+  // A Member chosen under Who who has since left the Group: the menu no longer
+  // offers them, so the filter lets go of them too rather than narrowing by
+  // someone the chip cannot show. Adjusted during render, as `held` is below.
+  if (
+    filters.who !== null &&
+    members !== undefined &&
+    !members.some((member) => member.userId === filters.who)
+  )
+    setFilters((current) => ({ ...current, who: null }))
 
   const groupRecents = useMemo(
     () =>
@@ -190,13 +225,23 @@ export function SearchScreen({ preset }: { preset?: SearchModuleId } = {}) {
   const shown = results ?? held
 
   // Arriving from another tab. Selecting Search means asking to type, not to
-  // look at a screen. A pushed search focuses through `autoFocus` on mount.
+  // look at a screen.
   useEffect(() => {
     if (!pushed && pathname === '/search') {
       const frame = requestAnimationFrame(() => searchRef.current?.focus())
       return () => cancelAnimationFrame(frame)
     }
   }, [pathname, pushed])
+
+  // A pushed search was asked for with the magnifying glass, so it opens
+  // typing too. Its field lives in the bottom toolbar, which `autoFocus` does
+  // not reach, so it is focused once the push has landed.
+  useEffect(() => {
+    if (!pushed) return
+    return navigation.addListener('transitionEnd', (event) => {
+      if (!event.data.closing) searchRef.current?.focus()
+    })
+  }, [navigation, pushed])
 
   /**
    * The Search tab was tapped — from anywhere, including from Search itself.
@@ -480,12 +525,18 @@ export function SearchScreen({ preset }: { preset?: SearchModuleId } = {}) {
         restoring native behaviour afterwards is unsupported — a one-way door
         that only matters if you stay in the room, and we don't.
 
-        On the tab, `placement` is left at `automatic`, which is what
-        integrates the field into the bottom toolbar on iPhone. A pushed search
-        has no Search tab to dock into, and `automatic` draws no field there at
-        all, so it stacks the field under the title and keeps it shown. `cancelButtonText` is deprecated from
+        `placement` is left at `automatic`, which is what integrates the field
+        into the bottom toolbar on iPhone. `cancelButtonText` is deprecated from
         iOS 26, where the cancel button has no text at all; it is kept for iOS
         25 and below. */}
+      {/* Pushed in another tab there is no tab bar to hold the field, so the
+          screen gets a bottom toolbar with the search bar's slot in it: the
+          same docked field, above the keyboard (`S613-2-InTaken`). */}
+      {pushed ? (
+        <Stack.Toolbar placement="bottom">
+          <Stack.Toolbar.SearchBarSlot />
+        </Stack.Toolbar>
+      ) : null}
       <Stack.SearchBar
         ref={searchRef}
         placeholder={
@@ -495,8 +546,6 @@ export function SearchScreen({ preset }: { preset?: SearchModuleId } = {}) {
         }
         cancelButtonText={t.common.actions.cancel}
         autoFocus
-        placement={pushed ? 'stacked' : undefined}
-        hideWhenScrolling={pushed ? false : undefined}
         autoCapitalize="none"
         hideNavigationBar={false}
         onChangeText={(event) => setText(event.nativeEvent.text)}

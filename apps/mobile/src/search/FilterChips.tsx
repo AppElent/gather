@@ -16,8 +16,6 @@ import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 const CHIP_HEIGHT = 36
-/** Lifts a 36 pt chip to the 44 pt hit area. */
-const CHIP_SLOP = { top: 4, bottom: 4, left: 0, right: 0 }
 
 function ChipFace({
   label,
@@ -91,7 +89,6 @@ export function MenuChip({
           filter,
           value: current,
         })}
-        hitSlop={CHIP_SLOP}
         style={styles.hit}
       >
         <ChipFace
@@ -124,16 +121,20 @@ export function ModuleChip({
   const label = moduleLabel ?? words.allModules
   const selected = moduleLabel !== null
   const ink = selected ? tokens.onInk : tokens.ink
+  // The buttons are the full 44 pt and the 36 pt pill is drawn behind them:
+  // iOS hit-tests a touch only inside its parent's bounds, so a slop past a
+  // 36 pt parent would never reach the button.
   return (
-    <View
-      style={[
-        styles.chip,
-        styles.moduleChip,
-        selected
-          ? { backgroundColor: tokens.ink, borderColor: tokens.ink }
-          : { backgroundColor: tokens.surface, borderColor: tokens.hair },
-      ]}
-    >
+    <View style={styles.moduleHit}>
+      <View
+        pointerEvents="none"
+        style={[
+          styles.moduleFace,
+          selected
+            ? { backgroundColor: tokens.ink, borderColor: tokens.ink }
+            : { backgroundColor: tokens.surface, borderColor: tokens.hair },
+        ]}
+      />
       <Pressable
         testID="search-filter-module"
         accessibilityRole="button"
@@ -141,7 +142,6 @@ export function ModuleChip({
           filter: words.module,
           value: label,
         })}
-        hitSlop={{ top: 4, bottom: 4, left: 14, right: selected ? 0 : 14 }}
         onPress={onOpen}
         style={({ pressed }) => [styles.moduleOpen, pressed && styles.pressed]}
       >
@@ -157,7 +157,6 @@ export function ModuleChip({
           testID="search-filter-module-clear"
           accessibilityRole="button"
           accessibilityLabel={words.clearModule}
-          hitSlop={{ top: 4, bottom: 4, left: 4, right: 10 }}
           onPress={onClear}
           style={({ pressed }) => [
             styles.moduleClear,
@@ -203,16 +202,25 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.pill,
   },
-  moduleChip: { paddingHorizontal: 0, gap: 0 },
+  moduleHit: { minHeight: 44, flexDirection: 'row' },
+  moduleFace: {
+    position: 'absolute',
+    top: (44 - CHIP_HEIGHT) / 2,
+    bottom: (44 - CHIP_HEIGHT) / 2,
+    left: 0,
+    right: 0,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: RADIUS.pill,
+  },
   moduleOpen: {
-    minHeight: CHIP_HEIGHT,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 14,
   },
   moduleClear: {
-    minHeight: CHIP_HEIGHT,
+    minHeight: 44,
     justifyContent: 'center',
     paddingLeft: 2,
     paddingRight: 12,

@@ -11,7 +11,12 @@ import { isSearchModule } from '../../../../src/search/searchFilters'
  */
 export default function ModuleSearch() {
   const { module } = useLocalSearchParams<{ module?: string }>()
-  return <SearchScreen preset={isSearchModule(module) ? module : undefined} />
+  return (
+    <SearchScreen
+      stack="all"
+      preset={isSearchModule(module) ? module : undefined}
+    />
+  )
 }
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
