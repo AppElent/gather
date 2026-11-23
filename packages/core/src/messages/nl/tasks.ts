@@ -143,6 +143,8 @@ export const tasks = {
     aisle: 'Afdeling',
     itemPlaceholder: 'Wat heb je nodig?',
     deleteItem: 'Item verwijderen',
+    labelsOnItem: 'Op dit item',
+    removeLabelEverywhere: 'Overal verwijderen',
     recognised: 'Hoeveelheid en afdeling ingevuld op basis van wat je typt',
     recognisedAmount: 'Hoeveelheid ingevuld op basis van wat je typt',
     recognisedAisle: 'Afdeling ingevuld op basis van wat je typt',
