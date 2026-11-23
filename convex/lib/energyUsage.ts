@@ -31,7 +31,7 @@ import {
 import { v } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { accountPrices, marketPrices, priceFeedOf } from './energyPriceRows'
+import { accountPrices, firstAccountPrice, marketPrices, priceFeedsOf } from './energyPriceRows'
 
 const HOUR_MS = 3_600_000
 
@@ -261,17 +261,15 @@ async function loadPrices(
   start: number,
   end: number,
 ): Promise<SitePrices> {
-  const feed = await priceFeedOf(ctx, siteId)
-  const account = feed ? await accountPrices(ctx, feed._id, start, end) : []
+  const feeds = await priceFeedsOf(ctx, siteId)
+  const feed = feeds[0]
+  const account = (
+    await Promise.all(
+      feeds.map((each) => accountPrices(ctx, each._id, start, end)),
+    )
+  ).flat()
   const firstAccount =
-    feed?.scope === 'account'
-      ? await ctx.db
-          .query('energyPrices')
-          .withIndex('by_feed_carrier_start', (q) =>
-            q.eq('feedId', feed._id).eq('carrier', 'electricity'),
-          )
-          .first()
-      : null
+    feed?.scope === 'account' ? await firstAccountPrice(ctx, feed._id) : null
 
   const own =
     feed?.provider === 'entsoe'

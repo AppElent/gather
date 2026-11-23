@@ -225,8 +225,8 @@ function BuildUp({ buildUp }: { buildUp: EnergyPriceBuildUp }) {
   const tokens = useTokens('home')
   const colour = {
     market: tokens.ink,
-    markup: tokens.hairStrong,
-    tax: tokens.muted,
+    markup: tokens.muted,
+    tax: tokens.hairStrong,
     vat: tokens.surface2,
   }
   return (

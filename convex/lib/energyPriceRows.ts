@@ -49,10 +49,33 @@ export async function accountPrices(
     .collect()
 }
 
+/** The first day an account feed priced, if it ever did. */
+export async function firstAccountPrice(
+  ctx: QueryCtx,
+  feedId: Id<'energyPriceFeeds'>,
+) {
+  return ctx.db
+    .query('energyPrices')
+    .withIndex('by_feed_carrier_start', (q) =>
+      q.eq('feedId', feedId).eq('carrier', 'electricity'),
+    )
+    .first()
+}
+
+/** Every price source a site has had: the newest is the one in use. */
+export async function priceFeedsOf(ctx: QueryCtx, siteId: Id<'energySites'>) {
+  return ctx.db
+    .query('energyPriceFeeds')
+    .withIndex('by_site', (q) => q.eq('siteId', siteId))
+    .order('desc')
+    .collect()
+}
+
 /** A site's price source; a site without one is priced by EnergyZero. */
 export async function priceFeedOf(ctx: QueryCtx, siteId: Id<'energySites'>) {
   return ctx.db
     .query('energyPriceFeeds')
     .withIndex('by_site', (q) => q.eq('siteId', siteId))
+    .order('desc')
     .first()
 }

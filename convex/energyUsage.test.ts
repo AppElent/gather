@@ -378,6 +378,31 @@ describe('a dynamic contract', () => {
     })
   })
 
+  test('returning to an account source rewrites no day between (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const earlier = await ctx.db.insert('energyPriceFeeds', {
+        ...feedRow(homeId, siteId, 'tibber'),
+        provider: 'energyzero',
+        scope: 'market',
+        includesTaxes: false,
+        secret: undefined,
+      })
+      const now = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(homeId, siteId, 'tibber'),
+      )
+      for (const day of ['2026-11-08', '2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-08', 'tibber', 0.3, earlier)
+      await priceDay(ctx, '2026-11-10', 'tibber', 0.4, now)
+    })
+    expect((await costOn(t, '2026-11-08'))?.cost?.importCents).toBe(300)
+    expect((await costOn(t, '2026-11-09'))?.cost?.importCents).toBe(266)
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(400)
+  })
+
   test('ENTSO-E prices a day it has, EnergyZero the others (APP-493)', async () => {
     const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
     await t.run(async (ctx) => {

@@ -45,6 +45,7 @@ import {
 } from './lib/energy'
 import {
   accountPrices,
+  firstAccountPrice,
   type MarketPriceProvider,
   marketPrices,
   priceFeedOf,
@@ -303,22 +304,31 @@ export const saveFeed = mutation({
       lastFetchedAt: undefined,
       lastError: undefined,
     }
+    if (existing?.scope === 'account' && current !== args.provider) {
+      // From today on another source prices the address. Days before keep the
+      // prices they were paid at. A replaced key keeps them all until its own
+      // prices are in.
+      const today = amsterdamDayStart(amsterdamDayOf(Date.now()))
+      const rows = await accountPrices(
+        ctx,
+        existing._id,
+        today,
+        Number.MAX_SAFE_INTEGER,
+      )
+      for (const row of rows) await ctx.db.delete(row._id)
+    }
+    // Back to an account source: a feed of its own, so that the days between
+    // stay days of the market. The old feed keeps its prices, without a key.
+    const returns =
+      existing !== null &&
+      existing.scope === 'market' &&
+      connection.scope === 'account' &&
+      (await firstAccountPrice(ctx, existing._id)) !== null
     let feedId = existing?._id
-    if (existing) {
-      // What another key gave for today on is not this one's. Days before
-      // keep the prices they were paid at.
-      if (existing.scope === 'account') {
-        const today = amsterdamDayStart(amsterdamDayOf(Date.now()))
-        const rows = await accountPrices(
-          ctx,
-          existing._id,
-          today,
-          Number.MAX_SAFE_INTEGER,
-        )
-        for (const row of rows) await ctx.db.delete(row._id)
-      }
+    if (existing && !returns) {
       await ctx.db.patch(existing._id, connection)
     } else {
+      if (existing) await ctx.db.patch(existing._id, { secret: undefined })
       feedId = await ctx.db.insert('energyPriceFeeds', {
         groupId: group._id,
         siteId: site._id,
@@ -328,7 +338,6 @@ export const saveFeed = mutation({
     if (secret && feedId) {
       await ctx.scheduler.runAfter(0, internal.energyPriceFetch.fetchFeed, {
         feedId,
-        triesLeft: 2,
       })
     }
     return null

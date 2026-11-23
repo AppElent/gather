@@ -489,6 +489,35 @@ describe('Tibber', () => {
     expect(await feeds(t)).toMatchObject([{ status: 'ok', secret: 'newer-key' }])
   })
 
+  test('a replaced key keeps the prices until its own are in', async () => {
+    const { t } = await seedSite()
+    handler = tibber({ body: tibberAnswer() })
+    await save(t, 'tibber', KEY)
+    await drain(t)
+    handler = tibber({ status: 401, body: '' })
+    await save(t, 'tibber', `${KEY}-wrong`)
+    await drain(t)
+    expect(await feeds(t)).toMatchObject([{ status: 'needsKey' }])
+    expect(await prices(t)).toHaveLength(192)
+  })
+
+  test('returning starts a feed of its own, and the old one holds no key', async () => {
+    const { t } = await seedSite()
+    handler = tibber({ body: tibberAnswer() })
+    await save(t, 'tibber', KEY)
+    await drain(t)
+    vi.setSystemTime(NOW + 24 * 3_600_000)
+    await save(t, 'entsoe', TOKEN)
+    await drain(t)
+    // The first day was paid at account prices and stays.
+    expect((await prices(t)).filter((row) => row.feedId)).toHaveLength(96)
+    await save(t, 'tibber', `${KEY}-back`)
+    const all = await feeds(t)
+    expect(all).toHaveLength(2)
+    expect(all[0]?.secret).toBeUndefined()
+    expect(await view(t)).toMatchObject({ provider: 'tibber', hasKey: true })
+  })
+
   test('gas still comes from EnergyZero', async () => {
     const { t } = await seedSite()
     handler = tibber({ body: tibberAnswer() })
