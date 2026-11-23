@@ -40,7 +40,6 @@ export function useProposalBar(
 
   // A new week starts with no proposal of this visit. Declared first, so the
   // effects below see the new week's drafts after the reset.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset per week
   useEffect(() => {
     setTailWeek(null)
     setAccepted({ week: weekStart, slots: NO_SLOTS })
