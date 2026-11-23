@@ -37,6 +37,14 @@ export function DropGate() {
   const { pending } = useDrop()
   const router = useRouter()
   const opened = useRef(0)
+  const mounted = useRef(true)
+
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   useEffect(() => {
     if (!pending || pending.sequence === opened.current) return
@@ -47,7 +55,13 @@ export function DropGate() {
       router.push(dropHref())
       return
     }
-    closeOpenSheets().then(() => router.push(dropHref()))
+    // Push only for the latest arrival, and only while this gate is mounted:
+    // a share that replaced this one pushes for itself, and a remounted gate
+    // opens the still-pending Drop on its own.
+    const sequence = pending.sequence
+    closeOpenSheets().then(() => {
+      if (mounted.current && opened.current === sequence) router.push(dropHref())
+    })
   }, [pending, router])
 
   return null

@@ -18,7 +18,13 @@ export interface OpenSheet {
   closed: () => void
 }
 
-const sheets = new Set<() => void>()
+interface Entry {
+  dismiss: () => void
+  /** Already asked to close, so a second share does not ask again. */
+  asked: boolean
+}
+
+const sheets = new Set<Entry>()
 const waiters = new Set<() => void>()
 
 function settle() {
@@ -26,15 +32,25 @@ function settle() {
   for (const resolve of [...waiters]) resolve()
 }
 
+function ask(entry: Entry) {
+  if (entry.asked) return
+  entry.asked = true
+  entry.dismiss()
+}
+
 /**
  * Registers a sheet that is up. `dismiss` closes it the way its Close button
  * does, so the sheet's own close handling (its `onClose`) runs once.
+ *
+ * A sheet that opens while sheets are being closed for a share is closed too,
+ * or it would cover the chooser the same way.
  */
 export function openSheet(dismiss: () => void): OpenSheet {
-  // A wrapper per registration, so the same function registered twice is two
+  // An entry per registration, so the same function registered twice is two
   // sheets.
-  const entry = () => dismiss()
+  const entry: Entry = { dismiss, asked: false }
   sheets.add(entry)
+  if (waiters.size > 0) ask(entry)
   return {
     closed: () => {
       if (!sheets.delete(entry)) return
@@ -48,9 +64,9 @@ export function hasOpenSheets() {
 }
 
 /**
- * Asks every open sheet to close, and resolves once all have reported closed,
- * or after `timeoutMs` if one never does, so a caller is never stuck behind a
- * sheet. Resolves at once when none is open.
+ * Asks every open sheet to close, once each, and resolves once all have
+ * reported closed, or after `timeoutMs` if one never does, so a caller is never
+ * stuck behind a sheet. Resolves at once when none is open.
  */
 export function closeOpenSheets(
   timeoutMs = CLOSE_SHEETS_TIMEOUT_MS,
@@ -64,7 +80,7 @@ export function closeOpenSheets(
     }
     const timer = setTimeout(done, timeoutMs)
     waiters.add(done)
-    for (const dismiss of [...sheets]) dismiss()
+    for (const entry of [...sheets]) ask(entry)
     // A sheet whose dismiss reports closed at once has already settled.
     settle()
   })

@@ -95,4 +95,40 @@ describe('openSheets', () => {
     second.closed()
     expect(hasOpenSheets()).toBe(false)
   })
+
+  it('asks a closing sheet once when a second close comes in', async () => {
+    const a = sheet()
+    const first = closeOpenSheets()
+    const second = closeOpenSheets()
+    expect(a.dismiss).toHaveBeenCalledTimes(1)
+    a.later()
+    await Promise.all([first, second])
+  })
+
+  it('closes a sheet that opens while sheets are closing, and waits for it', async () => {
+    const a = sheet()
+    let resolved = false
+    const closing = closeOpenSheets().then(() => {
+      resolved = true
+    })
+    const late = sheet()
+    expect(late.dismiss).toHaveBeenCalledTimes(1)
+
+    a.later()
+    await Promise.resolve()
+    expect(resolved).toBe(false)
+
+    late.later()
+    await closing
+    expect(resolved).toBe(true)
+  })
+
+  it('leaves a sheet that opens after closing finished alone', async () => {
+    const a = sheet()
+    const closing = closeOpenSheets()
+    a.later()
+    await closing
+    const next = sheet()
+    expect(next.dismiss).not.toHaveBeenCalled()
+  })
 })
