@@ -9,7 +9,7 @@
  */
 import { localIsoDate, localMidnight } from '@gather/core/civil-date'
 import { router } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { api } from '../../../convex/api'
@@ -34,6 +34,7 @@ import {
 import {
   type CountedMeal,
   defaultDays,
+  rowsOfLines,
   weekDays,
   weekGroceryLines,
 } from './week-groceries'
@@ -106,14 +107,28 @@ export function WeekGroceriesSheet({
         eatersOf(data, meal.date, meal.slot, meal.eaterIds).length,
       ),
     }))
-  const weekLines = (touched: ReadonlySet<string>) =>
-    weekGroceryLines({
+  // The item rows each line has been in, so a row whose measure changes when
+  // a day leaves keeps what the person did to it (APP-590). It only grows,
+  // so adding to it while rendering is safe.
+  const formerRows = useRef(new Map<string, Set<string>>())
+  const weekLines = (touched: ReadonlySet<string>) => {
+    const week = weekGroceryLines({
       meals: countedMeals,
       recipes: new Map((recipes ?? []).map((recipe) => [recipe._id, recipe])),
       lines: read,
       label,
       touched,
+      formerRows: formerRows.current,
     })
+    return week
+  }
+
+  // The rows the sheet shows; only these count as rows a line was in.
+  const shownLines = (touched: ReadonlySet<string>) => {
+    const { lines } = weekLines(touched)
+    rowsOfLines(lines, formerRows.current)
+    return lines
+  }
 
   // Which meals have nothing to read does not depend on what is touched.
   const { toCheck } = weekLines(new Set())
@@ -151,7 +166,7 @@ export function WeekGroceriesSheet({
         glyph: UI_ICONS.Calendar,
       }}
       lines={(touched) =>
-        recipes === undefined ? [] : weekLines(touched).lines
+        recipes === undefined ? [] : shownLines(touched)
       }
       aiCount={aiCount}
       readingAsText={readingAsText}

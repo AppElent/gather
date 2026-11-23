@@ -4,6 +4,7 @@ import { editedRead, pickRows, type SourceLine, withEdits } from '../add-to-groc
 import type { PlannedMeal } from './week'
 import {
   defaultDays,
+  rowsOfLines,
   type WeekRecipe,
   weekGroceryLines,
 } from './week-groceries'
@@ -310,26 +311,60 @@ describe('a line being read when the person ticks it (APP-423)', () => {
     ])
   })
 
-  test('a row left with only a line without an amount keeps the untick it had (APP-590)', () => {
-    const olie = (days: number[], touched: ReadonlySet<string>) => {
+  describe('a row whose lines change keeps what was done to it (APP-590)', () => {
+    const olie = (
+      days: number[],
+      own: Record<string, SourceLine>,
+      formerRows: Map<string, Set<string>>,
+    ) => {
       const lines2 = new Map(lines)
-      lines2.set('pesto', [read('0', 'Olijfolie', 2, 'el')])
-      lines2.set('shakshuka', [{ key: '0', text: 'olijfolie', read: { kind: 'read', via: 'local', name: 'Olijfolie' } }])
-      return weekGroceryLines({
+      for (const [recipe, line] of Object.entries(own)) lines2.set(recipe, [line])
+      const shown = weekGroceryLines({
         meals: days.map((day) => ({ meal: week[day], servings: 4 })),
         recipes,
         lines: lines2,
         label,
-        touched,
-      }).lines.filter((l) => l.text === 'Olijfolie')
+        formerRows,
+      }).lines
+      rowsOfLines(shown, formerRows)
+      return shown.filter((l) => l.text === 'Olijfolie')
     }
-    const both = olie([0, 1], new Set())
-    expect(both.map((l) => l.key)).toEqual(['item:olijfoli:el'])
-    // Unticked, then Monday is unticked as a day: Tuesday's row is still off.
-    const ticks = { 'item:olijfoli:el': false }
-    const left = olie([1], new Set(Object.keys(ticks)))
-    expect(left.map((l) => l.key)).toEqual(['item:olijfoli:count'])
-    const { rows } = pickRows({ lines: left, items: [], ticks })
-    expect(rows.find((r) => r.title === 'Olijfolie')?.on).toBe(false)
+    const plain: SourceLine = {
+      key: '0',
+      text: 'olijfolie',
+      read: { kind: 'read', via: 'local', name: 'Olijfolie' },
+    }
+
+    test('a line without an amount left alone keeps its row’s untick', () => {
+      const formerRows = new Map<string, Set<string>>()
+      const own = { pesto: read('0', 'Olijfolie', 2, 'el'), shakshuka: plain }
+      expect(olie([0, 1], own, formerRows).map((l) => l.key)).toEqual(['item:olijfoli:el'])
+      // Unticked, then Monday leaves: Tuesday's row is still off.
+      const ticks = { 'item:olijfoli:el': false }
+      const left = olie([1], own, formerRows)
+      expect(left.map((l) => l.key)).toEqual(['item:olijfoli:count'])
+      const { rows } = pickRows({ lines: left, items: [], ticks })
+      expect(rows.find((r) => r.title === 'Olijfolie')?.on).toBe(false)
+    })
+
+    test('an untick on a row that leaves does not pass to another row of its name', () => {
+      const formerRows = new Map<string, Set<string>>()
+      // Monday in el, Tuesday in ml, Thursday without an amount (joins el).
+      const own = {
+        pesto: read('0', 'Olijfolie', 2, 'el'),
+        shakshuka: { ...read('0', 'Olijfolie', 100), read: { kind: 'read', via: 'local', name: 'Olijfolie', quantity: 100, unit: 'ml' } } as SourceLine,
+        tacos: plain,
+      }
+      expect(olie([0, 1, 3], own, formerRows).map((l) => l.key)).toEqual([
+        'item:olijfoli:el',
+        'item:olijfoli:volume',
+      ])
+      const ticks = { 'item:olijfoli:volume': false }
+      const left = olie([0, 3], own, formerRows)
+      const { rows } = pickRows({ lines: left, items: [], ticks })
+      expect(rows.filter((r) => r.title === 'Olijfolie').map((r) => [r.key, r.on])).toEqual([
+        ['item:olijfoli:el', true],
+      ])
+    })
   })
 })

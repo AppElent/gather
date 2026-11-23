@@ -71,6 +71,13 @@ export interface WeekLinesInput {
    * what they did applies to that meal's amount only (APP-479).
    */
   touched?: ReadonlySet<string>
+  /**
+   * The item rows each line has been in, by the line's key while it is read
+   * (`rowsOfLines`). A row takes on what the person did to a row its lines
+   * were in before, so an untick holds when a day leaves and the row's
+   * measure changes (a line without an amount stays behind, APP-590).
+   */
+  formerRows?: ReadonlyMap<string, ReadonlySet<string>>
 }
 
 export interface WeekLines {
@@ -167,9 +174,8 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
   })
 
   const used = new Set<string>()
-  const amountless: Array<{ name: string; row: number }> = []
   const combined = combineGroceryLines(joining.map((entry) => entry.line)).map(
-    (line, index): SourceLine => {
+    (line): SourceLine => {
       const from = line.from.map((index) => joining[index])
       const meals = [...new Map(from.map(({ meal }) => [meal._id, meal])).values()]
       // Stable while the days change, a line is read, or a touched line
@@ -181,8 +187,6 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
       let key = base
       for (let n = 1; used.has(key); n++) key = `${base}:${n}`
       used.add(key)
-      if (from.some(({ line: own }) => own.quantity === undefined && own.unit === undefined))
-        amountless.push({ name, row: index })
       const readAs: LineRead = {
         kind: 'read',
         via: viaOf(from.map((entry) => entry.via)),
@@ -192,8 +196,16 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
       }
       return {
         key,
-        // What the person did to it while the AI was still reading it.
-        was: from.map((entry) => entry.unreadKey),
+        // What the person did to it while the AI was still reading it, then
+        // to a row its lines were in before (a day unticked, APP-590).
+        was: [
+          ...from.map((entry) => entry.unreadKey),
+          ...new Set(
+            from.flatMap((entry) => [
+              ...(input.formerRows?.get(entry.unreadKey) ?? []),
+            ]),
+          ),
+        ].filter((former) => former !== key),
         text: line.title,
         read: readAs,
         detail: input.label(meals),
@@ -201,21 +213,26 @@ export function weekGroceryLines(input: WeekLinesInput): WeekLines {
       }
     },
   )
-  // A line without an amount ("olijfolie") joins a row of its name in any
-  // measure. When that row's other lines leave (a day is unticked), the row
-  // it is left in has another measure's key: it takes on what the person did
-  // to a row of its name that is gone, so their untick or retype holds.
-  if (input.touched && amountless.length > 0) {
-    const present = new Set([...combined, ...own].map((line) => line.key))
-    for (const { name, row } of amountless) {
-      const gone = [...input.touched].filter(
-        (key) => key.startsWith(`item:${name}:`) && !present.has(key),
-      )
-      if (gone.length > 0)
-        combined[row] = { ...combined[row], was: [...(combined[row].was ?? []), ...gone] }
+  return { lines: [...combined, ...own, ...unread], toCheck }
+}
+
+/**
+ * Adds to `rows` the item row each line is in now, by the line's key while
+ * it is read, for `formerRows` on the next call.
+ */
+export function rowsOfLines(
+  lines: readonly SourceLine[],
+  rows: Map<string, Set<string>>,
+): void {
+  for (const line of lines) {
+    if (!line.key.startsWith('item:')) continue
+    for (const source of line.was ?? []) {
+      if (source.startsWith('item:')) continue
+      const seen = rows.get(source) ?? new Set<string>()
+      seen.add(line.key)
+      rows.set(source, seen)
     }
   }
-  return { lines: [...combined, ...own, ...unread], toCheck }
 }
 
 /**
