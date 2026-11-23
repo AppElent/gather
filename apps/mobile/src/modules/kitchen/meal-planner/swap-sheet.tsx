@@ -121,7 +121,7 @@ export function SwapSheet({
   onClose: () => void
   /** Zelf kiezen from the Limit card. */
   onChooseYourself: () => void
-  /** After Bewaren, with the screen toast's words. */
+  /** After Bewaren, with the screen toast's words; the sheet has closed itself. */
   onSaved: (message: string) => void
 }) {
   const { group } = useGroup()
@@ -394,6 +394,7 @@ export function SwapSheet({
       .then((result) => {
         haptics.itemSaved()
         const title = shown.title
+        if (!draft.gone()) onClose()
         onSaved(
           !plan
             ? fmt(ideaWords.saved, { title })

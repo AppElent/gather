@@ -32,7 +32,7 @@
  */
 import type { PhotoPresetName } from '@gather/core/photo-presets'
 import { Image } from 'expo-image'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -44,6 +44,12 @@ import {
 import { type PhotoSource, pickPhoto, uploadPhoto } from '../photo/pickPhoto'
 import { UI_ICONS } from '../theme/icons'
 import { type ModuleGroup, RADIUS, TYPE, useTokens } from '../theme/tokens'
+
+/** The local file a row shows, and whether its upload has finished. */
+export interface PhotoPreview {
+  uri: string
+  uploaded: boolean
+}
 
 /** Every word this row can show, resolved by whichever Module is drawing it. */
 export interface PhotoFieldLabels {
@@ -83,6 +89,13 @@ export interface PhotoFieldProps {
    * photo it shows is the photo it sends.
    */
   onBusyChange?: (busy: boolean) => void
+  /**
+   * A preview to open on: a form reopened on a kept draft. One whose upload had
+   * not finished is uploaded again.
+   */
+  initialPreview?: PhotoPreview | null
+  /** Told what the row shows of a local file, for a form that keeps a draft. */
+  onPreviewChange?: (preview: PhotoPreview | null) => void
   /** Prefix for the controls' `testID`s, so a verification run can reach them. */
   testID?: string
 }
@@ -97,11 +110,15 @@ export function PhotoField({
   group = 'home',
   disabled,
   onBusyChange,
+  initialPreview,
+  onPreviewChange,
   testID,
 }: PhotoFieldProps) {
   const tokens = useTokens(group)
 
-  const [preview, setPreview] = useState<string | null>(null)
+  const [preview, setPreview] = useState<string | null>(
+    initialPreview?.uri ?? null,
+  )
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
 
@@ -123,16 +140,23 @@ export function PhotoField({
       return
     }
 
+    await upload(picked.uri)
+  }
+
+  async function upload(uri: string) {
     // Shown before it is uploaded: the file is already on the phone, and a
     // second of blank space while the bytes go up reads as nothing happening.
-    setPreview(picked.uri)
+    setPreview(uri)
+    onPreviewChange?.({ uri, uploaded: false })
     setBusy(true)
     onBusyChange?.(true)
     try {
-      const storageId = await uploadPhoto(picked.uri, await generateUploadUrl())
+      const storageId = await uploadPhoto(uri, await generateUploadUrl())
       onChange(storageId)
+      onPreviewChange?.({ uri, uploaded: true })
     } catch {
       setPreview(null)
+      onPreviewChange?.(null)
       setProblem(labels.failed)
     } finally {
       setBusy(false)
@@ -140,8 +164,20 @@ export function PhotoField({
     }
   }
 
+  // A kept draft whose upload had not finished: finish it, once.
+  const unfinished = useRef(
+    initialPreview && !initialPreview.uploaded ? initialPreview.uri : null,
+  )
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on mount only
+  useEffect(() => {
+    const uri = unfinished.current
+    unfinished.current = null
+    if (uri) void upload(uri)
+  }, [])
+
   function remove() {
     setPreview(null)
+    onPreviewChange?.(null)
     setProblem(null)
     onChange(null)
   }

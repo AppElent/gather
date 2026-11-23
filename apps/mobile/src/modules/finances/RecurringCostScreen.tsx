@@ -58,13 +58,22 @@ export function RecurringCostScreen({
   const members = useQuery(api.groups.members, { slug: groupSlug })
   const update = useMutation(api.recurringCosts.update)
   const remove = useMutation(api.recurringCosts.remove)
-  const { attempt, failure, landed } = useFinanceWrite()
+  const { attempt, failure, writes } = useFinanceWrite()
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
   const [percents, setPercents] = useState<Record<string, string>>({})
   // A share closed the sheet: open on what was typed (APP-622).
-  const resume = useSheetResume(editing, landed)
+  const resume = useSheetResume({
+    place: `finances:cost:${costId}`,
+    open: editing,
+    values: { draft, percents },
+    restore: (was) => {
+      setDraft(was.draft)
+      setPercents(was.percents)
+    },
+    writes,
+  })
 
   if (cost === undefined) {
     return (
@@ -190,7 +199,7 @@ export function RecurringCostScreen({
             emphasis
             chevron
             onPress={() => {
-              if (resume() !== 'amount') {
+              if (!resume('amount')) {
                 setDraft(String(cost.amountCents / 100))
               }
               setEditing('amount')
@@ -214,7 +223,7 @@ export function RecurringCostScreen({
             chevron
             last
             onPress={() => {
-              if (resume() !== 'note') {
+              if (!resume('note')) {
                 setDraft(cost.note ?? '')
               }
               setEditing('note')
@@ -241,7 +250,7 @@ export function RecurringCostScreen({
             chevron
             last
             onPress={() => {
-              if (resume() !== 'split') {
+              if (!resume('split')) {
                 setPercents(
                   Object.fromEntries(
                     (members ?? []).map((member) => [

@@ -114,6 +114,7 @@ export function NewListSheet({
         idempotencyKey,
       })
       haptics.itemSaved()
+      if (draft.gone()) return
       onClose()
       onCreated({ id: listId, kind })
     } catch {

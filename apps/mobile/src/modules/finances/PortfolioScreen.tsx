@@ -56,7 +56,7 @@ export function PortfolioScreen() {
   const { groupSlug, format, text, currency, today } = useFinances()
   const holdings = useQuery(api.holdings.list, { groupSlug })
   const create = useMutation(api.holdings.create)
-  const { attempt, failure, landed } = useFinanceWrite()
+  const { attempt, failure, writes } = useFinanceWrite()
 
   const [adding, setAdding] = useState(false)
   const [symbol, setSymbol] = useState('')
@@ -67,7 +67,21 @@ export function PortfolioScreen() {
   const [price, setPrice] = useState('')
   const [asAt, setAsAt] = useState(today)
   // A share closed the sheet: open on what was typed (APP-622).
-  const resume = useSheetResume(adding, landed)
+  const resume = useSheetResume({
+    place: 'finances:portfolio',
+    open: adding,
+    values: { symbol, name, exchange, kind, units, price, asAt },
+    restore: (was) => {
+      setSymbol(was.symbol)
+      setName(was.name)
+      setExchange(was.exchange)
+      setKind(was.kind)
+      setUnits(was.units)
+      setPrice(was.price)
+      setAsAt(was.asAt)
+    },
+    writes,
+  })
 
   const Chart = FINANCE_ICONS.Chart
 
@@ -87,7 +101,7 @@ export function PortfolioScreen() {
   const totals = portfolioTotalsFor(holdings)
 
   function open() {
-    if (resume() !== true) {
+    if (!resume(true)) {
       setSymbol('')
       setName('')
       setExchange('')

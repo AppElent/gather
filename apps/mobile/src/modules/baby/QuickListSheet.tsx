@@ -82,7 +82,7 @@ export function QuickListSheet({
           kind === 'todo' ? 'taskListId' : 'questionsListId'
         ]
       await add({ listId: target, groupSlug, title: title.trim() })
-      onClose()
+      if (!draft.gone()) onClose()
     } catch {
       draft.failed()
       setFailed(true)

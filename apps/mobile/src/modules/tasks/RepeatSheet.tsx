@@ -43,10 +43,13 @@ import type { Task } from './types'
 
 export function RepeatSheet({
   task,
+  place,
   onSave,
   onClose,
 }: {
   task: Pick<Task, 'repeat' | 'dueDate'> & { id?: string }
+  /** Where a task without an id is being made: keys its draft. */
+  place?: string
   /**
    * Where the rule goes instead of the task: the keyboard composer's draft
    * (APP-587), for a task that does not exist yet.
@@ -60,8 +63,9 @@ export function RepeatSheet({
   const actions = useTaskActions()
   const today = localIsoDate()
   const anchor = task.dueDate ?? today
-  // A share keeps the rule being made (APP-622); the composer's task has no id.
-  const kept = useSheetDraft<Draft>(`tasks:repeat:${task.id ?? 'composer'}`)
+  // A share keeps the rule being made (APP-622); the composer's task has no
+  // id, so it is kept per composer.
+  const kept = useSheetDraft<Draft>(`tasks:repeat:${task.id ?? place ?? 'composer'}`)
   const [draft, setDraft] = useState(
     () => kept.kept ?? repeatDraft(task, today),
   )

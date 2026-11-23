@@ -59,11 +59,17 @@ export function MortgageScreen({
   const addPart = useMutation(api.mortgages.addPart)
   const duplicate = useMutation(api.mortgages.duplicate)
   const remove = useMutation(api.mortgages.remove)
-  const { attempt, failure, landed } = useFinanceWrite()
+  const { attempt, failure, writes } = useFinanceWrite()
 
   const [copyName, setCopyName] = useState<string | null>(null)
   // A share closed the sheet: open on the name that was typed (APP-622).
-  const resume = useSheetResume(copyName, landed)
+  const resume = useSheetResume({
+    place: `finances:mortgage:${calculationId}:copy`,
+    open: copyName !== null,
+    values: copyName,
+    restore: setCopyName,
+    writes,
+  })
   const Clock = FINANCE_ICONS.Clock
 
   if (calculation === undefined) {
@@ -276,12 +282,13 @@ export function MortgageScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={text.actions.duplicate}
-            onPress={() =>
-              setCopyName(
-                resume() ??
+            onPress={() => {
+              if (!resume(true)) {
+                setCopyName(
                   fmt(text.house.copySuffix, { name: calculation.name }),
-              )
-            }
+                )
+              }
+            }}
             style={({ pressed }) => [
               styles.ghost,
               { borderColor: tokens.hair },

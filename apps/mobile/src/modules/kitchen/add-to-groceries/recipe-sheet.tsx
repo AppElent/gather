@@ -38,11 +38,18 @@ export function RecipeToGroceriesSheet({
   const [servings, setServings] = useState(
     draft.kept?.servings ?? startServings ?? recipe.servings ?? 0,
   )
-  draft.track({ servings })
+  const [sending, setSending] = useState(false)
+  draft.track({ servings }, { holding: sending })
+  // Held with the sheet's own draft: kept again only if the add fails.
+  const onSending = (state: 'sending' | 'failed') => {
+    setSending(state === 'sending')
+    if (state === 'failed') draft.failed()
+  }
 
   return (
     <AddToGroceriesSheet
       place={place}
+      onSending={onSending}
       source={{
         title: recipe.title,
         subtitle: recipe.servings

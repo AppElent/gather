@@ -46,6 +46,13 @@ export interface SheetDraft<T> {
    * unless a reopened form kept a newer one; `value` when only part is left.
    */
   failed: (value?: T) => void
+  /**
+   * A share closed the form and it is gone: a save landing now must not close
+   * or navigate, which would act on whatever has opened since.
+   */
+  gone: () => boolean
+  /** A share is closing the form: a form that saves on close must not. */
+  sharing: () => boolean
 }
 
 interface Tracked<T> {
@@ -105,48 +112,95 @@ export function useSheetDraft<T>(place: string): SheetDraft<T> {
       if (keptDraft<T>(key) === undefined)
         keepDraft(key, value ?? latest.current.value)
     },
+    sharing: () => closedByShare.current,
+    gone: () => closedByShare.current && !mounted.current,
   }
+}
+
+/** A screen's guarded writes, as `useSheetResume` needs them. */
+export interface SheetWrites {
+  /** A save is on its way. */
+  busy: () => boolean
+  /** Calls `listener` once, when the save on its way settles. */
+  onSettled: (listener: (landed: boolean) => void) => void
+}
+
+interface ResumeOptions<O, V> {
+  /** Where the sheet is, the record's id included. */
+  place: string
+  /** What the sheet is open on (a field, `true`), or nothing while closed. */
+  open: O | null | undefined | false
+  /** What the sheet's fields hold now. Serialisable values only. */
+  values: V
+  /** Puts kept values back in the fields. */
+  restore: (values: V) => void
+  writes?: SheetWrites
 }
 
 /**
  * For a sheet whose form state the screen under it holds (the finance
- * screens): that state outlives the sheet, but opening the sheet seeds it
- * again. `open` is what the sheet is open on (a field, `true`, a name), or
- * nothing while it is closed.
+ * screens): opening the sheet seeds that state again, so what a share closed
+ * is kept in the draft store, per account, Group, place and what the sheet was
+ * open on.
  *
- * The returned `resume()` gives, once, what the sheet was open on when a
- * share closed it; the screen opens it on that without seeding, on what was
- * typed. Every open asks it, so the answer never outlives the next open. Kept
- * for the screen's life, in memory only: a Group switch that unwinds the
- * screen loses it. `landed` counts the screen's successful saves: one that
- * lands after the close makes the kept input old, so the next open seeds.
+ * The returned `resume(want)` puts the kept values back and answers `true`, or
+ * `false` when there are none and the screen seeds. A save on its way when the
+ * share came keeps nothing unless it fails.
  */
-export function useSheetResume<T>(
-  open: T | null | undefined | false,
-  landed?: { readonly current: number },
-): () => T | undefined {
-  const current = useRef(open)
-  current.current = open
-  const shared = useRef<T | undefined>(undefined)
-  const landedThen = useRef(0)
+export function useSheetResume<O, V>({
+  place,
+  open,
+  values,
+  restore,
+  writes,
+}: ResumeOptions<O, V>): (want: O) => boolean {
+  const { userId } = useAuth()
+  const { group } = useGroup()
+  const keyFor = (on: unknown) =>
+    draftKey(userId, group._id, `${place}:${on === true ? 'open' : on}`)
+  const key =
+    open === null || open === undefined || open === false ? null : keyFor(open)
+
+  const json = JSON.stringify(values)
+  const opened = useRef<{ key: string; baseline: string | null } | null>(null)
+  // The key `resume` last put back: the sheet that opens on it is dirty.
+  const restored = useRef<string | null>(null)
+  if (key === null) opened.current = null
+  else if (opened.current?.key !== key) {
+    opened.current = { key, baseline: restored.current === key ? null : json }
+    restored.current = null
+  }
+
+  const latest = useRef({ json, values, writes })
+  latest.current = { json, values, writes }
 
   useEffect(
     () =>
       onSheetsClosing(() => {
-        const now = current.current
-        // Told once per sheet: a later one must not forget this screen's, which
-        // may have closed by then.
-        if (now === null || now === undefined || now === false) return
-        landedThen.current = landed?.current ?? 0
-        shared.current = now
+        const sheet = opened.current
+        const now = latest.current
+        if (!sheet || sheet.baseline === now.json) return
+        if (!now.writes?.busy()) {
+          keepDraft(sheet.key, now.values)
+          return
+        }
+        // Sent already. Only a failure leaves it worth keeping, and the screen
+        // may be gone by then; a newer draft stays.
+        now.writes.onSettled((landed) => {
+          if (!landed && keptDraft<V>(sheet.key) === undefined)
+            keepDraft(sheet.key, now.values)
+        })
       }),
-    [landed],
+    [],
   )
 
-  const [resume] = useState(() => () => {
-    const was = shared.current
-    shared.current = undefined
-    return (landed?.current ?? 0) === landedThen.current ? was : undefined
-  })
-  return resume
+  return (want) => {
+    const wanted = keyFor(want)
+    const kept = keptDraft<V>(wanted)
+    if (kept === undefined) return false
+    keepDraft(wanted, undefined)
+    restored.current = wanted
+    restore(kept)
+    return true
+  }
 }

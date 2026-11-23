@@ -75,7 +75,13 @@ export function WeekGroceriesSheet({
       ? new Set(draft.kept.counted)
       : defaultDays(weekStart, localIsoDate(), meals),
   )
-  draft.track({ counted: [...counted].sort() })
+  const [sending, setSending] = useState(false)
+  draft.track({ counted: [...counted].sort() }, { holding: sending })
+  // Held with the sheet's own draft: kept again only if the add fails.
+  const onSending = (state: 'sending' | 'failed') => {
+    setSending(state === 'sending')
+    if (state === 'failed') draft.failed()
+  }
 
   const sources = useMemo(
     () =>
@@ -165,6 +171,7 @@ export function WeekGroceriesSheet({
   return (
     <AddToGroceriesSheet
       place={place}
+      onSending={onSending}
       source={{
         title: fmt(words.source, { range }),
         subtitle:

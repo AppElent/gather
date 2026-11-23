@@ -47,7 +47,7 @@ export function SectionsSheet({
   // A share keeps the new section's name (APP-622).
   const kept = useSheetDraft<{ draft: string }>(`tasks:sections:${list.id}`)
   const [draft, setDraft] = useState(kept.kept?.draft ?? '')
-  kept.track({ draft })
+  kept.track({ draft }, { dirty: draft.trim() !== '' })
   const sections = list.sections
 
   const report = (write: Promise<unknown>) =>
@@ -64,6 +64,7 @@ export function SectionsSheet({
       () => haptics.itemSaved(),
       () => {
         haptics.actionFailed()
+        kept.failed({ draft: name })
         // A refused add (the 31st section, say) gives the name back to retype.
         setDraft((current) => current || name)
       },

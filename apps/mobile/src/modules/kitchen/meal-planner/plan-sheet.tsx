@@ -70,6 +70,7 @@ export function PlanSheet({
   weekStart: string
   data: WeekData
   onClose: () => void
+  /** After a plan came back; the sheet has closed itself. */
   onPlanned: (outcome: PlanOutcome) => void
   /** Zelf kiezen from the Limit card: Pick for the first empty slot. */
   onChooseYourself: (date: string, slot: MealSlot) => void
@@ -156,11 +157,13 @@ export function PlanSheet({
       .then((result) => {
         if (result.status === 'limit') {
           haptics.actionFailed()
+          draft.failed()
           setOverCap(true)
           return
         }
         if (result.status === 'empty' || result.count === 0) haptics.actionFailed()
         else haptics.itemSaved()
+        if (!draft.gone()) onClose()
         onPlanned(result.status === 'empty' ? result : { ...result, ...asked })
       })
       .catch(() => {

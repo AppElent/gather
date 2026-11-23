@@ -1,17 +1,20 @@
+import { useAuth } from '@clerk/expo'
 import { normalizeCalendarEvent } from '@gather/core/calendar'
 import { minutesToClock } from '@gather/core/civil-date'
 import { Stack } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { onSheetsClosing } from '../../components/openSheets'
 import { api, type Id } from '../../convex/api'
 import { usePaginatedQuery, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
-import { useSheetResume } from '../../ui/sheet-drafts'
+import { draftKey, keepDraft, keptDraft } from '../../ui/composer-drafts'
 import { CalendarEditor } from './CalendarEditor'
+import { isDraftDirty } from './calendarDraft'
 import { useCalendarEditor } from './useCalendarEditor'
 
 function time(value?: number) {
@@ -20,6 +23,7 @@ function time(value?: number) {
 
 export function CalendarEventScreen({ eventId }: { eventId: string }) {
   const { group } = useGroup()
+  const { userId } = useAuth()
   const { t, locale } = useI18n()
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
@@ -35,7 +39,19 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
   const members = useQuery(api.groups.members, { slug: group.slug })
   const [editing, setEditing] = useState(false)
   const controller = useCalendarEditor()
-  const resume = useSheetResume(editing)
+  // A share closed the editor (APP-622): which draft it was on, so Edit comes
+  // back on that one, a copy included. The draft itself is the editor's own.
+  const keptKey = draftKey(userId, group._id, `calendar:event:${eventId}`)
+  const onScreen = useRef(editing ? controller.draft : null)
+  onScreen.current = editing ? controller.draft : null
+  useEffect(
+    () =>
+      onSheetsClosing(() => {
+        const draft = onScreen.current
+        if (draft && isDraftDirty(draft)) keepDraft(keptKey, draft.draftId)
+      }),
+    [keptKey],
+  )
   useRecordRecent(
     event && event !== null
       ? {
@@ -97,15 +113,13 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
         <Pressable
           testID="calendar-event-edit"
           onPress={() => {
-            // A share closed the editor (APP-622): back on its kept draft.
-            const kept = controller.draft
-            if (
-              resume() === true &&
-              kept?.status === 'dismissed' &&
-              kept.eventId === model.id
-            )
-              controller.resume()
-            else controller.openEdit(model)
+            const kept = keptDraft<string>(keptKey)
+            keepDraft(keptKey, undefined)
+            const draft = controller.draft
+            if (kept === undefined || draft?.draftId !== kept)
+              controller.openEdit(model)
+            // One whose save failed since is still shown, with why.
+            else if (draft.status === 'dismissed') controller.resume()
             setEditing(true)
           }}
           style={[styles.edit, { borderColor: tokens.hair }]}

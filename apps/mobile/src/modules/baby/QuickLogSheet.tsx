@@ -30,7 +30,8 @@
  *
  * A share that closes the sheet keeps everything in it, photos included, as a
  * draft that the same button on the same Child opens on (APP-622,
- * `ui/sheet-drafts.ts`). A photo still uploading is not kept.
+ * `ui/sheet-drafts.ts`). A photo still uploading is uploaded
+ * again.
  */
 import { missingRequiredField } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
@@ -47,6 +48,7 @@ import {
   View,
 } from 'react-native'
 import { NativeSheet } from '../../components/NativeSheet'
+import type { PhotoPreview } from '../../components/PhotoField'
 import { api, type Id } from '../../convex/api'
 import { haptics } from '../../feedback/haptics'
 import { fmt, plural, useI18n } from '../../i18n'
@@ -80,6 +82,7 @@ export interface QuickLogSheetProps {
 }
 
 type Picks = Record<string, string>
+type Previews = Partial<Record<BabyEventType, PhotoPreview | null>>
 
 /** What a share keeps of the sheet (`useSheetDraft`). */
 interface QuickLogDraft {
@@ -89,6 +92,7 @@ interface QuickLogDraft {
   opened: number
   timestamp: number
   photos: Partial<Record<BabyEventType, string | null>>
+  previews: Previews
 }
 
 export function QuickLogSheet({
@@ -132,8 +136,11 @@ export function QuickLogSheet({
   const [photos, setPhotos] = useState<
     Partial<Record<BabyEventType, string | null>>
   >(kept?.photos ?? {})
+  // The local files those photos show, so a kept draft shows them again.
+  const [previews, setPreviews] = useState<Previews>(kept?.previews ?? {})
+  const [uploading, setUploading] = useState(false)
   draft.track(
-    { included, picks, notes, opened, timestamp, photos },
+    { included, picks, notes, opened, timestamp, photos, previews },
     { holding: saving },
   )
 
@@ -185,7 +192,7 @@ export function QuickLogSheet({
   }
 
   async function save() {
-    if (blocked) return
+    if (blocked || uploading) return
     setSaving(true)
     setFailure(null)
 
@@ -213,10 +220,10 @@ export function QuickLogSheet({
 
     if (failed.length === 0) {
       haptics.itemSaved()
-      onClose()
+      if (!draft.gone()) onClose()
       return
     }
-    draft.failed({ included: failed, picks, notes, opened, timestamp, photos })
+    draft.failed({ included: failed, picks, notes, opened, timestamp, photos, previews })
     haptics.actionFailed()
     // Stays open holding only what did not land, and says so. Closing on a
     // partial save would hide the half that is missing; keeping the half that
@@ -245,14 +252,14 @@ export function QuickLogSheet({
       footer={
         <Pressable
           accessibilityRole="button"
-          disabled={saving || blocked}
+          disabled={saving || blocked || uploading}
           onPress={save}
           style={({ pressed }) => [
             styles.save,
             {
               backgroundColor: blocked ? tokens.surface2 : tokens.accent,
             },
-            (pressed || saving) && styles.pressed,
+            (pressed || saving || uploading) && styles.pressed,
           ]}
         >
           {saving ? (
@@ -394,6 +401,11 @@ export function QuickLogSheet({
                 setPhotos((prev) => ({ ...prev, [each]: storageId }))
               }
               disabled={saving}
+              initialPreview={previews[each]}
+              onPreviewChange={(preview) =>
+                setPreviews((prev) => ({ ...prev, [each]: preview }))
+              }
+              onBusyChange={setUploading}
             />
           </View>
         ))}

@@ -88,6 +88,7 @@ export function AddToGroceriesSheet({
   byAisle = false,
   after,
   footnote,
+  onSending,
   onClose,
 }: {
   source: AddSheetSource
@@ -120,6 +121,8 @@ export function AddToGroceriesSheet({
   after?: (listId: string | undefined) => ReactNode
   /** Under the button, instead of the recipe's. */
   footnote?: string
+  /** Told as the lines are sent, so a source can hold its own draft. */
+  onSending?: (state: 'sending' | 'failed') => void
   onClose: () => void
 }) {
   const tokens = useTokens('kitchen')
@@ -291,6 +294,7 @@ export function AddToGroceriesSheet({
   const submit = async () => {
     if (!listId || count === 0) return
     setBusy(true)
+    onSending?.('sending')
     setFailed(false)
     try {
       await add({
@@ -301,10 +305,11 @@ export function AddToGroceriesSheet({
       })
       writePreference(lastGroceryListKey(group.slug), listId)
       haptics.itemSaved()
-      onClose()
+      if (!draft.gone()) onClose()
     } catch {
       haptics.actionFailed()
       draft.failed()
+      onSending?.('failed')
       setFailed(true)
       setBusy(false)
     }

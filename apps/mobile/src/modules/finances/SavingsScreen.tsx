@@ -45,14 +45,24 @@ export function SavingsScreen() {
   const { groupSlug, format, text, today } = useFinances()
   const goals = useQuery(api.savingsGoals.list, { groupSlug })
   const create = useMutation(api.savingsGoals.create)
-  const { attempt, failure, landed } = useFinanceWrite()
+  const { attempt, failure, writes } = useFinanceWrite()
 
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [target, setTarget] = useState('')
   const [date, setDate] = useState('')
   // A share closed the sheet: open on what was typed (APP-622).
-  const resume = useSheetResume(adding, landed)
+  const resume = useSheetResume({
+    place: 'finances:savings',
+    open: adding,
+    values: { name, target, date },
+    restore: (was) => {
+      setName(was.name)
+      setTarget(was.target)
+      setDate(was.date)
+    },
+    writes,
+  })
 
   const Target = FINANCE_ICONS.Target
 
@@ -70,7 +80,7 @@ export function SavingsScreen() {
   }
 
   function open() {
-    if (resume() !== true) {
+    if (!resume(true)) {
       setName('')
       setTarget('')
       setDate('')
@@ -192,11 +202,17 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
   const goal = useQuery(api.savingsGoals.get, { id: goalId, groupSlug })
   const update = useMutation(api.savingsGoals.update)
   const remove = useMutation(api.savingsGoals.remove)
-  const { attempt, failure, landed } = useFinanceWrite()
+  const { attempt, failure, writes } = useFinanceWrite()
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
-  const resume = useSheetResume(editing, landed)
+  const resume = useSheetResume({
+    place: `finances:savings:${goalId}`,
+    open: editing,
+    values: draft,
+    restore: setDraft,
+    writes,
+  })
 
 
   if (goal === undefined) {
@@ -368,7 +384,7 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
             emphasis
             chevron
             onPress={() => {
-              if (resume() !== 'saved') setDraft(String(goal.savedCents / 100))
+              if (!resume('saved')) setDraft(String(goal.savedCents / 100))
               setEditing('saved')
             }}
           />
@@ -384,7 +400,7 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
             chevron
             last
             onPress={() => {
-              if (resume() !== 'monthly')
+              if (!resume('monthly'))
                 setDraft(String((goal.monthlyCents ?? 0) / 100))
               setEditing('monthly')
             }}

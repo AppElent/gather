@@ -58,7 +58,7 @@ export function SplitScreen() {
   const members = useQuery(api.groups.members, { slug: groupSlug })
   const saved = useQuery(api.splitScenarios.list, { groupSlug })
   const saveScenario = useMutation(api.splitScenarios.save)
-  const { attempt, failure, landed } = useFinanceWrite()
+  const { attempt, failure, writes } = useFinanceWrite()
 
   const [what, setWhat] = useState('')
   const [payments, setPayments] = useState<Payment[]>([])
@@ -76,8 +76,24 @@ export function SplitScreen() {
   const [label, setLabel] = useState('')
   const [name, setName] = useState('')
   // A share closed the sheet: open on what was typed (APP-622).
-  const resumeAdd = useSheetResume(adding, landed)
-  const resumeSave = useSheetResume(saving, landed)
+  const resumeAdd = useSheetResume({
+    place: 'finances:split:add',
+    open: adding,
+    values: { payer, amount, label },
+    restore: (was) => {
+      setPayer(was.payer)
+      setAmount(was.amount)
+      setLabel(was.label)
+    },
+    writes,
+  })
+  const resumeSave = useSheetResume({
+    place: 'finances:split:save',
+    open: saving,
+    values: name,
+    restore: setName,
+    writes,
+  })
 
   const Users = FINANCE_ICONS.Users
 
@@ -213,8 +229,10 @@ export function SplitScreen() {
           <AddRow
             label={text.split.addPayment}
             onPress={() => {
-              if (resumeAdd() !== true) {
+              if (!resumeAdd(true)) {
                 setPayer(members[0]?.userId ?? null)
+                setAmount('')
+                setLabel('')
               }
               setAdding(true)
             }}
@@ -367,7 +385,7 @@ export function SplitScreen() {
               label={text.split.saveThis}
               disabled={!allocationBalances}
               onPress={() => {
-                if (resumeSave() !== true) {
+                if (!resumeSave(true)) {
                   setName(what)
                 }
                 setSaving(true)
