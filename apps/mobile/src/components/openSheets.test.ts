@@ -4,6 +4,7 @@ import {
   CLOSE_SHEETS_TIMEOUT_MS,
   closeOpenSheets,
   hasOpenSheets,
+  LATE_SHEET_DELAY_MS,
   type OpenSheet,
   openSheet,
 } from './openSheets'
@@ -105,17 +106,21 @@ describe('openSheets', () => {
     await Promise.all([first, second])
   })
 
-  it('closes a sheet that opens while sheets are closing, and waits for it', async () => {
+  it('closes a sheet that opens mid-close once it has presented, and waits for it', async () => {
+    vi.useFakeTimers()
     const a = sheet()
     let resolved = false
     const closing = closeOpenSheets().then(() => {
       resolved = true
     })
     const late = sheet()
+    // Not in the same tick as its present().
+    expect(late.dismiss).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
     expect(late.dismiss).toHaveBeenCalledTimes(1)
 
     a.later()
-    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(0)
     expect(resolved).toBe(false)
 
     late.later()

@@ -13,6 +13,13 @@
 /** How long `closeOpenSheets` waits for the sheets to report they closed. */
 export const CLOSE_SHEETS_TIMEOUT_MS = 1500
 
+/**
+ * How long a sheet that opens mid-close gets to finish presenting before it is
+ * asked to close: dismissing in the same tick as `present()` is lost on both
+ * platforms.
+ */
+export const LATE_SHEET_DELAY_MS = 350
+
 export interface OpenSheet {
   /** The sheet has closed, however it happened. Safe to call more than once. */
   closed: () => void
@@ -43,14 +50,18 @@ function ask(entry: Entry) {
  * does, so the sheet's own close handling (its `onClose`) runs once.
  *
  * A sheet that opens while sheets are being closed for a share is closed too,
- * or it would cover the chooser the same way.
+ * once it has had time to present, or it would cover the chooser the same way.
  */
 export function openSheet(dismiss: () => void): OpenSheet {
   // An entry per registration, so the same function registered twice is two
   // sheets.
   const entry: Entry = { dismiss, asked: false }
   sheets.add(entry)
-  if (waiters.size > 0) ask(entry)
+  if (waiters.size > 0) {
+    setTimeout(() => {
+      if (sheets.has(entry) && waiters.size > 0) ask(entry)
+    }, LATE_SHEET_DELAY_MS)
+  }
   return {
     closed: () => {
       if (!sheets.delete(entry)) return

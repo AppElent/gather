@@ -85,7 +85,8 @@ export function NativeSheet({
     const modal = ref.current
     modal?.present()
     // Listed while up, so a share can close it before the chooser (APP-618).
-    const sheet = openSheet(() => modal?.dismiss())
+    // Read the ref when asked: it can still be empty at mount on Android.
+    const sheet = openSheet(() => ref.current?.dismiss())
     registered.current = sheet
     return () => {
       sheet.closed()

@@ -33,11 +33,23 @@ import { closeOpenSheets, hasOpenSheets } from '../components/openSheets'
 import { useDrop } from './DropProvider'
 import { dropHref } from './paths'
 
+/** Rounds of closing, for a sheet that replaces one as it closes. */
+const CLOSE_ROUNDS = 2
+
+async function closeAllSheets() {
+  for (let round = 0; round < CLOSE_ROUNDS && hasOpenSheets(); round++) {
+    await closeOpenSheets()
+  }
+}
+
 export function DropGate() {
   const { pending } = useDrop()
   const router = useRouter()
   const opened = useRef(0)
   const mounted = useRef(true)
+  // The Drop as of the last render, so a wait that ends reads the current one.
+  const latest = useRef(pending)
+  latest.current = pending
 
   useEffect(() => {
     mounted.current = true
@@ -55,12 +67,14 @@ export function DropGate() {
       router.push(dropHref())
       return
     }
-    // Push only for the latest arrival, and only while this gate is mounted:
-    // a share that replaced this one pushes for itself, and a remounted gate
-    // opens the still-pending Drop on its own.
+    // Push only if this arrival is still the Drop in hand and the gate is still
+    // mounted: a replacing share pushes for itself, a cleared Drop needs no
+    // chooser, and a remounted gate opens the still-pending Drop on its own.
     const sequence = pending.sequence
-    closeOpenSheets().then(() => {
-      if (mounted.current && opened.current === sequence) router.push(dropHref())
+    closeAllSheets().then(() => {
+      if (mounted.current && latest.current?.sequence === sequence) {
+        router.push(dropHref())
+      }
     })
   }, [pending, router])
 
