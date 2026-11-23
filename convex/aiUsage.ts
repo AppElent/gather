@@ -1,9 +1,9 @@
-import { ConvexError, v } from 'convex/values'
+import { v } from 'convex/values'
 import { internalMutation, type MutationCtx, query } from './_generated/server'
 import { DAILY_AI_CALLS, utcDay } from './lib/aiUsage'
 import {
   getUserByClerkId,
-  NOT_SIGNED_IN,
+  notSignedInError,
   requireCurrentUser,
 } from './lib/sharing'
 
@@ -52,7 +52,7 @@ async function takeOne(
   day = utcDay(Date.now()),
 ): Promise<number | null> {
   const user = await getUserByClerkId(ctx, clerkId)
-  if (!user) throw new ConvexError(NOT_SIGNED_IN)
+  if (!user) throw notSignedInError()
 
   const row = await ctx.db
     .query('aiUsage')

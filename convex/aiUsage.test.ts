@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest'
 import { alice as asAlice, bob as asBob, testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import { DAILY_AI_CALLS } from './lib/aiUsage'
+import { notSignedInError } from './lib/sharing'
 
 /**
  * The daily cap on AI calls, asserted through the counter and through both
@@ -55,6 +56,17 @@ const estimateReply = {
 }
 
 describe('aiUsage.take', () => {
+  test('refuses a caller with no account, keyed (APP-620)', async () => {
+    const t = testConvex()
+    await expect(
+      t.mutation(internal.aiUsage.take, { clerkId: 'clerk_nobody' }),
+    ).rejects.toMatchObject({ data: notSignedInError().data })
+    expect(notSignedInError().data).toEqual({
+      kind: 'groups:not-signed-in',
+      message: 'Not authenticated',
+    })
+  })
+
   test('allows exactly the daily limit, then refuses', async () => {
     const t = await signUp(asAlice)
     for (let i = 0; i < DAILY_AI_CALLS; i++) {
