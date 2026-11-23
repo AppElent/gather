@@ -105,10 +105,13 @@ function QuickAddTaskForm({ onSaved, onOpenTask }: QuickAddTaskProps) {
       const last = latest.current
       // A line closed mid-save is not kept: reopened, it could be sent twice.
       // `save` keeps it if that save fails.
-      const keep = !inFlight.current && last.line.trim()
-      keepDraft(key, keep ? last : undefined)
+      if (!inFlight.current && last.line.trim()) keepDraft(key, last)
+      // Otherwise forget only the draft this form opened on: one kept since,
+      // by a save that failed after its form closed, stays.
+      else if (kept !== undefined && keptDraft(key) === kept)
+        keepDraft(key, undefined)
     }
-  }, [key])
+  }, [key, kept])
   const title = parsed.title
   const ready = Boolean(title && target && !saving)
 

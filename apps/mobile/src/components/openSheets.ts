@@ -29,6 +29,12 @@ interface Entry {
   dismiss: () => void
   /** Already asked to close, so a second share does not ask again. */
   asked: boolean
+  /**
+   * Opened during a close and still presenting: only its own delayed ask
+   * closes it, or a second close in that window would ask too early and the
+   * request would be lost.
+   */
+  presenting: boolean
 }
 
 const sheets = new Set<Entry>()
@@ -55,10 +61,11 @@ function ask(entry: Entry) {
 export function openSheet(dismiss: () => void): OpenSheet {
   // An entry per registration, so the same function registered twice is two
   // sheets.
-  const entry: Entry = { dismiss, asked: false }
+  const entry: Entry = { dismiss, asked: false, presenting: waiters.size > 0 }
   sheets.add(entry)
-  if (waiters.size > 0) {
+  if (entry.presenting) {
     setTimeout(() => {
+      entry.presenting = false
       if (sheets.has(entry) && waiters.size > 0) ask(entry)
     }, LATE_SHEET_DELAY_MS)
   }
@@ -91,7 +98,7 @@ export function closeOpenSheets(
     }
     const timer = setTimeout(done, timeoutMs)
     waiters.add(done)
-    for (const entry of [...sheets]) ask(entry)
+    for (const entry of [...sheets]) if (!entry.presenting) ask(entry)
     // A sheet whose dismiss reports closed at once has already settled.
     settle()
   })

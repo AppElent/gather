@@ -128,6 +128,22 @@ describe('openSheets', () => {
     expect(resolved).toBe(true)
   })
 
+  it('lets a second close wait out a late sheet still presenting', async () => {
+    vi.useFakeTimers()
+    const a = sheet()
+    const first = closeOpenSheets()
+    const late = sheet()
+    // A replacement share closes again while `late` is still presenting.
+    const second = closeOpenSheets()
+    expect(late.dismiss).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
+    expect(late.dismiss).toHaveBeenCalledTimes(1)
+    a.later()
+    late.later()
+    await Promise.all([first, second])
+    expect(hasOpenSheets()).toBe(false)
+  })
+
   it('leaves a sheet that opens after closing finished alone', async () => {
     const a = sheet()
     const closing = closeOpenSheets()
