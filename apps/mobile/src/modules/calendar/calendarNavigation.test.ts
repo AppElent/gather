@@ -131,4 +131,34 @@ describe('agenda range', () => {
       toExclusive: '2027-07-01',
     })
   })
+
+  test('drops the month at the far end once it holds the most months', () => {
+    const full = { from: '2026-01-01', toExclusive: '2026-10-01' }
+    expect(agendaMonths(full)).toHaveLength(9)
+    expect(extendAgendaRange(full, 1)).toEqual({
+      from: '2026-02-01',
+      toExclusive: '2026-11-01',
+    })
+    expect(extendAgendaRange(full, -1)).toEqual({
+      from: '2025-12-01',
+      toExclusive: '2026-09-01',
+    })
+    expect(extendAgendaRange(full, 1, 4)).toEqual({
+      from: '2026-07-01',
+      toExclusive: '2026-11-01',
+    })
+  })
+
+  test('a jump that would grow past the most months drops the far end', () => {
+    const full = { from: '2026-01-01', toExclusive: '2026-10-01' }
+    expect(agendaRangeForJump(full, '2026-09-20')).toEqual({
+      from: '2026-02-01',
+      toExclusive: '2026-11-01',
+    })
+    expect(agendaRangeForJump(full, '2026-01-03')).toEqual({
+      from: '2025-12-01',
+      toExclusive: '2026-09-01',
+    })
+    expect(agendaRangeForJump(full, '2026-05-10')).toEqual(full)
+  })
 })

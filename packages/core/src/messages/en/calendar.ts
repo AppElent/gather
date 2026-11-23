@@ -11,6 +11,7 @@ export const calendar = {
   agenda: 'Agenda',
   nothingPlanned: 'Nothing planned',
   noEventsRange: 'No events · {from}–{to}',
+  loadingEvents: 'Loading events…',
   filtersActive: 'Filters active',
   everyone: 'Everyone',
   unassigned: 'Unassigned',

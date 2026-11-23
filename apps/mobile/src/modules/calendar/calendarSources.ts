@@ -22,3 +22,38 @@ export function mergeSourceEvents(
   }
   return [...byId.values()]
 }
+
+/** One calendar's events for one month: `<calendarId>:<month's first day>`. */
+export function calendarSourceKey(calendarId: string, month: string): string {
+  return `${calendarId}:${month}`
+}
+
+/**
+ * A source's report, kept only once its month is complete. Until then the
+ * last complete report stays (a month scrolled back into reach keeps showing
+ * its events while they reload), and a month never reported stays unknown
+ * rather than reading as empty.
+ */
+export function applySourceReport(
+  current: Record<string, CalendarEvent[]>,
+  sourceKey: string,
+  events: CalendarEvent[],
+  complete: boolean,
+): Record<string, CalendarEvent[]> {
+  if (!complete) return current
+  return { ...current, [sourceKey]: events }
+}
+
+/**
+ * Whether every calendar has reported `month` complete, so a day without
+ * events in it really has none. With no calendars there is nothing to wait
+ * for; while the calendars themselves load, nothing is known yet.
+ */
+export function isMonthLoaded(
+  reported: Record<string, unknown>,
+  calendarIds: readonly string[] | null,
+  month: string,
+): boolean {
+  if (calendarIds === null) return false
+  return calendarIds.every((id) => calendarSourceKey(id, month) in reported)
+}
