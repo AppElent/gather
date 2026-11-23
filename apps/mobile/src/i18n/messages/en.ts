@@ -803,7 +803,7 @@ export const en = {
       fewer: 'One person fewer',
       more: 'One person more',
       inStock: 'in stock',
-      footnote: 'Made by AI. Check for allergies yourself. Gather gives no nutrition values for this recipe.',
+      footnote: 'Made by AI. Check for allergies yourself. This idea has no nutrition values; once saved, you can add or estimate them on the recipe.',
       savePlan: 'Save and put on {weekday}',
       saveOnly: 'Save only',
       another: 'Another idea',

@@ -619,7 +619,7 @@ export const nl = {
       fewer: 'Een persoon minder',
       more: 'Een persoon meer',
       inStock: 'in huis',
-      footnote: 'Door AI bedacht. Controleer zelf op allergieën. Gather geeft bij dit recept geen voedingswaarden.',
+      footnote: 'Door AI bedacht. Controleer zelf op allergieën. Dit idee heeft geen voedingswaarden; na bewaren kun je ze bij het recept invullen of laten schatten.',
       savePlan: 'Bewaar en zet op {weekday}',
       saveOnly: 'Alleen bewaren',
       another: 'Ander idee',
