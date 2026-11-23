@@ -214,7 +214,7 @@ function DayView({
 }) {
   const { messages, locale } = useI18n()
   const copy = messages.energy.usage
-  const period = useQuery(api.energyUsage.day, { groupSlug, day })
+  const period = useQuery(api.energyUsage.day, { groupSlug, day, today })
   if (period === undefined) return <Loading />
   if (period === null) {
     return <p className="m-0 text-sm">{messages.energy.empty.summary}</p>

@@ -352,10 +352,9 @@ export function addEnergyCosts(a: EnergyCost, b: EnergyCost): EnergyCost {
  * - Import: a fixed contract's tariff (T1, T2; a meter without a split pays
  *   T2), or a dynamic contract's market price plus markup, plus energy tax,
  *   all plus VAT. Hourly data is priced hour by hour.
- * - Export with net metering: the kWh up to that day's import are netted at
- *   the import price, the rest earn the export price. Without: all of it
- *   earns the export price (a fixed tariff, or market price plus the
- *   contract's export fee), excl. VAT.
+ * - Export earns the export price (a fixed tariff, or market price plus the
+ *   contract's export fee), excl. VAT. Net metering is not a day's matter:
+ *   `energyNetMetering` nets a whole month.
  * - Gas: tariff or market price plus markup, plus gas tax, plus VAT.
  * - Fixed costs per day are the month's share, the tax credit the year's,
  *   both plus VAT.
@@ -363,7 +362,6 @@ export function addEnergyCosts(a: EnergyCost, b: EnergyCost): EnergyCost {
 export function energyDayCost(
   use: EnergyDayUse,
   contract: EnergyContractTerms,
-  options: { netMetering: boolean },
 ): EnergyCost | null {
   const vat = 1 + contract.vatPercent / 100
   const importTotal = totalByTariff(use.importKwh)
@@ -405,14 +403,7 @@ export function energyDayCost(
     exportEurPerKwh = exportTotal > 0 ? exportValue / exportTotal : 0
   }
 
-  let exportEur: number
-  if (options.netMetering && importTotal > 0) {
-    const netted = Math.min(importTotal, exportTotal)
-    const importPrice = importEur / importTotal
-    exportEur = netted * importPrice + (exportTotal - netted) * exportEurPerKwh
-  } else {
-    exportEur = exportTotal * exportEurPerKwh
-  }
+  const exportEur = exportTotal * exportEurPerKwh
 
   let gasEur = 0
   if (use.gasM3 !== null && use.gasM3 !== 0) {
@@ -451,6 +442,45 @@ export function energyDayCost(
     creditCents,
     totalCents: importCents + exportCents + gasCents + fixedCents + creditCents,
   }
+}
+
+/** A day's usage and its cost without net metering, as `energyNetMetering` reads it. */
+export interface EnergyNetDay {
+  importKwh: number
+  exportKwh: number
+  cost: EnergyCost
+}
+
+/**
+ * Net metering (salderen) over a period, a month so far: the period's export
+ * up to its import is netted at the period's average import price instead of
+ * earning the export price, so a sunny day offsets a grey one. The credit is
+ * shared over the days by what each exported, so the days still add up to
+ * the period. Returns each day's cost with net metering, in order.
+ */
+export function energyNetMetering(days: readonly EnergyNetDay[]): EnergyCost[] {
+  const importKwh = days.reduce((total, day) => total + day.importKwh, 0)
+  const exportKwh = days.reduce((total, day) => total + day.exportKwh, 0)
+  if (importKwh <= 0 || exportKwh <= 0) return days.map((day) => day.cost)
+  const importCents = days.reduce((total, day) => total + day.cost.importCents, 0)
+  const earnedCents = -days.reduce((total, day) => total + day.cost.exportCents, 0)
+  const netted = Math.min(importKwh, exportKwh)
+  const creditCents = Math.round(
+    netted * (importCents / importKwh - earnedCents / exportKwh),
+  )
+  let exportedSoFar = 0
+  let given = 0
+  return days.map((day) => {
+    exportedSoFar += day.exportKwh
+    const upTo = Math.round((creditCents * exportedSoFar) / exportKwh)
+    const share = upTo - given
+    given = upTo
+    return {
+      ...day.cost,
+      exportCents: day.cost.exportCents - share || 0,
+      totalCents: day.cost.totalCents - share,
+    }
+  })
 }
 
 function negativeCents(value: number): number {

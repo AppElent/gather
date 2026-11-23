@@ -37,7 +37,7 @@ import { Segmented } from '../../components/Segmented'
 import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
-import { fmt, useI18n } from '../../i18n'
+import { fmt, plural, useI18n } from '../../i18n'
 import { moduleHref } from '../../modules/moduleDestination'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
@@ -161,7 +161,7 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
       }
     }
     if (status === 'ok' && totals.costMissingDays > 0) {
-      notes.push(fmt(words.costs.missingDays, { count: totals.costMissingDays }))
+      notes.push(plural(locale, totals.costMissingDays, words.costs.missingDays))
     }
     if (totals.estimated) notes.push(words.costs.estimated)
 

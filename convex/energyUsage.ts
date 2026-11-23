@@ -15,6 +15,7 @@ import {
   energyContractOn,
   energyMonthDays,
   isEnergyMonth,
+  netMeteringOn,
   netMeteringPossibleIn,
 } from '@gather/core/energy'
 import { energyRefusal } from '@gather/core/refusals'
@@ -174,14 +175,17 @@ export const month = query({
 /**
  * One day, hour by hour from hourly sources (with the state of charge when
  * the site has a battery), plus the day's own totals. A site with only typed
- * readings gets the day's estimate and no hours.
+ * readings gets the day's estimate and no hours. With net metering the day
+ * gets its share of its month so far (up to `today`), as in `month`.
  */
 export const day = query({
-  args: { groupSlug: v.string(), day: v.string() },
+  args: { groupSlug: v.string(), day: v.string(), today: v.string() },
   returns: periodValidator,
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    if (!isIsoDate(args.day)) throw new ConvexError(energyRefusal('notFound'))
+    if (!isIsoDate(args.day) || !isIsoDate(args.today)) {
+      throw new ConvexError(energyRefusal('notFound'))
+    }
     const site = await primarySiteOf(ctx, group._id)
     if (!site) return null
     const channels = await siteChannels(ctx, site._id)
@@ -190,6 +194,20 @@ export const day = query({
       hourly,
     })
     const contract = energyContractOn(range.contracts, args.day) ?? null
+    const own = range.days[0]
+    if (
+      own?.costWithoutNet &&
+      contract &&
+      netMeteringOn(contract, args.day) &&
+      args.day <= args.today
+    ) {
+      const monthSoFar = energyMonthDays(args.day.slice(0, 7)).filter(
+        (each) => each <= args.today,
+      )
+      const month = await computeEnergyRange(ctx, site, channels, monthSoFar)
+      own.cost =
+        month.days.find((each) => each.day === args.day)?.cost ?? own.cost
+    }
     return {
       siteName: site.name,
       hasHourly: hourly,

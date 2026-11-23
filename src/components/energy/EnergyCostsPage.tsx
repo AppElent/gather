@@ -16,7 +16,7 @@ import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import { fmt, type Messages, useI18n } from '../../lib/i18n'
+import { fmt, type Messages, plural, useI18n } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs } from '../app/Breadcrumbs'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
@@ -244,7 +244,7 @@ function MonthCosts({
         )}
         {status === 'ok' && totals.costMissingDays > 0 ? (
           <p className="m-0 text-sm text-[var(--app-muted)]">
-            {fmt(copy.missingDays, { count: totals.costMissingDays })}
+            {plural(locale, totals.costMissingDays, copy.missingDays)}
           </p>
         ) : null}
         {totals.estimated ? (

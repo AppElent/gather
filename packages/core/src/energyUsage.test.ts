@@ -19,12 +19,14 @@ import {
   energyContractOn,
   energyDayCost,
   energyMonthDays,
+  energyNetMetering,
   energyReadingMoment,
   forecastMonthCents,
   netMeteringOn,
   netMeteringPossibleIn,
   parseMeterReading,
   spreadReadingsOverDays,
+  ZERO_ENERGY_COST,
 } from './energyUsage'
 import { en } from './messages/en'
 
@@ -240,17 +242,14 @@ describe('energyDayCost, fixed contract', () => {
    *   import  4 kWh T1 × (0.27 + 0.1088) = 1.5152
    *           6 kWh T2 × (0.29 + 0.1088) = 2.3928
    *           3.9080 × 1.21 = 4.72868 €              →  473 ct
-   *   export without net: 3 kWh × 0.06 = 0.18 €       →  −18 ct
-   *   export with net: all 3 kWh netted at the import
-   *           price 4.72868 / 10 = 0.472868 × 3 = 1.418604 → −142 ct
+   *   export  3 kWh × 0.06 = 0.18 €                   →  −18 ct
    *   gas     2 m³ × (1.10 + 0.60) × 1.21 = 4.114 €   →  411 ct
    *   fixed   2805 / 30 × 1.21 = 113.135              →  113 ct
    *   credit  52495 / 365 × 1.21 = 174.02...          → −174 ct
-   *   total without: 473 − 18 + 411 + 113 − 174 = 805
-   *   total with:    473 − 142 + 411 + 113 − 174 = 681
+   *   total   473 − 18 + 411 + 113 − 174 = 805
    */
-  test('without net metering', () => {
-    expect(energyDayCost(use(), FIXED, { netMetering: false })).toEqual({
+  test('each part to the cent', () => {
+    expect(energyDayCost(use(), FIXED)).toEqual({
       importCents: 473,
       exportCents: -18,
       gasCents: 411,
@@ -260,38 +259,10 @@ describe('energyDayCost, fixed contract', () => {
     })
   })
 
-  test('with net metering the netted kWh earn the import price', () => {
-    expect(energyDayCost(use(), FIXED, { netMetering: true })).toEqual({
-      importCents: 473,
-      exportCents: -142,
-      gasCents: 411,
-      fixedCents: 113,
-      creditCents: -174,
-      totalCents: 681,
-    })
-  })
-
-  test('with net metering only up to the import; the rest earns the export price', () => {
-    // 2 kWh single (T2) at 0.3988 × 1.21 = 0.965096 € → 97 ct; import price
-    // 0.482548. Export 5: 2 netted = 0.965096, 3 × 0.06 = 0.18 → −115 ct.
-    const cost = energyDayCost(
-      use({
-        importKwh: { t1: 0, t2: 0, single: 2 },
-        exportKwh: { t1: 0, t2: 0, single: 5 },
-        gasM3: null,
-      }),
-      FIXED,
-      { netMetering: true },
-    )
-    expect(cost).toMatchObject({ importCents: 97, exportCents: -115, gasCents: 0 })
-  })
-
   test('a day with nothing exported or credited is zero, not minus zero', () => {
     const cost = energyDayCost(
       use({ exportKwh: { t1: 0, t2: 0, single: 0 } }),
-      { ...FIXED, yearlyTaxCreditCents: undefined },
-      { netMetering: false },
-    )
+      { ...FIXED, yearlyTaxCreditCents: undefined })
     expect(Object.is(cost?.exportCents, 0)).toBe(true)
     expect(Object.is(cost?.creditCents, 0)).toBe(true)
   })
@@ -299,12 +270,10 @@ describe('energyDayCost, fixed contract', () => {
 
 describe('energyDayCost, dynamic contract', () => {
   test('is null without the prices it needs, never a guess', () => {
-    expect(energyDayCost(use(), DYNAMIC, { netMetering: false })).toBeNull()
+    expect(energyDayCost(use(), DYNAMIC)).toBeNull()
     // Electricity priced, gas not.
     expect(
-      energyDayCost(use({ marketEurPerKwh: 0.1 }), DYNAMIC, {
-        netMetering: false,
-      }),
+      energyDayCost(use({ marketEurPerKwh: 0.1 }), DYNAMIC),
     ).toBeNull()
   })
 
@@ -326,9 +295,7 @@ describe('energyDayCost, dynamic contract', () => {
           { importKwh: 0, exportKwh: 0, marketEurPerKwh: null },
         ],
       }),
-      DYNAMIC,
-      { netMetering: false },
-    )
+      DYNAMIC)
     expect(cost).toMatchObject({ importCents: 128, exportCents: -29 })
     expect(cost?.totalCents).toBe(99)
   })
@@ -340,9 +307,7 @@ describe('energyDayCost, dynamic contract', () => {
           gasM3: null,
           hours: [{ importKwh: 1, exportKwh: 0, marketEurPerKwh: null }],
         }),
-        DYNAMIC,
-        { netMetering: false },
-      ),
+        DYNAMIC),
     ).toBeNull()
   })
 
@@ -350,10 +315,50 @@ describe('energyDayCost, dynamic contract', () => {
     // 2 m³ × (0.50 + 0.05 + 0.60) × 1.21 = 2.783 → 278 ct
     const cost = energyDayCost(
       use({ marketEurPerKwh: 0.1, gasMarketEurPerM3: 0.5 }),
-      DYNAMIC,
-      { netMetering: false },
-    )
+      DYNAMIC)
     expect(cost?.gasCents).toBe(278)
+  })
+})
+
+describe('energyNetMetering, over a month', () => {
+  const cost = (importCents: number, exportCents: number) => ({
+    ...ZERO_ENERGY_COST,
+    importCents,
+    exportCents,
+    totalCents: importCents + exportCents,
+  })
+
+  test('a sunny day’s export offsets a grey day’s import at the import price', () => {
+    // 10 kWh bought at 40 ct; 10 kWh sold at 6 ct: all 10 netted, worth 34 ct more each.
+    const [grey, sunny] = energyNetMetering([
+      { importKwh: 10, exportKwh: 0, cost: cost(400, 0) },
+      { importKwh: 0, exportKwh: 10, cost: cost(0, -60) },
+    ])
+    expect(grey).toMatchObject({ importCents: 400, exportCents: 0, totalCents: 400 })
+    expect(sunny).toMatchObject({ exportCents: -400, totalCents: -400 })
+  })
+
+  test('only up to the month’s import; the rest earns the export price', () => {
+    const [, sunny] = energyNetMetering([
+      { importKwh: 10, exportKwh: 0, cost: cost(400, 0) },
+      { importKwh: 0, exportKwh: 15, cost: cost(0, -90) },
+    ])
+    // 10 × 40 + 5 × 6
+    expect(sunny?.exportCents).toBe(-430)
+  })
+
+  test('the credit is shared by export and adds up to the cent', () => {
+    const days = energyNetMetering([
+      { importKwh: 1, exportKwh: 1, cost: cost(100, 0) },
+      { importKwh: 0, exportKwh: 1, cost: cost(0, 0) },
+      { importKwh: 0, exportKwh: 1, cost: cost(0, 0) },
+    ])
+    expect(days.map((day) => day.exportCents)).toEqual([-33, -34, -33])
+  })
+
+  test('without import or export nothing changes', () => {
+    const days = [{ importKwh: 0, exportKwh: 4, cost: cost(0, -24) }]
+    expect(energyNetMetering(days)).toEqual([days[0]?.cost])
   })
 })
 

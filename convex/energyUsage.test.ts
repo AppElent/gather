@@ -257,6 +257,75 @@ describe('a dynamic contract', () => {
   })
 })
 
+describe('net metering', () => {
+  /** A grey 9 November (10 kWh bought) and a sunny 10th (10 kWh sold). */
+  async function seedGreyAndSunny() {
+    const seeded = await seedEnergyGroups()
+    const { t, homeId, aliceId } = seeded
+    await t.run(async (ctx) => {
+      const siteId = await insertSite(ctx, homeId, aliceId)
+      const sourceId = await ctx.db.insert('energySources', {
+        groupId: homeId,
+        siteId,
+        kind: 'homeAssistant',
+        label: 'Home Assistant',
+        status: 'ok',
+        connectedByUserId: aliceId,
+      })
+      const channel = (kind: 'gridImport' | 'gridExport') =>
+        ctx.db.insert('energyChannels', {
+          groupId: homeId,
+          siteId,
+          sourceId,
+          kind,
+          unit: 'kWh',
+        })
+      const importId = await channel('gridImport')
+      const exportId = await channel('gridExport')
+      const at = (day: string) => amsterdamDayHours(day)[12] as number
+      for (const [channelId, day] of [
+        [importId, '2026-11-09'],
+        [exportId, '2026-11-10'],
+      ] as const) {
+        await ctx.db.insert('energyIntervals', {
+          groupId: homeId,
+          channelId,
+          hourStart: at(day),
+          amount: 10,
+          estimated: false,
+        })
+      }
+      await insertContract(ctx, homeId, siteId, FIXED_TERMS)
+    })
+    return seeded
+  }
+
+  test('nets the month, so a sunny day offsets a grey one', async () => {
+    const { t } = await seedGreyAndSunny()
+    const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
+    const sunny = month?.days.find((day) => day.day === '2026-11-10')
+    // Without: 10 kWh × 0.06 = −60 ct. With: all 10 netted at the 9th's
+    // import price, so the month's electricity comes to nothing.
+    expect(sunny?.costWithoutNet?.exportCents).toBe(-60)
+    expect(sunny?.cost?.exportCents).toBe(-(month?.totals.cost?.importCents ?? 0))
+    expect(
+      (month?.totals.cost?.importCents ?? 0) + (month?.totals.cost?.exportCents ?? 0),
+    ).toBe(0)
+  })
+
+  test('a day shows its share of the month, as the month does', async () => {
+    const { t } = await seedGreyAndSunny()
+    const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
+    const day = await t
+      .withIdentity(bob)
+      .query(api.energyUsage.day, { ...HOME, day: '2026-11-10', today: '2026-11-20' })
+    expect(day?.days[0]?.cost).toEqual(
+      month?.days.find((each) => each.day === '2026-11-10')?.cost,
+    )
+    expect(day?.totals.cost?.exportCents).toBeLessThan(-60)
+  })
+})
+
 describe('a year', () => {
   test('is twelve months summed, without a rollup', async () => {
     const { t, homeId, aliceId } = await seedEnergyGroups()
@@ -348,7 +417,7 @@ describe('a day', () => {
     const { t } = await seedHourlySite('2026-11-10')
     const day = await t
       .withIdentity(bob)
-      .query(api.energyUsage.day, { ...HOME, day: '2026-11-10' })
+      .query(api.energyUsage.day, { ...HOME, day: '2026-11-10', today: '2026-11-20' })
     expect(day?.hasHourly).toBe(true)
     expect(day?.channels).toMatchObject({ solar: true, batterySoc: true })
     expect(day?.hours).toHaveLength(24)
@@ -397,7 +466,7 @@ describe('a day', () => {
     const importCents = async () => {
       const day = await t
         .withIdentity(bob)
-        .query(api.energyUsage.day, { ...HOME, day: '2026-11-10' })
+        .query(api.energyUsage.day, { ...HOME, day: '2026-11-10', today: '2026-11-20' })
       return day?.days[0]?.cost?.importCents
     }
     const hourly = await importCents()
@@ -415,7 +484,7 @@ describe('a day', () => {
     const { t } = await seedHourlySite('2026-10-25')
     const day = await t
       .withIdentity(bob)
-      .query(api.energyUsage.day, { ...HOME, day: '2026-10-25' })
+      .query(api.energyUsage.day, { ...HOME, day: '2026-10-25', today: '2026-11-20' })
     expect(day?.hours).toHaveLength(25)
     expect(day?.days[0]?.importKwh).toBeCloseTo(12.5)
   })
@@ -424,7 +493,7 @@ describe('a day', () => {
     const { t } = await seedReadSite()
     const day = await t
       .withIdentity(bob)
-      .query(api.energyUsage.day, { ...HOME, day: '2026-11-10' })
+      .query(api.energyUsage.day, { ...HOME, day: '2026-11-10', today: '2026-11-20' })
     expect(day?.hasHourly).toBe(false)
     expect(day?.hours).toEqual([])
     expect(day?.days[0]).toMatchObject({ estimated: true, costStatus: 'ok' })
@@ -442,7 +511,7 @@ describe('who may read usage', () => {
     expect(
       await t
         .withIdentity(alice)
-        .query(api.energyUsage.day, { ...HOME, day: '2026-11-10' }),
+        .query(api.energyUsage.day, { ...HOME, day: '2026-11-10', today: '2026-11-20' }),
     ).toBeNull()
   })
 
@@ -452,11 +521,11 @@ describe('who may read usage', () => {
       t.withIdentity(carol).query(api.energyUsage.month, NOVEMBER),
     ).rejects.toThrow()
     await expect(
-      t.withIdentity(carol).query(api.energyUsage.day, { ...HOME, day: '2026-11-10' }),
+      t.withIdentity(carol).query(api.energyUsage.day, { ...HOME, day: '2026-11-10', today: '2026-11-20' }),
     ).rejects.toThrow()
     await expect(t.query(api.energyUsage.month, NOVEMBER)).rejects.toThrow()
     await expect(
-      t.query(api.energyUsage.day, { ...HOME, day: '2026-11-10' }),
+      t.query(api.energyUsage.day, { ...HOME, day: '2026-11-10', today: '2026-11-20' }),
     ).rejects.toThrow()
   })
 
@@ -468,7 +537,7 @@ describe('who may read usage', () => {
         .query(api.energyUsage.month, { ...NOVEMBER, month: '2026-13' }),
     ).rejects.toThrow('energy:notFound')
     await expect(
-      t.withIdentity(bob).query(api.energyUsage.day, { ...HOME, day: 'nope' }),
+      t.withIdentity(bob).query(api.energyUsage.day, { ...HOME, day: 'nope', today: '2026-11-20' }),
     ).rejects.toThrow('energy:notFound')
   })
 })

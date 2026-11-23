@@ -234,7 +234,11 @@ function DayView({ day, today }: { day: string; today: string }) {
   const { t, locale } = useI18n()
   const { group } = useGroup()
   const words = t.energy
-  const period = useQuery(api.energyUsage.day, { groupSlug: group.slug, day })
+  const period = useQuery(api.energyUsage.day, {
+    groupSlug: group.slug,
+    day,
+    today,
+  })
   if (period === undefined) {
     return <LoadingSkeleton rows={4} label={t.actions.loading} />
   }

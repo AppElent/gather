@@ -19,6 +19,7 @@ import {
   type EnergyDayUse,
   energyContractOn,
   energyDayCost,
+  energyNetMetering,
   netMeteringOn,
   primaryEnergySite,
   spreadReadingsOverDays,
@@ -451,18 +452,16 @@ export async function computeEnergyRange(
       gasMarketEurPerM3: average(prices.gas, dayStart, dayEnd),
       allInPrices: prices.allIn,
     }
-    const terms = contract as EnergyContractTerms
-    const costWithoutNet = energyDayCost(use, terms, { netMetering: false })
-    const cost = netMeteringOn(contract, day)
-      ? energyDayCost(use, terms, { netMetering: true })
-      : costWithoutNet
+    const costWithoutNet = energyDayCost(use, contract as EnergyContractTerms)
     return {
       ...base,
-      cost,
+      // Net metering is applied to the whole month below.
+      cost: costWithoutNet,
       costWithoutNet,
-      costStatus: cost ? ('ok' as const) : ('noPrices' as const),
+      costStatus: costWithoutNet ? ('ok' as const) : ('noPrices' as const),
     }
   })
+  netEachMonth(result, contracts)
 
   const hours: EnergyHour[] = !options.hourly
     ? []
@@ -481,6 +480,38 @@ export async function computeEnergyRange(
   )
 
   return { days: result, hours, contracts }
+}
+
+/**
+ * Net metering per month over the days given (a month so far): each costed
+ * day under a contract with net metering gets its share of the month's
+ * netting (`energyNetMetering`). Changes `days` in place.
+ */
+function netEachMonth(
+  days: EnergyDay[],
+  contracts: readonly Doc<'energyContracts'>[],
+) {
+  const months = new Map<string, EnergyDay[]>()
+  for (const day of days) {
+    const contract = energyContractOn(contracts, day.day)
+    if (!day.costWithoutNet || !contract || !netMeteringOn(contract, day.day)) {
+      continue
+    }
+    const key = day.day.slice(0, 7)
+    months.set(key, [...(months.get(key) ?? []), day])
+  }
+  for (const netted of months.values()) {
+    const costs = energyNetMetering(
+      netted.map((day) => ({
+        importKwh: day.importKwh,
+        exportKwh: day.exportKwh,
+        cost: day.costWithoutNet as EnergyCost,
+      })),
+    )
+    netted.forEach((day, index) => {
+      day.cost = costs[index] ?? day.cost
+    })
+  }
 }
 
 /** Sum the costs of the days that have one; null when none has. */

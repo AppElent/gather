@@ -140,8 +140,11 @@ export const energy = {
     noContract: 'Kosten verschijnen zodra je contract is ingevuld.',
     noPrices:
       'De kosten voor {month} zijn nog niet beschikbaar: de prijzen van je dynamische contract zijn nog niet binnen.',
-    missingDays:
-      'Nog niet beschikbaar voor {count} dagen: de prijzen van die dagen zijn nog niet binnen.',
+    missingDays: {
+      one: 'Nog niet beschikbaar voor 1 dag: daarvoor is er geen contract of zijn de prijzen nog niet binnen.',
+      other:
+        'Nog niet beschikbaar voor {count} dagen: daarvoor is er geen contract of zijn de prijzen nog niet binnen.',
+    },
     estimated: 'Geschat uit meterstanden, per dag.',
     vatNote: 'Bedragen inclusief btw en energiebelasting.',
   },

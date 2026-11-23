@@ -161,8 +161,11 @@ export const energy = {
     noContract: 'Costs appear once your contract is filled in.',
     noPrices:
       'The costs for {month} are not available yet: the prices of your dynamic contract have not come in.',
-    missingDays:
-      'Not available yet for {count} days: the prices for those days have not come in.',
+    missingDays: {
+      one: 'Not available yet for 1 day: it has no contract, or its prices have not come in.',
+      other:
+        'Not available yet for {count} days: they have no contract, or their prices have not come in.',
+    },
     estimated: 'Estimated from meter readings, per day.',
     vatNote: 'Amounts include VAT and energy tax.',
   },

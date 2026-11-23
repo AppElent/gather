@@ -97,7 +97,7 @@ function SiteHome({
   const hourly = period?.hasHourly === true
   const day = useQuery(
     api.energyUsage.day,
-    hourly ? { groupSlug, day: today } : 'skip',
+    hourly ? { groupSlug, day: today, today } : 'skip',
   )
   const manual = overview.sources.find((source) => source.kind === 'manual')
   const typedChannels = form?.channels.length ?? 0

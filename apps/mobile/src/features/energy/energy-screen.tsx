@@ -197,7 +197,7 @@ function SiteHome({
   const usage = useQuery(api.energyUsage.month, { groupSlug, month, today })
   const hours = useQuery(
     api.energyUsage.day,
-    usage?.hasHourly ? { groupSlug, day: today } : 'skip',
+    usage?.hasHourly ? { groupSlug, day: today, today } : 'skip',
   )
   const contracts = useQuery(api.energyContracts.list, { groupSlug })
 
