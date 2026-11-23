@@ -15,9 +15,9 @@
  * A failed save keeps the line and says so under it; the launcher is told
  * only about a save that happened.
  *
- * A line closed unsaved is kept, like the keyboard composer's draft
- * (`ui/composer-drafts.ts`), and is back when the form opens again in the
- * same account and Group. The sheet can close without being asked: a share
+ * A line closed unsaved is kept with its list, like the keyboard composer's
+ * draft (`ui/composer-drafts.ts`), and is back when the form opens again in
+ * the same account and Group. The sheet can close without being asked: a share
  * from another app closes it to show the Drop chooser (APP-618).
  */
 import { useAuth } from '@clerk/expo'
@@ -43,27 +43,44 @@ import { QuickAddChips, QuickAddInput, useQuickAddLine } from './QuickAddParts'
 import { quickAddLists, quickAddTarget } from './quickAdd'
 import { listFace, useTaskActions, useTaskLists } from './store'
 
-/** The quick sheet's kept line (`useQuickAddLine`'s `initial`). */
+/** The quick sheet's kept line (`useQuickAddLine`'s `initial`) and list. */
 interface QuickLine {
   line: string
   dismissed: readonly string[]
+  pickedId: string | null
 }
 
-export function QuickAddTask({
-  onSaved,
-  onOpenTask,
-}: {
+interface QuickAddTaskProps {
   /** The title that was saved, and the name of the list it went on. */
   onSaved: (title: string, listName: string) => void
   /** "More details": the task was saved, and its screen should open. */
   onOpenTask?: (taskId: string) => void
-}) {
+}
+
+/**
+ * A new form per Group: the launcher sits outside the tab stacks, so a Group
+ * change does not remount it, and a line typed for one Group must not be
+ * saved, or kept, in another.
+ */
+export function QuickAddTask(props: QuickAddTaskProps) {
+  const { group } = useGroup()
+  return <QuickAddTaskForm key={group._id} {...props} />
+}
+
+function QuickAddTaskForm({ onSaved, onOpenTask }: QuickAddTaskProps) {
   const tokens = useTokens('home')
   const { t } = useI18n()
   const text = t.tasks.quickAdd
   const lists = useTaskLists()
   const { addTask, addParsedTask } = useTaskActions()
-  const [pickedId, setPickedId] = useState<string | null>(null)
+  const { group } = useGroup()
+  const { userId } = useAuth()
+  // The place is fixed for the form's life (a Group change remounts it).
+  const [key] = useState(() => draftKey(userId, group._id, 'quick-sheet:task'))
+  const [kept] = useState(() => keptDraft<QuickLine>(key))
+  const [pickedId, setPickedId] = useState<string | null>(
+    kept?.pickedId ?? null,
+  )
   const [saving, setSaving] = useState(false)
   // `saving` reaches the next render only; a second tap in the same turn is
   // stopped by this, so submitting twice saves once.
@@ -74,24 +91,24 @@ export function QuickAddTask({
   const target = offered ? quickAddTarget(offered, pickedId) : undefined
   // A grocery list reads its own line: "2 pakken melk" is an amount (APP-309).
   const grocery = target?.grocery ?? false
-  const { group } = useGroup()
-  const { userId } = useAuth()
-  // The place is fixed for the form's life; read at unmount, not tracked.
-  const [key] = useState(() => draftKey(userId, group._id, 'quick-sheet:task'))
-  const [kept] = useState(() => keptDraft<QuickLine>(key))
   const { line, parsed, today, dismissed, setLine, dismiss, reset } =
     useQuickAddLine(!grocery, kept)
   // What a close would keep. Emptied by a save before its re-render, since
   // `onSaved` may close the form first.
-  const latest = useRef<QuickLine>({ line, dismissed })
-  latest.current = { line, dismissed }
-  useEffect(
-    () => () => {
+  const latest = useRef<QuickLine>({ line, dismissed, pickedId })
+  latest.current = { line, dismissed, pickedId }
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
       const last = latest.current
-      keepDraft(key, last.line.trim() ? last : undefined)
-    },
-    [key],
-  )
+      // A line closed mid-save is not kept: reopened, it could be sent twice.
+      // `save` keeps it if that save fails.
+      const keep = !inFlight.current && last.line.trim()
+      keepDraft(key, keep ? last : undefined)
+    }
+  }, [key])
   const title = parsed.title
   const ready = Boolean(title && target && !saving)
 
@@ -102,7 +119,7 @@ export function QuickAddTask({
       return
     }
     inFlight.current = true
-    const sent = line
+    const sent: QuickLine = { line, dismissed, pickedId }
     setSaving(true)
     setNotice(null)
     try {
@@ -111,17 +128,20 @@ export function QuickAddTask({
         : await addParsedTask(target._id, parsed)
       haptics.itemSaved()
       reset()
-      latest.current = { line: '', dismissed: [] }
-      // Closed while it saved: the line kept then is this task, already made.
-      if (keptDraft<QuickLine>(key)?.line === sent) keepDraft(key, undefined)
+      latest.current = { line: '', dismissed: [], pickedId }
       // An alert, not the notice: `onSaved` may close this form, and a
       // haptic is never the only word that the reminder did not go in.
       if (saved.reminderFailed) Alert.alert(text.reminderFailed)
       onSaved(title, target.name)
-      if (open) onOpenTask?.(saved.taskId)
+      // Closed while it saved (a share's chooser may be up): no screen on top.
+      if (open && mounted.current) onOpenTask?.(saved.taskId)
     } catch {
       haptics.actionFailed()
       setNotice(text.failed)
+      // Closed while it saved, so nothing was kept: keep the line now, unless
+      // a reopened form has kept a newer one.
+      if (!mounted.current && keptDraft<QuickLine>(key) === undefined)
+        keepDraft(key, sent)
     } finally {
       inFlight.current = false
       setSaving(false)
