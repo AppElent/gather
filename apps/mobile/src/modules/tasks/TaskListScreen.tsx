@@ -74,7 +74,7 @@ import { ReorderMode } from './ReorderMode'
 import { SectionHeading, SectionsSheet } from './sections'
 import { RenameSheet } from './sheets'
 import { taskSections, useTaskActions, useTaskList } from './store'
-import { TaskComposer, TaskRow } from './TaskRow'
+import { type KeptGroceryLine, TaskComposer, TaskRow } from './TaskRow'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
 import type { ListDisplay, Task, TaskList as TaskListModel } from './types'
@@ -123,6 +123,9 @@ export function TaskList({
   const [restyling, setRestyling] = useState(false)
   const [editingSections, setEditingSections] = useState(false)
   const [reordering, setReordering] = useState(false)
+  // The grocery composer is away in Reorder mode; its half-typed line and
+  // the aisle chosen for it wait here (APP-536).
+  const keptLine = useRef<KeptGroceryLine | undefined>(undefined)
   // A drop the server refused puts Reorder mode back to the list's saved
   // order, which a remount reads, and says so (APP-534). Without it the mode
   // keeps the order it opened with, so after another Member adds an item
@@ -620,6 +623,7 @@ export function TaskList({
                         grocery
                         tasks={tasks}
                         scrollRef={scrollRef}
+                        keep={keptLine}
                       />
                     ) : null
                   }
@@ -671,6 +675,7 @@ export function TaskList({
                           grocery
                           sectionId={section.id ?? undefined}
                           scrollRef={scrollRef}
+                          keep={keptLine}
                         />
                       ) : null}
                     </InsetList>

@@ -16,6 +16,7 @@ import {
   addGroceryAmounts,
   capitalise,
   daysAgo,
+  type GroceryAisle,
   type GroceryCompletion,
   type GroceryHabit,
   groceryCadence,
@@ -230,16 +231,21 @@ export function SuggestionStrip({
  * first. A tap adds the completed name: with the amount typed, or else the
  * usual amount from history. When the name is already open on the list, the
  * typed amount is added to that item where the units add up, and otherwise
- * nothing changes: no second row (APP-427).
+ * nothing changes: no second row (APP-427). An aisle chosen in the composer
+ * for the typed line goes with a new item (APP-536); an item already open
+ * keeps its aisle.
  */
 export function GroceryCompletions({
   listId,
   line,
+  aisle,
   tasks,
   onPicked,
 }: {
   listId: string
   line: string
+  /** The aisle a Member chose in the composer for this line, if any. */
+  aisle?: GroceryAisle
   /** The list's items, to say a name is already open on it. */
   tasks: readonly Task[]
   /** A completion was added; the composer clears its line. */
@@ -349,11 +355,22 @@ export function GroceryCompletions({
                       merged.unit ?? null,
                     )
                   : Promise.resolve()
-                : actions.addGrocery(listId, {
-                    title: item.title,
-                    quantity: item.quantity,
-                    unit: item.unit,
-                  })
+                : actions
+                    .addGrocery(listId, {
+                      title: item.title,
+                      quantity: item.quantity,
+                      unit: item.unit,
+                    })
+                    .then((taskId) => {
+                      // Moved as the composer moves a typed line: the Group
+                      // keeps the choice for the name, and if only the move
+                      // fails the item is still added.
+                      if (aisle && taskId) {
+                        actions
+                          .setAisle(taskId, aisle)
+                          .catch(() => haptics.actionFailed())
+                      }
+                    })
               done.then(
                 () => haptics.itemSaved(),
                 () => haptics.actionFailed(),
