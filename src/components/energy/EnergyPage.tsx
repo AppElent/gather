@@ -1,18 +1,30 @@
 import { checkEnergySiteName, ENERGY_LIMITS } from '@gather/core/energy'
+import { formatEnergyDate, formatEnergyEuro } from '@gather/core/energy-present'
 import { readEnergyRefusal } from '@gather/core/refusals'
+import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { type FormEvent, useId, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useErrorMessage } from '../../lib/errorMessage'
-import { useI18n } from '../../lib/i18n'
+import { fmt, useI18n } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
-
-const PRIMARY =
-  'inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius)] bg-[var(--app-accent)] px-4 text-sm font-semibold text-white disabled:opacity-60'
-const FIELD =
-  'min-h-11 w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-[16px] text-[var(--app-fg)] sm:text-sm'
+import { daySeries, dayTicks, hourSeries } from './energySeries'
+import {
+  ChartFigure,
+  contractSummary,
+  type EnergyPeriod,
+  FIELD,
+  MirrorBars,
+  mirrorLegend,
+  NavRow,
+  PRIMARY,
+  RowList,
+  readingDate,
+  useEnergyToday,
+} from './energyShared'
 
 type SourceChoice = 'homeAssistant' | 'manual'
 
@@ -25,8 +37,10 @@ type SourceChoice = 'homeAssistant' | 'manual'
  * readings saves that source with the address; Home Assistant is connected on
  * its own screen later (APP-495), so choosing it saves the address alone.
  *
- * With an address, the page is the shell the next issues fill: its name, its
- * source and what is coming.
+ * With an address (APP-494), the page names it and its source, invites the
+ * first meter readings while nothing is measured, shows usage per hour (an
+ * hourly source) or per day (typed readings) and links to Usage, Costs,
+ * Meter readings and Contract.
  */
 export function EnergyPage() {
   const group = useRequiredCurrentGroup()
@@ -42,7 +56,7 @@ export function EnergyPage() {
           </h2>
           <p className="mt-1 text-sm text-[var(--app-muted)]">
             {overview === undefined
-              ? ' '
+              ? ' '
               : overview
                 ? overview.site.name
                 : messages.energy.empty.summary}
@@ -53,7 +67,7 @@ export function EnergyPage() {
       {overview === undefined ? (
         <div className="h-40 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]" />
       ) : overview ? (
-        <SiteShell overview={overview} />
+        <SiteHome overview={overview} groupSlug={group.slug} />
       ) : (
         <AddFirstAddress groupSlug={group.slug} />
       )}
@@ -61,33 +75,202 @@ export function EnergyPage() {
   )
 }
 
-function SiteShell({
+/**
+ * An address with its data (APP-494): the summary, the first step while
+ * nothing is measured yet, the usage card and the rows to the pages below.
+ */
+function SiteHome({
   overview,
+  groupSlug,
 }: {
   overview: {
     site: { name: string }
     sources: { kind: string; label: string }[]
   }
+  groupSlug: string
 }) {
-  const copy = useI18n().messages.energy.site
+  const { messages, locale } = useI18n()
+  const copy = messages.energy
+  const { today, month } = useEnergyToday()
+  const form = useQuery(api.energyReadings.form, { groupSlug, day: today })
+  const period = useQuery(api.energyUsage.month, { groupSlug, month, today })
+  const hourly = period?.hasHourly === true
+  const day = useQuery(
+    api.energyUsage.day,
+    hourly ? { groupSlug, day: today, today } : 'skip',
+  )
   const manual = overview.sources.find((source) => source.kind === 'manual')
+  const typedChannels = form?.channels.length ?? 0
+
+  const sourceLine = manual
+    ? form?.lastReadingAt
+      ? fmt(copy.site.lastReading, {
+          source: manual.label,
+          date: readingDate(form.lastReadingAt, locale),
+        })
+      : fmt(copy.site.noReadingYet, { source: manual.label })
+    : overview.sources.length === 0
+      ? copy.site.sourceNone
+      : overview.sources.map((source) => source.label).join(' · ')
+
+  const monthCost = period?.totals.cost
+  const contract = period?.contract
+
   return (
     <>
       <SurfaceCard className="grid gap-1">
         <h3 className="m-0 text-lg font-semibold">{overview.site.name}</h3>
-        <p className="m-0 text-sm text-[var(--app-muted)]">
-          {overview.sources.length === 0
-            ? copy.sourceNone
-            : overview.sources.map((source) => source.label).join(' · ')}
-        </p>
+        <p className="m-0 text-sm text-[var(--app-muted)]">{sourceLine}</p>
       </SurfaceCard>
-      <SurfaceCard className="grid gap-1">
-        <h3 className="m-0 text-sm font-semibold">{copy.nextTitle}</h3>
-        <p className="m-0 text-sm text-[var(--app-muted)]">
-          {manual ? copy.nextManual : copy.nextHomeAssistant}
-        </p>
-      </SurfaceCard>
+
+      {overview.sources.length === 0 ? (
+        <SurfaceCard className="grid gap-2">
+          <h3 className="m-0 text-sm font-semibold">{copy.site.nextTitle}</h3>
+          <p className="m-0 text-sm text-[var(--app-muted)]">
+            {copy.site.nextHomeAssistant}
+          </p>
+          <div>
+            <Link {...linkTo('energyReadings')} className={PRIMARY}>
+              {copy.home.firstReadingAction}
+            </Link>
+          </div>
+        </SurfaceCard>
+      ) : form && period && typedChannels === 0 && !hourly ? (
+        <SurfaceCard className="grid gap-2">
+          <h3 className="m-0 text-lg font-semibold">
+            {copy.home.firstReadingTitle}
+          </h3>
+          <p className="m-0 text-sm">{copy.home.firstReadingBody}</p>
+          <div>
+            <Link {...linkTo('energyReadings')} className={PRIMARY}>
+              {copy.home.firstReadingAction}
+            </Link>
+          </div>
+        </SurfaceCard>
+      ) : null}
+
+      {period ? (
+        hourly ? (
+          day ? (
+            <HourCard period={day} />
+          ) : null
+        ) : (
+          <DayCard period={period} />
+        )
+      ) : null}
+
+      <RowList as="nav" label={copy.home.navLabel}>
+        <NavRow
+          link={linkTo('energyUsage')}
+          label={copy.home.usage}
+          sub={hourly ? copy.home.usageSubHourly : copy.home.usageSubDaily}
+        />
+        <NavRow
+          link={linkTo('energyCosts')}
+          label={copy.home.costs}
+          sub={
+            monthCost
+              ? fmt(copy.home.costsSub, {
+                  amount: formatEnergyEuro(monthCost.totalCents, locale),
+                  month: formatEnergyDate(month, locale, 'month'),
+                })
+              : copy.home.costsSubNone
+          }
+        />
+        <NavRow
+          link={linkTo('energyReadings')}
+          label={copy.home.readings}
+          sub={
+            form?.lastReadingAt
+              ? fmt(copy.home.readingsSub, {
+                  date: readingDate(form.lastReadingAt, locale),
+                })
+              : copy.home.readingsSubNone
+          }
+        />
+        <NavRow
+          link={linkTo('energyContract')}
+          label={copy.home.contract}
+          sub={
+            contract
+              ? contractSummary(contract, messages, locale)
+              : copy.home.contractSubNone
+          }
+        />
+      </RowList>
     </>
+  )
+}
+
+/** Today's usage and solar per hour, for a site with an hourly source. */
+function HourCard({ period }: { period: EnergyPeriod }) {
+  const { messages, locale } = useI18n()
+  const { now } = useEnergyToday()
+  const showSolar = period.channels.solar
+  const { slots, label } = hourSeries(period, now, messages, locale)
+  return (
+    <Link
+      {...linkTo('energyUsage')}
+      className="block text-[var(--app-fg)] no-underline"
+    >
+      <ChartFigure
+        title={messages.energy.home.hourCard}
+        aside={
+          <span className="text-sm text-[var(--app-muted)]">
+            {messages.energy.home.openUsage} ›
+          </span>
+        }
+        label={label}
+        sentence={label}
+        legend={mirrorLegend(messages, showSolar)}
+      >
+        <MirrorBars
+          slots={slots}
+          upHeight={56}
+          downHeight={52}
+          showDown={showSolar}
+          ticks={['00', '06', '12', '18', '24']}
+        />
+      </ChartFigure>
+    </Link>
+  )
+}
+
+/** The days of this month, estimated from meter readings. */
+function DayCard({ period }: { period: EnergyPeriod }) {
+  const { messages, locale } = useI18n()
+  const { today } = useEnergyToday()
+  const showSolar = period.channels.solar
+  const { slots, label } = daySeries(period, today, messages, locale)
+  return (
+    <Link
+      {...linkTo('energyUsage')}
+      className="block text-[var(--app-fg)] no-underline"
+    >
+      <ChartFigure
+        title={messages.energy.home.dayCard}
+        aside={
+          <span className="text-sm text-[var(--app-muted)]">
+            {messages.energy.home.openUsage} ›
+          </span>
+        }
+        label={label}
+        sentence={
+          period.totals.estimated
+            ? `${label} ${messages.energy.usage.estimatedNote}`
+            : label
+        }
+        legend={mirrorLegend(messages, showSolar)}
+      >
+        <MirrorBars
+          slots={slots}
+          upHeight={56}
+          downHeight={52}
+          showDown={showSolar}
+          ticks={dayTicks(period.days.length)}
+        />
+      </ChartFigure>
+    </Link>
   )
 }
 

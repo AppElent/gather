@@ -144,13 +144,23 @@ export function readLoyaltyCardRefusal(
 /**
  * Why an Energy write was refused (APP-492). `notFound` covers "no such
  * address" and "an address in another Group" alike, and `houseNotFound` a
- * House link to a House outside the Group (ADR-0009).
+ * House link to a House outside the Group (ADR-0009). A meter reading below
+ * the one before it is `readingLower` (a new meter is a new channel), one
+ * above a later reading `readingHigher` (APP-494).
  */
 export const ENERGY_REFUSAL_CODES = [
   'needsName',
   'tooLong',
   'houseNotFound',
   'notFound',
+  // APP-494: meter readings, their channels and contracts.
+  'readingInvalid',
+  'readingLower',
+  'readingHigher',
+  'readingInFuture',
+  'channelsExist',
+  'contractInvalid',
+  'contractDateTaken',
 ] as const
 export type EnergyRefusalCode = (typeof ENERGY_REFUSAL_CODES)[number]
 

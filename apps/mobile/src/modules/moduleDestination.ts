@@ -86,6 +86,7 @@ export type ModulePath =
   | `/all/recurring-costs${'' | '/cost'}`
   | `/all/savings-goals${'' | '/goal'}`
   | `/all/loyalty-cards${'' | '/card' | '/new' | '/edit'}`
+  | `/all/energy${'' | '/usage' | '/costs' | '/readings' | '/contract'}`
   | `/settings/labs/finance${
       | ''
       | '/house'

@@ -1,4 +1,5 @@
 import { declinedEventTypes } from '@gather/core/domain'
+import { amsterdamDayStart } from '@gather/core/energy'
 import { SAMPLE_GROUP_NAME } from '@gather/core/groups'
 import type { Doc, Id, TableNames } from '../../_generated/dataModel'
 import type { MutationCtx } from '../../_generated/server'
@@ -12,6 +13,11 @@ import {
   SAMPLE_BABY,
   SAMPLE_BABY_EVENTS,
   SAMPLE_BUYING_COSTS,
+  SAMPLE_ENERGY_CONTRACT,
+  SAMPLE_ENERGY_LAST_READING_DAYS_AGO,
+  SAMPLE_ENERGY_METERS,
+  SAMPLE_ENERGY_MONTHLY_USE,
+  SAMPLE_ENERGY_READING_MONTHS,
   SAMPLE_ENERGY_SITE,
   SAMPLE_HOLDINGS,
   SAMPLE_HOUSE,
@@ -777,7 +783,7 @@ export async function applySample(
       order: 0,
     }),
   )
-  rec.track(
+  const energySourceId = rec.track(
     await ctx.db.insert('energySources', {
       groupId,
       siteId: energySiteId,
@@ -785,6 +791,54 @@ export async function applySample(
       label: SAMPLE_ENERGY_SITE.sourceLabel,
       status: 'ok',
       connectedByUserId: authors.owner,
+    }),
+  )
+  // Its typed meters, read once a month up to two days ago, so Usage has
+  // last year and this year to compare (APP-494). Each reading is noon on
+  // its day, as a reading typed for a past day is.
+  const lastReading = now - SAMPLE_ENERGY_LAST_READING_DAYS_AGO * DAY_MS
+  const readingDays = Array.from(
+    { length: SAMPLE_ENERGY_READING_MONTHS + 1 },
+    (_, index) =>
+      isoMonthsAhead(lastReading, index - SAMPLE_ENERGY_READING_MONTHS),
+  )
+  let energyReadings = 0
+  for (const meter of SAMPLE_ENERGY_METERS) {
+    const channelId = rec.track(
+      await ctx.db.insert('energyChannels', {
+        groupId,
+        siteId: energySiteId,
+        sourceId: energySourceId,
+        kind: meter.kind,
+        tariff: meter.tariff,
+        unit: meter.unit,
+      }),
+    )
+    let value = meter.startValue
+    for (const [index, day] of readingDays.entries()) {
+      if (index > 0) {
+        // The stretch since the last reading counts at its month's pace.
+        const month = Number((readingDays[index - 1] as string).slice(5, 7))
+        value += SAMPLE_ENERGY_MONTHLY_USE[month - 1]?.[meter.key] ?? 0
+      }
+      rec.track(
+        await ctx.db.insert('energyReadings', {
+          groupId,
+          channelId,
+          at: amsterdamDayStart(day) + 12 * 60 * 60 * 1000,
+          value: Math.round(value * 10) / 10,
+          enteredByUserId: authors.owner,
+        }),
+      )
+      energyReadings++
+    }
+  }
+  rec.track(
+    await ctx.db.insert('energyContracts', {
+      groupId,
+      siteId: energySiteId,
+      validFrom: `${(readingDays[0] as string).slice(0, 7)}-01`,
+      ...SAMPLE_ENERGY_CONTRACT,
     }),
   )
 
@@ -951,6 +1005,8 @@ export async function applySample(
     tastingSubjects: SAMPLE_TASTING_SUBJECTS.length,
     tastings,
     loyaltyCards: SAMPLE_LOYALTY_CARDS.length,
+    energyChannels: SAMPLE_ENERGY_METERS.length,
+    energyReadings,
   }
 
   // Self-check: the run recorded every row it created. Anything missing here
@@ -981,6 +1037,9 @@ export async function applySample(
     counts.loanParts +
     1 + // its home-buying costs
     2 + // the energy site and its meter-readings source
+    counts.energyChannels +
+    counts.energyReadings +
+    1 + // the energy contract
     counts.recurringCosts +
     counts.savingsGoals +
     counts.splitScenarios +

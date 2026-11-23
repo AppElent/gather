@@ -78,3 +78,23 @@ export const energyCarrierValidator = v.union(
   v.literal('electricity'),
   v.literal('gas'),
 )
+
+/**
+ * A contract's terms as a Member types them (APP-494): every field of an
+ * `energyContracts` row except its owner and site.
+ */
+export const energyContractTermsValidator = v.object({
+  validFrom: v.string(), // YYYY-MM-DD
+  kind: energyContractKindValidator,
+  supplierName: v.optional(v.string()),
+  importMarkupEurPerKwh: v.number(),
+  exportFeeEurPerKwh: v.number(),
+  energyTaxEurPerKwh: v.number(),
+  gasMarkupEurPerM3: v.optional(v.number()),
+  gasTaxEurPerM3: v.optional(v.number()),
+  fixedTariffs: v.optional(energyFixedTariffsValidator),
+  vatPercent: v.number(),
+  monthlyFixedCents: v.number(),
+  yearlyTaxCreditCents: v.optional(v.number()),
+  netMetering: v.boolean(),
+})

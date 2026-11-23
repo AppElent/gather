@@ -1684,12 +1684,81 @@ export interface SampleLoyaltyCard {
 }
 
 /**
- * Energy (APP-492): one address linked to the House, fed by meter readings.
- * Readings, prices and the rest arrive with their own issues (APP-493..496).
+ * Energy (APP-492, APP-494): one address linked to the House, fed by meter
+ * readings. Prices and the rest arrive with their own issues (APP-493..496).
  */
 export const SAMPLE_ENERGY_SITE = {
   name: 'Thuis',
   sourceLabel: 'Meterstanden',
+}
+
+export type SampleEnergyMeterKey =
+  | 'importT1'
+  | 'importT2'
+  | 'exportT1'
+  | 'exportT2'
+  | 'gas'
+
+/**
+ * The typed meters of a split smart meter with solar panels, and where each
+ * count stood at the first reading.
+ */
+export const SAMPLE_ENERGY_METERS: {
+  key: SampleEnergyMeterKey
+  kind: 'gridImport' | 'gridExport' | 'gas'
+  tariff?: 't1' | 't2'
+  unit: 'kWh' | 'm3'
+  startValue: number
+}[] = [
+  { key: 'importT1', kind: 'gridImport', tariff: 't1', unit: 'kWh', startValue: 18234.5 },
+  { key: 'importT2', kind: 'gridImport', tariff: 't2', unit: 'kWh', startValue: 21877.2 },
+  { key: 'exportT1', kind: 'gridExport', tariff: 't1', unit: 'kWh', startValue: 4120.3 },
+  { key: 'exportT2', kind: 'gridExport', tariff: 't2', unit: 'kWh', startValue: 5893.9 },
+  { key: 'gas', kind: 'gas', unit: 'm3', startValue: 9876.4 },
+]
+
+/**
+ * How much each meter counts in a calendar month (index 0 is January): a
+ * terraced house with 10 panels and a gas boiler. More import and gas in
+ * winter, more export in summer; about 3,100 kWh, 2,200 kWh back and
+ * 1,265 m³ a year.
+ */
+export const SAMPLE_ENERGY_MONTHLY_USE: Record<SampleEnergyMeterKey, number>[] = [
+  { importT1: 171.2, importT2: 208.8, exportT1: 12.1, exportT2: 18.4, gas: 210.3 },
+  { importT1: 148.5, importT2: 181.6, exportT1: 24.2, exportT2: 36.1, gas: 180.7 },
+  { importT1: 130.4, importT2: 159.3, exportT1: 56.3, exportT2: 83.9, gas: 150.2 },
+  { importT1: 99.1, importT2: 120.8, exportT1: 100.4, exportT2: 149.7, gas: 90.6 },
+  { importT1: 81.2, importT2: 98.7, exportT1: 132.1, exportT2: 197.8, gas: 50.1 },
+  { importT1: 72.3, importT2: 87.6, exportT1: 144.2, exportT2: 215.9, gas: 30.4 },
+  { importT1: 74.4, importT2: 90.5, exportT1: 140.3, exportT2: 209.6, gas: 25.2 },
+  { importT1: 78.6, importT2: 96.3, exportT1: 120.1, exportT2: 179.8, gas: 25.8 },
+  { importT1: 94.5, importT2: 115.4, exportT1: 88.2, exportT2: 131.7, gas: 45.1 },
+  { importT1: 121.6, importT2: 148.3, exportT1: 48.1, exportT2: 71.8, gas: 100.4 },
+  { importT1: 148.4, importT2: 181.5, exportT1: 20.3, exportT2: 29.6, gas: 160.9 },
+  { importT1: 175.6, importT2: 214.3, exportT1: 10.2, exportT2: 14.7, gas: 200.5 },
+]
+
+/** Monthly readings from this many months before the last one. */
+export const SAMPLE_ENERGY_READING_MONTHS = 23
+/** The last reading was typed this many days before the run. */
+export const SAMPLE_ENERGY_LAST_READING_DAYS_AGO = 2
+
+/**
+ * One fixed contract from the first reading's month, at Dutch 2026 tariffs,
+ * all excl. VAT as on the contract.
+ */
+export const SAMPLE_ENERGY_CONTRACT = {
+  kind: 'fixed' as const,
+  supplierName: 'Eneco',
+  importMarkupEurPerKwh: 0,
+  exportFeeEurPerKwh: 0,
+  energyTaxEurPerKwh: 0.1088,
+  gasTaxEurPerM3: 0.6,
+  fixedTariffs: { t1: 0.27, t2: 0.29, export: 0.06, gas: 1.1 },
+  vatPercent: 21,
+  monthlyFixedCents: 2805,
+  yearlyTaxCreditCents: 52495,
+  netMetering: true,
 }
 
 export const SAMPLE_LOYALTY_CARDS: SampleLoyaltyCard[] = [
