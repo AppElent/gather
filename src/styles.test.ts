@@ -367,3 +367,23 @@ describe('link and action contrast', () => {
     expect(ratio(rgb(t['--on-ink']), rgb(t['--ink']))).toBeGreaterThanOrEqual(4.5)
   })
 })
+
+/**
+ * An unfocused field's edge is how somebody finds the field at all, so it
+ * needs 3:1 (WCAG 1.4.11) on every ground a field sits on (APP-639); `--hair`
+ * is a divider at about 1.3:1 and is not an edge. The kitchen and loyalty-card
+ * forms take their classes from `src/components/recipes/fields.ts`.
+ */
+describe('control edge contrast', () => {
+  test.each(['light', 'dark'] as const)('%s', (scheme) => {
+    const t = theme(scheme)
+    for (const bg of ['--ground', '--surface', '--surface-2'])
+      expect(ratio(rgb(t['--control-edge']), rgb(t[bg])), `edge on ${bg}`).toBeGreaterThanOrEqual(3)
+  })
+
+  test('the shared field classes draw it', () => {
+    const fields = readFileSync(join(process.cwd(), 'src/components/recipes/fields.ts'), 'utf8')
+    expect(fields).not.toContain('border-[var(--hair)]')
+    expect(fields.match(/border-\[var\(--control-edge\)\]/g)).toHaveLength(2)
+  })
+})

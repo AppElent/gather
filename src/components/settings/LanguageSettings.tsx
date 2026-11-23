@@ -1,5 +1,6 @@
+import { Check } from 'lucide-react'
 import { type Locale, SUPPORTED_LOCALES, useI18n } from '../../lib/i18n'
-import { SurfaceCard } from '../app/ShellPrimitives'
+import { InsetList, InsetRow, SectionFooter, SectionLabel } from '../app/InsetList'
 
 /**
  * The same choice the topbar toggle makes, on the page somebody looks at when
@@ -17,32 +18,31 @@ export function LanguageSettings() {
   const { language } = messages.settings
 
   return (
-    <SurfaceCard>
-      <h2 className="m-0 mb-1 text-base font-semibold">{language.title}</h2>
-      <p className="m-0 mb-3 text-sm text-[var(--muted)]">
-        {language.description}
-      </p>
-      <div className="flex flex-wrap gap-2">
+    <section aria-labelledby="language-heading">
+      <SectionLabel id="language-heading">{language.title}</SectionLabel>
+      <InsetList>
         {SUPPORTED_LOCALES.map((option: Locale) => {
           const isOn = option === locale
           return (
-            <button
+            <InsetRow
               key={option}
-              type="button"
-              lang={option}
-              aria-pressed={isOn}
+              title={<span lang={option}>{language.names[option]}</span>}
               onClick={() => setLocale(option)}
-              className={`inline-flex min-h-9 items-center justify-center rounded-[var(--radius-control)] border px-3 text-sm font-semibold ${
-                isOn
-                  ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]'
-                  : 'border-[var(--hair)] bg-[var(--surface)] text-[var(--ink)]'
-              }`}
-            >
-              {language.names[option]}
-            </button>
+              selected={isOn}
+              trailing={
+                isOn ? (
+                  <Check
+                    className="size-[18px] text-[var(--ink)]"
+                    strokeWidth={2.6}
+                    aria-hidden="true"
+                  />
+                ) : undefined
+              }
+            />
           )
         })}
-      </div>
-    </SurfaceCard>
+      </InsetList>
+      <SectionFooter>{language.description}</SectionFooter>
+    </section>
   )
 }

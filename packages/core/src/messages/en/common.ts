@@ -26,6 +26,10 @@ export const common = {
   },
   /** Where a list puts what is done: "Completed (3)". */
   completed: 'Completed',
+  /** A row's `⋯` menu button; `{item}` is the row's own name. */
+  rowActions: 'Actions for {item}',
+  /** A due date already past, on a row: "Overdue · Fri, Nov 20". */
+  overdueOn: 'Overdue · {date}',
   errors: {
     somethingWentWrong: 'Something went wrong. Please try again.',
     notFound: 'Not found.',

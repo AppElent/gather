@@ -16,7 +16,9 @@ interface RecipeCardProps {
 
 function Stars({ rating }: { rating?: number }) {
   if (rating == null) return null
-  return <p className="text-xs opacity-60">{'★'.repeat(rating)}</p>
+  return (
+    <p className="m-0 text-footnote text-[var(--ink)]">{'★'.repeat(rating)}</p>
+  )
 }
 
 function Photo({
@@ -30,7 +32,7 @@ function Photo({
     <RecipeThumbnail
       src={imageUrl}
       className={className}
-      glyphClassName="text-4xl"
+      tileSize="l"
     />
   )
 }
@@ -38,7 +40,7 @@ function Photo({
 export function RecipeCard({ recipe, mode }: RecipeCardProps) {
   if (mode === 'banner') {
     return (
-      <div className="relative h-56 overflow-hidden rounded-xl">
+      <div className="relative h-56 overflow-hidden rounded-[var(--radius-card)]">
         <Photo
           imageUrl={recipe.imageUrl}
           className="absolute inset-0 h-full w-full"
@@ -54,10 +56,10 @@ export function RecipeCard({ recipe, mode }: RecipeCardProps) {
 
   if (mode === 'compact') {
     return (
-      <div className="flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--hair)] bg-[var(--surface)] p-2">
+      <div className="flex items-center gap-3 rounded-[var(--radius-card)] bg-[var(--surface)] p-2">
         <Photo
           imageUrl={recipe.imageUrl}
-          className="h-16 w-16 flex-shrink-0 rounded-lg"
+          className="h-16 w-16 flex-shrink-0 rounded-[var(--radius-thumb)]"
         />
         <div>
           <p className="font-medium">{recipe.title}</p>
@@ -71,10 +73,10 @@ export function RecipeCard({ recipe, mode }: RecipeCardProps) {
   }
 
   return (
-    <div className="rounded-[var(--radius-card)] border border-[var(--hair)] bg-[var(--surface)] p-4">
+    <div className="rounded-[var(--radius-card)] bg-[var(--surface)] p-4">
       <Photo
         imageUrl={recipe.imageUrl}
-        className="mb-3 h-32 w-full rounded-lg"
+        className="mb-3 h-32 w-full rounded-[var(--radius-thumb)]"
       />
       <p className="font-medium">{recipe.title}</p>
       <Stars rating={recipe.rating} />
