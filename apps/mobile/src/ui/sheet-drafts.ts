@@ -176,18 +176,22 @@ export function useSheetResume<O, V>({
   latest.current = { json, values, writes }
 
   // What the open sheet sent, until that save settles.
-  const sent = useRef<{ sheet: unknown; json: string } | null>(null)
+  const sent = useRef<{
+    sheet: unknown
+    json: string
+    older: V | undefined
+  } | null>(null)
   useEffect(
     () =>
       writes?.onStart(() => {
         const sheet = opened.current
         if (!sheet) return
-        const mine = { sheet, json: latest.current.json }
-        sent.current = mine
         // An earlier save's failure may have kept its values under this open
         // sheet; once this one lands, they are out of date. One kept since
         // the save started is newer, and stays.
         const older = keptDraft<V>(sheet.key)
+        const mine = { sheet, json: latest.current.json, older }
+        sent.current = mine
         writes.onSettled((landed) => {
           if (sent.current === mine) sent.current = null
           if (landed && older !== undefined && keptDraft(sheet.key) === older)
@@ -209,10 +213,12 @@ export function useSheetResume<O, V>({
           keepDraft(sheet.key, now.values)
           return
         }
+        const older = sent.current?.older
         // Sent already. Only a failure leaves it worth keeping, and the screen
         // may be gone by then; a newer draft stays.
         now.writes.onSettled((landed) => {
-          if (!landed && keptDraft<V>(sheet.key) === undefined)
+          const there = keptDraft<V>(sheet.key)
+          if (!landed && (there === undefined || there === older))
             keepDraft(sheet.key, now.values)
         })
       }),

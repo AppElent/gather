@@ -138,7 +138,9 @@ export function QuickLogSheet({
   >(kept?.photos ?? {})
   // The local files those photos show, so a kept draft shows them again.
   const [previews, setPreviews] = useState<Previews>(kept?.previews ?? {})
-  const [uploading, setUploading] = useState(false)
+  // Per type: one type's photo being done must not release Save for another's.
+  const [uploads, setUploads] = useState<readonly string[]>([])
+  const uploading = uploads.length > 0
   draft.track(
     { included, picks, notes, opened, timestamp, photos, previews },
     { holding: saving },
@@ -405,7 +407,12 @@ export function QuickLogSheet({
               onPreviewChange={(preview) =>
                 setPreviews((prev) => ({ ...prev, [each]: preview }))
               }
-              onBusyChange={setUploading}
+              onBusyChange={(busy) =>
+                setUploads((current) => [
+                  ...current.filter((type) => type !== each),
+                  ...(busy ? [each] : []),
+                ])
+              }
             />
           </View>
         ))}
