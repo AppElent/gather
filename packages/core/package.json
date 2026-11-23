@@ -23,6 +23,7 @@
     "./finance": "./src/finance/index.ts",
     "./groceries": "./src/groceries/index.ts",
     "./groups": "./src/groups.ts",
+    "./home-today": "./src/homeToday.ts",
     "./i18n": "./src/i18n.ts",
     "./loyalty-cards": "./src/loyaltyCards.ts",
     "./meal-planner": "./src/mealPlanner.ts",

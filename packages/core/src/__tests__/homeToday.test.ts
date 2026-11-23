@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { en } from '../i18n/messages/en'
-import { nl } from '../i18n/messages/nl'
 import {
   clockTime,
   dueTodayTasks,
@@ -12,7 +10,8 @@ import {
   railEntries,
   spelledDate,
   startOfDay,
-} from './today'
+} from '../homeToday'
+import { en, nl } from '../messages'
 
 const TODAY = '2026-11-16'
 
@@ -70,7 +69,7 @@ describe('railEntries', () => {
     { _id: 'sanne', name: 'Sanne' },
     { _id: 'daan', name: 'Daan' },
   ]
-  const words = en.shell.home.today
+  const words = en.shell.today
   const babyLog = en.baby.log
 
   it("puts every child's entries from today in time order, ending at now", () => {
@@ -131,17 +130,17 @@ describe('railEntries', () => {
 describe('homeBabyLogMessages', () => {
   it('writes durations with spaces in both languages', () => {
     expect(
-      homeBabyLogMessages(en.baby.log, en.shell.home.today).status.duration
+      homeBabyLogMessages(en.baby.log, en.shell.today).status.duration
         .hoursMinutes,
     ).toBe('{hours} h {minutes} min')
     expect(
-      homeBabyLogMessages(nl.baby.log, nl.shell.home.today).summary
+      homeBabyLogMessages(nl.baby.log, nl.shell.today).summary
         .sideMinutes,
     ).toBe('{side} {minutes} min')
   })
 
   it('leaves the shared baby log words alone', () => {
-    homeBabyLogMessages(en.baby.log, en.shell.home.today)
+    homeBabyLogMessages(en.baby.log, en.shell.today)
     expect(en.baby.log.status.duration.hoursMinutes).toBe('{hours}h {minutes}m')
   })
 })
@@ -157,13 +156,13 @@ describe('spelledDate', () => {
   const monday = new Date(2026, 10, 16, 9, 0).getTime()
 
   it('spells the date out in English', () => {
-    expect(spelledDate(monday, 'en', en.shell.home.today.date)).toBe(
+    expect(spelledDate(monday, 'en', en.shell.today.date)).toBe(
       'Monday 16 November',
     )
   })
 
   it('starts the Dutch date with a capital', () => {
-    expect(spelledDate(monday, 'nl', nl.shell.home.today.date)).toBe(
+    expect(spelledDate(monday, 'nl', nl.shell.today.date)).toBe(
       'Maandag 16 november',
     )
   })

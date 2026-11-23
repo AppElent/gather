@@ -10,20 +10,20 @@
  * The Pins are not here: on the phone they are the device's own list
  * (ADR-0033), read through `useModuleArrangement`.
  */
-import { useMemo } from 'react'
 
+import {
+  dueTodayTasks,
+  overdueTasks,
+  railEntries,
+  startOfDay,
+} from '@gather/core/home-today'
+import { useMemo } from 'react'
 import { api, type Id } from '../convex/api'
 import { useQueries, useQuery } from '../convex/queries'
 import { useGroup } from '../group/GroupProvider'
 import { useI18n } from '../i18n'
 import { useMinuteClock } from '../modules/baby/clock'
 import { useLocalTaskState } from '../modules/tasks/store'
-import {
-  dueTodayTasks,
-  overdueTasks,
-  railEntries,
-  startOfDay,
-} from './today'
 
 export function useToday() {
   const { group } = useGroup()

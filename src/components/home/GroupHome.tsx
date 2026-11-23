@@ -1,87 +1,265 @@
-import { MODULES, moduleText } from '@gather/core/modules'
+import {
+  clockTime,
+  overdueListCount,
+  overdueListId,
+  spelledDate,
+} from '@gather/core/home-today'
+import { MODULES, moduleById, moduleText } from '@gather/core/modules'
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
+import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { GroupActivityEntry } from '../../../convex/activity'
 import {
   activityModuleIcon,
+  activityModuleId,
   activityModuleLabel,
   activityPhrase,
   formatActivityTime,
 } from '../../lib/groupActivity'
-import { fmt, useI18n, useMessages } from '../../lib/i18n'
+import { fmt, plural, useI18n, useMessages } from '../../lib/i18n'
 import { linkTo, moduleLink } from '../../lib/links'
 import { Icon } from '../app/Icon'
-import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { EVENT_TYPE_ICONS } from '../baby/babyEventFields'
+import {
+  InsetList,
+  LinkRow,
+  NowCard,
+  PinnedCard,
+  StartHeading,
+  Tile,
+  TodayRail,
+} from './StartParts'
+import { useStartDay } from './useStartDay'
 
 /**
- * A Group's Home: who is here, and what has been happening.
+ * Start: the Group's day, as the phone's Home shows it (APP-640, Tiles &
+ * Today). It answers "what now, what next" before "what happened":
  *
- * One page with one stream, deliberately. This is the surface conversation
- * grows into, so a composer has to be able to arrive at the bottom of a single
- * ordered list without the page being taken apart first — which is what a set
- * of independent per-Module panels would need.
+ * - **Header.** The Group's name as the large title, the date and the Member
+ *   count under it. The Members themselves live on the Group page.
+ * - **Now card,** only while a local task is past its due date.
+ * - **Today rail:** today's baby log entries, then the Now capsule.
+ * - **Anytime today:** local tasks due today.
+ * - **Pinned:** this Member's Pins as group-fill cards.
+ * - **Recent activity:** the five newest entries, the rest behind "See all".
  *
- * It is also deliberately not configurable. There is no widget, no registry, no
- * stored layout and no editor: the closed #10 branch shipped a configurable
- * Home whose renderer registry was empty, so it read "nothing here" for
- * everybody, permanently. One surface that always shows something beats a
- * flexible one that shows nothing.
+ * A part with nothing to show is absent, never an empty state, as on the
+ * phone. From 1024 px the day is the left column and Pinned and activity the
+ * right; below that they stack.
+ *
+ * Still deliberately not configurable: no widget registry, no stored layout,
+ * no editor (the closed #10 branch shipped one that showed nothing).
  */
 
-/**
- * The Modules worth pointing a brand-new Group at: the live ones.
- */
+/** How many activity entries show before "See all". */
+export const ACTIVITY_PREVIEW = 5
+
+/** The Modules worth pointing a brand-new Group at: the live ones. */
 const STARTERS = MODULES.filter((module) => module.status === 'live')
 
-function MemberList({
+const TASKS = moduleById('tasks')
+const BABY = moduleById('baby-log')
+
+export function GroupHome() {
+  const { slug: groupSlug, name: groupName } = useRequiredCurrentGroup()
+  const { locale, messages } = useI18n()
+  const words = messages.shell.today
+  const day = useStartDay(groupSlug)
+
+  const byline = [
+    spelledDate(day.now, locale, words.date),
+    day.memberCount === undefined
+      ? null
+      : plural(locale, day.memberCount, words.members),
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  const listName = (id: string) =>
+    day.lists.find((list) => list._id === id)?.name
+
+  const nowCard = (() => {
+    if (day.overdue.length === 0 || !TASKS) return null
+    const listId = overdueListId(day.overdue)
+    const list = listId ? listName(listId) : undefined
+    return (
+      <NowCard
+        group={TASKS.group}
+        icon={TASKS.icon}
+        caption={words.overdue.caption}
+        value={String(day.overdue.length)}
+        detail={
+          list
+            ? fmt(words.overdue.inList, { list })
+            : fmt(words.overdue.acrossLists, {
+                count: overdueListCount(day.overdue),
+              })
+        }
+        action={{
+          // Tasks has one page per Group on the web, so both go there; the
+          // label still names the list when there is one.
+          label: list
+            ? fmt(words.overdue.openList, { list })
+            : words.overdue.openTasks,
+          link: linkTo('tasks'),
+        }}
+      />
+    )
+  })()
+
+  const rail =
+    day.rail.length > 0 && BABY ? (
+      <section aria-labelledby="start-today" className="grid gap-2">
+        <StartHeading id="start-today">{words.heading}</StartHeading>
+        <TodayRail
+          now={day.now}
+          nowLabel={fmt(words.now, { time: clockTime(day.now) })}
+          items={day.rail.map((entry) => ({
+            id: entry.id,
+            timestamp: entry.timestamp,
+            time: clockTime(entry.timestamp),
+            group: BABY.group,
+            icon: EVENT_TYPE_ICONS[entry.type] ?? BABY.icon,
+            title: entry.line,
+          }))}
+        />
+      </section>
+    ) : null
+
+  const anytime =
+    day.dueToday.length > 0 ? (
+      <section aria-labelledby="start-anytime" className="grid gap-2">
+        <StartHeading id="start-anytime">{words.anytime}</StartHeading>
+        <InsetList>
+          {day.dueToday.map((task) => {
+            const list = listName(task.listId)
+            return (
+              <LinkRow
+                key={task._id}
+                link={linkTo('tasks')}
+                leading={
+                  <span
+                    aria-hidden="true"
+                    className="h-[22px] w-[22px] shrink-0 rounded-full border-2 border-[var(--home-text)]"
+                  />
+                }
+                title={task.title}
+                meta={list ? fmt(words.overdue.inList, { list }) : undefined}
+              />
+            )
+          })}
+        </InsetList>
+      </section>
+    ) : null
+
+  const pinned =
+    day.pinned && day.pinned.length > 0 ? (
+      <section aria-labelledby="start-pinned" className="grid gap-2">
+        <StartHeading id="start-pinned">{words.pinned}</StartHeading>
+        <ul className="m-0 grid list-none grid-cols-3 gap-3 p-0">
+          {day.pinned.map((module) => (
+            <PinnedCard
+              key={module.id}
+              group={module.group}
+              icon={module.icon}
+              label={moduleText(module, messages).label}
+              link={moduleLink(module)}
+            />
+          ))}
+        </ul>
+      </section>
+    ) : null
+
+  const hasDay = Boolean(nowCard || rail || anytime)
+
+  return (
+    // `grid-cols-[minmax(0,1fr)]` rather than a bare `grid`: an implicit track
+    // is sized `auto`, whose floor is the widest thing in it, so one unbreakable
+    // word sets a width the whole page then has to be scrolled sideways to read.
+    <div className="mx-auto grid w-full max-w-6xl grid-cols-[minmax(0,1fr)] gap-5">
+      <header className="px-1 pt-2">
+        {/* `wrap-anywhere`, not `break-words`: only `anywhere` lowers the
+            minimum width, and a Group's name can be one long word. */}
+        <h1 className="m-0 font-rounded text-large-title font-bold text-[var(--ink)] wrap-anywhere">
+          {groupName}
+        </h1>
+        <p
+          data-testid="start-byline"
+          className="mt-0.5 mb-0 text-subhead text-[var(--muted)]"
+        >
+          {byline}
+        </p>
+      </header>
+
+      <div
+        className={
+          hasDay
+            ? 'grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6'
+            : 'grid grid-cols-[minmax(0,1fr)] items-start gap-5'
+        }
+      >
+        {hasDay ? (
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
+            {nowCard}
+            {rail}
+            {anytime}
+          </div>
+        ) : null}
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
+          {pinned}
+          <RecentActivity groupSlug={groupSlug} groupName={groupName} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RecentActivity({
   groupSlug,
   groupName,
 }: {
   groupSlug: string
   groupName: string
 }) {
-  const members = useQuery(api.groups.members, { slug: groupSlug })
+  const activity = useQuery(api.activity.forGroup, { groupSlug })
   const messages = useMessages()
   const { home } = messages.shell
-  const note = home.sharedNote
+  const [expanded, setExpanded] = useState(false)
+
+  const shown =
+    activity && !expanded ? activity.slice(0, ACTIVITY_PREVIEW) : activity
 
   return (
-    <SurfaceCard ariaLabel={home.whoIsHere}>
-      <h2 className="m-0 mb-2 text-sm font-semibold">{home.whoIsHere}</h2>
-      {members === undefined ? (
-        <p className="m-0 text-sm text-[var(--muted)]">
+    <section aria-labelledby="start-activity" className="grid gap-2">
+      <StartHeading id="start-activity">{home.recentActivity}</StartHeading>
+      {activity === undefined ? (
+        <p className="m-0 px-1 text-subhead text-[var(--muted)]">
           {messages.common.errors.loading}
         </p>
+      ) : activity.length === 0 ? (
+        <NothingYet groupName={groupName} />
       ) : (
-        <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-          {members.map((member) => (
-            <li
-              key={member.userId}
-              className="flex min-w-0 items-center gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)] px-2 py-1 text-sm"
+        <>
+          <InsetList label={home.recentActivity}>
+            {shown?.map((entry) => (
+              <ActivityRow key={entry.id} entry={entry} />
+            ))}
+          </InsetList>
+          {activity.length > ACTIVITY_PREVIEW ? (
+            <button
+              type="button"
+              aria-expanded={expanded}
+              onClick={() => setExpanded((open) => !open)}
+              className="justify-self-start rounded-[var(--radius-pill)] px-1 py-1 text-subhead font-semibold text-[var(--ink)] underline-offset-2 hover:underline"
             >
-              {/* Wraps rather than truncating: a name is the one thing on this
-                  card a reader cannot guess from the rest of it. */}
-              <span className="min-w-0 wrap-anywhere">{member.name}</span>
-              {/* The pill never wraps, so it has to be the part that keeps its
-                  width while the name beside it gives way. */}
-              {member.role === 'admin' ? (
-                <Pill className="shrink-0">{home.admin}</Pill>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+              {expanded ? home.showFewer : home.seeAll}
+            </button>
+          ) : null}
+        </>
       )}
-      {/* Split around the link rather than assembled from one string: neither
-          half carries markup, so a translation is free to word the sentence
-          its own way without having to reproduce a `<Link>`. */}
-      <p className="mt-3 mb-0 text-sm leading-6 text-[var(--muted)]">
-        {fmt(note.before, { group: groupName })}{' '}
-        <Link {...linkTo('groups')}>{note.link}</Link>
-        {note.after}
-      </p>
-    </SurfaceCard>
+    </section>
   )
 }
 
@@ -115,8 +293,7 @@ function EntryTitle({ entry }: { entry: GroupActivityEntry }) {
     )
   }
   if (entry.kind === 'task') {
-    // Tasks has a page per Group and none per task, so this goes to the Module
-    // rather than to an address that does not exist.
+    // Tasks has a page per Group and none per task.
     return (
       <Link {...linkTo('tasks')} className={className}>
         {entry.title}
@@ -129,52 +306,52 @@ function EntryTitle({ entry }: { entry: GroupActivityEntry }) {
 function ActivityRow({ entry }: { entry: GroupActivityEntry }) {
   const { locale, messages } = useI18n()
   const phrase = activityPhrase(entry.kind, messages)
+  const module = moduleById(activityModuleId(entry))
 
   return (
-    <li className="grid grid-cols-[28px_minmax(0,1fr)] gap-2 border-t border-[var(--hair)] py-2 first:border-t-0 first:pt-0">
-      <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--hair)] bg-[var(--surface)] text-[var(--muted)]">
-        <Icon name={activityModuleIcon(entry)} className="h-4 w-4" />
-      </span>
-      <div className="min-w-0">
-        {/* `minmax(0,1fr)` above and `wrap-anywhere` here, and no fixed width
-            anywhere on this row: a long recipe title has to wrap onto the next
-            line rather than push the page sideways on a phone. Both halves are
-            needed — the track has to be allowed to shrink, and the word has to
-            be willing to break. */}
-        <p className="m-0 text-sm leading-6 wrap-anywhere">
-          <span className="font-semibold">
-            {entry.byName ?? messages.shell.activity.unknownActor}
-          </span>{' '}
-          {phrase.verb} <EntryTitle entry={entry} />
-          {entry.context && phrase.connector
-            ? ` ${phrase.connector} ${entry.context}`
-            : null}
-        </p>
-        <p className="m-0 flex flex-wrap gap-x-2 text-xs text-[var(--muted)]">
-          <span>{activityModuleLabel(entry, messages)}</span>
-          <time dateTime={new Date(entry.at).toISOString()}>
-            {formatActivityTime(entry.at, messages, locale)}
-          </time>
-        </p>
+    <li>
+      <div className="mx-4 grid min-h-[var(--size-row-min)] grid-cols-[28px_minmax(0,1fr)] items-center gap-3 py-1.5">
+        {module ? (
+          <Tile group={module.group} icon={activityModuleIcon(entry)} />
+        ) : (
+          <Icon name="Circle" className="h-4 w-4 text-[var(--muted)]" />
+        )}
+        {/* `minmax(0,1fr)` above and `wrap-anywhere` here: a long title wraps
+            rather than pushing the page sideways on a phone. */}
+        <div className="min-w-0">
+          <p className="m-0 text-subhead wrap-anywhere">
+            <span className="font-semibold">
+              {entry.byName ?? messages.shell.activity.unknownActor}
+            </span>{' '}
+            {phrase.verb} <EntryTitle entry={entry} />
+            {entry.context && phrase.connector
+              ? ` ${phrase.connector} ${entry.context}`
+              : null}
+          </p>
+          <p className="m-0 flex flex-wrap gap-x-1 text-footnote text-[var(--muted)]">
+            <span>{activityModuleLabel(entry, messages)}</span>
+            <span aria-hidden="true">·</span>
+            <time dateTime={new Date(entry.at).toISOString()}>
+              {formatActivityTime(entry.at, messages, locale)}
+            </time>
+          </p>
+        </div>
       </div>
     </li>
   )
 }
 
 /**
- * What Home says before anything has happened.
- *
- * "Nothing yet" on its own is a shrug. The Group is named, the Members are on
- * the card above, and this says what to do next — so the first visit is worth
- * making even for a household that has just been created.
+ * What Start says before anything has happened: the Group is named, and this
+ * says what to do next, so the first visit is worth making.
  */
 function NothingYet({ groupName }: { groupName: string }) {
   const messages = useMessages()
   const { home } = messages.shell
 
   return (
-    <div className="grid gap-3">
-      <p className="m-0 text-sm leading-6 text-[var(--muted)]">
+    <div className="grid gap-3 rounded-[var(--radius-card)] bg-[var(--surface)] p-4">
+      <p className="m-0 text-subhead text-[var(--muted)]">
         {fmt(home.nothingYet, { group: groupName })} {home.nothingYetShared}
       </p>
       <div className="flex flex-wrap gap-2">
@@ -182,66 +359,15 @@ function NothingYet({ groupName }: { groupName: string }) {
           <Link
             key={module.id}
             {...moduleLink(module)}
-            className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--ink)] no-underline"
+            className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-[var(--radius-pill)] bg-[var(--surface-2)] px-3 text-subhead font-semibold text-[var(--ink)] no-underline"
           >
-            <Icon name={module.icon} className="h-4 w-4" />
+            <Tile group={module.group} icon={module.icon} />
             <span className="truncate">
               {moduleText(module, messages).label}
             </span>
           </Link>
         ))}
       </div>
-    </div>
-  )
-}
-
-export function GroupHome() {
-  const { slug: groupSlug, name: groupName } = useRequiredCurrentGroup()
-  const activity = useQuery(api.activity.forGroup, { groupSlug })
-  const messages = useMessages()
-  const { home } = messages.shell
-
-  return (
-    // `grid-cols-[minmax(0,1fr)]` rather than a bare `grid`: an implicit track
-    // is sized `auto`, whose floor is the widest thing in it, so one unbreakable
-    // word sets a width the whole page then has to be scrolled sideways to read.
-    // `max-w-2xl` does not save it — a maximum cannot argue with a minimum.
-    <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-4">
-      <header>
-        {/* `wrap-anywhere`, not `break-words`. They look alike and only one of
-            them counts here: `break-word` breaks a long word when it is drawn
-            but still reports the whole word as the smallest this can be, so the
-            track is already too wide by the time it wraps. `anywhere` is the one
-            that lowers the minimum. A Group's name is somebody else's input and
-            can be one long word. */}
-        <h1 className="m-0 text-2xl font-bold wrap-anywhere">
-          {groupName}
-        </h1>
-        <p className="mt-1 mb-0 text-sm leading-6 text-[var(--muted)]">
-          {home.sharedSubtitle}
-        </p>
-      </header>
-
-      <MemberList groupSlug={groupSlug} groupName={groupName} />
-
-      <SurfaceCard ariaLabel={home.recentActivity}>
-        <h2 className="m-0 mb-2 text-sm font-semibold">
-          {home.recentActivity}
-        </h2>
-        {activity === undefined ? (
-          <p className="m-0 text-sm text-[var(--muted)]">
-            {messages.common.errors.loading}
-          </p>
-        ) : activity.length === 0 ? (
-          <NothingYet groupName={groupName} />
-        ) : (
-          <ol className="m-0 grid list-none p-0">
-            {activity.map((entry) => (
-              <ActivityRow key={entry.id} entry={entry} />
-            ))}
-          </ol>
-        )}
-      </SurfaceCard>
     </div>
   )
 }

@@ -394,8 +394,11 @@ to something deliberately out of sight is a contradiction.
 _Avoid_: Disabled, Removed, Turned off, Archived, Deactivated
 
 **Home**:
-A Group's shared surface — what a Member sees on opening it. It carries a
-summary of the Group's recent activity, and is where conversation will live. A
+A Group's shared surface — what a Member sees on opening it (the web calls it
+Start). It shows the Group's day first: the Now card while something is overdue,
+the Today rail, what is due anytime today and the Member's Pins, both clients
+deciding these with `@gather/core/home-today`. Under them, a summary of the
+Group's recent activity, where conversation will live. A
 summary and not an archive: every entry links to the Module that holds the whole
 record, which is why there is nothing older to page back to (ADR-0008).
 _Avoid_: Dashboard, Command center
