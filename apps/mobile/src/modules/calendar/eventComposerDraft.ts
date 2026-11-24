@@ -160,12 +160,12 @@ export function toCalendarDraft(
 }
 
 /**
- * The start Kies tijd… opens on: the next whole hour today, nine o'clock on
+ * The start Kies tijd… opens on: the whole hour after `hour` today, nine o'clock on
  * another day. Never later than 23:00, so an hour still fits.
  */
-export function defaultStart(date: string, today: string, now: Date): number {
+export function defaultStart(date: string, today: string, hour: number): number {
   if (date !== today) return 9 * HOUR
-  const next = (now.getHours() + 1) * HOUR
+  const next = (hour + 1) * HOUR
   return Math.min(next, 23 * HOUR)
 }
 

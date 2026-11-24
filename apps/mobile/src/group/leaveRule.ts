@@ -28,7 +28,7 @@ export interface GroupExits {
 }
 
 export function groupExits(
-  myRole: 'admin' | 'member' | undefined,
+  myRole: 'admin' | 'member',
   /** The server's answer; `undefined` while loading. */
   status: LeaveStatus | undefined,
 ): GroupExits {

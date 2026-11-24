@@ -99,10 +99,6 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
                             {event.notes}
                           </p>
                         )}
-                        {/* Shown, never edited. A photo is added from the
-                            phone, where the camera is; the web's job is that
-                            the memory is not half-missing when you open it on
-                            a laptop. */}
                         {event.photoUrl && (
                           <img
                             src={event.photoUrl}

@@ -357,6 +357,7 @@ export function GroceriesPage({
         {tab === 'recent' ? (
           <RecentPanel
             groupSlug={groupSlug}
+            timeZone={group.timeZone}
             listId={activeList?.writable ? activeList._id : undefined}
             openTitles={openTitles}
             mode="panel"

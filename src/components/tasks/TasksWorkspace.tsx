@@ -3,7 +3,7 @@
  * dialogs a task's `⋯` menu opens. A task means the same thing on the index,
  * in a list, in a smart list and in its panel, so it is all here, once.
  */
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import { externalSnapshot } from '@gather/core/linked-lists'
 import { possibleParents } from '@gather/core/linked-tasks'
 import { asksAboutSubtasks } from '@gather/core/subtasks'
@@ -14,6 +14,7 @@ import { buttonClass } from '../app/buttons'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { Dialog } from '../app/Dialog'
 import type { RowMenuAction } from '../app/RowMenu'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { ChoiceList } from './ChoiceList'
 import { useTaskLists } from './data'
 import { type Notice, useTasksNotices } from './TasksNotices'
@@ -58,6 +59,7 @@ export function useWorkspace(): Workspace {
 export function TasksWorkspace({ children }: { children: ReactNode }) {
   const { locale, messages: t } = useI18n()
   const words = t.tasks.web
+  const { timeZone } = useRequiredCurrentGroup()
   const actions = useTaskActions()
   const lists = useTaskLists()
   const { confirm, dialog: confirmDialog } = useConfirmAction()
@@ -71,7 +73,7 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
       if (!done) return
       show({
         message: fmt(t.tasks.repeat.completed, {
-          date: dayWords(done.dueDate, localIsoDate(), locale, t),
+          date: dayWords(done.dueDate, todayIn(timeZone), locale, t),
         }),
         undo: () => {
           actions

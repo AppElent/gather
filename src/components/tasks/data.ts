@@ -5,7 +5,7 @@
  * open, then when someone asks).
  */
 import { initialsForPeople } from '@gather/core/calendar'
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import {
   ensureExternalLists,
   externalSnapshot,
@@ -48,6 +48,12 @@ function useExternal() {
     externalSnapshot,
     externalSnapshot,
   )
+}
+
+/** The Current Group's calendar day: its time zone decides, never the browser's. */
+export function useGroupToday(): string {
+  const { timeZone } = useRequiredCurrentGroup()
+  return todayIn(timeZone)
 }
 
 /** The Current Group's lists, without their tasks. */
@@ -113,13 +119,14 @@ function useRowsOf(row: TaskListRow | undefined) {
 
 /** A list by id. `status` is `missing` once the Group's lists do not hold it. */
 export function useTaskList(listId: string) {
+  const today = useGroupToday()
   const lists = useTaskLists()
   const row = lists?.find((list) => list._id === listId)
   const { list, tasks, refresh } = useRowsOf(row)
   return {
     status:
       lists === undefined ? 'loading' : row === undefined ? 'missing' : 'ready',
-    today: localIsoDate(),
+    today,
     list,
     tasks,
     refresh: () => refresh(listId),
@@ -209,7 +216,7 @@ export function useTaskIndex() {
 /** The Current Group's four smart lists (APP-301). */
 export function useSmartLists(): SmartLists {
   const { slug: groupSlug } = useRequiredCurrentGroup()
-  const today = localIsoDate()
+  const today = useGroupToday()
   const lists = useTaskLists()
   const answer = useQuery(api.tasks.smartLists, { groupSlug, today })
   const linked = useExternal()

@@ -42,7 +42,7 @@ import { RowMenu } from '../app/RowMenu'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { useIsDesktop } from '../app/useMediaQuery'
 import { CheckRing } from './CheckRing'
-import { type TaskState, useTaskPeople } from './data'
+import { type TaskState, useGroupToday, useTaskPeople } from './data'
 import { FieldGroup, FieldRow } from './FieldRow'
 import {
   LabelsEditor,
@@ -333,7 +333,7 @@ function Fields({
   const words = t.tasks.web.panel
   const { actions, fail } = useWorkspace()
   const { byId } = useTaskPeople()
-  const today = localIsoDate()
+  const today = useGroupToday()
   const local = list.provider === 'local'
   const section = list.sections.find((each) => each.id === task.sectionId)
   const date = task.dueDate
@@ -415,7 +415,13 @@ function Fields({
             label={words.reminder}
             value={
               task.reminder
-                ? reminderLabel(task.reminder, today, locale, t.tasks.task)
+                ? // A reminder is this device's clock, so its day is too.
+                  reminderLabel(
+                    task.reminder,
+                    localIsoDate(),
+                    locale,
+                    t.tasks.task,
+                  )
                 : t.tasks.task.unset
             }
             editor={

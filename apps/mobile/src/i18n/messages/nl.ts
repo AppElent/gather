@@ -282,6 +282,7 @@ export const nl = {
         search: coreNl.settings.group.timeZoneSearch,
         noMatches: coreNl.settings.group.timeZoneNoMatches,
         refusals: coreNl.settings.group.timeZoneRefusals,
+        places: coreNl.settings.group.timeZonePlaces,
       },
       leave: {
         button: coreNl.settings.group.leaveButton,

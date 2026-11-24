@@ -1,8 +1,9 @@
 import { localIsoDate } from '@gather/core/civil-date'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import type { ReactElement, ReactNode } from 'react'
-import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { renderInGroup } from '../app/testing'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { renderInGroup, TEST_GROUP } from '../app/testing'
+import type { ShellGroup } from '../app/useCurrentGroup'
 import { SmartListPage } from './SmartListPage'
 import { TaskListPage } from './TaskListPage'
 import { TaskPage } from './TaskPage'
@@ -96,9 +97,9 @@ const DONE = task('t3', 'Vacuum', { done: true, order: 3 })
 const TODAY = localIsoDate()
 
 /** A page in the Tasks layout. `page` shows another in the same layout. */
-const renderTasks = (page: ReactElement) => {
+const renderTasks = (page: ReactElement, group?: ShellGroup) => {
   const inLayout = (each: ReactElement) => <TasksNotices>{each}</TasksNotices>
-  const { unmount, rerender } = renderInGroup(inLayout(page))
+  const { unmount, rerender } = renderInGroup(inLayout(page), { group })
   return {
     unmount,
     goTo: (each: ReactElement) => rerender(inLayout(each)),
@@ -138,6 +139,62 @@ beforeEach(() => {
 })
 
 const panel = () => screen.getByRole('complementary', { name: 'Task' })
+
+// The Group's zone decides the day (APP-814); a reminder keeps this device's.
+describe("the Group's today", () => {
+  const far: ShellGroup = { ...TEST_GROUP, timeZone: 'Pacific/Kiritimati' }
+  // Past noon UTC it is already the next day there.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.UTC(2026, 10, 19, 11) })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+  const add = async (line: string) => {
+    const field = screen.getByRole('textbox', { name: 'New task' })
+    fireEvent.change(field, { target: { value: line } })
+    fireEvent.submit(field.closest('form') as HTMLFormElement)
+    await waitFor(() => expect(calls('tasks:add')).toHaveLength(1))
+  }
+
+  test('a typed day, a tick and the smart lists use it', async () => {
+    const asked: unknown[] = []
+    state.queries['tasks:smartLists'] = (args: { today: string }) => {
+      asked.push(args.today)
+      return { me: 'u1', tasks: [] }
+    }
+    renderTasks(<TaskListPage listId="l1" />, far)
+    await add('Mop floor today')
+    expect(calls('tasks:add')[0]).toMatchObject({
+      dueDate: '2026-11-20',
+      today: '2026-11-20',
+    })
+    fireEvent.click(screen.getByRole('checkbox', { name: /Bins out/ }))
+    await waitFor(() => expect(calls('tasks:toggleDone')).toHaveLength(1))
+    expect(calls('tasks:toggleDone')[0].today).toBe('2026-11-20')
+    renderTasks(<SmartListPage smartList="today" />, far)
+    expect(new Set(asked)).toEqual(new Set(['2026-11-20']))
+  })
+
+  test("a typed time is on this device's day", async () => {
+    renderTasks(<TaskListPage listId="l1" />, far)
+    await add('Mop floor 23:45')
+    expect(calls('tasks:add')[0].dueDate).toBe(localIsoDate())
+  })
+
+  test("a reminder's day is this device's", () => {
+    const clock = { date: localIsoDate(), time: '23:45', timeZone: 'UTC' }
+    state.queries['tasks:listByList'] = [
+      task('t1', 'Wash windows', {
+        dueDate: '2026-11-20',
+        reminder: { ...clock, userId: 'u1' },
+      }),
+    ]
+    renderTasks(<TaskListPage listId="l1" selectedTaskId="t1" />, far)
+    expect(within(panel()).getByText('Today 23:45')).toBeTruthy()
+    expect(within(panel()).getByText('Today')).toBeTruthy()
+  })
+})
 
 describe('a list', () => {
   test('a quick-add line is read before it is added', async () => {

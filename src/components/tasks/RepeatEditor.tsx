@@ -1,4 +1,3 @@
-import { localIsoDate } from '@gather/core/civil-date'
 import type { Task } from '@gather/core/task-model'
 import {
   AFTER_DONE_UNITS,
@@ -24,6 +23,7 @@ import { fmt, useI18n } from '../../lib/i18n'
 import { dateInWords } from '../../lib/rowDate'
 import { buttonClass } from '../app/buttons'
 import { ChoiceList } from './ChoiceList'
+import { useGroupToday } from './data'
 
 /**
  * Never, on a fixed schedule, or a set time after it was done (APP-303). A
@@ -40,7 +40,7 @@ export function RepeatEditor({
 }) {
   const { locale, messages: t } = useI18n()
   const words = t.tasks.repeat
-  const today = localIsoDate()
+  const today = useGroupToday()
   const [draft, setDraft] = useState(() => repeatDraft(task, today))
   const rule = draftRule(draft, task.dueDate ?? today)
   const invalid = draft.mode !== 'none' && !rule

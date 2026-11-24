@@ -164,3 +164,11 @@ test.each([
   )
   expect(state.today.at(-1)).toBe(today)
 })
+
+test('an open planner follows the zone to its week', () => {
+  state.timeZone = 'Europe/Amsterdam'
+  const { rerender } = mount(createElement(MealPlannerScreen))
+  state.timeZone = 'Pacific/Kiritimati'
+  rerender(createElement(MealPlannerScreen))
+  expect(state.weeks.at(-1)).toMatchObject({ from: '2026-11-30' })
+})

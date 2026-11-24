@@ -73,7 +73,10 @@ export function initialPick(
   return next
 }
 
-/** How the Reminder row reads: `Za 09:00`, `Today 19:00`, `21 Nov 09:00`. */
+/**
+ * How the Reminder row reads, from this device's `today`, as its clock is:
+ * `Za 09:00`, `Today 19:00`, `21 Nov 09:00`.
+ */
 export function reminderLabel(
   reminder: Pick<ReminderClock, 'date' | 'time'>,
   today: string,

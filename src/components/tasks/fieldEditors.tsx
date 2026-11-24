@@ -20,7 +20,7 @@ import { buttonClass } from '../app/buttons'
 import { RowMenu } from '../app/RowMenu'
 import { inputClass } from '../recipes/fields'
 import { ChoiceList } from './ChoiceList'
-import { useGroupLabels, useTaskLists, useTaskPeople } from './data'
+import { useGroupLabels, useGroupToday, useTaskLists, useTaskPeople } from './data'
 import { Coin } from './ListTile'
 import { useWorkspace } from './TasksWorkspace'
 
@@ -36,7 +36,7 @@ export function WhenEditor({ task, onClose }: EditorProps) {
   const { locale, messages: t } = useI18n()
   const words = t.tasks.task
   const { actions, fail } = useWorkspace()
-  const today = localIsoDate()
+  const today = useGroupToday()
   const [picked, setPicked] = useState(task.dueDate ?? '')
   const fieldId = useId()
   const set = (date: string | undefined) => {

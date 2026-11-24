@@ -1,4 +1,4 @@
-import { localIsoDate } from '@gather/core/civil-date'
+import { localIsoDate, todayIn } from '@gather/core/civil-date'
 import type { TaskList } from '@gather/core/task-model'
 import type { QuickAdd as ParsedLine } from '@gather/core/task-quick-add'
 import {
@@ -9,14 +9,13 @@ import {
 import { Plus, X } from 'lucide-react'
 import { type FormEvent, type RefObject, useId, useRef, useState } from 'react'
 import { fmt, useI18n } from '../../lib/i18n'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { useTaskPeople } from './data'
 import { useWorkspace } from './TasksWorkspace'
 import { useAddShortcut } from './useAddShortcut'
 
-const clock = () => {
-  const now = new Date()
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-}
+const clock = (now: Date) =>
+  `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
 /**
  * The add field (APP-307's grammar): what was recognised shows as chips under
@@ -38,6 +37,7 @@ export function QuickAdd({
 }) {
   const { locale, messages: t } = useI18n()
   const words = t.tasks.web.add
+  const { timeZone } = useRequiredCurrentGroup()
   const { actions, show, fail } = useWorkspace()
   const { people } = useTaskPeople()
   const ownRef = useRef<HTMLInputElement>(null)
@@ -53,10 +53,17 @@ export function QuickAdd({
   const list = lists.find((each) => each.id === chosen) ?? lists[0]
   if (!list) return null
   const linked = list.provider !== 'local'
-  const today = localIsoDate()
+  const at = new Date()
+  const today = todayIn(timeZone, at)
   const parsed = parseOnly(
     line,
-    { today, now: clock(), members: people, dismissed },
+    {
+      today,
+      clockDay: localIsoDate(at),
+      now: clock(at),
+      members: people,
+      dismissed,
+    },
     linked ? LINKED_KINDS : undefined,
   )
 

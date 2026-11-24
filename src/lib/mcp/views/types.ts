@@ -55,6 +55,8 @@ export type TaskListResult = {
   groupName: string
   listId: string
   listName: string
+  /** The Group's zone; absent: overdue goes by the viewer's own day. */
+  timeZone?: string
   /** The token has gather:write and the list is kept in Gather. */
   canWrite: boolean
   /** Why the view cannot write, when it cannot. */

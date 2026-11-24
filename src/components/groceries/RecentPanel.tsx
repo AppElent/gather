@@ -1,3 +1,4 @@
+import { todayIn } from '@gather/core/civil-date'
 import {
   formatGroceryAmount,
   groceryKey,
@@ -16,6 +17,8 @@ import { InsetList, SectionFooter, SectionLabel } from '../app/InsetList'
 
 export interface RecentPanelProps {
   groupSlug: string
+  /** The Group's zone, which decides the days; absent: this device's. */
+  timeZone: string | undefined
   listId: Id<'taskLists'> | undefined
   /** Open item titles on the target list so rows already on it say so. */
   openTitles: readonly string[]
@@ -32,6 +35,7 @@ const keyOf = (title: string) => groceryKey(parseGroceryLine(title).name)
  */
 export function RecentPanel({
   groupSlug,
+  timeZone,
   listId,
   openTitles,
   mode = 'panel',
@@ -50,8 +54,11 @@ export function RecentPanel({
     () => new Set(openTitles.map((title) => keyOf(title))),
     [openTitles],
   )
-  const days = useMemo(() => recentDays(recent ?? []), [recent])
-  const todayStr = new Date().toDateString()
+  const days = useMemo(
+    () => recentDays(recent ?? [], timeZone),
+    [recent, timeZone],
+  )
+  const today = todayIn(timeZone)
 
   const dayLabel = (isoDate: string) => {
     const day = new Date(`${isoDate}T12:00:00`)
@@ -60,7 +67,7 @@ export function RecentPanel({
       day: 'numeric',
       month: 'long',
     })
-    if (day.toDateString() === todayStr) return `${r.today} · ${long}`
+    if (isoDate === today) return `${r.today} · ${long}`
     return long.charAt(0).toLocaleUpperCase(locale) + long.slice(1)
   }
 

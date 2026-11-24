@@ -13,7 +13,7 @@
  * 30th of a rule on the 31st) no longer shows.
  */
 import { MenuView } from '@expo/ui/community/menu'
-import { localIsoDate, localMidnight } from '@gather/core/civil-date'
+import { localMidnight, todayIn } from '@gather/core/civil-date'
 import {
   AFTER_DONE_UNITS,
   firstScheduledDate,
@@ -33,6 +33,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { NativeSheet } from '../../components/NativeSheet'
 import { Segmented } from '../../components/Segmented'
 import { haptics } from '../../feedback/haptics'
+import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
@@ -62,7 +63,8 @@ export function RepeatSheet({
   const { t, locale } = useI18n()
   const words = t.tasks.repeat
   const actions = useTaskActions()
-  const today = localIsoDate()
+  const { group } = useGroup()
+  const today = todayIn(group.timeZone)
   const anchor = task.dueDate ?? today
   // A share keeps the rule being made (APP-622); the composer's task has no
   // id, so it is kept per composer.

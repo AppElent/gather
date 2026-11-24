@@ -1,4 +1,4 @@
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import {
   externalSnapshot,
   type LinkedTaskWrite,
@@ -66,7 +66,7 @@ function toggleInPlace(
 
 /** Every write Tasks makes on the web, in the Current Group. */
 export function useTaskActions() {
-  const { slug: groupSlug } = useRequiredCurrentGroup()
+  const { slug: groupSlug, timeZone } = useRequiredCurrentGroup()
   const add = useMutation(api.tasks.add)
   const toggle = useMutation(api.tasks.toggleDone).withOptimisticUpdate(
     toggleInPlace,
@@ -152,7 +152,7 @@ export function useTaskActions() {
         listId: listId as Id<'taskLists'>,
         groupSlug,
         title: parsed.title,
-        today: localIsoDate(),
+        today: todayIn(timeZone),
         idempotencyKey: saveKey,
         ...(parsed.dueDate ? { dueDate: parsed.dueDate } : {}),
         ...(parsed.repeat ? { repeat: parsed.repeat } : {}),
@@ -194,7 +194,7 @@ export function useTaskActions() {
         listId,
         groupSlug,
         title,
-        today: localIsoDate(),
+        today: todayIn(timeZone),
         idempotencyKey: saveKey,
         ...(task.dueDate ? { dueDate: task.dueDate } : {}),
         ...(task.priority ? { priority: task.priority } : {}),
@@ -246,7 +246,7 @@ export function useTaskActions() {
       return toggle({
         taskId: task.id as Id<'tasks'>,
         groupSlug,
-        today: localIsoDate(),
+        today: todayIn(timeZone),
         ...withSubtasks,
       })
     },
@@ -260,7 +260,7 @@ export function useTaskActions() {
     setLabels: (task: TaskRef, labels: string[]) => edit(task, { labels }),
     /** A rule, or null for no repeat; the server anchors it on the date. */
     setRepeat: (id: string, repeat: TaskRepeat | null) =>
-      patch(id, { repeat, today: localIsoDate() }),
+      patch(id, { repeat, today: todayIn(timeZone) }),
     setNotes: (id: string, notes: string) => patch(id, { notes }),
     setUrl: (id: string, url: string | null) => patch(id, { url }),
     setPrice: (id: string, priceCents: number | null) =>

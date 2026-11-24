@@ -6,7 +6,7 @@
  * typed: no network and no AI, so it works offline. A chip's × dismisses that
  * recognition; its words stay in the title as plain text.
  */
-import { localIsoDate } from '@gather/core/civil-date'
+import { localIsoDate, todayIn } from '@gather/core/civil-date'
 import type { QuickAdd, QuickAddKind } from '@gather/core/task-quick-add'
 import { type ComponentRef, type Ref, useMemo, useState } from 'react'
 import {
@@ -18,6 +18,7 @@ import {
   View,
 } from 'react-native'
 
+import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { type ModuleGroup, TYPE, useTokens } from '../../theme/tokens'
@@ -44,15 +45,17 @@ export function useQuickAddLine(
   const [dismissed, setDismissed] = useState<readonly string[]>(
     initial?.dismissed ?? [],
   )
+  const { group } = useGroup()
   const at = new Date()
-  const today = localIsoDate(at)
+  const today = todayIn(group.timeZone, at)
+  const clockDay = localIsoDate(at)
   const now = `${pad(at.getHours())}:${pad(at.getMinutes())}`
   const parsed = useMemo(
     (): QuickAdd =>
       recognise
-        ? parseOnly(line, { today, now, members: people, dismissed }, kinds)
+        ? parseOnly(line, { today, clockDay, now, members: people, dismissed }, kinds)
         : { title: line.trim(), parts: [], labels: [] },
-    [recognise, line, today, now, people, dismissed, kinds],
+    [recognise, line, today, clockDay, now, people, dismissed, kinds],
   )
   return {
     line,
