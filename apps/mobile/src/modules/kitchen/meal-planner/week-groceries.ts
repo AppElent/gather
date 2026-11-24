@@ -15,7 +15,7 @@ import {
   scaleGroceryQuantity,
 } from '@gather/core/groceries'
 
-import type { LineRead, SourceLine } from '../add-to-groceries/pick'
+import type { LineRead, SourceLine } from '@gather/core/grocery-pick'
 import type { PlannedMeal } from './week'
 
 /** The seven days of the week that starts on `from`, Monday first. */

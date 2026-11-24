@@ -5,7 +5,7 @@ import {
   type ReadAnswer,
   type ReadBatch,
   readInBatches,
-} from './read-batches'
+} from './readBatches'
 
 const texts = (count: number) =>
   Array.from({ length: count }, (_, index) => `regel ${index + 1}`)

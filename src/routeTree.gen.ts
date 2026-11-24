@@ -23,7 +23,6 @@ import { Route as AppSplatRouteImport } from './routes/_app/$'
 import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AppAllRouteImport } from './routes/_app/all'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
-import { Route as AppGroceriesRouteImport } from './routes/_app/groceries'
 import { Route as AppGroupSettingsRouteImport } from './routes/_app/group-settings'
 import { Route as AppGroupsRouteImport } from './routes/_app/groups'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
@@ -44,6 +43,9 @@ import { Route as AppEnergyContractRouteImport } from './routes/_app/energy/cont
 import { Route as AppEnergyCostsRouteImport } from './routes/_app/energy/costs'
 import { Route as AppEnergyReadingsRouteImport } from './routes/_app/energy/readings'
 import { Route as AppEnergyUsageRouteImport } from './routes/_app/energy/usage'
+import { Route as AppGroceriesIndexRouteImport } from './routes/_app/groceries/index'
+import { Route as AppGroceriesInStockRouteImport } from './routes/_app/groceries/in-stock'
+import { Route as AppGroceriesRecentRouteImport } from './routes/_app/groceries/recent'
 import { Route as AppIntegrationsCallbackRouteImport } from './routes/_app/integrations.callback'
 import { Route as AppLoyaltyCardsIndexRouteImport } from './routes/_app/loyalty-cards/index'
 import { Route as AppLoyaltyCardsNewRouteImport } from './routes/_app/loyalty-cards/new'
@@ -56,6 +58,7 @@ import { Route as AppBeersSubjectIdIndexRouteImport } from './routes/_app/beers/
 import { Route as AppBeersSubjectIdEditRouteImport } from './routes/_app/beers/$subjectId.edit'
 import { Route as AppCheesesSubjectIdIndexRouteImport } from './routes/_app/cheeses/$subjectId.index'
 import { Route as AppCheesesSubjectIdEditRouteImport } from './routes/_app/cheeses/$subjectId.edit'
+import { Route as AppGroceriesItemItemIdRouteImport } from './routes/_app/groceries/item.$itemId'
 import { Route as AppLoyaltyCardsCardIdIndexRouteImport } from './routes/_app/loyalty-cards/$cardId.index'
 import { Route as AppLoyaltyCardsCardIdEditRouteImport } from './routes/_app/loyalty-cards/$cardId.edit'
 import { Route as AppRecipesRecipeIdIndexRouteImport } from './routes/_app/recipes/$recipeId.index'
@@ -130,11 +133,6 @@ const AppAllRoute = AppAllRouteImport.update({
 const AppCalendarRoute = AppCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppGroceriesRoute = AppGroceriesRouteImport.update({
-  id: '/groceries',
-  path: '/groceries',
   getParentRoute: () => AppRoute,
 } as any)
 const AppGroupSettingsRoute = AppGroupSettingsRouteImport.update({
@@ -237,6 +235,21 @@ const AppEnergyUsageRoute = AppEnergyUsageRouteImport.update({
   path: '/energy/usage',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGroceriesIndexRoute = AppGroceriesIndexRouteImport.update({
+  id: '/groceries/',
+  path: '/groceries/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGroceriesInStockRoute = AppGroceriesInStockRouteImport.update({
+  id: '/groceries/in-stock',
+  path: '/groceries/in-stock',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGroceriesRecentRoute = AppGroceriesRecentRouteImport.update({
+  id: '/groceries/recent',
+  path: '/groceries/recent',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppIntegrationsCallbackRoute = AppIntegrationsCallbackRouteImport.update({
   id: '/integrations/callback',
   path: '/integrations/callback',
@@ -298,6 +311,11 @@ const AppCheesesSubjectIdEditRoute = AppCheesesSubjectIdEditRouteImport.update({
   path: '/cheeses/$subjectId/edit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGroceriesItemItemIdRoute = AppGroceriesItemItemIdRouteImport.update({
+  id: '/groceries/item/$itemId',
+  path: '/groceries/item/$itemId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLoyaltyCardsCardIdIndexRoute =
   AppLoyaltyCardsCardIdIndexRouteImport.update({
     id: '/loyalty-cards/$cardId/',
@@ -345,7 +363,6 @@ export interface FileRoutesByFullPath {
   '/account': typeof AppAccountRoute
   '/all': typeof AppAllRoute
   '/calendar': typeof AppCalendarRoute
-  '/groceries': typeof AppGroceriesRoute
   '/group-settings': typeof AppGroupSettingsRoute
   '/groups': typeof AppGroupsRoute
   '/home': typeof AppHomeRoute
@@ -362,6 +379,8 @@ export interface FileRoutesByFullPath {
   '/energy/costs': typeof AppEnergyCostsRoute
   '/energy/readings': typeof AppEnergyReadingsRoute
   '/energy/usage': typeof AppEnergyUsageRoute
+  '/groceries/in-stock': typeof AppGroceriesInStockRoute
+  '/groceries/recent': typeof AppGroceriesRecentRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
   '/recipes/new': typeof AppRecipesNewRoute
@@ -369,12 +388,14 @@ export interface FileRoutesByFullPath {
   '/beers/': typeof AppBeersIndexRoute
   '/cheeses/': typeof AppCheesesIndexRoute
   '/energy/': typeof AppEnergyIndexRoute
+  '/groceries/': typeof AppGroceriesIndexRoute
   '/loyalty-cards/': typeof AppLoyaltyCardsIndexRoute
   '/recipes/': typeof AppRecipesIndexRoute
   '/wines/': typeof AppWinesIndexRoute
   '/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
   '/beers/$subjectId/edit': typeof AppBeersSubjectIdEditRoute
   '/cheeses/$subjectId/edit': typeof AppCheesesSubjectIdEditRoute
+  '/groceries/item/$itemId': typeof AppGroceriesItemItemIdRoute
   '/loyalty-cards/$cardId/edit': typeof AppLoyaltyCardsCardIdEditRoute
   '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
   '/wines/$subjectId/edit': typeof AppWinesSubjectIdEditRoute
@@ -398,7 +419,6 @@ export interface FileRoutesByTo {
   '/account': typeof AppAccountRoute
   '/all': typeof AppAllRoute
   '/calendar': typeof AppCalendarRoute
-  '/groceries': typeof AppGroceriesRoute
   '/group-settings': typeof AppGroupSettingsRoute
   '/groups': typeof AppGroupsRoute
   '/home': typeof AppHomeRoute
@@ -416,6 +436,8 @@ export interface FileRoutesByTo {
   '/energy/costs': typeof AppEnergyCostsRoute
   '/energy/readings': typeof AppEnergyReadingsRoute
   '/energy/usage': typeof AppEnergyUsageRoute
+  '/groceries/in-stock': typeof AppGroceriesInStockRoute
+  '/groceries/recent': typeof AppGroceriesRecentRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
   '/recipes/new': typeof AppRecipesNewRoute
@@ -423,12 +445,14 @@ export interface FileRoutesByTo {
   '/beers': typeof AppBeersIndexRoute
   '/cheeses': typeof AppCheesesIndexRoute
   '/energy': typeof AppEnergyIndexRoute
+  '/groceries': typeof AppGroceriesIndexRoute
   '/loyalty-cards': typeof AppLoyaltyCardsIndexRoute
   '/recipes': typeof AppRecipesIndexRoute
   '/wines': typeof AppWinesIndexRoute
   '/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
   '/beers/$subjectId/edit': typeof AppBeersSubjectIdEditRoute
   '/cheeses/$subjectId/edit': typeof AppCheesesSubjectIdEditRoute
+  '/groceries/item/$itemId': typeof AppGroceriesItemItemIdRoute
   '/loyalty-cards/$cardId/edit': typeof AppLoyaltyCardsCardIdEditRoute
   '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
   '/wines/$subjectId/edit': typeof AppWinesSubjectIdEditRoute
@@ -454,7 +478,6 @@ export interface FileRoutesById {
   '/_app/account': typeof AppAccountRoute
   '/_app/all': typeof AppAllRoute
   '/_app/calendar': typeof AppCalendarRoute
-  '/_app/groceries': typeof AppGroceriesRoute
   '/_app/group-settings': typeof AppGroupSettingsRoute
   '/_app/groups': typeof AppGroupsRoute
   '/_app/home': typeof AppHomeRoute
@@ -472,6 +495,8 @@ export interface FileRoutesById {
   '/_app/energy/costs': typeof AppEnergyCostsRoute
   '/_app/energy/readings': typeof AppEnergyReadingsRoute
   '/_app/energy/usage': typeof AppEnergyUsageRoute
+  '/_app/groceries/in-stock': typeof AppGroceriesInStockRoute
+  '/_app/groceries/recent': typeof AppGroceriesRecentRoute
   '/_app/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/_app/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
   '/_app/recipes/new': typeof AppRecipesNewRoute
@@ -479,12 +504,14 @@ export interface FileRoutesById {
   '/_app/beers/': typeof AppBeersIndexRoute
   '/_app/cheeses/': typeof AppCheesesIndexRoute
   '/_app/energy/': typeof AppEnergyIndexRoute
+  '/_app/groceries/': typeof AppGroceriesIndexRoute
   '/_app/loyalty-cards/': typeof AppLoyaltyCardsIndexRoute
   '/_app/recipes/': typeof AppRecipesIndexRoute
   '/_app/wines/': typeof AppWinesIndexRoute
   '/_app/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
   '/_app/beers/$subjectId/edit': typeof AppBeersSubjectIdEditRoute
   '/_app/cheeses/$subjectId/edit': typeof AppCheesesSubjectIdEditRoute
+  '/_app/groceries/item/$itemId': typeof AppGroceriesItemItemIdRoute
   '/_app/loyalty-cards/$cardId/edit': typeof AppLoyaltyCardsCardIdEditRoute
   '/_app/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
   '/_app/wines/$subjectId/edit': typeof AppWinesSubjectIdEditRoute
@@ -511,7 +538,6 @@ export interface FileRouteTypes {
     | '/account'
     | '/all'
     | '/calendar'
-    | '/groceries'
     | '/group-settings'
     | '/groups'
     | '/home'
@@ -528,6 +554,8 @@ export interface FileRouteTypes {
     | '/energy/costs'
     | '/energy/readings'
     | '/energy/usage'
+    | '/groceries/in-stock'
+    | '/groceries/recent'
     | '/integrations/callback'
     | '/loyalty-cards/new'
     | '/recipes/new'
@@ -535,12 +563,14 @@ export interface FileRouteTypes {
     | '/beers/'
     | '/cheeses/'
     | '/energy/'
+    | '/groceries/'
     | '/loyalty-cards/'
     | '/recipes/'
     | '/wines/'
     | '/baby/$babyId/edit'
     | '/beers/$subjectId/edit'
     | '/cheeses/$subjectId/edit'
+    | '/groceries/item/$itemId'
     | '/loyalty-cards/$cardId/edit'
     | '/recipes/$recipeId/edit'
     | '/wines/$subjectId/edit'
@@ -564,7 +594,6 @@ export interface FileRouteTypes {
     | '/account'
     | '/all'
     | '/calendar'
-    | '/groceries'
     | '/group-settings'
     | '/groups'
     | '/home'
@@ -582,6 +611,8 @@ export interface FileRouteTypes {
     | '/energy/costs'
     | '/energy/readings'
     | '/energy/usage'
+    | '/groceries/in-stock'
+    | '/groceries/recent'
     | '/integrations/callback'
     | '/loyalty-cards/new'
     | '/recipes/new'
@@ -589,12 +620,14 @@ export interface FileRouteTypes {
     | '/beers'
     | '/cheeses'
     | '/energy'
+    | '/groceries'
     | '/loyalty-cards'
     | '/recipes'
     | '/wines'
     | '/baby/$babyId/edit'
     | '/beers/$subjectId/edit'
     | '/cheeses/$subjectId/edit'
+    | '/groceries/item/$itemId'
     | '/loyalty-cards/$cardId/edit'
     | '/recipes/$recipeId/edit'
     | '/wines/$subjectId/edit'
@@ -619,7 +652,6 @@ export interface FileRouteTypes {
     | '/_app/account'
     | '/_app/all'
     | '/_app/calendar'
-    | '/_app/groceries'
     | '/_app/group-settings'
     | '/_app/groups'
     | '/_app/home'
@@ -637,6 +669,8 @@ export interface FileRouteTypes {
     | '/_app/energy/costs'
     | '/_app/energy/readings'
     | '/_app/energy/usage'
+    | '/_app/groceries/in-stock'
+    | '/_app/groceries/recent'
     | '/_app/integrations/callback'
     | '/_app/loyalty-cards/new'
     | '/_app/recipes/new'
@@ -644,12 +678,14 @@ export interface FileRouteTypes {
     | '/_app/beers/'
     | '/_app/cheeses/'
     | '/_app/energy/'
+    | '/_app/groceries/'
     | '/_app/loyalty-cards/'
     | '/_app/recipes/'
     | '/_app/wines/'
     | '/_app/baby/$babyId/edit'
     | '/_app/beers/$subjectId/edit'
     | '/_app/cheeses/$subjectId/edit'
+    | '/_app/groceries/item/$itemId'
     | '/_app/loyalty-cards/$cardId/edit'
     | '/_app/recipes/$recipeId/edit'
     | '/_app/wines/$subjectId/edit'
@@ -771,13 +807,6 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof AppCalendarRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/groceries': {
-      id: '/_app/groceries'
-      path: '/groceries'
-      fullPath: '/groceries'
-      preLoaderRoute: typeof AppGroceriesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/group-settings': {
@@ -920,6 +949,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEnergyUsageRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/groceries/': {
+      id: '/_app/groceries/'
+      path: '/groceries'
+      fullPath: '/groceries/'
+      preLoaderRoute: typeof AppGroceriesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/groceries/in-stock': {
+      id: '/_app/groceries/in-stock'
+      path: '/groceries/in-stock'
+      fullPath: '/groceries/in-stock'
+      preLoaderRoute: typeof AppGroceriesInStockRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/groceries/recent': {
+      id: '/_app/groceries/recent'
+      path: '/groceries/recent'
+      fullPath: '/groceries/recent'
+      preLoaderRoute: typeof AppGroceriesRecentRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/integrations/callback': {
       id: '/_app/integrations/callback'
       path: '/integrations/callback'
@@ -1004,6 +1054,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCheesesSubjectIdEditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/groceries/item/$itemId': {
+      id: '/_app/groceries/item/$itemId'
+      path: '/groceries/item/$itemId'
+      fullPath: '/groceries/item/$itemId'
+      preLoaderRoute: typeof AppGroceriesItemItemIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/loyalty-cards/$cardId/': {
       id: '/_app/loyalty-cards/$cardId/'
       path: '/loyalty-cards/$cardId'
@@ -1054,7 +1111,6 @@ interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
   AppAllRoute: typeof AppAllRoute
   AppCalendarRoute: typeof AppCalendarRoute
-  AppGroceriesRoute: typeof AppGroceriesRoute
   AppGroupSettingsRoute: typeof AppGroupSettingsRoute
   AppGroupsRoute: typeof AppGroupsRoute
   AppHomeRoute: typeof AppHomeRoute
@@ -1072,6 +1128,8 @@ interface AppRouteChildren {
   AppEnergyCostsRoute: typeof AppEnergyCostsRoute
   AppEnergyReadingsRoute: typeof AppEnergyReadingsRoute
   AppEnergyUsageRoute: typeof AppEnergyUsageRoute
+  AppGroceriesInStockRoute: typeof AppGroceriesInStockRoute
+  AppGroceriesRecentRoute: typeof AppGroceriesRecentRoute
   AppIntegrationsCallbackRoute: typeof AppIntegrationsCallbackRoute
   AppLoyaltyCardsNewRoute: typeof AppLoyaltyCardsNewRoute
   AppRecipesNewRoute: typeof AppRecipesNewRoute
@@ -1079,12 +1137,14 @@ interface AppRouteChildren {
   AppBeersIndexRoute: typeof AppBeersIndexRoute
   AppCheesesIndexRoute: typeof AppCheesesIndexRoute
   AppEnergyIndexRoute: typeof AppEnergyIndexRoute
+  AppGroceriesIndexRoute: typeof AppGroceriesIndexRoute
   AppLoyaltyCardsIndexRoute: typeof AppLoyaltyCardsIndexRoute
   AppRecipesIndexRoute: typeof AppRecipesIndexRoute
   AppWinesIndexRoute: typeof AppWinesIndexRoute
   AppBabyBabyIdEditRoute: typeof AppBabyBabyIdEditRoute
   AppBeersSubjectIdEditRoute: typeof AppBeersSubjectIdEditRoute
   AppCheesesSubjectIdEditRoute: typeof AppCheesesSubjectIdEditRoute
+  AppGroceriesItemItemIdRoute: typeof AppGroceriesItemItemIdRoute
   AppLoyaltyCardsCardIdEditRoute: typeof AppLoyaltyCardsCardIdEditRoute
   AppRecipesRecipeIdEditRoute: typeof AppRecipesRecipeIdEditRoute
   AppWinesSubjectIdEditRoute: typeof AppWinesSubjectIdEditRoute
@@ -1101,7 +1161,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppAccountRoute: AppAccountRoute,
   AppAllRoute: AppAllRoute,
   AppCalendarRoute: AppCalendarRoute,
-  AppGroceriesRoute: AppGroceriesRoute,
   AppGroupSettingsRoute: AppGroupSettingsRoute,
   AppGroupsRoute: AppGroupsRoute,
   AppHomeRoute: AppHomeRoute,
@@ -1119,6 +1178,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppEnergyCostsRoute: AppEnergyCostsRoute,
   AppEnergyReadingsRoute: AppEnergyReadingsRoute,
   AppEnergyUsageRoute: AppEnergyUsageRoute,
+  AppGroceriesInStockRoute: AppGroceriesInStockRoute,
+  AppGroceriesRecentRoute: AppGroceriesRecentRoute,
   AppIntegrationsCallbackRoute: AppIntegrationsCallbackRoute,
   AppLoyaltyCardsNewRoute: AppLoyaltyCardsNewRoute,
   AppRecipesNewRoute: AppRecipesNewRoute,
@@ -1126,12 +1187,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppBeersIndexRoute: AppBeersIndexRoute,
   AppCheesesIndexRoute: AppCheesesIndexRoute,
   AppEnergyIndexRoute: AppEnergyIndexRoute,
+  AppGroceriesIndexRoute: AppGroceriesIndexRoute,
   AppLoyaltyCardsIndexRoute: AppLoyaltyCardsIndexRoute,
   AppRecipesIndexRoute: AppRecipesIndexRoute,
   AppWinesIndexRoute: AppWinesIndexRoute,
   AppBabyBabyIdEditRoute: AppBabyBabyIdEditRoute,
   AppBeersSubjectIdEditRoute: AppBeersSubjectIdEditRoute,
   AppCheesesSubjectIdEditRoute: AppCheesesSubjectIdEditRoute,
+  AppGroceriesItemItemIdRoute: AppGroceriesItemItemIdRoute,
   AppLoyaltyCardsCardIdEditRoute: AppLoyaltyCardsCardIdEditRoute,
   AppRecipesRecipeIdEditRoute: AppRecipesRecipeIdEditRoute,
   AppWinesSubjectIdEditRoute: AppWinesSubjectIdEditRoute,

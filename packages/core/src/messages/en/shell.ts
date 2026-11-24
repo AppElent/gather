@@ -107,12 +107,14 @@ export const shell = {
     },
   },
 
-  /** The wash header on a Module's page (APP-639). */
+  /** The wash header and detail panel on a Module's page (APP-639, APP-300). */
   modulePage: {
     /** The round search button; `{module}` is the Module's name. */
     searchIn: 'Search in {module}',
     /** The gear, where the Module has a settings page. */
     settingsOf: 'Settings for {module}',
+    /** The detail panel's close button in the list-and-detail layout. */
+    closePanel: 'Close panel',
   },
 
   allModules: {

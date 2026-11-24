@@ -20,7 +20,7 @@ import {
   planGroceryAdds,
   roundGroceryQuantity,
   scaleGroceryQuantity,
-} from '@gather/core/groceries'
+} from './index'
 
 /** How a source line was read. */
 export type LineRead =

@@ -8,6 +8,7 @@ import { useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { clearCachedRecipeLines } from '../groceries/preferences'
 import { ImageUploadField } from '../photo/ImageUploadField'
 import { RecipeForm } from './RecipeForm'
 
@@ -135,6 +136,7 @@ function EditRecipeForm({
               nutrition: values.nutrition ?? null,
               nutritionSource: values.nutritionSource ?? null,
             })
+            clearCachedRecipeLines(recipe._id)
             navigate(linkTo('recipe', { recipeId: recipe._id }))
           } catch (err) {
             setError(errorText(err, form.saveFailed))
