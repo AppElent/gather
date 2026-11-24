@@ -75,6 +75,17 @@ test('an older server that refuses the filters answers the plain search', () => 
   expect(run({ createdBy: 'sam' })).toEqual(['all'])
 })
 
+test('a plain search that fails too throws to the error boundary', () => {
+  server.answer = () => new Error('down')
+  expect(() => run({ createdBy: 'sam' })).toThrow('down')
+})
+
+test('waits for the plain rows after an empty filtered search', () => {
+  server.answer = (asked) => ('createdBy' in asked ? [] : undefined)
+  expect(run({ createdBy: 'sam' })).toBeUndefined()
+  expect(server.asked).toHaveLength(2)
+})
+
 test('an empty filtered search falls back on the plain rows', () => {
   server.answer = (asked) => ('createdBy' in asked ? [] : [row('all')])
   expect(run({ createdBy: 'sam' })).toEqual(['all'])

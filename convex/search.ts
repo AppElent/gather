@@ -131,8 +131,8 @@ export const group = query({
     ),
     status: v.optional(v.union(v.literal('open'), v.literal('done'))),
     /**
-     * The reader's civil date and IANA zone, which only `when` reads. The
-     * Netherlands' when absent.
+     * The reader's civil date and IANA zone, which only `when` uses. Absent,
+     * the zone is the Netherlands' and the date is today there.
      */
     today: v.optional(v.string()),
     timeZone: v.optional(v.string()),
@@ -355,13 +355,11 @@ export const group = query({
       }),
     ]
 
-    const calendar = {
-      today: args.today ?? (args.when ? amsterdamIsoDate() : ''),
-      dayAt:
-        args.when && args.timeZone
-          ? isoDateIn(args.timeZone)
-          : amsterdamIsoDate,
-    }
+    const dayAt =
+      args.when && args.timeZone ? isoDateIn(args.timeZone) : amsterdamIsoDate
+    // The clock is read only when needed: it would make the result uncacheable.
+    const today = args.today ?? (args.when ? dayAt(Date.now()) : '')
+    const calendar = { today, dayAt }
     const filters = {
       who: args.createdBy,
       when: args.when,

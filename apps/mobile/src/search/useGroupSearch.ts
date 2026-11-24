@@ -34,8 +34,8 @@ function useSearch(args: SearchArgs | null): Answer {
  * screen filters it, as it did before the server could. That is the case when:
  *
  * - it failed: a server from before APP-633 refuses arguments it does not
- *   know. A failure of any other kind fails the plain search too, which throws
- *   to the screen's error boundary.
+ *   know, and one may not know this phone's time zone. When the plain search
+ *   fails as well, that throws to the screen's error boundary.
  * - it found nothing: the plain rows tell "nothing with these filters" from
  *   "nothing at all", which offer different ways back.
  */

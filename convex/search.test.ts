@@ -658,6 +658,11 @@ describe('Group search server filters (APP-633)', () => {
     // Told nothing, it is the Netherlands' day.
     expect(await on(TODAY)).toEqual(['milk late'])
     expect(await search({ when: 'today' })).toEqual(['milk late'])
+    // The zone alone also says which day today is.
+    vi.setSystemTime('2026-11-25T06:30:00Z')
+    expect(
+      await search({ when: 'today', timeZone: 'America/Los_Angeles' }),
+    ).toEqual(['milk late'])
   })
 
   test('refuses a day or a zone that does not exist', async () => {
