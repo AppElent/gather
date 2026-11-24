@@ -1418,15 +1418,15 @@ describe('an import and the connection it belongs to', () => {
     const seeded = await seed()
     await saveTwenty(seeded, 'solar')
     await storeHour(seeded, 'solar', THIS_HOUR)
-    // A history import reaches a year and 15 days back, a month holds both.
-    vi.setSystemTime(THIS_HOUR + 400 * DAY)
+    // An import reaches 365 + 15 + 1 days back, and 31 more are one month.
+    vi.setSystemTime(THIS_HOUR + 412 * DAY)
     expect((await refusalOf(saveTwenty(seeded, 'gridImport'))).code).toBe(
       'tooManyChannels',
     )
-    vi.setSystemTime(THIS_HOUR + 415 * DAY)
+    vi.setSystemTime(THIS_HOUR + 413 * DAY)
     await saveTwenty(seeded, 'gridImport')
     // Not again in reverse: solar would fill the hours since its last one.
-    await storeHour(seeded, 'gridImport', THIS_HOUR + 414 * DAY)
+    await storeHour(seeded, 'gridImport', THIS_HOUR + 412 * DAY)
     expect((await refusalOf(saveTwenty(seeded, 'solar'))).code).toBe(
       'tooManyChannels',
     )

@@ -217,6 +217,7 @@ async function homeAssistantSource(ctx: QueryCtx, siteId: Id<'energySites'>) {
  * A history import is known by the job that would end it (`endImport`): every
  * run carries its id, and does nothing once that job is no longer pending. So
  * an import is dropped or done at once for a run that is just starting too.
+ * It ends after `IMPORT_MS`, which the channel limit counts on.
  */
 export const endImport = internalMutation({
   args: {},

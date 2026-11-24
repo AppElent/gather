@@ -30,7 +30,8 @@ const MONTH_MS = 31 * DAY_MS + HOUR_MS
  * channel of its kind and tariff before one is added, so each of the 11 kinds
  * and tariffs stays at 30. They cost three index ranges each, about 1,000.
  * A document is some 200 bytes, so this is about 6 of the 16 MiB allowed. The
- * rest (typed readings, contracts, the Group) has the 1,955 left. `day` reads
+ * rest (typed readings, contracts, the Group) has no hard bound and the 1,955
+ * left, far more than a household types. `day` reads
  * its month or itself, never both. A realistic site, seven channels and one
  * price feed, scans about 9,000.
  */
