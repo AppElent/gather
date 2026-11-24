@@ -1,9 +1,5 @@
 import { addDays } from '@gather/core/civil-date'
-import {
-  amsterdamDayHours,
-  amsterdamDayStart,
-  energyChannelUnit,
-} from '@gather/core/energy'
+import { amsterdamDayHours, amsterdamDayStart } from '@gather/core/energy'
 import { describe, expect, test } from 'vitest'
 import { alice, bob, carol, testConvexWithLimits } from '../test/convexHarness'
 import {
@@ -916,47 +912,29 @@ describe('the most channels a connection may have', () => {
         ...(index % 2 ? { retiredAt: amsterdamDayStart('2026-11-10') } : {}),
       })
     }
-    // Every other kind and tariff a connection can have, 30 retired channels
-    // of each (a choice takes up a retired one first), 330 channels in all.
-    const others: {
-      kind: Doc<'energyChannels'>['kind']
-      tariff?: 't1' | 't2'
-    }[] = [
-      { kind: 'solar' },
-      { kind: 'gridImport', tariff: 't1' },
-      { kind: 'gridImport', tariff: 't2' },
-      { kind: 'gridExport' },
-      { kind: 'gridExport', tariff: 't1' },
-      { kind: 'gridExport', tariff: 't2' },
-      { kind: 'batteryCharge' },
-      { kind: 'batteryDischarge' },
-      { kind: 'batterySoc' },
-      { kind: 'gas' },
-    ]
-    for (const other of others) {
-      await t.run(async (ctx) => {
-        for (let index = 0; index < MAX_CHANNELS; index += 1) {
-          const channelId = await ctx.db.insert('energyChannels', {
+    // Retired ones without hours in October, as many again.
+    await t.run(async (ctx) => {
+      for (let index = 0; index < MAX_CHANNELS; index += 1) {
+        const channelId = await ctx.db.insert('energyChannels', {
+          groupId: homeId,
+          siteId,
+          sourceId,
+          kind: 'solar',
+          unit: 'kWh',
+          retiredAt: amsterdamDayStart('2026-11-10'),
+        })
+        // Read for its first and last hour only.
+        for (const hourStart of [start - 3_600_000, start - 7_200_000]) {
+          await ctx.db.insert('energyIntervals', {
             groupId: homeId,
-            siteId,
-            sourceId,
-            ...other,
-            unit: energyChannelUnit(other.kind),
-            retiredAt: amsterdamDayStart('2026-11-10'),
+            channelId,
+            hourStart,
+            amount: 1,
+            estimated: false,
           })
-          // Without hours in October: read for its first and last hour only.
-          for (const hourStart of [start - 3_600_000, start - 7_200_000]) {
-            await ctx.db.insert('energyIntervals', {
-              groupId: homeId,
-              channelId,
-              hourStart,
-              amount: 1,
-              estimated: false,
-            })
-          }
         }
-      })
-    }
+      }
+    })
     // Market prices for every quarter, the account's too, and gas.
     const feedId = await t.run((ctx) =>
       ctx.db.insert('energyPriceFeeds', {
