@@ -30,7 +30,8 @@
  * purge too, so a session that changed under the Apple sheet deletes nothing,
  * and around the Apple sheet, so it revokes nothing either (APP-745). After
  * the purge, signing out and saying so are for that session only: a next
- * person is left signed in and untold (APP-746).
+ * person is left signed in and untold (APP-746). With nobody signed in, what
+ * this phone kept still goes (APP-771).
  *
  * The stranded state is held in memory, so it lasts while the app is open and
  * signed in. Quitting the app, or Clerk ending the session, loses it.
@@ -58,7 +59,7 @@ import {
   useState,
 } from 'react'
 
-import { useSignOut } from '../../../auth/useSignOut'
+import { useForgetAccount, useSignOut } from '../../../auth/useSignOut'
 import { api } from '../../../convex/api'
 import { revokeAppleSignIn } from './apple-revocation'
 
@@ -142,6 +143,7 @@ export function AccountDeleteProvider({
   const deleteAccount = useMutation(api.accounts.deleteAccount)
   const revokeApple = useAction(api.accounts.revokeAppleSignIn)
   const signOut = useSignOut()
+  const forgetAccount = useForgetAccount()
   const [state, setState] = useState<AccountDeleteState>({ step: 'idle' })
   // Refs as well as the state, so a second tap in the same frame cannot start
   // a second run, or a second Clerk call, before the first has rendered.
@@ -241,7 +243,13 @@ export function AccountDeleteProvider({
           await deleteLogin()
           return
         }
-        if (!sameAccount(account)) return standDown()
+        if (!sameAccount(account)) {
+          // Nobody signed in: this phone still forgets the account (APP-771).
+          // Only on Clerk's `null`; it is `undefined` while a session is being
+          // switched to, and that one is left alone.
+          if (clerk.session === null) forgetAccount()
+          return standDown()
+        }
         setState({ step: 'signingOut' })
         signOut()
         onGatherDataDeleted()
@@ -255,6 +263,7 @@ export function AccountDeleteProvider({
       revokeApple,
       deleteLogin,
       signOut,
+      forgetAccount,
       standDown,
       onGatherDataDeleted,
     ],

@@ -90,6 +90,7 @@ vi.mock('../../../convex/api', () => ({
   api: { accounts: { deleteAccount: 'accounts:deleteAccount' } },
 }))
 vi.mock('../../../auth/useSignOut', () => ({
+  useForgetAccount: () => () => {},
   useSignOut: () => () => setSignedIn(false),
 }))
 vi.mock('../../../auth/ConvexSessionGate', () => ({
