@@ -29,6 +29,11 @@ export function testConvex() {
   return convexTest(schema, modules)
 }
 
+/** The same, refusing what is over Convex's limits for one function. */
+export function testConvexWithLimits() {
+  return convexTest({ schema, modules, transactionLimits: true })
+}
+
 /** The people tests act as: `t.withIdentity(alice)`. */
 export const alice = {
   subject: 'clerk_alice',

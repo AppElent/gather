@@ -33,6 +33,11 @@ import {
   energySourceStatusValidator,
   energyTariffValidator,
 } from './lib/energy'
+import {
+  IMPORT_MS,
+  MAX_CHANNELS,
+  mostChannelsInAMonth,
+} from './lib/energyChannelLimit'
 import { reconcileManualChannels } from './lib/energyManual'
 import { primarySiteOf } from './lib/energyUsage'
 import { requireGroupBySlug } from './lib/groupAccess'
@@ -213,8 +218,6 @@ async function homeAssistantSource(ctx: QueryCtx, siteId: Id<'energySites'>) {
  * run carries its id, and does nothing once that job is no longer pending. So
  * an import is dropped or done at once for a run that is just starting too.
  */
-const IMPORT_MS = 15 * 24 * HOUR_MS
-
 export const endImport = internalMutation({
   args: {},
   returns: v.null(),
@@ -394,19 +397,19 @@ export const saveConnection = internalMutation({
         })
       }
     }
-    let kept = args.channels.length
     for (const channel of left) {
       if (channel.retiredAt === undefined) {
         await ctx.db.patch(channel._id, { retiredAt: Date.now() })
       }
-      const measured = await ctx.db
-        .query('energyIntervals')
-        .withIndex('by_channel_hour', (q) => q.eq('channelId', channel._id))
-        .first()
-      if (measured) kept += 1
     }
-    // Usage reads a month of hours of every channel, retired ones too.
-    if (kept > MAX_CHANNELS) {
+    // Usage reads a month of hours, of retired channels too.
+    const channels = await ctx.db
+      .query('energyChannels')
+      .withIndex('by_source', (q) => q.eq('sourceId', source))
+      .collect()
+    if (
+      (await mostChannelsInAMonth(ctx, channels, Date.now())) > MAX_CHANNELS
+    ) {
       throw new ConvexError(energyRefusal('tooManyChannels'))
     }
     await reconcileManualChannels(ctx, site._id)
@@ -428,13 +431,6 @@ export const saveConnection = internalMutation({
     return null
   },
 })
-
-/**
- * Channels of one connection, with the retired ones whose hours still count.
- * Enough for a split meter, solar, battery and gas several times over, and a
- * month of their hours fits in one query.
- */
-const MAX_CHANNELS = 30
 
 function checkChoices(
   channels: readonly {

@@ -1361,33 +1361,94 @@ describe('an import and the connection it belongs to', () => {
     expect(await imports(seeded.t)).toEqual([])
   })
 
-  test('retired channels with hours count toward the limit', async () => {
-    const seeded = await seed()
-    const save = (kind: 'solar' | 'gridImport') =>
-      seeded.as.mutation(internal.energySources.saveConnection, {
-        ...HOME,
-        baseUrl: ADDRESS,
-        secret: TOKEN,
-        storedToken: false,
-        channels: Array.from({ length: 20 }, (_, index) => ({
-          kind,
-          statisticId: `sensor.${kind}_${index}`,
-        })),
-      })
-    await save('solar')
-    await save('gridImport')
-    await save('solar')
-    await seeded.t.run(async (ctx) => {
+  /** Connect twenty channels of one kind, and no others. */
+  const saveTwenty = (seeded: Seeded, kind: 'solar' | 'gridImport') =>
+    seeded.as.mutation(internal.energySources.saveConnection, {
+      ...HOME,
+      baseUrl: ADDRESS,
+      secret: TOKEN,
+      storedToken: false,
+      channels: Array.from({ length: 20 }, (_, index) => ({
+        kind,
+        statisticId: `sensor.${kind}_${index}`,
+      })),
+    })
+  /** An hour for every channel of a kind. */
+  const storeHour = (
+    seeded: Seeded,
+    kind: 'solar' | 'gridImport',
+    hourStart: number,
+  ) =>
+    seeded.t.run(async (ctx) => {
       for (const channel of await ctx.db.query('energyChannels').collect()) {
+        if (channel.kind !== kind) continue
         await ctx.db.insert('energyIntervals', {
           groupId: seeded.homeId,
           channelId: channel._id,
-          hourStart: THIS_HOUR,
+          hourStart,
           amount: 1,
           estimated: false,
         })
       }
     })
-    expect((await refusalOf(save('gridImport'))).code).toBe('tooManyChannels')
+
+  test('retired channels with hours in the same month count toward the limit', async () => {
+    const seeded = await seed()
+    await saveTwenty(seeded, 'solar')
+    await storeHour(seeded, 'solar', THIS_HOUR)
+    expect((await refusalOf(saveTwenty(seeded, 'gridImport'))).code).toBe(
+      'tooManyChannels',
+    )
+    // Refused as a whole: nothing was retired.
+    expect(
+      (await rows(seeded.t, 'energyChannels')).every(
+        (each) => each.kind === 'solar' && each.retiredAt === undefined,
+      ),
+    ).toBe(true)
+  })
+
+  test('retired channels without hours do not count', async () => {
+    const seeded = await seed()
+    await saveTwenty(seeded, 'solar')
+    await saveTwenty(seeded, 'gridImport')
+    expect(await rows(seeded.t, 'energyChannels')).toHaveLength(40)
+  })
+
+  test('retired channels whose hours no channel in use can reach do not count', async () => {
+    const seeded = await seed()
+    await saveTwenty(seeded, 'solar')
+    await storeHour(seeded, 'solar', THIS_HOUR)
+    // A history import reaches a year and 15 days back, a month holds both.
+    vi.setSystemTime(THIS_HOUR + 400 * DAY)
+    expect((await refusalOf(saveTwenty(seeded, 'gridImport'))).code).toBe(
+      'tooManyChannels',
+    )
+    vi.setSystemTime(THIS_HOUR + 415 * DAY)
+    await saveTwenty(seeded, 'gridImport')
+    // Not again in reverse: solar would fill the hours since its last one.
+    await storeHour(seeded, 'gridImport', THIS_HOUR + 414 * DAY)
+    expect((await refusalOf(saveTwenty(seeded, 'solar'))).code).toBe(
+      'tooManyChannels',
+    )
+  })
+
+  test('retired channels of months that differ count once between them', async () => {
+    const seeded = await seed()
+    await saveTwenty(seeded, 'solar')
+    await saveTwenty(seeded, 'gridImport')
+    await storeHour(seeded, 'solar', THIS_HOUR - 3000 * DAY)
+    await storeHour(seeded, 'gridImport', THIS_HOUR - 2960 * DAY)
+    const saveGas = () =>
+      seeded.as.mutation(internal.energySources.saveConnection, {
+        ...HOME,
+        baseUrl: ADDRESS,
+        secret: TOKEN,
+        storedToken: false,
+        channels: [GAS],
+      })
+    await saveGas()
+    // Within a month of each other, long ago: that month is too much.
+    await storeHour(seeded, 'solar', THIS_HOUR - 2990 * DAY)
+    expect((await refusalOf(saveGas())).code).toBe('tooManyChannels')
   })
 })

@@ -28,6 +28,7 @@ import type { Id } from './_generated/dataModel'
 import { action, internalAction } from './_generated/server'
 import { rejectConnectedApps } from './lib/connectedApps'
 import { energyChannelKindValidator, energyTariffValidator } from './lib/energy'
+import { HISTORY_MS } from './lib/energyChannelLimit'
 import { pacedWrite } from './lib/energyWritePace'
 import { connectHomeAssistant, HomeAssistantError } from './lib/homeAssistant'
 import { homeAssistantOrigin } from './lib/homeAssistantUrl'
@@ -37,8 +38,7 @@ const DAY_MS = 24 * HOUR_MS
 const sumsValidator = v.array(
   v.object({ statisticId: v.string(), sum: v.number() }),
 )
-/** A year of hours, and no more than a month of them per question. */
-const HISTORY_MS = 365 * DAY_MS
+/** No more than a month of hours per question. */
 const WINDOW_MS = 31 * DAY_MS
 /** Rows per mutation: far under Convex's limits, and quick to retry. */
 const ROWS_PER_WRITE = 500
