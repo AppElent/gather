@@ -61,7 +61,7 @@ everything user-owned belongs to a Group or to a person
   (`energySources.baseUrl`, APP-696) are omitted columns, listed in the file's
   `omittedFields`. An `energySources` row still goes out with its non-secret
   metadata so the file records that the connection exists.
-- **A note's search text stays in** (APP-701): `notes.searchText` repeats its
+- **A note's search text stays out** (APP-701): `notes.searchText` repeats its
   title and body for the search index, so it is an omitted column.
 - **Energy goes out with its Group, prices stay in** (ADR-0051). Addresses,
   contracts, sources, channels, assets, readings and hourly intervals are

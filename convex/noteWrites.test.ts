@@ -107,9 +107,10 @@ describe('a note write sets searchText', () => {
           : []
       })
     // An insert names the table; a patch or replace names the note's id, which
-    // every caller calls a note (`args.noteId`, `note._id`).
+    // every caller calls a note (`args.noteId`, `note._id`), or follows a
+    // `requireInGroup` on one. An id under another name is not seen.
     const write =
-      /\.insert\(\s*['"]notes['"]|\.(patch|replace)\(\s*(['"]notes['"]|[\w.!]*note(Id)?\b)/i
+      /\.insert\(\s*['"]notes['"]|\.(patch|replace)\(\s*(['"]notes['"]|[\w.!]*note(Id)?\b)|requireInGroup[\s\S]*args\.noteId[\s\S]*\.(patch|replace)\(/i
     const writers = sources(root)
       .filter((file) => write.test(readFileSync(file, 'utf8')))
       .map((file) => path.relative(root, file))
