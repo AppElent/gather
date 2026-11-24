@@ -41,7 +41,8 @@ that already means making Group content visible to a second Group.
   share also waits, at most five minutes (`ALERT_HOLD_MS`), for an alert whose
   answer opens a sheet (`showAlert` with `holdsShare`: the calendar's
   unsaved-changes questions). After the answer it waits a moment
-  more (`PROMPT_SETTLE_MS`), for what the answer opened to present. Any other alert stays in front of the chooser and loses nothing.
+  more (`PROMPT_SETTLE_MS`), for what the answer opened to present. Any other alert stays in
+  front of the chooser and loses nothing.
 - **A link waits the same way** (`src/shell/linkAfterSheets.ts`, APP-747). Any
   link that reaches a running app, `gather-dev://drop` included, closes the open
   sheets and waits for a prompt before the router navigates: on iOS a sheet
@@ -54,7 +55,9 @@ that already means making Group content visible to a second Group.
   link ends the wait of a link even when Gather cannot place the share, but not
   the wait of an earlier share. A share that loses to a link opens no chooser;
   its Drop stays pending, and `gather-dev://drop` still shows it, until a newer
-  share replaces it.
+  share replaces it. A tapped notification that comes while the chooser is open
+  leaves it the same way: it goes back to the tabs, so the chooser closes and its
+  Drop stays pending.
 - **There is one chooser.** The chooser route is singular
   (`app/(app)/drop/_layout.tsx`): a second share, or `gather-dev://drop`, while
   one is open brings it back to the top and does not stack another. It shows
