@@ -23,7 +23,20 @@ const GROUP_RECORD_LIMIT = 200
  * budgets bound, and a recipe or note can be large.
  */
 const SHARED_RECIPE_LIMIT = 50
-const PARENT_LIMIT = 20
+/**
+ * The most task lists and the most calendars of a Group that are searched,
+ * oldest first (APP-786). An explicit bound, not a page size: a Group past it
+ * has its newest lists and calendars unsearched. External lists count, since
+ * `by_group` cannot tell them apart before they are read.
+ *
+ * The first `FULL_PARENT_LIMIT` also scan their newest `CHILD_RECORD_LIMIT`
+ * rows, as a substring match needs; the rest read only their title index. Per
+ * type that is at most 20 x (50 + 50) + 60 x 50 = 5,000 rows, so tasks and
+ * events together stay near 10,000 of Convex's 16,384 reads, leaving room for
+ * the other types (about 2,500 at most).
+ */
+const PARENT_LIMIT = 80
+const FULL_PARENT_LIMIT = 20
 const CHILD_RECORD_LIMIT = 50
 /**
  * How many rows each search index adds to the newest ones read above: the best
@@ -123,7 +136,8 @@ function matched(
  * `lib/noteSearch.ts`). So do recipes, tastings, tasks and calendar events, by
  * title only (APP-758): the newest rows are matched on any substring, tags and
  * notes included, and older ones by whole word or last-word prefix. Loyalty
- * cards, Shared-in recipes, lists and calendars are only scanned. The fan-out
+ * cards, Shared-in recipes, lists and calendars are only scanned (the first
+ * `PARENT_LIMIT` of each, APP-786). The fan-out
  * is globally bounded below Convex's read limit. That is a safety boundary, not
  * pagination.
  */
@@ -279,13 +293,15 @@ export const group = query({
     const localLists = taskLists.filter((list) => list.provider === 'local')
     const [tasksByList, eventsByCalendar] = await Promise.all([
       Promise.all(
-        localLists.map(async (list) => {
+        localLists.map(async (list, position) => {
           const [recent, found] = await Promise.all([
-            ctx.db
-              .query('tasks')
-              .withIndex('by_list', (q) => q.eq('listId', list._id))
-              .order('desc')
-              .take(CHILD_RECORD_LIMIT),
+            position < FULL_PARENT_LIMIT
+              ? ctx.db
+                  .query('tasks')
+                  .withIndex('by_list', (q) => q.eq('listId', list._id))
+                  .order('desc')
+                  .take(CHILD_RECORD_LIMIT)
+              : none,
             searchable
               ? ctx.db
                   .query('tasks')
@@ -299,13 +315,17 @@ export const group = query({
         }),
       ),
       Promise.all(
-        calendars.map(async (calendar) => {
+        calendars.map(async (calendar, position) => {
           const [recent, found] = await Promise.all([
-            ctx.db
-              .query('calendarEvents')
-              .withIndex('by_calendar', (q) => q.eq('calendarId', calendar._id))
-              .order('desc')
-              .take(CHILD_RECORD_LIMIT),
+            position < FULL_PARENT_LIMIT
+              ? ctx.db
+                  .query('calendarEvents')
+                  .withIndex('by_calendar', (q) =>
+                    q.eq('calendarId', calendar._id),
+                  )
+                  .order('desc')
+                  .take(CHILD_RECORD_LIMIT)
+              : none,
             searchable
               ? ctx.db
                   .query('calendarEvents')
