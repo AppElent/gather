@@ -6,7 +6,9 @@
  * A sheet is presented natively above the navigation stack, so pushing a
  * screen leaves it in front: a share arriving while one is up put the Drop
  * chooser behind it. `DropGate` closes the open sheets first, the way their own
- * Close does, and pushes the chooser once they are gone.
+ * Close does, and pushes the chooser once they are gone. A link opened over a
+ * sheet does the same (`shell/linkAfterSheets.ts`): on iOS a sheet whose screen
+ * has been covered no longer closes at all (APP-747).
  *
  * Kept free of React Native so it can be unit-tested.
  */
@@ -20,6 +22,13 @@ export const CLOSE_SHEETS_TIMEOUT_MS = 1500
  * platforms.
  */
 export const LATE_SHEET_DELAY_MS = 350
+
+/**
+ * How long an answered prompt gets to leave, the keyboard to come back to the
+ * form under it, and that form to finish moving. Closing a keyboard composer
+ * while its card still animates crashes the app in Reanimated (APP-747).
+ */
+export const PROMPT_SETTLE_MS = 1000
 
 export interface OpenSheet {
   /** The sheet has closed, however it happened. Safe to call more than once. */
@@ -190,6 +199,24 @@ export async function promptsAnswered(): Promise<void> {
     await new Promise<void>((resolve) => {
       promptWaiters.add(resolve)
     })
-    await new Promise((resolve) => setTimeout(resolve, LATE_SHEET_DELAY_MS))
+    await new Promise((resolve) => setTimeout(resolve, PROMPT_SETTLE_MS))
+  }
+}
+
+/** Rounds of closing, for a sheet that replaces one as it closes. */
+const CLOSE_ROUNDS = 2
+
+/**
+ * Waits for the open prompts, then closes what is open, for as long as whatever
+ * asked is still `current`.
+ */
+export async function closeAllSheets(current: () => boolean): Promise<void> {
+  await promptsAnswered()
+  for (
+    let round = 0;
+    round < CLOSE_ROUNDS && current() && hasOpenSheets();
+    round++
+  ) {
+    await closeOpenSheets()
   }
 }

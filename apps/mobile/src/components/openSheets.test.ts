@@ -10,6 +10,7 @@ import {
   onSheetsClosing,
   openPrompt,
   openSheet,
+  PROMPT_SETTLE_MS,
   promptsAnswered,
 } from './openSheets'
 
@@ -282,7 +283,7 @@ describe('prompts', () => {
 
     second()
     expect(hasOpenPrompts()).toBe(false)
-    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS - 1)
+    await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS - 1)
     expect(answered).toBe(false)
     await vi.advanceTimersByTimeAsync(1)
     await waiting
@@ -298,10 +299,10 @@ describe('prompts', () => {
     })
     first()
     const next = openPrompt()
-    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS * 2)
+    await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS * 2)
     expect(answered).toBe(false)
     next()
-    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
+    await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS)
     expect(answered).toBe(true)
   })
 
@@ -317,7 +318,7 @@ describe('prompts', () => {
     expect(done).toBe(false)
     typing()
     late()
-    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
+    await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS)
     expect(done).toBe(true)
     openPrompt(1000)
     await vi.advanceTimersByTimeAsync(1000)
