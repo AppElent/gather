@@ -94,18 +94,29 @@ describe('mealPlan', () => {
   })
 
   test('refuses a second meal in a taken slot unless it replaces', async () => {
-    const { t, pasta, tacos } = await seed()
+    const { t, pasta, tacos, aliceId } = await seed()
     const as = t.withIdentity(alice)
     const plan = { groupSlug: 'home', date: '2026-11-24', slot: 'dinner' as const }
-    await as.mutation(api.mealPlan.plan, { ...plan, recipeId: pasta, servings: 4 })
+    await as.mutation(api.mealPlan.plan, {
+      ...plan,
+      recipeId: pasta,
+      servings: 4,
+      note: 'Extra voor lunch',
+      eaterIds: [aliceId],
+    })
     await expect(
       as.mutation(api.mealPlan.plan, { ...plan, recipeId: tacos }),
     ).rejects.toThrow('That slot already has a meal')
     await as.mutation(api.mealPlan.plan, { ...plan, recipeId: tacos, replace: true })
     const week = await as.query(api.mealPlan.week, WEEK)
     expect(week.meals).toHaveLength(1)
-    // The evening's servings stay with the replacement.
-    expect(week.meals[0]).toMatchObject({ title: 'Tacos', servings: 4 })
+    // The evening's servings, note and eaters stay with the replacement.
+    expect(week.meals[0]).toMatchObject({
+      title: 'Tacos',
+      servings: 4,
+      note: 'Extra voor lunch',
+      eaterIds: [aliceId],
+    })
   })
 
   test('refuses a recipe from another Group, a stranger, and eaters who are not Members', async () => {
