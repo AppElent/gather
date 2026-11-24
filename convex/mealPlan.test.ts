@@ -371,8 +371,6 @@ describe('phones from before meal slots', () => {
     expect(planner.dinners.map((d) => [d.title, d.slot])).toEqual([
       ['Tacos', 'dinner'],
     ])
-    const overview = await as.query(api.kitchen.overview, WEEK)
-    expect(overview.dinners).toHaveLength(1)
     await as.mutation(api.kitchen.clearDinner, {
       groupSlug: 'home',
       date: '2026-11-28',

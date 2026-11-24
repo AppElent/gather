@@ -34,7 +34,7 @@ import type { Doc, Id, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import type { GroupScopedTable } from './groupAccess'
 import { cancelGroupSends } from './notifications'
-import { dropRecipeShares, setSharedGroups } from './recipeShares'
+import { dropRecipeShares, recipesSharedInto, setSharedGroups } from './recipeShares'
 import { storedFileIdsOf } from './storedFiles'
 import { unassignFromGroup } from './taskAssignee'
 import { cancelSend, dropMemberReminders } from './taskReminders'
@@ -600,18 +600,18 @@ export async function destroyGroup(
   const group = await ctx.db.get(groupId)
   if (!group) return
 
+  // Read before the content goes: the cascade below deletes the share rows
+  // this is found by.
+  const sharedIn = await recipesSharedInto(ctx, groupId)
+
   const files = group.imageId ? [group.imageId] : []
   for (const table of Object.keys(GROUP_CONTENT) as GroupScopedTable[]) {
     files.push(...(await GROUP_CONTENT[table](ctx, groupId)))
   }
 
   // A recipe living in another Group may have been Shared into this one. It is
-  // not ours to delete — only the sharing is. `recipeShares` indexes this, but
-  // only once `maintenance:backfillRecipeShares` has run everywhere; until then
-  // `sharedGroupIds` is scanned (docs/migrations/README.md).
-  const shared = await ctx.db.query('recipes').collect()
-  for (const recipe of shared) {
-    if (!recipe.sharedGroupIds?.includes(groupId)) continue
+  // not ours to delete — only the sharing is.
+  for (const recipe of sharedIn) {
     await setSharedGroups(ctx, recipe._id, {
       sharedGroupIds: recipe.sharedGroupIds.filter((id) => id !== groupId),
     })

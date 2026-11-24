@@ -31,7 +31,7 @@
  *
  * Reading every row of every photo-bearing table to answer it is affordable
  * because it happens only on the paths that orphan a file, never on a read
- * path, and `recipes.list` already scans that table on every page load.
+ * path.
  *
  * Out of scope, and both filed: blobs orphaned *before* any row references them
  * (abandoned forms and imports, #41), and any sweep or backfill over the
