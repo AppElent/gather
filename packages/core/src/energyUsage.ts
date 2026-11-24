@@ -544,18 +544,18 @@ export function energyCostDays(
 }
 
 /**
- * A month's expected total, or null with no usage yet: what was used extended
- * from the days with usage, and the fixed costs from the days they ran.
+ * A month's expected total, or null with no priced usage yet: what was used
+ * extended from the days with a price, and the fixed costs from the days they ran.
  */
 export function forecastMonthCents(
   cost: EnergyCost,
-  daysWithData: number,
+  pricedDays: number,
   costDays: number,
   month: string,
 ): number | null {
-  if (daysWithData <= 0 || costDays <= 0) return null
+  if (pricedDays <= 0 || costDays <= 0) return null
   const days = energyMonthDays(month).length
   const fixed = cost.fixedCents + cost.creditCents
   const used = cost.totalCents - fixed
-  return Math.round((used / daysWithData + fixed / costDays) * days)
+  return Math.round((used / pricedDays + fixed / costDays) * days)
 }

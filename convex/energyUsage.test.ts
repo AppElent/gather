@@ -239,12 +239,21 @@ describe('fixed costs and the tax credit', () => {
     expect(month?.totals.cost?.fixedCents).toBe(15 * 113)
   })
 
-  test('are no total for a month without any usage', async () => {
+  test('run in a month without any usage, with the status still saying so', async () => {
     const { t } = await seedReadSite()
     const month = await t
       .withIdentity(bob)
       .query(api.energyUsage.month, { ...NOVEMBER, month: '2026-10' })
-    expect(month?.totals).toMatchObject({ cost: null, costStatus: 'noData' })
+    expect(month?.totals).toMatchObject({
+      daysWithData: 0,
+      costStatus: 'noData',
+      cost: {
+        importCents: 0,
+        fixedCents: 31 * 109, // €33.94 over 31 days
+        creditCents: -31 * 174,
+        totalCents: 31 * (109 - 174),
+      },
+    })
   })
 })
 
@@ -277,13 +286,16 @@ describe('a dynamic contract', () => {
     // 2.5 days of 10 kWh × (0.10 + 0.02 + 0.10), excl. VAT here.
     expect(month?.totals.cost?.importCents).toBe(550)
     expect(month?.totals.cost?.fixedCents).toBe(400)
-    // Alone, that day has no total.
+    // Alone, that day has only its fixed cost, and says so.
     const day = await t.withIdentity(bob).query(api.energyUsage.day, {
       ...HOME,
       day: '2026-11-04',
       today: '2026-11-04',
     })
-    expect(day?.totals).toMatchObject({ cost: null, costStatus: 'noPrices' })
+    expect(day?.totals).toMatchObject({
+      costStatus: 'noPrices',
+      cost: { importCents: 0, fixedCents: 100, totalCents: 100 },
+    })
   })
 
   test('without prices has no costs, never a number', async () => {
@@ -780,12 +792,13 @@ describe('a day', () => {
   })
 
   test('after today from an hourly source has empty hours', async () => {
-    const { t } = await seedHourlySite('2026-11-10')
+    const { t } = await seedHourlySite('2026-11-21')
     const day = await t
       .withIdentity(bob)
       .query(api.energyUsage.day, { ...HOME, day: '2026-11-21', today: '2026-11-20' })
     expect(day?.hours).toHaveLength(24)
     expect(day?.hours.every((hour) => !hour.hasData)).toBe(true)
+    expect(day?.hours[0]).toMatchObject({ importKwh: 0, solarKwh: null })
     expect(day?.totals.cost).toBeNull()
   })
 

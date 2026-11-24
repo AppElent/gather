@@ -138,7 +138,8 @@ function SiteHome({
   const priceState = prices
     ? energyPriceStateLine(prices, now, copy, locale)
     : null
-  const monthCost = period?.totals.cost
+  const monthCost =
+    period?.totals.costStatus === 'ok' ? period.totals.cost : null
   const contract = period?.contract
 
   return (

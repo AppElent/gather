@@ -634,6 +634,7 @@ export function monthFigure(
 ): number | null {
   if (!period || period.totals.daysWithData === 0) return null
   if (unit === 'kwh') return period.totals.consumptionKwh
+  if (period.totals.costStatus !== 'ok') return null
   const cost = withoutNet ? period.totals.costWithoutNet : period.totals.cost
   return cost ? cost.totalCents : null
 }

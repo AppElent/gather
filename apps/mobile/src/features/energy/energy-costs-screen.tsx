@@ -141,7 +141,12 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
       )
       const forecast =
         month === thisMonth
-          ? forecastMonthCents(cost, totals.daysWithData, fixedDays, month)
+          ? forecastMonthCents(
+              cost,
+              totals.daysWithData - totals.costMissingDays,
+              fixedDays,
+              month,
+            )
           : null
       if (earlier && forecast !== null) {
         notes.push(
@@ -308,10 +313,13 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
           <Text style={[TYPE.subhead, { color: tokens.ink }]}>{yearLine}</Text>
         </View>
 
-        {status === 'ok' && cost ? (
+        {cost ? (
           <InsetList testID="energy-costs-lines">
-            <CostLine key="import" label={words.costs.lineImport} cents={cost.importCents} />
-            {data.channels.gridExport ? (
+            {/* Unless the status is ok, only the fixed costs are known. */}
+            {status === 'ok' ? (
+              <CostLine key="import" label={words.costs.lineImport} cents={cost.importCents} />
+            ) : null}
+            {status === 'ok' && data.channels.gridExport ? (
               <CostLine
                 key="export"
                 label={words.costs.lineExport}
@@ -324,7 +332,7 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
                 cents={cost.exportCents}
               />
             ) : null}
-            {data.channels.gas ? (
+            {status === 'ok' && data.channels.gas ? (
               <CostLine key="gas" label={words.costs.lineGas} cents={cost.gasCents} />
             ) : null}
             <CostLine

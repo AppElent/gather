@@ -98,6 +98,20 @@ function emptyDay(day: string): EnergyDay {
   }
 }
 
+function emptyHour(hourStart: number): EnergyHour {
+  return {
+    hourStart,
+    hasData: false,
+    importKwh: 0,
+    exportKwh: 0,
+    solarKwh: null,
+    batteryChargeKwh: null,
+    batteryDischargeKwh: null,
+    consumptionKwh: 0,
+    socPercent: null,
+  }
+}
+
 function totalsOf(days: EnergyDay[]) {
   const withData = days.filter((day) => day.hasData)
   const nullableSum = (pick: (day: (typeof withData)[number]) => number | null) => {
@@ -114,8 +128,6 @@ function totalsOf(days: EnergyDay[]) {
         : statuses.has('noContract')
           ? ('noContract' as const)
           : ('noPrices' as const)
-  // Fixed costs alone are no figure: without one priced day there is no total.
-  const hasCost = costStatus === 'ok'
   return {
     importKwh: withData.reduce((total, day) => total + day.importKwh, 0),
     exportKwh: withData.reduce((total, day) => total + day.exportKwh, 0),
@@ -129,10 +141,9 @@ function totalsOf(days: EnergyDay[]) {
     daysWithData: withData.length,
     firstDay: withData[0]?.day ?? null,
     lastDay: withData[withData.length - 1]?.day ?? null,
-    cost: hasCost ? sumCosts(days.map((day) => day.cost)) : null,
-    costWithoutNet: hasCost
-      ? sumCosts(days.map((day) => day.costWithoutNet))
-      : null,
+    // Unless `costStatus` is `ok`, only the fixed costs of the elapsed days.
+    cost: sumCosts(days.map((day) => day.cost)),
+    costWithoutNet: sumCosts(days.map((day) => day.costWithoutNet)),
     costMissingDays: missing.length,
     costStatus,
   }
@@ -206,7 +217,10 @@ export const day = query({
       net: false,
     })
     // A day still to come has nothing in it, as in `month`.
-    if (args.day > args.today) range.days = [emptyDay(args.day)]
+    if (args.day > args.today) {
+      range.days = [emptyDay(args.day)]
+      range.hours = range.hours.map(({ hourStart }) => emptyHour(hourStart))
+    }
     const contract = energyContractOn(range.contracts, args.day) ?? null
     const own = range.days[0]
     if (

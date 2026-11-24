@@ -145,13 +145,14 @@ function nowNote(
       : fmt(copy.noteWithoutSame, { month: monthWord })
   }
   const total = costOf(period, method)
-  const before = costOf(previous, method)
+  const before =
+    previous?.totals.costStatus === 'ok' ? costOf(previous, method) : null
   const previousWord = monthTitle(addEnergyMonths(month, -1), locale)
   const forecast =
     month === thisMonth && total
       ? forecastMonthCents(
           total,
-          period.totals.daysWithData,
+          period.totals.daysWithData - period.totals.costMissingDays,
           energyCostDays(period.days),
           month,
         )
@@ -457,6 +458,22 @@ function Breakdown({
     method === 'with' &&
     period.netMeteringChoice &&
     netMeteringPossibleIn(period.days[0]?.day.slice(0, 7) ?? '')
+  const fixedRows = (
+    <>
+      <ValueRow
+        label={copy.lineFixed}
+        sub={days}
+        value={euro(cost.fixedCents)}
+      />
+      <ValueRow
+        label={copy.lineCredit}
+        sub={days}
+        value={euro(cost.creditCents)}
+      />
+    </>
+  )
+  // Usage without prices, or none yet: only the fixed costs are known.
+  if (totals.costStatus !== 'ok') return <RowList>{fixedRows}</RowList>
   return (
     <RowList>
       <ValueRow
@@ -484,12 +501,7 @@ function Breakdown({
           value={euro(cost.gasCents)}
         />
       ) : null}
-      <ValueRow label={copy.lineFixed} sub={days} value={euro(cost.fixedCents)} />
-      <ValueRow
-        label={copy.lineCredit}
-        sub={days}
-        value={euro(cost.creditCents)}
-      />
+      {fixedRows}
     </RowList>
   )
 }

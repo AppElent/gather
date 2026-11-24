@@ -136,6 +136,26 @@ test('without prices for a dynamic contract, the month says so instead of an amo
   view.unmount()
 })
 
+test('a month without priced usage lists only its fixed costs', () => {
+  answerMonth(
+    '2026-11',
+    usagePeriod({
+      days: energyMonthDays('2026-11'),
+      lastDay: '2026-11-22',
+      costStatus: 'noData',
+      cost: 3000,
+      costWithoutNet: 3000,
+    }),
+  )
+  const view = mount(createElement(EnergyCostsScreen))
+  expect(byTestId('energy-costs-total-value')).toBeNull()
+  const lines = byTestId('energy-costs-lines')?.textContent
+  expect(lines).toContain(en.energy.costs.lineFixed)
+  expect(lines).toContain(en.energy.costs.lineCredit)
+  expect(lines).not.toContain(en.energy.costs.lineImport)
+  view.unmount()
+})
+
 test('the year chart links to Usage in euro', () => {
   answerMonth(
     '2026-11',
