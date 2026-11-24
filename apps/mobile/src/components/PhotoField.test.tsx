@@ -30,7 +30,7 @@ vi.mock('expo-image', async () => {
 })
 vi.mock('../photo/pickPhoto', () => ({
   pickPhoto: vi.fn(),
-  uploadPhoto: upload,
+  uploadPhotoOnce: upload,
 }))
 vi.mock('../theme/icons', () => ({ UI_ICONS: {} }))
 vi.mock('../theme/tokens', () => ({

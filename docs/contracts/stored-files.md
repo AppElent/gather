@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when uploading, preparing, replacing, or deleting a photo or any Convex stored file.
-version: 1.1.0
+version: 1.2.0
 status: current
 ---
 
@@ -33,6 +33,8 @@ no blob outlives the last row that points at it.
   the id is passed into the mutation and never patched on afterwards. A save
   whose upload failed never became a row. The photo is always optional, so
   "save without it" is the fallback, not a retry queue.
+- **One prepared file is uploaded once** on the phone (`uploadPhotoOnce`): a form
+  reopened on a kept draft takes up the upload its closed row started.
 - On the phone, local files are read with `expo-file-system`
   ([mobile bindings](../../apps/mobile/CODING_STANDARDS.md#bindings)).
 - **Group deletion returns storage ids** rather than deleting inline; the caller

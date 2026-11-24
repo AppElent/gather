@@ -33,7 +33,7 @@ import { api, type Id } from '../../../convex/api'
 import { haptics } from '../../../feedback/haptics'
 import { useGroup } from '../../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../../i18n'
-import { showPrompt } from '../../../observability/native-presentation'
+import { usePrompt } from '../../../observability/native-presentation'
 import {
   lastGroceryListKey,
   readPreference,
@@ -128,6 +128,7 @@ export function AddToGroceriesSheet({
   const tokens = useTokens('kitchen')
   const kitchen = tokens.tintOf('kitchen')
   const { t, locale } = useI18n()
+  const showPrompt = usePrompt()
   const words = t.tasks.grocery.addLines
   const { group } = useGroup()
   const add = useMutation(api.groceryLines.add)
@@ -306,16 +307,21 @@ export function AddToGroceriesSheet({
         source: source.title,
         lines: pick.lines,
       })
-      writePreference(lastGroceryListKey(group.slug), listId)
-      haptics.itemSaved()
-      if (!draft.gone()) onClose()
     } catch {
       haptics.actionFailed()
       draft.failed()
       onSending?.('failed')
       setFailed(true)
       setBusy(false)
+      return
     }
+    // The lines are on the list: nothing after this may say the add failed, or
+    // they would be added twice. The list to open on next is only a preference.
+    try {
+      writePreference(lastGroceryListKey(group.slug), listId)
+    } catch {}
+    haptics.itemSaved()
+    if (!draft.gone()) onClose()
   }
 
   const Updown = UI_ICONS.ChevronsUpDown
