@@ -192,6 +192,17 @@ export const settings = {
     timeZoneClear: 'Use each device’s own zone',
     timeZoneFailed: 'Could not change the time zone.',
     timeZoneAdminOnly: 'Only an admin can change it.',
+    icon: 'Icon',
+    iconOptions: {
+      Users: 'People',
+      House: 'Home',
+      Heart: 'Heart',
+      Utensils: 'Food',
+      Wine: 'Wine',
+    },
+    picture: 'Group picture',
+    saveAppearance: 'Save appearance',
+    appearanceFailed: 'Could not save the icon and picture.',
     inviteCode: 'Invite code',
     inviteCodeNote:
       'Anyone holding this code can join from Groups — share it only with people you want in this group.',
