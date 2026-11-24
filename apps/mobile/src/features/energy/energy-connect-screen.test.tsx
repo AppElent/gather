@@ -266,6 +266,27 @@ test('blurring when using the stored token keeps the test result intact', async 
   view.unmount()
 })
 
+test('blurring while a pasted-token test is in flight does not restore Save when it resolves', async () => {
+  energyState.queries['energySources:list'] = connectedList
+  let finish!: (value: unknown) => void
+  energyState.actions['energyHomeAssistant:test'] = new Promise((resolve) => {
+    finish = resolve
+  })
+  const view = mount(createElement(EnergyConnectScreen))
+  typeInto(byTestId('energy-connect-token'), 'pasted-token')
+  await settle()
+  byTestId('energy-connect-test')?.click()
+  await settle()
+  for (const listener of energyState.navListeners.blur ?? []) listener()
+  await settle()
+  finish(tested)
+  await settle()
+  expect((byTestId('energy-connect-token') as HTMLInputElement).value).toBe('')
+  expect(byTestId('energy-connect-channels')).toBeNull()
+  expect(byTestId('energy-connect-submit')).toBeNull()
+  view.unmount()
+})
+
 test('disconnecting clears a pasted token before leaving', async () => {
   energyState.queries['energySources:list'] = connectedList
   const view = mount(createElement(EnergyConnectScreen))

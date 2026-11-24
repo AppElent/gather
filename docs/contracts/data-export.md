@@ -54,10 +54,12 @@ everything user-owned belongs to a Group or to a person
   contract step drops that table. Its per-day question count
   (`groceryAiGroupUsage`) is spend bookkeeping, excluded like the global one,
   and deleted with the Group.
-- **No secrets.** `integrationConnections.accessToken`, `groups.inviteCode`
-  and the Energy tokens and keys (`energySources.secret`,
-  `energyPriceFeeds.secret`) are omitted columns, listed in the file's
-  `omittedFields`.
+- **No secrets or server addresses.** `integrationConnections.accessToken`,
+  `groups.inviteCode`, the Energy tokens and keys (`energySources.secret`,
+  `energyPriceFeeds.secret`), and Home Assistant's address
+  (`energySources.baseUrl`, APP-696) are omitted columns, listed in the file's
+  `omittedFields`. An `energySources` row still goes out with its non-secret
+  metadata so the file records that the connection exists.
 - **Energy goes out with its Group, prices stay in** (ADR-0051). Addresses,
   contracts, sources, channels, assets, readings and hourly intervals are
   Group content. `energyPrices` is excluded as reference data: a market price

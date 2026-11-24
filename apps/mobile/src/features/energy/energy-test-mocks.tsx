@@ -247,8 +247,11 @@ const Field = forwardRef<
     () => ({
       focus: () => input.current?.focus(),
       clear: () => {
+        // Mirror React Native TextInput's guard: native `clear()` is a no-op
+        // once the child input's own ref has been detached.
+        if (!input.current) return
         energyState.fieldClears.push(testID)
-        if (input.current) input.current.value = ''
+        input.current.value = ''
       },
     }),
     [testID],

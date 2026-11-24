@@ -13,7 +13,7 @@ import { readEnergyRefusal } from '@gather/core/refusals'
 import { useAction, useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
 import { Stack, useNavigation, useRouter } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   Keyboard,
   ScrollView,
@@ -123,15 +123,7 @@ function ConnectForm({
   const tokenRef = useRef(token)
   tokenRef.current = token
   const tokenField = useRef<TextInputInstance>(null)
-  // Ref cleanup runs synchronously before the native view detaches, so even an
-  // unmount without a navigation event empties the secure field first.
-  const setTokenField = useCallback((instance: TextInputInstance | null) => {
-    tokenField.current = instance
-    return () => {
-      instance?.clear()
-      if (tokenField.current === instance) tokenField.current = null
-    }
-  }, [])
+  const testRun = useRef(0)
   const [tested, setTested] = useState<Tested | null>(null)
   const [history, setHistory] = useState(!connected)
   const [busy, setBusy] = useState<'test' | 'connect' | null>(null)
@@ -143,14 +135,24 @@ function ConnectForm({
     tokenField.current?.clear()
     setToken('')
   }
+  // Parent layout-effect cleanup runs before child `TextInput` detaches its
+  // internal `inputRef`, so `clear()` still reaches the native view on unmount.
+  useLayoutEffect(
+    () => () => {
+      tokenField.current?.clear()
+    },
+    [],
+  )
   useEffect(() => {
     const clearOnLeave = () => {
       tokenField.current?.clear()
       if (!tokenRef.current) return
+      testRun.current += 1
       setToken('')
-      // Any test result came from the pasted token that was just dropped.
+      // Any running or finished test used the pasted token that was just dropped.
       setTested(null)
       setProblem(null)
+      setBusy((current) => (current === 'test' ? null : current))
     }
     const onRemove = navigation.addListener('beforeRemove', clearOnLeave)
     const onBlur = navigation.addListener('blur', clearOnLeave)
@@ -166,8 +168,10 @@ function ConnectForm({
     ...(token.trim() ? { token } : {}),
   }
   const stale = () => {
+    testRun.current += 1
     setTested(null)
     setProblem(null)
+    setBusy((current) => (current === 'test' ? null : current))
   }
   const refused = (caught: unknown) => {
     haptics.actionFailed()
@@ -178,15 +182,19 @@ function ConnectForm({
 
   const runTest = async () => {
     Keyboard.dismiss()
-    setBusy('test')
     stale()
+    const run = testRun.current
+    setBusy('test')
     try {
-      setTested(await test(connection))
+      const result = await test(connection)
+      if (testRun.current !== run) return
+      setTested(result)
       haptics.itemSaved()
     } catch (caught) {
+      if (testRun.current !== run) return
       refused(caught)
     } finally {
-      setBusy(null)
+      if (testRun.current === run) setBusy(null)
     }
   }
 
@@ -265,7 +273,7 @@ function ConnectForm({
           testID="energy-connect-address"
         />
         <Field
-          ref={setTokenField}
+          ref={tokenField}
           label={copy.token}
           value={token}
           onChangeText={(text) => {
