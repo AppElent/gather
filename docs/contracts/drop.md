@@ -34,11 +34,12 @@ that already means making Group content visible to a second Group.
   chooser (`src/components/openSheets.ts`). Nothing a share closed reopens
   what was under it: Repeat does not bring its composer back.
 - **A share waits for a prompt.** An OS dialog cannot be closed from JS, so the
-  chooser waits until a `showPrompt` is answered; the answer lands in the form,
-  which is then closed and kept like any other. `showPrompt` does nothing
-  outside iOS, so it holds nothing there, and after five minutes a share opens
-  the chooser anyway (`PROMPTS_TIMEOUT_MS`). A share also waits for an alert
-  whose answer opens a sheet (`showAlert` with `holdsShare`: the calendar's
+  chooser waits until a `usePrompt` prompt is answered; the answer lands in the
+  form, which is then closed and kept like any other. The wait also ends when
+  the form that asked is gone. There is no time limit, which would lose what is
+  being typed. Outside iOS a prompt does nothing and holds nothing. A
+  share also waits, at most five minutes (`ALERT_HOLD_MS`), for an alert whose
+  answer opens a sheet (`showAlert` with `holdsShare`: the calendar's
   unsaved-changes questions). Any other alert stays in front of the chooser and
   loses nothing.
 - Arrivals are counted for the whole session, so a share after a finished or

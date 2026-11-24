@@ -10,7 +10,6 @@ import {
   onSheetsClosing,
   openPrompt,
   openSheet,
-  PROMPTS_TIMEOUT_MS,
   promptsAnswered,
 } from './openSheets'
 
@@ -250,20 +249,23 @@ describe('prompts', () => {
     expect(answered).toBe(true)
   })
 
-  it('gives up on a prompt nothing answers, and does not wait for it again', async () => {
+  it('counts a dialog with a limit as gone after it, and no other', async () => {
     vi.useFakeTimers()
-    const answer = openPrompt()
+    const typing = openPrompt()
     let done = false
     void promptsAnswered().then(() => {
       done = true
     })
-    await vi.advanceTimersByTimeAsync(PROMPTS_TIMEOUT_MS - 1)
+    const late = openPrompt(1000)
+    await vi.advanceTimersByTimeAsync(60_000)
     expect(done).toBe(false)
-    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS + 1)
+    typing()
+    late()
+    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
     expect(done).toBe(true)
+    openPrompt(1000)
+    await vi.advanceTimersByTimeAsync(1000)
     expect(hasOpenPrompts()).toBe(false)
-    answer()
-    await expect(promptsAnswered()).resolves.toBeUndefined()
   })
 
   it('resolves at once when none is open', async () => {

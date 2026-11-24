@@ -44,9 +44,14 @@ import { dropHref } from './paths'
 /** Rounds of closing, for a sheet that replaces one as it closes. */
 const CLOSE_ROUNDS = 2
 
-async function closeAllSheets() {
+/** Closes what is open, for as long as the share that asked is `current`. */
+async function closeAllSheets(current: () => boolean) {
   await promptsAnswered()
-  for (let round = 0; round < CLOSE_ROUNDS && hasOpenSheets(); round++) {
+  for (
+    let round = 0;
+    round < CLOSE_ROUNDS && current() && hasOpenSheets();
+    round++
+  ) {
     await closeOpenSheets()
   }
 }
@@ -80,10 +85,10 @@ export function DropGate() {
     // mounted: a replacing share pushes for itself, a cleared Drop needs no
     // chooser, and a remounted gate opens the still-pending Drop on its own.
     const sequence = pending.sequence
-    closeAllSheets().then(() => {
-      if (mounted.current && latest.current?.sequence === sequence) {
-        router.push(dropHref())
-      }
+    const current = () =>
+      mounted.current && latest.current?.sequence === sequence
+    closeAllSheets(current).then(() => {
+      if (current()) router.push(dropHref())
     })
   }, [pending, router])
 

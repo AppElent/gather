@@ -9,10 +9,11 @@
  * presentation is up and release on every way out. `biome.json` bans
  * importing `Alert`, `ActionSheetIOS`, `expo-image-picker` and `expo-web-browser` anywhere
  * else.
- * Copied from Foundry (APP-258); `showPrompt` is Gather's addition.
+ * Copied from Foundry (APP-258); `usePrompt` is Gather's addition.
  */
 import * as ImagePicker from 'expo-image-picker'
 import * as WebBrowser from 'expo-web-browser'
+import { useEffect, useRef } from 'react'
 import {
   ActionSheetIOS,
   type ActionSheetIOSOptions,
@@ -32,10 +33,16 @@ export type {
   ImagePickerResult,
 } from 'expo-image-picker'
 
+/**
+ * The longest a share waits for an alert. A person answers far sooner; this is
+ * for one whose answer never comes back, so it cannot hold every share back
+ * until the app restarts.
+ */
+export const ALERT_HOLD_MS = 5 * 60_000
+
 /** Holds shake-to-report, and the Drop chooser when a share must wait. */
-function holdAlert(holdsShare = false) {
+function holdAlert(answered?: () => void) {
   const release = holdShakeToReport()
-  const answered = holdsShare ? openPrompt() : undefined
   return () => {
     release()
     answered?.()
@@ -64,7 +71,7 @@ export function showAlert(
   buttons?: AlertButton[],
   { holdsShare, ...options }: AlertOptions & { holdsShare?: boolean } = {},
 ) {
-  const release = holdAlert(holdsShare)
+  const release = holdAlert(holdsShare ? openPrompt(ALERT_HOLD_MS) : undefined)
   // With no buttons iOS adds an OK nobody can observe, so name it here.
   const shown = buttons?.length ? buttons : [{ text: 'OK' }]
   try {
@@ -86,21 +93,38 @@ export function showAlert(
  * it: closing the form under it would drop what is being typed (APP-672).
  * Elsewhere `Alert.prompt` shows nothing and calls nothing back, so nothing is
  * held: the hold would never end.
+ *
+ * The wait also ends with the form that asked, which no answer can reach then.
  */
-export function showPrompt(
-  title: string,
-  message: string | undefined,
-  buttons: AlertButton[],
-  type?: AlertType,
-  defaultValue?: string,
-) {
-  if (Platform.OS !== 'ios') return
-  const release = holdAlert(true)
-  try {
-    Alert.prompt(title, message, releasing(buttons, release), type, defaultValue)
-  } catch (error) {
-    release()
-    throw error
+export function usePrompt() {
+  const held = useRef(new Set<() => void>())
+  useEffect(() => {
+    const open = held.current
+    return () => {
+      for (const answered of open) answered()
+    }
+  }, [])
+  return (
+    title: string,
+    message: string | undefined,
+    buttons: AlertButton[],
+    type?: AlertType,
+    defaultValue?: string,
+  ) => {
+    if (Platform.OS !== 'ios') return
+    const close = openPrompt()
+    const answered = () => {
+      held.current.delete(answered)
+      close()
+    }
+    held.current.add(answered)
+    const release = holdAlert(answered)
+    try {
+      Alert.prompt(title, message, releasing(buttons, release), type, defaultValue)
+    } catch (error) {
+      release()
+      throw error
+    }
   }
 }
 

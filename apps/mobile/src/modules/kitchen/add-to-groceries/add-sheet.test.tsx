@@ -54,7 +54,9 @@ vi.mock('../../../i18n', async () => {
     plural: () => '',
   }
 })
-vi.mock('../../../observability/native-presentation', () => ({ showPrompt: vi.fn() }))
+vi.mock('../../../observability/native-presentation', () => ({
+  usePrompt: () => vi.fn(),
+}))
 vi.mock('../../../prefs/localPreference', () => ({
   lastGroceryListKey: () => 'key',
   readPreference: () => null,

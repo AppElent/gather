@@ -76,3 +76,21 @@ test('a Drop replaced while a prompt is up opens the chooser once', async () => 
   expect(state.push).toHaveBeenCalledOnce()
   view.unmount()
 })
+
+test('a form opened after the Drop was cleared or left is not closed', async () => {
+  for (const leave of ['cleared', 'unmounted']) {
+    const answered = openPrompt()
+    const view = share(1)
+    state.pending = null
+    if (leave === 'cleared') view.rerender(createElement(DropGate))
+    else view.unmount()
+    const dismiss = vi.fn()
+    const sheet = openSheet(dismiss)
+    answered()
+    await pass(60_000)
+    expect(dismiss).not.toHaveBeenCalled()
+    expect(state.push).not.toHaveBeenCalled()
+    sheet.closed()
+    if (leave === 'cleared') view.unmount()
+  }
+})

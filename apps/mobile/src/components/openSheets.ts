@@ -21,13 +21,6 @@ export const CLOSE_SHEETS_TIMEOUT_MS = 1500
  */
 export const LATE_SHEET_DELAY_MS = 350
 
-/**
- * The longest a share waits for a dialog. A person answers far sooner; this is
- * for one that can never be answered, so it cannot hold every share back until
- * the app restarts.
- */
-export const PROMPTS_TIMEOUT_MS = 5 * 60_000
-
 export interface OpenSheet {
   /** The sheet has closed, however it happened. Safe to call more than once. */
   closed: () => void
@@ -147,18 +140,21 @@ export function closeOpenSheets(
  * Registers an OS dialog that is up and whose answer would be lost, or would
  * open something over the chooser, if a share went ahead under it. Call the
  * result when it is answered; more than once is safe.
+ *
+ * With `maxMs` it counts as gone after that long, answered or not. Only for a
+ * dialog that holds nothing typed: what a text prompt holds would be lost.
  */
-export function openPrompt(): () => void {
+export function openPrompt(maxMs?: number): () => void {
   const id = Symbol('prompt')
   prompts.add(id)
-  return () => {
-    if (prompts.delete(id) && prompts.size === 0) promptsGone()
+  const release = () => {
+    clearTimeout(timer)
+    if (!prompts.delete(id) || prompts.size > 0) return
+    for (const resolve of [...promptWaiters]) resolve()
+    promptWaiters.clear()
   }
-}
-
-function promptsGone() {
-  for (const resolve of [...promptWaiters]) resolve()
-  promptWaiters.clear()
+  const timer = maxMs === undefined ? undefined : setTimeout(release, maxMs)
+  return release
 }
 
 export function hasOpenPrompts() {
@@ -167,24 +163,13 @@ export function hasOpenPrompts() {
 
 /**
  * Resolves once no dialog is up, and what its answer changed or opened has had
- * time to render and present. A dialog still listed after `timeoutMs` is taken
- * off the list, so the next share does not wait for it again.
+ * time to render and present.
  */
-export async function promptsAnswered(
-  timeoutMs = PROMPTS_TIMEOUT_MS,
-): Promise<void> {
-  if (prompts.size === 0) return
-  let late = false
-  const timer = setTimeout(() => {
-    late = true
-    prompts.clear()
-    promptsGone()
-  }, timeoutMs)
-  while (prompts.size > 0 && !late) {
+export async function promptsAnswered(): Promise<void> {
+  while (prompts.size > 0) {
     await new Promise<void>((resolve) => {
       promptWaiters.add(resolve)
     })
     await new Promise((resolve) => setTimeout(resolve, LATE_SHEET_DELAY_MS))
   }
-  clearTimeout(timer)
 }

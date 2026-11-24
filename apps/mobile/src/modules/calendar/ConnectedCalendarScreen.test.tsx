@@ -18,7 +18,7 @@ const state = vi.hoisted(() => ({
 vi.mock('react-native', () => ({ Alert: { alert: vi.fn() } }))
 vi.mock('../../observability/native-presentation', () => ({
   showAlert: vi.fn(),
-  showPrompt: vi.fn(),
+  usePrompt: () => vi.fn(),
 }))
 vi.mock('@clerk/expo', () => ({ useAuth: () => ({ userId: 'user_1' }) }))
 vi.mock('convex/react', () => ({ useMutation: () => vi.fn() }))
