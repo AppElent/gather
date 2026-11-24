@@ -21,7 +21,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native'
 
@@ -64,7 +63,6 @@ export function PinnedCard({
   testID?: string
 }) {
   const tokens = useTokens()
-  const { fontScale } = useWindowDimensions()
 
   let body: ReactNode
   let background: string
@@ -124,10 +122,11 @@ export function PinnedCard({
 
   if (!menu) return card
   return (
-    // The menu keeps the width it measured on mount, and a fill card's width
-    // follows its label and the text size.
+    // A fill card is only as wide as its label, so the slot never changes when
+    // the title does and the menu cannot see it; the menu follows the text
+    // size and its slot itself.
     <NativeContextMenu
-      key={`${title}:${fontScale}`}
+      key={title}
       actions={menu.actions}
       onAction={menu.onAction}
     >
