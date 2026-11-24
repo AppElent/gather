@@ -569,6 +569,103 @@ describe('APP-460 follow-ups', () => {
     expect(prompt).toContain('iets met pompoen')
   })
 
+  describe('the wishes stay with the proposal (APP-679)', () => {
+    const ASKED = { wishes: ['moreVeg' as const, 'moreVeg' as const], wish: '  iets  met pompoen ' }
+    type T = Awaited<ReturnType<typeof seed>>['t']
+    const stored = async (t: T) =>
+      (await t.run((ctx) => ctx.db.query('mealPlanDrafts').collect())).map((d) => ({
+        date: d.date,
+        wishes: d.wishes,
+        wish: d.wish,
+      }))
+    async function asked() {
+      const seeded = await proposed()
+      await seeded.as.action(api.mealPlanDrafts.propose, { ...PLAN, ...ASKED })
+      const drafts = await seeded.as.query(api.mealPlanDrafts.list, WEEK)
+      const fetchMock = vi.fn().mockResolvedValue(aiReply([]))
+      vi.stubGlobal('fetch', fetchMock)
+      const prompt = (): string => JSON.parse(fetchMock.mock.calls[0][1].body).messages[0].content
+      return { ...seeded, drafts, prompt }
+    }
+
+    test('propose keeps the cleaned wishes on every row', async () => {
+      const { t } = await asked()
+      const rows = await stored(t)
+      expect(rows).toHaveLength(4)
+      for (const row of rows) expect(row).toMatchObject({ wishes: ['moreVeg'], wish: 'iets met pompoen' })
+    })
+
+    test.each([
+      ['nothing', {}],
+      ['empty wishes', { wishes: [], wish: ' ' }],
+    ])('regenerate sent %s by another Member uses the stored wishes and keeps them', async (_, sent) => {
+      const { t, drafts, prompt } = await asked()
+      const result = await t
+        .withIdentity(bob)
+        .action(api.mealPlanDrafts.regenerate, { groupSlug: 'home', id: drafts[0]._id, locale: 'nl', ...sent })
+      expect(result).toMatchObject({ count: 1 })
+      expect(prompt()).toContain('lots of vegetables')
+      expect(prompt()).toContain('iets met pompoen')
+      const rows = await stored(t)
+      expect(rows).toHaveLength(4)
+      for (const row of rows) expect(row).toMatchObject({ wishes: ['moreVeg'], wish: 'iets met pompoen' })
+    })
+
+    test('regenerate sent wishes uses those alone, and its new row keeps them', async () => {
+      const { t, as, drafts, prompt } = await asked()
+      await as.action(api.mealPlanDrafts.regenerate, {
+        groupSlug: 'home',
+        id: drafts[0]._id,
+        locale: 'nl',
+        wish: 'iets met prei',
+      })
+      expect(prompt()).toContain('iets met prei')
+      expect(prompt()).not.toContain('lots of vegetables')
+      const rows = await stored(t)
+      expect(rows.find((r) => r.date === drafts[0].date)).toEqual({ date: drafts[0].date, wishes: undefined, wish: 'iets met prei' })
+      expect(rows.filter((r) => r.wish === 'iets met pompoen')).toHaveLength(3)
+    })
+
+    test('regenerate sent only chips drops the stored free text, and a second one keeps those chips', async () => {
+      const { as, drafts, prompt, t } = await asked()
+      const regenerate = { groupSlug: 'home', id: drafts[0]._id, locale: 'nl' as const }
+      await as.action(api.mealPlanDrafts.regenerate, { ...regenerate, wishes: ['somethingNew'] })
+      expect(prompt()).not.toContain('iets met pompoen')
+      const next = (await as.query(api.mealPlanDrafts.list, WEEK)).find((d) => d.date === drafts[0].date)
+      if (!next) throw new Error('no new draft')
+      const result = await as.action(api.mealPlanDrafts.regenerate, { ...regenerate, id: next._id })
+      expect(result).toMatchObject({ count: 1 })
+      expect((await stored(t)).find((r) => r.date === next.date)).toMatchObject({
+        wishes: ['somethingNew'],
+        wish: undefined,
+      })
+    })
+
+    test('a new plan replaces the stored wishes', async () => {
+      const { t, as } = await asked()
+      await as.action(api.mealPlanDrafts.propose, { ...PLAN, wishes: ['somethingNew'] })
+      const rows = await stored(t)
+      expect(rows).toHaveLength(4)
+      for (const row of rows) expect(row).toMatchObject({ wishes: ['somethingNew'], wish: undefined })
+    })
+
+    test.each([
+      ['no wishes', {}],
+      ['empty wishes', { wishes: [] }],
+    ])('a plan sent %s (a phone from before) stores none and regenerate asks without', async (_, sent) => {
+      const { t, as, prompt } = await asked()
+      await as.action(api.mealPlanDrafts.propose, { ...PLAN, ...sent })
+      for (const row of await stored(t)) {
+        expect(row.wishes).toBeUndefined()
+        expect(row.wish).toBeUndefined()
+      }
+      const [draft] = await as.query(api.mealPlanDrafts.list, WEEK)
+      const result = await as.action(api.mealPlanDrafts.regenerate, { groupSlug: 'home', id: draft._id, locale: 'nl' })
+      expect(result).toMatchObject({ status: 'ai' })
+      expect(prompt()).not.toContain('Wish for this week')
+    })
+  })
+
   test('a 2xx answer that is not JSON is given back; the rules plan', async () => {
     const { t, as } = await seed()
     vi.stubEnv('ANTHROPIC_API_KEY', 'test-key')
