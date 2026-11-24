@@ -626,6 +626,21 @@ describe('APP-460 follow-ups', () => {
       expect(rows.filter((r) => r.wish === 'iets met pompoen')).toHaveLength(3)
     })
 
+    test('regenerate sent only chips drops the stored free text, and a second one keeps those chips', async () => {
+      const { as, drafts, prompt, t } = await asked()
+      const regenerate = { groupSlug: 'home', id: drafts[0]._id, locale: 'nl' as const }
+      await as.action(api.mealPlanDrafts.regenerate, { ...regenerate, wishes: ['somethingNew'] })
+      expect(prompt()).not.toContain('iets met pompoen')
+      const next = (await as.query(api.mealPlanDrafts.list, WEEK)).find((d) => d.date === drafts[0].date)
+      if (!next) throw new Error('no new draft')
+      const result = await as.action(api.mealPlanDrafts.regenerate, { ...regenerate, id: next._id })
+      expect(result).toMatchObject({ count: 1 })
+      expect((await stored(t)).find((r) => r.date === next.date)).toMatchObject({
+        wishes: ['somethingNew'],
+        wish: undefined,
+      })
+    })
+
     test('a new plan replaces the stored wishes', async () => {
       const { t, as } = await asked()
       await as.action(api.mealPlanDrafts.propose, { ...PLAN, wishes: ['somethingNew'] })
@@ -634,9 +649,12 @@ describe('APP-460 follow-ups', () => {
       for (const row of rows) expect(row).toMatchObject({ wishes: ['somethingNew'], wish: undefined })
     })
 
-    test('without wishes (a phone from before) nothing is stored and regenerate asks without', async () => {
+    test.each([
+      ['no wishes', {}],
+      ['empty wishes', { wishes: [] }],
+    ])('a plan sent %s (a phone from before) stores none and regenerate asks without', async (_, sent) => {
       const { t, as, prompt } = await asked()
-      await as.action(api.mealPlanDrafts.propose, PLAN)
+      await as.action(api.mealPlanDrafts.propose, { ...PLAN, ...sent })
       for (const row of await stored(t)) {
         expect(row.wishes).toBeUndefined()
         expect(row.wish).toBeUndefined()

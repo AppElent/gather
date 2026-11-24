@@ -440,6 +440,8 @@ async function household(t: Harness): Promise<Household> {
       slot: 'dinner',
       quickMeal: 'Tosti',
       source: 'fallback',
+      wishes: ['moreVeg'],
+      wish: 'iets met pompoen',
       createdBy: alice,
       expiresAt: 0,
     })
@@ -619,6 +621,14 @@ describe('what the file contains', () => {
         weeklyBudgetCents: 8500,
         updatedBy: 'Alice',
       }),
+    ])
+  })
+
+  test('a week plan proposal, with the wishes it was made with', async () => {
+    const t = testConvex()
+    const { data } = await exported(t)
+    expect(groupOf(data, 'household').mealPlanDrafts).toMatchObject([
+      { wishes: ['moreVeg'], wish: 'iets met pompoen' },
     ])
   })
 
