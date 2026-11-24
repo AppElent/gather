@@ -137,6 +137,9 @@ export default defineSchema({
     isPersonal: v.optional(v.boolean()),
     icon: v.optional(v.string()),
     imageId: v.optional(v.id('_storage')),
+    // IANA zone of the Group's calendar "today" (APP-475), validated by
+    // `groups.setTimeZone`. Absent: clients use the device's zone.
+    timeZone: v.optional(v.string()),
     // The list the Groceries Module opened before a Group could have several
     // grocery lists (APP-313). Installed phones still read it through
     // `kitchen.groceries` and write it through `kitchen.setGroceryList`; a

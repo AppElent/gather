@@ -46,6 +46,7 @@ vi.mock('../../../convex/_generated/api', () => ({
       leaveStatus: 'groups:leaveStatus',
       inviteCode: 'groups:inviteCode',
       renameGroup: 'groups:renameGroup',
+      setTimeZone: 'groups:setTimeZone',
       leaveGroup: 'groups:leaveGroup',
       deleteGroup: 'groups:deleteGroup',
       updateAppearance: 'groups:updateAppearance',
@@ -81,6 +82,36 @@ const leaveButton = () =>
 const noteFor = (button: HTMLElement | null) =>
   document.getElementById(button?.getAttribute('aria-describedby') ?? '')
     ?.textContent
+
+describe('the time zone', () => {
+  const zone = () => screen.getByLabelText('Time zone') as unknown as HTMLSelectElement
+
+  test('an admin picks one, uses the device’s, or clears it', async () => {
+    renderCard({ ...TEST_GROUP, timeZone: 'Asia/Tokyo' })
+    expect(zone().value).toBe('Asia/Tokyo')
+    fireEvent.change(zone(), { target: { value: '' } })
+    await waitFor(() => expect(zone().disabled).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: /Use this device/ }))
+    await waitFor(() =>
+      expect(calls.value.map(([, args]) => args)).toEqual([
+        { groupId: TEST_GROUP._id, timeZone: null },
+        {
+          groupId: TEST_GROUP._id,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+      ]),
+    )
+  })
+
+  test('a plain member only reads it, and without one sees the device’s', () => {
+    renderCard({ ...TEST_GROUP, role: 'member' })
+    expect(zone().disabled).toBe(true)
+    expect(zone().selectedOptions[0].textContent).toContain(
+      Intl.DateTimeFormat().resolvedOptions().timeZone,
+    )
+    expect(screen.queryByRole('button', { name: /Use this device/ })).toBeNull()
+  })
+})
 
 describe('who is offered it', () => {
   test('not a Member who is not an admin while others remain; they may leave', () => {

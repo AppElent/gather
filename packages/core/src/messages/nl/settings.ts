@@ -147,6 +147,14 @@ export const settings = {
     name: 'Naam',
     rename: 'Hernoemen',
     renameFailed: 'Kon deze Groep niet hernoemen.',
+    timeZone: 'Tijdzone',
+    timeZoneNote:
+      'Bepaalt welke dag het is voor iedereen in deze Groep, bijvoorbeeld bij de weekboodschappen. Zonder tijdzone gebruikt elk apparaat zijn eigen.',
+    timeZoneUnset: 'Eigen tijdzone per apparaat (hier {zone})',
+    timeZoneUseDevice: 'Tijdzone van dit apparaat gebruiken',
+    timeZoneClear: 'Eigen tijdzone per apparaat gebruiken',
+    timeZoneFailed: 'Kon de tijdzone niet wijzigen.',
+    timeZoneAdminOnly: 'Alleen een beheerder kan dit wijzigen.',
     inviteCode: 'Uitnodigingscode',
     inviteCodeNote:
       'Iedereen met deze code kan zich aanmelden via Groepen — deel hem alleen met mensen die je erbij wilt hebben.',

@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a Convex table, changing what "Export your data" contains, or changing who may see a row or column.
-version: 2.1.1
+version: 2.1.2
 status: current
 ---
 
@@ -36,6 +36,7 @@ everything user-owned belongs to a Group or to a person
   Group (a task's `assigneeId` and its `assignmentNotice.by`, and a staple's `keptBy`,
   included). No email, Clerk id or user id of anyone leaves; the person's own email
   is in their `users` row.
+- **A Group's time zone goes out with it** (`groups.timeZone`, APP-475).
 - **Groups by slug.** A Group id becomes the Group's slug when it is one of the
   person's Groups and is dropped otherwise, so the file names no Group they
   cannot see.

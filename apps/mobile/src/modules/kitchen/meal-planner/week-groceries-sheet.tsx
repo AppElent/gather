@@ -7,7 +7,7 @@
  * lines top the list up, so a second run for the same week adds only what is
  * not on it yet.
  */
-import { localIsoDate, localMidnight } from '@gather/core/civil-date'
+import { localMidnight, todayIn } from '@gather/core/civil-date'
 import { router } from 'expo-router'
 import { useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
@@ -73,7 +73,7 @@ export function WeekGroceriesSheet({
   const [counted, setCounted] = useState(() =>
     draft.kept
       ? new Set(draft.kept.counted)
-      : defaultDays(weekStart, localIsoDate(), meals),
+      : defaultDays(weekStart, todayIn(group.timeZone), meals),
   )
   const [sending, setSending] = useState(false)
   draft.track({ counted: [...counted].sort() }, { holding: sending })

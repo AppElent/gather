@@ -13,8 +13,23 @@ import {
   monthStart,
   monthsUntil,
   parseIsoDate,
+  todayIn,
   weekOf,
 } from '../civilDate'
+
+describe('todayIn', () => {
+  const now = new Date('2026-11-24T22:30:00Z')
+
+  test('is the day in the zone named', () => {
+    expect(todayIn('Europe/Amsterdam', now)).toBe('2026-11-24')
+    expect(todayIn('Asia/Tokyo', now)).toBe('2026-11-25')
+  })
+
+  test('is this device’s day without a zone, or with one it does not know', () => {
+    expect(todayIn(undefined, now)).toBe(localIsoDate(now))
+    expect(todayIn('Mars/Olympus', now)).toBe(localIsoDate(now))
+  })
+})
 
 describe('parsing', () => {
   test('refuses something that is not a date', () => {

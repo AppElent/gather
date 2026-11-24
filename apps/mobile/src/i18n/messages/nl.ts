@@ -269,6 +269,16 @@ export const nl = {
         shareMessage:
           'Doe mee met {group} in Gather: kies onder Groepen voor ‘{join}’ en vul {code} in.',
       },
+      /** The zone of the Current Group's "today", in the web's words. */
+      timeZone: {
+        title: coreNl.settings.group.timeZone,
+        note: coreNl.settings.group.timeZoneNote,
+        unset: coreNl.settings.group.timeZoneUnset,
+        useDevice: coreNl.settings.group.timeZoneUseDevice,
+        clear: coreNl.settings.group.timeZoneClear,
+        failed: coreNl.settings.group.timeZoneFailed,
+        adminOnly: coreNl.settings.group.timeZoneAdminOnly,
+      },
       leave: {
         button: coreNl.settings.group.leaveButton,
         title: coreNl.settings.group.leaveTitle,
