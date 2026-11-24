@@ -53,6 +53,7 @@ import { fmt, useI18n } from '../i18n'
 import { moduleShown } from '../modules/buildModules'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
 import { RADIUS, SIZE, TYPE, useTokens } from '../theme/tokens'
+import { radioProps } from '../ui/radio-props'
 import { DropGroupSheet } from './DropGroupSheet'
 import { useDrop } from './DropProvider'
 import {
@@ -205,7 +206,7 @@ export function DropChooserScreen() {
             </Text>
           </Pressable>
 
-          <View style={styles.rows}>
+          <View accessibilityRole="radiogroup" style={styles.rows}>
             {targets.map((target) => (
               <TargetRow
                 key={target.id}
@@ -331,8 +332,7 @@ function TargetRow({
 
   return (
     <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      {...radioProps(selected, t.a11y.radioButton)}
       accessibilityLabel={copy.label}
       onPress={onPress}
       style={({ pressed }) => [

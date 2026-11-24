@@ -30,6 +30,7 @@ import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
+import { radioProps } from '../../ui/radio-props'
 import { useAisleOf } from '../kitchen/add-to-groceries/use-aisles'
 import { useTaskActions, type WholeAmount } from './store'
 import type { Task } from './types'
@@ -319,12 +320,16 @@ export function GroceryFields({
         >
           {units.map((unit) => {
             const on = unit === selectedUnit
+            const radio = radioProps(on, t.a11y.radioButton)
             return (
               <Pressable
                 key={unit}
                 testID={`grocery-unit-${unit}`}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: on, disabled: !writable }}
+                {...radio}
+                accessibilityState={{
+                  ...radio.accessibilityState,
+                  disabled: !writable,
+                }}
                 accessibilityLabel={pillWord(unit)}
                 disabled={!writable}
                 hitSlop={{ top: 5, bottom: 5 }}

@@ -28,6 +28,10 @@ export const nl = {
   modules: coreNl.modules,
   common: coreNl.common,
 
+  a11y: {
+    radioButton: 'keuzerondje',
+  },
+
   baby: coreNl.baby,
   calendar: coreNl.calendar,
 

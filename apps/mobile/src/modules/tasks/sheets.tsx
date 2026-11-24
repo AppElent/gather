@@ -30,6 +30,7 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { radioProps } from '../../ui/radio-props'
 import { useSheetDraft } from '../../ui/sheet-drafts'
 import { Chip, priorityColor } from './components'
 import { labelsWords } from './detailWords'
@@ -174,8 +175,7 @@ export function PrioritySheet({
         <Pressable
           key={priority}
           testID={`priority-${priority}`}
-          accessibilityRole="button"
-          accessibilityState={{ selected: priority === current }}
+          {...radioProps(priority === current, t.a11y.radioButton)}
           accessibilityLabel={t.tasks.task.priorities[priority]}
           onPress={() => choose(priority)}
           style={({ pressed }) => [
@@ -201,7 +201,7 @@ export function PrioritySheet({
       ))}
       <Pressable
         testID="priority-none"
-        accessibilityRole="button"
+        {...radioProps(current === undefined, t.a11y.radioButton)}
         accessibilityLabel={t.tasks.task.unset}
         onPress={() => choose(undefined)}
         style={({ pressed }) => [
@@ -444,13 +444,17 @@ export function MoveToListSheet({
           // A list Gather may not write to cannot be moved into: the write
           // would have to happen in Notion (ADR-0021).
           const disabled = !list.writable
+          const radio = radioProps(
+            list._id === task.listId,
+            t.a11y.radioButton,
+          )
           return (
             <Pressable
               key={list._id}
               testID={`move-${list._id}`}
-              accessibilityRole="button"
+              {...radio}
               accessibilityState={{
-                selected: list._id === task.listId,
+                ...radio.accessibilityState,
                 disabled,
               }}
               accessibilityLabel={list.name}
