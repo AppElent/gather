@@ -392,7 +392,7 @@ describe('form', () => {
       await t
         .withIdentity(bob)
         .query(api.energyReadings.form, { ...HOME, day: '2026-11-10' }),
-    ).toEqual({ hasManualSource: false, lastReadingAt: null, channels: [] })
+    ).toEqual({ hasManualSource: false, lastReadingAt: null, measured: [], channels: [] })
     const empty = await seedEnergyGroups()
     expect(
       await empty.t

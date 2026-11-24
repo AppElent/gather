@@ -66,6 +66,7 @@ beforeEach(() => {
   energyState.queries['energyReadings:form'] = {
     hasManualSource: true,
     lastReadingAt: null,
+    measured: [],
     channels: [meter],
   }
 })
@@ -127,6 +128,7 @@ test('without meters, the setup card sends which meters the Group reads', async 
   energyState.queries['energyReadings:form'] = {
     hasManualSource: false,
     lastReadingAt: null,
+    measured: [],
     channels: [],
   }
   const view = mount(createElement(EnergyReadingsScreen))
@@ -147,6 +149,41 @@ test('without meters, the setup card sends which meters the Group reads', async 
       gas: false,
       sourceLabel: en.energy.site.manualSourceLabel,
     },
+  ])
+  view.unmount()
+})
+
+test('a connected source that measures the meters leaves nothing to set up', async () => {
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: true,
+    lastReadingAt: null,
+    measured: ['gridImport', 'gridExport', 'gas'],
+    channels: [],
+  }
+  const view = mount(createElement(EnergyReadingsScreen))
+  expect(byTestId('energy-meter-setup')?.textContent).toBe(
+    en.energy.readings.measuredTitle + en.energy.readings.measuredBody,
+  )
+  expect(byTestId('energy-setup-submit')).toBeNull()
+  view.unmount()
+})
+
+test('only a meter the connected source does not measure can be added', async () => {
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: true,
+    lastReadingAt: null,
+    measured: ['gridImport', 'gridExport'],
+    channels: [],
+  }
+  const view = mount(createElement(EnergyReadingsScreen))
+  expect(byTestId('energy-setup-split')).toBeNull()
+  expect(byTestId('energy-setup-export')).toBeNull()
+  byTestId('energy-setup-gas')?.click()
+  await settle()
+  byTestId('energy-setup-submit')?.click()
+  await settle()
+  expect(callsTo('energyReadings:setupChannels')).toMatchObject([
+    { export: false, gas: true },
   ])
   view.unmount()
 })

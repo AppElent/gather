@@ -8,8 +8,16 @@
  * parameters, like the other pure formatters (CODING_STANDARDS.md).
  */
 import { parseIsoDate } from './civilDate'
+import {
+  ENERGY_CHANNEL_ORDER,
+  type EnergyChannelKind,
+  type EnergyTariff,
+  energyReadingOverdue,
+  readEnergySourceProblem,
+} from './energyHomeAssistant'
+import { amsterdamDayOf } from './energyUsage'
 import { formatMoney } from './finance/money'
-import { fmt } from './i18n'
+import { fmt, plural } from './i18n'
 import type { Messages } from './messages/en'
 
 type EnergyWords = Messages['energy']
@@ -83,18 +91,10 @@ export function formatEnergyHour(hourStart: number, locale: string): string {
   }).format(new Date(hourStart))
 }
 
-type ChannelKind =
-  | 'gridImport'
-  | 'gridExport'
-  | 'solar'
-  | 'batteryCharge'
-  | 'batteryDischarge'
-  | 'batterySoc'
-  | 'gas'
 
 /** A channel's name: what it measures, and its tariff on a split meter. */
 export function energyChannelName(
-  channel: { kind: ChannelKind; tariff?: 't1' | 't2' },
+  channel: { kind: EnergyChannelKind; tariff?: 't1' | 't2' },
   words: EnergyWords,
 ): string {
   const names = words.channels
@@ -275,4 +275,217 @@ export function monthName(
     locale,
     style,
   )
+}
+
+// -- Sources (APP-495) ------------------------------------------------------------
+
+/** When a source was read: the time today, else the day and the time. */
+export function formatEnergyMoment(
+  at: number,
+  now: number,
+  locale: string,
+): string {
+  const time = formatEnergyHour(at, locale)
+  const day = amsterdamDayOf(at)
+  return day === amsterdamDayOf(now)
+    ? time
+    : `${formatEnergyDate(day, locale, 'dayMonth')} ${time}`
+}
+
+export interface EnergySourceState {
+  kind: string
+  label: string
+  status: 'ok' | 'syncing' | 'error' | 'needsReconnect'
+  lastSyncedAt?: number
+  lastError?: string
+}
+
+/** What is wrong with a source, and when its data is from (ADR-0020). */
+export function energySourceProblemLine(
+  source: EnergySourceState,
+  now: number,
+  words: EnergyWords,
+  locale: string,
+): string | null {
+  if (source.status === 'ok' || source.status === 'syncing') return null
+  const read = readEnergySourceProblem(source.lastError) ?? {
+    problem: 'unreachable' as const,
+    statistics: [],
+  }
+  const problem = fmt(words.sources.problems[read.problem], {
+    statistics: read.statistics.join(', '),
+  })
+  return source.lastSyncedAt === undefined
+    ? fmt(words.sources.problemNever, { problem })
+    : fmt(words.sources.problemLine, {
+        problem,
+        when: formatEnergyMoment(source.lastSyncedAt, now, locale),
+      })
+}
+
+/** A connected source's line under Sources, and whether it is a problem. */
+export function energySourceLine(
+  source: EnergySourceState & { channelCount: number },
+  now: number,
+  words: EnergyWords,
+  locale: string,
+): { text: string; problem: boolean } {
+  const problem = energySourceProblemLine(source, now, words, locale)
+  if (problem) return { text: problem, problem: true }
+  const channels = plural(
+    locale,
+    source.channelCount,
+    words.sources.countChannels,
+  )
+  if (source.status === 'syncing') {
+    return { text: fmt(words.sources.syncing, { channels }), problem: false }
+  }
+  return {
+    text:
+      source.lastSyncedAt === undefined
+        ? fmt(words.sources.connectedNotYet, { channels })
+        : fmt(words.sources.connectedLine, {
+            channels,
+            when: formatEnergyMoment(source.lastSyncedAt, now, locale),
+          }),
+    problem: false,
+  }
+}
+
+/** The typed meters' line: the most overdue one in words, else the latest. */
+export function energyManualLine(
+  readings: readonly {
+    kind: EnergyChannelKind
+    tariff?: EnergyTariff
+    lastReadingAt: number | null
+  }[],
+  now: number,
+  words: EnergyWords,
+  locale: string,
+): { text: string; problem: boolean } {
+  if (readings.length === 0) {
+    return { text: words.sources.manualNone, problem: false }
+  }
+  const oldest = [...readings].sort(
+    (a, b) => (a.lastReadingAt ?? 0) - (b.lastReadingAt ?? 0),
+  )[0] as (typeof readings)[number]
+  const date = (at: number) =>
+    formatEnergyDate(amsterdamDayOf(at), locale, 'dayMonth')
+  if (energyReadingOverdue(oldest.lastReadingAt, now)) {
+    const channel = energyChannelName(oldest, words)
+    return {
+      text:
+        oldest.lastReadingAt === null
+          ? fmt(words.sources.manualNever, { channel })
+          : fmt(words.sources.manualOverdue, {
+              channel,
+              date: date(oldest.lastReadingAt),
+            }),
+      problem: true,
+    }
+  }
+  const latest = Math.max(...readings.map((each) => each.lastReadingAt ?? 0))
+  return {
+    text: fmt(words.sources.manualLast, { date: date(latest) }),
+    problem: false,
+  }
+}
+
+/**
+ * Home's second line for a source that is not typed readings: the problem in
+ * words, or when it was last read.
+ */
+export function energyHomeSourceLine(
+  source: EnergySourceState,
+  now: number,
+  words: EnergyWords,
+  locale: string,
+): string {
+  const line = energySourceProblemLine(source, now, words, locale)
+  if (line) {
+    // Most problems already name the source; the label is not said twice.
+    return line.includes(source.label)
+      ? line
+      : fmt(words.sources.homeProblem, { source: source.label, line })
+  }
+  if (source.status === 'syncing') {
+    return fmt(words.sources.homeSyncing, { source: source.label })
+  }
+  return source.lastSyncedAt === undefined
+    ? fmt(words.sources.homeNotYet, { source: source.label })
+    : fmt(words.sources.homeConnected, {
+        source: source.label,
+        when: formatEnergyMoment(source.lastSyncedAt, now, locale),
+      })
+}
+
+/**
+ * The sources Home's summary names. Not typed meters once Home Assistant
+ * measures them all, nor a Home Assistant an admin disconnected while the
+ * Group types its meters again.
+ */
+export function energyHomeSources<
+  S extends Pick<EnergySourceState, 'kind' | 'status' | 'lastError'>,
+>(sources: readonly S[], typedMeters: number): S[] {
+  const gone = (source: S) =>
+    source.status === 'needsReconnect' && source.lastError === 'disconnected'
+  const connected = sources.some(
+    (each) => each.kind !== 'manual' && !gone(each),
+  )
+  return sources.filter((each) =>
+    each.kind === 'manual'
+      ? typedMeters > 0 || !connected
+      : !gone(each) || typedMeters === 0,
+  )
+}
+
+/** Whether any source Home names needs attention. */
+export function energyHomeHasProblem(
+  sources: readonly Pick<EnergySourceState, 'status'>[],
+): boolean {
+  return sources.some(
+    (each) => each.status === 'error' || each.status === 'needsReconnect',
+  )
+}
+
+/**
+ * The channels list: a split meter's two counters on one row, and a
+ * battery's two directions, each with the source it comes from.
+ */
+export function energyChannelRows(
+  channels: readonly {
+    sourceId: string
+    kind: EnergyChannelKind
+    tariff?: EnergyTariff
+  }[],
+  words: EnergyWords,
+): { key: string; name: string; sourceId: string }[] {
+  const rows: { key: string; name: string; sourceId: string }[] = []
+  const of = (sourceId: string, kind: EnergyChannelKind) =>
+    channels.filter((each) => each.sourceId === sourceId && each.kind === kind)
+  const sourceIds = [...new Set(channels.map((each) => each.sourceId))]
+  for (const kind of ENERGY_CHANNEL_ORDER) {
+    for (const sourceId of sourceIds) {
+      const own = of(sourceId, kind)
+      if (own.length === 0) continue
+      const battery = of(sourceId, 'batteryCharge').length > 0
+      if (kind === 'batteryDischarge' && battery) continue
+      const both =
+        kind === 'batteryCharge' && of(sourceId, 'batteryDischarge').length > 0
+      const split = new Set(own.map((each) => each.tariff)).size === 2
+      const first = own[0] as (typeof own)[number]
+      rows.push({
+        key: `${sourceId}:${kind}`,
+        sourceId,
+        name: both
+          ? words.sources.battery
+          : split
+            ? fmt(words.sources.tariffs, {
+                name: energyChannelName({ kind }, words),
+              })
+            : energyChannelName(first, words),
+      })
+    }
+  }
+  return rows
 }

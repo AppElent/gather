@@ -27,4 +27,13 @@ crons.hourly(
   {},
 )
 
+// Home Assistant's hourly statistics, which it writes just after each hour
+// (APP-495).
+crons.hourly(
+  'sync energy sources',
+  { minuteUTC: 20 },
+  internal.energySources.startSyncs,
+  {},
+)
+
 export default crons

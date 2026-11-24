@@ -99,7 +99,7 @@ test('empty, the wash says there is no address and the step opens the form', asy
   byTestId('energy-add-first')?.click()
   await settle()
   expect((byTestId('energy-name') as HTMLInputElement).value).toBe('Home')
-  expect(byTestId('energy-source-homeAssistant')?.getAttribute('aria-checked')).toBe(
+  expect(byTestId('energy-source-homeAssistant')?.getAttribute('aria-selected')).toBe(
     'true',
   )
   view.unmount()
@@ -181,9 +181,65 @@ test('with readings, the home shows the month and rows to every Energy screen', 
     ['costs', '/all/energy/costs'],
     ['readings', '/all/energy/readings'],
     ['contract', '/all/energy/contract'],
+    ['sources', '/all/energy/sources'],
   ] as const) {
     byTestId(`energy-row-${row}`)?.click()
     expect(energyState.pushes.at(-1)).toBe(path)
   }
+  view.unmount()
+})
+
+test('Home Assistant saves the address and goes on to connecting it', async () => {
+  const view = mount(createElement(EnergyScreen))
+  byTestId('energy-add-first')?.click()
+  await settle()
+  byTestId('energy-submit')?.click()
+  await settle()
+  expect(callsTo('energy:createSite')).toMatchObject([
+    { source: { kind: 'homeAssistant' } },
+  ])
+  expect(energyState.pushes).toEqual(['/all/energy/connect'])
+  view.unmount()
+})
+
+test('without a source, Home asks to connect one or type a reading', () => {
+  energyState.queries['energy:overview'] = { ...withAddress, sources: [] }
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: false,
+    lastReadingAt: null,
+    channels: [],
+  }
+  const view = mount(createElement(EnergyScreen))
+  byTestId('energy-connect')?.click()
+  byTestId('energy-first-reading')?.click()
+  expect(energyState.pushes).toEqual(['/all/energy/connect', '/all/energy/readings'])
+  view.unmount()
+})
+
+test('a source in error is said in words with when its data is from, and its data stays', () => {
+  energyState.queries['energy:overview'] = {
+    ...withAddress,
+    sources: [
+      {
+        _id: 'src1',
+        kind: 'homeAssistant',
+        label: 'Home Assistant',
+        status: 'error',
+        lastError: 'unreachable',
+        lastSyncedAt: Date.parse('2026-11-23T09:15:00Z'),
+      },
+    ],
+  }
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: false,
+    lastReadingAt: null,
+    channels: [],
+  }
+  const view = mount(createElement(EnergyScreen))
+  expect((energyState.wash as { sub: string }).sub).toMatch(
+    /Home Assistant does not answer.*10:15/,
+  )
+  expect(byTestId('energy-usage-card')).not.toBeNull()
+  expect(byTestId('energy-first-reading')).toBeNull()
   view.unmount()
 })

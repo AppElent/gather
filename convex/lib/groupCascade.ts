@@ -394,26 +394,23 @@ const GROUP_CONTENT: {
 
   // Energy (APP-491), children before the sites they hang off. Every table
   // has `by_group`, so no entry needs its parent to find its rows.
-  energyReadings: async (ctx, groupId) =>
-    purge(
-      ctx,
-      'energyReadings',
-      await ctx.db
-        .query('energyReadings')
-        .withIndex('by_group', (q) => q.eq('groupId', groupId))
-        .collect(),
-    ),
-
-  energyIntervals: async (ctx, groupId) =>
-    purge(
-      ctx,
-      'energyIntervals',
-      await ctx.db
-        .query('energyIntervals')
-        .withIndex('by_group', (q) => q.eq('groupId', groupId))
-        .collect(),
-    ),
-
+  // Too many rows for this transaction: deleted a page at a time by
+  // `cascade.purgeEnergyRows`. Nothing writes new ones meanwhile, because a
+  // sync checks that its source and channel still exist.
+  energyReadings: async (ctx, groupId) => {
+    await ctx.scheduler.runAfter(0, internal.cascade.purgeEnergyRows, {
+      groupId,
+      table: 'energyReadings',
+    })
+    return []
+  },
+  energyIntervals: async (ctx, groupId) => {
+    await ctx.scheduler.runAfter(0, internal.cascade.purgeEnergyRows, {
+      groupId,
+      table: 'energyIntervals',
+    })
+    return []
+  },
   energyChannels: async (ctx, groupId) =>
     purge(
       ctx,

@@ -234,10 +234,13 @@ export function NavRow({
   link,
   label,
   sub,
+  danger = false,
 }: {
   link: AppLink
   label: string
   sub?: string
+  /** The second line says something needs attention. */
+  danger?: boolean
 }) {
   return (
     <Link
@@ -247,7 +250,11 @@ export function NavRow({
       <span className="grid min-w-0 flex-1">
         <span className="text-base">{label}</span>
         {sub ? (
-          <span className="text-sm text-[var(--muted)]">{sub}</span>
+          <span
+            className={`text-sm ${danger ? 'font-semibold text-[var(--danger)]' : 'text-[var(--muted)]'}`}
+          >
+            {sub}
+          </span>
         ) : null}
       </span>
       <ChevronRight
@@ -255,6 +262,43 @@ export function NavRow({
         aria-hidden="true"
       />
     </Link>
+  )
+}
+
+/** An on/off switch; the words it is labelled by sit beside it. */
+export function Switch({
+  on,
+  onChange,
+  label,
+  describedBy,
+  disabled = false,
+}: {
+  on: boolean
+  onChange: (on: boolean) => void
+  label: string
+  describedBy?: string
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      aria-describedby={describedBy}
+      disabled={disabled}
+      onClick={() => onChange(!on)}
+      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+        on ? 'bg-[var(--accent-text)]' : 'bg-[var(--hair)]'
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${
+          on ? 'translate-x-5' : 'translate-x-0.5'
+        }`}
+      />
+    </button>
   )
 }
 
