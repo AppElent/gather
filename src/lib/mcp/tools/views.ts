@@ -115,6 +115,7 @@ export const viewTools = [
         nextWeekStart: sunday,
         isCurrentWeek: mondayOf(today) === monday,
         today,
+        timeZone: group.timeZone,
         days,
         truncated: events.length >= WEEK_EVENTS,
       }

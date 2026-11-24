@@ -1,5 +1,5 @@
 import { groupTimeZoneRefusal } from '@gather/core/refusals'
-import { isTimeZoneName } from '@gather/core/task-reminders'
+import { canonicalTimeZone } from '@gather/core/time-zones'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
@@ -259,10 +259,12 @@ export const setTimeZone = mutation({
     if (!isAdmin(membership)) {
       throw new ConvexError(groupTimeZoneRefusal('admin-only'))
     }
-    if (args.timeZone !== null && !isTimeZoneName(args.timeZone)) {
+    const timeZone =
+      args.timeZone === null ? undefined : canonicalTimeZone(args.timeZone)
+    if (timeZone === null) {
       throw new ConvexError(groupTimeZoneRefusal('unknown-zone'))
     }
-    await ctx.db.patch(group._id, { timeZone: args.timeZone ?? undefined })
+    await ctx.db.patch(group._id, { timeZone })
     return null
   },
 })

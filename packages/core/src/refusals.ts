@@ -242,13 +242,34 @@ export function readTaskRefusal(error: unknown): TaskRefusalCode | null {
 
 /**
  * Why a Group's time zone was not changed (APP-475): the caller is not an
- * admin, or no such IANA zone. The screens offer neither, so they show their
- * own failure sentence.
+ * admin, or no such IANA zone.
  */
-export function groupTimeZoneRefusal(
-  code: 'admin-only' | 'unknown-zone',
-): { kind: string } {
+export const GROUP_TIME_ZONE_REFUSAL_CODES = [
+  'admin-only',
+  'unknown-zone',
+] as const
+export type GroupTimeZoneRefusalCode =
+  (typeof GROUP_TIME_ZONE_REFUSAL_CODES)[number]
+
+export function groupTimeZoneRefusal(code: GroupTimeZoneRefusalCode): {
+  kind: string
+} {
   return { kind: `groupTimeZone:${code}` }
+}
+
+/**
+ * A refused time zone in the reader's own words: the sentence `sentences`
+ * holds for its code, or null when the thrown value is not one.
+ */
+export function groupTimeZoneRefusalSentence(
+  error: unknown,
+  sentences: Readonly<Record<GroupTimeZoneRefusalCode, string>>,
+): string | null {
+  const kind = refusalKind(error)
+  const code = GROUP_TIME_ZONE_REFUSAL_CODES.find(
+    (each) => `groupTimeZone:${each}` === kind,
+  )
+  return code === undefined ? null : sentences[code]
 }
 
 /**

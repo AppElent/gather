@@ -61,11 +61,6 @@ export function isTimeZone(value: string): boolean {
   }
 }
 
-/** A zone by its IANA name: `Intl` also takes an offset (`+01:00`), not one. */
-export function isTimeZoneName(value: string): boolean {
-  return !/^[+-]/.test(value) && isTimeZone(value)
-}
-
 export function isReminderClock(clock: ReminderClock): boolean {
   return (
     isIsoDate(clock.date) &&

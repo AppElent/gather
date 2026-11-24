@@ -9,6 +9,7 @@
 
 import { localIsoDate } from '@gather/core/civil-date'
 import { STATUS_VALUES, WHEN_VALUES } from '@gather/core/search-filters'
+import { deviceTimeZone } from '@gather/core/time-zones'
 import {
   Stack,
   useIsFocused,
@@ -32,7 +33,6 @@ import { useQuery } from '../convex/queries'
 import { useGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
 import { moduleShown } from '../modules/buildModules'
-import { deviceTimeZone } from '../modules/tasks/reminder'
 import { useHideTabBarWhile } from '../shell/tabBarVisibility'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'

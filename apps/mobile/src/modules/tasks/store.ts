@@ -34,6 +34,7 @@ import {
 import type { QuickAdd } from '@gather/core/task-quick-add'
 import type { ReminderClock } from '@gather/core/task-reminders'
 import { nextDueDate, type TaskRepeat } from '@gather/core/task-repeat'
+import { deviceTimeZone } from '@gather/core/time-zones'
 import type { OptimisticLocalStore } from 'convex/browser'
 import { useAction, useConvex, useMutation } from 'convex/react'
 import type { FunctionArgs, FunctionReturnType } from 'convex/server'
@@ -50,7 +51,6 @@ import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { type ComposedTask, parsedTask } from './composerDraft'
 import type { ComposedGrocery } from './groceryDraft'
-import { deviceTimeZone } from './reminder'
 import type { ListDisplay, ListSync, Priority, Task, TaskList } from './types'
 
 type ListRow = FunctionReturnType<typeof api.taskLists.list>[number]

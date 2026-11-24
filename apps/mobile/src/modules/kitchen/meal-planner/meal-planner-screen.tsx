@@ -10,7 +10,7 @@
  */
 
 import { MenuView } from '@expo/ui/community/menu'
-import { addDays, localIsoDate, mondayStart } from '@gather/core/civil-date'
+import { addDays, mondayStart, todayIn } from '@gather/core/civil-date'
 import type { MealSlot } from '@gather/core/meal-planner'
 import { useAction, useMutation } from 'convex/react'
 import { router, Stack } from 'expo-router'
@@ -132,7 +132,9 @@ export function MealPlannerScreen() {
   const bare = isAccessibilityTextSize(useWindowDimensions().fontScale)
   const insets = useSafeAreaInsets()
   const tile = moduleTile('meal-planner')
-  const [weekStart, setWeekStart] = useState(() => mondayStart(localIsoDate()))
+  const [weekStart, setWeekStart] = useState(() =>
+    mondayStart(todayIn(group.timeZone)),
+  )
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const { show: showToast, toast } = useUndoToast()
   const from = weekStart
