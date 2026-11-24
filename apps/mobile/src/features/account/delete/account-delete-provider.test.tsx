@@ -15,7 +15,8 @@ const state = vi.hoisted(() => ({
     deleteSelfEnabled?: boolean
     delete: () => Promise<void>
   } | null,
-  sessionId: 'sess_1' as string | null,
+  // `undefined` is Clerk switching sessions; `null` is nobody signed in.
+  sessionId: 'sess_1' as string | null | undefined,
   purge: (): Promise<void> => Promise.resolve(),
   apple: (): Promise<'continue' | 'cancelled' | 'changed'> =>
     Promise.resolve('continue'),
@@ -37,7 +38,7 @@ const clerk = vi.hoisted(() => ({
     return state.user
   },
   get session() {
-    return state.sessionId ? { id: state.sessionId } : null
+    return state.sessionId ? { id: state.sessionId } : state.sessionId
   },
 }))
 
@@ -73,6 +74,9 @@ vi.mock('./apple-revocation', () => ({
   },
 }))
 vi.mock('../../../auth/useSignOut', () => ({
+  useForgetAccount: () => () => {
+    state.order.push('forget')
+  },
   useSignOut: () => () => {
     state.signedOut += 1
     state.order.push('signOut')
@@ -606,7 +610,16 @@ describe('a session that changes after the confirmation (APP-396)', () => {
     expect(state.order).toEqual([])
   })
 
-  test.each(changes)(
+  test.each([
+    ...changes.slice(0, 2),
+    [
+      'Clerk switching sessions',
+      () => {
+        state.user = null
+        state.sessionId = undefined
+      },
+    ] as [string, () => void],
+  ])(
     '%s during the gatherData purge: nobody is signed out or told, and the app is given back (APP-746)',
     async (_, change) => {
       const purge = deferred()
@@ -620,6 +633,29 @@ describe('a session that changes after the confirmation (APP-396)', () => {
       await settle()
       expect(state.order).toEqual(['purge'])
       expect(view.container.textContent).toBe('delete screen: idle')
+    },
+  )
+
+  test.each([false, true])(
+    'nobody signed in after the gatherData purge: this phone forgets the account, and nobody is signed out or told (provider unmounted: %s) (APP-771)',
+    async (unmounted) => {
+      const purge = deferred()
+      state.purge = () => purge.promise
+      view = render()
+      act(() => deletion.start('gatherData'))
+      await settle()
+
+      state.user = null
+      state.sessionId = null
+      if (unmounted) {
+        view.unmount()
+        view = undefined
+      }
+      purge.resolve()
+      await settle()
+      expect(state.order).toEqual(['purge', 'forget'])
+      if (view)
+        expect(view.container.textContent).toBe('delete screen: idle')
     },
   )
 

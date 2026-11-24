@@ -27,8 +27,9 @@ import {
 } from '../features/notifications/push/push-device'
 import { clearRetainedGroup } from '../group/retainedGroup'
 
-export function useSignOut(): () => void {
-  const { signOut } = useAuth()
+/** What this phone keeps of the account, without ending any session: for a
+ * session that has already ended by itself (APP-771). */
+export function useForgetAccount(): () => void {
   const release = useMutation(api.notifications.releaseDevice)
 
   return useCallback(() => {
@@ -42,6 +43,15 @@ export function useSignOut(): () => void {
       release(registration)
         .then(() => confirmPushRelease(registration))
         .catch(() => {})
+  }, [release])
+}
+
+export function useSignOut(): () => void {
+  const { signOut } = useAuth()
+  const forgetAccount = useForgetAccount()
+
+  return useCallback(() => {
+    forgetAccount()
     void signOut()
-  }, [signOut, release])
+  }, [signOut, forgetAccount])
 }

@@ -514,3 +514,78 @@ export const syncSource = internalAction({
     return null
   },
 })
+
+/**
+ * Read one source's last days again and write what Home Assistant corrected
+ * (`LOOKBACK_MS`). It says nothing about the connection: a problem here is the
+ * hourly sync's to report, and the next day's pass reads the same days.
+ */
+export const lookbackSource = internalAction({
+  args: { sourceId: v.id('energySources') },
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    const plan = await ctx.runQuery(internal.energySources.beginLookback, {
+      sourceId: args.sourceId,
+      now: Math.floor(Date.now() / HOUR_MS) * HOUR_MS,
+    })
+    if (!plan) return null
+    let client: Awaited<ReturnType<typeof connectHomeAssistant>> | null = null
+    try {
+      client = await connectHomeAssistant(plan.baseUrl, plan.secret)
+      const known = new Map(
+        readHaStatistics(await client.statistics()).map((each) => [
+          each.id,
+          each,
+        ]),
+      )
+      const channels = plan.channels.filter((channel) => {
+        const statistic = known.get(channel.statisticId)
+        return statistic && haStatisticFits(statistic, channel.kind)
+      })
+      if (channels.length === 0) return null
+      const answer = await client.hourly(
+        channels.map((each) => each.statisticId),
+        Math.min(...channels.map((each) => each.from)),
+        Math.max(...channels.map((each) => each.to)),
+      )
+      for (const channel of channels) {
+        const read = readHaHours(answer[channel.statisticId]).filter(
+          (each) =>
+            each.hourStart >= channel.from && each.hourStart < channel.to,
+        )
+        let hours: { hourStart: number; amount: number; after: number }[]
+        if (channel.kind === 'batterySoc') {
+          // A level counts from nothing.
+          hours = hourlyLevels(read).map((each) => ({
+            ...each,
+            after: each.hourStart,
+          }))
+        } else {
+          const sums = read.filter((each) => each.sum !== null)
+          // The first is the baseline, so each amount follows its own index.
+          hours = hourlyAmountsFromSums(sums, null).amounts.map(
+            (each, index) => ({
+              ...each,
+              after: sums[index]?.hourStart ?? each.hourStart,
+            }),
+          )
+        }
+        if (hours.length === 0) continue
+        await pacedWrite(hours.length, () =>
+          ctx.runMutation(internal.energySources.storeCorrections, {
+            sourceId: args.sourceId,
+            baseUrl: plan.baseUrl,
+            channelId: channel.channelId,
+            statisticId: channel.statisticId,
+            hours,
+          }),
+        )
+      }
+    } catch (error) {
+      if (!(error instanceof HomeAssistantError)) throw error
+    } finally {
+      client?.close()
+    }
+    return null
+  },
+})
