@@ -23,7 +23,7 @@ type Props = Record<string, unknown> & { children?: ReactNode }
 const state = vi.hoisted(() => ({
   os: 'ios' as 'ios' | 'android',
   realPick: false,
-  sheetPresented: false,
+  sheetEffectRan: false,
   modalRenders: [] as boolean[],
   add: vi.fn(),
   write: vi.fn(),
@@ -88,9 +88,9 @@ vi.mock('../../../components/NativeSheet', async () => {
     NativeSheet: ({ children, footer }: Props) => {
       // The real sheet presents itself from a mount effect.
       useEffect(() => {
-        state.sheetPresented = true
+        state.sheetEffectRan = true
         return () => {
-          state.sheetPresented = false
+          state.sheetEffectRan = false
         }
       }, [])
       return h('div', null, children, footer as ReactNode)
@@ -173,7 +173,7 @@ vi.mock('../../../ui/modal', async () => {
   const h = (await import('react')).createElement
   return {
     Modal: ({ children }: Props) => {
-      state.modalRenders.push(state.sheetPresented)
+      state.modalRenders.push(state.sheetEffectRan)
       return h('div', { 'data-testid': 'modal' }, children)
     },
   }
@@ -237,7 +237,7 @@ beforeEach(() => {
   forgetDrafts()
   state.os = 'ios'
   state.realPick = false
-  state.sheetPresented = false
+  state.sheetEffectRan = false
   state.modalRenders = []
   state.add.mockReset()
   state.write.mockReset()
