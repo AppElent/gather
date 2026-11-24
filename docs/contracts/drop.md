@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the share sheet, a Drop, its destinations, host rules, or expo-share-intent.
-version: 1.6.0
+version: 1.7.0
 status: current
 ---
 
@@ -40,15 +40,21 @@ that already means making Group content visible to a second Group.
   being typed. Outside iOS a prompt does nothing and holds nothing. A
   share also waits, at most five minutes (`ALERT_HOLD_MS`), for an alert whose
   answer opens a sheet (`showAlert` with `holdsShare`: the calendar's
-  unsaved-changes questions). After the answer it waits another second
-  (`PROMPT_SETTLE_MS`): closing a composer while its card still moves crashes
-  the app. Any other alert stays in front of the chooser and loses nothing.
+  unsaved-changes questions). After the answer it waits a moment
+  more (`PROMPT_SETTLE_MS`), for what the answer opened to present. Any other alert stays in front of the chooser and loses nothing.
 - **A link waits the same way** (`src/shell/linkAfterSheets.ts`, APP-747). Any
   link that reaches a running app, `gather-dev://drop` included, closes the open
   sheets and waits for a prompt before the router navigates: on iOS a sheet
-  whose screen has been covered no longer closes. A newer link or share
-  replaces a link that waits, even a share Gather cannot place. A link does not
-  replace a share that waits: both open. A link that launches the app is never held.
+  whose screen has been covered no longer closes. A tapped notification, a
+  home-screen action and the Control Center control take the same path
+  (APP-774); only the quick sheet, when it is already up and nothing is closing
+  it, takes a new request in place. A link that launches the app is never held.
+- **One arrival waits, and the newest wins** (APP-774), so a link's screen never
+  covers the chooser and the chooser never covers a link's screen. A share's own
+  link ends the wait of a link even when Gather cannot place the share, but not
+  the wait of an earlier share. A share that loses to a link opens no chooser;
+  its Drop stays pending, and `gather-dev://drop` still shows it, until a newer
+  share replaces it.
 - **There is one chooser.** The chooser route is singular
   (`app/(app)/drop/_layout.tsx`): a second share, or `gather-dev://drop`, while
   one is open brings it back to the top and does not stack another. It shows
