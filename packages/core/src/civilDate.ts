@@ -137,8 +137,8 @@ export function hourIn(
 ): number {
   if (timeZone !== undefined) {
     try {
-      return Number(
-        new Intl.DateTimeFormat('en-US', {
+      const hour = Number(
+        new Intl.DateTimeFormat('en-GB', {
           timeZone,
           hourCycle: 'h23',
           hour: '2-digit',
@@ -146,6 +146,8 @@ export function hourIn(
           .formatToParts(at)
           .find((part) => part.type === 'hour')?.value,
       )
+      // `en-GB` is 24-hour by itself, where a runtime ignores `hourCycle`.
+      if (Number.isInteger(hour) && hour >= 0 && hour < 24) return hour
     } catch {
       // Not a zone here: the device's own hour, below.
     }
