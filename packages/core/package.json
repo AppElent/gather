@@ -40,6 +40,7 @@
     "./pins": "./src/pins.ts",
     "./refusals": "./src/refusals.ts",
     "./retailer-logos": "./src/retailerLogos.ts",
+    "./search-filters": "./src/searchFilters.ts",
     "./sentry-privacy": "./src/sentryPrivacy.ts",
     "./smart-lists": "./src/smartLists.ts",
     "./task-lists": "./src/taskLists.ts",

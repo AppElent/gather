@@ -66,6 +66,26 @@ export function localIsoDate(at: Date | number = new Date()): string {
   return isoDate(date.getFullYear(), date.getMonth() + 1, date.getDate())
 }
 
+/**
+ * The day it is at a moment in one IANA time zone, for a server told the
+ * reader's zone. Throws `RangeError` for a zone the runtime does not know.
+ * Returns a function because building the formatter is the expensive part.
+ */
+export function isoDateIn(timeZone: string): (at: number) => string {
+  const format = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  })
+  return (at) => {
+    const parts = format.formatToParts(at)
+    const get = (type: Intl.DateTimeFormatPartTypes) =>
+      Number(parts.find((part) => part.type === type)?.value)
+    return isoDate(get('year'), get('month'), get('day'))
+  }
+}
+
 /** Local midnight on the day named, for handing to a locale formatter. */
 export function localMidnight(value: string): Date {
   const parsed = parseIsoDate(value)

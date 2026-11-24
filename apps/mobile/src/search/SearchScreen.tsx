@@ -8,6 +8,7 @@
  */
 
 import { localIsoDate } from '@gather/core/civil-date'
+import { STATUS_VALUES, WHEN_VALUES } from '@gather/core/search-filters'
 import {
   Stack,
   useIsFocused,
@@ -31,6 +32,7 @@ import { useQuery } from '../convex/queries'
 import { useGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
 import { moduleShown } from '../modules/buildModules'
+import { deviceTimeZone } from '../modules/tasks/reminder'
 import { useHideTabBarWhile } from '../shell/tabBarVisibility'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
@@ -58,11 +60,10 @@ import {
   narrowed,
   type SearchFilters,
   type SearchModuleId,
-  STATUS_VALUES,
   searchKindOf,
   searchModulesShown,
+  serverFilters,
   typesFor,
-  WHEN_VALUES,
   withModule,
 } from './searchFilters'
 import { onSearchFocusRequest } from './searchFocus'
@@ -78,6 +79,7 @@ import {
   type SearchStack,
   toRecent,
 } from './searchResults'
+import { useGroupSearch } from './useGroupSearch'
 
 const MINIMUM_QUERY = 2
 const SKELETON_ROWS = 4
@@ -175,8 +177,8 @@ export function SearchScreen({
   const trimmed = text.trim()
   const ready = trimmed.length >= MINIMUM_QUERY
   const settled = debounced.trim() === trimmed
-  const results = useQuery(
-    api.search.group,
+  const today = localIsoDate()
+  const results = useGroupSearch(
     ready && settled
       ? {
           groupSlug: group.slug,
@@ -185,7 +187,8 @@ export function SearchScreen({
           // Wines asks for wines, so beers and cheeses cannot take its 30 rows.
           kind: searchKindOf(filters.module) ?? undefined,
         }
-      : 'skip',
+      : null,
+    serverFilters(filters, today, deviceTimeZone()),
   )
   const members = useQuery(api.groups.members, { slug: group.slug })
   const me = useQuery(api.users.me, {})
@@ -356,7 +359,6 @@ export function SearchScreen({
       )
     })
 
-  const today = localIsoDate()
   const filtered = shown ? applyFilters(shown, filters, today) : null
   const found = filtered?.map((result) => ({
     result,
