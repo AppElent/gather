@@ -3,6 +3,7 @@ import type { Id } from './_generated/dataModel'
 import { mutation, query } from './_generated/server'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
+import { findNotes, noteExcerpt } from './lib/noteSearch'
 
 export const list = query({
   args: { groupSlug: v.string() },
@@ -29,6 +30,36 @@ export const list = query({
       }),
     )
     return rows.sort((a, b) => b.updatedAt - a.updatedAt)
+  },
+})
+
+/**
+ * The addressed Group's notes that match a search, best first. `search.group`
+ * answers the phone's search screen from the same `findNotes`.
+ */
+export const searchNotes = query({
+  args: { groupSlug: v.string(), query: v.string() },
+  returns: v.array(
+    v.object({
+      _id: v.id('notes'),
+      title: v.string(),
+      excerpt: v.string(),
+      pinned: v.boolean(),
+      createdBy: v.id('users'),
+      updatedAt: v.number(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const notes = await findNotes(ctx, group._id, args.query)
+    return notes.map((note) => ({
+      _id: note._id,
+      title: note.title,
+      excerpt: noteExcerpt(note.body),
+      pinned: note.pinned ?? false,
+      createdBy: note.createdBy,
+      updatedAt: note.updatedAt,
+    }))
   },
 })
 

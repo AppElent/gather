@@ -131,3 +131,113 @@ describe('notes through a Group address', () => {
     ).rejects.toThrow(/Note not found/)
   })
 })
+
+describe('searching notes', () => {
+  type Harness = Awaited<ReturnType<typeof seed>>['t']
+  async function addNote(t: Harness, title: string, body = '') {
+    await t
+      .withIdentity(alice)
+      .mutation(api.notes.create, { groupSlug: 'notes-first', title, body })
+  }
+  async function titles(t: Harness, query: string, groupSlug = 'notes-first') {
+    const found = await t
+      .withIdentity(alice)
+      .query(api.notes.searchNotes, { groupSlug, query })
+    return found.map((note) => note.title)
+  }
+
+  test('never returns a note from another Group, even to a Member of both', async () => {
+    const { t } = await seed()
+    // "note" is in both titles and "household" in both bodies.
+    for (const query of ['note', 'household']) {
+      expect(await titles(t, query)).toEqual(['First note'])
+      expect(await titles(t, query, 'notes-second')).toEqual(['Second note'])
+    }
+  })
+
+  test("another Group's matches cannot crowd this Group's out", async () => {
+    const { t } = await seed()
+    await t.run(async (ctx) => {
+      const other = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', 'notes-second'))
+        .unique()
+      const user = await ctx.db.query('users').first()
+      for (let index = 0; index < 150; index += 1)
+        await ctx.db.insert('notes', {
+          groupId: other!._id,
+          title: `Boiler ${index}`,
+          body: 'boiler',
+          createdBy: user!._id,
+          updatedAt: 1,
+        })
+    })
+    await addNote(t, 'Boiler manual')
+    expect(await titles(t, 'boiler')).toEqual(['Boiler manual'])
+  })
+
+  test('refuses a non-member, a signed-out caller and an unknown Group', async () => {
+    const { t } = await seed()
+    const args = { groupSlug: 'notes-first', query: 'note' }
+    await expect(
+      t.withIdentity(bob).query(api.notes.searchNotes, args),
+    ).rejects.toThrow(/Not a member/)
+    await expect(t.query(api.notes.searchNotes, args)).rejects.toThrow(
+      /not-signed-in/,
+    )
+    await expect(
+      t
+        .withIdentity(alice)
+        .query(api.notes.searchNotes, { ...args, groupSlug: 'nowhere' }),
+    ).rejects.toThrow(/No group/)
+  })
+
+  test('every word must match, in the title, the body or across the two', async () => {
+    const { t } = await seed()
+    await addNote(t, 'Boiler manual', 'Call Piet')
+    await addNote(t, 'Wine list', 'Piet likes red')
+    expect(await titles(t, 'boiler piet')).toEqual(['Boiler manual'])
+    expect(await titles(t, 'PIET')).toEqual(['Boiler manual', 'Wine list'])
+    expect(await titles(t, 'boiler red')).toEqual([])
+  })
+
+  test('completes the word being typed, ignores punctuation, and needs two characters', async () => {
+    const { t } = await seed()
+    await addNote(t, 'Boiler manual', '\n  Call Piet\nthen wait')
+    expect(await titles(t, 'boil')).toEqual(['Boiler manual'])
+    expect(await titles(t, '"boiler"')).toEqual(['Boiler manual'])
+    expect(await titles(t, 'b')).toEqual([])
+    expect(await titles(t, '--')).toEqual([])
+    const [found] = await t.withIdentity(alice).query(api.notes.searchNotes, {
+      groupSlug: 'notes-first',
+      query: 'boiler',
+    })
+    expect(found).toMatchObject({ excerpt: 'Call Piet', pinned: false })
+  })
+
+  test('earlier words match whole; only the last is completed', async () => {
+    const { t } = await seed()
+    await addNote(t, 'Boilerplate manual')
+    await addNote(t, 'Boiler manual')
+    expect(await titles(t, 'boiler manu')).toEqual(['Boiler manual'])
+  })
+
+  test('finds letters that change length when lowercased, and ignores words too long to index', async () => {
+    const { t } = await seed()
+    await addNote(t, 'İstanbul')
+    expect(await titles(t, 'İstanbul')).toEqual(['İstanbul'])
+    expect(await titles(t, `${'x'.repeat(40)} İstanbul`)).toEqual(['İstanbul'])
+    expect(await titles(t, 'x'.repeat(40))).toEqual([])
+    // 24 bytes as written, over 31 once lowercased.
+    await addNote(t, 'İ'.repeat(12))
+    expect(await titles(t, 'İ'.repeat(12))).toEqual(['İ'.repeat(12)])
+    await addNote(t, 'ΟΣ:Α')
+    expect(await titles(t, 'οσ')).toEqual(['ΟΣ:Α'])
+  })
+
+  test('a search with more words than Convex allows is cut, not refused', async () => {
+    const { t } = await seed()
+    await addNote(t, 'Boiler manual')
+    expect(await titles(t, 'boiler '.repeat(40))).toEqual(['Boiler manual'])
+  })
+})

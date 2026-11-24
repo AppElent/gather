@@ -431,7 +431,17 @@ export default defineSchema({
     // added; the creator is the last editor of those.
     updatedBy: v.optional(v.id('users')),
     updatedAt: v.number(),
-  }).index('by_group', ['groupId']),
+  })
+    .index('by_group', ['groupId'])
+    // A search index covers one field, so a note has two (`lib/noteSearch.ts`).
+    .searchIndex('search_title', {
+      searchField: 'title',
+      filterFields: ['groupId'],
+    })
+    .searchIndex('search_body', {
+      searchField: 'body',
+      filterFields: ['groupId'],
+    }),
 
   mealEntries: defineTable({
     groupId: v.id('groups'),
