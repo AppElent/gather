@@ -466,6 +466,47 @@ describe('the paged notes list', () => {
     expect((await page(t, 2)).titles).toEqual(['Note 1', 'Note 3'])
   })
 
+  test('pinning or unpinning is not an edit: the note keeps its place and editor (APP-789)', async () => {
+    const { t } = await seed()
+    const [oldest] = await addNotes(t, 3)
+    const as = (identity: typeof alice) => t.withIdentity(identity)
+    await t.run(async (ctx) => {
+      const bobUser = await ctx.db
+        .query('users')
+        .filter((q) => q.eq(q.field('clerkId'), bob.subject))
+        .unique()
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', 'notes-first'))
+        .unique()
+      await seedMember(ctx, group!._id, bobUser!._id, 'member')
+    })
+    for (const pinned of [true, false])
+      await as(bob).mutation(api.notes.update, {
+        groupSlug: 'notes-first',
+        noteId: oldest,
+        pinned,
+      })
+    const after = await page(t, 4)
+    expect(after.titles).toEqual(['Note 3', 'Note 2', 'Note 1', 'First note'])
+    expect(after.page[2]).toMatchObject({
+      pinned: false,
+      updatedAt: 101,
+      updatedByName: 'Alice',
+    })
+    // Saving the same text with a pin change is still no edit.
+    await as(alice).mutation(api.notes.update, {
+      groupSlug: 'notes-first',
+      noteId: oldest,
+      body: 'Body 1',
+      pinned: true,
+    })
+    const [pinnedNote] = await as(alice).query(api.notes.listPinned, {
+      groupSlug: 'notes-first',
+    })
+    expect(pinnedNote).toMatchObject({ title: 'Note 1', updatedAt: 101 })
+  })
+
   test('pinned notes are listed apart, however old, and leave full pages', async () => {
     const { t } = await seed()
     await addNotes(t, 4, [1, 3])

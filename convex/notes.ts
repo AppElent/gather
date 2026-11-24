@@ -248,12 +248,16 @@ export const update = mutation({
       args.noteId,
       'Note not found',
     )
+    // Only a changed title or body is an edit (APP-789). Pinning is not: it
+    // leaves the note's place in Recent and its "edited by" line alone.
+    const edited =
+      (args.title !== undefined && args.title !== doc.title) ||
+      (args.body !== undefined && args.body !== doc.body)
     await patchNote(ctx, doc, {
       ...(args.title !== undefined ? { title: args.title } : {}),
       ...(args.body !== undefined ? { body: args.body } : {}),
       ...(args.pinned !== undefined ? { pinned: args.pinned } : {}),
-      updatedBy: user._id,
-      updatedAt: Date.now(),
+      ...(edited ? { updatedBy: user._id, updatedAt: Date.now() } : {}),
     })
   },
 })
