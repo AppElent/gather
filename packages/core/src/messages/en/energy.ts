@@ -530,6 +530,8 @@ export const energy = {
       'Home Assistant does not answer at this address. Check the address and whether it is reachable from outside.',
     sourceNotHomeAssistant: 'Something answers at this address, but it is not Home Assistant.',
     sourceBadToken: 'Home Assistant refuses this token.',
+    sourceRefused:
+      'Home Assistant refused to read its statistics. Check whether Recorder is on and this account may read them.',
     priceKeyNeeded: 'Type the key of this price source.',
     priceKeyInvalid: 'That is not a key. Copy all of it, without spaces.',
   } satisfies Record<EnergyRefusalCode, string>,

@@ -727,10 +727,18 @@ describe('what the file holds back', () => {
     ])
     expect(household.energyIntervals).toHaveLength(1)
     expect(household.energyAssets).toHaveLength(1)
+    expect(household.energySources[0]).toMatchObject({
+      kind: 'homeAssistant',
+      label: 'Home Assistant',
+      status: 'ok',
+      connectedByUserId: 'Bob',
+    })
+    expect(household.energySources[0]).not.toHaveProperty('baseUrl')
     expect(household.energySources[0]).not.toHaveProperty('secret')
     expect(household.energyPriceFeeds[0]).not.toHaveProperty('secret')
-    expect(data.omittedFields.energySources).toEqual(['secret'])
+    expect(data.omittedFields.energySources).toEqual(['baseUrl', 'secret'])
     expect(data.omittedFields.energyPriceFeeds).toEqual(['secret'])
+    expect(text).not.toContain('ha.example.com')
     expect(text).not.toContain(ENERGY_SECRETS.source)
     expect(text).not.toContain(ENERGY_SECRETS.feed)
     // Prices are reference data, the account's own included (`dataExport.ts`).

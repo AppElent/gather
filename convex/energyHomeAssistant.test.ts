@@ -205,6 +205,18 @@ describe('testing a connection', () => {
     ).toBe('sourceNotHomeAssistant')
   })
 
+  test('distinguishes a refused command from not Home Assistant', async () => {
+    const { as } = await seed()
+    fake.refuseCommand['recorder/list_statistic_ids'] = 'unauthorized'
+    expect(
+      (await refusalOf(as.action(api.energyHomeAssistant.test, CONNECTION))).code,
+    ).toBe('sourceRefused')
+    fake.refuseCommand = { 'energy/get_prefs': 'home_assistant_error' }
+    expect(
+      (await refusalOf(as.action(api.energyHomeAssistant.test, CONNECTION))).code,
+    ).toBe('sourceRefused')
+  })
+
   test('refuses an address that is not https or not public before connecting', async () => {
     const { as } = await seed()
     for (const [address, code] of [
@@ -543,6 +555,18 @@ describe('the hourly sync', () => {
     expect(stored.filter((each) => each.hourStart === THIS_HOUR)).toHaveLength(1)
   })
 
+  test('a refused command during sync records syncFailed, not notHomeAssistant', async () => {
+    const { t, sourceId } = await connected()
+    fake.refuseCommand['recorder/statistics_during_period'] = 'home_assistant_error'
+    vi.setSystemTime(NOW + HOUR)
+    await t.action(internal.energyHomeAssistant.syncSource, { sourceId })
+    expect((await rows(t, 'energySources'))[0]).toMatchObject({
+      status: 'error',
+      lastError: 'syncFailed',
+      lastSyncedAt: expect.closeTo(NOW, -3),
+    })
+  })
+
   test('the cron starts one sync per connected source', async () => {
     const { t } = await connected()
     const connections = fake.connections
@@ -602,7 +626,7 @@ describe('the hourly sync', () => {
       baseUrl: ADDRESS,
       secret: 'an earlier token',
       problem: 'badToken',
-        done: false,
+      done: false,
       missing: [],
     })
     expect((await rows(t, 'energySources'))[0]?.status).toBe('ok')
@@ -947,6 +971,56 @@ describe('never counting one meter twice', () => {
     expect(
       typedDays.reduce((total, each) => total + each.importKwh, 0),
     ).toBeCloseTo(190)
+    // And the lone T1 hours stay out of the hour view while the typed meter
+    // covers the day, rather than disagreeing with the day's total.
+    const dayView = await seeded.as.query(api.energyUsage.day, {
+      ...HOME,
+      day: '2026-11-15',
+      today: '2026-11-20',
+    })
+    expect(dayView?.days[0]?.importKwh).toBeCloseTo(20)
+    expect(dayView?.hours.every((hour) => !hour.hasData && hour.importKwh === 0)).toBe(
+      true,
+    )
+  })
+
+  test('a typed reading that goes down adds nothing on a partly measured day', async () => {
+    const seeded = await seed()
+    await seeded.as.mutation(api.energyReadings.setupChannels, {
+      ...SETUP,
+      split: false,
+      gas: false,
+    })
+    const [typed] = await rows(seeded.t, 'energyChannels')
+    const typedId = typed?._id as Id<'energyChannels'>
+    await seeded.t.run(async (ctx) => {
+      // Meter replaced between 10 and 20 November: reading dropped from 1000 to 50.
+      await insertReading(ctx, seeded.homeId, typedId, '2026-11-10', 1000)
+      await insertReading(ctx, seeded.homeId, typedId, '2026-11-20', 50)
+    })
+    await connect(seeded, [IMPORT])
+    const [channel] = (await rows(seeded.t, 'energyChannels')).filter(
+      (each) => each.externalRef === IMPORT.statisticId,
+    )
+    await seeded.t.run(async (ctx) => {
+      await ctx.db.insert('energyIntervals', {
+        groupId: seeded.homeId,
+        channelId: channel?._id as Id<'energyChannels'>,
+        hourStart: Date.UTC(2026, 10, 15, 9),
+        amount: 2,
+        estimated: false,
+      })
+    })
+    const days = (await month(seeded.as))?.days ?? []
+    expect(days.find((each) => each.day === '2026-11-15')).toMatchObject({
+      hasData: true,
+      estimated: false,
+      importKwh: 2,
+    })
+    expect(days.find((each) => each.day === '2026-11-14')).toMatchObject({
+      hasData: false,
+      importKwh: 0,
+    })
   })
 
   test('a lone tariff after a total leaves the total’s hours', async () => {
@@ -1040,7 +1114,7 @@ describe('an import and the connection it belongs to', () => {
     expect((await rows(seeded.t, 'energySources'))[0]?.secret).toBeUndefined()
   })
 
-  test('a missing statistic keeps the import, until it is there', async () => {
+  test('a missing statistic keeps the import, without rereading a full year for present channels', async () => {
     const seeded = await seed()
     const from = THIS_HOUR - 100 * HOUR
     fake.sums[IMPORT.statisticId] = counter(from, 100, 1)
@@ -1055,14 +1129,122 @@ describe('an import and the connection it belongs to', () => {
     await settle(seeded.t)
     const [retry, ...more] = await imports(seeded.t)
     expect(more).toEqual([])
+    expect(retry?.args[0]).toMatchObject({
+      historyFor: [GAS.statisticId],
+    })
     expect((await rows(seeded.t, 'energySources'))[0]?.status).toBe('error')
     const before = (await rows(seeded.t, 'energyIntervals')).length
-    fake.statistics = all
+
+    // While GAS is still missing, the retry asks IMPORT only from its last stored hour.
+    fake.received.length = 0
+    vi.setSystemTime(NOW + HOUR)
+    fake.sums[IMPORT.statisticId]?.set(THIS_HOUR, 101)
     await seeded.t.action(
       internal.energyHomeAssistant.syncSource,
       retry?.args[0] as { sourceId: Id<'energySources'> },
     )
-    expect((await rows(seeded.t, 'energyIntervals')).length).toBe(before * 2)
+    const askedWhileMissing = fake.received.filter(
+      (each) => each.type === 'recorder/statistics_during_period',
+    )
+    expect(askedWhileMissing).toHaveLength(1)
+    expect(askedWhileMissing[0]).toMatchObject({
+      statistic_ids: [IMPORT.statisticId],
+      start_time: new Date(THIS_HOUR - HOUR).toISOString(),
+    })
+
+    // Once GAS comes back, GAS reads its full history while IMPORT keeps only its new hour.
+    const secondRetry = (await imports(seeded.t)).find(
+      (each) => (each.args[0] as { attempt?: number }).attempt === 2,
+    )
+    expect(secondRetry?.args[0]).toMatchObject({
+      historyFor: [GAS.statisticId],
+    })
+    fake.statistics = all
+    fake.received.length = 0
+    await seeded.t.action(
+      internal.energyHomeAssistant.syncSource,
+      secondRetry?.args[0] as { sourceId: Id<'energySources'> },
+    )
+    const askedWhenBack = fake.received.filter(
+      (each) => each.type === 'recorder/statistics_during_period',
+    )
+    // Early windows ask only for GAS, never rereading IMPORT's full year.
+    expect(askedWhenBack[0]?.statistic_ids).toEqual([GAS.statisticId])
+    expect(
+      askedWhenBack.filter((each) =>
+        (each.statistic_ids as string[]).includes(IMPORT.statisticId),
+      ),
+    ).toHaveLength(1)
+    expect((await rows(seeded.t, 'energyIntervals')).length).toBe(before * 2 + 1)
+    expect((await rows(seeded.t, 'energySources'))[0]?.status).toBe('ok')
+  })
+
+  test('an incomplete last attempt cancels its pending endImport job', async () => {
+    const seeded = await seed()
+    await connect(seeded, [IMPORT])
+    const [source] = await rows(seeded.t, 'energySources')
+    const sourceId = source?._id as Id<'energySources'>
+    const importId = await seeded.t.run((ctx) =>
+      ctx.scheduler.runAfter(15 * DAY, internal.energySources.endImport, {}),
+    )
+    fake.statistics = []
+    await seeded.t.action(internal.energyHomeAssistant.syncSource, {
+      sourceId,
+      historyFrom: THIS_HOUR - 10 * HOUR,
+      attempt: 60,
+      importId,
+    })
+    const pendingEnd = () =>
+      seeded.t.run(async (ctx) =>
+        (await ctx.db.system.query('_scheduled_functions').collect()).filter(
+          (each) => each.state.kind === 'pending' && each.name.includes('endImport'),
+        ),
+      )
+    expect(await pendingEnd()).toEqual([])
+    expect(await imports(seeded.t)).toEqual([])
+
+    // Also when the final attempt exits early in `beginSync` for `needsReconnect`.
+    const reconnectImportId = await seeded.t.run(async (ctx) => {
+      await ctx.db.patch(sourceId, { status: 'needsReconnect' })
+      return ctx.scheduler.runAfter(15 * DAY, internal.energySources.endImport, {})
+    })
+    await seeded.t.action(internal.energyHomeAssistant.syncSource, {
+      sourceId,
+      historyFrom: THIS_HOUR - 10 * HOUR,
+      attempt: 60,
+      importId: reconnectImportId,
+    })
+    expect(await pendingEnd()).toEqual([])
+  })
+
+  test('a continued import with a missing statistic still narrows its retry', async () => {
+    const seeded = await seed()
+    const from = THIS_HOUR - 20 * HOUR
+    fake.sums[IMPORT.statisticId] = counter(from, 20, 1)
+    fake.sums[GAS.statisticId] = counter(from, 20, 1)
+    await connect(seeded, [IMPORT, GAS])
+    const [source] = await rows(seeded.t, 'energySources')
+    const sourceId = source?._id as Id<'energySources'>
+    const importId = await seeded.t.run((ctx) =>
+      ctx.scheduler.runAfter(15 * DAY, internal.energySources.endImport, {}),
+    )
+    // Continuation of a run where GAS was missing in the first slice and came
+    // back before the second slice finished: IMPORT is complete, GAS still needs history.
+    await seeded.t.action(internal.energyHomeAssistant.syncSource, {
+      sourceId,
+      historyFrom: from,
+      attempt: 0,
+      importId,
+      readFrom: THIS_HOUR - 5 * HOUR,
+      sums: [{ statisticId: IMPORT.statisticId, sum: 15 }],
+      incomplete: false,
+      missed: [GAS.statisticId],
+    })
+    const [retry] = await imports(seeded.t)
+    expect(retry?.args[0]).toMatchObject({
+      attempt: 1,
+      historyFor: [GAS.statisticId],
+    })
   })
 
   test('a long import goes on in a new run, unless it was dropped', async () => {

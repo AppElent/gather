@@ -213,6 +213,93 @@ test('editing starts from the address, keeps the token and can disconnect', asyn
   energyState.confirms[0]?.onConfirm()
   await settle()
   expect(callsTo('energySources:disconnect')).toEqual([{ groupSlug: 'home' }])
+  await vi.waitFor(() =>
+    expect(energyState.dismissed).toEqual(['/all/energy/sources']),
+  )
+  view.unmount()
+})
+
+test('leaving Connect without saving clears the token field so iOS does not offer to save it', async () => {
+  const view = mount(createElement(EnergyConnectScreen))
+  typeInto(byTestId('energy-connect-address'), 'https://ha.example.org')
+  typeInto(byTestId('energy-connect-token'), 'fake-token')
+  await settle()
+  expect((byTestId('energy-connect-token') as HTMLInputElement).value).toBe('fake-token')
+  for (const listener of energyState.navListeners.beforeRemove ?? []) listener()
+  await settle()
+  expect((byTestId('energy-connect-token') as HTMLInputElement).value).toBe('')
+  expect(energyState.fieldClears).toContain('energy-connect-token')
+  view.unmount()
+})
+
+test('unmounting Connect without a navigation event still clears the native token field', async () => {
+  const view = mount(createElement(EnergyConnectScreen))
+  typeInto(byTestId('energy-connect-token'), 'fake-token')
+  await settle()
+  expect(energyState.fieldClears).toEqual([])
+  view.unmount()
+  expect(energyState.fieldClears).toContain('energy-connect-token')
+})
+
+test('blurring after testing a pasted token clears it and invalidates the test result', async () => {
+  energyState.queries['energySources:list'] = connectedList
+  const view = mount(createElement(EnergyConnectScreen))
+  await testConnection()
+  expect(byTestId('energy-connect-submit')).not.toBeNull()
+  for (const listener of energyState.navListeners.blur ?? []) listener()
+  await settle()
+  expect((byTestId('energy-connect-token') as HTMLInputElement).value).toBe('')
+  expect(byTestId('energy-connect-channels')).toBeNull()
+  expect(byTestId('energy-connect-submit')).toBeNull()
+  view.unmount()
+})
+
+test('blurring when using the stored token keeps the test result intact', async () => {
+  energyState.queries['energySources:list'] = connectedList
+  const view = mount(createElement(EnergyConnectScreen))
+  byTestId('energy-connect-test')?.click()
+  await settle()
+  expect(byTestId('energy-connect-submit')).not.toBeNull()
+  for (const listener of energyState.navListeners.blur ?? []) listener()
+  await settle()
+  expect(byTestId('energy-connect-submit')).not.toBeNull()
+  view.unmount()
+})
+
+test('blurring while a pasted-token test is in flight does not restore Save when it resolves', async () => {
+  energyState.queries['energySources:list'] = connectedList
+  let finish!: (value: unknown) => void
+  energyState.actions['energyHomeAssistant:test'] = new Promise((resolve) => {
+    finish = resolve
+  })
+  const view = mount(createElement(EnergyConnectScreen))
+  typeInto(byTestId('energy-connect-token'), 'pasted-token')
+  await settle()
+  byTestId('energy-connect-test')?.click()
+  await settle()
+  for (const listener of energyState.navListeners.blur ?? []) listener()
+  await settle()
+  finish(tested)
+  await settle()
+  expect((byTestId('energy-connect-token') as HTMLInputElement).value).toBe('')
+  expect(byTestId('energy-connect-channels')).toBeNull()
+  expect(byTestId('energy-connect-submit')).toBeNull()
+  view.unmount()
+})
+
+test('disconnecting clears a pasted token before leaving', async () => {
+  energyState.queries['energySources:list'] = connectedList
+  const view = mount(createElement(EnergyConnectScreen))
+  typeInto(byTestId('energy-connect-token'), 'pasted-before-disconnect')
+  await settle()
+  byTestId('energy-connect-disconnect')?.click()
+  energyState.confirms[0]?.onConfirm()
+  await settle()
+  expect((byTestId('energy-connect-token') as HTMLInputElement).value).toBe('')
+  expect(energyState.fieldClears).toContain('energy-connect-token')
+  await vi.waitFor(() =>
+    expect(energyState.dismissed).toEqual(['/all/energy/sources']),
+  )
   view.unmount()
 })
 

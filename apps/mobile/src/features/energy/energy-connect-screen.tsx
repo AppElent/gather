@@ -12,14 +12,15 @@ import { energyChannelName } from '@gather/core/energy-present'
 import { readEnergyRefusal } from '@gather/core/refusals'
 import { useAction, useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
-import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { Stack, useNavigation, useRouter } from 'expo-router'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   Keyboard,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
+  type TextInputInstance,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -45,6 +46,9 @@ import { WashHeader } from '../../ui/wash-header'
 type SourceList = NonNullable<FunctionReturnType<typeof api.energySources.list>>
 type Tested = FunctionReturnType<typeof api.energyHomeAssistant.test>
 type Proposal = Tested['proposals'][number]
+type ConnectNavigation = {
+  addListener: (event: 'beforeRemove' | 'blur', listener: () => void) => () => void
+}
 
 export function EnergyConnectScreen() {
   const tokens = useTokens('home')
@@ -105,6 +109,7 @@ function ConnectForm({
 }) {
   const tokens = useTokens('home')
   const { t, locale } = useI18n()
+  const navigation = useNavigation<ConnectNavigation>()
   const router = useRouter()
   const words = t.energy
   const copy = words.connect
@@ -115,10 +120,47 @@ function ConnectForm({
   const connected = existing?.connected ?? false
   const [address, setAddress] = useState(list.homeAssistantAddress ?? '')
   const [token, setToken] = useState('')
+  const tokenRef = useRef(token)
+  tokenRef.current = token
+  const tokenField = useRef<TextInputInstance>(null)
+  const testRun = useRef(0)
   const [tested, setTested] = useState<Tested | null>(null)
   const [history, setHistory] = useState(!connected)
   const [busy, setBusy] = useState<'test' | 'connect' | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
+
+  // iOS offers to save a filled secure field as a password when the screen
+  // leaves, whether saved or not, so empty the native field and state first.
+  const clearToken = () => {
+    tokenField.current?.clear()
+    setToken('')
+  }
+  // Parent layout-effect cleanup runs before child `TextInput` detaches its
+  // internal `inputRef`, so `clear()` still reaches the native view on unmount.
+  useLayoutEffect(
+    () => () => {
+      tokenField.current?.clear()
+    },
+    [],
+  )
+  useEffect(() => {
+    const clearOnLeave = () => {
+      tokenField.current?.clear()
+      if (!tokenRef.current) return
+      testRun.current += 1
+      setToken('')
+      // Any running or finished test used the pasted token that was just dropped.
+      setTested(null)
+      setProblem(null)
+      setBusy((current) => (current === 'test' ? null : current))
+    }
+    const onRemove = navigation.addListener('beforeRemove', clearOnLeave)
+    const onBlur = navigation.addListener('blur', clearOnLeave)
+    return () => {
+      onRemove()
+      onBlur()
+    }
+  }, [navigation])
 
   const connection = {
     groupSlug,
@@ -126,8 +168,10 @@ function ConnectForm({
     ...(token.trim() ? { token } : {}),
   }
   const stale = () => {
+    testRun.current += 1
     setTested(null)
     setProblem(null)
+    setBusy((current) => (current === 'test' ? null : current))
   }
   const refused = (caught: unknown) => {
     haptics.actionFailed()
@@ -138,15 +182,19 @@ function ConnectForm({
 
   const runTest = async () => {
     Keyboard.dismiss()
-    setBusy('test')
     stale()
+    const run = testRun.current
+    setBusy('test')
     try {
-      setTested(await test(connection))
+      const result = await test(connection)
+      if (testRun.current !== run) return
+      setTested(result)
       haptics.itemSaved()
     } catch (caught) {
+      if (testRun.current !== run) return
       refused(caught)
     } finally {
-      setBusy(null)
+      if (testRun.current === run) setBusy(null)
     }
   }
 
@@ -171,9 +219,7 @@ function ConnectForm({
         history,
       })
       haptics.itemSaved()
-      // The server has the token. iOS offers to save a filled secure field as
-      // a password when the screen closes, so it is emptied first.
-      setToken('')
+      clearToken()
       requestAnimationFrame(done)
     } catch (caught) {
       refused(caught)
@@ -184,7 +230,8 @@ function ConnectForm({
   const runDisconnect = async () => {
     try {
       await disconnect({ groupSlug })
-      done()
+      clearToken()
+      requestAnimationFrame(done)
     } catch (caught) {
       refused(caught)
     }
@@ -226,6 +273,7 @@ function ConnectForm({
           testID="energy-connect-address"
         />
         <Field
+          ref={tokenField}
           label={copy.token}
           value={token}
           onChangeText={(text) => {

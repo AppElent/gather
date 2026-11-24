@@ -31,6 +31,15 @@ export interface FakeHomeAssistant {
   connections: number
   /** Drop the socket when this many period questions were answered. */
   dropAfterPeriods: number | null
+  /** Refuse a read command with this Home Assistant error code. */
+  refuseCommand: Partial<
+    Record<
+      | 'energy/get_prefs'
+      | 'recorder/list_statistic_ids'
+      | 'recorder/statistics_during_period',
+      string
+    >
+  >
   stop(): Promise<void>
 }
 
@@ -131,6 +140,7 @@ export async function startFakeHomeAssistant(
     received: [],
     connections: 0,
     dropAfterPeriods: null,
+    refuseCommand: {},
     stop: () =>
       new Promise((resolve) => {
         for (const client of server.clients) client.terminate()
@@ -161,6 +171,9 @@ export async function startFakeHomeAssistant(
         send({ id, type: 'result', success: true, result: value })
       const refuse = (code: string) =>
         send({ id, type: 'result', success: false, error: { code, message: code } })
+      const refused =
+        fake.refuseCommand[message.type as keyof typeof fake.refuseCommand]
+      if (refused) return refuse(refused)
       switch (message.type) {
         case 'energy/get_prefs':
           return fake.prefs === null ? refuse('not_found') : result(fake.prefs)

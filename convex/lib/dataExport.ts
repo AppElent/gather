@@ -204,12 +204,16 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   financeSettings: { scope: 'group', index: 'by_group' },
   netWorthEntries: { scope: 'group', index: 'by_group' },
   netWorthSnapshots: { scope: 'group', index: 'by_group' },
-  // Energy (APP-491). A source's token and a price feed's key never leave;
-  // market prices belong to no Group and account prices are the supplier's,
-  // fetched again from the feed (`energyPrices` below).
+  // Energy (APP-491). A source's address and token and a price feed's key
+  // never leave (APP-696); market prices belong to no Group and account prices
+  // are the supplier's, fetched again from the feed (`energyPrices` below).
   energySites: { scope: 'group', index: 'by_group' },
   energyContracts: { scope: 'group', index: 'by_group' },
-  energySources: { scope: 'group', index: 'by_group', omit: ['secret'] },
+  energySources: {
+    scope: 'group',
+    index: 'by_group',
+    omit: ['baseUrl', 'secret'],
+  },
   energyAssets: { scope: 'group', index: 'by_group' },
   energyChannels: { scope: 'group', index: 'by_group' },
   energyReadings: { scope: 'group', index: 'by_group' },

@@ -36,7 +36,7 @@ export class HomeAssistantError extends Error {
   constructor(
     readonly problem: Extract<
       EnergySourceProblem,
-      'unreachable' | 'notHomeAssistant' | 'badToken'
+      'unreachable' | 'notHomeAssistant' | 'badToken' | 'syncFailed'
     >,
   ) {
     super(problem)
@@ -171,7 +171,7 @@ export async function connectHomeAssistant(
       return await ask(command)
     } catch (error) {
       if (error instanceof HomeAssistantError) throw error
-      throw new HomeAssistantError('notHomeAssistant')
+      throw new HomeAssistantError('syncFailed')
     }
   }
 
@@ -189,7 +189,7 @@ export async function connectHomeAssistant(
           return null
         }
         if (error instanceof HomeAssistantError) throw error
-        throw new HomeAssistantError('notHomeAssistant')
+        throw new HomeAssistantError('syncFailed')
       }
     },
     statistics: () => read({ type: 'recorder/list_statistic_ids' }),

@@ -493,9 +493,7 @@ export async function computeEnergyRange(
       ...inside,
       ...(after ? [after] : []),
     ]
-    const from = readings[0]?.at
-    const to = readings[readings.length - 1]?.at
-    if (from === undefined || to === undefined) continue
+    if (readings.length < 2) continue
     const same = spans.filter((each) => each.channel.kind === channel.kind)
     const of = (tariff: 't1' | 't2') =>
       same.filter((each) => each.channel.tariff === tariff)
@@ -513,12 +511,20 @@ export async function computeEnergyRange(
           })
         }
       }
-      typedTotals.push({ kind: channel.kind, from, to, whole })
     }
     // Each stretch between two readings loses the part hours count already.
+    // A stretch where the count goes down (a replaced meter) counts nothing.
     for (const [index, reading] of readings.entries()) {
       const next = readings[index + 1]
-      if (!next) continue
+      if (!next || next.value < reading.value) continue
+      if (!channel.tariff) {
+        typedTotals.push({
+          kind: channel.kind,
+          from: reading.at,
+          to: next.at,
+          whole,
+        })
+      }
       const spread = spreadReadingsOverDays([reading, next], days)
       for (const [dayIndex, amount] of spread.entries()) {
         const day = days[dayIndex] as string
@@ -555,7 +561,7 @@ export async function computeEnergyRange(
         addTo(dayBucket, channel, interval.amount, interval.estimated)
       }
       const hourBucket = hourBuckets.get(at)
-      if (hourBucket) {
+      if (hourBucket && !typed) {
         addTo(hourBucket, channel, interval.amount, interval.estimated)
       }
     }
