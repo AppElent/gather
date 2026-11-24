@@ -122,6 +122,62 @@ describe('openSheets', () => {
     await Promise.all([first, second])
   })
 
+  it('does not reset a newer sheet when an earlier overlapping close times out', async () => {
+    vi.useFakeTimers()
+    const stuck = sheet()
+    const first = closeOpenSheets(1000)
+    expect(stuck.dismiss).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(500)
+    const newer = sheet()
+    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
+    expect(newer.dismiss).toHaveBeenCalledTimes(1)
+
+    const second = closeOpenSheets(1000)
+    expect(stuck.dismiss).toHaveBeenCalledTimes(1)
+    expect(newer.dismiss).toHaveBeenCalledTimes(1)
+
+    // `first` times out while `second` is still waiting for `newer`.
+    await vi.advanceTimersByTimeAsync(1000 - 500 - LATE_SHEET_DELAY_MS)
+    await first
+
+    // A follow-up close retries the sheet that timed out, not the newer one.
+    const third = closeOpenSheets(1000)
+    expect(stuck.dismiss).toHaveBeenCalledTimes(2)
+    expect(newer.dismiss).toHaveBeenCalledTimes(1)
+
+    stuck.later()
+    newer.later()
+    await Promise.all([second, third])
+    expect(hasOpenSheets()).toBe(false)
+  })
+
+  it('re-asks a newer sheet once its own close also times out', async () => {
+    vi.useFakeTimers()
+    const stuck = sheet()
+    const first = closeOpenSheets(1000)
+
+    await vi.advanceTimersByTimeAsync(500)
+    const newer = sheet()
+    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
+    const second = closeOpenSheets(1000)
+
+    await vi.advanceTimersByTimeAsync(1000 - 500 - LATE_SHEET_DELAY_MS)
+    await first
+
+    // Once `second` times out too, no waiter remains and `newer` can be asked again.
+    await vi.advanceTimersByTimeAsync(1000)
+    await second
+
+    const third = closeOpenSheets(1000)
+    expect(stuck.dismiss).toHaveBeenCalledTimes(2)
+    expect(newer.dismiss).toHaveBeenCalledTimes(2)
+
+    stuck.later()
+    newer.later()
+    await third
+  })
+
   it('closes a sheet that opens mid-close once it has presented, and waits for it', async () => {
     vi.useFakeTimers()
     const a = sheet()

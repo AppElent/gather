@@ -20,6 +20,7 @@ import {
 import { useMutation } from 'convex/react'
 import { type ReactNode, useMemo, useState } from 'react'
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -55,6 +56,7 @@ import { SectionLabel } from '../../../ui/section-label'
 import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { useTaskList, useTaskLists } from '../../tasks/store'
 import { useInStock } from '../in-stock/use-in-stock'
+import { EditLineModal } from './edit-line-modal'
 import {
   editedRead,
   type LineRead,
@@ -170,6 +172,9 @@ export function AddToGroceriesSheet({
   draft.track({ chosenListId, ticks, edits }, { holding: busy })
   const [failed, setFailed] = useState(false)
   const [rowWidth, setRowWidth] = useState<number>()
+  const [editing, setEditing] = useState<{ row: PickRow; typed: string } | null>(
+    null,
+  )
 
   const sourceLines =
     typeof lines === 'function'
@@ -271,9 +276,21 @@ export function AddToGroceriesSheet({
     setTicks((current) => settleLine(current, line, !row.on))
   }
 
+  const applyEdit = (row: PickRow, value: string) => {
+    const text = value.trim()
+    if (!text) return
+    const line = shown.find((candidate) => candidate.key === row.key) ?? row
+    setEdits((current) => settleLine(current, line, editedRead(text)))
+    setTicks((current) => settleLine(current, line, true))
+  }
+
   const edit = (row: PickRow) => {
     if (busy) return
     const typed = [amountText(row.amount), row.title].filter(Boolean).join(' ')
+    if (Platform.OS !== 'ios') {
+      setEditing({ row, typed })
+      return
+    }
     showPrompt(
       words.editTitle,
       undefined,
@@ -282,11 +299,7 @@ export function AddToGroceriesSheet({
         {
           text: t.common.actions.save,
           onPress: (value?: string) => {
-            const text = value?.trim()
-            if (!text) return
-            const line = shown.find((candidate) => candidate.key === row.key) ?? row
-            setEdits((current) => settleLine(current, line, editedRead(text)))
-            setTicks((current) => settleLine(current, line, true))
+            if (value) applyEdit(row, value)
           },
         },
       ],
@@ -380,8 +393,9 @@ export function AddToGroceriesSheet({
   )
 
   return (
-    <NativeSheet
-      title={words.title}
+    <>
+      <NativeSheet
+        title={words.title}
       onClose={onClose}
       maxHeight={0.92}
       fill
@@ -587,7 +601,20 @@ export function AddToGroceriesSheet({
           </View>
         ) : null}
       </ScrollView>
-    </NativeSheet>
+      </NativeSheet>
+      {editing ? (
+        <EditLineModal
+          title={words.editTitle}
+          label={words.editLabel}
+          initialValue={editing.typed}
+          onSave={(value) => {
+            applyEdit(editing.row, value)
+            setEditing(null)
+          }}
+          onClose={() => setEditing(null)}
+        />
+      ) : null}
+    </>
   )
 }
 
