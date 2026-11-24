@@ -52,6 +52,8 @@ interface ImageUploadFieldProps {
    * photo it is about to store has an id.
    */
   onUploadingChange?: (uploading: boolean) => void
+  /** Held while the form saves, so a photo cannot change under the save. */
+  disabled?: boolean
 }
 
 export function ImageUploadField({
@@ -62,6 +64,7 @@ export function ImageUploadField({
   label,
   fieldId = 'image-upload',
   onUploadingChange,
+  disabled = false,
 }: ImageUploadFieldProps) {
   const image = useMessages().common.image
   const [uploading, setUploading] = useState(false)
@@ -129,7 +132,7 @@ export function ImageUploadField({
             type="file"
             accept="image/*"
             className="peer sr-only"
-            disabled={uploading}
+            disabled={uploading || disabled}
             onChange={(e) => {
               const file = e.target.files?.[0]
               // Cleared straight away so that choosing the same file again
@@ -156,6 +159,7 @@ export function ImageUploadField({
           {displayUrl && !uploading && (
             <button
               type="button"
+              disabled={disabled}
               className="mt-1 block text-xs underline"
               onClick={() => {
                 setPreviewUrl(null)

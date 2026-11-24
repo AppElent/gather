@@ -366,6 +366,10 @@ export function PhotoPrepareDialog({
                 <span className="font-medium">{image.frameSize}</span>
                 <input
                   type="range"
+                  // Enter here would submit the form the photo is for.
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') event.preventDefault()
+                  }}
                   min={5}
                   max={100}
                   value={Math.round(cropFraction(crop, photo, aspect) * 100)}
