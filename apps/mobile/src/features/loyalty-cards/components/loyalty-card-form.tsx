@@ -40,6 +40,7 @@ import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../../theme/tokens'
 import { Button } from '../../../ui/button'
 import { Field } from '../../../ui/field'
+import { radioProps } from '../../../ui/radio-props'
 import { CardBarcode } from './card-barcode'
 import {
   type CardDraft,
@@ -400,9 +401,8 @@ function ColorSwatches({
         return (
           <Pressable
             key={preset.id}
-            accessibilityRole="radio"
+            {...radioProps(selected, t.a11y.radioButton)}
             accessibilityLabel={names[preset.id]}
-            accessibilityState={{ checked: selected }}
             testID={`loyalty-card-color-${preset.id}`}
             hitSlop={4}
             onPress={() => {

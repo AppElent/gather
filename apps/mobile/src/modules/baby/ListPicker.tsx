@@ -15,6 +15,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { radioProps } from '../../ui/radio-props'
 
 export type PickedList =
   | { kind: 'new' }
@@ -180,10 +181,10 @@ function Option({
   onPress: () => void
 }) {
   const tokens = useTokens('home')
+  const { t } = useI18n()
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
+      {...radioProps(selected, t.a11y.radioButton)}
       onPress={onPress}
       style={({ pressed }) => [
         styles.option,

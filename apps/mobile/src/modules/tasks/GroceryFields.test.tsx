@@ -12,6 +12,7 @@ import { GroceryFields } from './GroceryFields'
 import type { Task } from './types'
 
 const state = vi.hoisted(() => ({
+  os: 'ios' as 'ios' | 'android',
   type: (_text: string) => {},
   submit: () => {},
   blur: () => {},
@@ -28,13 +29,38 @@ vi.mock('react-native', async () => {
   type Props = Record<string, unknown> & { children?: ReactNode }
   const dom =
     (tag: string) =>
-    ({ children, testID, onPress }: Props) =>
-      React.createElement(
+    ({
+      children,
+      testID,
+      onPress,
+      accessibilityRole,
+      accessibilityState,
+      accessibilityValue,
+    }: Props) => {
+      const a11yState = accessibilityState as
+        | { selected?: boolean; checked?: boolean; disabled?: boolean }
+        | undefined
+      const a11yValue = accessibilityValue as { text?: string } | undefined
+      return React.createElement(
         tag,
-        { 'data-testid': testID as string, onClick: onPress as () => void },
+        {
+          'data-testid': testID as string,
+          role: accessibilityRole as string | undefined,
+          'aria-selected': a11yState?.selected,
+          'aria-checked': a11yState?.checked,
+          'aria-disabled': a11yState?.disabled,
+          'aria-valuetext': a11yValue?.text,
+          onClick: onPress as () => void,
+        },
         children,
       )
+    }
   return {
+    Platform: {
+      get OS() {
+        return state.os
+      },
+    },
     View: dom('div'),
     Text: dom('span'),
     Pressable: dom('button'),
@@ -115,6 +141,7 @@ const pak = (quantity: number) => ({ quantity, unit: 'pak' as const })
 const melk = { id: 'melk', title: 'Melk', done: false, ...pak(1) } as Task
 
 beforeEach(() => {
+  state.os = 'ios'
   state.writes = []
   state.aisleFails = false
   state.moves = []
@@ -398,4 +425,27 @@ test('an aisle move that lands says nothing', async () => {
   await settle()
   expect(state.moves).toEqual([['melk', 'dairy']])
   expect(state.alerts).toEqual([])
+})
+
+test('unit pills announce as radio buttons on iOS and Android (APP-697)', () => {
+  state.os = 'ios'
+  const ios = mount(createElement(GroceryFields, { task: melk, writable: false }))
+  const iosSelected = ios.container.querySelector('[data-testid="grocery-unit-pak"]')
+  const iosOther = ios.container.querySelector('[data-testid="grocery-unit-fles"]')
+  expect(iosSelected?.getAttribute('role')).toBe('button')
+  expect(iosSelected?.getAttribute('aria-selected')).toBe('true')
+  expect(iosSelected?.getAttribute('aria-disabled')).toBe('true')
+  expect(iosSelected?.getAttribute('aria-valuetext')).toBe('radio button')
+  expect(iosOther?.getAttribute('aria-selected')).toBe('false')
+  ios.unmount()
+
+  state.os = 'android'
+  const android = mount(createElement(GroceryFields, { task: melk, writable: true }))
+  const androidSelected = android.container.querySelector('[data-testid="grocery-unit-pak"]')
+  const androidOther = android.container.querySelector('[data-testid="grocery-unit-fles"]')
+  expect(androidSelected?.getAttribute('role')).toBe('radio')
+  expect(androidSelected?.getAttribute('aria-checked')).toBe('true')
+  expect(androidSelected?.getAttribute('aria-disabled')).toBe('false')
+  expect(androidOther?.getAttribute('aria-checked')).toBe('false')
+  android.unmount()
 })

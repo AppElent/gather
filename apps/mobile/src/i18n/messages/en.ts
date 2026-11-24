@@ -40,6 +40,14 @@ export const en = {
   common: coreEn.common,
 
   /**
+   * Spoken accessibility terms that only the phone needs — e.g. iOS has no
+   * native radio trait, so `radioProps` announces this in the app's language.
+   */
+  a11y: {
+    radioButton: 'radio button',
+  },
+
+  /**
    * The Baby log's words, taken whole from the shared tree rather than
    * retyped: the phone owns its look and shares its words (ADR-0017), and a
    * second English for "Diaper" is the failure that rule names.
