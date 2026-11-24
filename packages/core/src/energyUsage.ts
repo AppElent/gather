@@ -545,6 +545,20 @@ export function energyCostDays(
 }
 
 /**
+ * The first and last day that carry a cost: the period a cost total covers.
+ * Fixed costs run per elapsed day, so this reaches today in the running month
+ * and the month's end in a past one, not only to the last reading.
+ */
+export function energyCostPeriod(
+  days: readonly { day: string; cost: EnergyCost | null }[],
+): { from: string; to: string } | null {
+  const priced = days.filter((day) => day.cost !== null)
+  const first = priced[0]
+  const last = priced[priced.length - 1]
+  return first && last ? { from: first.day, to: last.day } : null
+}
+
+/**
  * A month's expected total, or null with no priced usage yet: what was used
  * extended from the days with a price, and the fixed costs from the days they ran.
  */

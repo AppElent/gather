@@ -201,3 +201,37 @@ test.each([
   }
   view.unmount()
 })
+
+test('the total is captioned to today when fixed costs outrun the readings', () => {
+  answerMonth(
+    '2026-11',
+    usagePeriod({
+      days: energyMonthDays('2026-11'),
+      lastDay: '2026-11-20',
+      costLastDay: '2026-11-23',
+      cost: 3000,
+    }),
+  )
+  const view = mount(createElement(EnergyCostsScreen))
+  expect(byTestId('energy-costs-total')?.textContent).toContain(
+    'November 1 to November 23',
+  )
+  view.unmount()
+})
+
+test('a past month is captioned to its last day', () => {
+  answerMonth(
+    '2026-10',
+    usagePeriod({
+      days: energyMonthDays('2026-10'),
+      lastDay: '2026-10-28',
+      costLastDay: '2026-10-31',
+      cost: 3000,
+    }),
+  )
+  const view = mount(createElement(EnergyCostsScreen, { initialMonth: '2026-10' }))
+  expect(byTestId('energy-costs-total')?.textContent).toContain(
+    'October 1 to October 31',
+  )
+  view.unmount()
+})

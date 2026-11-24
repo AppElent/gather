@@ -496,6 +496,7 @@ export function usagePeriod({
   cost = null,
   costWithoutNet = null,
   dayCost,
+  costLastDay,
   hours = [],
 }: {
   days: readonly string[]
@@ -509,10 +510,14 @@ export function usagePeriod({
   costWithoutNet?: number | null
   /** What each day with data costs; none by default. */
   dayCost?: (day: string) => number
+  /** Days up to this one carry a cost (fixed costs reach past the readings). */
+  costLastDay?: string
   hours?: unknown[]
 }) {
   const rows = days.map((day) => {
     const hasData = day <= lastDay
+    const priced = costLastDay ? day <= costLastDay : hasData && !!dayCost
+    const dayCents = costOf(dayCost?.(day) ?? 100)
     return {
       day,
       hasData,
@@ -524,8 +529,8 @@ export function usagePeriod({
       batteryChargeKwh: 0,
       batteryDischargeKwh: 0,
       consumptionKwh: hasData ? kwhPerDay : 0,
-      cost: hasData && dayCost ? costOf(dayCost(day)) : null,
-      costWithoutNet: hasData && dayCost ? costOf(dayCost(day)) : null,
+      cost: priced ? dayCents : null,
+      costWithoutNet: priced ? dayCents : null,
       costStatus,
     }
   })

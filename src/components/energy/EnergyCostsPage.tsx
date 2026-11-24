@@ -1,6 +1,7 @@
 import {
   addEnergyMonths,
   energyCostDays,
+  energyCostPeriod,
   forecastMonthCents,
   netMeteringPossibleIn,
 } from '@gather/core/energy'
@@ -209,6 +210,9 @@ function MonthCosts({
   const monthWord = formatEnergyDate(month, locale, 'month')
   const cost = costOf(period, method)
   const status = totals.costStatus
+  // Fixed costs run per elapsed day, so the total covers the days that carry a
+  // cost (to today, or the month's end), not only the days a reading reaches.
+  const covered = energyCostPeriod(period.days)
 
   const missing =
     status === 'noData'
@@ -226,11 +230,11 @@ function MonthCosts({
           <p className="m-0 text-base">{missing ?? copy.noContract}</p>
         ) : (
           <>
-            {totals.firstDay && totals.lastDay ? (
+            {covered ? (
               <span className="text-sm text-[var(--muted)]">
                 {fmt(copy.range, {
-                  from: formatEnergyDate(totals.firstDay, locale, 'dayMonth'),
-                  to: formatEnergyDate(totals.lastDay, locale, 'dayMonth'),
+                  from: formatEnergyDate(covered.from, locale, 'dayMonth'),
+                  to: formatEnergyDate(covered.to, locale, 'dayMonth'),
                 })}
               </span>
             ) : null}
@@ -416,7 +420,7 @@ function PerMonthChart({
       aside={
         <Link
           {...linkTo('energyUsage')}
-          search={{ range: 'year' }}
+          search={{ range: 'year', year }}
           className="text-sm text-[var(--accent-text)] no-underline hover:underline"
         >
           {copy.yearLink} ›
