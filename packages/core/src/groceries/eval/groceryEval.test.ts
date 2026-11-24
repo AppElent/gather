@@ -4,16 +4,26 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import type { GroceryAisle } from '../aisles'
 import { groceryDictionary } from '../index'
-import { formatEvalReport, parseEvalSet, runGroceryEval } from './groceryEval'
+import {
+  formatEvalReport,
+  parseEvalSet,
+  runGroceryEval,
+  unknownEvalNames,
+} from './groceryEval'
 
 // The measured score of grocery recognition (APP-353). The thresholds come
 // from the issue; `scripts/groceries/eval.ts` prints the same report per
 // data source and for the holdout split.
 const here = path.dirname(fileURLToPath(import.meta.url))
 const rows = parseEvalSet(fs.readFileSync(path.join(here, 'groceryLines.txt'), 'utf8'))
+const fresh = parseEvalSet(fs.readFileSync(path.join(here, 'freshLines.txt'), 'utf8'))
 const snapshot = JSON.parse(
   fs.readFileSync(path.join(here, 'aiCacheSnapshot.json'), 'utf8'),
-) as { answers: Record<string, GroceryAisle> }
+) as {
+  recordedOn: string | null
+  notAsked: string[]
+  answers: Record<string, GroceryAisle>
+}
 const cache = new Map(Object.entries(snapshot.answers))
 
 describe('grocery recognition eval', () => {
@@ -44,7 +54,6 @@ describe('grocery recognition eval', () => {
   // a separate agent that saw only the aisle guide and the unit list, scored
   // once (96.0% before APP-368, 98.5% after) and never tuned on.
   it('places at least 95% of the unseen fresh lines in the exact aisle', () => {
-    const fresh = parseEvalSet(fs.readFileSync(path.join(here, 'freshLines.txt'), 'utf8'))
     expect(fresh.length).toBeGreaterThanOrEqual(200)
     expect(runGroceryEval(fresh, groceryDictionary()).accuracy).toBeGreaterThanOrEqual(0.95)
   })
@@ -57,16 +66,30 @@ describe('grocery recognition eval', () => {
     expect(correct / total).toBeGreaterThanOrEqual(0.7)
   })
 
-  // The cache snapshot is recorded with `scripts/groceries/ask-ai.ts`, which
-  // needs ANTHROPIC_API_KEY. Until it has answers (`recordedOn` is null) these
-  // two checks measure the dictionary alone on all lines, curated ones
-  // included; they are not yet a measure of the AI fallback.
+  // Real model answers, recorded on dev with `scripts/groceries/ask-ai.ts`
+  // (APP-367). A dictionary change that leaves a new eval line unknown fails
+  // here until the script is run again: without an answer that line would be
+  // scored on the dictionary alone.
+  it('has a recorded model answer for every eval line the dictionary does not know', () => {
+    const recorded = new Set([...Object.keys(snapshot.answers), ...snapshot.notAsked])
+    const unknown = [...unknownEvalNames([...rows, ...fresh], groceryDictionary()).keys()]
+    expect(snapshot.recordedOn).not.toBeNull()
+    expect(unknown.filter((key) => !recorded.has(key))).toEqual([])
+    expect(withCache.bySource.cache).toBeGreaterThan(0)
+  })
+
   it('places at least 95% in the exact aisle with the shared AI cache', () => {
     expect(withCache.accuracy).toBeGreaterThanOrEqual(0.95)
   })
 
   it('leaves under 3% in Overig once the AI cache has answered', () => {
     expect(withCache.otherRate).toBeLessThan(0.03)
+  })
+
+  it('meets both AI thresholds on the unseen fresh lines', () => {
+    const report = runGroceryEval(fresh, groceryDictionary(), cache)
+    expect(report.accuracy).toBeGreaterThanOrEqual(0.95)
+    expect(report.otherRate).toBeLessThan(0.03)
   })
 
   it('reads amount, unit and name right on at least 98% of lines', () => {
