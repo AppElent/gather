@@ -27,7 +27,10 @@
  * user and session that confirmed are remembered by `start` and checked just
  * before it (APP-396). A sign-in to another account meanwhile strands the
  * login instead; it is never what gets deleted. The check runs before the
- * purge too, so a session that changed under the Apple sheet deletes nothing.
+ * purge too, so a session that changed under the Apple sheet deletes nothing,
+ * and around the Apple sheet, so it revokes nothing either (APP-745). After
+ * the purge, signing out and saying so are for that session only: a next
+ * person is left signed in and untold (APP-746).
  *
  * The stranded state is held in memory, so it lasts while the app is open and
  * signed in. Quitting the app, or Clerk ending the session, loses it.
@@ -165,14 +168,21 @@ export function AccountDeleteProvider({
     [clerk],
   )
 
+  // Ends the run with no refusal to read: the person backed out, or someone
+  // else is signed in by now and gets the app back.
+  const standDown = useCallback(() => {
+    running.current = false
+    setState({ step: 'idle' })
+  }, [])
+
   const deleteLogin = useCallback(async () => {
     if (askingClerk.current) return
     askingClerk.current = true
     setState({ step: 'deletingLogin' })
+    const account = confirmed.current
     try {
       // No user here, or another one, would leave the purge running with
       // nobody told; it is the same outcome as a refusal, and says so.
-      const account = confirmed.current
       if (!clerk.user || !account || !sameAccount(account))
         throw new Error('The confirmed session is no longer signed in')
       await clerk.user.delete()
@@ -182,12 +192,17 @@ export function AccountDeleteProvider({
     } finally {
       askingClerk.current = false
     }
+    // Deleting the login may already have ended its session, and what this
+    // phone kept of it still has to go; only another session is left alone.
+    if (clerk.session && !(account && sameAccount(account))) return standDown()
     signOut()
-  }, [clerk, sameAccount, signOut])
+  }, [clerk, sameAccount, signOut, standDown])
 
   const start = useCallback(
     (choice: DeleteChoice) => {
-      if (!user || !clerk.session || running.current) return
+      // A confirmation alert can outlive this provider; it then starts nothing.
+      if (!user || !clerk.session || running.current || !mounted.current)
+        return
       // Only the whole account asks Clerk to delete anything, so only it
       // needs Clerk's permission to.
       if (choice === 'wholeAccount' && accountDeletion(user) !== 'allowed')
@@ -198,13 +213,13 @@ export function AccountDeleteProvider({
       void (async () => {
         if (choice === 'wholeAccount') {
           setState({ step: 'revokingApple' })
-          const apple = await revokeAppleSignIn(user, revokeApple)
+          const apple = await revokeAppleSignIn(user, revokeApple, {
+            expectedSubject: account.userId,
+            stillConfirmed: () => mounted.current && sameAccount(account),
+          })
           if (!mounted.current) return
-          if (apple === 'cancelled') {
-            running.current = false
-            setState({ step: 'idle' })
-            return
-          }
+          if (apple === 'cancelled') return standDown()
+          // 'changed' is refused by the check before the purge, below.
         }
         setState({ step: 'purging', choice })
         try {
@@ -226,6 +241,7 @@ export function AccountDeleteProvider({
           await deleteLogin()
           return
         }
+        if (!sameAccount(account)) return standDown()
         setState({ step: 'signingOut' })
         signOut()
         onGatherDataDeleted()
@@ -239,6 +255,7 @@ export function AccountDeleteProvider({
       revokeApple,
       deleteLogin,
       signOut,
+      standDown,
       onGatherDataDeleted,
     ],
   )
