@@ -287,13 +287,16 @@ export function AddToGroceriesSheet({
   const applyEdit = (key: string, value: string) => {
     const text = value.trim()
     if (!text) return
+    // A key the line has since left (`was`, its AI reading arrived while the
+    // editor was open) stays the key the edit and tick are stored under: the
+    // week menu keeps that meal's line apart only while the key is touched.
+    const own = shown.find((candidate) => candidate.key === key)
+    const readSince = shown.some((candidate) => candidate.was?.includes(key))
     const line =
-      shown.find(
-        (candidate) =>
-          candidate.key === key ||
-          candidate.was?.includes(key) ||
-          candidate.former?.includes(key),
-      ) ?? { key }
+      own ??
+      (readSince
+        ? undefined
+        : shown.find((candidate) => candidate.former?.includes(key))) ?? { key }
     setEdits((current) => settleLine(current, line, editedRead(text)))
     setTicks((current) => settleLine(current, line, true))
   }

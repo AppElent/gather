@@ -15,12 +15,14 @@ import {
 } from '../../../components/openSheets'
 import { mount, settle } from '../../../testing/dom'
 import { forgetDrafts } from '../../../ui/composer-drafts'
+import { weekGroceryLines } from '../meal-planner/week-groceries'
 import { AddToGroceriesSheet } from './add-sheet'
 
 type Props = Record<string, unknown> & { children?: ReactNode }
 
 const state = vi.hoisted(() => ({
   os: 'ios' as 'ios' | 'android',
+  realPick: false,
   add: vi.fn(),
   write: vi.fn(),
   showPrompt: vi.fn(),
@@ -171,23 +173,37 @@ vi.mock('../../tasks/store', () => ({
     { _id: 'l1', name: 'AH', grocery: true, provider: 'local', writable: true },
   ],
 }))
-vi.mock('../in-stock/use-in-stock', () => ({ useInStock: () => [] }))
-vi.mock('./pick', () => ({
-  editedRead: (text: string) => ({ title: text, amount: {}, edited: true }),
+vi.mock('../in-stock/use-in-stock', () => ({
+  useInStock: () => (state.realPick ? () => false : []),
+}))
+vi.mock('./pick', async () => {
+  const actual = await vi.importActual<typeof import('./pick')>('./pick')
+  return {
+  editedRead: (text: string) =>
+    state.realPick
+      ? actual.editedRead(text)
+      : { title: text, amount: {}, edited: true },
   settleLine: (
     current: Record<string, unknown>,
-    line: { key: string },
+    line: { key: string; former?: readonly string[] },
     value: unknown,
-  ) => ({ ...current, [line.key]: value }),
+  ) =>
+    state.realPick
+      ? actual.settleLine(current, line, value)
+      : { ...current, [line.key]: value },
   withEdits: (
     lines: readonly { key: string; title: string; amount: { quantity?: number } }[],
     edits: Record<string, { title: string; amount: { quantity?: number } }>,
-  ) => lines.map((line) => (edits[line.key] ? { ...line, ...edits[line.key] } : line)),
+  ) =>
+    state.realPick
+      ? actual.withEdits(lines as never, edits as never)
+      : lines.map((line) => (edits[line.key] ? { ...line, ...edits[line.key] } : line)),
   pickRows: (args: {
     lines: readonly { key: string; title: string; amount: { quantity?: number } }[]
     ticks: Record<string, boolean>
   }) => {
     state.lastPickArgs = { lines: args.lines, ticks: args.ticks }
+    if (state.realPick) return actual.pickRows(args as never)
     return {
       rows: args.lines.map((line) => ({
         key: line.key,
@@ -200,12 +216,14 @@ vi.mock('./pick', () => ({
       reading: false,
     }
   },
-}))
+  }
+})
 vi.mock('./use-aisles', () => ({ useAisleOf: () => () => null }))
 
 beforeEach(() => {
   forgetDrafts()
   state.os = 'ios'
+  state.realPick = false
   state.add.mockReset()
   state.write.mockReset()
   state.showPrompt.mockReset()
@@ -377,58 +395,73 @@ test('editing an ingredient on Android opens the in-app modal, saves, and regist
   reopened.view.unmount()
 })
 
-test('Android edit modal stays open and saves when a row key changes via `was`', () => {
+test('Android edit of a pending week-menu line stays its own row after the AI reading arrives (real grouping)', () => {
   state.os = 'android'
-  const onClose = vi.fn()
-  const props = (lines: unknown[]) => ({
+  state.realPick = true
+  // Two meals want coriander: the first is read, the second is still being
+  // read when its editor opens and is read before the person saves.
+  const meal = (id: string) => ({ _id: id, recipeId: `r-${id}`, date: '2026-11-24' })
+  const read = (name: string) => ({ kind: 'read' as const, via: 'ai' as const, name, quantity: 1 })
+  let aiDone = false
+  const weekLines = (touched: ReadonlySet<string>) =>
+    weekGroceryLines({
+      meals: [
+        { meal: meal('ma'), servings: 1 },
+        { meal: meal('mb'), servings: 1 },
+      ] as never,
+      recipes: new Map([
+        ['r-ma', { _id: 'r-ma', title: 'A' }],
+        ['r-mb', { _id: 'r-mb', title: 'B' }],
+      ]),
+      lines: new Map([
+        ['r-ma', [{ key: '1', text: 'coriander', read: read('coriander') }]],
+        [
+          'r-mb',
+          [
+            {
+              key: '1',
+              text: 'coriander',
+              read: aiDone ? read('coriander') : { kind: 'reading' as const },
+            },
+          ],
+        ],
+      ]),
+      label: () => 'Weekmenu',
+      touched,
+    }).lines
+  const props = () => ({
     source: { title: 'Weekmenu', subtitle: '', glyph: (() => null) as never },
     place: 'groceries:week-test',
-    lines: lines as never,
+    lines: weekLines,
     aiCount: null,
-    onClose,
+    onClose: vi.fn(),
   })
-  const view = mount(
-    createElement(
-      AddToGroceriesSheet,
-      props([{ key: 'do:1', title: 'onions', amount: { quantity: 2 } }]),
-    ),
-  )
+  const view = mount(createElement(AddToGroceriesSheet, props() as never))
 
+  // The pending row (`mb:1`) renders last; edit it.
   act(() => {
     state.rowAction?.('edit')
   })
   act(() => {
-    state.fieldOnChange?.('3 shallots')
+    state.fieldOnChange?.('2 coriander')
   })
 
-  // AI reading arrives and replaces `do:1` with `item:ui` carrying `was: ['do:1']`.
-  view.rerender(
-    createElement(
-      AddToGroceriesSheet,
-      props([
-        {
-          key: 'item:ui',
-          was: ['do:1'],
-          title: 'onions',
-          amount: { quantity: 2 },
-        },
-      ]),
-    ),
-  )
-
+  // The reading finishes while the editor is open.
+  aiDone = true
+  view.rerender(createElement(AddToGroceriesSheet, props() as never))
   expect(view.container.querySelector('[data-testid="groceries-edit-dialog"]')).not.toBeNull()
-  expect(state.fieldValue).toBe('3 shallots')
 
   act(() => {
     state.buttons['groceries-edit-save']?.onPress()
   })
 
-  expect(view.container.querySelector('[data-testid="groceries-edit-dialog"]')).toBeNull()
-  expect(hasOpenSheets()).toBe(false)
-  expect(state.lastPickArgs?.lines).toEqual([
-    expect.objectContaining({ key: 'item:ui', title: '3 shallots' }),
+  // Still two rows: the corrected meal did not merge into the other meal's.
+  const lines = state.lastPickArgs?.lines as { key: string; read: { quantity?: number } }[]
+  expect(lines.map((line) => [line.key, line.read.quantity])).toEqual([
+    ['item:coriander:count', 1],
+    ['item:coriander:mb:1', 2],
   ])
-  expect(state.lastPickArgs?.ticks).toEqual({ 'item:ui': true })
+  expect(state.lastPickArgs?.ticks).toEqual({ 'mb:1': true })
 
   view.unmount()
 })
