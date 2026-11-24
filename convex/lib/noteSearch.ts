@@ -3,9 +3,9 @@ import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { indexSearch, normalized } from './searchText'
 
-/** Of the notes the index matches, a search answers this many, title hits first. */
+/** Of the notes `search_text` matches without the title, a search answers this many. */
 const MAX_MATCHES = 100
-/** In all, with the substring matches the newest notes and the candidates add. */
+/** In all, with the title hits, the unfilled notes and the substring matches. */
 const MAX_ANSWER = 2 * MAX_MATCHES
 /**
  * How far one search reads in `search_text`, whatever it finds on the way:
@@ -107,11 +107,12 @@ async function unfilledCandidates(
 
 /**
  * The notes of one Group that contain every word of `text`, in the title, the
- * body, or across the two. The caller has already authorised the Group. Of the
- * index's matches at most `MAX_MATCHES` are answered, and `MAX_ANSWER` in all
- * with the substring matches below. Notes whose title has every word come
- * first, then the rest, each in the order found, and the cap comes after
- * that, so a title hit is never cut for a body hit (APP-806).
+ * body, or across the two. The caller has already authorised the Group. Notes
+ * whose title has every word come first, then the rest, each in the order
+ * found, then the answer is cut at `MAX_ANSWER`, so a title hit is cut only
+ * when that many have one. Of the other `search_text` matches, `MAX_MATCHES`
+ * stay; the newest notes and the substring matches below fill the rest
+ * (APP-806).
  *
  * Two passes, merged, the first first:
  *
@@ -147,23 +148,39 @@ export async function findNotes(
       .order('desc')
       .take(RECENT_NOTES),
   ])
-  // A note the backfill has half reached can come from both.
+  // One unfilled note can come from both of the old indexes.
   const candidates = [
     ...new Map(
       [...byText, ...unfilled].map((note) => [note._id, note] as const),
     ).values(),
   ]
-  const inTitle = (note: NoteText) => {
-    const title = normalized(note.title)
-    return matches(note.title) || needles.every((needle) => title.includes(needle))
+  const titled = new Map<Id<'notes'>, boolean>()
+  const inTitle = (note: Doc<'notes'>) => {
+    let known = titled.get(note._id)
+    if (known === undefined) {
+      const title = normalized(note.title)
+      known =
+        matches(note.title) || needles.every((needle) => title.includes(needle))
+      titled.set(note._id, known)
+    }
+    return known
   }
   const titleFirst = (notes: Doc<'notes'>[]) => [
     ...notes.filter(inTitle),
     ...notes.filter((note) => !inTitle(note)),
   ]
+  // The index's matches. Title hits all stay, up to the answer cap. Of the
+  // others, `MAX_MATCHES` of `search_text`'s stay, and every unfilled one, which
+  // the old indexes bound (`FALLBACK_MATCHES`) and only they can find.
   const byIndex = candidates.filter((note) => matches(noteSearchText(note)))
   const indexed = new Set(byIndex.map((note) => note._id))
-  const inBudget = titleFirst(byIndex).slice(0, MAX_MATCHES)
+  let filledBody = 0
+  const inBudget = titleFirst(byIndex).filter(
+    (note) =>
+      inTitle(note) ||
+      note.searchText === undefined ||
+      (filledBody += 1) <= MAX_MATCHES,
+  )
   const taken = new Set(inBudget.map((note) => note._id))
   // The substring pass: the newest notes first, then the candidates the index
   // did not match. An index match cut above is not read back in here, but a
@@ -182,10 +199,10 @@ export async function findNotes(
       contains(note)
     )
       extra.set(note._id, note)
-  return titleFirst([
-    ...inBudget,
-    ...titleFirst([...extra.values()]).slice(0, MAX_ANSWER - inBudget.length),
-  ])
+  return titleFirst([...inBudget, ...titleFirst([...extra.values()])]).slice(
+    0,
+    MAX_ANSWER,
+  )
 }
 
 /** The first line with anything on it: what a result row shows under the title. */

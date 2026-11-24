@@ -402,6 +402,7 @@ describe('notes whose title has the words come first (APP-806)', () => {
     body: string
     updatedAt: number
     by?: 'bob'
+    unfilled?: true
   }
 
   /** Rows go in as given, so the index reads them in that order. */
@@ -414,12 +415,12 @@ describe('notes whose title has the words come first (APP-806)', () => {
         .unique()
       const alice = await ctx.db.query('users').first()
       const bob = (await ctx.db.query('users').collect())[1]
-      for (const { title, body, updatedAt, by } of rows)
+      for (const { title, body, updatedAt, by, unfilled } of rows)
         await ctx.db.insert('notes', {
           groupId: group!._id,
           title,
           body,
-          searchText: noteSearchText({ title, body }),
+          ...(unfilled ? {} : { searchText: noteSearchText({ title, body }) }),
           createdBy: (by === 'bob' ? bob : alice)!._id,
           updatedAt,
         })
@@ -510,6 +511,31 @@ describe('notes whose title has the words come first (APP-806)', () => {
     expect(await notes('boiler')).toContain('Fresh')
     // A filter on Who runs after the search, so the cap must not drop it.
     expect(await search('boiler', 'bob')).toEqual(['Fresh'])
+  })
+
+  test('keeps up to 200 title hits, ahead of the body hits that fill the rest', async () => {
+    const { notes } = await crowded([
+      ...Array.from({ length: 150 }, (_, index) => ({
+        title: `Week ${index}`,
+        body: '',
+        updatedAt: index + 1,
+      })),
+      ...bodyHits(100, 'this week'),
+    ])
+    const found = await notes('week')
+    expect(found).toHaveLength(200)
+    expect(found.slice(0, 150).every((title) => title.startsWith('Week'))).toBe(
+      true,
+    )
+  })
+
+  test('an unfilled note is found behind 100+ filled matches', async () => {
+    const { notes } = await crowded([
+      // First in the old indexes, which read 50 notes each.
+      { title: 'Cellar', body: 'the boiler', updatedAt: 1, unfilled: true },
+      ...bodyHits(150),
+    ])
+    expect(await notes('boiler')).toContain('Cellar')
   })
 
   test('a title hit found only by substring still comes first', async () => {
