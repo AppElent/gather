@@ -4,8 +4,8 @@ import { api } from '../../../convex/_generated/api'
 import { createActions } from '../../lib/createActions'
 import { useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
+import { ModuleTile } from './ModuleTile'
 import { MenuLink, ShellMenu } from './ShellMenu'
-import { Tile } from './Tile'
 import { useCurrentGroup } from './useCurrentGroup'
 
 /**
@@ -36,9 +36,7 @@ export function AddMenu({
       trigger={
         variant === 'sidebar' ? (
           <>
-            <span className="tile" aria-hidden="true">
-              <Plus className="h-4 w-4" />
-            </span>
+            <ModuleTile icon="Plus" />
             <span className="flex-1">{nav.add}</span>
           </>
         ) : (
@@ -70,7 +68,7 @@ export function AddMenu({
         // A menu owns only menu items, so the reason sits inside the one item
         // there is, where a screen reader reads it with the item's name.
         <MenuLink link={linkTo('all')}>
-          <span className="tile" aria-hidden="true" />
+          <ModuleTile icon="Grid2X2" />
           <span className="grid min-w-0">
             <span>{nav.allModules}</span>
             <span className="text-[13px] text-[var(--muted)]">
@@ -81,7 +79,7 @@ export function AddMenu({
       ) : (
         actions.map((action) => (
           <MenuLink key={action.module} link={action.link}>
-            <Tile icon={action.icon} group={action.group} />
+            <ModuleTile icon={action.icon} group={action.group} />
             <span className="grid min-w-0">
               <span className="truncate">{action.label}</span>
               <span className="truncate text-[13px] text-[var(--muted)]">

@@ -73,6 +73,7 @@ export function RecipesPage() {
               }
             : undefined
         }
+        back={{ label: messages.shell.allModules.title, link: linkTo('all') }}
         onSearch={hasRecipes ? () => searchRef.current?.focus() : undefined}
         primary={{ label: list.add, link: linkTo('newRecipe') }}
       />
