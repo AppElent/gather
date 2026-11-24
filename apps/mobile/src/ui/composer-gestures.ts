@@ -1,0 +1,81 @@
+/**
+ * What a drag on the keyboard composer does (APP-587, APP-661): the numbers
+ * and the decision, kept apart from the gesture so they can be tested.
+ *
+ * Up expands the small card; down collapses an expanded one, and further down
+ * closes it. A small card closes on a shorter drag down. Closing keeps the
+ * draft: that is the kind's (`composer-drafts.ts`).
+ *
+ * A kind that does not expand (a grocery item, APP-664) has one size: up does
+ * nothing, and the card does not follow the finger up.
+ */
+
+/** How far up a drag must travel to expand the card, in points. */
+export const DRAG_EXPAND = 32
+/** How far down a drag must travel to collapse an expanded card, or close a small one. */
+export const DRAG_CLOSE = 72
+/**
+ * How far down an expanded card must be dragged to close rather than collapse,
+ * before both of its sizes have been measured.
+ */
+export const DRAG_CLOSE_EXPANDED = 280
+/** A flick this fast counts however short it was, in points per second. */
+const FLICK_UP = -600
+const FLICK_DOWN = 900
+/** How much of an upward drag the small card follows: it resists, then grows. */
+const UP_RESISTANCE = 0.35
+
+export type DragOutcome = 'expand' | 'collapse' | 'close' | null
+
+export interface DragEnd {
+  translationY: number
+  velocityY: number
+}
+
+/** What the card does when the finger lifts. */
+export function dragOutcome(
+  { translationY, velocityY }: DragEnd,
+  expanded: boolean,
+  closeExpandedAt = DRAG_CLOSE_EXPANDED,
+  expandable = true,
+): DragOutcome {
+  const up = translationY < -DRAG_EXPAND || velocityY < FLICK_UP
+  const down = translationY > DRAG_CLOSE || velocityY > FLICK_DOWN
+  if (expanded) {
+    if (translationY > closeExpandedAt) return 'close'
+    return down && !up ? 'collapse' : null
+  }
+  if (up && !down) return expandable ? 'expand' : null
+  if (down) return 'close'
+  return null
+}
+
+/**
+ * Where the card sits under the finger while it drags: down one to one, up a
+ * little for a small card (so the drag visibly answers), and not at all for
+ * an expanded one, which already reaches the status bar.
+ */
+export function dragOffset(
+  translationY: number,
+  expanded: boolean,
+  expandable = true,
+): number {
+  if (translationY >= 0) return translationY
+  return expanded || !expandable ? 0 : translationY * UP_RESISTANCE
+}
+
+/** The card's measured height at each size, 0 until it has been drawn so. */
+export interface CardHeights {
+  small: number
+  expanded: number
+}
+
+/**
+ * How far down an expanded card's handle travels to close it: past where the
+ * small card's handle sits (both are bottom-anchored, so that is the
+ * difference in height), and then a small card's closing drag.
+ */
+export function closeDistance({ small, expanded }: CardHeights): number {
+  if (small <= 0 || expanded <= small) return DRAG_CLOSE_EXPANDED
+  return expanded - small + DRAG_CLOSE
+}

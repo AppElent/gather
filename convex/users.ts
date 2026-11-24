@@ -21,8 +21,17 @@ export const me = query({
  * until they explicitly create one or confirm an invite.
  */
 export const ensureUser = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    /**
+     * The name the signed-in app reads from Clerk (APP-676). The Convex
+     * session token carries no name claims, so without it every Member was
+     * saved as "Member". It is the caller's own name for themselves, which
+     * Clerk lets them set to anything too, so taking it from them grants
+     * nothing; a name in the token still wins.
+     */
+    name: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
     // Stays in the app (ADR-0046).
     await rejectConnectedApps(ctx)
     const identity = await requireIdentity(ctx)
@@ -41,7 +50,7 @@ export const ensureUser = mutation({
 
     if (existing) {
       const patch: Record<string, string> = {}
-      const name = storedName(identity, existing.name)
+      const name = storedName(identity, existing.name, args.name)
       const email = identity.email ?? existing.email
       if (name !== existing.name) patch.name = name
       if (email !== existing.email) patch.email = email
@@ -52,7 +61,7 @@ export const ensureUser = mutation({
       return existing._id
     }
 
-    const name = storedName(identity)
+    const name = storedName(identity, undefined, args.name)
     const userId = await ctx.db.insert('users', {
       clerkId: identity.subject,
       name,

@@ -38,6 +38,7 @@ import { useGroup } from '../../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
+import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { Chip, MealThumb } from './parts'
 import { LimitCard, PrimaryButton } from './plan-sheet'
 import {
@@ -75,6 +76,19 @@ type SwapState =
   | { kind: 'limit' }
   | { kind: 'failed' }
 
+/** What a share keeps of the sheet (`useSheetDraft`). */
+interface SwapDraft {
+  view: 'swap' | 'idea'
+  wish: string
+  chip: SwapChip | null
+  swap?: SwapState
+  idea?: IdeaState
+  servings: number
+  chosen: Chosen | null
+  turnedDown: string[]
+  lastSwapAsk: string | null
+}
+
 type IdeaState =
   | { kind: 'asking' }
   | { kind: 'shown'; idea: Idea }
@@ -107,7 +121,7 @@ export function SwapSheet({
   onClose: () => void
   /** Zelf kiezen from the Limit card. */
   onChooseYourself: () => void
-  /** After Bewaren, with the screen toast's words. */
+  /** After Bewaren, with the screen toast's words; the sheet has closed itself. */
   onSaved: (message: string) => void
 }) {
   const { group } = useGroup()
@@ -126,25 +140,47 @@ export function SwapSheet({
   const unchoose = useMutation(api.mealIdeas.unchoose)
   const saveIdea = useMutation(api.mealIdeas.saveIdea)
 
-  const [view, setView] = useState<'swap' | 'idea'>('swap')
-  const [wish, setWish] = useState('')
-  const [chip, setChip] = useState<SwapChip | null>(null)
-  const [swap, setSwap] = useState<SwapState>({ kind: 'asking' })
-  const [idea, setIdea] = useState<IdeaState>({ kind: 'asking' })
-  const [servings, setServings] = useState(1)
-  const [chosen, setChosen] = useState<Chosen | null>(null)
+  // A share keeps the wish and the answers already paid for (APP-622): a kept
+  // answer is shown again rather than asked for again.
+  const draft = useSheetDraft<SwapDraft>(`meal-planner:swap:${date}:${slot}`)
+  const kept = draft.kept
+  const [view, setView] = useState<'swap' | 'idea'>(
+    // An idea still being asked for is not kept: back to the swaps.
+    kept?.idea ? kept.view : 'swap',
+  )
+  const [wish, setWish] = useState(kept?.wish ?? '')
+  const [chip, setChip] = useState<SwapChip | null>(kept?.chip ?? null)
+  const [swap, setSwap] = useState<SwapState>(kept?.swap ?? { kind: 'asking' })
+  const [idea, setIdea] = useState<IdeaState>(kept?.idea ?? { kind: 'asking' })
+  const [servings, setServings] = useState(kept?.servings ?? 1)
+  const [chosen, setChosen] = useState<Chosen | null>(kept?.chosen ?? null)
   const [choosing, setChoosing] = useState<string | null>(null)
   const [saving, setSaving] = useState<'plan' | 'only' | null>(null)
   const [left, setLeft] = useState<number | null>(null)
   const [chooseFailed, setChooseFailed] = useState(false)
   const [saveFailed, setSaveFailed] = useState(false)
-  const turnedDown = useRef<string[]>([])
-  const asked = useRef(false)
+  const turnedDown = useRef<string[]>(kept?.turnedDown ?? [])
+  const asked = useRef(kept?.swap !== undefined)
   // Only the latest ask may set the state; an older answer arriving late is dropped.
   const swapAsk = useRef(0)
   const ideaAsk = useRef(0)
   const ideaBusy = useRef(false)
-  const lastSwapAsk = useRef<string | null>(null)
+  const lastSwapAsk = useRef<string | null>(kept?.lastSwapAsk ?? null)
+  // Only a shown answer is worth keeping; one still out is asked again.
+  draft.track(
+    {
+      view,
+      wish,
+      chip,
+      swap: swap.kind === 'shown' ? swap : undefined,
+      idea: idea.kind === 'shown' ? idea : undefined,
+      servings,
+      chosen,
+      turnedDown: turnedDown.current,
+      lastSwapAsk: lastSwapAsk.current,
+    },
+    { holding: saving !== null || choosing !== null },
+  )
 
   const weekday = weekdayInText(date, locale)
   const meal = replacing ? data.meals.find((m) => m._id === replacing) : mealIn(data.meals, date, slot)
@@ -212,7 +248,7 @@ export function SwapSheet({
   useEffect(() => {
     if (asked.current || !online) return
     asked.current = true
-    runSwap(null)
+    runSwap(chip)
   }, [online])
 
   const runIdea = () => {
@@ -291,6 +327,7 @@ export function SwapSheet({
         // alternatives stay, the message says nothing changed, and the week
         // query catches up on its own.
         haptics.actionFailed()
+        draft.failed()
         setChooseFailed(true)
       })
       .finally(() => setChoosing(null))
@@ -357,6 +394,7 @@ export function SwapSheet({
       .then((result) => {
         haptics.itemSaved()
         const title = shown.title
+        if (!draft.gone()) onClose()
         onSaved(
           !plan
             ? fmt(ideaWords.saved, { title })
@@ -368,6 +406,7 @@ export function SwapSheet({
       .catch(() => {
         // Keep the draft: it cost a call, and saving again should not.
         haptics.actionFailed()
+        draft.failed()
         setSaveFailed(true)
       })
       .finally(() => setSaving(null))

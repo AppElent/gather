@@ -237,13 +237,6 @@ export const shell = {
     },
     entry: '{summary} \u00b7 {child}',
     now: 'Nu \u00b7 {time}',
-    duration: {
-      minutes: '{minutes} min',
-      hours: '{hours} u',
-      hoursMinutes: '{hours} u {minutes} min',
-      days: '{days} d',
-    },
-    sideMinutes: '{side} {minutes} min',
     open: 'Openen',
     unpin: 'Losmaken',
   },

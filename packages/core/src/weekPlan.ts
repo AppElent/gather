@@ -181,15 +181,20 @@ function nameClashes(
 /**
  * The "controleer zelf" a draft shows (APP-460): the first clash the matcher
  * can't rule out. A recipe is read from its title and ingredients, allergens
- * before diets. A quick meal has only its name, so only an allergy is named:
- * with any allergy set, every quick meal says to check it yourself, while a
- * diet would flag every name for lack of ingredients. Undefined when nothing
- * is unsure; a certain clash never reaches a draft (`plannableRecipes`).
+ * before diets. A quick meal has only its name, so only an allergy is named,
+ * and only for a name the AI made up (APP-477): the Group's own quick meal is
+ * a dish it knows, and a bare name can't be cleared, so with any allergy set
+ * every one of them would say to check it. A diet would flag every name for
+ * lack of ingredients. Undefined when nothing is unsure; a certain clash
+ * never reaches a draft (`plannableRecipes`).
  */
 export function draftCheck(
-  meal: { recipe: Pick<WeekPlanRecipe, 'title' | 'ingredients' | 'tags'> } | { quickMeal: string },
+  meal:
+    | { recipe: Pick<WeekPlanRecipe, 'title' | 'ingredients' | 'tags'> }
+    | { quickMeal: string; own: boolean },
   prefs: Pick<ResolvedMealPreferences, 'allergens' | 'diets' | 'dislikes'>,
 ): Extract<RecipeClash, { kind: 'allergen' | 'diet' }> | undefined {
+  if ('quickMeal' in meal && meal.own) return undefined
   const clashes =
     'recipe' in meal
       ? recipeClashes(meal.recipe, { ...prefs, cookingMinutes: NO_TIME }, 0)

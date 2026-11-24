@@ -184,6 +184,14 @@ export const settings = {
     name: 'Name',
     rename: 'Rename',
     renameFailed: 'Could not rename this group.',
+    timeZone: 'Time zone',
+    timeZoneNote:
+      'The day it is for everyone in this group, for example when you shop for the week. Without one, each device uses its own.',
+    timeZoneUnset: 'Each device’s own ({zone} here)',
+    timeZoneUseDevice: 'Use this device’s zone',
+    timeZoneClear: 'Use each device’s own zone',
+    timeZoneFailed: 'Could not change the time zone.',
+    timeZoneAdminOnly: 'Only an admin can change it.',
     inviteCode: 'Invite code',
     inviteCodeNote:
       'Anyone holding this code can join from Groups — share it only with people you want in this group.',

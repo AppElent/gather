@@ -28,6 +28,10 @@ export const nl = {
   modules: coreNl.modules,
   common: coreNl.common,
 
+  a11y: {
+    radioButton: 'keuzerondje',
+  },
+
   baby: coreNl.baby,
   calendar: coreNl.calendar,
 
@@ -265,6 +269,16 @@ export const nl = {
         shareMessage:
           'Doe mee met {group} in Gather: kies onder Groepen voor ‘{join}’ en vul {code} in.',
       },
+      /** The zone of the Current Group's "today", in the web's words. */
+      timeZone: {
+        title: coreNl.settings.group.timeZone,
+        note: coreNl.settings.group.timeZoneNote,
+        unset: coreNl.settings.group.timeZoneUnset,
+        useDevice: coreNl.settings.group.timeZoneUseDevice,
+        clear: coreNl.settings.group.timeZoneClear,
+        failed: coreNl.settings.group.timeZoneFailed,
+        adminOnly: coreNl.settings.group.timeZoneAdminOnly,
+      },
       leave: {
         button: coreNl.settings.group.leaveButton,
         title: coreNl.settings.group.leaveTitle,
@@ -428,7 +442,6 @@ export const nl = {
   kitchen: {
     name: 'Naam',
     quantity: 'Hoeveelheid (optioneel)',
-    addGroceryItem: 'Item toevoegen…',
     deleteTitle: '“{title}” verwijderen?',
     deleteBody: 'Dit kan niet ongedaan worden gemaakt.',
     inStock: {
@@ -708,6 +721,7 @@ export const nl = {
   actions: {
     resend: 'Stuur opnieuw',
     done: 'Klaar',
+    next: 'Volgende',
     completed: 'Voltooid ({count})',
     showCompleted: 'Voltooide taken tonen',
     hideCompleted: 'Voltooide taken verbergen',
@@ -916,6 +930,7 @@ export const nl = {
     remove: 'Weghalen',
     save: 'Bewaar',
     close: 'Sluiten',
+    closeKeeping: 'Sluiten, concept blijft bewaard',
     addTask: 'Taak toevoegen',
     taskTitle: 'Taaknaam',
     description: 'Beschrijving',
@@ -941,6 +956,25 @@ export const nl = {
     tryAgain: 'Opnieuw proberen',
     discard: 'Weggooien',
     ok: 'OK',
+    /** De boodschappencomposer (APP-664). */
+    grocery: {
+      bar: 'Item toevoegen, bijv. 2 pak melk',
+      barLabel: 'Item toevoegen',
+      title: 'Item, bijv. 2 pak melk',
+      titleLabel: 'Item toevoegen aan {list}',
+      note: 'Notitie',
+      notePlaceholder: 'Notitie, bijv. de grote',
+      staple: 'Vaste voorraad',
+      unit: 'Eenheid',
+      send: 'Toevoegen',
+      added: '{name} toegevoegd',
+      addedMany: '{count} toegevoegd: {names}',
+      merged: '{name} bijgewerkt: {amount}',
+      already: '{name} staat al op de lijst',
+      undo: 'Ongedaan maken',
+      undoFailed: 'Ongedaan maken is niet gelukt. Probeer het opnieuw.',
+      detailsFailed: 'Het item is toegevoegd, maar niet al zijn details.',
+    },
     addEvent: 'Afspraak toevoegen',
     eventTitle: 'Wat ga je doen?',
     eventNote: 'Notitie',
@@ -961,6 +995,7 @@ export const nl = {
     starterSections: coreNl.tasks.starterSections,
     packing: coreNl.tasks.packing,
     subtasks: coreNl.tasks.subtasks,
+    linkedWrite: coreNl.tasks.linkedWrite,
     repeat: coreNl.tasks.repeat,
     wishlist: coreNl.tasks.wishlist,
     grocery: coreNl.tasks.grocery,
@@ -1097,6 +1132,7 @@ export const nl = {
     pinned: 'Vastgezet',
     recent: 'Recent',
     empty: 'Nog geen notities.',
+    showMore: 'Meer notities tonen',
     untitled: 'Notitie zonder titel',
     titlePlaceholder: 'Titel',
     bodyPlaceholder: 'Begin met schrijven…',

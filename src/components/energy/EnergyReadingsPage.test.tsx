@@ -49,6 +49,7 @@ beforeEach(() => {
   state.form = {
     hasManualSource: true,
     lastReadingAt: PREVIOUS_AT,
+    measured: [],
     channels: [
       {
         _id: 'c1',
@@ -155,7 +156,7 @@ describe('EnergyReadingsPage', () => {
   })
 
   test('without typed meters, it asks which meters the Group reads', async () => {
-    state.form = { hasManualSource: false, lastReadingAt: null, channels: [] }
+    state.form = { hasManualSource: false, lastReadingAt: null, measured: [], channels: [] }
     renderInGroup(<EnergyReadingsPage />)
     expect(
       screen.getByRole('heading', { name: 'Which meters do you read?' }),
@@ -179,5 +180,35 @@ describe('EnergyReadingsPage', () => {
         sourceLabel: 'Meter readings',
       },
     })
+  })
+
+  test('a connected source that measures the meters leaves nothing to set up', () => {
+    state.form = {
+      hasManualSource: true,
+      lastReadingAt: null,
+      measured: ['gridImport', 'gridExport', 'gas'],
+      channels: [],
+    }
+    renderInGroup(<EnergyReadingsPage />)
+    expect(screen.getByText('Nothing to type here')).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add these meters' })).toBeNull()
+  })
+
+  test('only a meter the connected source does not measure can be added', async () => {
+    state.form = {
+      hasManualSource: true,
+      lastReadingAt: null,
+      measured: ['gridImport', 'gridExport'],
+      channels: [],
+    }
+    renderInGroup(<EnergyReadingsPage />)
+    expect(screen.getAllByRole('checkbox')).toHaveLength(1)
+    const submit = screen.getByRole('button', { name: 'Add these meters' })
+    expect(submit).toBeDisabled()
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(submit)
+    await waitFor(() => expect(state.calls).toHaveLength(1))
+    expect(state.calls[0]?.args).toMatchObject({ export: false, gas: true })
   })
 })

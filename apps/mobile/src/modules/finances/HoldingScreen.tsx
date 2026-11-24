@@ -23,6 +23,7 @@ import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { FINANCE_ICONS } from './icons'
 import {
   AddRow,
@@ -52,7 +53,7 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
   const addTransaction = useMutation(api.holdings.addTransaction)
   const setPrice = useMutation(api.holdings.setPrice)
   const remove = useMutation(api.holdings.remove)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, writes } = useFinanceWrite()
 
   const [adding, setAdding] = useState(false)
   const [pricing, setPricing] = useState(false)
@@ -63,6 +64,28 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
   const [fee, setFee] = useState('')
   const [note, setNote] = useState('')
   const [newPrice, setNewPrice] = useState('')
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resumeAdd = useSheetResume({
+    place: `finances:holding:${holdingId}`,
+    open: adding && (kind === 'adjustment' ? 'adjustment' : 'trade'),
+    values: { kind, date, units, price, fee, note },
+    restore: (was) => {
+      setKind(was.kind)
+      setDate(was.date)
+      setUnits(was.units)
+      setPriceDraft(was.price)
+      setFee(was.fee)
+      setNote(was.note)
+    },
+    writes,
+  })
+  const resumePrice = useSheetResume({
+    place: `finances:holding:${holdingId}:price`,
+    open: pricing,
+    values: newPrice,
+    restore: setNewPrice,
+    writes,
+  })
 
   const Target = FINANCE_ICONS.Target
   const Alert = FINANCE_ICONS.Alert
@@ -106,6 +129,13 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
   const unrealized = marketValue - position.investedCents
   const stale = isStale(holding.lastPriceAt, Date.now())
 
+  function clearEntry() {
+    setUnits('')
+    setPriceDraft('')
+    setFee('')
+    setNote('')
+  }
+
   function save() {
     const unitCount = parseDecimal(units) ?? 0
     const cents = parseCents(price) ?? 0
@@ -131,10 +161,7 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
         }),
       () => {
         setAdding(false)
-        setUnits('')
-        setPriceDraft('')
-        setFee('')
-        setNote('')
+        clearEntry()
       },
     )
   }
@@ -203,7 +230,9 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
             chevron
             last
             onPress={() => {
-              setNewPrice(String((holding.lastPriceCents ?? 0) / 100))
+              if (!resumePrice(true)) {
+                setNewPrice(String((holding.lastPriceCents ?? 0) / 100))
+              }
               setPricing(true)
             }}
           />
@@ -251,8 +280,11 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
           <AddRow
             label={text.portfolio.holding.addTransaction}
             onPress={() => {
-              setKind('buy')
-              setDate(today)
+              if (!resumeAdd('trade')) {
+                setKind('buy')
+                setDate(today)
+                clearEntry()
+              }
               setAdding(true)
             }}
             last={false}
@@ -260,8 +292,11 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
           <AddRow
             label={text.portfolio.holding.recordAdjustment}
             onPress={() => {
-              setKind('adjustment')
-              setDate(today)
+              if (!resumeAdd('adjustment')) {
+                setKind('adjustment')
+                setDate(today)
+                clearEntry()
+              }
               setAdding(true)
             }}
           />

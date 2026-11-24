@@ -7,6 +7,7 @@ import {
   formatEnergyDate,
   formatEnergyHour,
   formatEnergyNumber,
+  highestUsageSlot,
   type MirrorSlot,
   peakOf,
 } from '@gather/core/energy-present'
@@ -30,14 +31,17 @@ export function hourChartSentence(
   words: EnergyWords,
   locale: string,
 ): string {
-  const used = peakOf(slots, (slot) => slot.up)
-  if (!used) return words.usage.chartEmpty
-  const solar = peakOf(slots, (slot) => slot.down)
-  const sentence = fmt(words.usage.hourLabel, {
-    date: formatEnergyDate(day, locale, 'dayMonth'),
-    hour: formatEnergyHour(used.item.hourStart, locale),
-    kwh: formatEnergyNumber(used.value, locale, 2),
-  })
+  if (!peakOf(slots, (slot) => slot.up)) return words.usage.chartEmpty
+  const used = highestUsageSlot(slots, (slot) => slot.up)
+  const solar = highestUsageSlot(slots, (slot) => slot.down)
+  const date = formatEnergyDate(day, locale, 'dayMonth')
+  const sentence = used
+    ? fmt(words.usage.hourLabel, {
+        date,
+        hour: formatEnergyHour(used.item.hourStart, locale),
+        kwh: formatEnergyNumber(used.value, locale, 2),
+      })
+    : fmt(words.usage.hourLabelFlat, { date })
   return solar
     ? sentence +
         fmt(words.usage.hourLabelSolar, {
@@ -54,14 +58,17 @@ export function dayChartSentence(
   words: EnergyWords,
   locale: string,
 ): string {
-  const used = peakOf(slots, (slot) => slot.up)
-  if (!used) return words.usage.chartEmpty
-  const solar = peakOf(slots, (slot) => slot.down)
-  const sentence = fmt(words.usage.dayLabel, {
-    month: formatEnergyDate(month, locale, 'month'),
-    day: formatEnergyDate(used.item.day, locale, 'dayMonth'),
-    kwh: formatEnergyNumber(used.value, locale, 1),
-  })
+  if (!peakOf(slots, (slot) => slot.up)) return words.usage.chartEmpty
+  const used = highestUsageSlot(slots, (slot) => slot.up)
+  const solar = highestUsageSlot(slots, (slot) => slot.down)
+  const monthWord = formatEnergyDate(month, locale, 'month')
+  const sentence = used
+    ? fmt(words.usage.dayLabel, {
+        month: monthWord,
+        day: formatEnergyDate(used.item.day, locale, 'dayMonth'),
+        kwh: formatEnergyNumber(used.value, locale, 1),
+      })
+    : fmt(words.usage.dayLabelFlat, { month: monthWord })
   return solar
     ? sentence +
         fmt(words.usage.dayLabelSolar, {

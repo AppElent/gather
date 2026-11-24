@@ -60,7 +60,8 @@ export default function TabsLayout() {
     return onQuickSheetRequest(take)
   }, [])
 
-  // While the sheet is up, a link asks it in place instead of navigating.
+  // While the sheet is up, a home-screen action or the control asks it in place
+  // instead of navigating. A system link closes the sheet first (APP-747).
   useEffect(() => (launcherOpen ? markQuickSheetOpen() : undefined), [
     launcherOpen,
   ])
@@ -125,6 +126,10 @@ export default function TabsLayout() {
  */
 function SearchOriginTracker() {
   const pathname = usePathname()
-  useEffect(() => rememberSearchOrigin(pathname), [pathname])
+  const { group } = useGroup()
+  useEffect(
+    () => rememberSearchOrigin(pathname, group.slug),
+    [pathname, group.slug],
+  )
   return null
 }

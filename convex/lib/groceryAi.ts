@@ -41,6 +41,20 @@ export function groceryAislePrompt(name: string): string {
 }
 
 /**
+ * Everything that decides what the model answers: its id, the tool it must
+ * call and the prompt (with a placeholder for the name). The eval snapshot
+ * records a hash of this (APP-751), so a changed prompt, tool or model fails
+ * the eval until `scripts/groceries/ask-ai.ts` has been run again on dev.
+ */
+export function groceryAiFingerprint(): string {
+  return JSON.stringify({
+    model: SMALL_MODEL,
+    tool: AISLE_TOOL,
+    prompt: groceryAislePrompt('{name}'),
+  })
+}
+
+/**
  * Whether a name may be sent to the model at all. Anything that looks like
  * more than a product — an address, a phone or account number, a sentence —
  * stays in `other` rather than leave the server.

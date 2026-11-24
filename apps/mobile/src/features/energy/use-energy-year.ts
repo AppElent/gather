@@ -15,6 +15,7 @@ type MonthAnswer = {
   totals: {
     consumptionKwh: number
     daysWithData: number
+    costStatus: 'ok' | 'noData' | 'noContract' | 'noPrices'
     cost: { totalCents: number } | null
     costWithoutNet: { totalCents: number } | null
   }
@@ -76,9 +77,13 @@ export function useEnergyYear(
     const running = current.indexOf(thisMonth)
     return {
       kwh: series((totals) => totals.consumptionKwh),
-      cents: series((totals) => totals.cost?.totalCents ?? null),
-      centsWithoutNet: series(
-        (totals) => totals.costWithoutNet?.totalCents ?? null,
+      cents: series((totals) =>
+        totals.costStatus === 'ok' ? (totals.cost?.totalCents ?? null) : null,
+      ),
+      centsWithoutNet: series((totals) =>
+        totals.costStatus === 'ok'
+          ? (totals.costWithoutNet?.totalCents ?? null)
+          : null,
       ),
       runningIndex: running >= 0 ? running : null,
       loading: months.some((month) => answers[month] === undefined),

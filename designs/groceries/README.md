@@ -37,6 +37,7 @@ behaviour work as in Tasks unless this study says otherwise. Group: **Kitchen**
 | `Stock.dc.html` | In huis | APP-314 |
 | `Shop.dc.html`, `Shop-Dark.dc.html` | Shopping mode | APP-315 |
 | `Who.dc.html` (shared part; props `theme`, `size`, `text`), `Who-Dark`, `Who-SE`, `Who-Large` | Shopping mode: who checked an item, approved 21 Nov 2026; data model in [`APP-543-data-model.md`](APP-543-data-model.md) | APP-543 |
+| `composer_final/` (shared part `GCompose.dc.html`; `G664-Closed`, `-Typing`, `-Menu`, `-Burst`, `-Dark`), companion [`composer_final.md`](composer_final.md) | Keyboard composer, approved 23 Nov 2026; replaces the composer part of `Composer.dc.html` | APP-664 |
 | `canvas.json` | Positions, titles, sticky notes (the brief and rationale) | |
 | `Web*.dc.html`, [`web.md`](web.md) | The web version and its companion, approved 19 Nov 2026 (also the APP-300 Module layout) | APP-316, 300 |
 

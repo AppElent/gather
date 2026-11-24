@@ -1,3 +1,5 @@
+import { groupTimeZoneRefusal } from '@gather/core/refusals'
+import { isTimeZoneName } from '@gather/core/task-reminders'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
@@ -42,8 +44,30 @@ function isAdmin(membership: Doc<'memberships'>): boolean {
   return membership.role === 'admin'
 }
 
+/**
+ * A Group as `myGroups` lists it: the row without its invite code, plus the
+ * caller's role and the icon's URL. The validator is the boundary: connected
+ * apps (MCP, the TV) read this query too, and the code is a capability they
+ * never get. Screens that show it ask `groups.inviteCode`, which refuses
+ * connected apps (ADR-0046).
+ */
+const listedGroupValidator = v.object({
+  _id: v.id('groups'),
+  _creationTime: v.number(),
+  name: v.string(),
+  slug: v.string(),
+  isPersonal: v.optional(v.boolean()),
+  icon: v.optional(v.string()),
+  imageId: v.optional(v.id('_storage')),
+  timeZone: v.optional(v.string()),
+  groceryListId: v.optional(v.id('taskLists')),
+  imageUrl: v.union(v.string(), v.null()),
+  role: groupRoleValidator,
+})
+
 export const myGroups = query({
   args: {},
+  returns: v.array(listedGroupValidator),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx)
     if (!user) return []
@@ -67,8 +91,17 @@ export const myGroups = query({
             role: 'admin' | 'member'
           } => row.group !== null,
         )
+        // Field by field, never the whole row: see `listedGroupValidator`.
         .map(async ({ group, role }) => ({
-          ...group,
+          _id: group._id,
+          _creationTime: group._creationTime,
+          name: group.name,
+          slug: group.slug,
+          isPersonal: group.isPersonal,
+          icon: group.icon,
+          imageId: group.imageId,
+          timeZone: group.timeZone,
+          groceryListId: group.groceryListId,
           imageUrl: group.imageId
             ? await ctx.storage.getUrl(group.imageId)
             : null,
@@ -207,6 +240,29 @@ export const renameGroup = mutation({
       excludeGroupId: group._id,
     })
     await ctx.db.patch(group._id, { name: args.name, slug })
+    return null
+  },
+})
+
+/**
+ * The zone the Group's "today" is in (APP-475); null goes back to each
+ * device's own. Whoever may rename the Group may set it.
+ */
+export const setTimeZone = mutation({
+  args: {
+    groupId: v.id('groups'),
+    timeZone: v.union(v.string(), v.null()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { group, membership } = await requireMembership(ctx, args.groupId)
+    if (!isAdmin(membership)) {
+      throw new ConvexError(groupTimeZoneRefusal('admin-only'))
+    }
+    if (args.timeZone !== null && !isTimeZoneName(args.timeZone)) {
+      throw new ConvexError(groupTimeZoneRefusal('unknown-zone'))
+    }
+    await ctx.db.patch(group._id, { timeZone: args.timeZone ?? undefined })
     return null
   },
 })

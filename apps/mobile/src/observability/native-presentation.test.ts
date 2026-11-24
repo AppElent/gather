@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 // biome-ignore-all lint/correctness/useReactNativePlatformComponents: the test drives ActionSheetIOS, which the wrapper calls on iOS only.
 /**
  * The OS presentations hold shake-to-report while they are up and release on
@@ -11,10 +12,14 @@ import {
   requestMediaLibraryPermissionsAsync as nativeLibraryPermission,
 } from 'expo-image-picker'
 import { openBrowserAsync as nativeOpenBrowser } from 'expo-web-browser'
-import { ActionSheetIOS, Alert, type AlertButton } from 'react-native'
+import { createElement } from 'react'
+import { ActionSheetIOS, Alert, type AlertButton, Platform } from 'react-native'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { hasOpenPrompts } from '../components/openSheets'
+import { mount } from '../testing/dom'
 import {
+  ALERT_HOLD_MS,
   launchCameraAsync,
   launchImageLibraryAsync,
   openBrowserAsync,
@@ -22,7 +27,7 @@ import {
   requestMediaLibraryPermissionsAsync,
   showActionSheet,
   showAlert,
-  showPrompt,
+  usePrompt,
 } from './native-presentation'
 import {
   DISMISS_SETTLE_MS,
@@ -46,6 +51,17 @@ vi.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: vi.fn(),
   requestMediaLibraryPermissionsAsync: vi.fn(),
 }))
+
+let showPrompt: ReturnType<typeof usePrompt>
+/** A form that can prompt. */
+function form() {
+  return mount(
+    createElement(() => {
+      showPrompt = usePrompt()
+      return null
+    }),
+  )
+}
 
 const settle = () => vi.advanceTimersByTime(DISMISS_SETTLE_MS)
 const paused = () => vi.mocked(Sentry.disableFeedbackOnShake)
@@ -110,6 +126,16 @@ describe('showAlert', () => {
     expect(listening()).toHaveBeenCalledTimes(1)
   })
 
+  it('holds a share only when asked to, until it is answered', () => {
+    open([{ text: 'OK' }])
+    expect(hasOpenPrompts()).toBe(false)
+    vi.mocked(Alert.alert).mockClear()
+    showAlert('Title', undefined, [{ text: 'Stay' }], { holdsShare: true })
+    expect(hasOpenPrompts()).toBe(true)
+    vi.mocked(Alert.alert).mock.calls[0][2]?.[0].onPress?.()
+    expect(hasOpenPrompts()).toBe(false)
+  })
+
   it('releases when Alert.alert throws', () => {
     vi.mocked(Alert.alert).mockImplementation(() => {
       throw new Error('boom')
@@ -120,9 +146,10 @@ describe('showAlert', () => {
   })
 })
 
-describe('showPrompt', () => {
+describe('usePrompt', () => {
   it('pauses shake until a button, and passes the typed value on', () => {
     const onSave = vi.fn()
+    form()
     showPrompt(
       'Edit',
       undefined,
@@ -131,6 +158,7 @@ describe('showPrompt', () => {
       '2 eggs',
     )
     expect(paused()).toHaveBeenCalledTimes(1)
+    expect(hasOpenPrompts()).toBe(true)
     const [title, , buttons, type, value] = vi.mocked(Alert.prompt).mock
       .calls[0]
     expect([title, type, value]).toEqual(['Edit', 'plain-text', '2 eggs'])
@@ -138,8 +166,56 @@ describe('showPrompt', () => {
     const shown = buttons as AlertButton[]
     shown[1].onPress?.('3 eggs')
     expect(onSave).toHaveBeenCalledWith('3 eggs')
+    expect(hasOpenPrompts()).toBe(false)
     settle()
     expect(listening()).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('usePrompt, when nothing shows', () => {
+  afterEach(() => {
+    Platform.OS = 'ios'
+  })
+
+  it('holds nothing on Android, where no button ever comes back', () => {
+    Platform.OS = 'android'
+    form()
+    showPrompt('Edit', undefined, [{ text: 'Save' }])
+    expect(hasOpenPrompts()).toBe(false)
+    expect(paused()).not.toHaveBeenCalled()
+  })
+
+  it('releases when Alert.prompt throws', () => {
+    vi.mocked(Alert.prompt).mockImplementation(() => {
+      throw new Error('boom')
+    })
+    form()
+    expect(() => showPrompt('Edit', undefined, [])).toThrow('boom')
+    expect(hasOpenPrompts()).toBe(false)
+    settle()
+    expect(listening()).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('what a share waits for', () => {
+  it('waits for a prompt as long as the form that asked is there', () => {
+    const view = form()
+    showPrompt('Edit', undefined, [{ text: 'Save' }])
+    vi.advanceTimersByTime(ALERT_HOLD_MS * 2)
+    expect(hasOpenPrompts()).toBe(true)
+    view.unmount()
+    expect(hasOpenPrompts()).toBe(false)
+    // The dialog itself may still be up.
+    settle()
+    expect(listening()).not.toHaveBeenCalled()
+  })
+
+  it('stops waiting for an alert nobody answers', () => {
+    showAlert('Unsaved', undefined, [{ text: 'OK' }], { holdsShare: true })
+    vi.advanceTimersByTime(ALERT_HOLD_MS - 1)
+    expect(hasOpenPrompts()).toBe(true)
+    vi.advanceTimersByTime(1)
+    expect(hasOpenPrompts()).toBe(false)
   })
 })
 

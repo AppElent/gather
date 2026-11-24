@@ -32,7 +32,6 @@ import {
   swapPool,
 } from '@gather/core/meal-ideas'
 import type { MealSlot } from '@gather/core/meal-planner'
-import { WISH_MAX } from '@gather/core/week-plan'
 import { ConvexError, type Infer, v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
@@ -56,7 +55,7 @@ import { mealAt, mealPreferencesOf, membersOf } from './lib/mealPlan'
 import { recipesVisibleIn } from './lib/recipeShares'
 import { requireIdentity } from './lib/sharing'
 import { planMeal } from './mealPlan'
-import { planContext } from './mealPlanDrafts'
+import { cleanWish, planContext } from './mealPlanDrafts'
 
 const NOT_FOUND = 'Meal not found'
 /** Titles Nieuw idee is told not to repeat. */
@@ -213,10 +212,6 @@ export const view = internalQuery({
     return rows.filter((row) => row !== null)
   },
 })
-
-function cleanWish(wish: string | undefined) {
-  return wish?.replace(/\s+/g, ' ').trim().slice(0, WISH_MAX) || undefined
-}
 
 /**
  * Who asks, their context, and one call taken from today's cap (or null).

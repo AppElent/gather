@@ -30,6 +30,7 @@ import { useI18n } from '../../i18n'
 import type { Glyph } from '../../theme/glyph'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { useKeyboardDoneBar } from '../../ui/keyboard-done-bar'
 import { ModuleTile } from '../../ui/module-tile'
 import { FINANCE_ICONS } from './icons'
 
@@ -463,6 +464,9 @@ export function Field({
   suffix?: string
 }) {
   const tokens = useMoneyTokens()
+  const { inputAccessoryViewID, accessory, inputKey } = useKeyboardDoneBar({
+    keyboardType,
+  })
   return (
     <View style={styles.field}>
       <Text style={[styles.fieldLabel, { color: tokens.muted }]}>{label}</Text>
@@ -470,13 +474,16 @@ export function Field({
         {prefix ? (
           <Text style={[styles.affix, { color: tokens.muted }]}>{prefix}</Text>
         ) : null}
+        {accessory}
         <TextInput
+          key={inputKey}
           accessibilityLabel={label}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={tokens.muted}
           keyboardType={keyboardType}
+          inputAccessoryViewID={inputAccessoryViewID}
           autoFocus={autoFocus}
           style={[styles.input, { color: tokens.ink }]}
         />

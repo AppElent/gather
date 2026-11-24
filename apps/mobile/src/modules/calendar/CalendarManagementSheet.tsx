@@ -15,6 +15,7 @@ import { api } from '../../convex/api'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 
 export function CalendarManagementSheet({
   groupSlug,
@@ -37,7 +38,11 @@ export function CalendarManagementSheet({
   const add = useMutation(api.calendar.addCalendar)
   const update = useMutation(api.calendar.updateCalendar)
   const remove = useMutation(api.calendar.removeCalendar)
-  const [name, setName] = useState('')
+  // A share keeps the new calendar's name (APP-622).
+  const draft = useSheetDraft<{ name: string }>('calendar:new-calendar')
+  const [name, setName] = useState(draft.kept?.name ?? '')
+  const [adding, setAdding] = useState(false)
+  draft.track({ name }, { holding: adding })
   const colors: CalendarEvent['color'][] = [
     'home',
     'kitchen',
@@ -128,12 +133,21 @@ export function CalendarManagementSheet({
             style={[styles.input, { color: tokens.ink }]}
           />
           <Pressable
-            disabled={!serviceActionsEnabled || !name.trim()}
+            disabled={!serviceActionsEnabled || !name.trim() || adding}
             onPress={() => {
-              void add({ groupSlug, name: name.trim() }).then((id) => {
-                onCreated?.(id)
-                setName('')
-              })
+              setAdding(true)
+              void add({ groupSlug, name: name.trim() })
+                .then(
+                  (id) => {
+                    onCreated?.(id)
+                    setName('')
+                  },
+                  (caught) => {
+                    draft.failed()
+                    throw caught
+                  },
+                )
+                .finally(() => setAdding(false))
             }}
           >
             <Text style={{ color: tokens.accentText }}>

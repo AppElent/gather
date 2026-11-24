@@ -15,9 +15,12 @@ and previews live in the [Gather design system](https://claude.ai/artifact/Rwyfb
 The boards it was drawn from, and the council notes, are on the
 [directions canvas](https://claude.ai/artifact/RoKALMenqvjekPVR9BcHqv).
 
-The tokens live in `src/theme/`: neutrals in `palette.ts`; text styles
-(`TYPE`, `TABULAR`), spacing (`SPACE`), radii (`RADIUS`), sizes (`SIZE`) and
-`useTokens(group?)` in `tokens.ts`. Each Module group's four colours (`fill`,
+The tokens live in `src/theme/`: neutrals in `palette.ts` (`ground`, `surface`,
+`surface2`, `ink`, `muted`, `hair`, `hairStrong`, `danger`, `onInk`, where
+`hairStrong` is the stronger decorative rule for chart baselines, future-slot
+dashed outlines and non-text chart fills); text styles (`TYPE`, `TABULAR`),
+spacing (`SPACE`), radii (`RADIUS`), sizes (`SIZE`) and `useTokens(group?)` in
+`tokens.ts`. Each Module group's four colours (`fill`,
 `on`, `text`, `wash`) are `MODULE_TINTS` in `@gather/core/module-tints`.
 `src/theme/contrast.test.ts` holds every allowed text pair to 4.5:1 in both
 themes, and `scripts/check-mobile-structure.mjs` rejects a literal `fontSize`
@@ -146,6 +149,10 @@ haptics off, or while the camera or dictation is active.
   holds, so every deep-linkable screen opens cold with a working parent.
 - **Sheets** are `src/components/NativeSheet.tsx` around `@expo/ui`'s
   `BottomSheetModal`; the platform owns drag, keyboard, backdrop and dismissal.
+  A share closes every open sheet, and a sheet form keeps what was typed as a
+  draft: `useSheetDraft`, or `useSheetResume` when the screen holds the state
+  (`src/ui/sheet-drafts.ts`). A new sheet form uses one of them; the covered
+  list is in [Drop](../../docs/contracts/drop.md).
 - **Glass** (`expo-glass-effect`) only on chrome floating over scrolling
   content, and every layout must read correctly as the plain `View` it becomes
   below iOS 26 and on Android.

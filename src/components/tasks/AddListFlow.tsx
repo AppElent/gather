@@ -169,7 +169,7 @@ export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
                 disabled={busy}
                 onClick={() => void pickExternal(provider)}
               >
-                {fmt(addList.mirror, {
+                {fmt(provider === 'todoist' ? addList.linked : addList.mirror, {
                   provider: PROVIDER_LABELS[provider],
                 })}
               </button>

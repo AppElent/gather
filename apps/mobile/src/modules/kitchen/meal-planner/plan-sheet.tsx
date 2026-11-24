@@ -29,6 +29,7 @@ import { fmt, plural, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { InsetList, InsetRow } from '../../../ui/inset-list'
+import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { Chip } from './parts'
 import { type WeekData, weekRange } from './week'
 import {
@@ -45,9 +46,6 @@ export type PlanOutcome =
   | {
       status: 'ai' | 'fallback'
       count: number
-      /** What the plan was asked with, for Ander voorstel (APP-460). */
-      wishes: WeekPlanWish[]
-      wish?: string
     }
   | { status: 'empty' }
 
@@ -69,6 +67,7 @@ export function PlanSheet({
   weekStart: string
   data: WeekData
   onClose: () => void
+  /** After a plan came back; the sheet has closed itself. */
   onPlanned: (outcome: PlanOutcome) => void
   /** Zelf kiezen from the Limit card: Pick for the first empty slot. */
   onChooseYourself: (date: string, slot: MealSlot) => void
@@ -86,11 +85,27 @@ export function PlanSheet({
   const online = useConvexConnectionState().isWebSocketConnected
 
   const choices = useMemo(() => planSlotChoices(data.preferences), [data.preferences])
-  const [slots, setSlots] = useState<MealSlot[]>(() => defaultPlanSlots(choices))
-  const [flipped, setFlipped] = useState<ReadonlySet<string>>(new Set())
-  const [wish, setWish] = useState('')
-  const [wishes, setWishes] = useState<WeekPlanWish[]>([])
+  // A share keeps the week being asked for (APP-622).
+  const draft = useSheetDraft<{
+    slots: MealSlot[]
+    flipped: string[]
+    wish: string
+    wishes: WeekPlanWish[]
+  }>(`meal-planner:plan:${weekStart}`)
+  const kept = draft.kept
+  const [slots, setSlots] = useState<MealSlot[]>(
+    () => kept?.slots ?? defaultPlanSlots(choices),
+  )
+  const [flipped, setFlipped] = useState<ReadonlySet<string>>(
+    () => new Set(kept?.flipped ?? []),
+  )
+  const [wish, setWish] = useState(kept?.wish ?? '')
+  const [wishes, setWishes] = useState<WeekPlanWish[]>(kept?.wishes ?? [])
   const [busy, setBusy] = useState(false)
+  draft.track(
+    { slots, flipped: [...flipped].sort(), wish, wishes },
+    { holding: busy },
+  )
   const [failed, setFailed] = useState<string | null>(null)
   const [overCap, setOverCap] = useState(false)
 
@@ -124,30 +139,30 @@ export function PlanSheet({
     if (busy || targets.length === 0) return
     setBusy(true)
     setFailed(null)
-    const asked = {
-      wishes,
-      wish: wish.trim() ? wish.trim().slice(0, WISH_MAX) : undefined,
-    }
     propose({
       groupSlug: group.slug,
       weekStart,
       dates: fillDates,
       slots,
       locale,
-      ...asked,
+      wishes,
+      wish: wish.trim() ? wish.trim().slice(0, WISH_MAX) : undefined,
     })
       .then((result) => {
         if (result.status === 'limit') {
           haptics.actionFailed()
+          draft.failed()
           setOverCap(true)
           return
         }
         if (result.status === 'empty' || result.count === 0) haptics.actionFailed()
         else haptics.itemSaved()
-        onPlanned(result.status === 'empty' ? result : { ...result, ...asked })
+        if (!draft.gone()) onClose()
+        onPlanned(result)
       })
       .catch(() => {
         haptics.actionFailed()
+        draft.failed()
         setFailed(plan.failed)
       })
       .finally(() => setBusy(false))

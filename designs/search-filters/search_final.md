@@ -8,7 +8,7 @@ Approved by Eric on 23 Nov 2026 (decision card, "Beide goed"). Direction F1.
 
 ## The decision
 
-One search screen with shared filters. The Search tab opens it on All Modules. The search button in a Module pushes the same screen inside that Module's stack, with that Module preset as a filter. The phone never shows other Modules' results on a Module screen unless the person changes the filter.
+One search screen with shared filters. The Search tab opens it on All Modules, or, tapped while you stand in a Module search covers, with that Module selected (APP-660). The search button in a Module pushes the same screen inside that Module's stack, with that Module preset as a filter. The phone never shows other Modules' results on a Module screen unless the person changes the filter.
 
 Rejected in the rounds: a filter row inside each Module only (A), results from all of Gather on the Module screen (D), filters docked above the bottom search bar (F2). F2 failed because the native search bar cannot host views, a hand-made row that tracks the bar and keyboard is fragile on iOS 26, and results would get about a third of the screen while typing.
 

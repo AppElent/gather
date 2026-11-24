@@ -42,7 +42,7 @@ import {
   groceryUnitValidator,
 } from './lib/groceryFields'
 import { groupRoleValidator } from './lib/groupAccess'
-import { mealSlotValidator, quickLimitValidator } from './lib/kitchen'
+import { mealSlotValidator, quickLimitValidator, weekPlanWishValidator } from './lib/kitchen'
 import {
   barcodeFormatValidator,
   formatConfidenceValidator,
@@ -137,6 +137,9 @@ export default defineSchema({
     isPersonal: v.optional(v.boolean()),
     icon: v.optional(v.string()),
     imageId: v.optional(v.id('_storage')),
+    // IANA zone of the Group's calendar "today" (APP-475), validated by
+    // `groups.setTimeZone`. Absent: clients use the device's zone.
+    timeZone: v.optional(v.string()),
     // The list the Groceries Module opened before a Group could have several
     // grocery lists (APP-313). Installed phones still read it through
     // `kitchen.groceries` and write it through `kitchen.setGroceryList`; a
@@ -431,7 +434,19 @@ export default defineSchema({
     // added; the creator is the last editor of those.
     updatedBy: v.optional(v.id('users')),
     updatedAt: v.number(),
-  }).index('by_group', ['groupId']),
+  })
+    .index('by_group', ['groupId'])
+    // Newest first, page by page (`notes.listPage`, APP-700).
+    .index('by_group_and_updatedAt', ['groupId', 'updatedAt'])
+    // A search index covers one field, so a note has two (`lib/noteSearch.ts`).
+    .searchIndex('search_title', {
+      searchField: 'title',
+      filterFields: ['groupId'],
+    })
+    .searchIndex('search_body', {
+      searchField: 'body',
+      filterFields: ['groupId'],
+    }),
 
   mealEntries: defineTable({
     groupId: v.id('groups'),
@@ -484,7 +499,9 @@ export default defineSchema({
   // `quickMeal` is set; `mealEntryId` when the quick meal is one the Group
   // has. `reason` is the model's line; `source` says which planner chose it:
   // the model (`ai`), the rules for a slot the model left open (`rules`), or
-  // the rules because the model was not reachable (`fallback`).
+  // the rules because the model was not reachable (`fallback`). `wishes` and
+  // `wish` are what the start sheet asked for, on every row, so Ander voorstel
+  // keeps them for every Member (APP-679); absent when nothing was asked.
   mealPlanDrafts: defineTable({
     groupId: v.id('groups'),
     /** Monday of the week, `YYYY-MM-DD`. */
@@ -497,6 +514,8 @@ export default defineSchema({
     prepMinutes: v.optional(v.number()),
     reason: v.optional(v.string()),
     source: v.union(v.literal('ai'), v.literal('rules'), v.literal('fallback')),
+    wishes: v.optional(v.array(weekPlanWishValidator)),
+    wish: v.optional(v.string()),
     createdBy: v.id('users'),
     expiresAt: v.number(),
   })
@@ -531,6 +550,12 @@ export default defineSchema({
     /** A pantry entry's free quantity ("2 pakken"), kept from the migration. */
     note: v.optional(v.string()),
     createdBy: v.id('users'),
+    /**
+     * The Members, other than its maker, who added it again since (APP-681):
+     * the maker's undo leaves a staple somebody else keeps. Each is here once,
+     * and goes when they leave the Group (`detachFromGroup`).
+     */
+    keptBy: v.optional(v.array(v.id('users'))),
   })
     .index('by_group', ['groupId'])
     .index('by_group_and_key', ['groupId', 'key']),

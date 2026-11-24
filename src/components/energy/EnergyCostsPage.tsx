@@ -1,5 +1,7 @@
 import {
   addEnergyMonths,
+  energyCostDays,
+  energyCostPeriod,
   forecastMonthCents,
   netMeteringPossibleIn,
 } from '@gather/core/energy'
@@ -8,6 +10,7 @@ import {
   formatEnergyDate,
   formatEnergyEuro,
   formatEnergyNumber,
+  highestCostDay,
   monthName,
   peakOf,
   yearPairHeights,
@@ -143,11 +146,17 @@ function nowNote(
       : fmt(copy.noteWithoutSame, { month: monthWord })
   }
   const total = costOf(period, method)
-  const before = costOf(previous, method)
+  const before =
+    previous?.totals.costStatus === 'ok' ? costOf(previous, method) : null
   const previousWord = monthTitle(addEnergyMonths(month, -1), locale)
   const forecast =
     month === thisMonth && total
-      ? forecastMonthCents(total.totalCents, period.totals.daysWithData, month)
+      ? forecastMonthCents(
+          total,
+          period.totals.daysWithData - period.totals.costMissingDays,
+          energyCostDays(period.days),
+          month,
+        )
       : null
   const notes: string[] = []
   if (before && forecast !== null) {
@@ -201,6 +210,9 @@ function MonthCosts({
   const monthWord = formatEnergyDate(month, locale, 'month')
   const cost = costOf(period, method)
   const status = totals.costStatus
+  // Fixed costs run per elapsed day, so the total covers the days that carry a
+  // cost (to today, or the month's end), not only the days a reading reaches.
+  const covered = energyCostPeriod(period.days)
 
   const missing =
     status === 'noData'
@@ -218,11 +230,11 @@ function MonthCosts({
           <p className="m-0 text-base">{missing ?? copy.noContract}</p>
         ) : (
           <>
-            {totals.firstDay && totals.lastDay ? (
+            {covered ? (
               <span className="text-sm text-[var(--muted)]">
                 {fmt(copy.range, {
-                  from: formatEnergyDate(totals.firstDay, locale, 'dayMonth'),
-                  to: formatEnergyDate(totals.lastDay, locale, 'dayMonth'),
+                  from: formatEnergyDate(covered.from, locale, 'dayMonth'),
+                  to: formatEnergyDate(covered.to, locale, 'dayMonth'),
                 })}
               </span>
             ) : null}
@@ -296,21 +308,26 @@ function PerDayChart({
   const month = period.days[0]?.day.slice(0, 7) ?? today.slice(0, 7)
   const monthWord = formatEnergyDate(month, locale, 'month')
   const dayCost = (day: EnergyPeriod['days'][number]) => {
+    if (period.totals.costStatus !== 'ok') return null
     const cost = method === 'without' ? day.costWithoutNet : day.cost
     return cost ? cost.totalCents : null
   }
-  const peak = peakOf(period.days, dayCost)
-  const max = peak?.value ?? 0
-  const label = peak
-    ? fmt(copy.perDayLabel, {
-        month: monthWord,
-        day: formatEnergyDate(peak.item.day, locale, 'dayMonth'),
-        amount: formatEnergyEuro(peak.value, locale),
-      })
-    : fmt(copy.perDayEmpty, { month: monthWord })
+  const hasAny = period.days.some((day) => dayCost(day) !== null)
+  const max = peakOf(period.days, dayCost)?.value ?? 0
+  const peak = highestCostDay(period.days, dayCost)
+  const label = !hasAny
+    ? fmt(copy.perDayEmpty, { month: monthWord })
+    : peak
+      ? fmt(copy.perDayLabel, {
+          month: monthWord,
+          day: formatEnergyDate(peak.item.day, locale, 'dayMonth'),
+          amount: formatEnergyEuro(peak.value, locale),
+        })
+      : fmt(copy.perDayPlain, { month: monthWord })
+  const sentence = !hasAny || peak ? label : null
   const height = 80
   return (
-    <ChartFigure title={copy.perDay} label={label} sentence={label}>
+    <ChartFigure title={copy.perDay} label={label} sentence={sentence}>
       <div aria-hidden="true" className="grid">
         <div className="flex items-end gap-[2px]" style={{ height }}>
           {period.days.map((day) => {
@@ -403,7 +420,7 @@ function PerMonthChart({
       aside={
         <Link
           {...linkTo('energyUsage')}
-          search={{ range: 'year' }}
+          search={{ range: 'year', year }}
           className="text-sm text-[var(--accent-text)] no-underline hover:underline"
         >
           {copy.yearLink} ›
@@ -438,14 +455,29 @@ function Breakdown({
   const totals = period.totals
   const euro = (cents: number) => formatEnergyEuro(cents, locale)
   const kwh = (value: number) => formatEnergyNumber(value, locale)
+  const fixedDays = energyCostDays(period.days)
   const days =
-    totals.daysWithData === 1
-      ? copy.day
-      : fmt(copy.days, { count: totals.daysWithData })
+    fixedDays === 1 ? copy.day : fmt(copy.days, { count: fixedDays })
   const netted =
     method === 'with' &&
     period.netMeteringChoice &&
     netMeteringPossibleIn(period.days[0]?.day.slice(0, 7) ?? '')
+  const fixedRows = (
+    <>
+      <ValueRow
+        label={copy.lineFixed}
+        sub={days}
+        value={euro(cost.fixedCents)}
+      />
+      <ValueRow
+        label={copy.lineCredit}
+        sub={days}
+        value={euro(cost.creditCents)}
+      />
+    </>
+  )
+  // Usage without prices, or none yet: only the fixed costs are known.
+  if (totals.costStatus !== 'ok') return <RowList>{fixedRows}</RowList>
   return (
     <RowList>
       <ValueRow
@@ -473,12 +505,7 @@ function Breakdown({
           value={euro(cost.gasCents)}
         />
       ) : null}
-      <ValueRow label={copy.lineFixed} sub={days} value={euro(cost.fixedCents)} />
-      <ValueRow
-        label={copy.lineCredit}
-        sub={days}
-        value={euro(cost.creditCents)}
-      />
+      {fixedRows}
     </RowList>
   )
 }

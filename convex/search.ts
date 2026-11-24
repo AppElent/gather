@@ -1,7 +1,16 @@
-import { type Infer, v } from 'convex/values'
+import {
+  amsterdamIsoDate,
+  isIsoDate,
+  isoDateIn,
+} from '@gather/core/civil-date'
+import { matchesRowFilters } from '@gather/core/search-filters'
+import { isTimeZone } from '@gather/core/task-reminders'
+import { ConvexError, type Infer, v } from 'convex/values'
 
 import { query } from './_generated/server'
 import { isVisibleToGroups, requireGroupBySlug } from './lib/groupAccess'
+import { findNotes, noteExcerpt } from './lib/noteSearch'
+import { normalized } from './lib/searchText'
 import { tastingKindValidator } from './lib/tastings'
 
 const RESULT_LIMIT = 30
@@ -66,10 +75,6 @@ const resultValidator = v.object({
 
 type SearchResult = Infer<typeof resultValidator> & { rank: number }
 
-function normalized(value: string) {
-  return value.trim().toLocaleLowerCase()
-}
-
 function matchRank(title: string, supportingText: string[], needle: string) {
   const primary = normalized(title)
   if (primary === needle) return 0
@@ -94,7 +99,8 @@ function matched(
  * records in one authorization-aware query so the phone never combines module
  * lists or learns about data it could not otherwise read.
  *
- * The fan-out is globally bounded below Convex's read limit. That is a safety
+ * Notes come from their search indexes and their newest records (APP-348,
+ * `lib/noteSearch.ts`); the other tables are still scanned. The fan-out is globally bounded below Convex's read limit. That is a safety
  * boundary for this pre-indexed first release, not pagination; promote it to a
  * maintained full-text projection when real Group volumes require it.
  */
@@ -109,10 +115,35 @@ export const group = query({
      * (APP-613): Wines reads wines, so beers and cheeses cannot crowd it out.
      */
     kind: v.optional(tastingKindValidator),
+    /**
+     * The filters, applied before the 30 rows are taken (APP-633) by the
+     * phone's own rules (`@gather/core/search-filters`). Optional: a client
+     * from before them filters the rows it gets.
+     */
+    createdBy: v.optional(v.string()),
+    when: v.optional(
+      v.union(
+        v.literal('today'),
+        v.literal('week'),
+        v.literal('month'),
+        v.literal('earlier'),
+      ),
+    ),
+    status: v.optional(v.union(v.literal('open'), v.literal('done'))),
+    /**
+     * The reader's civil date and IANA zone, which only `when` uses. Absent,
+     * the zone is the Netherlands' and the date is today there.
+     */
+    today: v.optional(v.string()),
+    timeZone: v.optional(v.string()),
   },
   returns: v.array(resultValidator),
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    if (args.today !== undefined && !isIsoDate(args.today))
+      throw new ConvexError('Invalid date')
+    if (args.timeZone !== undefined && !isTimeZone(args.timeZone))
+      throw new ConvexError('Invalid time zone')
     const needle = normalized(args.query)
     if (needle.length < 2) return []
     const accepts = new Set<ResultType>(args.accepts ?? ORIGINAL_TYPES)
@@ -143,11 +174,7 @@ export const group = query({
               .take(GROUP_RECORD_LIMIT - sharedIds.length)
           : none,
         accepts.has('note')
-          ? ctx.db
-              .query('notes')
-              .withIndex('by_group', (q) => q.eq('groupId', groupId))
-              .order('desc')
-              .take(GROUP_RECORD_LIMIT)
+          ? findNotes(ctx, groupId, args.query)
           : none,
         accepts.has('tasting')
           ? args.kind
@@ -237,26 +264,18 @@ export const group = query({
         )
         return found ? [found] : []
       }),
-      ...notes.flatMap((note) => {
-        const found = matched(
-          {
-            id: note._id,
-            type: 'note',
-            title: note.title,
-            tags: [],
-            excerpt:
-              note.body
-                .split('\n')
-                .find((line) => line.trim())
-                ?.trim() ?? '',
-            createdBy: note.createdBy,
-            creationTime: note._creationTime,
-          },
-          [note.body],
-          needle,
-        )
-        return found ? [found] : []
-      }),
+      // Already matches: the rank only orders them, and words that are not
+      // next to each other rank with a match in the body.
+      ...notes.map((note): SearchResult => ({
+        id: note._id,
+        type: 'note',
+        title: note.title,
+        tags: [],
+        excerpt: noteExcerpt(note.body),
+        createdBy: note.createdBy,
+        creationTime: note._creationTime,
+        rank: matchRank(note.title, [], needle) ?? 3,
+      })),
       ...subjects.flatMap((subject) => {
         const found = matched(
           {
@@ -336,8 +355,23 @@ export const group = query({
       }),
     ]
 
+    const dayAt =
+      args.when && args.timeZone ? isoDateIn(args.timeZone) : amsterdamIsoDate
+    // The clock is read only when needed: it would make the result uncacheable.
+    const today = args.today ?? (args.when ? dayAt(Date.now()) : '')
+    const calendar = { today, dayAt }
+    const filters = {
+      who: args.createdBy,
+      when: args.when,
+      status: args.status,
+    }
+
     return results
-      .filter((result) => accepts.has(result.type))
+      .filter(
+        (result) =>
+          accepts.has(result.type) &&
+          matchesRowFilters(result, filters, calendar),
+      )
       .sort(
         (a, b) =>
           a.rank - b.rank ||

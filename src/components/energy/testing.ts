@@ -1,4 +1,5 @@
-import { energyMonthDays } from '@gather/core/energy'
+import { amsterdamDayHours, energyMonthDays } from '@gather/core/energy'
+import type { EnergyPriceDay, EnergyPriceView } from '@gather/core/energy-present'
 import type { EnergyPeriod } from './energyShared'
 
 /**
@@ -104,6 +105,50 @@ export function monthPeriod(
       costMissingDays: 0,
       costStatus: past.length === 0 ? 'noData' : 'ok',
     },
+    ...overrides,
+  }
+}
+
+/**
+ * Prices as `energyPrices.view` returns them, for 20 and 21 November 2026:
+ * 30 cents, with 20 in hours 2 to 4 and 40 at 19:00; tomorrow 10 from 13:00.
+ */
+export function priceDay(
+  date: string,
+  changes: Record<number, number>,
+  overrides: Partial<EnergyPriceDay> = {},
+): EnergyPriceDay {
+  return {
+    day: date,
+    provider: 'energyzero',
+    basis: 'allIn',
+    terms: {
+      supplierName: 'Frank Energie',
+      importMarkupEurPerKwh: 0.02,
+      energyTaxEurPerKwh: 0.1,
+      vatPercent: 21,
+    },
+    exportFeeEurPerKwh: -0.01,
+    hours: amsterdamDayHours(date).map((start, index) => {
+      const price = changes[index] ?? 0.3
+      return { start, price, market: price / 1.21 - 0.12 }
+    }),
+    ...overrides,
+  }
+}
+
+export function priceView(overrides: Partial<EnergyPriceView> = {}): EnergyPriceView {
+  return {
+    siteName: 'Thuis',
+    canManage: true,
+    provider: 'energyzero',
+    hasKey: false,
+    status: 'ok',
+    lastError: null,
+    lastFetchedAt: Date.parse('2026-11-20T12:35:00Z'),
+    contract: { kind: 'dynamic', supplierName: 'Frank Energie' },
+    today: priceDay('2026-11-20', { 2: 0.2, 3: 0.2, 4: 0.2, 19: 0.4, 0: 0.35, 1: 0.35, 5: 0.35 }),
+    tomorrow: priceDay('2026-11-21', { 13: 0.1, 14: 0.1, 15: 0.1, 18: 0.5 }),
     ...overrides,
   }
 }

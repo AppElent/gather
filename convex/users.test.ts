@@ -297,3 +297,14 @@ describe('my name in my Groups (APP-663)', () => {
     expect(after?.name).toBe('Sanne Bos')
   })
 })
+
+describe('my name sent by the app (APP-676)', () => {
+  test('repairs "Member" when the token carries no name at all', async () => {
+    const t = testConvex()
+    const identity = { subject: 'clerk_eric' }
+    await t.withIdentity(identity).mutation(api.users.ensureUser, {})
+    await t.withIdentity(identity).mutation(api.users.ensureUser, { name: 'Eric Jansen' })
+    const me = await t.withIdentity(identity).query(api.users.me, {})
+    expect(me?.name).toBe('Eric Jansen')
+  })
+})

@@ -29,6 +29,7 @@ import { NativeSheet } from '../../components/NativeSheet'
 import { api, type Id } from '../../convex/api'
 import { useI18n } from '../../i18n'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 
 export type QuickListKind = 'todo' | 'question'
 
@@ -55,8 +56,13 @@ export function QuickListSheet({
   const add = useMutation(api.tasks.add)
   const ensureLists = useMutation(api.babies.ensureAuxLists)
 
-  const [title, setTitle] = useState('')
+  // A share keeps the line (APP-622), per Child and list kind.
+  const draft = useSheetDraft<{ title: string }>(
+    `baby-log:list:${babyId}:${kind}`,
+  )
+  const [title, setTitle] = useState(draft.kept?.title ?? '')
   const [saving, setSaving] = useState(false)
+  draft.track({ title }, { holding: saving })
   const [failed, setFailed] = useState(false)
 
   const text = t.baby.log.quickLog
@@ -76,8 +82,9 @@ export function QuickListSheet({
           kind === 'todo' ? 'taskListId' : 'questionsListId'
         ]
       await add({ listId: target, groupSlug, title: title.trim() })
-      onClose()
+      if (!draft.gone()) onClose()
     } catch {
+      draft.failed()
       setFailed(true)
       setSaving(false)
     }

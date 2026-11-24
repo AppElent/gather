@@ -169,8 +169,14 @@ export function CalendarEditorCard({
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.body}
         >
+          {/* Locked while it saves; `calendarDraft.ts` refuses changes too. */}
+          <View
+            pointerEvents={saving ? 'none' : 'auto'}
+            style={[styles.fields, saving && styles.locked]}
+          >
           <Field label={t.calendar.title} error={errorText(errors.title)}>
             <TextInput
+              editable={!saving}
               testID="calendar-title"
               // Not in the sheet: focusing while the native sheet presents
               // leaves it blank, and All details arrives there with a title.
@@ -339,6 +345,7 @@ export function CalendarEditorCard({
                 error={errorText(errors.location)}
               >
                 <TextInput
+                  editable={!saving}
                   value={draft.values.location ?? ''}
                   onChangeText={(value) => onChange('location', value)}
                   placeholder={t.calendar.locationPlaceholder}
@@ -351,6 +358,7 @@ export function CalendarEditorCard({
               </Field>
               <Field label={t.calendar.notes} error={errorText(errors.notes)}>
                 <TextInput
+                  editable={!saving}
                   multiline
                   value={draft.values.notes ?? ''}
                   onChangeText={(value) => onChange('notes', value)}
@@ -374,6 +382,7 @@ export function CalendarEditorCard({
               <Text style={{ color: tokens.accentText }}>{t.calendar.expand}</Text>
             </Pressable>
           ) : null}
+          </View>
         </ScrollView>
         {draftError ? (
           <Text style={[styles.error, { color: tokens.danger }]}>
@@ -397,12 +406,12 @@ export function CalendarEditorCard({
         </View>
         {draft.mode === 'edit' ? (
           <View style={styles.secondary}>
-            <Pressable onPress={onDuplicate}>
+            <Pressable disabled={saving} onPress={onDuplicate}>
               <Text style={{ color: tokens.accentText }}>
                 {t.calendar.duplicate}
               </Text>
             </Pressable>
-            <Pressable onPress={onDelete}>
+            <Pressable disabled={saving} onPress={onDelete}>
               <Text style={{ color: tokens.danger }}>
                 {t.calendar.deleteEvent}
               </Text>
@@ -438,7 +447,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headingText: { ...TYPE.title2 },
-  body: { gap: 12, paddingVertical: 12 },
+  body: { paddingVertical: 12 },
+  fields: { gap: 12 },
+  locked: { opacity: 0.6 },
   field: { gap: 5 },
   label: { ...TYPE.footnoteStrong },
   input: {

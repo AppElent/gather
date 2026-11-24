@@ -8,6 +8,7 @@
  */
 
 import { localIsoDate } from '@gather/core/civil-date'
+import { STATUS_VALUES, WHEN_VALUES } from '@gather/core/search-filters'
 import {
   Stack,
   useIsFocused,
@@ -31,11 +32,13 @@ import { useQuery } from '../convex/queries'
 import { useGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
 import { moduleShown } from '../modules/buildModules'
+import { deviceTimeZone } from '../modules/tasks/reminder'
 import { useHideTabBarWhile } from '../shell/tabBarVisibility'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import { ModuleTile, moduleTile } from '../ui/module-tile'
 import { SectionLabel } from '../ui/section-label'
+import { useDebouncedQuery } from '../ui/use-debounced-query'
 import { FilterChipRow, MenuChip, type MenuChoice, ModuleChip } from './FilterChips'
 import { ModuleSheet } from './ModuleSheet'
 import {
@@ -57,15 +60,18 @@ import {
   narrowed,
   type SearchFilters,
   type SearchModuleId,
-  STATUS_VALUES,
   searchKindOf,
   searchModulesShown,
+  serverFilters,
   typesFor,
-  WHEN_VALUES,
   withModule,
 } from './searchFilters'
 import { onSearchFocusRequest } from './searchFocus'
-import { searchOrigin } from './searchOrigin'
+import {
+  filtersOnArrival,
+  searchOrigin,
+  searchOriginModule,
+} from './searchOrigin'
 import {
   hrefFor,
   type QueryResult,
@@ -73,21 +79,12 @@ import {
   type SearchStack,
   toRecent,
 } from './searchResults'
+import { useGroupSearch } from './useGroupSearch'
 
-const SEARCH_DELAY_MS = 200
 const MINIMUM_QUERY = 2
 const SKELETON_ROWS = 4
 /** How much of Recent shows before the chevron is worth pressing. */
 const COLLAPSED_RECENTS = 4
-
-function useDebouncedQuery(query: string) {
-  const [debounced, setDebounced] = useState(query)
-  useEffect(() => {
-    const timeout = setTimeout(() => setDebounced(query), SEARCH_DELAY_MS)
-    return () => clearTimeout(timeout)
-  }, [query])
-  return debounced
-}
 
 /**
  * Enough of a React Navigation navigator to find the tab bar and jump tabs.
@@ -136,8 +133,8 @@ const ANY = 'any'
 
 /**
  * The one search screen (APP-613). The Search tab renders it in its own
- * stack (All Modules); a Module's search button pushes it inside All's stack
- * with that Module preset. Everything the two share — the native bar, the
+ * stack, on the Module you tapped it from or All Modules (APP-660); a Module's
+ * search button pushes it inside All's stack with that Module preset. Everything the two share — the native bar, the
  * filters, the results, Recents — is here; what differs follows from `stack`:
  * where results open, what Cancel does, the tab bar, and the tab-only focus
  * wiring. The preset only seeds the Module filter.
@@ -165,9 +162,14 @@ export function SearchScreen({
   const navigation = useNavigation<Navigator>()
   const searchRef = useRef<SearchBarCommands>(null)
   const [text, setText] = useState('')
+  // The tab starts on the Module you came from (APP-660); a pushed search on
+  // its preset. `applied` is the origin Module the filter was last set from,
+  // so a later tap on the tab only moves the filter when you come from a
+  // different place, and a Module chosen by hand survives a round trip.
   const [filters, setFilters] = useState<SearchFilters>(() =>
-    initialFilters(preset ?? null),
+    initialFilters(pushed ? (preset ?? null) : searchOriginModule(group.slug)),
   )
+  const applied = useRef(pushed ? null : searchOriginModule(group.slug))
   const [choosingModule, setChoosingModule] = useState(false)
   const [recents, setRecents] = useState(readRecentRecords)
   const [expanded, setExpanded] = useState(false)
@@ -175,8 +177,8 @@ export function SearchScreen({
   const trimmed = text.trim()
   const ready = trimmed.length >= MINIMUM_QUERY
   const settled = debounced.trim() === trimmed
-  const results = useQuery(
-    api.search.group,
+  const today = localIsoDate()
+  const results = useGroupSearch(
     ready && settled
       ? {
           groupSlug: group.slug,
@@ -185,7 +187,8 @@ export function SearchScreen({
           // Wines asks for wines, so beers and cheeses cannot take its 30 rows.
           kind: searchKindOf(filters.module) ?? undefined,
         }
-      : 'skip',
+      : null,
+    serverFilters(filters, today, deviceTimeZone()),
   )
   const members = useQuery(api.groups.members, { slug: group.slug })
   const me = useQuery(api.users.me, {})
@@ -271,9 +274,17 @@ export function SearchScreen({
     if (pushed) return
     return onSearchFocusRequest(() => {
       setRecents(readRecentRecords())
+      // Arriving from another Module selects it; from Home, Settings or the
+      // All grid, All Modules. From the same place as last time, or tapping
+      // the tab while already on Search, keeps the Module the person chose.
+      // The query is kept either way.
+      const from = searchOriginModule(group.slug)
+      const before = applied.current
+      applied.current = from
+      setFilters((current) => filtersOnArrival(current, before, from))
       searchRef.current?.focus()
     })
-  }, [pushed])
+  }, [pushed, group.slug])
 
   const clear = () => {
     setText('')
@@ -348,7 +359,6 @@ export function SearchScreen({
       )
     })
 
-  const today = localIsoDate()
   const filtered = shown ? applyFilters(shown, filters, today) : null
   const found = filtered?.map((result) => ({
     result,

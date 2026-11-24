@@ -85,6 +85,21 @@ export function useEnergyToday() {
   return clock
 }
 
+/** The same, moving with the minute: for what is said about this hour. */
+export function useEnergyMinute() {
+  const [clock, setClock] = useState(readEnergyClock)
+  useEffect(() => {
+    const refresh = () => setClock(readEnergyClock())
+    const timer = setInterval(refresh, 60_000)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [])
+  return clock
+}
+
 /** The trail from Energy to a page below it. */
 export function energyTrail(messages: Messages, label: string): Crumb[] {
   return [
@@ -234,10 +249,13 @@ export function NavRow({
   link,
   label,
   sub,
+  danger = false,
 }: {
   link: AppLink
   label: string
   sub?: string
+  /** The second line says something needs attention. */
+  danger?: boolean
 }) {
   return (
     <Link
@@ -247,7 +265,11 @@ export function NavRow({
       <span className="grid min-w-0 flex-1">
         <span className="text-base">{label}</span>
         {sub ? (
-          <span className="text-sm text-[var(--muted)]">{sub}</span>
+          <span
+            className={`text-sm ${danger ? 'font-semibold text-[var(--danger)]' : 'text-[var(--muted)]'}`}
+          >
+            {sub}
+          </span>
         ) : null}
       </span>
       <ChevronRight
@@ -255,6 +277,43 @@ export function NavRow({
         aria-hidden="true"
       />
     </Link>
+  )
+}
+
+/** An on/off switch; the words it is labelled by sit beside it. */
+export function Switch({
+  on,
+  onChange,
+  label,
+  describedBy,
+  disabled = false,
+}: {
+  on: boolean
+  onChange: (on: boolean) => void
+  label: string
+  describedBy?: string
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      aria-describedby={describedBy}
+      disabled={disabled}
+      onClick={() => onChange(!on)}
+      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+        on ? 'bg-[var(--accent-text)]' : 'bg-[var(--hair)]'
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${
+          on ? 'translate-x-5' : 'translate-x-0.5'
+        }`}
+      />
+    </button>
   )
 }
 
@@ -369,7 +428,7 @@ export function ChartFigure({
   title: string
   aside?: ReactNode
   label: string
-  sentence: string
+  sentence?: string | null
   children: ReactNode
   legend?: Parameters<typeof Legend>[0]['items']
 }) {
@@ -381,7 +440,7 @@ export function ChartFigure({
       </div>
       {children}
       {legend ? <Legend items={legend} /> : null}
-      <figcaption className="text-sm">{sentence}</figcaption>
+      {sentence ? <figcaption className="text-sm">{sentence}</figcaption> : null}
     </figure>
   )
 }
@@ -575,6 +634,7 @@ export function monthFigure(
 ): number | null {
   if (!period || period.totals.daysWithData === 0) return null
   if (unit === 'kwh') return period.totals.consumptionKwh
+  if (period.totals.costStatus !== 'ok') return null
   const cost = withoutNet ? period.totals.costWithoutNet : period.totals.cost
   return cost ? cost.totalCents : null
 }

@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.5.0
+version: 2.7.0
 status: current
 ---
 
@@ -25,10 +25,14 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
 - **Energy** (ADR-0051): every Energy table but `energyPrices` carries a
   `groupId` and is read by `by_group`. A Group's price feeds take the account
   prices fetched through them (`energyPrices` by `feedId`); market prices have
-  no feed and no Group and stay. Deleting a House only clears an Address's
-  link to it. The cascade deletes a Group in one transaction, which holds
-  while the hourly intervals are few; paging them is APP-495's, before Home
-  Assistant fills them.
+  no feed and no Group and stay. The feed and its key go with the Group's own
+  transaction; its account prices, some 35,000 a year, go right after, 1,000 at
+  a time (`cascade.purgeAccountPrices`, APP-493). Deleting a House only clears
+  an Address's link to it. Deleting a Group does not hold the
+  hourly intervals and readings in its own transaction: a year of seven hourly
+  channels is some 61,000 rows. `cascade.purgeEnergyRows` deletes them 1,000
+  at a time right after. Nothing can read them meanwhile, because the Group is
+  gone, and no sync adds to them, because its source is (APP-495).
 - A repeating task's completion history (`taskCompletions`, APP-303) carries
   its `groupId`, so it goes with the Group, and with its task or list when
   either is deleted. A Member who leaves a shared Group stays named on the
@@ -75,7 +79,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   they added to a household stays with the household. `detachFromGroup` takes
   them out of it the same way whether they left or deleted their account: a cost
   split naming them is cleared, a saved split scenario keeps their name
-  without their id, and a calendar event drops them from its assignees.
+  without their id, a calendar event drops them from its assignees, and a
+  staple they kept (`groceryStaples.keptBy`, APP-681) no longer names them.
 - **Two choices, Gather's data first** ([ADR-0050](../adr/0050-deleting-gather-data-keeps-the-appelent-login.md)).
   Gather shares its Clerk login with Foundry, Fairway and Arcade Club. "Delete
   Gather data only" runs the purge with `keepLogin`, never calls
@@ -120,6 +125,15 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   again (Clerk only) and Sign out (`apps/mobile/src/features/account/delete/`).
   The refusal is held in memory, so it lasts while the app is open and signed
   in.
+- **On the phone, only the login that confirmed is deleted** (APP-396). The
+  user and session are remembered at the confirmation and checked before the
+  Apple sheet, before its code is sent (APP-745), before the purge and again
+  just before `user.delete()`. Changed before the purge: nothing is deleted.
+  Changed after it: nothing is deleted on Clerk, and the
+  stranded state is shown, where signing out is the way on. Signing out
+  during the purge unmounts the provider, so a next person never sees it.
+  Signing out and the "data deleted" alert after the purge never reach
+  another session (APP-746).
 - **On the web, the same run and the same order**, from the Account page's
   Danger zone (`src/components/account/`). `AccountDeleteProvider` sits in
   `routes/_app.tsx` above the signed-in gate, so `ensureUser` is unmounted

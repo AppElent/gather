@@ -54,6 +54,8 @@ export interface AmbientGroup {
   _id: Id<'groups'>
   name: string
   slug: string
+  /** The zone of the Group's "today"; absent: this phone's. */
+  timeZone?: string
 }
 
 export interface GroupContextValue {
@@ -128,10 +130,11 @@ export function GroupProvider({
   const myGroups = useQuery(api.groups.myGroups, isAuthenticated ? {} : 'skip')
   const groups = useMemo<AmbientGroup[] | undefined>(
     () =>
-      myGroups?.map(({ _id, name, slug }) => ({
+      myGroups?.map(({ _id, name, slug, timeZone }) => ({
         _id,
         name,
         slug,
+        timeZone,
       })),
     [myGroups],
   )

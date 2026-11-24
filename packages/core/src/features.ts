@@ -237,6 +237,18 @@ export const FEATURES = defineFeatures([
     routes: { web: ['_app/group-settings'] },
   },
   {
+    // The zone of the Group's "today" (APP-475). The phone sets its own zone;
+    // the web lists every zone.
+    id: 'group-time-zone',
+    kind: 'product',
+    status: 'parity',
+    platforms: ['web', 'mobile'],
+    routes: {
+      web: ['_app/group-settings'],
+      mobile: ['(app)/(tabs)/settings/groups'],
+    },
+  },
+  {
     id: 'integrations',
     kind: 'product',
     status: 'exclusive',
@@ -377,7 +389,7 @@ export const FEATURES = defineFeatures([
 
   // Energy (APP-491): the phone leads, the web follows with the same
   // functions (designs/energy/README.md): usage, costs, readings and the
-  // contract (APP-494).
+  // contract (APP-494), Home Assistant (APP-495), prices (APP-493).
   {
     id: 'energy',
     kind: 'product',
