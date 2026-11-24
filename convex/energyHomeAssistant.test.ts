@@ -1684,12 +1684,17 @@ describe('an import and the connection it belongs to', () => {
   })
 
   /** Connect twenty channels of one kind, and no others. */
-  const saveTwenty = (seeded: Seeded, kind: 'solar' | 'gridImport') =>
+  const saveTwenty = (
+    seeded: Seeded,
+    kind: 'solar' | 'gridImport',
+    historyFrom?: number,
+  ) =>
     seeded.as.mutation(internal.energySources.saveConnection, {
       ...HOME,
       baseUrl: ADDRESS,
       secret: TOKEN,
       storedToken: false,
+      historyFrom,
       channels: Array.from({ length: 20 }, (_, index) => ({
         kind,
         statisticId: `sensor.${kind}_${index}`,
@@ -1772,5 +1777,37 @@ describe('an import and the connection it belongs to', () => {
     // Within a month of each other, long ago: that month is too much.
     await storeHour(seeded, 'solar', THIS_HOUR - 2990 * DAY)
     expect((await refusalOf(saveGas())).code).toBe('tooManyChannels')
+  })
+
+  test('hours a pending import wrote count while it may still run, and for a month after', async () => {
+    const seeded = await seed()
+    const asked = THIS_HOUR
+    // Asked now, the import reads a year back; its oldest hour is stored.
+    await saveTwenty(seeded, 'solar', asked - 365 * DAY)
+    await storeHour(seeded, 'solar', asked - 365 * DAY)
+    expect(await imports(seeded.t)).toHaveLength(1)
+
+    // 14 days on it is still inside `IMPORT_MS` (15 days) and still pending.
+    vi.setSystemTime(asked + 14 * DAY)
+    expect(await imports(seeded.t)).toHaveLength(1)
+    expect((await refusalOf(saveTwenty(seeded, 'gridImport'))).code).toBe(
+      'tooManyChannels',
+    )
+    // Refused as a whole: the import's channels were not retired.
+    expect(
+      (await rows(seeded.t, 'energyChannels')).every(
+        (each) => each.kind === 'solar' && each.retiredAt === undefined,
+      ),
+    ).toBe(true)
+
+    // A channel in use may be given hours from a year and 16 days back, and the
+    // hour stored spans one more: a month later neither reaches the other.
+    vi.setSystemTime(asked + 47 * DAY + HOUR)
+    expect((await refusalOf(saveTwenty(seeded, 'gridImport'))).code).toBe(
+      'tooManyChannels',
+    )
+    vi.setSystemTime(asked + 47 * DAY + 2 * HOUR)
+    await saveTwenty(seeded, 'gridImport')
+    expect(await rows(seeded.t, 'energyChannels')).toHaveLength(40)
   })
 })
