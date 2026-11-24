@@ -264,7 +264,7 @@ function Frame({
         trail={energyTrail(messages, messages.energy.contract.title)}
         className="mb-0"
       />
-      <h2 className="m-0 font-rounded text-2xl font-bold">{title}</h2>
+      <h1 className="m-0 font-rounded text-2xl font-bold">{title}</h1>
       {children}
     </div>
   )

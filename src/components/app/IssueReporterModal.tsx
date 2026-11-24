@@ -21,7 +21,7 @@ type SubmitStatus =
 
 /**
  * Filing a bug or an idea from wherever you are. The shell owns whether it is
- * open, so Ctrl+Shift+I and the topbar's button open the same thing.
+ * open, so Ctrl+Shift+I and the account menu's item open the same thing.
  */
 export function IssueReporterModal({
   open,

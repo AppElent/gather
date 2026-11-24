@@ -392,6 +392,10 @@ export const en = {
         clear: coreEn.settings.group.timeZoneClear,
         failed: coreEn.settings.group.timeZoneFailed,
         adminOnly: coreEn.settings.group.timeZoneAdminOnly,
+        choose: coreEn.settings.group.timeZoneChoose,
+        search: coreEn.settings.group.timeZoneSearch,
+        noMatches: coreEn.settings.group.timeZoneNoMatches,
+        refusals: coreEn.settings.group.timeZoneRefusals,
       },
       /**
        * Leaving the Current Group, in the web's words. The server refuses the

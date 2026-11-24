@@ -5,7 +5,7 @@
  * slimme acties it shows the Limit card instead of the form, and Zelf kiezen
  * opens Pick.
  */
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import type { MealSlot } from '@gather/core/meal-planner'
 import { WEEK_PLAN_WISHES, type WeekPlanWish, WISH_MAX } from '@gather/core/week-plan'
 import { useAction, useConvexConnectionState } from 'convex/react'
@@ -59,6 +59,7 @@ const USE_ICONS: Record<PlanUse['kind'], (typeof UI_ICONS)[keyof typeof UI_ICONS
 export function PlanSheet({
   weekStart,
   data,
+  stored,
   onClose,
   onPlanned,
   onChooseYourself,
@@ -66,6 +67,8 @@ export function PlanSheet({
 }: {
   weekStart: string
   data: WeekData
+  /** What the week's open proposal was planned with; the sheet opens on it (APP-778). */
+  stored?: { wishes: WeekPlanWish[]; wish: string }
   onClose: () => void
   /** After a plan came back; the sheet has closed itself. */
   onPlanned: (outcome: PlanOutcome) => void
@@ -99,8 +102,8 @@ export function PlanSheet({
   const [flipped, setFlipped] = useState<ReadonlySet<string>>(
     () => new Set(kept?.flipped ?? []),
   )
-  const [wish, setWish] = useState(kept?.wish ?? '')
-  const [wishes, setWishes] = useState<WeekPlanWish[]>(kept?.wishes ?? [])
+  const [wish, setWish] = useState(kept?.wish ?? stored?.wish ?? '')
+  const [wishes, setWishes] = useState<WeekPlanWish[]>(kept?.wishes ?? stored?.wishes ?? [])
   const [busy, setBusy] = useState(false)
   draft.track(
     { slots, flipped: [...flipped].sort(), wish, wishes },
@@ -109,7 +112,7 @@ export function PlanSheet({
   const [failed, setFailed] = useState<string | null>(null)
   const [overCap, setOverCap] = useState(false)
 
-  const today = localIsoDate()
+  const today = todayIn(group.timeZone)
   const days = planDays(weekStart, data, choices, slots, flipped, today)
   const fillDates = days.filter((day) => day.state === 'fill').map((day) => day.date)
   const targets = emptyTargets(data, choices, slots, fillDates)

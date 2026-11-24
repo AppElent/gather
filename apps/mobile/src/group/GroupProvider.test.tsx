@@ -14,7 +14,13 @@ import {
   useOpenInGroup,
 } from './GroupProvider'
 
-type Row = { _id: Id<'groups'>; name: string; slug: string }
+type Row = {
+  _id: Id<'groups'>
+  name: string
+  slug: string
+  role: 'admin' | 'member'
+  timeZone?: string
+}
 
 const state = vi.hoisted(() => ({
   myGroups: undefined as Row[] | undefined,
@@ -25,7 +31,7 @@ const state = vi.hoisted(() => ({
 
 vi.mock('expo-router', () => ({
   router: {
-    replace: (href: unknown, options?: unknown) => {
+    dismissTo: (href: unknown, options?: unknown) => {
       state.replaced.push(href)
       state.replaceOptions.push(options)
     },
@@ -51,11 +57,14 @@ const kitchen: Row = {
   _id: 'g_kitchen' as Id<'groups'>,
   name: 'Kitchen',
   slug: 'kitchen',
+  role: 'admin',
 }
 const willow: Row = {
   _id: 'g_willow' as Id<'groups'>,
   name: 'Willow Street',
   slug: 'willow',
+  role: 'member',
+  timeZone: 'Asia/Tokyo',
 }
 
 /** Every render of a Group-scoped screen, and every unwind, in order. */
@@ -189,6 +198,28 @@ describe('GroupProvider unwinds the stacks when the Group on screen changes', ()
 
     expect(unwinds()).toBe(2)
     expect(current().group).toEqual(kitchen)
+  })
+})
+
+describe('what it knows of each Group', () => {
+  test('the zone and the role, switching included', () => {
+    mount(tree())
+    expect(current().group.timeZone).toBeUndefined()
+    expect(current().group.role).toBe('admin')
+
+    act(() => current().setGroup(willow._id))
+    expect(current().group.timeZone).toBe('Asia/Tokyo')
+    expect(current().group.role).toBe('member')
+  })
+
+  test('a zone set while the app is open', () => {
+    const view = mount(tree())
+
+    state.myGroups = [{ ...kitchen, timeZone: 'Europe/Amsterdam' }, willow]
+    view.rerender(tree())
+
+    expect(current().group.timeZone).toBe('Europe/Amsterdam')
+    expect(unwinds()).toBe(0)
   })
 })
 

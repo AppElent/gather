@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'vitest'
-
-import { inStockOf } from './use-in-stock'
+import { inStockOf } from './list'
 
 describe('inStockOf', () => {
   test('a staple in stock answers for its name in any form', () => {

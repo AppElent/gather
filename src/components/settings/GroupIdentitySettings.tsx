@@ -1,3 +1,9 @@
+import { groupTimeZoneRefusalSentence } from '@gather/core/refusals'
+import {
+  deviceTimeZone,
+  listTimeZones,
+  sameTimeZone,
+} from '@gather/core/time-zones'
 import { useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
@@ -175,7 +181,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
           </div>
         ) : null}
 
-        <TimeZone group={group} />
+        <TimeZone key={group._id} group={group} />
 
         <InviteCode slug={group.slug} />
 
@@ -260,46 +266,72 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
 function TimeZone({ group }: { group: ShellGroup }) {
   const setTimeZone = useMutation(api.groups.setTimeZone)
   const errorText = useErrorMessage()
-  const group_ = useMessages().settings.group
+  const messages = useMessages()
+  const group_ = messages.settings.group
+  const saved = group.timeZone ?? ''
+  // Picked but not saved: a closed select moves on every arrow key, so it
+  // must not save, and disable itself, on each one.
+  const [picked, setPicked] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isAdmin = group.role === 'admin'
   const device = deviceTimeZone()
-  const unset = fmt(group_.timeZoneUnset, { zone: device })
+  const value = picked ?? saved
 
-  async function save(timeZone: string | null) {
+  async function save(timeZone: string) {
+    if (saving) return
     setSaving(true)
     setError(null)
     try {
-      await setTimeZone({ groupId: group._id, timeZone })
+      await setTimeZone({ groupId: group._id, timeZone: timeZone || null })
+      setPicked(null)
     } catch (err) {
-      setError(errorText(err, group_.timeZoneFailed))
+      setError(
+        groupTimeZoneRefusalSentence(err, group_.timeZoneRefusals) ??
+          errorText(err, group_.timeZoneFailed),
+      )
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <div className="grid gap-2">
+    <form
+      className="grid gap-2"
+      onSubmit={(event) => {
+        event.preventDefault()
+        void save(value)
+      }}
+    >
       <label htmlFor="group-time-zone" className="text-sm font-semibold">
         {group_.timeZone}
       </label>
-      <select
-        id="group-time-zone"
-        value={group.timeZone ?? ''}
-        disabled={saving || group.role !== 'admin'}
-        aria-describedby="group-time-zone-note"
-        onChange={(event) => void save(event.target.value || null)}
-        className={`${inputClass} sm:max-w-xs`}
-      >
-        <option value="">{unset}</option>
-        {timeZones(device, group.timeZone).map((zone) => (
-          <option key={zone} value={zone}>
-            {zone}
-          </option>
-        ))}
-      </select>
-      {group.role === 'admin' && group.timeZone !== device ? (
-        <div>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          id="group-time-zone"
+          value={value}
+          disabled={!isAdmin}
+          aria-describedby="group-time-zone-note"
+          onChange={(event) => setPicked(event.target.value)}
+          className={`${inputClass} sm:max-w-xs`}
+        >
+          <option value="">{group_.timeZoneEachDevice}</option>
+          {listTimeZones(device, group.timeZone).map((zone) => (
+            <option key={zone} value={zone}>
+              {zone}
+            </option>
+          ))}
+        </select>
+        {isAdmin ? (
+          <button
+            type="submit"
+            disabled={saving || value === saved}
+            className={`${buttonClass} disabled:opacity-60`}
+          >
+            {saving ? messages.common.actions.saving : group_.timeZoneSave}
+          </button>
+        ) : null}
+        {isAdmin && !sameTimeZone(group.timeZone, device) ? (
           <button
             type="button"
             disabled={saving}
@@ -308,32 +340,19 @@ function TimeZone({ group }: { group: ShellGroup }) {
           >
             {group_.timeZoneUseDevice}
           </button>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
       {error ? (
         <p role="alert" className="m-0 text-sm text-[var(--danger)]">
           {error}
         </p>
       ) : null}
       <p id="group-time-zone-note" className="m-0 text-xs text-[var(--muted)]">
-        {group.role === 'admin'
-          ? group_.timeZoneNote
-          : `${group_.timeZoneNote} ${group_.timeZoneAdminOnly}`}
+        {group_.timeZoneNote} {fmt(group_.timeZoneDevice, { zone: device })}
+        {isAdmin ? null : ` ${group_.timeZoneAdminOnly}`}
       </p>
-    </div>
+    </form>
   )
-}
-
-function deviceTimeZone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-}
-
-/** Every zone this browser lists, with the two that must be choosable. */
-function timeZones(...also: (string | undefined)[]): string[] {
-  const listed = Intl.supportedValuesOf?.('timeZone') ?? []
-  return [
-    ...new Set([...listed, ...also.filter((zone) => zone !== undefined)]),
-  ].sort()
 }
 
 /**

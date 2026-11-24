@@ -17,7 +17,7 @@
  * empty; a filled slot is never overwritten. The calls are the phone's own:
  * connected apps are refused (ADR-0046).
  */
-import { addDays, isIsoDate, localIsoDate, mondayStart } from '@gather/core/civil-date'
+import { addDays, isIsoDate, mondayStart, todayIn } from '@gather/core/civil-date'
 import {
   awayFromEvents,
   defaultEaters,
@@ -205,6 +205,9 @@ export const list = query({
             imageUrl: recipe?.imageId ? await ctx.storage.getUrl(recipe.imageId) : null,
             reason: draft.reason,
             source: draft.source,
+            // What the start sheet asked for (APP-679); it opens on them again (APP-778).
+            wishes: draft.wishes,
+            wish: draft.wish,
             expiresAt: draft.expiresAt,
             check,
           }
@@ -243,7 +246,7 @@ export async function planContext(
   },
 ) {
   const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-  const today = localIsoDate()
+  const today = todayIn(group.timeZone)
   const from = args.weekStart
   const to = addDays(from, 6)
   const week = await weekOf(ctx, group._id, from, to)

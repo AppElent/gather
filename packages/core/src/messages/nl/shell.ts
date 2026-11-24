@@ -1,9 +1,10 @@
 import type { shell as enShell } from '../en/shell'
 
 export const shell = {
-  topbar: {
-    openNavigation: 'Navigatie openen',
-    jumpTo: 'Ga naar',
+  accountMenu: {
+    label: 'Accountmenu',
+    named: '{name}, accountmenu',
+    account: 'Account',
     askGather: 'Vraag het Gather',
     reportIssue: 'Probleem melden',
     switchLanguage: 'Overschakelen naar {language}',
@@ -12,17 +13,19 @@ export const shell = {
   sidebar: {
     label: 'Gather-navigatie',
     primary: 'Hoofdnavigatie',
-    footer: 'Instellingen en groepen',
+    footer: 'Instellingen en account',
     noGroup: 'Kies een Groep om de modules te zien.',
+    search: 'Zoeken in Gather',
+    pinned: 'Vastgezet',
   },
 
-  dock: {
-    label: 'Mobiele navigatie',
+  tabBar: {
+    label: 'Tabbladen',
   },
 
-  drawer: {
-    label: 'Navigatie',
-    close: 'Navigatie sluiten',
+  addMenu: {
+    label: 'Toevoegen',
+    empty: 'Zet een module vast om er hier iets aan toe te voegen.',
   },
 
   breadcrumbs: {
@@ -36,6 +39,7 @@ export const shell = {
 
   groupSwitcher: {
     label: 'Van Groep wisselen',
+    named: '{group}, van Groep wisselen',
     none: 'Geen Groep',
     elsewhere: 'Ga terug',
     personal: 'Je eigen Groep',
@@ -51,6 +55,9 @@ export const shell = {
   nav: {
     home: 'Start',
     all: 'Alles',
+    allModules: 'Alle modules',
+    add: 'Toevoegen',
+    search: 'Zoeken',
     groups: 'Groepen',
     settings: 'Instellingen',
     groupSettings: 'Groepsinstellingen',
@@ -87,6 +94,12 @@ export const shell = {
     },
   },
 
+  modulePage: {
+    searchIn: 'Zoeken in {module}',
+    settingsOf: 'Instellingen van {module}',
+    closePanel: 'Paneel sluiten',
+  },
+
   allModules: {
     title: 'Alle modules',
     intro:
@@ -101,6 +114,10 @@ export const shell = {
     moveUp: '{module} omhoog',
     moveDown: '{module} omlaag',
     moved: '{module} verplaatst naar positie {position} van {total}',
+    reorder: 'Volgorde wijzigen',
+    reorderDone: 'Klaar',
+    reorderHint: 'Zet elke module omhoog of omlaag en kies dan Klaar.',
+    pinned: 'Vastgezet',
   },
 
   placeholder: {

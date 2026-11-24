@@ -192,6 +192,16 @@ export const settings = {
     timeZoneClear: 'Use each device’s own zone',
     timeZoneFailed: 'Could not change the time zone.',
     timeZoneAdminOnly: 'Only an admin can change it.',
+    timeZoneSave: 'Save time zone',
+    timeZoneEachDevice: 'Each device’s own',
+    timeZoneDevice: 'This device is in {zone}.',
+    timeZoneChoose: 'Choose a time zone',
+    timeZoneSearch: 'Search time zones',
+    timeZoneNoMatches: 'No time zone matches “{query}”.',
+    timeZoneRefusals: {
+      'admin-only': 'Only an admin of this group can change its time zone.',
+      'unknown-zone': 'Gather does not know that time zone. Choose another one.',
+    },
     icon: 'Icon',
     iconOptions: {
       Users: 'People',

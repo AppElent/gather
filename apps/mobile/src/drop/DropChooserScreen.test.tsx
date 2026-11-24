@@ -15,6 +15,7 @@ import { DropGroupSheet } from './DropGroupSheet'
 const state = vi.hoisted(() => ({
   os: 'ios' as 'ios' | 'android',
   hasDrop: true,
+  dismissedTo: [] as unknown[],
 }))
 
 vi.mock('react-native', async () => {
@@ -84,7 +85,10 @@ vi.mock('expo-image', () => ({ Image: () => null }))
 vi.mock('expo-router', () => ({
   Stack: Object.assign(() => null, { Screen: () => null }),
   useLocalSearchParams: () => ({}),
-  useRouter: () => ({ push: () => {}, replace: () => {}, dismissTo: () => {} }),
+  useRouter: () => ({
+    push: () => {},
+    dismissTo: (href: unknown) => state.dismissedTo.push(href),
+  }),
 }))
 vi.mock('../components/NativeSheet', () => ({
   NativeSheet: ({ children }: { children: ReactNode }) =>
@@ -156,6 +160,13 @@ beforeEach(() => {
 afterEach(() => {
   state.os = 'ios'
   state.hasDrop = true
+})
+
+test('without a Drop it goes back to the tabs, and stacks no second one (APP-775)', () => {
+  state.hasDrop = false
+  state.dismissedTo = []
+  mount(createElement(DropChooserScreen)).unmount()
+  expect(state.dismissedTo).toEqual(['/home'])
 })
 
 test('DropChooserScreen keeps an automatically inset ScrollView both with and without a drop', () => {

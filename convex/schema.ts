@@ -197,10 +197,11 @@ export default defineSchema({
   })
     .index('by_group', ['groupId'])
     // Old recipes by title word, as the next three `search_` indexes do for
-    // theirs (`search.ts`, APP-758).
+    // theirs (`search.ts`, APP-758). The creator and `done` narrow the read to
+    // the Who and Status filters (APP-787).
     .searchIndex('search_title', {
       searchField: 'title',
-      filterFields: ['groupId'],
+      filterFields: ['groupId', 'createdByUserId'],
     }),
 
   // One row per Group a recipe is Shared into: an index of
@@ -350,7 +351,7 @@ export default defineSchema({
     .index('by_parent', ['parentTaskId'])
     .searchIndex('search_title', {
       searchField: 'title',
-      filterFields: ['listId'],
+      filterFields: ['listId', 'done', 'createdBy'],
     }),
 
   /**
@@ -445,11 +446,19 @@ export default defineSchema({
     // added; the creator is the last editor of those.
     updatedBy: v.optional(v.id('users')),
     updatedAt: v.number(),
+    // Title and body, for `search_text`; written by `lib/noteSearch.ts` only,
+    // never shown. Optional until `migrations:backfillNoteSearchText` has run.
+    searchText: v.optional(v.string()),
   })
     .index('by_group', ['groupId'])
     // Newest first, page by page (`notes.listPage`, APP-700).
     .index('by_group_and_updatedAt', ['groupId', 'updatedAt'])
-    // A search index covers one field, so a note has two (`lib/noteSearch.ts`).
+    // Title and body together (APP-701).
+    .searchIndex('search_text', {
+      searchField: 'searchText',
+      filterFields: ['groupId'],
+    })
+    // Only for notes still without `searchText`; dropped in the narrow step.
     .searchIndex('search_title', {
       searchField: 'title',
       filterFields: ['groupId'],
@@ -596,7 +605,7 @@ export default defineSchema({
     .index('by_calendar_date', ['calendarId', 'date'])
     .searchIndex('search_title', {
       searchField: 'title',
-      filterFields: ['calendarId'],
+      filterFields: ['calendarId', 'createdBy'],
     }),
 
   integrationConnections: defineTable({
@@ -966,7 +975,7 @@ export default defineSchema({
     .index('by_group_kind_catalogKey', ['groupId', 'kind', 'catalogKey'])
     .searchIndex('search_name', {
       searchField: 'name',
-      filterFields: ['groupId', 'kind'],
+      filterFields: ['groupId', 'kind', 'createdByUserId'],
     }),
 
   /**
