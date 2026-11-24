@@ -42,7 +42,7 @@ import {
   groceryUnitValidator,
 } from './lib/groceryFields'
 import { groupRoleValidator } from './lib/groupAccess'
-import { mealSlotValidator, quickLimitValidator } from './lib/kitchen'
+import { mealSlotValidator, quickLimitValidator, weekPlanWishValidator } from './lib/kitchen'
 import {
   barcodeFormatValidator,
   formatConfidenceValidator,
@@ -496,7 +496,9 @@ export default defineSchema({
   // `quickMeal` is set; `mealEntryId` when the quick meal is one the Group
   // has. `reason` is the model's line; `source` says which planner chose it:
   // the model (`ai`), the rules for a slot the model left open (`rules`), or
-  // the rules because the model was not reachable (`fallback`).
+  // the rules because the model was not reachable (`fallback`). `wishes` and
+  // `wish` are what the start sheet asked for, on every row, so Ander voorstel
+  // keeps them for every Member (APP-679); absent when nothing was asked.
   mealPlanDrafts: defineTable({
     groupId: v.id('groups'),
     /** Monday of the week, `YYYY-MM-DD`. */
@@ -509,6 +511,8 @@ export default defineSchema({
     prepMinutes: v.optional(v.number()),
     reason: v.optional(v.string()),
     source: v.union(v.literal('ai'), v.literal('rules'), v.literal('fallback')),
+    wishes: v.optional(v.array(weekPlanWishValidator)),
+    wish: v.optional(v.string()),
     createdBy: v.id('users'),
     expiresAt: v.number(),
   })
