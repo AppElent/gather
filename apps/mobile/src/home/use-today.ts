@@ -11,11 +11,11 @@
  * (ADR-0033), read through `useModuleArrangement`.
  */
 
+import { dayStartIn } from '@gather/core/civil-date'
 import {
   dueTodayTasks,
   overdueTasks,
   railEntries,
-  startOfDay,
 } from '@gather/core/home-today'
 import { useMemo } from 'react'
 import { api, type Id } from '../convex/api'
@@ -29,7 +29,10 @@ export function useToday() {
   const { group } = useGroup()
   const { t } = useI18n()
   const now = useMinuteClock()
-  const dayStart = startOfDay(now)
+  const dayStart = useMemo(
+    () => dayStartIn(group.timeZone, now),
+    [group.timeZone, now],
+  )
 
   const tasks = useLocalTaskState()
   const members = useQuery(api.groups.members, { slug: group.slug })
@@ -72,6 +75,7 @@ export function useToday() {
 
   return {
     now,
+    today: tasks.today,
     memberCount: members?.length,
     overdue: overdueTasks(tasks.tasks, tasks.today),
     dueToday: dueTodayTasks(tasks.tasks, tasks.today),

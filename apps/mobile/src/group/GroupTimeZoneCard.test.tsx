@@ -52,7 +52,7 @@ vi.mock('@gather/core/time-zones', async (load) => ({
 vi.mock('../i18n', async () => {
   const { en } = await import('../i18n/messages/en')
   const { fmt } = await import('@gather/core/i18n')
-  return { useI18n: () => ({ t: en }), fmt }
+  return { useI18n: () => ({ t: en, locale: 'en' }), fmt }
 })
 vi.mock('../feedback/haptics', () => ({
   haptics: { itemSaved: () => {}, actionFailed: () => {} },
@@ -83,7 +83,7 @@ beforeEach(() => {
 
 test("unset: shows the phone's zone, and an admin can use it", async () => {
   const { container } = mount(createElement(GroupTimeZoneCard))
-  expect(find(container, 'group-time-zone')?.textContent).toContain('Europe/Amsterdam')
+  expect(find(container, 'group-time-zone')?.textContent).toContain('Amsterdam, Central European Time')
   expect(find(container, 'clear-group-time-zone')).toBeNull()
   find(container, 'use-device-time-zone')?.click()
   await settle()
@@ -93,7 +93,7 @@ test("unset: shows the phone's zone, and an admin can use it", async () => {
 test('set to another zone: an admin can clear it', async () => {
   state.timeZone = 'Asia/Tokyo'
   const { container } = mount(createElement(GroupTimeZoneCard))
-  expect(find(container, 'group-time-zone')?.textContent).toBe('Asia/Tokyo')
+  expect(find(container, 'group-time-zone')?.textContent).toBe('Tokyo, Japan Standard Time')
   expect(find(container, 'use-device-time-zone')).not.toBeNull()
   find(container, 'clear-group-time-zone')?.click()
   await settle()
@@ -124,7 +124,7 @@ test.each([
   ],
   [
     { data: { kind: 'groupTimeZone:unknown-zone' } },
-    'Gather does not know that time zone.',
+    'Gather does not know the time zone of Amsterdam yet.',
   ],
   [
     { data: { kind: 'groups:not-a-member', message: 'x' } },

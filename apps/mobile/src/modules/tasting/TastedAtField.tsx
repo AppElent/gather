@@ -14,10 +14,11 @@
  * Formatted in the **app's** language, not the device's — this app has its own
  * language toggle and a screen that mixes the two reads as a bug (ADR-0011).
  */
-import { addDays, localIsoDate, localMidnight } from '@gather/core/civil-date'
+import { addDays, localMidnight, todayIn } from '@gather/core/civil-date'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
+import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { TASTING_UI_ICONS } from './icons'
@@ -44,7 +45,8 @@ export function TastedAtField({
   const words = t.tastings.composer
   const Calendar = TASTING_UI_ICONS.Calendar
 
-  const today = localIsoDate()
+  const { group } = useGroup()
+  const today = todayIn(group.timeZone)
   const yesterday = addDays(today, -1)
   const label =
     value === today

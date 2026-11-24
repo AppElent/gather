@@ -1,3 +1,5 @@
+import { en } from '@gather/core/messages'
+import { deviceTimeZone, timeZoneLabel } from '@gather/core/time-zones'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { ConvexError } from 'convex/values'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
@@ -134,7 +136,7 @@ describe('the time zone', () => {
 
   test.each([
     ['admin-only', 'Alleen een beheerder van deze Groep kan de tijdzone wijzigen.'],
-    ['unknown-zone', 'Gather kent die tijdzone niet. Kies een andere.'],
+    ['unknown-zone', 'Gather kent de tijdzone van UTC nog niet. Kies een plaats in de buurt met dezelfde tijd.'],
   ])('%s is refused in the reader’s language', async (code, sentence) => {
     zoneError.value = new ConvexError({ kind: `groupTimeZone:${code}` })
     renderWithI18n(<GroupIdentitySettings group={TEST_GROUP} />, {
@@ -151,7 +153,7 @@ describe('the time zone', () => {
     renderCard()
     expect(zone().selectedOptions[0].textContent).toBe('Each device’s own')
     expect(document.getElementById('group-time-zone-note')?.textContent).toContain(
-      Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timeZoneLabel(deviceTimeZone(), 'en', en.settings.group.timeZonePlaces),
     )
   })
 

@@ -23,7 +23,7 @@ import { useAuth } from '@clerk/expo'
 import { DateTimePicker } from '@expo/ui/community/datetime-picker'
 import type { MenuAction } from '@expo/ui/community/menu'
 import type { CalendarColor, CalendarPerson } from '@gather/core/calendar'
-import { addDays, localIsoDate } from '@gather/core/civil-date'
+import { addDays, hourIn, localIsoDate, todayIn } from '@gather/core/civil-date'
 import { useMutation } from 'convex/react'
 import { type ComponentRef, useEffect, useRef, useState } from 'react'
 import {
@@ -356,7 +356,7 @@ function EventComposerCard({
 
   // ---------------------------------------------------------------- menus
 
-  const today = localIsoDate()
+  const today = todayIn(group.timeZone)
   const removeGroup = (id: string): MenuAction => ({
     id: `${id}:remove-group`,
     title: '',
@@ -469,7 +469,7 @@ function EventComposerCard({
         if (value === 'allDay') pick({ time: { allDay: true } })
         else if (value === 'remove') pick({ time: null })
         else if (value === 'pick') {
-          if (!timed) change({ time: timedFrom(defaultStart(draft.date, today, new Date())) })
+          if (!timed) change({ time: timedFrom(defaultStart(draft.date, today, hourIn(group.timeZone))) })
           setPanel('time')
         }
         return

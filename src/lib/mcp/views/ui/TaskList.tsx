@@ -1,6 +1,7 @@
+import { todayIn } from '@gather/core/civil-date'
 import { type FormEvent, useState } from 'react'
 import type { ListTask, TaskListResult } from '../types'
-import { localToday, type ViewText } from './i18n'
+import type { ViewText } from './i18n'
 import type { ViewProps } from './ViewRoot'
 
 /** A fresh key per intended write; a retry of that write reuses it. */
@@ -34,7 +35,7 @@ export function TaskList({
   const [draft, setDraft] = useState('')
   const [draftKey, setDraftKey] = useState(newKey)
   const [adding, setAdding] = useState(false)
-  const today = localToday()
+  const today = todayIn(result.timeZone)
 
   const refresh = () =>
     reload('show_task_list', {

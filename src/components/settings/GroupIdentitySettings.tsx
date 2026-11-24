@@ -1,16 +1,20 @@
 import { groupTimeZoneRefusalSentence } from '@gather/core/refusals'
 import {
+  currentZoneName,
   deviceTimeZone,
   listTimeZones,
   sameTimeZone,
+  sortTimeZones,
+  timeZoneLabel,
+  timeZonePlace,
 } from '@gather/core/time-zones'
 import { useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useErrorMessage } from '../../lib/errorMessage'
-import { fmt, useMessages } from '../../lib/i18n'
+import { fmt, useI18n, useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
@@ -266,9 +270,10 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
 function TimeZone({ group }: { group: ShellGroup }) {
   const setTimeZone = useMutation(api.groups.setTimeZone)
   const errorText = useErrorMessage()
-  const messages = useMessages()
+  const { locale, messages } = useI18n()
   const group_ = messages.settings.group
-  const saved = group.timeZone ?? ''
+  const places = group_.timeZonePlaces
+  const saved = group.timeZone ? currentZoneName(group.timeZone) : ''
   // Picked but not saved: a closed select moves on every arrow key, so it
   // must not save, and disable itself, on each one.
   const [picked, setPicked] = useState<string | null>(null)
@@ -277,6 +282,13 @@ function TimeZone({ group }: { group: ShellGroup }) {
   const isAdmin = group.role === 'admin'
   const device = deviceTimeZone()
   const value = picked ?? saved
+  const zones = useMemo(
+    () =>
+      sortTimeZones(listTimeZones(device, group.timeZone), locale, places).map(
+        (zone) => ({ zone, label: timeZoneLabel(zone, locale, places) }),
+      ),
+    [device, group.timeZone, locale, places],
+  )
 
   async function save(timeZone: string) {
     if (saving) return
@@ -286,8 +298,10 @@ function TimeZone({ group }: { group: ShellGroup }) {
       await setTimeZone({ groupId: group._id, timeZone: timeZone || null })
       setPicked(null)
     } catch (err) {
+      const refused = groupTimeZoneRefusalSentence(err, group_.timeZoneRefusals)
       setError(
-        groupTimeZoneRefusalSentence(err, group_.timeZoneRefusals) ??
+        (refused &&
+          fmt(refused, { zone: timeZonePlace(timeZone || device, places) })) ??
           errorText(err, group_.timeZoneFailed),
       )
     } finally {
@@ -316,9 +330,9 @@ function TimeZone({ group }: { group: ShellGroup }) {
           className={`${inputClass} sm:max-w-xs`}
         >
           <option value="">{group_.timeZoneEachDevice}</option>
-          {listTimeZones(device, group.timeZone).map((zone) => (
+          {zones.map(({ zone, label }) => (
             <option key={zone} value={zone}>
-              {zone}
+              {label}
             </option>
           ))}
         </select>
@@ -348,7 +362,7 @@ function TimeZone({ group }: { group: ShellGroup }) {
         </p>
       ) : null}
       <p id="group-time-zone-note" className="m-0 text-xs text-[var(--muted)]">
-        {group_.timeZoneNote} {fmt(group_.timeZoneDevice, { zone: device })}
+        {group_.timeZoneNote} {fmt(group_.timeZoneDevice, { zone: timeZoneLabel(currentZoneName(device), locale, places) })}
         {isAdmin ? null : ` ${group_.timeZoneAdminOnly}`}
       </p>
     </form>

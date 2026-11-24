@@ -1026,6 +1026,21 @@ describe('Gather MCP endpoint', () => {
     expect(out.structuredContent).toMatchObject({ today: '2026-11-18' })
   })
 
+  it("gives the task list view the Group's zone", async () => {
+    const backend = fakeBackend({
+      'groups:myGroups': () => [{ ...GROUPS[0], timeZone: 'Pacific/Kiritimati' }],
+      'taskLists:list': () => [
+        { _id: 'list_1', name: 'Groceries', provider: 'local', writable: true },
+      ],
+      'tasks:listByList': () => [],
+    })
+    const shown = await callTool(backend, 'show_task_list', {
+      groupId: 'group_home',
+      listId: 'list_1',
+    })
+    expect(shown.structuredContent).toMatchObject({ timeZone: 'Pacific/Kiritimati' })
+  })
+
   it('shows a task list as writable only with the write scope', async () => {
     const backend = () =>
       fakeBackend({

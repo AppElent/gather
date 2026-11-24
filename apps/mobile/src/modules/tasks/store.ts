@@ -10,7 +10,7 @@
  * the provider first and changes these rows only once it was accepted
  * (`writeLinkedTask`, ADR-0020).
  */
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import {
   type GroceryAisle,
   type GroceryUnit,
@@ -652,9 +652,10 @@ export function useTaskLists(): readonly ListRow[] | undefined {
 
 /** Every list in the Current Group, and every task on them. */
 export function useTaskState() {
+  const { group } = useGroup()
   const lists = useTaskLists()
   const state = useListsOf(lists ?? NO_LISTS)
-  return { today: localIsoDate(), ...state }
+  return { today: todayIn(group.timeZone), ...state }
 }
 
 /**
@@ -663,13 +664,14 @@ export function useTaskState() {
  * holds (ADR-0021 keeps a provider fetch behind opening its list).
  */
 export function useLocalTaskState() {
+  const { group } = useGroup()
   const lists = useTaskLists()
   const local = useMemo(
     () => (lists ?? NO_LISTS).filter((list) => list.provider === 'local'),
     [lists],
   )
   const state = useListsOf(local)
-  return { today: localIsoDate(), loaded: lists !== undefined, ...state }
+  return { today: todayIn(group.timeZone), loaded: lists !== undefined, ...state }
 }
 
 /**
@@ -677,6 +679,7 @@ export function useLocalTaskState() {
  * the Group's lists or asking any other provider.
  */
 export function useTaskList(listId: string) {
+  const { group } = useGroup()
   const lists = useTaskLists()
   const only = useMemo(
     () => (lists ?? NO_LISTS).filter((list) => list._id === listId),
@@ -684,7 +687,7 @@ export function useTaskList(listId: string) {
   )
   const state = useListsOf(only)
   return {
-    today: localIsoDate(),
+    today: todayIn(group.timeZone),
     list: state.lists[0],
     tasks: [...state.tasks].sort((a, b) => a.order - b.order),
     refresh: () => state.refresh(listId),
@@ -736,7 +739,7 @@ export function useTaskOf(taskId: string) {
   if (found) last.current = found
   else if (!home) last.current = undefined
   return {
-    today: localIsoDate(),
+    today: todayIn(group.timeZone),
     lists: state.lists,
     tasks: state.tasks,
     task: found ?? last.current,
@@ -949,7 +952,7 @@ export function smartModel(
  */
 export function useSmartLists(): SmartLists {
   const { group } = useGroup()
-  const today = localIsoDate()
+  const today = todayIn(group.timeZone)
   const lists = useTaskLists()
   const answer = useQuery(api.tasks.smartLists, {
     groupSlug: group.slug,
@@ -1157,7 +1160,7 @@ export function useTaskActions() {
       listId: listId as Id<'taskLists'>,
       groupSlug,
       title: task.title,
-      today: localIsoDate(),
+      today: todayIn(group.timeZone),
       // The draft's own key: sent twice (a close and reopen mid-save, or a
       // retry after a lost answer), it still makes one task.
       ...(saveKey ? { idempotencyKey: saveKey } : {}),
@@ -1272,7 +1275,7 @@ export function useTaskActions() {
       const completion = await toggle({
         taskId: task.id as Id<'tasks'>,
         groupSlug,
-        today: localIsoDate(),
+        today: todayIn(group.timeZone),
         // Only "Complete all" sends it (APP-304).
         ...(options.withSubtasks ? { withSubtasks: true } : {}),
       })
@@ -1286,7 +1289,7 @@ export function useTaskActions() {
       undoCompletion({ completionId, groupSlug }),
     /** A rule, or null for no repeat; the server anchors it on the date. */
     setRepeat: (id: string, repeat: TaskRepeat | null) =>
-      patch(id, { repeat, today: localIsoDate() }),
+      patch(id, { repeat, today: todayIn(group.timeZone) }),
     renameTask: (task: TaskRef, title: string) => edit(task, { title }),
     setDue: (task: TaskRef, value: string | undefined) =>
       edit(task, { dueDate: value ?? null }),

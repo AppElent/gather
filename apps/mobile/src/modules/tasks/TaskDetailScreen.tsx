@@ -14,6 +14,7 @@
  * Delete is at the bottom, in red, and asks first — deleting in Gather is
  * permanent today (`apps/mobile/DESIGN_SYSTEM.md`).
  */
+import { localIsoDate } from '@gather/core/civil-date'
 import { hasLinkAndPrice } from '@gather/core/task-lists'
 import { describeRepeat } from '@gather/core/task-repeat'
 import { Stack, useRouter } from 'expo-router'
@@ -244,7 +245,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
               label={t.tasks.task.reminder}
               value={
                 task.reminder
-                  ? reminderLabel(task.reminder, state.today, locale, {
+                  ? reminderLabel(task.reminder, localIsoDate(), locale, {
                       today: t.tasks.task.today,
                       tomorrow: t.tasks.task.tomorrow,
                       reminderAt: t.tasks.task.reminderAt,
