@@ -306,7 +306,16 @@ function SiteHome({
           hourly={hourly}
           usage={usage}
           hours={hours?.hours ?? []}
-          onPress={() => open('/all/energy/usage')}
+          onPress={() =>
+            router.push(
+              moduleHref(
+                '/all/energy/usage',
+                hourly
+                  ? { range: 'day', day: today }
+                  : { range: 'month', month },
+              ),
+            )
+          }
         />
       ) : null}
 

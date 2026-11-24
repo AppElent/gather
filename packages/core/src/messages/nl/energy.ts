@@ -153,6 +153,7 @@ export const energy = {
     noteFrom2027: 'Salderen is op 1 januari 2027 gestopt, dus alle kosten zijn zonder.',
     perDay: 'Per dag',
     perDayLabel: 'Kosten per dag in {month}. Hoogste op {day}: {amount}.',
+    perDayPlain: 'Kosten per dag in {month}.',
     perDayEmpty: 'Nog geen kosten per dag in {month}.',
     perMonth: 'Per maand, {year} en {previous}',
     yearLink: 'Jaar',

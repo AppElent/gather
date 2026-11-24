@@ -172,6 +172,44 @@ export function peakOf<T>(
   return best
 }
 
+/**
+ * The highest slot when it stands out from the others: null when no slot is
+ * positive or every valued slot has the same value (including a single slot or
+ * all zeros). Values no more than `sameWithin` apart count as the same.
+ */
+export function distinctPeakOf<T>(
+  items: readonly T[],
+  value: (item: T) => number | null,
+  sameWithin = 0,
+): { item: T; value: number } | null {
+  let best: { item: T; value: number } | null = null
+  let min: number | null = null
+  let max: number | null = null
+  for (const item of items) {
+    const figure = value(item)
+    if (figure === null) continue
+    if (min === null || figure < min) min = figure
+    if (max === null || figure > max) max = figure
+    if (figure > 0 && (!best || figure > best.value)) {
+      best = { item, value: figure }
+    }
+  }
+  if (!best || min === null || max === null) return null
+  if (max - min <= sameWithin) return null
+  return best
+}
+
+/**
+ * The day that costs most, in cents, when days differ. Sharing a month's net
+ * metering over its days leaves equal days a cent apart; that is rounding.
+ */
+export function highestCostDay<T>(
+  days: readonly T[],
+  cents: (day: T) => number | null,
+) {
+  return distinctPeakOf(days, cents, 1)
+}
+
 /** Twelve month pairs: last year muted, this year ink, the running one outlined. */
 export function yearPairHeights(
   previous: readonly (number | null)[],

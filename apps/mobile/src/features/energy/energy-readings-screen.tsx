@@ -270,6 +270,11 @@ function ReadingsForm({
                 value={texts[channel._id] ?? ''}
                 autoFocus={index === 0}
                 returnKeyType={index === channels.length - 1 ? 'done' : 'next'}
+                onNext={
+                  index === channels.length - 1
+                    ? undefined
+                    : () => fields.current[index + 1]?.focus()
+                }
                 onSubmitEditing={() =>
                   index === channels.length - 1
                     ? submit()

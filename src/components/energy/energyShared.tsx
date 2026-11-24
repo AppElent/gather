@@ -428,7 +428,7 @@ export function ChartFigure({
   title: string
   aside?: ReactNode
   label: string
-  sentence: string
+  sentence?: string | null
   children: ReactNode
   legend?: Parameters<typeof Legend>[0]['items']
 }) {
@@ -440,7 +440,7 @@ export function ChartFigure({
       </div>
       {children}
       {legend ? <Legend items={legend} /> : null}
-      <figcaption className="text-sm">{sentence}</figcaption>
+      {sentence ? <figcaption className="text-sm">{sentence}</figcaption> : null}
     </figure>
   )
 }
@@ -634,6 +634,7 @@ export function monthFigure(
 ): number | null {
   if (!period || period.totals.daysWithData === 0) return null
   if (unit === 'kwh') return period.totals.consumptionKwh
+  if (period.totals.costStatus !== 'ok') return null
   const cost = withoutNet ? period.totals.costWithoutNet : period.totals.cost
   return cost ? cost.totalCents : null
 }

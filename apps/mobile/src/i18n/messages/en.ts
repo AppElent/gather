@@ -927,6 +927,8 @@ export const en = {
   actions: {
     resend: 'Send it again',
     done: 'Done',
+    /** Moves to the next field, above the keypad. */
+    next: 'Next',
     completed: 'Completed ({count})',
     showCompleted: 'Show completed tasks',
     hideCompleted: 'Hide completed tasks',

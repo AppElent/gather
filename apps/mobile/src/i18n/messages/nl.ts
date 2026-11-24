@@ -711,6 +711,7 @@ export const nl = {
   actions: {
     resend: 'Stuur opnieuw',
     done: 'Klaar',
+    next: 'Volgende',
     completed: 'Voltooid ({count})',
     showCompleted: 'Voltooide taken tonen',
     hideCompleted: 'Voltooide taken verbergen',
