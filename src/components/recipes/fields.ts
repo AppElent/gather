@@ -10,8 +10,8 @@
 
 /** A form field on a page; smaller text once there is room for it. */
 export const inputClass =
-  'w-full rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3 py-2 text-[16px] outline-none focus:border-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm'
+  'w-full rounded-[var(--radius-control)] border border-[var(--control-edge)] bg-[var(--surface)] px-3 py-2 text-[16px] outline-none focus:border-[var(--ink)] focus:ring-1 focus:ring-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm'
 
 /** A thumb-sized field in the add sheet, which is a phone surface first. */
 export const fieldClass =
-  'min-h-11 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3 text-[16px]'
+  'min-h-11 rounded-[var(--radius-control)] border border-[var(--control-edge)] bg-[var(--surface)] px-3 text-[16px] outline-none focus:border-[var(--ink)] focus:ring-1 focus:ring-[var(--ink)]'

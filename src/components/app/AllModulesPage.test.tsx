@@ -38,11 +38,15 @@ beforeEach(() => {
 })
 
 const status = () => screen.getByRole('status')
+/** The arrows only show in Reorder mode. */
+const reorder = (name = 'Reorder') =>
+  fireEvent.click(screen.getByRole('button', { name }))
 
 describe('AllModulesPage', () => {
   test('saves the new order and says where the pin went', () => {
     renderInGroup(<AllModulesPage />)
     expect(status()).toHaveTextContent('')
+    reorder()
 
     fireEvent.click(screen.getByRole('button', { name: 'Move Tasks down' }))
 
@@ -57,12 +61,14 @@ describe('AllModulesPage', () => {
 
   test('says it in Dutch', () => {
     renderInGroup(<AllModulesPage />, { locale: 'nl' })
+    reorder('Volgorde wijzigen')
     fireEvent.click(screen.getByRole('button', { name: 'Notities omhoog' }))
     expect(status()).toHaveTextContent('Notities verplaatst naar positie 2 van 3')
   })
 
   test('keeps focus on the other arrow once a pin reaches the top', () => {
     const { rerender } = renderInGroup(<AllModulesPage />)
+    reorder()
     const up = screen.getByRole('button', { name: 'Move Tasks up' })
     up.focus()
     fireEvent.click(up)
@@ -79,8 +85,80 @@ describe('AllModulesPage', () => {
 
   test('a pin or unpin clears the last move from the status line', () => {
     renderInGroup(<AllModulesPage />)
+    reorder()
     fireEvent.click(screen.getByRole('button', { name: 'Move Tasks down' }))
-    fireEvent.click(screen.getAllByRole('button', { name: 'Unpin Recipes' })[0])
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Actions for Recipes' })[0],
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Unpin' }))
     expect(status()).toHaveTextContent('')
+  })
+
+  test('focus follows an unpin to the pin that took its place', () => {
+    const { rerender } = renderInGroup(<AllModulesPage />)
+    const unpin = (name: string, left: string[]) => {
+      const button = screen.getAllByRole('button', {
+        name: `Actions for ${name}`,
+      })[0]
+      fireEvent.click(button)
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Unpin' }))
+      pins.value = left
+      act(() => rerender(<AllModulesPage />))
+    }
+    const menus = (name: string) =>
+      screen.getAllByRole('button', { name: `Actions for ${name}` })
+
+    unpin('Recipes', ['tasks', 'notes'])
+    expect(menus('Tasks')[0]).toHaveFocus()
+    unpin('Notes', ['tasks'])
+    expect(menus('Tasks')[0]).toHaveFocus()
+    unpin('Tasks', [])
+    expect(menus('Tasks')).toHaveLength(1)
+    expect(menus('Tasks')[0]).toHaveFocus()
+  })
+
+  test('the arrows wait for Reorder, and Done puts them away', () => {
+    renderInGroup(<AllModulesPage />)
+    expect(screen.queryByRole('button', { name: 'Move Tasks down' })).toBeNull()
+    reorder()
+    expect(
+      screen.getByRole('button', { name: 'Move Tasks down' }),
+    ).toBeInTheDocument()
+    reorder('Done')
+    expect(screen.queryByRole('button', { name: 'Move Tasks down' })).toBeNull()
+  })
+
+  test('Reorder mode ends when only one pin is left', () => {
+    const { rerender } = renderInGroup(<AllModulesPage />)
+    reorder()
+    pins.value = ['recipes']
+    act(() => rerender(<AllModulesPage />))
+    expect(screen.queryByRole('button', { name: 'Move Recipes up' })).toBeNull()
+
+    pins.value = ['recipes', 'tasks']
+    act(() => rerender(<AllModulesPage />))
+    expect(screen.getByRole('button', { name: 'Reorder' })).toBeInTheDocument()
+  })
+
+  test("a Module's row menu pins it", () => {
+    renderInGroup(<AllModulesPage />)
+    const menus = screen.getAllByRole('button', { name: /^Actions for / })
+    // Every Module once in its group, and each pin once more at the top.
+    expect(menus.length).toBeGreaterThan(3)
+    const groceries = screen.getByRole('button', { name: 'Actions for Groceries' })
+    fireEvent.click(groceries)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Pin' }))
+    expect(pins.saves).toEqual([
+      {
+        groupSlug: 'jansen-household',
+        moduleIds: ['recipes', 'tasks', 'notes', 'groceries'],
+      },
+    ])
+  })
+
+  test('no row menu until the pins have loaded', () => {
+    pins.value = undefined
+    renderInGroup(<AllModulesPage />)
+    expect(screen.queryByRole('button', { name: /^Actions for / })).toBeNull()
   })
 })

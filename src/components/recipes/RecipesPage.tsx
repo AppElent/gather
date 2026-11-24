@@ -1,14 +1,18 @@
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { Plus, Search, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Search, X } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import { fmt, useMessages } from '../../lib/i18n'
+import { fmt, plural, useI18n } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
-import { SurfaceCard } from '../app/ShellPrimitives'
+import { EmptyState } from '../app/EmptyState'
+import { InsetList, InsetRow, RowThumb } from '../app/InsetList'
+import { ModuleTile } from '../app/ModuleTile'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
-import { fieldClass } from './fields'
+import { useIsDesktop } from '../app/useMediaQuery'
+import { WashHeader } from '../app/WashHeader'
 import { RecipeCard } from './RecipeCard'
+import { RECIPES_ICON, RecipeStars } from './RecipeThumbnail'
 import { filterRecipes, recipeTags, sameTag } from './recipeFilter'
 import { useRecipeViewMode } from './useRecipeViewMode'
 import { ViewModeToggle } from './ViewModeToggle'
@@ -20,13 +24,16 @@ import { ViewModeToggle } from './ViewModeToggle'
  * tag narrow what is already loaded; neither asks the server again.
  */
 export function RecipesPage() {
-  const { slug: groupSlug } = useRequiredCurrentGroup()
-  const recipes = useQuery(api.recipes.list, { groupSlug })
+  const group = useRequiredCurrentGroup()
+  const recipes = useQuery(api.recipes.list, { groupSlug: group.slug })
   const [viewMode, setViewMode] = useRecipeViewMode()
-  const messages = useMessages()
+  const { locale, messages } = useI18n()
   const { list } = messages.recipes
+  const moduleName = messages.modules.byId.recipes.label
   const [query, setQuery] = useState('')
   const [pickedTag, setPickedTag] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+  const desktop = useIsDesktop()
   const tags = useMemo(() => recipeTags(recipes ?? []), [recipes])
   // A tag whose last recipe was deleted or retagged stops filtering, and is
   // forgotten so it does not quietly filter again if it comes back.
@@ -40,68 +47,69 @@ export function RecipesPage() {
     setQuery('')
     setPickedTag('')
   }
+  const hasRecipes = Boolean(recipes?.length)
+
+  // Two inset lists side by side on a desktop, as in the approved board; one
+  // on anything narrower.
+  const columns =
+    desktop && shown.length > 1
+      ? [
+          shown.slice(0, Math.ceil(shown.length / 2)),
+          shown.slice(Math.ceil(shown.length / 2)),
+        ]
+      : [shown]
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="m-0 font-rounded text-2xl font-bold">
-            {messages.modules.byId.recipes.label}
-          </h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {list.subtitle}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <ViewModeToggle mode={viewMode} onChange={setViewMode} />
-          <Link
-            {...linkTo('newRecipe')}
-            aria-label={list.add}
-            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] text-[var(--ink)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden lg:inline">{list.add}</span>
-          </Link>
-        </div>
-      </div>
+    <div className="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] gap-4">
+      <WashHeader
+        group="kitchen"
+        icon={RECIPES_ICON}
+        title={moduleName}
+        summary={
+          recipes
+            ? {
+                count: plural(locale, recipes.length, list.count),
+                scope: group.name,
+              }
+            : undefined
+        }
+        back={{ label: messages.shell.allModules.title, link: linkTo('all') }}
+        onSearch={hasRecipes ? () => searchRef.current?.focus() : undefined}
+        primary={{ label: list.add, link: linkTo('newRecipe') }}
+      />
 
       {recipes === undefined ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <InsetList label={messages.common.errors.loading}>
           {[0, 1, 2].map((index) => (
-            <div
+            <li
               key={index}
-              className="h-32 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]"
-            />
-          ))}
-        </div>
-      ) : recipes.length === 0 ? (
-        <SurfaceCard>
-          <div className="grid gap-3 text-center">
-            <h3 className="m-0 text-base font-semibold">{list.emptyTitle}</h3>
-            <p className="m-0 text-sm text-[var(--muted)]">
-              {list.emptyBody}
-            </p>
-            <Link
-              {...linkTo('newRecipe')}
-              aria-label={list.emptyAction}
-              className="mx-auto inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
+              className="flex min-h-[72px] items-center gap-3 px-4 [&+li]:border-t-[0.5px] [&+li]:border-[var(--hair)]"
             >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden lg:inline">{list.emptyAction}</span>
-            </Link>
-          </div>
-        </SurfaceCard>
+              <span className="size-[46px] animate-pulse rounded-[var(--radius-thumb)] bg-[var(--surface-2)] motion-reduce:animate-none" />
+              <span className="h-4 w-40 animate-pulse rounded-[var(--radius-pill)] bg-[var(--surface-2)] motion-reduce:animate-none" />
+            </li>
+          ))}
+        </InsetList>
+      ) : !hasRecipes ? (
+        <EmptyState
+          kind="nothing-yet"
+          tile={{ group: 'kitchen', icon: RECIPES_ICON }}
+          title={list.emptyTitle}
+          body={list.emptyBody}
+          action={{ label: list.emptyAction, link: linkTo('newRecipe') }}
+        />
       ) : (
         <>
-          <div className="flex flex-wrap gap-2">
-            <label className="relative block min-w-0 flex-1 basis-60">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="relative flex min-h-10 min-w-0 flex-1 basis-60 items-center rounded-[var(--radius-pill)] border border-[var(--control-edge)] bg-[var(--surface)] text-[var(--muted)] focus-within:border-[var(--ink)] lg:max-w-[300px]">
               <span className="sr-only">{list.search}</span>
               <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]"
+                className="pointer-events-none absolute left-3.5 size-4"
                 aria-hidden="true"
               />
               <input
-                className={`${fieldClass} w-full pl-10 pr-10 sm:text-sm`}
+                ref={searchRef}
+                className="min-h-10 w-full rounded-[var(--radius-pill)] border-0 bg-transparent pr-10 pl-10 text-[16px] text-[var(--ink)] outline-none sm:text-subhead"
                 type="search"
                 placeholder={list.search}
                 value={query}
@@ -111,57 +119,103 @@ export function RecipesPage() {
                 <button
                   type="button"
                   aria-label={list.clearSearch}
-                  className="absolute right-1 top-1/2 grid min-h-9 min-w-9 -translate-y-1/2 place-items-center"
+                  className="absolute right-0.5 grid size-9 place-items-center rounded-[var(--radius-pill)] text-[var(--muted)] hover:text-[var(--ink)]"
                   onClick={() => setQuery('')}
                 >
-                  <X className="h-4 w-4" aria-hidden="true" />
+                  <X className="size-4" aria-hidden="true" />
                 </button>
               ) : null}
             </label>
+            <div className="ml-auto">
+              <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+            </div>
+            {/* Their own line: one that scrolls sideways on a phone, and as many
+                as they need from lg. */}
             {tags.length > 0 ? (
-              <select
-                aria-label={list.tagFilter}
-                className={`${fieldClass} sm:text-sm`}
-                value={tag}
-                onChange={(event) => setPickedTag(event.target.value)}
-              >
-                <option value="">{list.allTags}</option>
-                {tags.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+              <fieldset className="m-0 flex min-w-0 basis-full gap-2 overflow-x-auto border-0 p-0.5 lg:flex-wrap">
+                <legend className="sr-only">{list.tagFilter}</legend>
+                {['', ...tags].map((name) => {
+                  const on = name === tag
+                  return (
+                    <button
+                      key={name || '*'}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setPickedTag(name)}
+                      className={`inline-flex min-h-9 shrink-0 items-center rounded-[var(--radius-pill)] px-3.5 text-subhead font-semibold ${
+                        on
+                          ? 'bg-[var(--ink)] text-[var(--on-ink)]'
+                          : 'bg-[var(--surface)] text-[var(--ink)] hover:bg-[var(--surface-2)]'
+                      }`}
+                    >
+                      {name || list.allTags}
+                    </button>
+                  )
+                })}
+              </fieldset>
             ) : null}
           </div>
+
           {shown.length === 0 ? (
-            <SurfaceCard>
-              <div className="grid gap-3 text-center">
-                <h3 className="m-0 text-base font-semibold">
-                  {list.noResultsTitle}
-                </h3>
-                <p className="m-0 text-sm text-[var(--muted)]">
-                  {tag
-                    ? fmt(list.noResultsTaggedBody, {
-                        query: query.trim(),
-                        tag,
-                      })
-                    : fmt(list.noResultsBody, { query: query.trim() })}
-                </p>
-                <button
-                  type="button"
-                  className="mx-auto inline-flex min-h-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold"
-                  onClick={clearFilters}
-                >
-                  {list.clearFilters}
-                </button>
-              </div>
-            </SurfaceCard>
+            <EmptyState
+              kind="nothing-found"
+              title={list.noResultsTitle}
+              body={
+                tag
+                  ? fmt(list.noResultsTaggedBody, { query: query.trim(), tag })
+                  : fmt(list.noResultsBody, { query: query.trim() })
+              }
+              action={{ label: list.clearFilters, onClick: clearFilters }}
+            />
+          ) : viewMode === 'compact' ? (
+            <div className="grid items-start gap-4 lg:grid-cols-2">
+              {columns.map((column) => (
+                <InsetList key={column[0]._id}>
+                  {column.map((recipe) => (
+                    <InsetRow
+                      key={recipe._id}
+                      title={recipe.title}
+                      link={linkTo('recipe', { recipeId: recipe._id })}
+                      leading={
+                        <RowThumb
+                          src={recipe.imageUrl}
+                          fallback={
+                            <ModuleTile group="kitchen" icon={RECIPES_ICON} />
+                          }
+                        />
+                      }
+                      footnote={
+                        recipe.rating != null || recipe.tags.length ? (
+                          <>
+                            <RecipeStars
+                              rating={recipe.rating}
+                              label={
+                                recipe.rating != null
+                                  ? plural(
+                                      locale,
+                                      recipe.rating,
+                                      messages.recipes.rating.stars,
+                                    )
+                                  : undefined
+                              }
+                            />
+                            {recipe.rating != null && recipe.tags.length
+                              ? ' · '
+                              : null}
+                            {recipe.tags.join(', ')}
+                          </>
+                        ) : undefined
+                      }
+                    />
+                  ))}
+                </InsetList>
+              ))}
+            </div>
           ) : (
             <div
               className={
-                viewMode === 'compact'
-                  ? 'flex flex-col gap-2'
+                viewMode === 'banner'
+                  ? 'grid gap-3 sm:grid-cols-2'
                   : 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3'
               }
             >

@@ -170,12 +170,12 @@ describe('the sidebar', () => {
     render(sidebar())
 
     const tileOf = (name: string) =>
-      screen.getByRole('link', { name }).querySelector('.tile')
-    expect(tileOf('Recipes')?.getAttribute('data-tile')).toBe('kitchen')
-    expect(tileOf('Tasks 16')?.getAttribute('data-tile')).toBe('home')
-    expect(tileOf('Home')?.getAttribute('data-tile')).toBeNull()
-    expect(tileOf('All modules')?.getAttribute('data-tile')).toBeNull()
-    expect(tileOf('Settings')?.getAttribute('data-tile')).toBeNull()
+      screen.getByRole('link', { name }).querySelector('[data-tile]')
+    expect(tileOf('Recipes')?.getAttribute('data-group')).toBe('kitchen')
+    expect(tileOf('Tasks 16')?.getAttribute('data-group')).toBe('home')
+    expect(tileOf('Home')?.getAttribute('data-group')).toBeNull()
+    expect(tileOf('All modules')?.getAttribute('data-group')).toBeNull()
+    expect(tileOf('Settings')?.getAttribute('data-group')).toBeNull()
   })
 
   test('counts a pin’s open items where its Module has a count', () => {
@@ -371,7 +371,7 @@ describe('Add', () => {
       '/recipes/new',
       '/tasks?new=true',
     ])
-    expect(items[0]?.querySelector('.tile')?.getAttribute('data-tile')).toBe(
+    expect(items[0]?.querySelector('[data-tile]')?.getAttribute('data-group')).toBe(
       'kitchen',
     )
   })
