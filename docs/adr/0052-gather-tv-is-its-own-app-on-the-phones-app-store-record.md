@@ -2,13 +2,13 @@
 type: decision
 description: Read before changing the Apple TV app's dependencies, bundle ID or EAS profiles, or moving the phone to a newer Expo patch.
 version: 1.0.0
-status: proposed
-date: 2026-11-23
+status: accepted
+date: 2026-11-24
 ---
 
 # Gather TV is its own app, on the phone's App Store record
 
-> Proposed until Eric confirms the bundle IDs on the APP-643 pull request.
+Eric accepted the bundle IDs and the shared App Store record on 24 November 2026.
 
 ## Decision
 
