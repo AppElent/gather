@@ -68,5 +68,18 @@ export function useDebouncedText(
     if (pending.current === null) setDraft(saved.current)
   }, [])
 
-  return { draft, change, flush, reset }
+  /** `text` was saved another way: nothing to write, unless typed in since. */
+  const settle = useCallback((text: string) => {
+    if (pending.current !== text) return
+    pending.current = null
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = null
+  }, [])
+
+  /** A save of `text` was refused: unsaved again, unless typed in since. */
+  const hold = useCallback((text: string) => {
+    if (pending.current === null) pending.current = text
+  }, [])
+
+  return { draft, change, flush, reset, settle, hold }
 }

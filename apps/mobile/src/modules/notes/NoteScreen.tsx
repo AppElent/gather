@@ -47,6 +47,12 @@ import { useNote, useNoteActions } from './store'
 /** From here on the note says how full it is. */
 const COUNT_FROM = NOTE_MAX_CHARS * 0.95
 
+/** Refused text kept for a reopen, and the note it was written over. */
+interface HeldDraft {
+  text: Partial<NoteText>
+  over: NoteText
+}
+
 /** Drawn, not wired. The letters are the affordance, not an icon set. */
 const FORMATS = ['B', 'I', 'H', '•', '1.', '☑'] as const
 
@@ -79,47 +85,90 @@ export function Note({ noteId }: { noteId: string }) {
   // Text the note has no room for (APP-805): on screen, not saved. It goes with
   // the next edit that makes it fit, and is kept for when the note is reopened.
   const held = useRef<Partial<NoteText>>({})
-  const [refused, setRefused] = useState<string | null>(null)
-
-  function save(field: keyof NoteText, next: string) {
-    if (!note) return
-    const patch = unsavedText(note, { ...held.current, [field]: next })
-    if (isNoteTooLong({ ...note, ...patch }) && Object.keys(patch).length > 0) {
-      held.current = patch
-      return false
-    }
-    const freed = Object.keys(held.current).length > 0
-    held.current = {}
-    if (Object.keys(patch).length > 0)
-      actions.editNote(note.id, patch).catch((error: unknown) => {
-        const sentence = noteRefusalSentence(error, t.notes.refusals)
-        if (sentence === null) throw error
-        held.current = patch
-        setRefused(sentence)
-      })
-    if (freed) (field === 'title' ? body : title).flush()
+  /** What the held text was written over. */
+  const heldOver = useRef<NoteText | null>(null)
+  /** Sent, and not yet in `note`: the next save is compared with it too. */
+  const sent = useRef<Partial<NoteText>>({})
+  const seen = useRef(note)
+  if (seen.current !== note) {
+    if (
+      seen.current?.title !== note?.title ||
+      seen.current?.body !== note?.body
+    )
+      sent.current = {}
+    seen.current = note
   }
+  const mounted = useRef(false)
+  const [refused, setRefused] = useState<string | null>(null)
 
   const { userId } = useAuth()
   const { group } = useGroup()
   const key = draftKey(userId, group._id, `notes:${noteId}`)
+
+  function holdText(patch: Partial<NoteText>, over: NoteText) {
+    if (Object.keys(held.current).length === 0) heldOver.current = over
+    held.current = patch
+  }
+  function keepHeld() {
+    keepDraft<HeldDraft>(
+      key,
+      Object.keys(held.current).length > 0 && heldOver.current
+        ? { text: held.current, over: heldOver.current }
+        : undefined,
+    )
+  }
+
+  function save(field: keyof NoteText, next: string) {
+    if (!note) return
+    const saved = { title: note.title, body: note.body, ...sent.current }
+    const patch = unsavedText(saved, { ...held.current, [field]: next })
+    if (Object.keys(patch).length > 0 && isNoteTooLong({ ...saved, ...patch })) {
+      holdText(patch, saved)
+      return false
+    }
+    held.current = {}
+    if (Object.keys(patch).length === 0) return
+    sent.current = { ...sent.current, ...patch }
+    // The held text of the other field went along: it is no longer unsaved.
+    if (patch.title !== undefined) title.settle(patch.title)
+    if (patch.body !== undefined) body.settle(patch.body)
+    actions.editNote(note.id, patch).catch((error: unknown) => {
+      sent.current = {}
+      const sentence = noteRefusalSentence(error, t.notes.refusals)
+      if (sentence === null) throw error
+      holdText(patch, saved)
+      if (!mounted.current) return keepHeld()
+      if (patch.title !== undefined) title.hold(patch.title)
+      if (patch.body !== undefined) body.hold(patch.body)
+      setRefused(sentence)
+    })
+  }
+
+  const keep = useRef(keepHeld)
+  keep.current = keepHeld
   // Declared after the two fields, so their last save has run when it cleans up.
-  useEffect(
-    () => () =>
-      keepDraft(
-        key,
-        Object.keys(held.current).length > 0 ? held.current : undefined,
-      ),
-    [key],
-  )
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      keep.current()
+    }
+  }, [])
   const loaded = note != null
+  const latestNote = useRef(note)
+  latestNote.current = note
   const { change: changeTitle } = title
   const { change: changeBody } = body
   useEffect(() => {
-    if (!loaded) return
-    const kept = keptDraft<Partial<NoteText>>(key)
-    if (kept?.title !== undefined) changeTitle(kept.title)
-    if (kept?.body !== undefined) changeBody(kept.body)
+    const now = latestNote.current
+    if (!loaded || !now) return
+    const kept = keptDraft<HeldDraft>(key)
+    if (!kept) return
+    // A field someone else has changed since stays theirs.
+    const { text, over } = kept
+    if (text.title !== undefined && now.title === over.title)
+      changeTitle(text.title)
+    if (text.body !== undefined && now.body === over.body) changeBody(text.body)
   }, [loaded, key, changeTitle, changeBody])
 
   if (!note) return <View style={{ flex: 1, backgroundColor: tokens.ground }} />

@@ -178,3 +178,54 @@ test('a refusal from the server is shown, and does not crash', async () => {
   expect(find(view, 'note-problem')?.textContent).toBe(TOO_LONG)
   view.unmount()
 })
+
+test('text sent with the other field is saved, and never sent again', async () => {
+  const view = open({ title: 'T', body: 'b' })
+  const id = state.note.id as string
+  await type(view, 'note-body', full)
+  await type(view, 'note-title', '')
+  // Someone else changes the body after it landed; leaving must not undo that.
+  state.note = { ...state.note, title: '', body: full }
+  view.rerender(<Note noteId={id} />)
+  state.note = { ...state.note, body: 'theirs' }
+  view.rerender(<Note noteId={id} />)
+  expect(find(view, 'note-body')?.value).toBe('theirs')
+  view.unmount()
+  expect(state.editNote).toHaveBeenCalledTimes(1)
+})
+
+test('leaving before the save shows up keeps no draft of it', async () => {
+  const view = open({ title: 'T', body: 'b' })
+  const id = state.note.id as string
+  await type(view, 'note-body', full)
+  await type(view, 'note-title', '')
+  view.unmount()
+  expect(state.editNote).toHaveBeenCalledTimes(1)
+  state.note = { ...state.note, title: '', body: 'theirs' }
+  const again = mount(<Note noteId={id} />)
+  expect(find(again, 'note-body')?.value).toBe('theirs')
+  again.unmount()
+  expect(state.editNote).toHaveBeenCalledTimes(1)
+})
+
+test('kept refused text does not go over a change made since', async () => {
+  const view = open({ title: 'T', body: 'b' })
+  const id = state.note.id as string
+  await type(view, 'note-body', full)
+  view.unmount()
+  state.note = { ...state.note, title: '', body: 'theirs' }
+  const again = mount(<Note noteId={id} />)
+  expect(find(again, 'note-body')?.value).toBe('theirs')
+  again.unmount()
+  expect(state.editNote).not.toHaveBeenCalled()
+})
+
+test('text the server refused stays over a change from elsewhere', async () => {
+  state.editNote.mockRejectedValue({ data: noteRefusal('too-long') })
+  const view = open({ title: 'T', body: 'b' })
+  await type(view, 'note-body', 'mine')
+  state.note = { ...state.note, body: 'theirs' }
+  view.rerender(<Note noteId={state.note.id as string} />)
+  expect(find(view, 'note-body')?.value).toBe('mine')
+  view.unmount()
+})
