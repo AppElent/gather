@@ -29,6 +29,18 @@ type CalendarSavePayload = ReturnType<typeof draftPayload> & {
   calendarId: string
 }
 
+/** Whether the draft is worth keeping on disk as it stands. */
+function isKept(draft: CalendarDraft | null): draft is CalendarDraft {
+  if (
+    !draft ||
+    !['editing', 'saving', 'conflict', 'error', 'dismissed'].includes(
+      draft.status,
+    )
+  )
+    return false
+  return draft.status !== 'editing' || isDraftDirty(draft)
+}
+
 const initialState: CalendarDraftState = {
   draft: null,
   presentation: 'card',
@@ -92,9 +104,18 @@ export function useCalendarEditor() {
   const [state, dispatch] = useReducer(reduceCalendarDraft, initialState)
   const mounted = useRef(true)
   const submitting = useRef(false)
+  const latest = useRef<CalendarDraft | null>(null)
+  latest.current = state.draft
   useEffect(
     () => () => {
       mounted.current = false
+      // The screen is going: what the timer below would write goes now, or
+      // the last 250 ms of typing is lost (APP-817).
+      try {
+        if (isKept(latest.current)) writeCalendarDraft(latest.current)
+      } catch {
+        // Nothing left to tell.
+      }
     },
     [],
   )
@@ -116,14 +137,7 @@ export function useCalendarEditor() {
     }
   }, [groupId, userId])
   useEffect(() => {
-    if (
-      !state.draft ||
-      !['editing', 'saving', 'conflict', 'error', 'dismissed'].includes(
-        state.draft.status,
-      )
-    )
-      return
-    if (state.draft.status === 'editing' && !isDraftDirty(state.draft)) return
+    if (!isKept(state.draft)) return
     const timer = setTimeout(() => {
       try {
         writeCalendarDraft(state.draft!)

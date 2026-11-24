@@ -12,7 +12,8 @@
  *
  * One arrival is held at a time, and the newest wins: a link's screen never
  * lands on top of the chooser a share was still waiting to open. A share that
- * loses keeps its Drop pending; only its chooser does not open.
+ * loses keeps its Drop pending and is told (`onSuperseded`), so `DropGate` can
+ * bring its chooser back once the newer screen is up (APP-817).
  */
 import {
   closeAllSheets,
@@ -44,6 +45,7 @@ export function isWaitingForSheets() {
 function wayClear(
   share: boolean,
   wanted: () => boolean,
+  onSuperseded?: () => void,
 ): true | Promise<boolean> {
   held = null
   if (!hasOpenSheets() && !hasOpenPrompts()) return true
@@ -52,6 +54,8 @@ function wayClear(
   const current = () => held === arrival && wanted()
   return closeAllSheets(current).then(() => {
     const go = current()
+    // Something newer took the slot while this one still wanted it.
+    if (held !== arrival && wanted()) onSuperseded?.()
     if (held === arrival) held = null
     return go
   })
@@ -75,9 +79,15 @@ export function openAfterSheets(
   {
     share = false,
     wanted = () => true,
-  }: { share?: boolean; wanted?: () => boolean } = {},
+    onSuperseded,
+  }: {
+    share?: boolean
+    wanted?: () => boolean
+    /** Called once when something newer replaced this while it still wanted to open. */
+    onSuperseded?: () => void
+  } = {},
 ) {
-  const clear = wayClear(share, wanted)
+  const clear = wayClear(share, wanted, onSuperseded)
   if (clear === true) open()
   else
     void clear.then((go) => {

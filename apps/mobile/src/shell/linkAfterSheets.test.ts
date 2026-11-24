@@ -157,3 +157,36 @@ test('a tap that is no longer wanted opens nothing', async () => {
   await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS)
   expect(open).not.toHaveBeenCalled()
 })
+
+test('a share a link replaced is told, once, when its wait ends (APP-817)', async () => {
+  const answered = openPrompt()
+  const lost = vi.fn()
+  openAfterSheets(vi.fn(), { share: true, onSuperseded: lost })
+  const link = opened(LINK)
+  answered()
+  await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS)
+  expect(await link).toBe(LINK)
+  expect(lost).toHaveBeenCalledOnce()
+})
+
+test('a share that opens, or no longer wants to, is not told it was replaced', async () => {
+  const answered = openPrompt()
+  const lost = vi.fn()
+  openAfterSheets(vi.fn(), { share: true, onSuperseded: lost })
+  answered()
+  await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS)
+
+  const second = openPrompt()
+  let wanted = true
+  openAfterSheets(vi.fn(), {
+    share: true,
+    wanted: () => wanted,
+    onSuperseded: lost,
+  })
+  const link = opened(LINK)
+  wanted = false
+  second()
+  await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS)
+  await link
+  expect(lost).not.toHaveBeenCalled()
+})
