@@ -23,9 +23,11 @@
  */
 
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useHeaderHeight } from 'expo-router/react-navigation'
 import { useState } from 'react'
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -70,6 +72,10 @@ export function DropPickScreen() {
   const tokens = useTokens()
   const router = useRouter()
   const { t } = useI18n()
+  // The header is see-through and iOS draws a plain view under it, so the
+  // search field starts below the header (the chooser's scroll view insets
+  // itself). Android lays the content out below the header already.
+  const headerHeight = useHeaderHeight()
   const { group, groups } = useGroup()
   const openInGroup = useOpenInGroup()
   const { pending, clear } = useDrop()
@@ -168,7 +174,15 @@ export function DropPickScreen() {
           title: ask ? text.pick[ask] : text.title,
         }}
       />
-      <View style={[styles.root, { backgroundColor: tokens.ground }]}>
+      <View
+        style={[
+          styles.root,
+          {
+            backgroundColor: tokens.ground,
+            paddingTop: styles.root.padding + (Platform.OS === 'ios' ? headerHeight : 0),
+          },
+        ]}
+      >
         {!asking || !drop ? (
           // A stale address, or a Drop that was answered elsewhere. Named by
           // the header above, and one Back from the chooser.
