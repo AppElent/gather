@@ -59,9 +59,10 @@ export function AddMenu({
       // On the bar the menu hangs from the bar, not from the Add slot, so it
       // keeps inside a 320 px screen: the slot starts a quarter of the way in.
       anchor={variant === 'sidebar' ? 'button' : 'parent'}
+      // No wider than its row: the sidebar scrolls, so it cuts off what sticks out.
       menuClassName={
         variant === 'sidebar'
-          ? 'top-full left-0 mt-1 w-64'
+          ? 'top-full left-0 mt-1 w-full'
           : 'bottom-full left-0 mb-4 w-72 max-w-full'
       }
     >

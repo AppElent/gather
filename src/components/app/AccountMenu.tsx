@@ -69,7 +69,7 @@ export function AccountMenu({
       opens={variant === 'sidebar' ? 'up' : 'down'}
       menuClassName={
         variant === 'sidebar'
-          ? 'bottom-full left-0 mb-2 w-64'
+          ? 'bottom-full left-0 mb-2 w-full'
           : 'top-full right-0 mt-2 w-64'
       }
     >
