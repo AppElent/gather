@@ -6,9 +6,7 @@ import { getGatedIdentity } from './connectedApps'
 
 /**
  * The sentence a signed-out caller was refused with before the refusal was
- * keyed. It rides along as the keyed refusal's `message`. Only the account
- * portal's `portalCaller` still throws it bare, because the portal client
- * matches the string (APP-620).
+ * keyed. It rides along as the keyed refusal's `message`.
  */
 export const NOT_SIGNED_IN = 'Not authenticated'
 
