@@ -34,10 +34,11 @@ const CHILD_RECORD_LIMIT = 50
  * matches by title however old, per Group for recipes and tastings, and per
  * list or calendar for tasks and events (APP-758). A read budget, not a page
  * size: past this many matches, the least relevant older ones are not read.
- * Who narrows these four index reads themselves and Status the one on tasks, so
- * rows they rule out use none of it (APP-787). When cannot: search filters are equality only and When
- * is a date range. It filters the rows read, so an old row in the range can be
- * missed behind more than this many better matches outside it.
+ * Who narrows these four index reads themselves, and Status the one on tasks,
+ * so rows they rule out use none of it (APP-787). When cannot: search filters
+ * are equality only and When is a date range. It filters the rows read, so an
+ * old row in the range can be missed behind more than this many better matches
+ * outside it.
  */
 const GROUP_MATCH_LIMIT = 100
 const CHILD_MATCH_LIMIT = 50
