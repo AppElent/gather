@@ -6,10 +6,10 @@ import {
 } from '@gather/core/energy'
 import {
   compareYears,
-  distinctPeakOf,
   formatEnergyDate,
   formatEnergyEuro,
   formatEnergyNumber,
+  highestCostDay,
   monthName,
   peakOf,
   yearPairHeights,
@@ -309,7 +309,7 @@ function PerDayChart({
   }
   const hasAny = period.days.some((day) => dayCost(day) !== null)
   const max = peakOf(period.days, dayCost)?.value ?? 0
-  const peak = distinctPeakOf(period.days, dayCost)
+  const peak = highestCostDay(period.days, dayCost)
   const label = !hasAny
     ? fmt(copy.perDayEmpty, { month: monthWord })
     : peak

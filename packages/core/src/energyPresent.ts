@@ -175,11 +175,12 @@ export function peakOf<T>(
 /**
  * The highest slot when it stands out from the others: null when no slot is
  * positive or every valued slot has the same value (including a single slot or
- * all zeros).
+ * all zeros). Values no more than `sameWithin` apart count as the same.
  */
 export function distinctPeakOf<T>(
   items: readonly T[],
   value: (item: T) => number | null,
+  sameWithin = 0,
 ): { item: T; value: number } | null {
   let best: { item: T; value: number } | null = null
   let min: number | null = null
@@ -193,8 +194,20 @@ export function distinctPeakOf<T>(
       best = { item, value: figure }
     }
   }
-  if (!best || min === null || max === null || min === max) return null
+  if (!best || min === null || max === null) return null
+  if (max - min <= sameWithin) return null
   return best
+}
+
+/**
+ * The day that costs most, in cents, when days differ. Sharing a month's net
+ * metering over its days leaves equal days a cent apart; that is rounding.
+ */
+export function highestCostDay<T>(
+  days: readonly T[],
+  cents: (day: T) => number | null,
+) {
+  return distinctPeakOf(days, cents, 1)
 }
 
 /** Twelve month pairs: last year muted, this year ink, the running one outlined. */

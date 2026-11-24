@@ -22,10 +22,10 @@ import {
 import {
   capitalise,
   compareYears,
-  distinctPeakOf,
   formatEnergyDate,
   formatEnergyEuro,
   formatEnergyNumber,
+  highestCostDay,
   monthName,
 } from '@gather/core/energy-present'
 import { Stack, useRouter } from 'expo-router'
@@ -178,7 +178,7 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
       }
     })
     const hasAnyBar = bars.some((bar) => bar.value !== null)
-    const peak = distinctPeakOf(bars, (bar) => bar.value)
+    const peak = highestCostDay(bars, (bar) => bar.value)
     const perDayLabel = !hasAnyBar
       ? fmt(words.costs.perDayEmpty, { month: monthWord })
       : peak
