@@ -306,16 +306,21 @@ export function AddToGroceriesSheet({
         source: source.title,
         lines: pick.lines,
       })
-      writePreference(lastGroceryListKey(group.slug), listId)
-      haptics.itemSaved()
-      if (!draft.gone()) onClose()
     } catch {
       haptics.actionFailed()
       draft.failed()
       onSending?.('failed')
       setFailed(true)
       setBusy(false)
+      return
     }
+    // The lines are on the list: nothing after this may say the add failed, or
+    // they would be added twice. The list to open on next is only a preference.
+    try {
+      writePreference(lastGroceryListKey(group.slug), listId)
+    } catch {}
+    haptics.itemSaved()
+    if (!draft.gone()) onClose()
   }
 
   const Updown = UI_ICONS.ChevronsUpDown

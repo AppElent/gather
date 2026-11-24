@@ -3,11 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   CLOSE_SHEETS_TIMEOUT_MS,
   closeOpenSheets,
+  hasOpenPrompts,
   hasOpenSheets,
   LATE_SHEET_DELAY_MS,
   type OpenSheet,
   onSheetsClosing,
+  openPrompt,
   openSheet,
+  promptsAnswered,
 } from './openSheets'
 
 const registered: OpenSheet[] = []
@@ -75,6 +78,18 @@ describe('openSheets', () => {
     await vi.advanceTimersByTimeAsync(1)
     await closing
     expect(resolved).toBe(true)
+  })
+
+  it('asks again, on the next close, a sheet that never reported closed', async () => {
+    vi.useFakeTimers()
+    const a = sheet()
+    const first = closeOpenSheets()
+    await vi.advanceTimersByTimeAsync(CLOSE_SHEETS_TIMEOUT_MS)
+    await first
+    const second = closeOpenSheets()
+    expect(a.dismiss).toHaveBeenCalledTimes(2)
+    a.later()
+    await second
   })
 
   it('counts a closed sheet once, however often it reports', () => {
@@ -191,5 +206,50 @@ describe('openSheets', () => {
     late.later()
     await closing
     stop()
+  })
+})
+
+describe('prompts', () => {
+  it('waits for every open prompt, then for what its answer opened', async () => {
+    vi.useFakeTimers()
+    const first = openPrompt()
+    const second = openPrompt()
+    let answered = false
+    const waiting = promptsAnswered().then(() => {
+      answered = true
+    })
+    first()
+    first()
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(hasOpenPrompts()).toBe(true)
+    expect(answered).toBe(false)
+
+    second()
+    expect(hasOpenPrompts()).toBe(false)
+    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS - 1)
+    expect(answered).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    await waiting
+    expect(answered).toBe(true)
+  })
+
+  it('waits for a prompt that an answer led to', async () => {
+    vi.useFakeTimers()
+    const first = openPrompt()
+    let answered = false
+    void promptsAnswered().then(() => {
+      answered = true
+    })
+    first()
+    const next = openPrompt()
+    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS * 2)
+    expect(answered).toBe(false)
+    next()
+    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
+    expect(answered).toBe(true)
+  })
+
+  it('resolves at once when none is open', async () => {
+    await expect(promptsAnswered()).resolves.toBeUndefined()
   })
 })

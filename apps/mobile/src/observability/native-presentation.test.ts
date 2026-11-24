@@ -14,6 +14,7 @@ import { openBrowserAsync as nativeOpenBrowser } from 'expo-web-browser'
 import { ActionSheetIOS, Alert, type AlertButton } from 'react-native'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { hasOpenPrompts } from '../components/openSheets'
 import {
   launchCameraAsync,
   launchImageLibraryAsync,
@@ -110,6 +111,16 @@ describe('showAlert', () => {
     expect(listening()).toHaveBeenCalledTimes(1)
   })
 
+  it('holds a share only when asked to, until it is answered', () => {
+    open([{ text: 'OK' }])
+    expect(hasOpenPrompts()).toBe(false)
+    vi.mocked(Alert.alert).mockClear()
+    showAlert('Title', undefined, [{ text: 'Stay' }], { holdsShare: true })
+    expect(hasOpenPrompts()).toBe(true)
+    vi.mocked(Alert.alert).mock.calls[0][2]?.[0].onPress?.()
+    expect(hasOpenPrompts()).toBe(false)
+  })
+
   it('releases when Alert.alert throws', () => {
     vi.mocked(Alert.alert).mockImplementation(() => {
       throw new Error('boom')
@@ -131,6 +142,7 @@ describe('showPrompt', () => {
       '2 eggs',
     )
     expect(paused()).toHaveBeenCalledTimes(1)
+    expect(hasOpenPrompts()).toBe(true)
     const [title, , buttons, type, value] = vi.mocked(Alert.prompt).mock
       .calls[0]
     expect([title, type, value]).toEqual(['Edit', 'plain-text', '2 eggs'])
@@ -138,6 +150,7 @@ describe('showPrompt', () => {
     const shown = buttons as AlertButton[]
     shown[1].onPress?.('3 eggs')
     expect(onSave).toHaveBeenCalledWith('3 eggs')
+    expect(hasOpenPrompts()).toBe(false)
     settle()
     expect(listening()).toHaveBeenCalledTimes(1)
   })

@@ -27,7 +27,7 @@
  *   wheel or calendar, drags by its top band, because those scroll too. What counts as a drag is
  *   `composer-gestures.ts`.
  * - **The card closes; the draft stays.** Every way out (scrim, swipe down,
- *   Android Back) is `onClose`, and the kind keeps what was typed
+ *   Android Back, a share from another app) is `onClose`, and the kind keeps what was typed
  *   (`composer-drafts.ts`). Nothing asks to confirm.
  */
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
@@ -69,6 +69,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context'
 
+import { openSheet } from '../components/openSheets'
 import { useI18n } from '../i18n'
 import type { Glyph } from '../theme/glyph'
 import { UI_ICONS } from '../theme/icons'
@@ -188,6 +189,15 @@ export interface KeyboardComposerProps {
 }
 
 export function KeyboardComposer(props: KeyboardComposerProps) {
+  // A modal covers the chooser as a sheet does, so a share closes it the way
+  // its scrim does, and the kind keeps the draft (APP-672).
+  const onClose = useRef(props.onClose)
+  onClose.current = props.onClose
+  useEffect(() => {
+    const open = openSheet(() => onClose.current())
+    return open.closed
+  }, [])
+
   return (
     <Modal
       transparent

@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the share sheet, a Drop, its destinations, host rules, or expo-share-intent.
-version: 1.3.0
+version: 1.4.0
 status: current
 ---
 
@@ -29,10 +29,17 @@ that already means making Group content visible to a second Group.
   same path a tapped notification takes; navigating in the same tick as the
   switch would be undone by the switch's unwind of the tab stacks.
 - **Every arrival opens the chooser on top.** A share closes any open
-  `NativeSheet` first, the way its Close does (`onClose` runs once), because a
-  sheet is presented above the stack and would hide the chooser
-  (`src/components/openSheets.ts`). Arrivals are counted for the whole session,
-  so a share after a finished or abandoned one opens the chooser again.
+  `NativeSheet` or keyboard composer first, the way its Close does (`onClose`
+  runs once), because both are presented above the stack and would hide the
+  chooser (`src/components/openSheets.ts`). Nothing a share closed reopens
+  what was under it: Repeat does not bring its composer back.
+- **A share waits for a prompt.** An OS dialog cannot be closed from JS, so the
+  chooser waits until a `showPrompt` is answered; the answer lands in the form,
+  which is then closed and kept like any other. So does an alert whose answer
+  opens a sheet (`showAlert` with `holdsShare`: the calendar's unsaved-changes
+  questions). Any other alert stays in front of the chooser and loses nothing.
+- Arrivals are counted for the whole session, so a share after a finished or
+  abandoned one opens the chooser again.
 - **A share keeps what was typed.** The person did not ask for that close,
   so every sheet form with input keeps it, in memory, per account and Group
   ([editors](../standards/editors.md), APP-622). A form whose state lives in
@@ -63,8 +70,8 @@ that already means making Group content visible to a second Group.
 
   Not forms, so nothing to keep: pickers and menus whose taps apply at once.
   Custom allocation edits the Split screen's own state, which lives as long as
-  that screen. The keyboard composer is not a `NativeSheet` and keeps its own
-  draft.
+  that screen. The keyboard composer (task, note, event, grocery item) keeps its
+  own draft on every close, a share included.
 - **The commit clears the Drop.** A target that has not written by the time it
   navigates declares `keepsDrop` (today only `recipe-import`): its screen is
   pushed over the chooser with the Drop still pending, so Back still has

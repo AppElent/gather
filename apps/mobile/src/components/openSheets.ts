@@ -1,6 +1,7 @@
 /**
- * Every `NativeSheet` on screen, so something outside them can close them all
- * (APP-618).
+ * Every `NativeSheet` and keyboard composer on screen, so something outside
+ * them can close them all (APP-618, APP-672), and every OS dialog a share waits
+ * for, because nothing outside it can close it.
  *
  * A sheet is presented natively above the navigation stack, so pushing a
  * screen leaves it in front: a share arriving while one is up put the Drop
@@ -39,6 +40,8 @@ interface Entry {
 
 const sheets = new Set<Entry>()
 const waiters = new Set<() => void>()
+const prompts = new Set<symbol>()
+const promptWaiters = new Set<() => void>()
 const closingListeners = new Set<() => void>()
 
 /** Tells the forms a share is closing sheets. */
@@ -120,10 +123,48 @@ export function closeOpenSheets(
       waiters.delete(done)
       resolve()
     }
-    const timer = setTimeout(done, timeoutMs)
+    const timer = setTimeout(() => {
+      // A request that was lost is made again by the next close, rather than
+      // leaving the sheet in front of every chooser from now on.
+      for (const entry of sheets) entry.asked = false
+      done()
+    }, timeoutMs)
     waiters.add(done)
     for (const entry of [...sheets]) if (!entry.presenting) ask(entry)
     // A sheet whose dismiss reports closed at once has already settled.
     settle()
   })
+}
+
+/**
+ * Registers an OS dialog that is up and whose answer would be lost, or would
+ * open something over the chooser, if a share went ahead under it. Call the
+ * result when it is answered; more than once is safe.
+ */
+export function openPrompt(): () => void {
+  const id = Symbol('prompt')
+  prompts.add(id)
+  return () => {
+    if (!prompts.delete(id) || prompts.size > 0) return
+    for (const resolve of [...promptWaiters]) resolve()
+    promptWaiters.clear()
+  }
+}
+
+export function hasOpenPrompts() {
+  return prompts.size > 0
+}
+
+/**
+ * Resolves once no dialog is up, and what its answer changed or opened has had
+ * time to render and present. There is no time limit: the dialog is in front
+ * of the person, and goes only when they answer it.
+ */
+export async function promptsAnswered(): Promise<void> {
+  while (prompts.size > 0) {
+    await new Promise<void>((resolve) => {
+      promptWaiters.add(resolve)
+    })
+    await new Promise((resolve) => setTimeout(resolve, LATE_SHEET_DELAY_MS))
+  }
 }

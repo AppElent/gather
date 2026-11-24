@@ -22,6 +22,7 @@ import {
   type AlertType,
 } from 'react-native'
 
+import { openPrompt } from '../components/openSheets'
 import { holdShakeToReport } from './shake-to-report'
 
 export type {
@@ -29,6 +30,16 @@ export type {
   ImagePickerOptions,
   ImagePickerResult,
 } from 'expo-image-picker'
+
+/** Holds shake-to-report, and the Drop chooser when a share must wait. */
+function holdAlert(holdsShare = false) {
+  const release = holdShakeToReport()
+  const answered = holdsShare ? openPrompt() : undefined
+  return () => {
+    release()
+    answered?.()
+  }
+}
 
 /** Each button releases the hold before doing what it did. */
 function releasing(buttons: AlertButton[], release: () => void) {
@@ -41,14 +52,18 @@ function releasing(buttons: AlertButton[], release: () => void) {
   }))
 }
 
-/** `Alert.alert`, holding shake-to-report until a button or the dismissal. */
+/**
+ * `Alert.alert`, holding shake-to-report until a button or the dismissal.
+ * `holdsShare` also keeps the Drop chooser back until then, for a question
+ * whose answer opens a sheet (APP-672).
+ */
 export function showAlert(
   title: string,
   message?: string,
   buttons?: AlertButton[],
-  options?: AlertOptions,
+  { holdsShare, ...options }: AlertOptions & { holdsShare?: boolean } = {},
 ) {
-  const release = holdShakeToReport()
+  const release = holdAlert(holdsShare)
   // With no buttons iOS adds an OK nobody can observe, so name it here.
   const shown = buttons?.length ? buttons : [{ text: 'OK' }]
   try {
@@ -56,7 +71,7 @@ export function showAlert(
       ...options,
       onDismiss: () => {
         release()
-        options?.onDismiss?.()
+        options.onDismiss?.()
       },
     })
   } catch (error) {
@@ -65,7 +80,10 @@ export function showAlert(
   }
 }
 
-/** `Alert.prompt` (iOS only), held until one of its buttons. */
+/**
+ * `Alert.prompt` (iOS only), held until one of its buttons. A share waits for
+ * it: closing the form under it would drop what is being typed (APP-672).
+ */
 export function showPrompt(
   title: string,
   message: string | undefined,
@@ -73,7 +91,7 @@ export function showPrompt(
   type?: AlertType,
   defaultValue?: string,
 ) {
-  const release = holdShakeToReport()
+  const release = holdAlert(true)
   try {
     Alert.prompt(title, message, releasing(buttons, release), type, defaultValue)
   } catch (error) {
