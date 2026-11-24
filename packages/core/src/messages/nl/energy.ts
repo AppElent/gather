@@ -250,8 +250,10 @@ export const energy = {
     legendRunning: 'Lopende maand',
     hourLabel:
       'Verbruik per uur op {date}. Verbruik het hoogst om {hour}, {kwh} kWh.',
+    hourLabelFlat: 'Verbruik per uur op {date}.',
     hourLabelSolar: ' Zon het hoogst om {hour}, {kwh} kWh.',
     dayLabel: 'Verbruik per dag in {month}. Meeste verbruik op {day}, {kwh} kWh.',
+    dayLabelFlat: 'Verbruik per dag in {month}.',
     dayLabelSolar: ' Meeste zon op {day}, {kwh} kWh.',
     chartEmpty: 'Nog geen verbruik in deze periode.',
     yearLabelKwh:

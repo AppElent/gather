@@ -52,8 +52,10 @@ export type EnergyUsageRange = 'day' | 'month' | 'year'
  */
 export function EnergyUsagePage({
   initialRange = 'day',
+  initialYear,
 }: {
   initialRange?: EnergyUsageRange
+  initialYear?: number
 }) {
   const group = useRequiredCurrentGroup()
   const { messages, locale } = useI18n()
@@ -63,7 +65,9 @@ export function EnergyUsagePage({
   const [range, setRange] = useState<EnergyUsageRange>(initialRange)
   const [day, setDay] = useState(today)
   const [month, setMonth] = useState(thisMonth)
-  const [year, setYear] = useState(thisYear)
+  const [year, setYear] = useState(
+    initialYear !== undefined && initialYear <= thisYear ? initialYear : thisYear,
+  )
 
   const stepper =
     range === 'day' ? (

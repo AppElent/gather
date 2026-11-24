@@ -17,6 +17,7 @@ import {
   type EnergyContractTerms,
   type EnergyDayUse,
   energyContractOn,
+  energyCostPeriod,
   energyDayCost,
   energyDayFixedCost,
   energyMonthDays,
@@ -513,5 +514,24 @@ describe('presenting', () => {
       percent: 20,
     })
     expect(compareYears([], [], 0)).toBeNull()
+  })
+})
+
+describe('energyCostPeriod', () => {
+  const priced = (day: string) => ({ day, cost: ZERO_ENERGY_COST })
+  const unpriced = (day: string) => ({ day, cost: null })
+  test('runs from the first to the last day that carries a cost', () => {
+    expect(
+      energyCostPeriod([
+        priced('2026-11-01'),
+        priced('2026-11-02'),
+        priced('2026-11-03'),
+        unpriced('2026-11-04'),
+      ]),
+    ).toEqual({ from: '2026-11-01', to: '2026-11-03' })
+  })
+  test('is nothing when no day carries a cost', () => {
+    expect(energyCostPeriod([unpriced('2026-11-01')])).toBeNull()
+    expect(energyCostPeriod([])).toBeNull()
   })
 })

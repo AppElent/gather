@@ -272,8 +272,10 @@ export const energy = {
     legendRunning: 'Running month',
     hourLabel:
       'Usage per hour on {date}. Usage highest at {hour}, {kwh} kWh.',
+    hourLabelFlat: 'Usage per hour on {date}.',
     hourLabelSolar: ' Solar highest at {hour}, {kwh} kWh.',
     dayLabel: 'Usage per day in {month}. Most usage on {day}, {kwh} kWh.',
+    dayLabelFlat: 'Usage per day in {month}.',
     dayLabelSolar: ' Most solar on {day}, {kwh} kWh.',
     chartEmpty: 'No usage in this period yet.',
     yearLabelKwh:
