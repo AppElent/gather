@@ -808,13 +808,17 @@ describe('the daily lookback for corrections', () => {
     expect(await rows(t, 'energyIntervals')).toEqual(before)
   })
 
-  test('nor when zeros at night lie between its hours', async () => {
-    // Eight hours a day, never two the same; zero at night.
+  test.each([
+    ['zeros', true],
+    ['no hours at all', false],
+  ])('nor when its nights have %s', async (_, zeros) => {
+    // Eight hours a day, never two the same.
     const sums = new Map<number, number>()
     let sum = 100
     for (let hour = 300; hour > 0; hour -= 1) {
-      if (hour % 24 < 8) sum += (400 - hour) / 100
-      sums.set(THIS_HOUR - hour * HOUR, sum)
+      const day = hour % 24 < 8
+      if (day) sum += (400 - hour) / 100
+      if (day || zeros) sums.set(THIS_HOUR - hour * HOUR, sum)
     }
     const { t, lookback } = await connected(sums)
     // Three days of another sensor: 24 hours that differ, over 56 in all.
@@ -832,6 +836,26 @@ describe('the daily lookback for corrections', () => {
     const before = await rows(t, 'energyIntervals')
     await lookback()
     expect(await rows(t, 'energyIntervals')).toEqual(before)
+  })
+
+  test.each([
+    [24, true],
+    [25, false],
+  ])('a run of %i hours is written: %s', async (length, written) => {
+    const { t, lookback } = await connected(growing(300))
+    const before = await rows(t, 'energyIntervals')
+    const inside = (at: number) =>
+      at >= THIS_HOUR - 100 * HOUR && at < THIS_HOUR - (100 - length) * HOUR
+    await t.run(async (ctx) => {
+      for (const each of await ctx.db.query('energyIntervals').collect()) {
+        if (inside(each.hourStart)) {
+          await ctx.db.patch(each._id, { amount: each.amount + 7 })
+        }
+      }
+    })
+    const changed = await rows(t, 'energyIntervals')
+    await lookback()
+    expect(await rows(t, 'energyIntervals')).toEqual(written ? before : changed)
   })
 
   test('a full battery does not make two sensors the same', async () => {
