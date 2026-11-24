@@ -113,6 +113,25 @@ describe('the time zone', () => {
   })
 })
 
+describe('the appearance', () => {
+  test('speaks the reader’s language, Dutch included', () => {
+    renderWithI18n(<GroupIdentitySettings group={TEST_GROUP} />, {
+      locale: 'nl',
+    })
+    const icon = screen.getByLabelText('Icoon') as unknown as HTMLSelectElement
+    expect([...icon.options].map((option) => option.textContent)).toEqual([
+      'Mensen',
+      'Huis',
+      'Hart',
+      'Eten',
+      'Wijn',
+    ])
+    expect(
+      screen.getByRole('button', { name: 'Uiterlijk opslaan' }),
+    ).not.toBeNull()
+  })
+})
+
 describe('who is offered it', () => {
   test('not a Member who is not an admin while others remain; they may leave', () => {
     exits.value = OTHERS_REMAIN

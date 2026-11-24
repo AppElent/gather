@@ -11,6 +11,8 @@ import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import type { ShellGroup } from '../app/useCurrentGroup'
 import { ImageUploadField } from '../photo/ImageUploadField'
 
+const GROUP_ICONS = ['Users', 'House', 'Heart', 'Utensils', 'Wine'] as const
+
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold'
 
@@ -92,7 +94,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
         imageId: imageId ?? null,
       })
     } catch (err) {
-      setError(errorText(err, group_.renameFailed))
+      setError(errorText(err, group_.appearanceFailed))
     } finally {
       setSaving(false)
     }
@@ -138,7 +140,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
         {isAdmin ? (
           <div className="grid gap-2">
             <label htmlFor="group-icon" className="text-sm font-semibold">
-              Icon
+              {group_.icon}
             </label>
             <select
               id="group-icon"
@@ -146,18 +148,18 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
               onChange={(event) => setIcon(event.target.value)}
               className={inputClass}
             >
-              <option value="Users">People</option>
-              <option value="House">Home</option>
-              <option value="Heart">Heart</option>
-              <option value="Utensils">Food</option>
-              <option value="Wine">Wine</option>
+              {GROUP_ICONS.map((value) => (
+                <option key={value} value={value}>
+                  {group_.iconOptions[value]}
+                </option>
+              ))}
             </select>
             <ImageUploadField
               imageUrl={group.imageUrl ?? null}
               onChange={setImageId}
               generateUploadUrl={generateImageUploadUrl}
               preset="groupPhoto"
-              label="Group picture"
+              label={group_.picture}
               fieldId="group-image"
             />
             <div>
@@ -167,7 +169,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
                 onClick={() => void saveAppearance()}
                 className={buttonClass}
               >
-                {saving ? actions.saving : 'Save appearance'}
+                {saving ? actions.saving : group_.saveAppearance}
               </button>
             </div>
           </div>

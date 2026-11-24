@@ -155,6 +155,17 @@ export const settings = {
     timeZoneClear: 'Eigen tijdzone per apparaat gebruiken',
     timeZoneFailed: 'Kon de tijdzone niet wijzigen.',
     timeZoneAdminOnly: 'Alleen een beheerder kan dit wijzigen.',
+    icon: 'Icoon',
+    iconOptions: {
+      Users: 'Mensen',
+      House: 'Huis',
+      Heart: 'Hart',
+      Utensils: 'Eten',
+      Wine: 'Wijn',
+    },
+    picture: 'Groepsfoto',
+    saveAppearance: 'Uiterlijk opslaan',
+    appearanceFailed: 'Kon het icoon en de foto niet opslaan.',
     inviteCode: 'Uitnodigingscode',
     inviteCodeNote:
       'Iedereen met deze code kan zich aanmelden via Groepen — deel hem alleen met mensen die je erbij wilt hebben.',
