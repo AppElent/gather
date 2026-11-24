@@ -1,4 +1,11 @@
-import { type Infer, v } from 'convex/values'
+import {
+  amsterdamIsoDate,
+  isIsoDate,
+  isoDateIn,
+} from '@gather/core/civil-date'
+import { matchesRowFilters } from '@gather/core/search-filters'
+import { isTimeZone } from '@gather/core/task-reminders'
+import { ConvexError, type Infer, v } from 'convex/values'
 
 import { query } from './_generated/server'
 import { isVisibleToGroups, requireGroupBySlug } from './lib/groupAccess'
@@ -108,10 +115,35 @@ export const group = query({
      * (APP-613): Wines reads wines, so beers and cheeses cannot crowd it out.
      */
     kind: v.optional(tastingKindValidator),
+    /**
+     * The filters, applied before the 30 rows are taken (APP-633) by the
+     * phone's own rules (`@gather/core/search-filters`). Optional: a client
+     * from before them filters the rows it gets.
+     */
+    createdBy: v.optional(v.string()),
+    when: v.optional(
+      v.union(
+        v.literal('today'),
+        v.literal('week'),
+        v.literal('month'),
+        v.literal('earlier'),
+      ),
+    ),
+    status: v.optional(v.union(v.literal('open'), v.literal('done'))),
+    /**
+     * The reader's civil date and IANA zone, which only `when` reads. The
+     * Netherlands' when absent.
+     */
+    today: v.optional(v.string()),
+    timeZone: v.optional(v.string()),
   },
   returns: v.array(resultValidator),
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    if (args.today !== undefined && !isIsoDate(args.today))
+      throw new ConvexError('Invalid date')
+    if (args.timeZone !== undefined && !isTimeZone(args.timeZone))
+      throw new ConvexError('Invalid time zone')
     const needle = normalized(args.query)
     if (needle.length < 2) return []
     const accepts = new Set<ResultType>(args.accepts ?? ORIGINAL_TYPES)
@@ -323,8 +355,25 @@ export const group = query({
       }),
     ]
 
+    const calendar = {
+      today: args.today ?? (args.when ? amsterdamIsoDate() : ''),
+      dayAt:
+        args.when && args.timeZone
+          ? isoDateIn(args.timeZone)
+          : amsterdamIsoDate,
+    }
+    const filters = {
+      who: args.createdBy,
+      when: args.when,
+      status: args.status,
+    }
+
     return results
-      .filter((result) => accepts.has(result.type))
+      .filter(
+        (result) =>
+          accepts.has(result.type) &&
+          matchesRowFilters(result, filters, calendar),
+      )
       .sort(
         (a, b) =>
           a.rank - b.rank ||
