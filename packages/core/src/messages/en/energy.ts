@@ -39,9 +39,8 @@ export const energy = {
     manualHint: 'Estimated per day. A good way to start.',
     submit: 'Continue',
     saving: 'Saving…',
-    // The design's footnote ("Prices work right away, no key needed…") comes
-    // back with prices themselves (APP-493); until then it would promise
-    // something the Module cannot do yet.
+    footnote:
+      'Prices work right away, no key needed. You can choose another price source later.',
   },
   /** An address that exists (APP-492). */
   site: {
@@ -68,6 +67,30 @@ export const energy = {
     usage: 'Usage',
     usageSubHourly: 'Per hour, day, month and year',
     usageSubDaily: 'Per day, month and year',
+    /** Electricity's price now and today's hours (APP-493). */
+    nowLabel: 'Power price now',
+    now: 'Power now, {from}–{to}',
+    perKwh: 'per kWh',
+    nowMarket: 'market price per kWh',
+    expensive: 'Expensive',
+    average: 'Average',
+    cheap: 'Cheap',
+    above: '{judgement}: {percent}% above today’s average',
+    below: '{judgement}: {percent}% below today’s average',
+    same: '{judgement}: about today’s average',
+    plain: '{judgement} for today',
+    nextToday: 'Cheapest later today: {from}–{to}, on average {price}',
+    nextTomorrow: 'Cheapest tomorrow: {from}–{to}, on average {price}',
+    priceCard: 'Price per hour today',
+    openPrices: 'Prices',
+    prices: 'Prices',
+    pricesSub: 'Today and tomorrow, per hour',
+    footnoteAllIn:
+      'Prices from {provider} with your contract from {supplier}. Amounts include VAT and energy tax.',
+    footnoteAllInNoSupplier:
+      'Prices from {provider} with your contract. Amounts include VAT and energy tax.',
+    footnoteAccount: 'Your own contract price, from {provider}. Everything is included.',
+    footnoteMarket: 'Market prices from {provider}, excl. VAT and energy tax.',
     costs: 'Costs per month',
     costsSub: '{amount} so far in {month}',
     costsSubNone: 'What your usage costs',
@@ -385,6 +408,98 @@ export const energy = {
       "Only admins of the Group see this. The token stays on Gather's server. Gather reads statistics only and controls nothing.",
     adminsOnly: 'Only admins of the Group can connect Home Assistant.',
   },
+  /** Prices per hour, and where they come from (APP-493). */
+  prices: {
+    title: 'Prices',
+    now: 'Power now {price} per kWh',
+    nowMarket: 'Market price now {price} per kWh',
+    nowNone: 'No price for this hour',
+    source: '{site} · {source}',
+    sourceWithSupplier: '{provider} + {supplier}',
+    tabs: 'Day',
+    today: 'Today',
+    tomorrow: 'Tomorrow',
+    captionAllIn: '{date}, all-in per kWh',
+    captionMarket: '{date}, market price per kWh',
+    noteNoContract:
+      'Market prices, excl. VAT and energy tax. Fill in a dynamic contract to see what you pay.',
+    noteFixed:
+      'Market prices, excl. VAT and energy tax. Your contract has fixed tariffs, so you do not pay these.',
+    legendCheapest: 'Cheapest 3 hours',
+    legendNow: 'Now, {hour}',
+    legendExpensive: 'Most expensive hour',
+    factAverage: 'Average',
+    factCheapest: 'Cheapest 3 hours',
+    factExpensive: 'Most expensive hour',
+    factBlock: '{from}–{to} · {price}',
+    factHour: '{hour} · {price}',
+    /** The chart in words, for everyone (designs/energy section 11). */
+    sentenceToday:
+      'Price per hour today. Now {now} cents. Cheapest {from} to {to}, on average {average} cents. Most expensive at {hour}, {max} cents.',
+    sentenceTodayNoNow:
+      'Price per hour today. Cheapest {from} to {to}, on average {average} cents. Most expensive at {hour}, {max} cents.',
+    sentenceTomorrow:
+      'Price per hour tomorrow. Cheapest {from} to {to}, on average {average} cents. Most expensive at {hour}, {max} cents.',
+    negativeCost: 'Sending power back costs money from {from} to {to}.',
+    negativeCostBody:
+      'The market price is negative then: you pay {price} per kWh you send back.',
+    negative: 'The market price is negative from {from} to {to}.',
+    negativeBody: 'Power has no value on the market in these hours.',
+    buildUp: 'What makes up {price}',
+    buildUpLabel:
+      'Market price {market}, markup {markup}, energy tax {tax}, VAT {vat}.',
+    partMarket: 'Market price ({provider})',
+    partMarkup: 'Markup',
+    partMarkupSupplier: 'Markup {supplier}',
+    partTax: 'Energy tax',
+    partVat: 'VAT {percent}%',
+    accountNote:
+      '{provider} gives one price with everything in it, so there are no parts to show.',
+    tomorrowExpected: 'Tomorrow’s prices are expected around {time}.',
+    tomorrowLate: 'Tomorrow’s prices are not in yet.',
+    todayNone: 'There are no prices for today yet.',
+    sourceRow: 'Price source',
+    stateFetched: '{provider} · fetched {when}',
+    stateTomorrow: '{provider} · tomorrow fetched {when}',
+    stateFetching: '{provider} · fetching prices…',
+    stateProblem: '{problem} Last worked: {when}.',
+    stateProblemNever: '{problem} It has not worked yet.',
+    problems: {
+      unreachable: '{provider} does not answer.',
+      badAnswer: '{provider} gives an answer Gather cannot read.',
+      keyRejected: '{provider} refuses the key. Save a new one.',
+      noSubscription: 'There is no running {provider} contract behind this key.',
+      late: '{provider} has not given all prices yet.',
+    },
+  },
+  /** Choosing the price source (APP-493). */
+  feed: {
+    title: 'Price source',
+    sub: 'Where do the prices come from?',
+    choices: 'Price source',
+    choice: 'radio button',
+    energyzero: 'Market price per quarter of an hour. No key needed.',
+    entsoe: 'Official European market price. Your own token.',
+    tibber: 'Your own contract price. Your own API key.',
+    more: 'More suppliers',
+    moreSub: 'Later',
+    entsoeHeading: 'ENTSO-E token',
+    tibberHeading: 'Tibber API key',
+    key: 'Key',
+    keyStored: 'Saved. Type a new one here.',
+    entsoeHelp: 'Ask for a token at the ENTSO-E Transparency Platform.',
+    tibberHelp: 'Make a key at developer.tibber.com.',
+    keyNote:
+      'The key stays on Gather’s server and is never shown again. Only admins of the Group can change it.',
+    tibberNote:
+      'Tibber gives your own contract price, with markup and tax included. Gather then uses the tariffs in your contract only for gas and fixed costs.',
+    save: 'Save',
+    saving: 'Saving…',
+    keyInPlace: 'A key is saved.',
+    footer:
+      'Gather fetches prices once a day, around 13:30. If that fails, this page says when it last worked.',
+    adminsOnly: 'Only admins of the Group can change the price source.',
+  },
   refusals: {
     needsName: 'Give the address a name.',
     tooLong: 'That name is too long.',
@@ -414,5 +529,7 @@ export const energy = {
       'Home Assistant does not answer at this address. Check the address and whether it is reachable from outside.',
     sourceNotHomeAssistant: 'Something answers at this address, but it is not Home Assistant.',
     sourceBadToken: 'Home Assistant refuses this token.',
+    priceKeyNeeded: 'Type the key of this price source.',
+    priceKeyInvalid: 'That is not a key. Copy all of it, without spaces.',
   } satisfies Record<EnergyRefusalCode, string>,
 }

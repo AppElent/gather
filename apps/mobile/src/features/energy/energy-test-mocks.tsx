@@ -10,6 +10,7 @@
  * either a value or a function of the arguments; mutations are recorded in
  * `energyState.calls`.
  */
+import { amsterdamDayHours } from '@gather/core/energy'
 import {
   createElement,
   forwardRef,
@@ -144,14 +145,16 @@ const Button = ({
   label,
   onPress,
   testID,
+  disabled,
 }: {
   label: string
   onPress: () => void
   testID?: string
+  disabled?: boolean
 }) =>
   createElement(
     'button',
-    { type: 'button', 'data-testid': testID, onClick: onPress },
+    { type: 'button', 'data-testid': testID, onClick: onPress, disabled },
     label,
   )
 const Card = ({ children }: { children: ReactNode }) =>
@@ -187,6 +190,29 @@ const InsetRow = ({
     trailing as ReactNode,
     children,
   )
+const Segmented = ({
+  options,
+  onChange,
+}: {
+  options: { value: string; label: string }[]
+  onChange: (value: string) => void
+}) =>
+  createElement(
+    'div',
+    null,
+    options.map((option) =>
+      createElement(
+        'button',
+        {
+          type: 'button',
+          key: option.value,
+          'data-testid': `segment-${option.value}`,
+          onClick: () => onChange(option.value),
+        },
+        option.label,
+      ),
+    ),
+  )
 const DateTimeChip = ({
   testID,
   onPress,
@@ -203,13 +229,19 @@ const Field = ({
   value,
   onChangeText,
   testID,
+  secure,
+  placeholder,
 }: {
   value: string
   onChangeText: (text: string) => void
   testID: string
+  secure?: boolean
+  placeholder?: string
 }) =>
   createElement('input', {
     'data-testid': testID,
+    type: secure ? 'password' : 'text',
+    placeholder,
     value,
     onChange: (event: { target: { value: string } }) =>
       onChangeText(event.target.value),
@@ -274,6 +306,7 @@ export const reactNativeMock = () => ({
   TextInput,
   Platform: { OS: 'ios' },
   Keyboard: { dismiss: () => undefined },
+  AppState: { addEventListener: () => ({ remove: () => undefined }) },
   Switch,
   StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 1, flatten },
   useWindowDimensions: () => ({ width: 390, height: 844, fontScale: 1, scale: 3 }),
@@ -369,6 +402,7 @@ export const moduleTileMock = () => ({
 })
 export const screenHeaderMock = () => ({ washScreenOptions: () => ({}) })
 export const washHeaderMock = () => ({ WashHeader })
+export const segmentedMock = () => ({ Segmented })
 export const menuMock = () => ({ MenuView })
 
 export const byTestId = (id: string) =>
@@ -480,5 +514,42 @@ export function usagePeriod({
       costMissingDays: 0,
       costStatus,
     },
+  }
+}
+
+/** A day of prices: 30 cents, but for `changes` by hour. */
+function priceDay(day: string, changes: Record<number, number>) {
+  return {
+    day,
+    provider: 'energyzero',
+    basis: 'allIn',
+    terms: {
+      supplierName: 'Frank Energie',
+      importMarkupEurPerKwh: 0.02,
+      energyTaxEurPerKwh: 0.1,
+      vatPercent: 21,
+    },
+    exportFeeEurPerKwh: -0.01,
+    hours: amsterdamDayHours(day).map((start, index) => {
+      const price = changes[index] ?? 0.3
+      return { start, price, market: price / 1.21 - 0.12 }
+    }),
+  }
+}
+
+/** What `energyPrices.view` answers on 23 November 2026. */
+export function priceView(overrides: Record<string, unknown> = {}) {
+  return {
+    siteName: 'Thuis',
+    canManage: true,
+    provider: 'energyzero',
+    hasKey: false,
+    status: 'ok',
+    lastError: null,
+    lastFetchedAt: Date.parse('2026-11-23T11:40:00Z'),
+    contract: { kind: 'dynamic', supplierName: 'Frank Energie' },
+    today: priceDay('2026-11-23', { 2: 0.2, 3: 0.2, 4: 0.2, 13: 0.4 }),
+    tomorrow: priceDay('2026-11-24', { 12: 0.1, 13: 0.1, 14: 0.1, 18: 0.5 }),
+    ...overrides,
   }
 }

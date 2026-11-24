@@ -36,4 +36,13 @@ crons.hourly(
   {},
 )
 
+// Day-ahead prices, published around 13:00 in Amsterdam (APP-493): 13:35 in
+// summer, and in winter 12:35, whose retries carry on from there.
+crons.daily(
+  'fetch energy prices',
+  { hourUTC: 11, minuteUTC: 35 },
+  internal.energyPrices.startFetches,
+  {},
+)
+
 export default crons

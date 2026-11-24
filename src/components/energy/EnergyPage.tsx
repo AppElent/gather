@@ -4,6 +4,7 @@ import {
   energyHomeHasProblem,
   energyHomeSourceLine,
   energyHomeSources,
+  energyPriceStateLine,
   formatEnergyDate,
   formatEnergyEuro,
 } from '@gather/core/energy-present'
@@ -18,6 +19,7 @@ import { fmt, useI18n } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { PriceFootnote, PriceNowCard, PriceTodayCard } from './energyPriceCards'
 import { daySeries, dayTicks, hourSeries } from './energySeries'
 import {
   ChartFigure,
@@ -31,6 +33,7 @@ import {
   RowList,
   readingDate,
   SECONDARY,
+  useEnergyMinute,
   useEnergyToday,
 } from './energyShared'
 
@@ -49,7 +52,8 @@ type SourceChoice = 'homeAssistant' | 'manual'
  * With an address (APP-494), the page names it and its source, invites the
  * first meter readings while nothing is measured, shows usage per hour (an
  * hourly source) or per day (typed readings) and links to Usage, Costs,
- * Meter readings, Contract and Sources. A source with a problem says so in
+ * Meter readings, Contract and Sources. Above usage, what power costs now and
+ * per hour today (APP-493), from any price source. A source with a problem says so in
  * the summary's second line, with when its data is from (ADR-0020).
  */
 export function EnergyPage() {
@@ -101,7 +105,8 @@ function SiteHome({
 }) {
   const { messages, locale } = useI18n()
   const copy = messages.energy
-  const { today, month } = useEnergyToday()
+  const { today, month, now } = useEnergyMinute()
+  const prices = useQuery(api.energyPrices.view, { groupSlug, day: today })
   const form = useQuery(api.energyReadings.form, { groupSlug, day: today })
   const period = useQuery(api.energyUsage.month, { groupSlug, month, today })
   const hourly = period?.hasHourly === true
@@ -111,7 +116,6 @@ function SiteHome({
   )
   const typedChannels = form?.channels.length ?? 0
 
-  const now = Date.now()
   const shown = energyHomeSources(overview.sources, typedChannels)
   const sourceLine =
     overview.sources.length === 0
@@ -131,6 +135,9 @@ function SiteHome({
   const problem = energyHomeHasProblem(shown)
   const connected = shown.some((source) => source.kind !== 'manual')
 
+  const priceState = prices
+    ? energyPriceStateLine(prices, now, copy, locale)
+    : null
   const monthCost = period?.totals.cost
   const contract = period?.contract
 
@@ -174,6 +181,11 @@ function SiteHome({
         </SurfaceCard>
       ) : null}
 
+      {prices ? <PriceNowCard view={prices} now={now} /> : null}
+      {prices?.today ? (
+        <PriceTodayCard prices={prices.today} now={now} />
+      ) : null}
+
       {period ? (
         hourly ? (
           day ? (
@@ -189,6 +201,14 @@ function SiteHome({
           link={linkTo('energyUsage')}
           label={copy.home.usage}
           sub={hourly ? copy.home.usageSubHourly : copy.home.usageSubDaily}
+        />
+        <NavRow
+          link={linkTo('energyPrices')}
+          label={copy.home.prices}
+          sub={
+            priceState?.problem ? priceState.text : copy.home.pricesSub
+          }
+          danger={priceState?.problem}
         />
         <NavRow
           link={linkTo('energyCosts')}
@@ -228,6 +248,7 @@ function SiteHome({
           sub={copy.sources.homeRowSub}
         />
       </RowList>
+      {prices?.today ? <PriceFootnote prices={prices.today} /> : null}
     </>
   )
 }
@@ -456,6 +477,8 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
           ))}
         </fieldset>
       </SurfaceCard>
+
+      <p className="m-0 text-sm text-[var(--muted)]">{copy.form.footnote}</p>
 
       {error ? (
         <p role="alert" className="m-0 text-sm text-[var(--danger)]">

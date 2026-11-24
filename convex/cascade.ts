@@ -45,7 +45,7 @@ export const releaseFiles = internalMutation({
   },
 })
 
-/** Interval and reading rows one step deletes. */
+/** Interval, reading and account price rows one step deletes. */
 const ENERGY_ROWS_PER_STEP = 1000
 
 /**
@@ -68,6 +68,25 @@ export const purgeEnergyRows = internalMutation({
       await ctx.scheduler.runAfter(
         writePauseMs(rows.length),
         internal.cascade.purgeEnergyRows,
+        args,
+      )
+    }
+  },
+})
+
+/** Delete the account prices of a feed that is gone, a page per step. */
+export const purgeAccountPrices = internalMutation({
+  args: { feedId: v.id('energyPriceFeeds') },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query('energyPrices')
+      .withIndex('by_feed_carrier_start', (q) => q.eq('feedId', args.feedId))
+      .take(ENERGY_ROWS_PER_STEP)
+    for (const row of rows) await ctx.db.delete(row._id)
+    if (rows.length === ENERGY_ROWS_PER_STEP) {
+      await ctx.scheduler.runAfter(
+        writePauseMs(rows.length),
+        internal.cascade.purgeAccountPrices,
         args,
       )
     }

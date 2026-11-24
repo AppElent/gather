@@ -13,6 +13,7 @@ import {
 } from '../test/energyUsageFixture'
 import { api } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
+import type { MutationCtx } from './_generated/server'
 
 /**
  * Usage and costs (APP-494), computed from typed readings and hourly
@@ -254,6 +255,166 @@ describe('a dynamic contract', () => {
       totalCents: 517,
     })
     expect(month?.totals.cost?.totalCents).toBeGreaterThan(0)
+  })
+
+  /** One price all day, of a provider or of a feed. */
+  async function priceDay(
+    ctx: MutationCtx,
+    day: string,
+    provider: 'energyzero' | 'entsoe' | 'tibber',
+    eurPerUnit: number,
+    feedId?: Id<'energyPriceFeeds'>,
+  ) {
+    await ctx.db.insert('energyPrices', {
+      provider,
+      feedId,
+      carrier: 'electricity',
+      start: amsterdamDayStart(day),
+      minutes: 1440,
+      eurPerUnit,
+    })
+    if (provider === 'energyzero') {
+      await ctx.db.insert('energyPrices', {
+        provider,
+        carrier: 'gas',
+        start: amsterdamDayStart(day) + 6 * 3_600_000,
+        minutes: 1440,
+        eurPerUnit: 0.5,
+      })
+    }
+  }
+  const feedRow = (
+    homeId: Id<'groups'>,
+    siteId: Id<'energySites'>,
+    provider: 'entsoe' | 'tibber',
+  ) => ({
+    groupId: homeId,
+    siteId,
+    provider,
+    scope: provider === 'tibber' ? ('account' as const) : ('market' as const),
+    secret: 'key',
+    includesTaxes: provider === 'tibber',
+    status: 'ok' as const,
+  })
+  const costOn = async (
+    t: Awaited<ReturnType<typeof seedReadSite>>['t'],
+    day: string,
+  ) => {
+    const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
+    return month?.days.find((each) => each.day === day)
+  }
+
+  test("another Group's account prices never price this one (APP-493)", async () => {
+    const { t, otherId, carolId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const otherSite = await insertSite(ctx, otherId, carolId)
+      const feedId = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(otherId, otherSite, 'tibber'),
+      )
+      await priceDay(ctx, '2026-11-10', 'energyzero', 0.1)
+      await priceDay(ctx, '2026-11-10', 'tibber', 9, feedId)
+    })
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(266)
+  })
+
+  test('account prices are the import price; gas and export keep the contract (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const feedId = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(homeId, siteId, 'tibber'),
+      )
+      await priceDay(ctx, '2026-11-10', 'energyzero', 0.1)
+      await priceDay(ctx, '2026-11-10', 'tibber', 0.3, feedId)
+    })
+    // 10 kWh × 0.30, with no markup, tax or VAT on top; the rest as above.
+    expect((await costOn(t, '2026-11-10'))?.cost).toEqual({
+      importCents: 300,
+      exportCents: -27,
+      gasCents: 278,
+      fixedCents: 0,
+      creditCents: 0,
+      totalCents: 551,
+    })
+  })
+
+  test('another source later rewrites no account day (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const feedId = await ctx.db.insert('energyPriceFeeds', {
+        ...feedRow(homeId, siteId, 'tibber'),
+        provider: 'energyzero',
+        scope: 'market',
+        includesTaxes: false,
+        secret: undefined,
+      })
+      for (const day of ['2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-09', 'tibber', 0.3, feedId)
+    })
+    expect((await costOn(t, '2026-11-09'))?.cost?.importCents).toBe(300)
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(266)
+  })
+
+  test('a day an account feed missed has no price, never the market one (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const feedId = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(homeId, siteId, 'tibber'),
+      )
+      for (const day of ['2026-11-08', '2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-09', 'tibber', 0.3, feedId)
+    })
+    // Before the feed's first day it was not the source yet.
+    expect((await costOn(t, '2026-11-08'))?.cost?.importCents).toBe(266)
+    expect(await costOn(t, '2026-11-10')).toMatchObject({
+      cost: null,
+      costStatus: 'noPrices',
+    })
+  })
+
+  test('returning to an account source rewrites no day between (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const earlier = await ctx.db.insert('energyPriceFeeds', {
+        ...feedRow(homeId, siteId, 'tibber'),
+        provider: 'energyzero',
+        scope: 'market',
+        includesTaxes: false,
+        secret: undefined,
+      })
+      const now = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(homeId, siteId, 'tibber'),
+      )
+      for (const day of ['2026-11-08', '2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-08', 'tibber', 0.3, earlier)
+      await priceDay(ctx, '2026-11-10', 'tibber', 0.4, now)
+    })
+    expect((await costOn(t, '2026-11-08'))?.cost?.importCents).toBe(300)
+    expect((await costOn(t, '2026-11-09'))?.cost?.importCents).toBe(266)
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(400)
+  })
+
+  test('ENTSO-E prices a day it has, EnergyZero the others (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      await ctx.db.insert('energyPriceFeeds', feedRow(homeId, siteId, 'entsoe'))
+      for (const day of ['2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-10', 'entsoe', 0.2)
+    })
+    expect((await costOn(t, '2026-11-09'))?.cost?.importCents).toBe(266)
+    // 10 × (0.20 + 0.02 + 0.10) × 1.21
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(387)
   })
 })
 
