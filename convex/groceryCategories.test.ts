@@ -779,3 +779,38 @@ describe('history window', () => {
     expect(await categoryOf(t, await addItem(t, 0, listId, 'Doenjang'))).toBe('drinks')
   })
 })
+
+describe('askNames (recording the eval set)', () => {
+  test('asks the model without touching the daily or Group budget', async () => {
+    const { t } = await seed()
+    const fetchMock = modelAnswers('household')
+    // Even a spent day does not refuse a recording.
+    await t.run(async (ctx) => {
+      await ctx.db.insert('groceryAiUsage', {
+        day: new Date().toISOString().slice(0, 10),
+        count: 10_000,
+      })
+    })
+    const answers = await t.action(internal.groceryCategories.askNames, {
+      names: ['andy', 'doenjang van tante 0612345678'],
+    })
+    expect(answers).toEqual([
+      { name: 'andy', aisle: 'household' },
+      { name: 'doenjang van tante 0612345678', aisle: null },
+    ])
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const usage = await t.run((ctx) => ctx.db.query('groceryAiUsage').collect())
+    expect(usage.map((row) => row.count)).toEqual([10_000])
+    expect(await t.run((ctx) => ctx.db.query('groceryAiGroupUsage').collect())).toEqual([])
+  })
+
+  test('refuses more names than one call may ask', async () => {
+    const { t } = await seed()
+    const fetchMock = modelAnswers('household')
+    const names = Array.from({ length: 51 }, (_, index) => `naam ${index}`)
+    await expect(t.action(internal.groceryCategories.askNames, { names })).rejects.toThrow(
+      /at most 50/,
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})

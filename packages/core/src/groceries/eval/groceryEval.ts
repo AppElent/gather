@@ -39,6 +39,24 @@ export function parseEvalSet(text: string): EvalRow[] {
   return rows
 }
 
+/**
+ * The aisle most of the answers agree on; a tie goes to the one asked first.
+ * One model answer per name is noisy, so a recording asks several times.
+ */
+export function majorityAisle(answers: readonly (GroceryAisle | null)[]): GroceryAisle | null {
+  const counts = new Map<GroceryAisle, number>()
+  for (const aisle of answers) if (aisle) counts.set(aisle, (counts.get(aisle) ?? 0) + 1)
+  let best: GroceryAisle | null = null
+  let bestCount = 0
+  // Map keeps insertion order, so the first-asked answer wins a tie.
+  for (const [aisle, count] of counts)
+    if (count > bestCount) {
+      best = aisle
+      bestCount = count
+    }
+  return best
+}
+
 /** Names of these lines the dictionary does not know: `groceryKey` → the name the model is asked. */
 export function unknownEvalNames(
   rows: readonly EvalRow[],

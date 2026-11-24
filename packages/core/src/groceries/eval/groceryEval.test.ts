@@ -8,6 +8,7 @@ import type { GroceryAisle } from '../aisles'
 import { groceryDictionary } from '../index'
 import {
   formatEvalReport,
+  majorityAisle,
   parseEvalSet,
   runGroceryEval,
   unknownEvalNames,
@@ -98,6 +99,15 @@ describe('grocery recognition eval', () => {
     expect(withCache.accuracy).toBeGreaterThanOrEqual(0.95)
   })
 
+  // APP-802: the gate above scores the dictionary alone and missed a prompt
+  // line that sent errands ("stomerij") to household. The same lines with the
+  // recorded model answers: 33/45 from the dictionary, so at most one lost.
+  it('leaves at least 70% of the non-grocery lines in Overig with the shared AI cache', () => {
+    const { total, correct } = withCache.perAisle.other
+    expect(total).toBeGreaterThanOrEqual(40)
+    expect(correct / total).toBeGreaterThanOrEqual(0.7)
+  })
+
   it('leaves under 3% in Overig once the AI cache has answered', () => {
     expect(withCache.otherRate).toBeLessThan(0.03)
   })
@@ -127,5 +137,14 @@ describe('grocery recognition eval', () => {
 
   it('keeps the dictionary at 3,000 terms or more', () => {
     expect(groceryDictionary().size).toBeGreaterThanOrEqual(3000)
+  })
+
+  // APP-802: a recording asks each name several times and keeps the majority.
+  it('takes the majority answer of a recording, and the first on a tie', () => {
+    expect(majorityAisle(['household', 'drinks', 'household'])).toBe('household')
+    expect(majorityAisle(['drinks', 'household', 'household'])).toBe('household')
+    expect(majorityAisle(['drinks', 'household'])).toBe('drinks')
+    expect(majorityAisle([null, 'household', null])).toBe('household')
+    expect(majorityAisle([null, null])).toBeNull()
   })
 })

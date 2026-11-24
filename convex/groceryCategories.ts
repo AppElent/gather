@@ -213,27 +213,36 @@ export const applyAnswer = internalMutation({
 })
 
 /**
- * Ask the model about names without storing anything: for measuring the
- * fallback against the eval set (`scripts/groceries/ask-ai.ts`) and for
- * trying the prompt. Spends from the same daily budget.
+ * Most names one `askNames` call may ask, and so the most questions one call
+ * costs. The recording script sends several calls per run and caps the run.
+ */
+export const ASK_NAMES_MAX = 50
+
+/**
+ * Ask the model about names without storing anything: for recording the
+ * fallback's answers for the eval set (`scripts/groceries/ask-ai.ts`, dev
+ * only) and for trying the prompt. Internal, so no client can reach it. It
+ * does not take from the app's daily budget (`takeBudget`) and does not count
+ * against any Group: that budget is for the people using the app, and a
+ * recording must not spend it or be refused by it. Its own bound is
+ * `ASK_NAMES_MAX` names per call, and the script caps the calls per run.
  */
 export const askNames = internalAction({
   args: { names: v.array(v.string()) },
   returns: v.array(
     v.object({ name: v.string(), aisle: v.union(groceryAisleValidator, v.null()) }),
   ),
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
+    if (args.names.length > ASK_NAMES_MAX)
+      throw new Error(`askNames takes at most ${ASK_NAMES_MAX} names per call`)
     const apiKey = anthropicApiKey()
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set on this deployment')
     const answers: { name: string; aisle: GroceryAisle | null }[] = []
-    for (const name of args.names.slice(0, 50)) {
-      if (!isAskableGroceryName(name)) {
-        answers.push({ name, aisle: null })
-        continue
-      }
-      const taken = await ctx.runMutation(internal.groceryCategories.takeBudget, {})
-      if (taken !== 'taken') throw new Error('daily grocery AI budget spent')
-      answers.push({ name, aisle: await askGroceryAisle(name, apiKey) })
+    for (const name of args.names) {
+      answers.push({
+        name,
+        aisle: isAskableGroceryName(name) ? await askGroceryAisle(name, apiKey) : null,
+      })
     }
     return answers
   },

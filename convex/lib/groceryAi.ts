@@ -31,8 +31,8 @@ const AISLE_LIST = GROCERY_AISLES.map(
 export function groceryAislePrompt(name: string): string {
   return [
     'Sort an item from a Dutch household shopping list into the aisle of a Dutch supermarket (Albert Heijn, Jumbo) where a shopper finds it.',
-    'The item may be Dutch or English, a brand name, or misspelled. Choose "other" only for things a supermarket does not sell.',
-    'A brand goes where the thing it sells goes: cleaning and laundry brands to household. Fresh juice and smoothies go with drinks, unless clearly chilled dairy.',
+    'The item may be Dutch or English, a brand name, or misspelled. Choose "other" for anything a supermarket does not sell: services, errands and chores are "other", not products.',
+    'When the item is a product, a brand goes where the thing it sells goes: cleaning and laundry brands to household. Fresh juice and smoothies go with drinks, unless clearly chilled dairy.',
     '',
     'Aisles:',
     AISLE_LIST,
