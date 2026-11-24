@@ -541,6 +541,12 @@ export default defineSchema({
     /** A pantry entry's free quantity ("2 pakken"), kept from the migration. */
     note: v.optional(v.string()),
     createdBy: v.id('users'),
+    /**
+     * The Members, other than its maker, who added it again since (APP-681):
+     * the maker's undo leaves a staple somebody else keeps. Each is here once,
+     * and goes when they leave the Group (`detachFromGroup`).
+     */
+    keptBy: v.optional(v.array(v.id('users'))),
   })
     .index('by_group', ['groupId'])
     .index('by_group_and_key', ['groupId', 'key']),

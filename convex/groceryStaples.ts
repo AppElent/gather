@@ -60,7 +60,8 @@ export const list = query({
 
 /**
  * A new staple, in stock. A name the Group already keeps answers the staple
- * it has, so a double tap or a second Member adds nothing twice.
+ * it has, so a double tap or a second Member adds nothing twice. A Member who
+ * did not make it is remembered as keeping it too (APP-681), from any app.
  *
  * With `report` it answers whether this call made the row, so an undo takes
  * back only its own (APP-671). Without it, as installed apps call it, it
@@ -86,7 +87,12 @@ export const add = mutation({
     const key = stapleKey(name)
     if (!key) throw new ConvexError('That is not a name')
     const existing = await findStaple(ctx, group._id, key)
-    if (existing) return answer(existing._id, false)
+    if (existing) {
+      const { createdBy, keptBy = [] } = existing
+      if (user._id !== createdBy && !keptBy.includes(user._id))
+        await ctx.db.patch(existing._id, { keptBy: [...keptBy, user._id] })
+      return answer(existing._id, false)
+    }
     const list = await writableGroceryList(ctx, group)
     const { aisle } = await recogniseGroceryTitle(
       ctx,
@@ -128,7 +134,8 @@ export const setLow = mutation({
 /**
  * No longer a staple. Whatever is on the grocery list stays there. An undo of
  * `add` says `unlessLow` (APP-671): a staple somebody marked running low since
- * is in use, and stays.
+ * is in use, and one another Member added since is theirs too (APP-681). Both
+ * stay.
  */
 export const remove = mutation({
   args: {
@@ -137,13 +144,15 @@ export const remove = mutation({
     unlessLow: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { doc: staple } = await requireInGroup(
+    const { doc: staple, user } = await requireInGroup(
       ctx,
       args.groupSlug,
       args.id,
       NOT_FOUND,
     )
-    if (args.unlessLow && staple.low) return
+    const inUse =
+      staple.low || staple.keptBy?.some((keeper) => keeper !== user._id)
+    if (args.unlessLow && inUse) return
     await ctx.db.delete(args.id)
   },
 })

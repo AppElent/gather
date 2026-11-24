@@ -1201,7 +1201,10 @@ export function useTaskActions() {
     },
     /** A name onto In stock, or the staple it already is (APP-314). */
     addStaple,
-    /** The undo of `addStaple`: one marked running low since stays. */
+    /**
+     * The undo of `addStaple`: one marked running low, or added by another
+     * Member, since stays.
+     */
     undoStaple: (id: Id<'groceryStaples'>) =>
       removeStaple({ groupSlug, id, unlessLow: true }),
     /** A grocery list's "Maybe needed" strip on or off (APP-311). */

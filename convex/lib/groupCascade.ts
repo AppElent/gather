@@ -657,6 +657,9 @@ export async function destroyGroup(
  *
  * A **Planned meal's eaters** drop the person; the meal stays.
  *
+ * A **staple** they added after its maker did (`keptBy`, APP-681) drops them;
+ * the staple stays.
+ *
  * A **task** they were responsible for goes back to nobody (APP-302), with
  * any notice they had not opened.
  *
@@ -722,6 +725,17 @@ export async function detachFromGroup(
     if (!meal.eaterIds?.includes(userId)) continue
     await ctx.db.patch(meal._id, {
       eaterIds: meal.eaterIds.filter((id) => id !== userId),
+    })
+  }
+
+  const staples = await ctx.db
+    .query('groceryStaples')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .collect()
+  for (const staple of staples) {
+    if (!staple.keptBy?.includes(userId)) continue
+    await ctx.db.patch(staple._id, {
+      keptBy: staple.keptBy.filter((id) => id !== userId),
     })
   }
 
