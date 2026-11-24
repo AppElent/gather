@@ -197,10 +197,11 @@ export default defineSchema({
   })
     .index('by_group', ['groupId'])
     // Old recipes by title word, as the next three `search_` indexes do for
-    // theirs (`search.ts`, APP-758).
+    // theirs (`search.ts`, APP-758). The creator and `done` narrow the read to
+    // the Who and Status filters (APP-787).
     .searchIndex('search_title', {
       searchField: 'title',
-      filterFields: ['groupId'],
+      filterFields: ['groupId', 'createdByUserId'],
     }),
 
   // One row per Group a recipe is Shared into: an index of
@@ -350,7 +351,7 @@ export default defineSchema({
     .index('by_parent', ['parentTaskId'])
     .searchIndex('search_title', {
       searchField: 'title',
-      filterFields: ['listId'],
+      filterFields: ['listId', 'done', 'createdBy'],
     }),
 
   /**
@@ -604,7 +605,7 @@ export default defineSchema({
     .index('by_calendar_date', ['calendarId', 'date'])
     .searchIndex('search_title', {
       searchField: 'title',
-      filterFields: ['calendarId'],
+      filterFields: ['calendarId', 'createdBy'],
     }),
 
   integrationConnections: defineTable({
@@ -974,7 +975,7 @@ export default defineSchema({
     .index('by_group_kind_catalogKey', ['groupId', 'kind', 'catalogKey'])
     .searchIndex('search_name', {
       searchField: 'name',
-      filterFields: ['groupId', 'kind'],
+      filterFields: ['groupId', 'kind', 'createdByUserId'],
     }),
 
   /**
