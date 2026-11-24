@@ -12,14 +12,15 @@ import { energyChannelName } from '@gather/core/energy-present'
 import { readEnergyRefusal } from '@gather/core/refusals'
 import { useAction, useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
-import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { Stack, useNavigation, useRouter } from 'expo-router'
+import { useEffect, useRef, useState } from 'react'
 import {
   Keyboard,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
+  type TextInputInstance,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -45,6 +46,9 @@ import { WashHeader } from '../../ui/wash-header'
 type SourceList = NonNullable<FunctionReturnType<typeof api.energySources.list>>
 type Tested = FunctionReturnType<typeof api.energyHomeAssistant.test>
 type Proposal = Tested['proposals'][number]
+type ConnectNavigation = {
+  addListener: (event: 'beforeRemove' | 'blur', listener: () => void) => () => void
+}
 
 export function EnergyConnectScreen() {
   const tokens = useTokens('home')
@@ -105,6 +109,7 @@ function ConnectForm({
 }) {
   const tokens = useTokens('home')
   const { t, locale } = useI18n()
+  const navigation = useNavigation<ConnectNavigation>()
   const router = useRouter()
   const words = t.energy
   const copy = words.connect
@@ -115,10 +120,31 @@ function ConnectForm({
   const connected = existing?.connected ?? false
   const [address, setAddress] = useState(list.homeAssistantAddress ?? '')
   const [token, setToken] = useState('')
+  const tokenField = useRef<TextInputInstance>(null)
   const [tested, setTested] = useState<Tested | null>(null)
   const [history, setHistory] = useState(!connected)
   const [busy, setBusy] = useState<'test' | 'connect' | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
+
+  // iOS offers to save a filled secure field as a password when the screen
+  // leaves, whether saved or not, so empty the native field and state first.
+  const clearToken = () => {
+    tokenField.current?.clear()
+    setToken('')
+  }
+  useEffect(() => {
+    const clear = () => {
+      tokenField.current?.clear()
+      setToken('')
+    }
+    const onRemove = navigation.addListener('beforeRemove', clear)
+    const onBlur = navigation.addListener('blur', clear)
+    return () => {
+      onRemove()
+      onBlur()
+      tokenField.current?.clear()
+    }
+  }, [navigation])
 
   const connection = {
     groupSlug,
@@ -171,9 +197,7 @@ function ConnectForm({
         history,
       })
       haptics.itemSaved()
-      // The server has the token. iOS offers to save a filled secure field as
-      // a password when the screen closes, so it is emptied first.
-      setToken('')
+      clearToken()
       requestAnimationFrame(done)
     } catch (caught) {
       refused(caught)
@@ -184,7 +208,8 @@ function ConnectForm({
   const runDisconnect = async () => {
     try {
       await disconnect({ groupSlug })
-      done()
+      clearToken()
+      requestAnimationFrame(done)
     } catch (caught) {
       refused(caught)
     }
@@ -226,6 +251,7 @@ function ConnectForm({
           testID="energy-connect-address"
         />
         <Field
+          ref={tokenField}
           label={copy.token}
           value={token}
           onChangeText={(text) => {

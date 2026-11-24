@@ -213,6 +213,38 @@ test('editing starts from the address, keeps the token and can disconnect', asyn
   energyState.confirms[0]?.onConfirm()
   await settle()
   expect(callsTo('energySources:disconnect')).toEqual([{ groupSlug: 'home' }])
+  await vi.waitFor(() =>
+    expect(energyState.dismissed).toEqual(['/all/energy/sources']),
+  )
+  view.unmount()
+})
+
+test('leaving Connect without saving clears the token field so iOS does not offer to save it', async () => {
+  const view = mount(createElement(EnergyConnectScreen))
+  typeInto(byTestId('energy-connect-address'), 'https://ha.example.org')
+  typeInto(byTestId('energy-connect-token'), 'fake-token')
+  await settle()
+  expect((byTestId('energy-connect-token') as HTMLInputElement).value).toBe('fake-token')
+  for (const listener of energyState.navListeners.beforeRemove ?? []) listener()
+  await settle()
+  expect((byTestId('energy-connect-token') as HTMLInputElement).value).toBe('')
+  expect(energyState.fieldClears).toContain('energy-connect-token')
+  view.unmount()
+})
+
+test('disconnecting clears a pasted token before leaving', async () => {
+  energyState.queries['energySources:list'] = connectedList
+  const view = mount(createElement(EnergyConnectScreen))
+  typeInto(byTestId('energy-connect-token'), 'pasted-before-disconnect')
+  await settle()
+  byTestId('energy-connect-disconnect')?.click()
+  energyState.confirms[0]?.onConfirm()
+  await settle()
+  expect((byTestId('energy-connect-token') as HTMLInputElement).value).toBe('')
+  expect(energyState.fieldClears).toContain('energy-connect-token')
+  await vi.waitFor(() =>
+    expect(energyState.dismissed).toEqual(['/all/energy/sources']),
+  )
   view.unmount()
 })
 

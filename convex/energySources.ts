@@ -496,6 +496,8 @@ export const beginSync = internalMutation({
         from: v.number(),
         attempt: v.number(),
         importId: v.id('_scheduled_functions'),
+        /** Statistics that still need `from`; omitted means every channel. */
+        historyFor: v.optional(v.array(v.string())),
       }),
     ),
   },
@@ -526,6 +528,9 @@ export const beginSync = internalMutation({
           historyFrom: args.history.from,
           attempt: args.history.attempt + 1,
           importId: args.history.importId,
+          ...(args.history.historyFor !== undefined
+            ? { historyFor: args.history.historyFor }
+            : {}),
         },
       )
     }
@@ -654,6 +659,7 @@ export const continueImport = internalMutation({
     readFrom: v.number(),
     sums: v.array(v.object({ statisticId: v.string(), sum: v.number() })),
     incomplete: v.boolean(),
+    historyFor: v.optional(v.array(v.string())),
   },
   returns: v.null(),
   handler: async (ctx, { retryId, ...args }) => {
@@ -690,13 +696,21 @@ export const finishSync = internalMutation({
     /** The import this run belongs to, and its next try. */
     importId: v.optional(v.id('_scheduled_functions')),
     retryId: v.optional(v.id('_scheduled_functions')),
+    /** Narrow the scheduled retry to statistics that still need history. */
+    retry: v.optional(
+      v.object({
+        historyFrom: v.number(),
+        attempt: v.number(),
+        historyFor: v.array(v.string()),
+      }),
+    ),
     done: v.boolean(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     if (args.importId) {
       if (!(await isPending(ctx, args.importId))) return null
-      if (args.done) {
+      if (args.done || !args.retryId) {
         await ctx.scheduler.cancel(args.importId)
         if (args.retryId && (await isPending(ctx, args.retryId))) {
           await ctx.scheduler.cancel(args.retryId)
@@ -710,6 +724,26 @@ export const finishSync = internalMutation({
       source.baseUrl !== args.baseUrl
     ) {
       return null
+    }
+    if (
+      args.importId &&
+      !args.done &&
+      args.retry &&
+      args.retryId &&
+      (await isPending(ctx, args.retryId))
+    ) {
+      await ctx.scheduler.cancel(args.retryId)
+      await ctx.scheduler.runAfter(
+        retryDelay(args.retry.attempt),
+        internal.energyHomeAssistant.syncSource,
+        {
+          sourceId: source._id,
+          historyFrom: args.retry.historyFrom,
+          attempt: args.retry.attempt + 1,
+          importId: args.importId,
+          historyFor: args.retry.historyFor,
+        },
+      )
     }
     if (args.problem === null) {
       await ctx.db.patch(source._id, {

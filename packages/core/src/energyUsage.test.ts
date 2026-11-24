@@ -99,6 +99,22 @@ describe('spreadReadingsOverDays', () => {
       ]),
     ).toEqual([null])
   })
+
+  test('a reading lower than the one before (replaced meter) never spreads a negative amount', () => {
+    const readings = [
+      { at: noonOn('2026-11-01'), value: 1000 },
+      { at: noonOn('2026-11-11'), value: 50 },
+      { at: noonOn('2026-11-13'), value: 70 },
+    ]
+    const spread = spreadReadingsOverDays(readings, [
+      '2026-11-05',
+      '2026-11-11',
+      '2026-11-12',
+    ])
+    expect(spread[0]).toBeNull()
+    expect(spread[1]).toBeCloseTo(5)
+    expect(spread[2]).toBeCloseTo(10)
+  })
 })
 
 describe('checkEnergyReading', () => {

@@ -34,6 +34,8 @@ export const energyState = {
   actions: {} as Record<string, unknown>,
   dismissed: [] as unknown[],
   confirms: [] as { title: string; onConfirm: () => void }[],
+  navListeners: {} as Record<string, Set<() => void>>,
+  fieldClears: [] as string[],
 }
 
 export function resetEnergyState() {
@@ -47,6 +49,8 @@ export function resetEnergyState() {
   energyState.actions = {}
   energyState.dismissed = []
   energyState.confirms = []
+  energyState.navListeners = {}
+  energyState.fieldClears = []
 }
 
 /** The calls made to one mutation, by its `module:fn` name. */
@@ -227,20 +231,26 @@ const DateTimeChip = ({
     'data-testid': testID,
     onClick: onPress,
   })
-const Field = ({
-  value,
-  onChangeText,
-  testID,
-  secure,
-  placeholder,
-}: {
-  value: string
-  onChangeText: (text: string) => void
-  testID: string
-  secure?: boolean
-  placeholder?: string
-}) =>
-  createElement('input', {
+const Field = forwardRef<
+  { clear: () => void; focus: () => void },
+  {
+    value: string
+    onChangeText: (text: string) => void
+    testID: string
+    secure?: boolean
+    placeholder?: string
+  }
+>(function Field({ value, onChangeText, testID, secure, placeholder }, ref) {
+  const input = useRef<HTMLInputElement>(null)
+  useImperativeHandle(ref, () => ({
+    focus: () => input.current?.focus(),
+    clear: () => {
+      energyState.fieldClears.push(testID)
+      if (input.current) input.current.value = ''
+    },
+  }))
+  return createElement('input', {
+    ref: input,
     'data-testid': testID,
     type: secure ? 'password' : 'text',
     placeholder,
@@ -248,6 +258,7 @@ const Field = ({
     onChange: (event: { target: { value: string } }) =>
       onChangeText(event.target.value),
   })
+})
 const WashHeader = ({ summary }: { summary: unknown }) => {
   energyState.wash = summary
   return null
@@ -328,7 +339,19 @@ export const svgMock = () => ({
 export const safeAreaMock = () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 })
-export const routerMock = () => ({ Stack, useRouter: () => router })
+const navigation = {
+  addListener: (event: string, listener: () => void) => {
+    const set = energyState.navListeners[event] ?? new Set()
+    set.add(listener)
+    energyState.navListeners[event] = set
+    return () => set.delete(listener)
+  },
+}
+export const routerMock = () => ({
+  Stack,
+  useRouter: () => router,
+  useNavigation: () => navigation,
+})
 const recorded = (name: string) => async (args: unknown) => {
   energyState.calls.push({ name, args })
   if (energyState.refuse) {

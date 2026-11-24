@@ -187,7 +187,8 @@ export interface EnergyReadingPoint {
  * Spread cumulative readings over days. Each stretch between two readings is
  * divided in proportion to how much of it each day covers. A day no stretch
  * touches has no figure (`null`), never zero: before the first reading and
- * after the last one nothing is known.
+ * after the last one nothing is known. A stretch where the count goes down
+ * (a replaced meter) spreads nothing, so usage is never negative.
  */
 export function spreadReadingsOverDays(
   readings: readonly EnergyReadingPoint[],
@@ -202,7 +203,7 @@ export function spreadReadingsOverDays(
       const from = sorted[index - 1] as EnergyReadingPoint
       const to = sorted[index] as EnergyReadingPoint
       const overlap = Math.min(end, to.at) - Math.max(start, from.at)
-      if (overlap <= 0 || to.at <= from.at) continue
+      if (overlap <= 0 || to.at <= from.at || to.value < from.value) continue
       amount =
         (amount ?? 0) + ((to.value - from.value) * overlap) / (to.at - from.at)
     }

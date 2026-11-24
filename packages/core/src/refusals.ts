@@ -175,6 +175,7 @@ export const ENERGY_REFUSAL_CODES = [
   'sourceUnreachable',
   'sourceNotHomeAssistant',
   'sourceBadToken',
+  'sourceRefused',
   // APP-493: the price source.
   'priceKeyNeeded',
   'priceKeyInvalid',

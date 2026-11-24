@@ -34,10 +34,10 @@ import { homeAssistantOrigin } from './lib/homeAssistantUrl'
 
 const HOUR_MS = 3_600_000
 const DAY_MS = 24 * HOUR_MS
-/** A year of hours, and no more than a month of them per question. */
 const sumsValidator = v.array(
   v.object({ statisticId: v.string(), sum: v.number() }),
 )
+/** A year of hours, and no more than a month of them per question. */
 const HISTORY_MS = 365 * DAY_MS
 const WINDOW_MS = 31 * DAY_MS
 /** Rows per mutation: far under Convex's limits, and quick to retry. */
@@ -118,6 +118,7 @@ function connectRefusal(error: unknown): unknown {
     unreachable: 'sourceUnreachable',
     notHomeAssistant: 'sourceNotHomeAssistant',
     badToken: 'sourceBadToken',
+    syncFailed: 'sourceRefused',
   } as const
   return new ConvexError(energyRefusal(code[error.problem]))
 }
@@ -294,6 +295,8 @@ export const syncSource = internalAction({
   args: {
     sourceId: v.id('energySources'),
     historyFrom: v.optional(v.number()),
+    /** Statistics that still need `historyFrom`; omitted means every channel. */
+    historyFor: v.optional(v.array(v.string())),
     attempt: v.optional(v.number()),
     /** The import this run belongs to (`IMPORT_MS`). */
     importId: v.optional(v.id('_scheduled_functions')),
@@ -313,6 +316,9 @@ export const syncSource = internalAction({
               from: args.historyFrom,
               attempt: args.attempt ?? 0,
               importId: args.importId,
+              ...(args.historyFor !== undefined
+                ? { historyFor: args.historyFor }
+                : {}),
             },
           }),
     })
@@ -323,6 +329,7 @@ export const syncSource = internalAction({
     const finish = (
       problem: HomeAssistantError['problem'] | 'statisticMissing' | 'syncFailed' | null,
       missing: string[] = [],
+      retry?: { historyFrom: number; attempt: number; historyFor: string[] },
     ) =>
       ctx.runMutation(internal.energySources.finishSync, {
         sourceId: args.sourceId,
@@ -332,6 +339,7 @@ export const syncSource = internalAction({
         missing,
         ...(args.importId ? { importId: args.importId } : {}),
         ...(retryId ? { retryId } : {}),
+        ...(retry ? { retry } : {}),
         done: problem === null && !incomplete,
       })
 
@@ -354,14 +362,19 @@ export const syncSource = internalAction({
           missing.push(channel.statisticId)
           continue
         }
+        const historyFrom =
+          args.historyFrom !== undefined &&
+          (args.historyFor === undefined ||
+            args.historyFor.includes(channel.statisticId))
+            ? args.historyFrom
+            : undefined
         // The hour before is the baseline of the first one asked for.
         channels.push({
           ...channel,
           from:
-            args.readFrom ??
-            (args.historyFrom === undefined
-              ? channel.from
-              : args.historyFrom - HOUR_MS),
+            historyFrom !== undefined
+              ? (args.readFrom ?? historyFrom - HOUR_MS)
+              : channel.from,
           baseline:
             args.sums?.find((each) => each.statisticId === channel.statisticId)
               ?.sum ?? null,
@@ -448,11 +461,38 @@ export const syncSource = internalAction({
               baseline === null ? [] : [{ statisticId, sum: baseline }],
             ),
             incomplete: incomplete || missing.length > 0,
+            ...(args.historyFor !== undefined
+              ? { historyFor: args.historyFor }
+              : {}),
           })
           return null
         }
       }
-      await finish(missing.length ? 'statisticMissing' : null, missing)
+      // Every present channel finished its history read, so the retry only
+      // needs `historyFrom` for the statistics that were still missing.
+      const nextHistoryFor =
+        args.historyFor !== undefined
+          ? missing.filter((id) => args.historyFor?.includes(id))
+          : missing
+      const narrowed =
+        !incomplete &&
+        missing.length > 0 &&
+        retryId !== undefined &&
+        args.importId !== undefined &&
+        args.historyFrom !== undefined &&
+        (args.historyFor === undefined ||
+          nextHistoryFor.length < args.historyFor.length)
+      await finish(
+        missing.length ? 'statisticMissing' : null,
+        missing,
+        narrowed && args.historyFrom !== undefined
+          ? {
+              historyFrom: args.historyFrom,
+              attempt: args.attempt ?? 0,
+              historyFor: nextHistoryFor,
+            }
+          : undefined,
+      )
     } catch (error) {
       // Not Home Assistant's doing: a failed write. Convex reports it, and
       // the next sync, or the import's next try, starts again.

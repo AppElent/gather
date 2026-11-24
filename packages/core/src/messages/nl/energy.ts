@@ -501,6 +501,8 @@ export const energy = {
       'Home Assistant antwoordt niet op dit adres. Controleer het adres en of het van buiten bereikbaar is.',
     sourceNotHomeAssistant: 'Er antwoordt iets op dit adres, maar het is geen Home Assistant.',
     sourceBadToken: 'Home Assistant weigert dit token.',
+    sourceRefused:
+      'Home Assistant weigerde de statistieken te lezen. Controleer of Recorder aan staat en dit account ze mag lezen.',
     priceKeyNeeded: 'Typ de sleutel van deze prijsbron.',
     priceKeyInvalid: 'Dat is geen sleutel. Kopieer hem helemaal, zonder spaties.',
   },
