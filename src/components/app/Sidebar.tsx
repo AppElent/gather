@@ -9,8 +9,8 @@ import { linkTo, ROUTES } from '../../lib/links'
 import { AccountMenu } from './AccountMenu'
 import { AddMenu } from './AddMenu'
 import { GroupSwitcher } from './GroupSwitcher'
+import { ModuleTile } from './ModuleTile'
 import { Pill } from './ShellPrimitives'
-import { Tile } from './Tile'
 import { useCurrentGroup } from './useCurrentGroup'
 import { useNavigation } from './useNavigation'
 
@@ -131,7 +131,7 @@ export function Sidebar({
           aria-current={onSettings ? 'page' : undefined}
           className={`${ROW} ${onSettings ? CURRENT : ''}`}
         >
-          <Tile icon="Settings" />
+          <ModuleTile icon="Settings" />
           <span className="flex-1">{nav.settings}</span>
         </Link>
         <AccountMenu
@@ -164,7 +164,7 @@ function Row({
       aria-current={current ? 'page' : undefined}
       className={`${ROW} ${current ? CURRENT : ''}`}
     >
-      <Tile icon={item.icon} group={item.group} />
+      <ModuleTile icon={item.icon} group={item.group} />
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
       {soon}
       {/* A space, so the link's name reads "Tasks 16", not "Tasks16". */}

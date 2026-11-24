@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import type { RecipeViewMode } from './RecipeCard'
 
 const STORAGE_KEY = 'gather.recipes.viewMode'
-const DEFAULT_MODE: RecipeViewMode = 'grid'
+// The inset list is the approved look (APP-639); grid and banner stay a
+// choice for whoever picked one.
+const DEFAULT_MODE: RecipeViewMode = 'compact'
 
 function readStoredMode(): RecipeViewMode {
   const stored = window.localStorage.getItem(STORAGE_KEY)

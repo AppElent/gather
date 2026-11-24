@@ -1092,3 +1092,196 @@ describe('Group search filters inside the index reads (APP-787)', () => {
     return t
   }
 })
+
+describe('Group search past the first 20 lists and calendars (APP-786)', () => {
+  const hana = {
+    subject: 'search_hana',
+    name: 'Hana',
+    email: 'search-hana@example.com',
+  }
+  /** The bound in `search.ts`: the lists and calendars searched per Group. */
+  const PARENT_LIMIT = 80
+
+  /**
+   * A Group with `count` task lists and calendars, oldest first; the one at
+   * each 1-based position in `titles` holds a row of that title, and every
+   * other holds a filler row.
+   */
+  async function seedMany(titles: Record<number, string>, count = 85) {
+    const t = testConvex()
+    const ids = await t.run(async (ctx) => {
+      const hanaId = await ctx.db.insert('users', {
+        clerkId: hana.subject,
+        name: hana.name,
+        email: hana.email,
+      })
+      const otherId = await ctx.db.insert('users', {
+        clerkId: 'search_hana_other',
+        name: 'Other',
+        email: 'search-hana-other@example.com',
+      })
+      const groupId = await seedGroup(ctx, {
+        name: 'Many',
+        slug: 'search-many',
+      })
+      const elsewhereId = await seedGroup(ctx, {
+        name: 'Elsewhere',
+        slug: 'search-many-elsewhere',
+      })
+      await seedMember(ctx, groupId, hanaId, 'admin')
+      for (let position = 1; position <= count; position += 1) {
+        const title = titles[position] ?? `Filler ${position}`
+        const listId = await ctx.db.insert('taskLists', {
+          groupId,
+          name: `List ${position}`,
+          provider: 'local',
+          order: position,
+        })
+        await ctx.db.insert('tasks', {
+          listId,
+          title,
+          done: position % 2 === 0,
+          order: 0,
+          createdBy: position === 25 ? otherId : hanaId,
+          dueDate: position === 25 ? '2020-03-01' : undefined,
+        })
+        const calendarId = await ctx.db.insert('calendars', {
+          groupId,
+          name: `Calendar ${position}`,
+          source: 'local',
+          createdBy: hanaId,
+        })
+        await ctx.db.insert('calendarEvents', {
+          calendarId,
+          title,
+          date: '2026-01-01',
+          createdBy: position === 25 ? otherId : hanaId,
+        })
+      }
+      // Another Group's list and calendar hold the same words.
+      const elsewhereList = await ctx.db.insert('taskLists', {
+        groupId: elsewhereId,
+        name: 'Elsewhere',
+        provider: 'local',
+        order: 0,
+      })
+      await ctx.db.insert('tasks', {
+        listId: elsewhereList,
+        title: 'Zolder elsewhere',
+        done: false,
+        order: 0,
+        createdBy: otherId,
+      })
+      const elsewhereCalendar = await ctx.db.insert('calendars', {
+        groupId: elsewhereId,
+        name: 'Elsewhere',
+        source: 'local',
+        createdBy: otherId,
+      })
+      await ctx.db.insert('calendarEvents', {
+        calendarId: elsewhereCalendar,
+        title: 'Zolder elsewhere',
+        date: '2026-01-01',
+        createdBy: otherId,
+      })
+      return { otherId }
+    })
+    const search = async (
+      query: string,
+      extra: {
+        accepts?: ('task' | 'calendarEvent')[]
+        createdBy?: string
+        status?: 'open' | 'done'
+        when?: 'earlier'
+        today?: string
+      } = {},
+    ) =>
+      (
+        await t.withIdentity(hana).query(api.search.group, {
+          groupSlug: 'search-many',
+          query,
+          accepts: ['task', 'calendarEvent'],
+          ...extra,
+        })
+      ).map((row) => `${row.type}:${row.title}`)
+    return { t, search, ...ids }
+  }
+
+  test('finds a task and an event in the 25th list and calendar, by word and prefix', async () => {
+    const { search } = await seedMany({ 25: 'Zolder opruimen' })
+    const both = ['task:Zolder opruimen', 'calendarEvent:Zolder opruimen']
+    expect((await search('zolder')).sort()).toEqual([...both].sort())
+    expect((await search('opruim')).sort()).toEqual([...both].sort())
+    expect(await search('opruimen zolder', { accepts: ['task'] })).toEqual([
+      'task:Zolder opruimen',
+    ])
+    expect(await search('zolder', { accepts: ['calendarEvent'] })).toEqual([
+      'calendarEvent:Zolder opruimen',
+    ])
+    // Not another Group's row of the same words.
+    expect(await search('elsewhere')).toEqual([])
+  })
+
+  test('matches inside a word only in the first 20 lists', async () => {
+    const { search } = await seedMany({ 20: 'Zolderkast', 21: 'Zolderkast' })
+    expect(await search('kast', { accepts: ['task'] })).toEqual([
+      'task:Zolderkast',
+    ])
+    expect(await search('zolderkast', { accepts: ['task'] })).toHaveLength(2)
+  })
+
+  test('keeps the bound: the last searched list is found, the next is not', async () => {
+    const { search } = await seedMany({
+      [PARENT_LIMIT]: 'Laatste kelder',
+      [PARENT_LIMIT + 1]: 'Buiten garage',
+    })
+    expect((await search('kelder')).sort()).toEqual([
+      'calendarEvent:Laatste kelder',
+      'task:Laatste kelder',
+    ])
+    expect(await search('garage')).toEqual([])
+  })
+
+  test('applies Who, When and Status to a match past the 20th', async () => {
+    const { search, otherId } = await seedMany({ 25: 'Zolder opruimen' })
+    // Position 25 is open (odd) and by the other Member, due 2020-03-01.
+    expect(await search('zolder', { createdBy: otherId })).toHaveLength(2)
+    expect(
+      await search('zolder', { accepts: ['task'], status: 'open' }),
+    ).toEqual(['task:Zolder opruimen'])
+    expect(
+      await search('zolder', { accepts: ['task'], status: 'done' }),
+    ).toEqual([])
+    expect(
+      await search('zolder', {
+        accepts: ['task'],
+        when: 'earlier',
+        today: '2026-06-01',
+      }),
+    ).toEqual(['task:Zolder opruimen'])
+  })
+
+  test('leaves an external task list out', async () => {
+    const { t, search } = await seedMany({}, 3)
+    await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .filter((q) => q.eq(q.field('slug'), 'search-many'))
+        .unique()
+      const listId = await ctx.db.insert('taskLists', {
+        groupId: group!._id,
+        name: 'Synced',
+        provider: 'todoist',
+        order: 99,
+      })
+      await ctx.db.insert('tasks', {
+        listId,
+        title: 'Zolder synced',
+        done: false,
+        order: 0,
+        createdBy: (await ctx.db.query('users').first())!._id,
+      })
+    })
+    expect(await search('synced')).toEqual([])
+  })
+})

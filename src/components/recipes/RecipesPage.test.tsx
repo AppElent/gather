@@ -56,10 +56,16 @@ const shownTitles = () =>
   screen
     .queryAllByRole('link')
     .filter((link) => link.getAttribute('href')?.startsWith('/recipes/r'))
-    .map((link) => link.querySelector('p')?.textContent)
+    .map((link) => link.textContent)
 
 const search = () => screen.getByRole('searchbox', { name: 'Search recipes' })
-const tagPicker = () => screen.getByRole('combobox', { name: 'Filter by tag' })
+const tagPicker = () => screen.getByRole('group', { name: 'Filter by tag' })
+const pickTag = (name: string) =>
+  fireEvent.click(within(tagPicker()).getByRole('button', { name }))
+const pickedTag = () =>
+  within(tagPicker())
+    .getAllByRole('button')
+    .find((chip) => chip.getAttribute('aria-pressed') === 'true')?.textContent
 
 describe('RecipesPage filtering', () => {
   test('shows the whole collection with no filter', () => {
@@ -77,23 +83,25 @@ describe('RecipesPage filtering', () => {
     expect(shownTitles()).toEqual(['Stamppot', 'Pea soup', 'Gazpacho'])
   })
 
-  test('the tag picker offers the loaded tags and narrows by one', () => {
+  test('the tag chips offer the loaded tags and narrow by one', () => {
     renderInGroup(<RecipesPage />)
-    const options = within(tagPicker())
-      .getAllByRole('option')
-      .map((option) => option.textContent)
-    expect(options).toEqual(['All tags', 'soup', 'winter'])
+    const chips = within(tagPicker())
+      .getAllByRole('button')
+      .map((chip) => chip.textContent)
+    expect(chips).toEqual(['All tags', 'soup', 'winter'])
+    expect(pickedTag()).toBe('All tags')
 
-    fireEvent.change(tagPicker(), { target: { value: 'soup' } })
+    pickTag('soup')
+    expect(pickedTag()).toBe('soup')
     expect(shownTitles()).toEqual(['Pea soup', 'Gazpacho'])
 
-    fireEvent.change(tagPicker(), { target: { value: '' } })
+    pickTag('All tags')
     expect(shownTitles()).toEqual(['Stamppot', 'Pea soup', 'Gazpacho'])
   })
 
   test('search and tag compose, down to an empty result that clears', () => {
     renderInGroup(<RecipesPage />)
-    fireEvent.change(tagPicker(), { target: { value: 'winter' } })
+    pickTag('winter')
     fireEvent.change(search(), { target: { value: 'pea' } })
     expect(shownTitles()).toEqual(['Pea soup'])
 
@@ -107,7 +115,7 @@ describe('RecipesPage filtering', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
     expect(search()).toHaveValue('')
-    expect(tagPicker()).toHaveValue('')
+    expect(pickedTag()).toBe('All tags')
     expect(shownTitles()).toEqual(['Stamppot', 'Pea soup', 'Gazpacho'])
   })
 
@@ -122,7 +130,7 @@ describe('RecipesPage filtering', () => {
   test('filtering never changes the Group-scoped query', () => {
     renderInGroup(<RecipesPage />)
     fireEvent.change(search(), { target: { value: 'soup' } })
-    fireEvent.change(tagPicker(), { target: { value: 'soup' } })
+    pickTag('soup')
     expect(new Set(queried.value.map((args) => JSON.stringify(args)))).toEqual(
       new Set([JSON.stringify({ groupSlug: 'jansen-household' })]),
     )
@@ -130,7 +138,7 @@ describe('RecipesPage filtering', () => {
 
   test('a picked tag that leaves the collection is dropped, not revived', () => {
     const { rerender } = renderInGroup(<RecipesPage />)
-    fireEvent.change(tagPicker(), { target: { value: 'soup' } })
+    pickTag('soup')
     expect(shownTitles()).toEqual(['Pea soup', 'Gazpacho'])
 
     loaded.value = [RECIPES[0]]
@@ -139,7 +147,7 @@ describe('RecipesPage filtering', () => {
 
     loaded.value = RECIPES
     rerender(<RecipesPage />)
-    expect(tagPicker()).toHaveValue('')
+    expect(pickedTag()).toBe('All tags')
     expect(shownTitles()).toEqual(['Stamppot', 'Pea soup', 'Gazpacho'])
   })
 
@@ -148,7 +156,7 @@ describe('RecipesPage filtering', () => {
     renderInGroup(<RecipesPage />)
     expect(search()).toBeInTheDocument()
     expect(
-      screen.queryByRole('combobox', { name: 'Filter by tag' }),
+      screen.queryByRole('group', { name: 'Filter by tag' }),
     ).not.toBeInTheDocument()
   })
 
@@ -166,13 +174,31 @@ describe('RecipesPage filtering', () => {
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
   })
 
+  test('the wash header counts the collection and its search button focuses the field', () => {
+    renderInGroup(<RecipesPage />)
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Recipes' }),
+    ).toBeInTheDocument()
+    expect(screen.getByTestId('wash-summary')).toHaveTextContent(
+      '3 recipes · Jansen household',
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Search in Recipes' }))
+    expect(document.activeElement).toBe(search())
+  })
+
+  test('a recipe without a photo shows the Kitchen tile, never a placeholder picture', () => {
+    const { container } = renderInGroup(<RecipesPage />)
+    expect(container.querySelectorAll('[data-tile][data-group="kitchen"]').length).toBeGreaterThanOrEqual(3)
+    expect(screen.queryByText('🍲')).toBeNull()
+  })
+
   test('the controls are translated', () => {
     renderInGroup(<RecipesPage />, { locale: 'nl' })
     expect(
       screen.getByRole('searchbox', { name: 'Recepten zoeken' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('combobox', { name: 'Filteren op label' }),
+      screen.getByRole('group', { name: 'Filteren op label' }),
     ).toBeInTheDocument()
   })
 })

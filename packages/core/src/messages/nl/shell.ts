@@ -94,6 +94,11 @@ export const shell = {
     },
   },
 
+  modulePage: {
+    searchIn: 'Zoeken in {module}',
+    settingsOf: 'Instellingen van {module}',
+  },
+
   allModules: {
     title: 'Alle modules',
     intro:
@@ -108,6 +113,10 @@ export const shell = {
     moveUp: '{module} omhoog',
     moveDown: '{module} omlaag',
     moved: '{module} verplaatst naar positie {position} van {total}',
+    reorder: 'Volgorde wijzigen',
+    reorderDone: 'Klaar',
+    reorderHint: 'Zet elke module omhoog of omlaag en kies dan Klaar.',
+    pinned: 'Vastgezet',
   },
 
   placeholder: {

@@ -127,6 +127,14 @@ export const shell = {
     },
   },
 
+  /** The wash header on a Module's page (APP-639). */
+  modulePage: {
+    /** The round search button; `{module}` is the Module's name. */
+    searchIn: 'Search in {module}',
+    /** The gear, where the Module has a settings page. */
+    settingsOf: 'Settings for {module}',
+  },
+
   allModules: {
     title: 'All modules',
     intro:
@@ -142,6 +150,12 @@ export const shell = {
     moveDown: 'Move {module} down',
     /** Said to a screen reader after a pin moves. Positions count from 1. */
     moved: '{module} moved to position {position} of {total}',
+    /** The header button that turns the pins into a reorderable list, and back. */
+    reorder: 'Reorder',
+    reorderDone: 'Done',
+    reorderHint: 'Move each pin up or down, then choose Done.',
+    /** A row's mark that this Module is pinned here. */
+    pinned: 'Pinned',
   },
 
   placeholder: {

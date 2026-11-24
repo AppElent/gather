@@ -19,6 +19,8 @@ export const common = {
     signOut: 'Uitloggen',
   },
   completed: 'Voltooid',
+  rowActions: 'Acties voor {item}',
+  overdueOn: 'Te laat · {date}',
   errors: {
     somethingWentWrong: 'Er ging iets mis. Probeer het opnieuw.',
     notFound: 'Niet gevonden.',

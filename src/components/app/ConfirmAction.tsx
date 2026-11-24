@@ -2,8 +2,8 @@ import { type ReactNode, useId, useRef, useState } from 'react'
 import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { inputClass } from '../recipes/fields'
-import { SurfaceCard } from './ShellPrimitives'
-import { useModalFocus } from './useModalFocus'
+import { buttonClass } from './buttons'
+import { Dialog } from './Dialog'
 
 /**
  * Asking before something irreversible, in the app rather than in the browser.
@@ -66,91 +66,71 @@ function ConfirmDialog({
     !confirmPhrase ||
     typed.trim().toLocaleUpperCase() ===
       confirmPhrase.phrase.toLocaleUpperCase()
-  const dialog = useModalFocus<HTMLDivElement>({
-    onClose: onCancel,
-    initialFocus: confirmPhrase ? phraseRef : confirmRef,
-  })
-
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4"
-      onClick={onCancel}
+    <Dialog
+      title={request.title}
+      onClose={onCancel}
+      initialFocus={confirmPhrase ? phraseRef : confirmRef}
+      closeButton={false}
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={onCancel}
+            className={buttonClass.secondary}
+          >
+            {actions.cancel}
+          </button>
+          <button
+            ref={confirmRef}
+            type="button"
+            disabled={busy || !phraseMatches}
+            onClick={onConfirm}
+            className={buttonClass.secondaryDanger}
+          >
+            {busy ? actions.working : (request.confirmLabel ?? actions.confirm)}
+          </button>
+        </>
+      }
     >
-      <div
-        ref={dialog.ref}
-        role="dialog"
-        aria-modal="true"
-        aria-label={request.title}
-        onClick={(event) => event.stopPropagation()}
-        onKeyDown={dialog.onKeyDown}
-        className="w-[min(26rem,100%)]"
-      >
-        <SurfaceCard>
-          <div className="grid gap-3">
-            <h2 className="m-0 text-base font-semibold">{request.title}</h2>
-            {request.body ? (
-              <div className="text-sm text-[var(--muted)]">
-                {request.body}
-              </div>
-            ) : null}
-            {confirmPhrase ? (
-              <label htmlFor={phraseId} className="grid gap-1 text-sm">
-                <span>
-                  {fmt(confirmPhrase.label, { phrase: confirmPhrase.phrase })}
-                </span>
-                <input
-                  id={phraseId}
-                  ref={phraseRef}
-                  value={typed}
-                  onChange={(event) => setTyped(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (
-                      event.key === 'Enter' &&
-                      !event.nativeEvent.isComposing &&
-                      phraseMatches &&
-                      !busy
-                    )
-                      onConfirm()
-                  }}
-                  autoComplete="off"
-                  autoCapitalize="characters"
-                  spellCheck={false}
-                  className={inputClass}
-                />
-              </label>
-            ) : null}
-            {error ? (
-              <p
-                role="alert"
-                className="m-0 rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 py-2 text-sm text-[var(--danger)]"
-              >
-                {error}
-              </p>
-            ) : null}
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={onCancel}
-                className="inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold"
-              >
-                {actions.cancel}
-              </button>
-              <button
-                ref={confirmRef}
-                type="button"
-                disabled={busy || !phraseMatches}
-                onClick={onConfirm}
-                className="inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[color-mix(in_oklch,var(--danger)_45%,var(--hair))] px-3 text-sm font-semibold text-[var(--danger)] disabled:opacity-60"
-              >
-                {busy
-                  ? actions.working
-                  : (request.confirmLabel ?? actions.confirm)}
-              </button>
-            </div>
-          </div>
-        </SurfaceCard>
-      </div>
-    </div>
+      {request.body ? (
+        <div className="text-subhead text-[var(--muted)]">{request.body}</div>
+      ) : null}
+      {confirmPhrase ? (
+        <label htmlFor={phraseId} className="grid gap-1 text-sm">
+          <span>
+            {fmt(confirmPhrase.label, { phrase: confirmPhrase.phrase })}
+          </span>
+          <input
+            id={phraseId}
+            ref={phraseRef}
+            value={typed}
+            onChange={(event) => setTyped(event.target.value)}
+            onKeyDown={(event) => {
+              if (
+                event.key === 'Enter' &&
+                !event.nativeEvent.isComposing &&
+                phraseMatches &&
+                !busy
+              )
+                onConfirm()
+            }}
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            className={inputClass}
+          />
+        </label>
+      ) : null}
+      {error ? (
+        <p
+          role="alert"
+          className="m-0 rounded-[var(--radius-control)] bg-[var(--surface-2)] px-3 py-2 text-sm font-semibold text-[var(--danger)]"
+        >
+          {error}
+        </p>
+      ) : null}
+    </Dialog>
   )
 }
 
