@@ -684,3 +684,187 @@ describe('Group search server filters (APP-633)', () => {
     ).rejects.toThrow()
   })
 })
+
+describe('Group search past the newest rows (APP-758)', () => {
+  const gail = {
+    subject: 'search_gail',
+    name: 'Gail',
+    email: 'search-gail@example.com',
+  }
+  type Type = 'recipe' | 'tasting' | 'task' | 'calendarEvent'
+  const TYPES: Type[] = ['recipe', 'tasting', 'task', 'calendarEvent']
+
+  /** Two Groups of Gail's, each with a row of `title` older than the scan. */
+  async function seedOld(type: Type) {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const gailId = await ctx.db.insert('users', {
+        clerkId: gail.subject,
+        name: gail.name,
+        email: gail.email,
+      })
+      for (const [slug, suffix] of [
+        ['search-old-home', ''],
+        ['search-old-other', ' elsewhere'],
+      ] as const) {
+        const groupId = await seedGroup(ctx, {
+          name: slug,
+          slug,
+          inviteCode: slug,
+        })
+        await seedMember(ctx, groupId, gailId, 'admin')
+        const listId = await ctx.db.insert('taskLists', {
+          groupId,
+          name: 'Chores',
+          provider: 'local',
+          order: 0,
+        })
+        const calendarId = await ctx.db.insert('calendars', {
+          groupId,
+          name: 'Family',
+          source: 'local',
+          createdBy: gailId,
+        })
+        const add = async (title: string, kind: 'wine' | 'beer' = 'wine') => {
+          if (type === 'recipe')
+            await ctx.db.insert('recipes', {
+              groupId,
+              sharedGroupIds: [],
+              createdByUserId: gailId,
+              title,
+              ingredients: [],
+              steps: [],
+              tags: [],
+            })
+          else if (type === 'tasting')
+            await ctx.db.insert('tastingSubjects', {
+              groupId,
+              kind,
+              name: title,
+              attributes: {},
+              createdByUserId: gailId,
+            })
+          else if (type === 'task')
+            await ctx.db.insert('tasks', {
+              listId,
+              title,
+              done: false,
+              order: 0,
+              createdBy: gailId,
+            })
+          else
+            await ctx.db.insert('calendarEvents', {
+              calendarId,
+              title,
+              date: '2026-01-01',
+              createdBy: gailId,
+            })
+        }
+        await add(`Oude wijnkaart: Boiler${suffix}`)
+        const newer = type === 'recipe' || type === 'tasting' ? 200 : 50
+        for (let index = 0; index < newer - 1; index += 1)
+          await add(`Row ${index}`)
+        await add('Nieuwe dranklijst', 'beer')
+        if (type === 'recipe') await add('Nieuwe -- map')
+      }
+    })
+    return async (query: string, kind?: 'wine' | 'beer') =>
+      (
+        await t.withIdentity(gail).query(api.search.group, {
+          groupSlug: 'search-old-home',
+          query,
+          accepts: [type],
+          kind,
+        })
+      ).map((row) => row.title)
+  }
+
+  test.each(TYPES)('finds an old %s by word, in this Group only', async (type) => {
+    const search = await seedOld(type)
+    const old = ['Oude wijnkaart: Boiler']
+    expect(await search('boiler')).toEqual(old) // a whole word
+    expect(await search('wijnk')).toEqual(old) // the start of the last one
+    expect(await search('boiler oude')).toEqual(old) // every word, apart
+    expect(await search('elsewhere')).toEqual([]) // another Group's
+    expect(await search('boiler dranklijst')).toEqual([]) // not only one word
+    // Inside a word only on the newest rows, as before.
+    expect(await search('lijst')).toEqual(['Nieuwe dranklijst'])
+    // Read by the scan and by the index, returned once.
+    expect(await search('dranklijst')).toEqual(['Nieuwe dranklijst'])
+  })
+
+  test('narrows old tastings to the asked Kind', async () => {
+    const search = await seedOld('tasting')
+    expect(await search('boiler', 'wine')).toEqual(['Oude wijnkaart: Boiler'])
+    expect(await search('boiler', 'beer')).toEqual([])
+  })
+
+  test('a search with no searchable word still scans', async () => {
+    const search = await seedOld('recipe')
+    expect(await search('--')).toEqual(['Nieuwe -- map'])
+  })
+
+  test('filters an old match and keeps the ranking', async () => {
+    const t = testConvex()
+    const samId = await t.run(async (ctx) => {
+      const [gailId, samId] = await Promise.all([
+        ctx.db.insert('users', {
+          clerkId: gail.subject,
+          name: gail.name,
+          email: gail.email,
+        }),
+        ctx.db.insert('users', {
+          clerkId: 'search_old_sam',
+          name: 'Sam',
+          email: 'search-old-sam@example.com',
+        }),
+      ])
+      const slug = 'search-old-filters'
+      const groupId = await seedGroup(ctx, { name: 'Home', slug })
+      await seedMember(ctx, groupId, gailId, 'admin')
+      const listId = await ctx.db.insert('taskLists', {
+        groupId,
+        name: 'Chores',
+        provider: 'local',
+        order: 0,
+      })
+      const task = { listId, order: 0, createdBy: gailId }
+      await ctx.db.insert('tasks', {
+        ...task,
+        title: 'Milk',
+        done: true,
+        dueDate: '2020-03-01',
+        createdBy: samId,
+      })
+      for (let index = 0; index < 60; index += 1)
+        await ctx.db.insert('tasks', {
+          ...task,
+          title: `Buy milk ${index}`,
+          done: false,
+        })
+      return samId
+    })
+    const search = async (filters: {
+      createdBy?: string
+      status?: 'open' | 'done'
+      when?: 'today'
+      today?: string
+    }) =>
+      (
+        await t.withIdentity(gail).query(api.search.group, {
+          groupSlug: 'search-old-filters',
+          query: 'milk',
+          accepts: ['task'],
+          ...filters,
+        })
+      ).map((row) => row.title)
+
+    const plain = await search({})
+    expect(plain).toHaveLength(30)
+    expect(plain[0]).toBe('Milk') // an exact title ranks first, however old
+    expect(await search({ createdBy: samId })).toEqual(['Milk'])
+    expect(await search({ status: 'done' })).toEqual(['Milk'])
+    expect(await search({ status: 'open' })).not.toContain('Milk')
+    expect(await search({ when: 'today', today: '2020-03-01' })).toEqual(['Milk'])
+  })
+})

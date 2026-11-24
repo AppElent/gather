@@ -1,9 +1,7 @@
 import type { Doc, Id } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { normalized } from './searchText'
+import { indexSearch, normalized } from './searchText'
 
-/** Convex searches on at most this many terms. */
-const MAX_TERMS = 16
 /**
  * How many notes one search reads: this many from each index and
  * `RECENT_NOTES` of the newest, 200 in all, what `search.group` read when it
@@ -12,32 +10,6 @@ const MAX_TERMS = 16
 const MATCHES_PER_INDEX = 50
 const RECENT_NOTES = 100
 const MIN_QUERY = 2
-
-/** Convex leaves longer words (in UTF-8 bytes) out of its search indexes. */
-const MAX_TERM_BYTES = 31
-
-/**
- * The words of a text, split where Convex's own tokenizer splits: only letters,
- * combining marks that belong to a word (Thai, Hindi, pointed Arabic and
- * Hebrew) and digits stay in one. Split before lowercasing, as it does: "İ"
- * lowercases to a letter and a mark.
- */
-function wordsOf(text: string): string[] {
-  return text.split(/[^\p{Alphabetic}\p{N}]+/u).filter(Boolean)
-}
-
-/** Lowercase letter by letter, as Convex does: a final "Σ" becomes "σ". */
-function lower(word: string): string {
-  return Array.from(word, (letter) => letter.toLowerCase()).join('')
-}
-
-/** The words of a search that the indexes can match. */
-function termsOf(words: string[]): string[] {
-  const encoder = new TextEncoder()
-  return words
-    .filter((word) => encoder.encode(word).length <= MAX_TERM_BYTES)
-    .slice(0, MAX_TERMS)
-}
 
 /**
  * The notes of one Group that contain every word of `text`, in the title, the
@@ -70,13 +42,11 @@ export async function findNotes(
   text: string,
 ): Promise<Doc<'notes'>[]> {
   if (text.trim().length < MIN_QUERY) return []
-  const words = wordsOf(text)
-  const terms = termsOf(words)
+  const { words, search, matches } = indexSearch(text)
   // Every word, or the whole search when it has none (an emoji, "--").
   const needles = (words.length > 0 ? words : [text]).map(normalized)
-  const search = terms.join(' ')
   const [byTitle, byBody, recent] = await Promise.all([
-    terms.length === 0
+    search === ''
       ? []
       : ctx.db
           .query('notes')
@@ -84,7 +54,7 @@ export async function findNotes(
             q.search('title', search).eq('groupId', groupId),
           )
           .take(MATCHES_PER_INDEX),
-    terms.length === 0
+    search === ''
       ? []
       : ctx.db
           .query('notes')
@@ -100,17 +70,9 @@ export async function findNotes(
   ])
   // Title matches first, each part in the index's relevance order.
   const candidates = [...byTitle, ...byBody]
-  const whole = terms.slice(0, -1).map(lower)
-  const typing = lower(terms[terms.length - 1] ?? '')
-  const byIndex = candidates.filter((note) => {
-    const noteWords = new Set(
-      wordsOf(`${note.title}\n${note.body}`).map(lower),
-    )
-    return (
-      whole.every((term) => noteWords.has(term)) &&
-      [...noteWords].some((word) => word.startsWith(typing))
-    )
-  })
+  const byIndex = candidates.filter((note) =>
+    matches(`${note.title}\n${note.body}`),
+  )
   const found = new Map(byIndex.map((note) => [note._id, note] as const))
   for (const note of [...candidates, ...recent]) {
     if (found.has(note._id)) continue

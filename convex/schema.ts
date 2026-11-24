@@ -194,7 +194,14 @@ export default defineSchema({
     createdByUserId: v.id('users'),
     ...recipeFields,
     nutritionStale: v.optional(v.boolean()),
-  }).index('by_group', ['groupId']),
+  })
+    .index('by_group', ['groupId'])
+    // Old recipes by title word, as the next three `search_` indexes do for
+    // theirs (`search.ts`, APP-758).
+    .searchIndex('search_title', {
+      searchField: 'title',
+      filterFields: ['groupId'],
+    }),
 
   // One row per Group a recipe is Shared into: an index of
   // `recipes.sharedGroupIds`, which stays the source of truth. A Convex index
@@ -340,7 +347,11 @@ export default defineSchema({
     // notice, and later the "Mine" smart list (APP-301).
     .index('by_assignee', ['assigneeId'])
     // A task's subtasks without reading the rest of its list (APP-304).
-    .index('by_parent', ['parentTaskId']),
+    .index('by_parent', ['parentTaskId'])
+    .searchIndex('search_title', {
+      searchField: 'title',
+      filterFields: ['listId'],
+    }),
 
   /**
    * One completion of a repeating task (APP-303): who, when, and the due
@@ -582,7 +593,11 @@ export default defineSchema({
     revision: v.optional(v.number()),
   })
     .index('by_calendar', ['calendarId'])
-    .index('by_calendar_date', ['calendarId', 'date']),
+    .index('by_calendar_date', ['calendarId', 'date'])
+    .searchIndex('search_title', {
+      searchField: 'title',
+      filterFields: ['calendarId'],
+    }),
 
   integrationConnections: defineTable({
     groupId: v.id('groups'),
@@ -948,7 +963,11 @@ export default defineSchema({
     .index('by_group', ['groupId'])
     .index('by_group_kind', ['groupId', 'kind'])
     // Materialising a catalog entry asks exactly this question, on every log.
-    .index('by_group_kind_catalogKey', ['groupId', 'kind', 'catalogKey']),
+    .index('by_group_kind_catalogKey', ['groupId', 'kind', 'catalogKey'])
+    .searchIndex('search_name', {
+      searchField: 'name',
+      filterFields: ['groupId', 'kind'],
+    }),
 
   /**
    * One person's tasting of one subject, on one day.
