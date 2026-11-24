@@ -66,7 +66,11 @@ export const EnergyNumberRow = forwardRef<
 ) {
   const tokens = useTokens()
   const separator = useInsetSeparator()
-  const { inputAccessoryViewID: barId, accessory } = useKeyboardDoneBar({
+  const {
+    inputAccessoryViewID: barId,
+    accessory,
+    inputKey,
+  } = useKeyboardDoneBar({
     keyboardType,
     id: testID,
     onNext,
@@ -84,6 +88,7 @@ export const EnergyNumberRow = forwardRef<
         {/* Before the field: one that focuses as it mounts must have its bar. */}
         {accessory}
         <TextInput
+          key={inputKey}
           ref={ref}
           testID={testID}
           value={value}

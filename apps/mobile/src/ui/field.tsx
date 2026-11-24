@@ -84,7 +84,7 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
   const { t } = useI18n()
   const [focused, setFocused] = useState(false)
   const [revealed, setRevealed] = useState(false)
-  const { inputAccessoryViewID, accessory } = useKeyboardDoneBar({
+  const { inputAccessoryViewID, accessory, inputKey } = useKeyboardDoneBar({
     keyboardType: props.keyboardType,
     onNext,
   })
@@ -116,6 +116,7 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
       >
         {accessory}
         <TextInput
+          key={inputKey}
           ref={ref}
           style={[
             styles.input,
