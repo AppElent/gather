@@ -21,9 +21,236 @@ export const tasks = {
     lists: { one: '{count} list', other: '{count} lists' },
   },
 
+  /** The Tasks index, the composer and the task screen, on both apps (APP-308). */
+  index: {
+    today: 'Today',
+    todayEmpty: 'Nothing due today.',
+    lists: 'Lists',
+    /** The count on the right of a list's row. */
+    open: '{count} open',
+    openOne: '1 open',
+    allDone: 'All done',
+    /** The badge on a list Gather did not create. */
+    linked: 'Linked',
+    /** A linked list's count, when its provider did not answer. */
+    notLoaded: 'Not loaded',
+  },
+
+  /** The Add tab's "Add a task": a title, a list, and a save. */
+  quickAdd: {
+    /** Above the lists it can go on. Only lists Gather can write to. */
+    list: 'On the list',
+    save: 'Add task',
+    noList: 'This group has no list Gather can add a task to yet.',
+    failed: 'That task could not be added. Try again.',
+    /** APP-307: under the field; dates and the rest are read as typed. */
+    hint: 'Dates, repeats, @Member and #label are recognised',
+    /** Adds the task and opens it, for what the line cannot say. */
+    moreDetails: 'More details',
+    /** A recognised part's ×, for VoiceOver: "Remove Tomorrow, Thu 19 Nov". */
+    remove: 'Remove {part}',
+    /** The list chip, for VoiceOver. */
+    listChip: 'List: {list}, change',
+    /** A typed time is the task's reminder; the task went in without it. */
+    reminderFailed: 'The task was added, but not its reminder.',
+  },
+
+  /** A list's sections (APP-357): the ⋯ menu's Sections sheet and the hold menu. */
+  sections: {
+    title: 'Sections',
+    /** The heading over tasks in no section, on a list that has sections. */
+    none: 'No section',
+    add: 'Add section',
+    newPlaceholder: 'New section',
+    empty: 'Nothing in this section yet.',
+    moveToSection: 'Move to section…',
+    rename: 'Rename',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    delete: 'Delete section',
+    /** The ellipsis on a row of the Sections sheet. */
+    options: 'Options for {name}',
+    deleteTitle: 'Delete the section “{name}”?',
+    deleteBody: 'Its tasks stay on the list, under No section.',
+    hint: 'Move a task between sections with Reorder, or with Move to section in its hold menu.',
+    sheetEmpty: 'No sections yet. A section groups tasks, like Kitchen or Clothes.',
+  },
+
+  task: {
+    titlePlaceholder: 'What needs doing?',
+    due: 'Due date',
+    priority: 'Priority',
+    labels: 'Labels',
+    list: 'List',
+    notes: 'Notes',
+    notesPlaceholder: 'Anything worth writing down',
+    /** The value shown on a row nobody has set. */
+    unset: 'None',
+    /** Back is done — the screen says so once, rather than growing a button. */
+    autosaved: 'Changes are kept as you make them. Back is done.',
+    delete: 'Delete task',
+    /** The shortcuts above the month grid. */
+    today: 'Today',
+    tomorrow: 'Tomorrow',
+    weekend: 'This weekend',
+    clear: 'No date',
+    /** Keyed by the schema's 1–4, so a fifth priority is a type error. */
+    priorities: {
+      1: 'Urgent',
+      2: 'High',
+      3: 'Normal',
+      4: 'Low',
+    },
+    /** The label editor's field. */
+    addLabel: 'Add a label',
+    /**
+     * The label sheet's two groups. There is no label table behind them: a
+     * label exists because a task carries the word, so "used in this Group"
+     * is a query over the tasks and empties itself when the last one lets go.
+     */
+    labelsOnTask: 'On this task',
+    labelsInGroup: 'Used in this Group',
+    labelsNone: 'No labels yet.',
+    /** Read out on the cross inside a label that is on the task. */
+    removeLabel: 'Remove {label}',
+    /** The hold menu on a label nobody has put on this task yet. */
+    renameLabelEverywhere: 'Rename everywhere',
+    removeLabelEverywhere: 'Remove from every task',
+    /** The field, while it is renaming a label rather than adding one. */
+    renamingLabel: 'Rename {label} to',
+    /** Announced on the calendar's month arrows. */
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    overdue: 'Overdue',
+    /**
+     * The Reminder row and its sheet (APP-305). A due date alone sets no
+     * reminder; one is chosen, and it goes to the person who chose it.
+     */
+    reminder: 'Reminder',
+    /** The row's value: `{day}` is Today, Tomorrow, a weekday or a date. */
+    reminderAt: '{day} {time}',
+    reminderSheet: {
+      dueDay: 'On the day at 9:00',
+      eveningBefore: 'The evening before at 19:00',
+      remove: 'No reminder',
+      footnote: 'The reminder goes to you, as a notification on your phone.',
+      /** On a reminder another Member set, which setting one takes over. */
+      someoneElse:
+        'Another member set this reminder, and it goes to them. Setting one here makes it yours.',
+      passed: 'That time has passed. Pick a later one.',
+      failed: 'The reminder could not be set. Try again.',
+    },
+  },
+
+  /** The web's own words (APP-308): the index, the list page and the panel. */
+  web: {
+    parent: 'Tasks',
+    loading: 'Loading tasks',
+    loadErrorTitle: 'Tasks could not be loaded',
+    loadErrorBody: 'Check your connection and try again.',
+    listMissingTitle: 'List not found',
+    listMissingBody: 'It was deleted, or it is in another group.',
+    missingTitle: 'Task not found',
+    missingBody: 'It was deleted, or it is in another group.',
+    deletedTitle: 'This task was deleted',
+    toTasks: 'Back to Tasks',
+    toList: 'Back to the list',
+    taskTitle: 'Task',
+    emptyListTitle: 'Nothing on this list yet',
+    emptyListBody: 'Type the first task above. Dates, repeats and @Member are read as you type.',
+    emptySection: 'Nothing in this section yet.',
+    scope: {
+      household: 'whole household',
+      linked: 'kept in {provider}',
+    },
+    add: {
+      label: 'New task',
+      primary: 'Add task',
+      placeholder: 'New task, like “Wash windows every month @Sam”',
+      placeholderLinked: 'New task, like “Wash windows tomorrow #house”',
+      shortcut: 'Press N to add a task',
+      recognised: 'Recognised',
+    },
+    ring: {
+      complete: 'Complete {task}',
+      reopen: 'Mark {task} as not done',
+    },
+    row: {
+      noDate: 'No date',
+      assignee: 'Assigned to {name}',
+      subtasks: '{done} of {total} subtasks',
+    },
+    menu: {
+      open: 'Open',
+      move: 'Move to list…',
+      section: 'Move to section…',
+      duplicate: 'Duplicate',
+      delete: 'Delete',
+      moveUp: 'Move up',
+      moveDown: 'Move down',
+      openSource: 'Open in {provider}',
+    },
+    deleteTitle: 'Delete “{title}”?',
+    deleteBody: 'This cannot be undone.',
+    duplicateTitle: '{title} (copy)',
+    duplicated: 'Duplicated.',
+    moved: 'Moved to {list}.',
+    deleted: '“{title}” deleted.',
+    failed: 'That could not be saved. Try again.',
+    listMenu: {
+      label: 'List options',
+      display: 'Show on each row',
+      dueDates: 'Due dates',
+      priority: 'Priority',
+      labels: 'Labels',
+      rename: 'Rename list',
+      appearance: 'Colour and icon',
+      sections: 'Sections',
+      refresh: 'Refresh',
+      delete: 'Delete list',
+      unlink: 'Remove linked list',
+    },
+    unlinkTitle: 'Remove “{name}” from Gather?',
+    unlinkBody: 'The list and its tasks stay in {provider}.',
+    unlinkConfirm: 'Remove',
+    panel: {
+      label: 'Task',
+      title: 'Task title',
+      fields: 'Details',
+      list: 'List',
+      when: 'When',
+      repeat: 'Repeat',
+      who: 'Who',
+      reminder: 'Reminder',
+      priority: 'Priority',
+      labels: 'Labels',
+      section: 'Section',
+      subtasksCount: 'Subtasks · {done} of {total}',
+      subtasks: 'Subtasks',
+      addSubtask: 'Subtask',
+      note: 'Note',
+      noteEmpty: 'Add a note',
+      reminderFootnote: 'Reminders arrive on the phone.',
+      addedBy: 'Added by {name} · {when}',
+      added: 'Added {when}',
+      pickDate: 'Pick a date',
+      pickTime: 'Time',
+      setReminder: 'Set reminder',
+      history: 'Done before',
+      saveFailed: 'Not saved. Try again.',
+      openSource: 'Open in {provider}',
+      fieldValue: '{label}, {value}',
+    },
+    newLabel: 'New label',
+    addLabel: 'Add',
+    addLinked: 'Or link a list',
+    linkedFootnote:
+      'Linked lists (Notion, Todoist) show the link icon on a grey tile.',
+    syncing: 'Loading from {provider}…',
+    readOnly: 'This list lives in {provider}. Gather can read it, but not change it.',
+  },
+
   page: {
-    subtitle:
-      'Shared lists — local ones live here, linked ones live in Notion or Todoist.',
     addList: 'Add list',
     emptyTitle: 'No lists yet',
     emptyBody: 'Create a local list, or link one from Notion or Todoist.',
@@ -34,26 +261,12 @@ export const tasks = {
     deleteListFailed: 'Could not delete that list.',
   },
 
+
+
   row: {
     toggle: 'Toggle {task}',
     openInSource: 'Open {task} in its source app',
   },
-
-  local: {
-    pill: 'Local',
-    deleteList: 'Delete list {name}',
-    quickAdd: 'Add a task…',
-    newTaskIn: 'New task in {name}',
-    addTask: 'Add task',
-    showDetails: 'Add with details…',
-    hideDetails: 'Hide details',
-    empty: 'No tasks yet.',
-    moveUp: 'Move {task} up',
-    moveDown: 'Move {task} down',
-    edit: 'Edit {task}',
-    delete: 'Delete {task}',
-  },
-
   external: {
     refresh: 'Refresh {name}',
     loadFailed: 'Could not load this list.',
@@ -88,22 +301,9 @@ export const tasks = {
     addSubtask: 'Add a subtask to {task}',
   },
 
-  editor: {
-    title: 'Task title',
-    dueDate: 'Due date',
-    priority: 'Priority',
-    noPriority: 'No priority',
-    p1: 'P1 — urgent',
-    p2: 'P2',
-    p3: 'P3',
-    p4: 'P4',
-    labels: 'Labels',
-    labelsPlaceholder: 'Labels, comma-separated',
-  },
 
   addList: {
     title: 'Add a list',
-    local: 'Local list — created and edited here',
     mirror: '{provider} — read-only mirror',
     linked: '{provider} — kept there, edited from both',
     connectFirst: 'Connect {provider} first…',

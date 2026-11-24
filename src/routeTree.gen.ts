@@ -33,7 +33,6 @@ import { Route as AppRecurringCostsRouteImport } from './routes/_app/recurring-c
 import { Route as AppSavingsGoalsRouteImport } from './routes/_app/savings-goals'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSharedCostsRouteImport } from './routes/_app/shared-costs'
-import { Route as AppTasksRouteImport } from './routes/_app/tasks'
 import { Route as AppBabyIndexRouteImport } from './routes/_app/baby/index'
 import { Route as AppBabyNewRouteImport } from './routes/_app/baby/new'
 import { Route as AppBeersIndexRouteImport } from './routes/_app/beers/index'
@@ -55,6 +54,8 @@ import { Route as AppLoyaltyCardsIndexRouteImport } from './routes/_app/loyalty-
 import { Route as AppLoyaltyCardsNewRouteImport } from './routes/_app/loyalty-cards/new'
 import { Route as AppRecipesIndexRouteImport } from './routes/_app/recipes/index'
 import { Route as AppRecipesNewRouteImport } from './routes/_app/recipes/new'
+import { Route as AppTasksIndexRouteImport } from './routes/_app/tasks/index'
+import { Route as AppTasksListIdRouteImport } from './routes/_app/tasks/$listId'
 import { Route as AppWinesIndexRouteImport } from './routes/_app/wines/index'
 import { Route as AppBabyBabyIdIndexRouteImport } from './routes/_app/baby/$babyId.index'
 import { Route as AppBabyBabyIdEditRouteImport } from './routes/_app/baby/$babyId.edit'
@@ -67,6 +68,8 @@ import { Route as AppLoyaltyCardsCardIdIndexRouteImport } from './routes/_app/lo
 import { Route as AppLoyaltyCardsCardIdEditRouteImport } from './routes/_app/loyalty-cards/$cardId.edit'
 import { Route as AppRecipesRecipeIdIndexRouteImport } from './routes/_app/recipes/$recipeId.index'
 import { Route as AppRecipesRecipeIdEditRouteImport } from './routes/_app/recipes/$recipeId.edit'
+import { Route as AppTasksSmartSmartListRouteImport } from './routes/_app/tasks/smart/$smartList'
+import { Route as AppTasksTaskTaskIdRouteImport } from './routes/_app/tasks/task/$taskId'
 import { Route as AppWinesSubjectIdIndexRouteImport } from './routes/_app/wines/$subjectId.index'
 import { Route as AppWinesSubjectIdEditRouteImport } from './routes/_app/wines/$subjectId.edit'
 
@@ -189,11 +192,6 @@ const AppSharedCostsRoute = AppSharedCostsRouteImport.update({
   path: '/shared-costs',
   getParentRoute: () => AppRoute,
 } as any)
-const AppTasksRoute = AppTasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppBabyIndexRoute = AppBabyIndexRouteImport.update({
   id: '/baby/',
   path: '/baby/',
@@ -299,6 +297,16 @@ const AppRecipesNewRoute = AppRecipesNewRouteImport.update({
   path: '/recipes/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTasksIndexRoute = AppTasksIndexRouteImport.update({
+  id: '/tasks/',
+  path: '/tasks/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTasksListIdRoute = AppTasksListIdRouteImport.update({
+  id: '/tasks/$listId',
+  path: '/tasks/$listId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppWinesIndexRoute = AppWinesIndexRouteImport.update({
   id: '/wines/',
   path: '/wines/',
@@ -362,6 +370,16 @@ const AppRecipesRecipeIdEditRoute = AppRecipesRecipeIdEditRouteImport.update({
   path: '/recipes/$recipeId/edit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTasksSmartSmartListRoute = AppTasksSmartSmartListRouteImport.update({
+  id: '/tasks/smart/$smartList',
+  path: '/tasks/smart/$smartList',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTasksTaskTaskIdRoute = AppTasksTaskTaskIdRouteImport.update({
+  id: '/tasks/task/$taskId',
+  path: '/tasks/task/$taskId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppWinesSubjectIdIndexRoute = AppWinesSubjectIdIndexRouteImport.update({
   id: '/wines/$subjectId/',
   path: '/wines/$subjectId/',
@@ -397,7 +415,6 @@ export interface FileRoutesByFullPath {
   '/savings-goals': typeof AppSavingsGoalsRoute
   '/settings': typeof AppSettingsRoute
   '/shared-costs': typeof AppSharedCostsRoute
-  '/tasks': typeof AppTasksRoute
   '/baby/new': typeof AppBabyNewRoute
   '/energy/connect': typeof AppEnergyConnectRoute
   '/energy/contract': typeof AppEnergyContractRoute
@@ -412,6 +429,7 @@ export interface FileRoutesByFullPath {
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
   '/recipes/new': typeof AppRecipesNewRoute
+  '/tasks/$listId': typeof AppTasksListIdRoute
   '/baby/': typeof AppBabyIndexRoute
   '/beers/': typeof AppBeersIndexRoute
   '/cheeses/': typeof AppCheesesIndexRoute
@@ -419,6 +437,7 @@ export interface FileRoutesByFullPath {
   '/groceries/': typeof AppGroceriesIndexRoute
   '/loyalty-cards/': typeof AppLoyaltyCardsIndexRoute
   '/recipes/': typeof AppRecipesIndexRoute
+  '/tasks/': typeof AppTasksIndexRoute
   '/wines/': typeof AppWinesIndexRoute
   '/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
   '/beers/$subjectId/edit': typeof AppBeersSubjectIdEditRoute
@@ -426,6 +445,8 @@ export interface FileRoutesByFullPath {
   '/groceries/item/$itemId': typeof AppGroceriesItemItemIdRoute
   '/loyalty-cards/$cardId/edit': typeof AppLoyaltyCardsCardIdEditRoute
   '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
+  '/tasks/smart/$smartList': typeof AppTasksSmartSmartListRoute
+  '/tasks/task/$taskId': typeof AppTasksTaskTaskIdRoute
   '/wines/$subjectId/edit': typeof AppWinesSubjectIdEditRoute
   '/baby/$babyId/': typeof AppBabyBabyIdIndexRoute
   '/beers/$subjectId/': typeof AppBeersSubjectIdIndexRoute
@@ -457,7 +478,6 @@ export interface FileRoutesByTo {
   '/savings-goals': typeof AppSavingsGoalsRoute
   '/settings': typeof AppSettingsRoute
   '/shared-costs': typeof AppSharedCostsRoute
-  '/tasks': typeof AppTasksRoute
   '/': typeof AppIndexRoute
   '/baby/new': typeof AppBabyNewRoute
   '/energy/connect': typeof AppEnergyConnectRoute
@@ -473,6 +493,7 @@ export interface FileRoutesByTo {
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
   '/recipes/new': typeof AppRecipesNewRoute
+  '/tasks/$listId': typeof AppTasksListIdRoute
   '/baby': typeof AppBabyIndexRoute
   '/beers': typeof AppBeersIndexRoute
   '/cheeses': typeof AppCheesesIndexRoute
@@ -480,6 +501,7 @@ export interface FileRoutesByTo {
   '/groceries': typeof AppGroceriesIndexRoute
   '/loyalty-cards': typeof AppLoyaltyCardsIndexRoute
   '/recipes': typeof AppRecipesIndexRoute
+  '/tasks': typeof AppTasksIndexRoute
   '/wines': typeof AppWinesIndexRoute
   '/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
   '/beers/$subjectId/edit': typeof AppBeersSubjectIdEditRoute
@@ -487,6 +509,8 @@ export interface FileRoutesByTo {
   '/groceries/item/$itemId': typeof AppGroceriesItemItemIdRoute
   '/loyalty-cards/$cardId/edit': typeof AppLoyaltyCardsCardIdEditRoute
   '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
+  '/tasks/smart/$smartList': typeof AppTasksSmartSmartListRoute
+  '/tasks/task/$taskId': typeof AppTasksTaskTaskIdRoute
   '/wines/$subjectId/edit': typeof AppWinesSubjectIdEditRoute
   '/baby/$babyId': typeof AppBabyBabyIdIndexRoute
   '/beers/$subjectId': typeof AppBeersSubjectIdIndexRoute
@@ -520,7 +544,6 @@ export interface FileRoutesById {
   '/_app/savings-goals': typeof AppSavingsGoalsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/shared-costs': typeof AppSharedCostsRoute
-  '/_app/tasks': typeof AppTasksRoute
   '/_app/': typeof AppIndexRoute
   '/_app/baby/new': typeof AppBabyNewRoute
   '/_app/energy/connect': typeof AppEnergyConnectRoute
@@ -536,6 +559,7 @@ export interface FileRoutesById {
   '/_app/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/_app/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
   '/_app/recipes/new': typeof AppRecipesNewRoute
+  '/_app/tasks/$listId': typeof AppTasksListIdRoute
   '/_app/baby/': typeof AppBabyIndexRoute
   '/_app/beers/': typeof AppBeersIndexRoute
   '/_app/cheeses/': typeof AppCheesesIndexRoute
@@ -543,6 +567,7 @@ export interface FileRoutesById {
   '/_app/groceries/': typeof AppGroceriesIndexRoute
   '/_app/loyalty-cards/': typeof AppLoyaltyCardsIndexRoute
   '/_app/recipes/': typeof AppRecipesIndexRoute
+  '/_app/tasks/': typeof AppTasksIndexRoute
   '/_app/wines/': typeof AppWinesIndexRoute
   '/_app/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
   '/_app/beers/$subjectId/edit': typeof AppBeersSubjectIdEditRoute
@@ -550,6 +575,8 @@ export interface FileRoutesById {
   '/_app/groceries/item/$itemId': typeof AppGroceriesItemItemIdRoute
   '/_app/loyalty-cards/$cardId/edit': typeof AppLoyaltyCardsCardIdEditRoute
   '/_app/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
+  '/_app/tasks/smart/$smartList': typeof AppTasksSmartSmartListRoute
+  '/_app/tasks/task/$taskId': typeof AppTasksTaskTaskIdRoute
   '/_app/wines/$subjectId/edit': typeof AppWinesSubjectIdEditRoute
   '/_app/baby/$babyId/': typeof AppBabyBabyIdIndexRoute
   '/_app/beers/$subjectId/': typeof AppBeersSubjectIdIndexRoute
@@ -584,7 +611,6 @@ export interface FileRouteTypes {
     | '/savings-goals'
     | '/settings'
     | '/shared-costs'
-    | '/tasks'
     | '/baby/new'
     | '/energy/connect'
     | '/energy/contract'
@@ -599,6 +625,7 @@ export interface FileRouteTypes {
     | '/integrations/callback'
     | '/loyalty-cards/new'
     | '/recipes/new'
+    | '/tasks/$listId'
     | '/baby/'
     | '/beers/'
     | '/cheeses/'
@@ -606,6 +633,7 @@ export interface FileRouteTypes {
     | '/groceries/'
     | '/loyalty-cards/'
     | '/recipes/'
+    | '/tasks/'
     | '/wines/'
     | '/baby/$babyId/edit'
     | '/beers/$subjectId/edit'
@@ -613,6 +641,8 @@ export interface FileRouteTypes {
     | '/groceries/item/$itemId'
     | '/loyalty-cards/$cardId/edit'
     | '/recipes/$recipeId/edit'
+    | '/tasks/smart/$smartList'
+    | '/tasks/task/$taskId'
     | '/wines/$subjectId/edit'
     | '/baby/$babyId/'
     | '/beers/$subjectId/'
@@ -644,7 +674,6 @@ export interface FileRouteTypes {
     | '/savings-goals'
     | '/settings'
     | '/shared-costs'
-    | '/tasks'
     | '/'
     | '/baby/new'
     | '/energy/connect'
@@ -660,6 +689,7 @@ export interface FileRouteTypes {
     | '/integrations/callback'
     | '/loyalty-cards/new'
     | '/recipes/new'
+    | '/tasks/$listId'
     | '/baby'
     | '/beers'
     | '/cheeses'
@@ -667,6 +697,7 @@ export interface FileRouteTypes {
     | '/groceries'
     | '/loyalty-cards'
     | '/recipes'
+    | '/tasks'
     | '/wines'
     | '/baby/$babyId/edit'
     | '/beers/$subjectId/edit'
@@ -674,6 +705,8 @@ export interface FileRouteTypes {
     | '/groceries/item/$itemId'
     | '/loyalty-cards/$cardId/edit'
     | '/recipes/$recipeId/edit'
+    | '/tasks/smart/$smartList'
+    | '/tasks/task/$taskId'
     | '/wines/$subjectId/edit'
     | '/baby/$babyId'
     | '/beers/$subjectId'
@@ -706,7 +739,6 @@ export interface FileRouteTypes {
     | '/_app/savings-goals'
     | '/_app/settings'
     | '/_app/shared-costs'
-    | '/_app/tasks'
     | '/_app/'
     | '/_app/baby/new'
     | '/_app/energy/connect'
@@ -722,6 +754,7 @@ export interface FileRouteTypes {
     | '/_app/integrations/callback'
     | '/_app/loyalty-cards/new'
     | '/_app/recipes/new'
+    | '/_app/tasks/$listId'
     | '/_app/baby/'
     | '/_app/beers/'
     | '/_app/cheeses/'
@@ -729,6 +762,7 @@ export interface FileRouteTypes {
     | '/_app/groceries/'
     | '/_app/loyalty-cards/'
     | '/_app/recipes/'
+    | '/_app/tasks/'
     | '/_app/wines/'
     | '/_app/baby/$babyId/edit'
     | '/_app/beers/$subjectId/edit'
@@ -736,6 +770,8 @@ export interface FileRouteTypes {
     | '/_app/groceries/item/$itemId'
     | '/_app/loyalty-cards/$cardId/edit'
     | '/_app/recipes/$recipeId/edit'
+    | '/_app/tasks/smart/$smartList'
+    | '/_app/tasks/task/$taskId'
     | '/_app/wines/$subjectId/edit'
     | '/_app/baby/$babyId/'
     | '/_app/beers/$subjectId/'
@@ -927,13 +963,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSharedCostsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/tasks': {
-      id: '/_app/tasks'
-      path: '/tasks'
-      fullPath: '/tasks'
-      preLoaderRoute: typeof AppTasksRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/baby/': {
       id: '/_app/baby/'
       path: '/baby'
@@ -1081,6 +1110,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRecipesNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/tasks/': {
+      id: '/_app/tasks/'
+      path: '/tasks'
+      fullPath: '/tasks/'
+      preLoaderRoute: typeof AppTasksIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/tasks/$listId': {
+      id: '/_app/tasks/$listId'
+      path: '/tasks/$listId'
+      fullPath: '/tasks/$listId'
+      preLoaderRoute: typeof AppTasksListIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/wines/': {
       id: '/_app/wines/'
       path: '/wines'
@@ -1165,6 +1208,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRecipesRecipeIdEditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/tasks/smart/$smartList': {
+      id: '/_app/tasks/smart/$smartList'
+      path: '/tasks/smart/$smartList'
+      fullPath: '/tasks/smart/$smartList'
+      preLoaderRoute: typeof AppTasksSmartSmartListRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/tasks/task/$taskId': {
+      id: '/_app/tasks/task/$taskId'
+      path: '/tasks/task/$taskId'
+      fullPath: '/tasks/task/$taskId'
+      preLoaderRoute: typeof AppTasksTaskTaskIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/wines/$subjectId/': {
       id: '/_app/wines/$subjectId/'
       path: '/wines/$subjectId'
@@ -1197,7 +1254,6 @@ interface AppRouteChildren {
   AppSavingsGoalsRoute: typeof AppSavingsGoalsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSharedCostsRoute: typeof AppSharedCostsRoute
-  AppTasksRoute: typeof AppTasksRoute
   AppIndexRoute: typeof AppIndexRoute
   AppBabyNewRoute: typeof AppBabyNewRoute
   AppEnergyConnectRoute: typeof AppEnergyConnectRoute
@@ -1213,6 +1269,7 @@ interface AppRouteChildren {
   AppIntegrationsCallbackRoute: typeof AppIntegrationsCallbackRoute
   AppLoyaltyCardsNewRoute: typeof AppLoyaltyCardsNewRoute
   AppRecipesNewRoute: typeof AppRecipesNewRoute
+  AppTasksListIdRoute: typeof AppTasksListIdRoute
   AppBabyIndexRoute: typeof AppBabyIndexRoute
   AppBeersIndexRoute: typeof AppBeersIndexRoute
   AppCheesesIndexRoute: typeof AppCheesesIndexRoute
@@ -1220,6 +1277,7 @@ interface AppRouteChildren {
   AppGroceriesIndexRoute: typeof AppGroceriesIndexRoute
   AppLoyaltyCardsIndexRoute: typeof AppLoyaltyCardsIndexRoute
   AppRecipesIndexRoute: typeof AppRecipesIndexRoute
+  AppTasksIndexRoute: typeof AppTasksIndexRoute
   AppWinesIndexRoute: typeof AppWinesIndexRoute
   AppBabyBabyIdEditRoute: typeof AppBabyBabyIdEditRoute
   AppBeersSubjectIdEditRoute: typeof AppBeersSubjectIdEditRoute
@@ -1227,6 +1285,8 @@ interface AppRouteChildren {
   AppGroceriesItemItemIdRoute: typeof AppGroceriesItemItemIdRoute
   AppLoyaltyCardsCardIdEditRoute: typeof AppLoyaltyCardsCardIdEditRoute
   AppRecipesRecipeIdEditRoute: typeof AppRecipesRecipeIdEditRoute
+  AppTasksSmartSmartListRoute: typeof AppTasksSmartSmartListRoute
+  AppTasksTaskTaskIdRoute: typeof AppTasksTaskTaskIdRoute
   AppWinesSubjectIdEditRoute: typeof AppWinesSubjectIdEditRoute
   AppBabyBabyIdIndexRoute: typeof AppBabyBabyIdIndexRoute
   AppBeersSubjectIdIndexRoute: typeof AppBeersSubjectIdIndexRoute
@@ -1251,7 +1311,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppSavingsGoalsRoute: AppSavingsGoalsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSharedCostsRoute: AppSharedCostsRoute,
-  AppTasksRoute: AppTasksRoute,
   AppIndexRoute: AppIndexRoute,
   AppBabyNewRoute: AppBabyNewRoute,
   AppEnergyConnectRoute: AppEnergyConnectRoute,
@@ -1267,6 +1326,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppIntegrationsCallbackRoute: AppIntegrationsCallbackRoute,
   AppLoyaltyCardsNewRoute: AppLoyaltyCardsNewRoute,
   AppRecipesNewRoute: AppRecipesNewRoute,
+  AppTasksListIdRoute: AppTasksListIdRoute,
   AppBabyIndexRoute: AppBabyIndexRoute,
   AppBeersIndexRoute: AppBeersIndexRoute,
   AppCheesesIndexRoute: AppCheesesIndexRoute,
@@ -1274,6 +1334,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGroceriesIndexRoute: AppGroceriesIndexRoute,
   AppLoyaltyCardsIndexRoute: AppLoyaltyCardsIndexRoute,
   AppRecipesIndexRoute: AppRecipesIndexRoute,
+  AppTasksIndexRoute: AppTasksIndexRoute,
   AppWinesIndexRoute: AppWinesIndexRoute,
   AppBabyBabyIdEditRoute: AppBabyBabyIdEditRoute,
   AppBeersSubjectIdEditRoute: AppBeersSubjectIdEditRoute,
@@ -1281,6 +1342,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppGroceriesItemItemIdRoute: AppGroceriesItemItemIdRoute,
   AppLoyaltyCardsCardIdEditRoute: AppLoyaltyCardsCardIdEditRoute,
   AppRecipesRecipeIdEditRoute: AppRecipesRecipeIdEditRoute,
+  AppTasksSmartSmartListRoute: AppTasksSmartSmartListRoute,
+  AppTasksTaskTaskIdRoute: AppTasksTaskTaskIdRoute,
   AppWinesSubjectIdEditRoute: AppWinesSubjectIdEditRoute,
   AppBabyBabyIdIndexRoute: AppBabyBabyIdIndexRoute,
   AppBeersSubjectIdIndexRoute: AppBeersSubjectIdIndexRoute,
