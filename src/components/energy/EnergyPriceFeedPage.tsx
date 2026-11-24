@@ -48,9 +48,9 @@ export function EnergyPriceFeedPage() {
         className="mb-0"
       />
       <div className="grid gap-1">
-        <h2 className="m-0 font-rounded text-2xl font-bold">
+        <h1 className="m-0 font-rounded text-2xl font-bold">
           {view ? view.siteName : copy.title}
-        </h2>
+        </h1>
         <p className="m-0 text-sm text-[var(--muted)]">{copy.sub}</p>
       </div>
       {view === undefined ? (

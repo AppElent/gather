@@ -50,7 +50,7 @@ export function EnergyConnectPage() {
         className="mb-0"
       />
       <div className="grid gap-1">
-        <h2 className="m-0 font-rounded text-2xl font-bold">{copy.summary}</h2>
+        <h1 className="m-0 font-rounded text-2xl font-bold">{copy.summary}</h1>
         <p className="m-0 text-sm text-[var(--muted)]">{copy.summarySub}</p>
       </div>
       {list === undefined ? (
