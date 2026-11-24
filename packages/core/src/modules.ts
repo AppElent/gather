@@ -58,7 +58,7 @@ export const MODULES = [
     id: 'groceries',
     icon: 'ShoppingCart',
     group: 'kitchen',
-    status: 'placeholder',
+    status: 'live',
     mobileStatus: 'live',
   },
   {

@@ -3,12 +3,12 @@
  * A week with more unread lines than one AI call carries reads them all, in
  * batches, until the daily cap runs out (APP-423).
  */
+
+import type { ReadAnswer } from '@gather/core/grocery-ai-batches'
+import { pickRows } from '@gather/core/grocery-pick'
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-
 import { mount, settle } from '../../../testing/dom'
-import { pickRows } from './pick'
-import type { ReadAnswer } from './read-batches'
 import { type IngredientSource, useIngredientLines } from './use-recipe-lines'
 
 const server = vi.hoisted(() => ({
