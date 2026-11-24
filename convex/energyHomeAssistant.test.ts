@@ -792,6 +792,66 @@ describe('the daily lookback for corrections', () => {
     )
   })
 
+  test('a sensor that is given back leaves the hours of the one between', async () => {
+    const { t, lookback } = await connected(growing(300))
+    // Three days of another sensor, while this one stood still.
+    await t.run(async (ctx) => {
+      for (const each of await ctx.db.query('energyIntervals').collect()) {
+        const ago = (THIS_HOUR - each.hourStart) / HOUR
+        if (ago > 48 && ago <= 120) {
+          await ctx.db.patch(each._id, { amount: 10 + ago / 10 })
+        }
+      }
+    })
+    const before = await rows(t, 'energyIntervals')
+    await lookback()
+    expect(await rows(t, 'energyIntervals')).toEqual(before)
+  })
+
+  test('a full battery does not make two sensors the same', async () => {
+    const seeded = await seed()
+    const id = 'sensor.battery_soc'
+    fake.statistics.push({
+      statistic_id: id,
+      has_sum: false,
+      has_mean: true,
+      statistics_unit_of_measurement: '%',
+    })
+    const levels = new Map<number, number>()
+    for (let hour = 60; hour > 0; hour -= 1) {
+      levels.set(THIS_HOUR - hour * HOUR, 100)
+    }
+    levels.set(THIS_HOUR - 30 * HOUR, 80)
+    fake.means[id] = levels
+    await connect(seeded, [{ kind: 'batterySoc', statisticId: id }], true)
+    const before = await rows(seeded.t, 'energyIntervals')
+    levels.set(THIS_HOUR - 30 * HOUR, 60)
+    const [source] = await rows(seeded.t, 'energySources')
+    await seeded.t.action(internal.energyHomeAssistant.lookbackSource, {
+      sourceId: source?._id as Id<'energySources'>,
+    })
+    expect(await rows(seeded.t, 'energyIntervals')).toEqual(before)
+  })
+
+  test('a correction at the newest hour waits until hours follow it', async () => {
+    const { t, sourceId, lookback } = await connected(growing(300))
+    const at = THIS_HOUR - HOUR
+    const was = (await amounts(t)).get(at) ?? 0
+    adjust(at, 2)
+    await lookback()
+    expect((await amounts(t)).get(at)).toBe(was)
+    const sums = fake.sums[IMPORT.statisticId] as Map<number, number>
+    let sum = sums.get(at) as number
+    for (let hour = 0; hour < 24; hour += 1) {
+      sum += 5 + hour / 100
+      sums.set(THIS_HOUR + hour * HOUR, sum)
+    }
+    vi.setSystemTime(NOW + DAY)
+    await t.action(internal.energyHomeAssistant.syncSource, { sourceId })
+    await lookback()
+    expect((await amounts(t)).get(at)).toBeCloseTo(was + 2, 6)
+  })
+
   test('zeros alone do not make two sensors the same', async () => {
     const solar = { kind: 'solar', statisticId: 'sensor.solar_total' } as const
     const seeded = await seed()

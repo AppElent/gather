@@ -790,15 +790,21 @@ export const finishSync = internalMutation({
  */
 const LOOKBACK_MS = 8 * 24 * HOUR_MS
 /**
- * Hours above zero in a row that must be as stored before a difference counts
- * as a correction. A channel may have been given another sensor, whose own past
- * must not replace the earlier one's hours; nothing stored says when. Those
- * hours come first and differ throughout, and the new sensor's agree. So the
- * first hours of the window are not corrected either: they were when they
- * were newer. Zeros agree between any two sensors (a night of solar), so they
- * do not count.
+ * A run of hours that differ is a correction only between two stretches of
+ * this many hours that are as stored, and when no more than `CORRECTED_HOURS`
+ * of it replace a stored hour (hours filled in are not counted). A channel may
+ * have been given another sensor, and back, and one sensor's past must not
+ * replace the other's hours; nothing stored says when. Those hours differ for
+ * longer, or up to the window's edge. A correction at the new edge is written
+ * by a later day's pass, when hours follow it; one at the old edge was seen
+ * when it was newer. Known limit: a sensor given for less than a day and then
+ * taken back looks like a correction.
+ *
+ * Hours at zero (a night of solar) or the same as the hour before (a full
+ * battery, a steady load) agree between any two sensors, so they do not count.
  */
 const AGREEING_HOURS = 6
+const CORRECTED_HOURS = 24
 
 type CorrectionPlan = {
   baseUrl: string
@@ -902,36 +908,53 @@ export const storeCorrections = internalMutation({
       )
       .collect()
     const byHour = new Map(stored.map((each) => [each.hourStart, each]))
-    let agreeing = 0
     let written = 0
+    // Whether the hours before this run of differing ones agreed.
+    let anchored = false
+    let agreeing = 0
+    let previous: number | null = null
+    let run: { hourStart: number; amount: number }[] = []
+    let lost = false
     for (const { hourStart, amount, after } of args.hours) {
       const row = byHour.get(hourStart)
-      const same = row?.amount === amount && !row.estimated
-      if (agreeing < AGREEING_HOURS) {
-        if (row && !same) agreeing = 0
-        else if (row && amount > 0) agreeing += 1
+      const repeated = amount === previous
+      previous = amount
+      if (row?.amount === amount && !row.estimated) {
+        if (amount <= 0 || repeated) continue
+        agreeing += 1
+        if (agreeing < AGREEING_HOURS) continue
+        const replaced = run.filter((each) => byHour.has(each.hourStart)).length
+        if (anchored && !lost && replaced <= CORRECTED_HOURS) {
+          for (const each of run) {
+            const stale = byHour.get(each.hourStart)
+            if (stale) {
+              await ctx.db.patch(stale._id, {
+                amount: each.amount,
+                estimated: false,
+              })
+            } else {
+              await ctx.db.insert('energyIntervals', {
+                groupId: channel.groupId,
+                channelId: channel._id,
+                ...each,
+                estimated: false,
+              })
+            }
+            written += 1
+          }
+        }
+        anchored = true
+        run = []
+        lost = false
         continue
       }
-      if (same) continue
+      agreeing = 0
+      run.push({ hourStart, amount })
       // Home Assistant lost hours that are stored (a backup put back): this
-      // one adds them up and would count them twice.
-      let lost = false
+      // one adds them up and would count them twice, so its run is left.
       for (let at = after + HOUR_MS; at < hourStart && !lost; at += HOUR_MS) {
         lost = byHour.has(at)
       }
-      if (lost) continue
-      if (row) {
-        await ctx.db.patch(row._id, { amount, estimated: false })
-      } else {
-        await ctx.db.insert('energyIntervals', {
-          groupId: channel.groupId,
-          channelId: channel._id,
-          hourStart,
-          amount,
-          estimated: false,
-        })
-      }
-      written += 1
     }
     return written
   },
