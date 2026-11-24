@@ -110,9 +110,10 @@ async function unfilledCandidates(
  * body, or across the two. The caller has already authorised the Group. Notes
  * whose title has every word come first, then the rest, each in the order
  * found, then the answer is cut at `MAX_ANSWER`, so a title hit is cut only
- * when that many have one. Of the other `search_text` matches, `MAX_MATCHES`
- * stay; the newest notes and the substring matches below fill the rest
- * (APP-806).
+ * when that many have one. Behind the title hits the cut falls last on what
+ * only the old indexes and the newest notes find (unfilled notes, and index
+ * matches among the newest notes), then on the other `search_text` matches
+ * (`MAX_MATCHES` of them stay), then on the substring matches (APP-806).
  *
  * Two passes, merged, the first first:
  *
@@ -169,40 +170,53 @@ export async function findNotes(
     ...notes.filter(inTitle),
     ...notes.filter((note) => !inTitle(note)),
   ]
-  // The index's matches. Title hits all stay, up to the answer cap. Of the
-  // others, `MAX_MATCHES` of `search_text`'s stay, and every unfilled one, which
-  // the old indexes bound (`FALLBACK_MATCHES`) and only they can find.
   const byIndex = candidates.filter((note) => matches(noteSearchText(note)))
   const indexed = new Set(byIndex.map((note) => note._id))
-  let filledBody = 0
-  const inBudget = titleFirst(byIndex).filter(
-    (note) =>
-      inTitle(note) ||
-      note.searchText === undefined ||
-      (filledBody += 1) <= MAX_MATCHES,
+  const titleHits = byIndex.filter(inTitle)
+  const bodyHits = byIndex.filter((note) => !inTitle(note))
+  const unfilledHits = bodyHits.filter((note) => note.searchText === undefined)
+  const filledHits = bodyHits
+    .filter((note) => note.searchText !== undefined)
+    .slice(0, MAX_MATCHES)
+  const taken = new Set(
+    [...titleHits, ...unfilledHits, ...filledHits].map((note) => note._id),
   )
-  const taken = new Set(inBudget.map((note) => note._id))
-  // The substring pass: the newest notes first, then the candidates the index
-  // did not match. An index match cut above is not read back in here, but a
-  // recent one is, as it was before the cap.
+  // The substring pass over the newest notes and the candidates the index did
+  // not match. An index match cut above is not read back in here, but a recent
+  // one is, as it was before the cap.
+  const recentIds = new Set(recent.map((note) => note._id))
   const contains = (note: Doc<'notes'>) => {
     const haystack = normalized(noteSearchText(note))
     return needles.every((needle) => haystack.includes(needle))
   }
-  const recentIds = new Set(recent.map((note) => note._id))
-  const extra = new Map<Id<'notes'>, Doc<'notes'>>()
-  for (const note of [...recent, ...candidates])
-    if (
-      !taken.has(note._id) &&
-      !extra.has(note._id) &&
-      (!indexed.has(note._id) || recentIds.has(note._id)) &&
-      contains(note)
-    )
-      extra.set(note._id, note)
-  return titleFirst([...inBudget, ...titleFirst([...extra.values()])]).slice(
-    0,
-    MAX_ANSWER,
-  )
+  const seen = new Set(taken)
+  const extra = (notes: Doc<'notes'>[]) =>
+    notes.filter((note) => {
+      if (seen.has(note._id)) return false
+      if (indexed.has(note._id) && !recentIds.has(note._id)) return false
+      if (!contains(note)) return false
+      seen.add(note._id)
+      return true
+    })
+  const recentHits = extra(recent)
+  // The index's own matches that were cut above, found again among the newest.
+  const recentIndexed = recentHits.filter((note) => indexed.has(note._id))
+  const substringHits = [
+    ...recentHits.filter((note) => !indexed.has(note._id)),
+    ...extra(candidates),
+  ]
+  // Title hits lead, whatever kind. The cut then falls on the last: what only
+  // the old indexes and the newest notes can find stays ahead of the older
+  // `search_text` matches and the substring matches, which rank below the
+  // index's (a Who or When filter runs after this, so a newest note must not be
+  // cut for them).
+  return titleFirst([
+    ...titleHits,
+    ...unfilledHits,
+    ...recentIndexed,
+    ...filledHits,
+    ...substringHits,
+  ]).slice(0, MAX_ANSWER)
 }
 
 /** The first line with anything on it: what a result row shows under the title. */
