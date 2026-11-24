@@ -75,7 +75,9 @@ Rules for every tool:
   meal instead of finding the slot taken.
 - `list_notes` answers one page, with `nextCursor` while there is more; pass it
   back as `cursor`. With a `query` it searches in Convex (`searchNotes`: whole
-  words, the last one from its start) and answers the best matches and `total`.
+  words, the last one from its start) and answers the best matches and `total`;
+  a query shorter than two characters is refused with a message, not answered
+  with no notes.
 - There are no delete tools. People delete in the app.
 - Recipes shared into a Group can be read there but changed only from their
   home Group. Task lists that live in Notion or Todoist are listed but their

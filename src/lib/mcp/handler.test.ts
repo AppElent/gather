@@ -365,6 +365,33 @@ describe('Gather MCP endpoint', () => {
     }
   })
 
+  it('refuses a one-character query instead of answering with no notes', async () => {
+    const backend = fakeBackend()
+    for (const query of ['a', ' a ']) {
+      const out = await callTool(backend, 'list_notes', {
+        groupId: 'group_home',
+        query,
+      })
+      expect(out.isError).toBe(true)
+      expect(out.content[0].text).toMatch(/at least 2 characters/)
+    }
+    expect(backend.calls.map((c) => c.name)).not.toContain('notes:searchNotes')
+  })
+
+  it('does not read another failure that mentions InvalidCursor as a stale cursor', async () => {
+    const out = await callTool(
+      fakeBackend({
+        'notes:listPage': () => {
+          throw new Error('Could not load notes: ignored InvalidCursor flag')
+        },
+      }),
+      'list_notes',
+      { groupId: 'group_home', cursor: 'fresh' },
+    )
+    expect(out.isError).toBe(true)
+    expect(out.content[0].text).toBe('The Gather tool failed.')
+  })
+
   it('refuses a Group the caller is not in like a missing one, before any data call', async () => {
     const backend = fakeBackend()
     const out = await callTool(backend, 'list_notes', { groupId: 'group_other' })
