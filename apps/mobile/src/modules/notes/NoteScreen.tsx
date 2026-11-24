@@ -32,7 +32,7 @@ import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { useDebouncedText } from '../../ui/use-debounced-text'
 import { confirmDeleteNote } from './notesActions'
 import { noteWhen, preview } from './noteText'
-import { useNoteActions, useNotes } from './store'
+import { useNote, useNoteActions } from './store'
 
 /** Drawn, not wired. The letters are the affordance, not an icon set. */
 const FORMATS = ['B', 'I', 'H', '•', '1.', '☑'] as const
@@ -43,7 +43,7 @@ export function Note({ noteId }: { noteId: string }) {
   const { t, locale } = useI18n()
   const router = useRouter()
   const actions = useNoteActions()
-  const note = useNotes().find((each) => each.id === noteId)
+  const note = useNote(noteId)
 
   useRecordRecent(
     note

@@ -12,9 +12,10 @@
  * still pending, Back is still the chooser, and another destination is one tap
  * away.
  *
- * Search filters what has already arrived, exactly as the collections do it: no
- * second query, and no add button hiding behind an empty result
- * (`apps/mobile/DESIGN_SYSTEM.md`).
+ * Search filters what has already arrived, exactly as the collections do it, and
+ * no add button hides behind an empty result (`apps/mobile/DESIGN_SYSTEM.md`).
+ * Notes are the exception: only the recent ones arrive, so a search also asks
+ * the server for the rest.
  *
  * The header title is set before anything else is decided, because a screen
  * reached with a stale address still has to say what it is rather than being a
@@ -46,12 +47,14 @@ import { fmt, useI18n } from '../i18n'
 import { moduleShown } from '../modules/buildModules'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, SIZE, TYPE, useTokens } from '../theme/tokens'
+import { useDebouncedQuery } from '../ui/use-debounced-query'
 import { useDrop } from './DropProvider'
 import {
   type DropTarget,
   type DropTargetId,
   dropTargetById,
 } from './dropTargets'
+import { MINIMUM_NOTE_QUERY, pickableNotes } from './noteCandidates'
 import { type DropPicked, useDropCommit } from './useDropCommit'
 
 /** One row of whatever stage two is listing. */
@@ -84,7 +87,7 @@ export function DropPickScreen() {
 
   const target = knownTarget(targetId)
   const drop = pending?.drop ?? null
-  const candidates = useCandidates(target, named)
+  const candidates = useCandidates(target, named, query)
   const text = t.drop
 
   // `picks: 'none'` never reaches this screen — the chooser finishes those
@@ -147,9 +150,13 @@ export function DropPickScreen() {
     }
   }
 
-  const filtered = (candidates ?? []).filter((candidate) =>
-    candidate.label.toLowerCase().includes(query.trim().toLowerCase()),
-  )
+  // Notes arrive already searched, by their body too.
+  const filtered =
+    ask === 'note'
+      ? (candidates ?? [])
+      : (candidates ?? []).filter((candidate) =>
+          candidate.label.toLowerCase().includes(query.trim().toLowerCase()),
+        )
 
   return (
     <>
@@ -192,7 +199,7 @@ export function DropPickScreen() {
               <ScrollView contentContainerStyle={styles.rows}>
                 {filtered.length === 0 ? (
                   <Text style={[styles.empty, { color: tokens.muted }]}>
-                    {candidates.length === 0
+                    {candidates.length === 0 && !(ask === 'note' && query.trim())
                       ? text.pick.empty
                       : fmt(text.pick.noMatches, { query: query.trim() })}
                   </Text>
@@ -274,13 +281,23 @@ function knownTarget(id: string | undefined): DropTarget | null {
 function useCandidates(
   target: DropTarget | null,
   group: AmbientGroup,
+  query: string,
 ): Candidate[] | undefined {
   const groupSlug = group.slug
   const picks = target?.picks
 
-  const notes = useQuery(
-    api.notes.list,
+  const recentNotes = useQuery(
+    api.notes.picker,
     picks === 'note' ? { groupSlug } : 'skip',
+  )
+  const debounced = useDebouncedQuery(query).trim()
+  const foundNotes = useQuery(
+    api.notes.searchNotes,
+    picks === 'note' &&
+      debounced === query.trim() &&
+      debounced.length >= MINIMUM_NOTE_QUERY
+      ? { groupSlug, query: debounced }
+      : 'skip',
   )
   const lists = useQuery(
     api.taskLists.list,
@@ -299,7 +316,12 @@ function useCandidates(
   const { t } = useI18n()
 
   if (picks === 'note') {
-    return notes?.map((note) => ({
+    return pickableNotes(
+      query,
+      recentNotes,
+      foundNotes,
+      t.notes.untitled,
+    )?.map((note) => ({
       id: note._id,
       label: note.title || t.notes.untitled,
       // Carried so the commit appends to what is on screen rather than reading

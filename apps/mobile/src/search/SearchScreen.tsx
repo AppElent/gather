@@ -36,6 +36,7 @@ import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import { ModuleTile, moduleTile } from '../ui/module-tile'
 import { SectionLabel } from '../ui/section-label'
+import { useDebouncedQuery } from '../ui/use-debounced-query'
 import { FilterChipRow, MenuChip, type MenuChoice, ModuleChip } from './FilterChips'
 import { ModuleSheet } from './ModuleSheet'
 import {
@@ -78,20 +79,10 @@ import {
   toRecent,
 } from './searchResults'
 
-const SEARCH_DELAY_MS = 200
 const MINIMUM_QUERY = 2
 const SKELETON_ROWS = 4
 /** How much of Recent shows before the chevron is worth pressing. */
 const COLLAPSED_RECENTS = 4
-
-function useDebouncedQuery(query: string) {
-  const [debounced, setDebounced] = useState(query)
-  useEffect(() => {
-    const timeout = setTimeout(() => setDebounced(query), SEARCH_DELAY_MS)
-    return () => clearTimeout(timeout)
-  }, [query])
-  return debounced
-}
 
 /**
  * Enough of a React Navigation navigator to find the tab bar and jump tabs.

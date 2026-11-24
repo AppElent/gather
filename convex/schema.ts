@@ -433,6 +433,8 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index('by_group', ['groupId'])
+    // Newest first, page by page (`notes.listPage`, APP-700).
+    .index('by_group_and_updatedAt', ['groupId', 'updatedAt'])
     // A search index covers one field, so a note has two (`lib/noteSearch.ts`).
     .searchIndex('search_title', {
       searchField: 'title',

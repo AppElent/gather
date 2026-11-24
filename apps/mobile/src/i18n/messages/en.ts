@@ -1472,6 +1472,7 @@ export const en = {
     pinned: 'Pinned',
     recent: 'Recent',
     empty: 'No notes yet.',
+    showMore: 'Show more notes',
     untitled: 'Untitled note',
     titlePlaceholder: 'Title',
     bodyPlaceholder: 'Start writing…',
