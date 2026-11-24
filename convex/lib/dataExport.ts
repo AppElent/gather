@@ -169,7 +169,8 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   // Who completed a repeating task and when (APP-303); names, never ids.
   taskCompletions: { scope: 'group', index: 'by_group' },
   groceryCategoryOverrides: { scope: 'group', index: 'by_group_and_name' },
-  notes: { scope: 'group', index: 'by_group' },
+  // Derived: title and body again, for the search index.
+  notes: { scope: 'group', index: 'by_group', omit: ['searchText'] },
   calendars: { scope: 'group', index: 'by_group' },
   calendarEvents: {
     scope: 'group',

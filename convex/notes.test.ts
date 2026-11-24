@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
+import { noteSearchText } from './lib/noteSearch'
 
 const alice = {
   subject: 'notes_alice',
@@ -315,6 +316,83 @@ describe('searching notes', () => {
     const { t } = await seed()
     await addNote(t, 'Boiler manual')
     expect(await titles(t, 'boiler '.repeat(40))).toEqual(['Boiler manual'])
+  })
+})
+
+describe('notes search over title and body together (APP-701)', () => {
+  /** Fillers with one word each come before the note asked for, and are newer. */
+  async function crowded(filled: boolean, fillers: number) {
+    const { t } = await seed()
+    await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', 'notes-first'))
+        .unique()
+      const user = await ctx.db.query('users').first()
+      const add = async (title: string, body: string, updatedAt: number) =>
+        await ctx.db.insert('notes', {
+          groupId: group!._id,
+          title,
+          body,
+          ...(filled ? { searchText: noteSearchText({ title, body }) } : {}),
+          createdBy: user!._id,
+          updatedAt,
+        })
+      for (let index = 0; index < fillers; index += 1) {
+        await add(`Boiler ${index}`, 'x', 1000 + index)
+        await add(`Filler ${index}`, 'the manual', 1000 + index)
+      }
+      await add('Boiler', 'where the manual is', 1)
+    })
+    return async (query: string) =>
+      (
+        await t
+          .withIdentity(alice)
+          .query(api.notes.searchNotes, { groupSlug: 'notes-first', query })
+      ).map((note) => note.title)
+  }
+
+  test('finds words split over title and body behind 300 notes with one of them', async () => {
+    const titles = await crowded(true, 150)
+    expect(await titles('boiler manual')).toEqual(['Boiler'])
+    expect(await titles('manual boiler')).toEqual(['Boiler'])
+  })
+
+  test('does not read past the results Convex allows one search', async () => {
+    // 1200 candidates; Convex refuses at 1024, and its ranking, which
+    // convex-test has none of, puts the note with both words in front.
+    const titles = await crowded(true, 600)
+    await expect(titles('boiler manual')).resolves.toBeInstanceOf(Array)
+    expect((await titles('boiler')).length).toBeGreaterThanOrEqual(100)
+  })
+
+  test('finds a note without searchText until the backfill has run', async () => {
+    const titles = await crowded(false, 10)
+    expect(await titles('boiler manual')).toEqual(['Boiler'])
+    expect(await titles('where')).toEqual(['Boiler'])
+  })
+
+  test('finds an old note without searchText among filled ones', async () => {
+    const { t, firstNote } = await seed()
+    await t.run(async (ctx) => {
+      const note = (await ctx.db.get(firstNote))!
+      for (let index = 0; index < 120; index += 1)
+        await ctx.db.insert('notes', {
+          groupId: note.groupId,
+          title: `Filler ${index}`,
+          body: '',
+          searchText: `Filler ${index}\n`,
+          createdBy: note.createdBy,
+          updatedAt: 1000,
+        })
+    })
+    const found = await t
+      .withIdentity(alice)
+      .query(api.notes.searchNotes, {
+        groupSlug: 'notes-first',
+        query: 'first household',
+      })
+    expect(found.map((note) => note._id)).toEqual([firstNote])
   })
 })
 

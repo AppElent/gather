@@ -6,6 +6,7 @@ import type { MutationCtx } from '../../_generated/server'
 import { stapleKey } from '../groceryStaples'
 import { destroyGroup } from '../groupCascade'
 import { allocateGroupSlug } from '../groupSlugs'
+import { insertNote } from '../noteSearch'
 import { getUserByClerkId } from '../sharing'
 import { auxListNames } from '../taskLists'
 import { RETAILER_CATALOG, type RetailerCatalogEntry } from './retailerCatalog'
@@ -568,7 +569,7 @@ export async function applySample(
   // --- Notes ----------------------------------------------------------------
   for (const note of SAMPLE_NOTES) {
     rec.track(
-      await ctx.db.insert('notes', {
+      await insertNote(ctx, {
         groupId,
         title: note.title,
         body: note.body,

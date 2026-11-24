@@ -445,11 +445,19 @@ export default defineSchema({
     // added; the creator is the last editor of those.
     updatedBy: v.optional(v.id('users')),
     updatedAt: v.number(),
+    // Title and body, for `search_text`; written by `lib/noteSearch.ts` only,
+    // never shown. Optional until `migrations:backfillNoteSearchText` has run.
+    searchText: v.optional(v.string()),
   })
     .index('by_group', ['groupId'])
     // Newest first, page by page (`notes.listPage`, APP-700).
     .index('by_group_and_updatedAt', ['groupId', 'updatedAt'])
-    // A search index covers one field, so a note has two (`lib/noteSearch.ts`).
+    // Title and body together (APP-701).
+    .searchIndex('search_text', {
+      searchField: 'searchText',
+      filterFields: ['groupId'],
+    })
+    // Only for notes still without `searchText`; dropped in the narrow step.
     .searchIndex('search_title', {
       searchField: 'title',
       filterFields: ['groupId'],
