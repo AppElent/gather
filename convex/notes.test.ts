@@ -397,7 +397,12 @@ describe('notes search over title and body together (APP-701)', () => {
 })
 
 describe('notes whose title has the words come first (APP-806)', () => {
-  type Row = { title: string; body: string; updatedAt: number }
+  type Row = {
+    title: string
+    body: string
+    updatedAt: number
+    by?: 'bob'
+  }
 
   /** Rows go in as given, so the index reads them in that order. */
   async function crowded(rows: Row[]) {
@@ -407,14 +412,15 @@ describe('notes whose title has the words come first (APP-806)', () => {
         .query('groups')
         .withIndex('by_slug', (q) => q.eq('slug', 'notes-first'))
         .unique()
-      const user = await ctx.db.query('users').first()
-      for (const { title, body, updatedAt } of rows)
+      const alice = await ctx.db.query('users').first()
+      const bob = (await ctx.db.query('users').collect())[1]
+      for (const { title, body, updatedAt, by } of rows)
         await ctx.db.insert('notes', {
           groupId: group!._id,
           title,
           body,
           searchText: noteSearchText({ title, body }),
-          createdBy: user!._id,
+          createdBy: (by === 'bob' ? bob : alice)!._id,
           updatedAt,
         })
     })
@@ -427,14 +433,21 @@ describe('notes whose title has the words come first (APP-806)', () => {
             query,
           })
         ).map((note) => note.title),
-      search: async (query: string) =>
-        (
+      search: async (query: string, createdBy?: 'bob') => {
+        const bob = createdBy
+          ? await t.run(
+              async (ctx) => (await ctx.db.query('users').collect())[1]!._id,
+            )
+          : undefined
+        return (
           await asked.query(api.search.group, {
             groupSlug: 'notes-first',
             query,
             accepts: ['note'],
+            ...(bob ? { createdBy: bob } : {}),
           })
-        ).map((result) => result.title),
+        ).map((result) => result.title)
+      },
     }
   }
 
@@ -472,19 +485,40 @@ describe('notes whose title has the words come first (APP-806)', () => {
     ])
     const found = await notes('boiler')
     expect(found[0]).toBe('Boiler')
-    expect(found).toHaveLength(100)
+    expect(found.length).toBeLessThanOrEqual(200)
     expect((await search('boiler'))[0]).toBe('Boiler')
   })
 
-  test('reads on past 100 notes with every word, then caps the answer at 100', async () => {
+  test('reads on past 100 notes with every word, then caps the answer', async () => {
     const { notes } = await crowded([
       ...bodyHits(250),
       { title: 'Boiler', body: '', updatedAt: 1 },
     ])
     const found = await notes('boiler')
-    expect(found).toHaveLength(100)
+    // 100 of the index's matches and the newest 100 notes, none twice.
+    expect(found).toHaveLength(200)
     expect(found[0]).toBe('Boiler')
-    expect(new Set(found).size).toBe(100)
+    expect(new Set(found).size).toBe(200)
+  })
+
+  test('the newest notes with every word are still answered behind 100+ index matches', async () => {
+    const { notes, search } = await crowded([
+      ...bodyHits(150),
+      // The newest, and the index's last.
+      { title: 'Fresh', body: 'boiler serviced', updatedAt: 9999, by: 'bob' },
+    ])
+    expect(await notes('boiler')).toContain('Fresh')
+    // A filter on Who runs after the search, so the cap must not drop it.
+    expect(await search('boiler', 'bob')).toEqual(['Fresh'])
+  })
+
+  test('a title hit found only by substring still comes first', async () => {
+    const { notes } = await crowded([
+      { title: 'Shed', body: 'the wijnkaart', updatedAt: 3 },
+      { title: 'Wijnkaart', body: '', updatedAt: 2 },
+      { title: 'Cellar', body: 'kaart', updatedAt: 1 },
+    ])
+    expect(await notes('kaart')).toEqual(['Wijnkaart', 'Cellar', 'Shed'])
   })
 
   test('stops reading at the character budget: a title hit past it is not found', async () => {
@@ -497,7 +531,7 @@ describe('notes whose title has the words come first (APP-806)', () => {
       { title: 'Boiler', body: '', updatedAt: 1 },
     ])
     const found = await notes('boiler')
-    expect(found).toHaveLength(100)
+    expect(found.length).toBeLessThanOrEqual(200)
     expect(found).not.toContain('Boiler')
   })
 

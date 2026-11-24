@@ -3,8 +3,10 @@ import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { indexSearch, normalized } from './searchText'
 
-/** A search answers at most this many notes, the most it answered before. */
+/** Of the notes the index matches, a search answers this many, title hits first. */
 const MAX_MATCHES = 100
+/** In all, with the substring matches the newest notes and the candidates add. */
+const MAX_ANSWER = 2 * MAX_MATCHES
 /**
  * How far one search reads in `search_text`, whatever it finds on the way:
  * Convex refuses to read past 1024 search results, and `MAX_CANDIDATE_CHARS`
@@ -105,9 +107,11 @@ async function unfilledCandidates(
 
 /**
  * The notes of one Group that contain every word of `text`, in the title, the
- * body, or across the two, at most `MAX_MATCHES` of them. The caller has
- * already authorised the Group. Notes whose title has every word come first,
- * then the rest, each in the order found (APP-806).
+ * body, or across the two. The caller has already authorised the Group. Of the
+ * index's matches at most `MAX_MATCHES` are answered, and `MAX_ANSWER` in all
+ * with the substring matches below. Notes whose title has every word come
+ * first, then the rest, each in the order found, and the cap comes after
+ * that, so a title hit is never cut for a body hit (APP-806).
  *
  * Two passes, merged, the first first:
  *
@@ -143,24 +147,45 @@ export async function findNotes(
       .order('desc')
       .take(RECENT_NOTES),
   ])
-  const candidates = [...byText, ...unfilled]
-  const byIndex = candidates.filter((note) => matches(noteSearchText(note)))
-  const found = new Map(byIndex.map((note) => [note._id, note] as const))
-  for (const note of [...candidates, ...recent]) {
-    if (found.has(note._id)) continue
-    const haystack = normalized(noteSearchText(note))
-    if (needles.every((needle) => haystack.includes(needle)))
-      found.set(note._id, note)
-  }
-  const all = [...found.values()]
+  // A note the backfill has half reached can come from both.
+  const candidates = [
+    ...new Map(
+      [...byText, ...unfilled].map((note) => [note._id, note] as const),
+    ).values(),
+  ]
   const inTitle = (note: NoteText) => {
     const title = normalized(note.title)
-    return needles.every((needle) => title.includes(needle))
+    return matches(note.title) || needles.every((needle) => title.includes(needle))
   }
-  return [
-    ...all.filter(inTitle),
-    ...all.filter((note) => !inTitle(note)),
-  ].slice(0, MAX_MATCHES)
+  const titleFirst = (notes: Doc<'notes'>[]) => [
+    ...notes.filter(inTitle),
+    ...notes.filter((note) => !inTitle(note)),
+  ]
+  const byIndex = candidates.filter((note) => matches(noteSearchText(note)))
+  const indexed = new Set(byIndex.map((note) => note._id))
+  const inBudget = titleFirst(byIndex).slice(0, MAX_MATCHES)
+  const taken = new Set(inBudget.map((note) => note._id))
+  // The substring pass: the newest notes first, then the candidates the index
+  // did not match. An index match cut above is not read back in here, but a
+  // recent one is, as it was before the cap.
+  const contains = (note: Doc<'notes'>) => {
+    const haystack = normalized(noteSearchText(note))
+    return needles.every((needle) => haystack.includes(needle))
+  }
+  const recentIds = new Set(recent.map((note) => note._id))
+  const extra = new Map<Id<'notes'>, Doc<'notes'>>()
+  for (const note of [...recent, ...candidates])
+    if (
+      !taken.has(note._id) &&
+      !extra.has(note._id) &&
+      (!indexed.has(note._id) || recentIds.has(note._id)) &&
+      contains(note)
+    )
+      extra.set(note._id, note)
+  return titleFirst([
+    ...inBudget,
+    ...titleFirst([...extra.values()]).slice(0, MAX_ANSWER - inBudget.length),
+  ])
 }
 
 /** The first line with anything on it: what a result row shows under the title. */
