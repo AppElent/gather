@@ -159,11 +159,12 @@ vi.mock('./icons', () => ({
   TASK_ICONS: new Proxy({}, { get: () => () => null }),
   TASK_LIST_GLYPHS: new Proxy({}, { get: () => () => null }),
 }))
+vi.mock('./writeFailed', () => ({ useWriteFailed: () => () => {} }))
 vi.mock('./store', () => ({
   useGroupLabels: () => [],
   useTaskActions: () => ({
     createList: async () => 'new-id',
-    setPriority: () => {},
+    setPriority: async () => {},
     moveTask: async () => {},
     setTaskSection: async () => {},
     setListAppearance: async () => {},

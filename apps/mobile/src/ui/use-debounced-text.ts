@@ -20,6 +20,8 @@ const IDLE = 600
 export function useDebouncedText(
   value: string,
   commit: (next: string) => void,
+  /** Saves on blur and on leaving only, where a save is a slow round trip. */
+  { onBlurOnly = false }: { onBlurOnly?: boolean } = {},
 ) {
   const [draft, setDraft] = useState(value)
   /** The keystroke not yet written, or `null` when everything is saved. */
@@ -53,10 +55,17 @@ export function useDebouncedText(
       setDraft(next)
       pending.current = next
       if (timer.current) clearTimeout(timer.current)
-      timer.current = setTimeout(flush, IDLE)
+      if (!onBlurOnly) timer.current = setTimeout(flush, IDLE)
     },
-    [flush],
+    [flush, onBlurOnly],
   )
 
-  return { draft, change, flush }
+  /** Back to the saved text after a refused save, unless typed in since. */
+  const saved = useRef(value)
+  saved.current = value
+  const reset = useCallback(() => {
+    if (pending.current === null) setDraft(saved.current)
+  }, [])
+
+  return { draft, change, flush, reset }
 }

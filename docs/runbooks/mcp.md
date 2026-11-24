@@ -78,7 +78,7 @@ Rules for every tool:
   words, the last one from its start) and answers the best matches and `total`.
 - There are no delete tools. People delete in the app.
 - Recipes shared into a Group can be read there but changed only from their
-  home Group. Task lists that mirror Notion or Todoist are listed but their
+  home Group. Task lists that live in Notion or Todoist are listed but their
   tasks are not readable here.
 - Results are JSON in `structuredContent` and as text, without internal user
   ids, storage ids, or other Groups' ids. Errors show Gather's own refusals
