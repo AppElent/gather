@@ -6,7 +6,12 @@ import { ACCOUNT_CHANGED, APPLE_REVOCATION } from './accounts'
 import { clientSecret, isAppleClientId } from './lib/appleSignIn'
 import { verifiedAppleUserIds } from './lib/clerkUsers'
 import { CONNECTED_APP_REFUSED } from './lib/connectedApps'
-import { NOT_SIGNED_IN } from './lib/sharing'
+
+/** The keyed refusal a signed-out caller gets (APP-620). */
+const NOT_SIGNED_IN = {
+  kind: 'groups:not-signed-in',
+  message: 'Not authenticated',
+}
 
 /**
  * Revoking Sign in with Apple on account deletion (APP-213), against a fake
@@ -113,9 +118,9 @@ describe('accounts.revokeAppleSignIn', () => {
     await configure()
     const { calls } = appleResponses({})
     const t = testConvex()
-    expect(await refusal(t.action(api.accounts.revokeAppleSignIn, args))).toBe(
-      NOT_SIGNED_IN,
-    )
+    expect(
+      await refusal(t.action(api.accounts.revokeAppleSignIn, args)),
+    ).toEqual(NOT_SIGNED_IN)
     expect(calls).toEqual([])
   })
 
@@ -402,7 +407,7 @@ describe('accounts.revokeAppleSignIn from the web', () => {
       await refusal(
         noAccount.signedIn.action(api.accounts.revokeAppleSignIn, WEB),
       ),
-    ).toBe(NOT_SIGNED_IN)
+    ).toEqual(NOT_SIGNED_IN)
     expect(noAccount.calls).toEqual([])
 
     // Another account signed in since the person confirmed.

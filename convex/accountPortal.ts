@@ -212,6 +212,11 @@ const exportPageValidator = v.object({
 async function portalCaller(ctx: QueryCtx): Promise<Doc<'users'> | null> {
   await rejectConnectedApps(ctx)
   const identity = await getGatedIdentity(ctx)
+  // Bare on purpose, unlike every other sign-in refusal (APP-620): the account
+  // portal's `isUnauthenticated` (AppElent/appelent-site, convex-client.ts)
+  // matches `error.data === 'Not authenticated'` to retry with a fresh token,
+  // and does not read a keyed refusal. Key this once the portal reads
+  // `groups:not-signed-in`.
   if (!identity) throw new ConvexError(NOT_SIGNED_IN)
   return await getUserByClerkId(ctx, identity.subject)
 }
