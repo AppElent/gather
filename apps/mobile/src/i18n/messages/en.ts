@@ -1483,6 +1483,8 @@ export const en = {
 
   /** The Notes Module's own words, on the same terms as `tasks` above. */
   notes: {
+    length: coreEn.notes.length,
+    refusals: coreEn.notes.refusals,
     title: 'Notes',
     pinned: 'Pinned',
     recent: 'Recent',

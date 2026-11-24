@@ -74,10 +74,13 @@ Rules for every tool:
   `plan_meal` counts as a create: a retry with its key answers the first
   meal instead of finding the slot taken.
 - `list_notes` answers one page, with `nextCursor` while there is more; pass it
-  back as `cursor`. With a `query` it searches in Convex (`searchNotes`: whole
+  back as `cursor`. A page stops at a number of bytes too, so it can be short,
+  or empty, with more after it. With a `query` it searches in Convex (`searchNotes`: whole
   words, the last one from its start) and answers the best matches and `total`;
   a query shorter than two characters is refused with a message, not answered
   with no notes.
+- A note holds at most `NOTE_MAX_CHARS` (100,000) characters, title and body
+  together; a write past it is refused as `notes:too-long` (APP-805).
 - There are no delete tools. People delete in the app.
 - Recipes shared into a Group can be read there but changed only from their
   home Group. Task lists that live in Notion or Todoist are listed but their

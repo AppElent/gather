@@ -1,4 +1,7 @@
+import { isNoteTooLong } from '@gather/core/notes'
+import { noteRefusal } from '@gather/core/refusals'
 import type { WithoutSystemFields } from 'convex/server'
+import { ConvexError, getDocumentSize } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { indexSearch, normalized } from './searchText'
@@ -7,11 +10,18 @@ import { indexSearch, normalized } from './searchText'
 const MAX_MATCHES = 100
 /**
  * How far one search looks for them in `search_text`: Convex refuses to read
- * past 1024 search results, and `MAX_CANDIDATE_CHARS` of text (1-3 bytes each,
- * stored twice) keeps long notes well inside a query's 16 MiB.
+ * past 1024 search results.
  */
 const MAX_CANDIDATES = 1000
-const MAX_CANDIDATE_CHARS = 1_000_000
+/**
+ * The bytes one search reads of notes (APP-805): of `search_text`, of the
+ * newest, and of each of the two old indexes. Each read ends with the note that
+ * crosses its bound, at most 1 MiB, so a search stays under 13 MiB of a query's
+ * 16; `search.group` reads its other types from what is left.
+ */
+const CANDIDATE_BYTES = 4 * 1024 * 1024
+const RECENT_BYTES = 3 * 1024 * 1024
+const FALLBACK_BYTES = 1024 * 1024
 /** Read from each of the two old indexes until the narrow step (APP-701). */
 const FALLBACK_MATCHES = 50
 const RECENT_NOTES = 100
@@ -28,22 +38,57 @@ export function noteSearchText({ title, body }: NoteText): string {
   return `${title}\n${body}`
 }
 
+/**
+ * The notes a query answers, in its order, until there are `count` of them or
+ * they come to `bytes` as stored: the note that crosses the bound is the last.
+ */
+export async function takeNotes(
+  notes: AsyncIterable<Doc<'notes'>>,
+  { count = Number.POSITIVE_INFINITY, bytes }: { count?: number; bytes: number },
+): Promise<Doc<'notes'>[]> {
+  const taken: Doc<'notes'>[] = []
+  let read = 0
+  for await (const note of notes) {
+    taken.push(note)
+    read += getDocumentSize(note)
+    if (taken.length >= count || read >= bytes) break
+  }
+  return taken
+}
+
+function refuseTooLong(note: NoteText) {
+  if (isNoteTooLong(note)) throw new ConvexError(noteRefusal('too-long'))
+}
+
 type NoteFields = Omit<WithoutSystemFields<Doc<'notes'>>, 'searchText'>
 
-/** Adds a note. The caller has already authorised the Group. */
-export function insertNote(ctx: MutationCtx, note: NoteFields) {
+/**
+ * Adds a note, unless it is too long. The caller has already authorised the
+ * Group.
+ */
+export async function insertNote(ctx: MutationCtx, note: NoteFields) {
+  refuseTooLong(note)
   return ctx.db.insert('notes', { ...note, searchText: noteSearchText(note) })
 }
 
-/** Changes a note. The caller has already authorised it. */
-export function patchNote(
+/**
+ * Changes a note, unless its text changes and is too long. The caller has
+ * already authorised it.
+ *
+ * A note from before the limit (APP-805) can be over it. Its text may stay as
+ * it is, so it can be pinned; `searchText` is then left alone, because with it
+ * the note may not fit in a document.
+ */
+export async function patchNote(
   ctx: MutationCtx,
   note: Doc<'notes'>,
   patch: Partial<NoteFields>,
 ) {
+  const next = { ...note, ...patch }
+  if (next.title !== note.title || next.body !== note.body) refuseTooLong(next)
   return ctx.db.patch(note._id, {
     ...patch,
-    searchText: noteSearchText({ ...note, ...patch }),
+    ...(isNoteTooLong(next) ? {} : { searchText: noteSearchText(next) }),
   })
 }
 
@@ -61,20 +106,19 @@ async function textCandidates(
   const candidates: Doc<'notes'>[] = []
   if (search === '') return candidates
   let found = 0
-  let chars = 0
+  let bytes = 0
   for await (const note of ctx.db
     .query('notes')
     .withSearchIndex('search_text', (q) =>
       q.search('searchText', search).eq('groupId', groupId),
     )) {
     candidates.push(note)
-    const text = noteSearchText(note)
-    if (matches(text)) found += 1
-    chars += text.length
+    if (matches(noteSearchText(note))) found += 1
+    bytes += getDocumentSize(note)
     if (
       found >= MAX_MATCHES ||
       candidates.length >= MAX_CANDIDATES ||
-      chars >= MAX_CANDIDATE_CHARS
+      bytes >= CANDIDATE_BYTES
     )
       break
   }
@@ -92,18 +136,22 @@ async function unfilledCandidates(
 ): Promise<Doc<'notes'>[]> {
   if (search === '') return []
   const [byTitle, byBody] = await Promise.all([
-    ctx.db
-      .query('notes')
-      .withSearchIndex('search_title', (q) =>
-        q.search('title', search).eq('groupId', groupId),
-      )
-      .take(FALLBACK_MATCHES),
-    ctx.db
-      .query('notes')
-      .withSearchIndex('search_body', (q) =>
-        q.search('body', search).eq('groupId', groupId),
-      )
-      .take(FALLBACK_MATCHES),
+    takeNotes(
+      ctx.db
+        .query('notes')
+        .withSearchIndex('search_title', (q) =>
+          q.search('title', search).eq('groupId', groupId),
+        ),
+      { count: FALLBACK_MATCHES, bytes: FALLBACK_BYTES },
+    ),
+    takeNotes(
+      ctx.db
+        .query('notes')
+        .withSearchIndex('search_body', (q) =>
+          q.search('body', search).eq('groupId', groupId),
+        ),
+      { count: FALLBACK_MATCHES, bytes: FALLBACK_BYTES },
+    ),
   ])
   return [...byTitle, ...byBody].filter((note) => note.searchText === undefined)
 }
@@ -140,11 +188,13 @@ export async function findNotes(
   const [byText, unfilled, recent] = await Promise.all([
     textCandidates(ctx, groupId, asked),
     unfilledCandidates(ctx, groupId, search),
-    ctx.db
-      .query('notes')
-      .withIndex('by_group_and_updatedAt', (q) => q.eq('groupId', groupId))
-      .order('desc')
-      .take(RECENT_NOTES),
+    takeNotes(
+      ctx.db
+        .query('notes')
+        .withIndex('by_group_and_updatedAt', (q) => q.eq('groupId', groupId))
+        .order('desc'),
+      { count: RECENT_NOTES, bytes: RECENT_BYTES },
+    ),
   ])
   const candidates = [...byText, ...unfilled]
   const byIndex = candidates.filter((note) => matches(noteSearchText(note)))

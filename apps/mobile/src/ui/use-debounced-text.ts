@@ -19,7 +19,8 @@ const IDLE = 600
 
 export function useDebouncedText(
   value: string,
-  commit: (next: string) => void,
+  /** `false` when it was not taken: the text then stays unsaved. */
+  commit: (next: string) => unknown,
   /** Saves on blur and on leaving only, where a save is a slow round trip. */
   { onBlurOnly = false }: { onBlurOnly?: boolean } = {},
 ) {
@@ -37,7 +38,7 @@ export function useDebouncedText(
     }
     const next = pending.current
     pending.current = null
-    if (next !== null) latest.current(next)
+    if (next !== null && latest.current(next) === false) pending.current = next
   }, [])
 
   // Adopt a change that came from somewhere else — another screen, another

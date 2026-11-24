@@ -1,4 +1,5 @@
 import { useMutation } from 'convex/react'
+import { useEffect } from 'react'
 import { api, type Id } from '../../convex/api'
 import { usePaginatedQuery, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
@@ -25,19 +26,41 @@ function toNote({
 
 /**
  * The Current Group's notes as the list shows them, each half most recently
- * changed first: every pinned note, and the rest a page at a time.
+ * changed first: every pinned note, and the rest a page at a time. A page stops
+ * at a number of bytes (APP-805), so the pinned notes can take several, and a
+ * page of the rest can be empty with more after it.
  */
 export function useNotesList() {
   const { group } = useGroup()
-  const pinned = useQuery(api.notes.listPinned, { groupSlug: group.slug })
+  const pinned = usePaginatedQuery(
+    api.notes.listPage,
+    { groupSlug: group.slug, pinnedOnly: true },
+    { initialNumItems: PAGE },
+  )
+  const morePinned = pinned.status === 'CanLoadMore'
+  const loadPinned = pinned.loadMore
+  useEffect(() => {
+    if (morePinned) loadPinned(PAGE)
+  }, [morePinned, loadPinned])
   const { results, status, loadMore } = usePaginatedQuery(
     api.notes.listPage,
     { groupSlug: group.slug, unpinnedOnly: true },
     { initialNumItems: PAGE },
   )
+  const restEmpty = results.length === 0 && status === 'CanLoadMore'
+  useEffect(() => {
+    if (restEmpty) loadMore(PAGE)
+  }, [restEmpty, loadMore])
+  // Nothing to show is only "no notes" once both halves have been looked through.
+  const searching =
+    pinned.results.length + results.length === 0 &&
+    !(pinned.status === 'Exhausted' && status === 'Exhausted')
   return {
-    loading: pinned === undefined || status === 'LoadingFirstPage',
-    pinned: (pinned ?? []).map(toNote),
+    loading:
+      pinned.status === 'LoadingFirstPage' ||
+      status === 'LoadingFirstPage' ||
+      searching,
+    pinned: pinned.results.map(toNote),
     rest: results.map(toNote),
     hasMore: status === 'CanLoadMore' || status === 'LoadingMore',
     loadingMore: status === 'LoadingMore',

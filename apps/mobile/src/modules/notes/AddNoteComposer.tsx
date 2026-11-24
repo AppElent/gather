@@ -18,6 +18,8 @@
  * Editing a note that exists stays on the note screen.
  */
 import { useAuth } from '@clerk/expo'
+import { isNoteTooLong } from '@gather/core/notes'
+import { noteRefusalSentence } from '@gather/core/refusals'
 import { useEffect, useRef, useState } from 'react'
 import { TextInput } from 'react-native'
 
@@ -143,12 +145,16 @@ function NoteComposerCard({
    * same key goes again, so a create that did land is not made twice. A note
    * the card still shows is cleared once it is saved or discarded.
    */
-  const offerRetry = (saving: ComposedNote, saveKey: string) =>
+  const offerRetry = (
+    saving: ComposedNote,
+    saveKey: string,
+    refused: string | null,
+  ) =>
     askInTurn(
       (done) =>
         showAlert(
           fmt(words.noteNotSaved, { title: saving.title || t.notes.untitled }),
-          undefined,
+          refused ?? undefined,
           [
             {
               text: words.discard,
@@ -168,9 +174,13 @@ function NoteComposerCard({
                     landed(saveKey)
                     if (showing(saveKey)) clear()
                   },
-                  () => {
+                  (error: unknown) => {
                     haptics.actionFailed()
-                    offerRetry(saving, saveKey)
+                    offerRetry(
+                      saving,
+                      saveKey,
+                      noteRefusalSentence(error, t.notes.refusals),
+                    )
                   },
                 )
               },
@@ -190,6 +200,12 @@ function NoteComposerCard({
       haptics.actionFailed()
       return
     }
+    // The server refuses it too; said here, nothing is sent or cleared.
+    if (isNoteTooLong(note)) {
+      haptics.actionFailed()
+      setNotice(t.notes.refusals['notes:too-long'])
+      return
+    }
     if (submitted.current === draft.saveKey) return
     const snapshot = draft
     const saving = note
@@ -202,15 +218,16 @@ function NoteComposerCard({
     try {
       await request
       landed(saveKey)
-    } catch {
+    } catch (error) {
       haptics.actionFailed()
       submitted.current = null
+      const refused = noteRefusalSentence(error, t.notes.refusals)
       if (mounted.current && !isNoteDirty(latest.current)) {
         // Nothing typed since: the note comes back to finish or send again.
-        setNotice(words.noteFailed)
+        setNotice(refused ?? words.noteFailed)
         load(snapshot)
       }
-      offerRetry(saving, saveKey)
+      offerRetry(saving, saveKey, refused)
     }
   }
 

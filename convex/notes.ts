@@ -4,10 +4,22 @@ import type { Doc, Id } from './_generated/dataModel'
 import { mutation, type QueryCtx, query } from './_generated/server'
 import { findInGroup, requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
-import { findNotes, insertNote, noteExcerpt, patchNote } from './lib/noteSearch'
+import {
+  findNotes,
+  insertNote,
+  noteExcerpt,
+  patchNote,
+  takeNotes,
+} from './lib/noteSearch'
 
 /** How many notes the Drop picker offers before anything is typed. */
 const PICKER_NOTES = 50
+
+/**
+ * The bytes one read of whole notes takes (APP-805), and at most one note more,
+ * so a Group full of the longest notes stays inside a query's 16 MiB.
+ */
+const READ_BYTES = 8 * 1024 * 1024
 
 const noteOutput = v.object({
   _id: v.id('notes'),
@@ -53,25 +65,24 @@ function newestNotes(ctx: QueryCtx, groupId: Id<'groups'>) {
 }
 
 /**
- * @deprecated Reads every note. Kept unchanged because installed phone builds
- * from before APP-700 call it; nothing in this repository does. Retire it once
- * no supported build predates `listPage`.
+ * @deprecated Reads every note, up to `READ_BYTES` of the newest (APP-805). Kept
+ * because installed phone builds from before APP-700 call it; nothing in this
+ * repository does. Retire it once no supported build predates `listPage`.
  */
 export const list = query({
   args: { groupSlug: v.string() },
   handler: async (ctx, args) => {
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
-    const notes = await ctx.db
-      .query('notes')
-      .withIndex('by_group', (q) => q.eq('groupId', group._id))
-      .collect()
+    const notes = await takeNotes(newestNotes(ctx, group._id), {
+      bytes: READ_BYTES,
+    })
     // A note shows who last touched it, by name — never the id.
     const names = new Map<Id<'users'>, string | null>()
     const nameOf = async (id: Id<'users'>) => {
       if (!names.has(id)) names.set(id, (await ctx.db.get(id))?.name ?? null)
       return names.get(id) ?? null
     }
-    const rows = await Promise.all(
+    return await Promise.all(
       // `searchText` repeats title and body; those phones never read it.
       notes.map(async ({ searchText: _, ...note }) => {
         const editor = note.updatedBy ?? note.createdBy
@@ -82,18 +93,21 @@ export const list = query({
         }
       }),
     )
-    return rows.sort((a, b) => b.updatedAt - a.updatedAt)
   },
 })
 
 /**
  * One page of a Group's notes, most recently changed first. `unpinnedOnly`
- * leaves out the notes `listPinned` answers, so a page is full without them.
+ * leaves out the pinned notes, so a page is full without them; `pinnedOnly`
+ * answers those alone, and looks at every note to find them (an index on
+ * `pinned` would spare the reads). A page also ends at `READ_BYTES` of the notes
+ * looked at, so it can be short, or empty, and not be the last.
  */
 export const listPage = query({
   args: {
     groupSlug: v.string(),
     unpinnedOnly: v.optional(v.boolean()),
+    pinnedOnly: v.optional(v.boolean()),
     paginationOpts: paginationOptsValidator,
   },
   returns: v.object({
@@ -112,10 +126,12 @@ export const listPage = query({
   handler: async (ctx, args) => {
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
     const newest = newestNotes(ctx, group._id)
-    const result = await (args.unpinnedOnly
-      ? newest.filter((q) => q.neq(q.field('pinned'), true))
-      : newest
-    ).paginate(args.paginationOpts)
+    const result = await (args.pinnedOnly
+      ? newest.filter((q) => q.eq(q.field('pinned'), true))
+      : args.unpinnedOnly
+        ? newest.filter((q) => q.neq(q.field('pinned'), true))
+        : newest
+    ).paginate({ ...args.paginationOpts, maximumBytesRead: READ_BYTES })
     return {
       ...result,
       page: await Promise.all(result.page.map(withEditors(ctx, user._id))),
@@ -124,19 +140,25 @@ export const listPage = query({
 })
 
 /**
- * A Group's pinned notes, most recently changed first. Pinned notes are the old
- * ones a household keeps at hand, so this looks at every note and answers with
- * few; an index on `pinned` would spare the reads.
+ * The pinned notes among the newest `READ_BYTES` of a Group's notes (APP-805),
+ * most recently changed first.
+ *
+ * @deprecated Installed phone builds from before APP-805 call it; nothing in
+ * this repository does, because a Group past the bound has older pinned notes
+ * it does not answer. Retire it once no supported build predates
+ * `listPage`'s `pinnedOnly`.
  */
 export const listPinned = query({
   args: { groupSlug: v.string() },
   returns: v.array(noteOutput),
   handler: async (ctx, args) => {
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
-    const pinned = await newestNotes(ctx, group._id)
-      .filter((q) => q.eq(q.field('pinned'), true))
-      .collect()
-    return await Promise.all(pinned.map(withEditors(ctx, user._id)))
+    const notes = await takeNotes(newestNotes(ctx, group._id), {
+      bytes: READ_BYTES,
+    })
+    return await Promise.all(
+      notes.filter((note) => note.pinned).map(withEditors(ctx, user._id)),
+    )
   },
 })
 
@@ -170,7 +192,10 @@ export const picker = query({
   ),
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const notes = await newestNotes(ctx, group._id).take(PICKER_NOTES)
+    const notes = await takeNotes(newestNotes(ctx, group._id), {
+      count: PICKER_NOTES,
+      bytes: READ_BYTES,
+    })
     return notes.map(({ _id, title, body }) => ({ _id, title, body }))
   },
 })
