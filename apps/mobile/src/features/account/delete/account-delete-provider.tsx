@@ -23,6 +23,12 @@
  * the purge would leave nobody authenticated to ask. Backing out of the Apple
  * sheet cancels the deletion with nothing deleted.
  *
+ * Clerk's `user.delete()` deletes whoever is signed in when it is sent, so the
+ * user and session that confirmed are remembered by `start` and checked just
+ * before it (APP-396). A sign-in to another account meanwhile strands the
+ * login instead; it is never what gets deleted. The check runs before the
+ * purge too, so a session that changed under the Apple sheet deletes nothing.
+ *
  * The stranded state is held in memory, so it lasts while the app is open and
  * signed in. Quitting the app, or Clerk ending the session, loses it.
  *
@@ -35,7 +41,7 @@
  * (`onGatherDataDeleted`). Signing in again starts a fresh, empty account.
  * `wholeAccount` is the run above.
  */
-import { useUser } from '@clerk/expo'
+import { useClerk, useUser } from '@clerk/expo'
 import { accountDeletion } from '@gather/core/account-deletion'
 import { useAction, useMutation } from 'convex/react'
 import {
@@ -66,8 +72,8 @@ export type DeleteChoice = 'gatherData' | 'wholeAccount'
  * - **refused** — the purge refused. Nothing has been deleted, and the delete
  *   screen is still there to say so.
  * - **deletingLogin** — the purge is scheduled; waiting for Clerk.
- * - **stranded** — Clerk refused after the purge: the data is going and the
- *   login is not.
+ * - **stranded** — Clerk refused after the purge, or the session changed: the
+ *   data is going and the login is not.
  * - **signingOut** — Gather's data only: the purge is scheduled and the login
  *   stays; signing out of this phone.
  */
@@ -100,6 +106,9 @@ export interface AccountDeleteValue {
   retryLogin: () => void
 }
 
+/** The Clerk account and session the person confirmed the deletion in. */
+type Confirmed = { userId: string; sessionId: string }
+
 const AccountDeleteContext = createContext<AccountDeleteValue | null>(null)
 
 export function useAccountDelete(): AccountDeleteValue {
@@ -126,6 +135,7 @@ export function AccountDeleteProvider({
   onGatherDataDeleted,
 }: AccountDeleteProviderProps) {
   const { user } = useUser()
+  const clerk = useClerk()
   const deleteAccount = useMutation(api.accounts.deleteAccount)
   const revokeApple = useAction(api.accounts.revokeAppleSignIn)
   const signOut = useSignOut()
@@ -134,6 +144,7 @@ export function AccountDeleteProvider({
   // a second run, or a second Clerk call, before the first has rendered.
   const running = useRef(false)
   const askingClerk = useRef(false)
+  const confirmed = useRef<Confirmed | null>(null)
   // The Apple sheet can stay up for as long as the person likes. If this
   // provider is gone by the time it closes (signed out, app torn down), the
   // person never saw the deletion through, so it does not go on to purge.
@@ -145,15 +156,26 @@ export function AccountDeleteProvider({
     }
   }, [])
 
+  // Reads Clerk live rather than from a render: the run outlives renders, and
+  // even this provider, while the session can change under it.
+  const sameAccount = useCallback(
+    (account: Confirmed) =>
+      clerk.user?.id === account.userId &&
+      clerk.session?.id === account.sessionId,
+    [clerk],
+  )
+
   const deleteLogin = useCallback(async () => {
     if (askingClerk.current) return
     askingClerk.current = true
     setState({ step: 'deletingLogin' })
     try {
-      // No user here would leave the purge running with nobody told; it is
-      // the same outcome as a refusal, and says so.
-      if (!user) throw new Error('No Clerk user to delete')
-      await user.delete()
+      // No user here, or another one, would leave the purge running with
+      // nobody told; it is the same outcome as a refusal, and says so.
+      const account = confirmed.current
+      if (!clerk.user || !account || !sameAccount(account))
+        throw new Error('The confirmed session is no longer signed in')
+      await clerk.user.delete()
     } catch {
       setState({ step: 'stranded' })
       return
@@ -161,16 +183,18 @@ export function AccountDeleteProvider({
       askingClerk.current = false
     }
     signOut()
-  }, [user, signOut])
+  }, [clerk, sameAccount, signOut])
 
   const start = useCallback(
     (choice: DeleteChoice) => {
-      if (!user || running.current) return
+      if (!user || !clerk.session || running.current) return
       // Only the whole account asks Clerk to delete anything, so only it
       // needs Clerk's permission to.
       if (choice === 'wholeAccount' && accountDeletion(user) !== 'allowed')
         return
       running.current = true
+      const account = { userId: user.id, sessionId: clerk.session.id }
+      confirmed.current = account
       void (async () => {
         if (choice === 'wholeAccount') {
           setState({ step: 'revokingApple' })
@@ -184,11 +208,13 @@ export function AccountDeleteProvider({
         }
         setState({ step: 'purging', choice })
         try {
+          if (!sameAccount(account))
+            throw new Error('The confirmed session is no longer signed in')
           // Bound to the account the person confirmed: if the session changed
           // while the Apple sheet was up, Convex refuses and nothing is
           // deleted.
           await deleteAccount({
-            expectedSubject: user.id,
+            expectedSubject: account.userId,
             ...(choice === 'gatherData' ? { keepLogin: true } : {}),
           })
         } catch (cause) {
@@ -205,7 +231,16 @@ export function AccountDeleteProvider({
         onGatherDataDeleted()
       })()
     },
-    [user, deleteAccount, revokeApple, deleteLogin, signOut, onGatherDataDeleted],
+    [
+      user,
+      clerk,
+      sameAccount,
+      deleteAccount,
+      revokeApple,
+      deleteLogin,
+      signOut,
+      onGatherDataDeleted,
+    ],
   )
 
   const retryLogin = useCallback(() => {

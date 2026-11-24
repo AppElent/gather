@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.6.0
+version: 2.7.0
 status: current
 ---
 
@@ -125,6 +125,12 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   again (Clerk only) and Sign out (`apps/mobile/src/features/account/delete/`).
   The refusal is held in memory, so it lasts while the app is open and signed
   in.
+- **On the phone, only the login that confirmed is deleted** (APP-396). The
+  user and session are remembered at the confirmation and checked before the
+  purge and again just before `user.delete()`. Changed before the purge:
+  nothing is deleted. Changed after it: nothing is deleted on Clerk, and the
+  stranded state is shown, where signing out is the way on. Signing out
+  during the purge unmounts the provider, so a next person never sees it.
 - **On the web, the same run and the same order**, from the Account page's
   Danger zone (`src/components/account/`). `AccountDeleteProvider` sits in
   `routes/_app.tsx` above the signed-in gate, so `ensureUser` is unmounted

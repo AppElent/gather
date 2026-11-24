@@ -15,6 +15,7 @@ const state = vi.hoisted(() => ({
     deleteSelfEnabled?: boolean
     delete: () => Promise<void>
   } | null,
+  sessionId: 'sess_1' as string | null,
   purge: (): Promise<void> => Promise.resolve(),
   apple: (): Promise<'continue' | 'cancelled'> => Promise.resolve('continue'),
   order: [] as string[],
@@ -23,7 +24,21 @@ const state = vi.hoisted(() => ({
   told: 0,
 }))
 
-vi.mock('@clerk/expo', () => ({ useUser: () => ({ user: state.user }) }))
+// One object, read live, as Clerk's is: a test changes the session without a
+// render.
+const clerk = vi.hoisted(() => ({
+  get user() {
+    return state.user
+  },
+  get session() {
+    return state.sessionId ? { id: state.sessionId } : null
+  },
+}))
+
+vi.mock('@clerk/expo', () => ({
+  useUser: () => ({ user: state.user }),
+  useClerk: () => clerk,
+}))
 vi.mock('convex/react', () => ({
   useMutation: () => (args: unknown) => {
     state.order.push('purge')
@@ -107,6 +122,7 @@ let view: ReturnType<typeof mount> | undefined
 beforeEach(() => {
   state.signedOut = 0
   state.told = 0
+  state.sessionId = 'sess_1'
   state.purge = () => Promise.resolve()
   state.apple = () => Promise.resolve('continue')
   state.order = []
@@ -410,4 +426,103 @@ describe('deleting Gather data only (APP-397)', () => {
     expect(purges).toBe(1)
     expect(state.order).not.toContain('apple')
   })
+})
+
+describe('a session that changes after the confirmation (APP-396)', () => {
+  let deleted: string[]
+  const person = (id: string) => ({
+    id,
+    deleteSelfEnabled: true,
+    delete: () => {
+      deleted.push(id)
+      return Promise.resolve()
+    },
+  })
+
+  beforeEach(() => {
+    deleted = []
+    state.user = person('user_alex')
+  })
+
+  const changes: [string, () => void][] = [
+    [
+      'another account signed in',
+      () => {
+        state.user = person('user_sam')
+        state.sessionId = 'sess_2'
+      },
+    ],
+    [
+      'the same account signed in again',
+      () => {
+        state.sessionId = 'sess_2'
+      },
+    ],
+    [
+      'nobody signed in',
+      () => {
+        state.user = null
+        state.sessionId = null
+      },
+    ],
+  ]
+
+  test.each(changes)(
+    '%s during the purge: no login is deleted, and the stranded state says so',
+    async (_, change) => {
+      const purge = deferred()
+      state.purge = () => purge.promise
+      view = render()
+      act(() => deletion.start('wholeAccount'))
+      await settle()
+
+      change()
+      purge.resolve()
+      await settle()
+      expect(view.container.textContent).toBe('underway: stranded')
+      expect(deleted).toEqual([])
+      expect(state.signedOut).toBe(0)
+
+      act(() => deletion.retryLogin())
+      await settle()
+      expect(view.container.textContent).toBe('underway: stranded')
+      expect(deleted).toEqual([])
+      expect(state.signedOut).toBe(0)
+    },
+  )
+
+  test('signing out and another sign-in unmount the run: the new login is not deleted or signed out', async () => {
+    const purge = deferred()
+    state.purge = () => purge.promise
+    view = render()
+    act(() => deletion.start('wholeAccount'))
+    await settle()
+
+    view.unmount()
+    view = undefined
+    state.user = person('user_sam')
+    state.sessionId = 'sess_2'
+    purge.resolve()
+    await settle()
+    expect(deleted).toEqual([])
+    expect(state.signedOut).toBe(0)
+  })
+
+  test.each(changes)(
+    '%s while the Apple sheet is up: nothing is deleted',
+    async (_, change) => {
+      const apple = deferred()
+      state.apple = () => apple.promise.then(() => 'continue' as const)
+      view = render()
+      act(() => deletion.start('wholeAccount'))
+      await settle()
+
+      change()
+      apple.resolve()
+      await settle()
+      expect(view.container.textContent).toBe('delete screen: refused')
+      expect(state.purgeArgs).toEqual([])
+      expect(deleted).toEqual([])
+    },
+  )
 })

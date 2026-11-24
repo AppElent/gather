@@ -32,6 +32,18 @@ function setSignedIn(signedIn: boolean) {
   for (const listener of state.authListeners) listener()
 }
 
+const clerk = vi.hoisted(() => ({
+  user: {
+    id: 'user_alex',
+    deleteSelfEnabled: true,
+    delete: () =>
+      new Promise<void>((_, reject) => {
+        state.clerk = { reject }
+      }),
+  },
+  session: { id: 'sess_1' },
+}))
+
 vi.mock('@clerk/expo', () => ({
   useAuth: function useAuth() {
     const [isSignedIn, setIsSignedIn] = useState(state.signedIn)
@@ -44,15 +56,8 @@ vi.mock('@clerk/expo', () => ({
     }, [])
     return { isSignedIn }
   },
-  useUser: () => ({
-    user: {
-      deleteSelfEnabled: true,
-      delete: () =>
-        new Promise<void>((_, reject) => {
-          state.clerk = { reject }
-        }),
-    },
-  }),
+  useUser: () => ({ user: clerk.user }),
+  useClerk: () => clerk,
 }))
 vi.mock('convex/react', () => ({
   useMutation: () => () =>
