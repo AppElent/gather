@@ -229,7 +229,7 @@ describe('taskLists.writeTask', () => {
 
   test('a lost network is a failure; a task elsewhere is not found', async () => {
     const { t, todoist } = await seed()
-    const write = { kind: 'delete', taskId: 't1' } as const
+    const write = { kind: 'setDone', taskId: 't1', done: false } as const
     const run = () =>
       t.withIdentity(alice).action(api.taskLists.writeTask, {
         listId: todoist.listId,
@@ -242,6 +242,20 @@ describe('taskLists.writeTask', () => {
       json({ id: 't1', content: 'x', priority: 1, project_id: 'elsewhere' }),
     )
     expect(await run()).toEqual({ status: 'error', reason: 'not-found' })
+  })
+
+  test('a delete is refused and never reaches Todoist', async () => {
+    const { t, todoist } = await seed()
+    const fetchImpl = vi.fn()
+    vi.stubGlobal('fetch', fetchImpl)
+    await expect(
+      t.withIdentity(alice).action(api.taskLists.writeTask, {
+        listId: todoist.listId,
+        groupSlug: HOME,
+        write: { kind: 'delete', taskId: 't1' } as never,
+      }),
+    ).rejects.toThrow()
+    expect(fetchImpl).not.toHaveBeenCalled()
   })
 
   test('a connection that is gone asks to reconnect', async () => {
@@ -281,8 +295,6 @@ test('a new Todoist connection asks to read and write', async () => {
     redirectUri: 'https://gather.example/integrations/callback',
     state: 's',
   })
-  expect(new URL(url).searchParams.get('scope')).toBe(
-    'data:read_write,data:delete',
-  )
+  expect(new URL(url).searchParams.get('scope')).toBe('data:read_write')
   vi.unstubAllEnvs()
 })

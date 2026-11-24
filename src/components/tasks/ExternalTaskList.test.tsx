@@ -61,6 +61,12 @@ test('Notion shows no way to write', async () => {
   for (const box of screen.getAllByRole('checkbox')) expect(box).toBeDisabled()
 })
 
+test('a linked task has no delete', async () => {
+  renderList()
+  await screen.findByLabelText('Edit Pack')
+  expect(screen.queryByLabelText('Delete Pack')).toBeNull()
+})
+
 test('an added task shows once Todoist took it', async () => {
   writeTask.mockResolvedValue({
     status: 'ok',

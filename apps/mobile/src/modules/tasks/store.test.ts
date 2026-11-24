@@ -984,7 +984,7 @@ describe('a linked list is written to in its provider first (APP-448)', () => {
     expect(writable('old-scope')).toBe(true)
     const request = writeLinkedTask(
       'old-scope',
-      { kind: 'delete', taskId: 'a' },
+      { kind: 'setDone', taskId: 'a', done: true },
       () =>
         Promise.resolve({ status: 'reconnect' as const, provider: 'todoist' }),
       fetchTasks,
@@ -1007,7 +1007,7 @@ describe('a linked list is written to in its provider first (APP-448)', () => {
     const fetchTasks = answering(row('a'))
     await syncExternalList(name, fetchTasks)
     await expect(
-      writeLinkedTask(name, { kind: 'delete', taskId: 'a' }, send, fetchTasks),
+      writeLinkedTask(name, { kind: 'setDone', taskId: 'a', done: true }, send, fetchTasks),
     ).rejects.toBeInstanceOf(LinkedWriteError)
     await vi.waitFor(() => expect(fetchTasks).toHaveBeenCalledTimes(2))
     await vi.waitFor(() =>
@@ -1022,7 +1022,7 @@ describe('a linked list is written to in its provider first (APP-448)', () => {
     await syncExternalList('outage', answering(row('a')))
     const down = () => Promise.reject(new Error('offline'))
     await expect(
-      writeLinkedTask('outage', { kind: 'delete', taskId: 'a' }, down, down),
+      writeLinkedTask('outage', { kind: 'setDone', taskId: 'a', done: true }, down, down),
     ).rejects.toMatchObject({ reason: 'failed' })
     await syncExternalList('outage', down)
     expect(rows('outage')).toEqual(['a'])
@@ -1030,7 +1030,7 @@ describe('a linked list is written to in its provider first (APP-448)', () => {
 
     const send = taken()
     await expect(
-      writeLinkedTask('outage', { kind: 'delete', taskId: 'a' }, send, down),
+      writeLinkedTask('outage', { kind: 'setDone', taskId: 'a', done: true }, send, down),
     ).rejects.toMatchObject({ reason: 'stale' })
     expect(send).not.toHaveBeenCalled()
   })
@@ -1063,7 +1063,7 @@ describe('a linked list is written to in its provider first (APP-448)', () => {
     await expect(
       writeLinkedTask(
         'offline',
-        { kind: 'delete', taskId: 'a' },
+        { kind: 'setDone', taskId: 'a', done: true },
         send,
         fetchTasks,
         () => false,

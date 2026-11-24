@@ -203,8 +203,7 @@ export const getAuthorizeUrl = action({
     }
     const url = new URL('https://todoist.com/oauth/authorize')
     url.searchParams.set('client_id', requireEnv('TODOIST_CLIENT_ID'))
-    // `data:read_write` does not include deleting; Todoist lists it apart.
-    url.searchParams.set('scope', 'data:read_write,data:delete')
+    url.searchParams.set('scope', 'data:read_write')
     url.searchParams.set('state', args.state)
     return url.toString()
   },

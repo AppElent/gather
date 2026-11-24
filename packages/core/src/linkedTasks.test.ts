@@ -50,13 +50,6 @@ describe('applyLinkedWrite', () => {
       ),
     ).toEqual(['a2', 'b'])
   })
-  test('deleting removes everything under the task', () => {
-    expect(
-      applyLinkedWrite(rows, { kind: 'delete', taskId: 'a' }, []).map(
-        (r) => r.externalId,
-      ),
-    ).toEqual(['b'])
-  })
 })
 
 describe('possibleParents', () => {

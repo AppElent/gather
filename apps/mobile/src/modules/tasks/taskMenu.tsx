@@ -119,7 +119,12 @@ export function taskMenuActions(
       id: 'delete',
       title: t.common.actions.delete,
       image: 'trash',
-      attributes: { destructive: true, disabled: !writable },
+      // Gather does not delete a task from its provider.
+      attributes: {
+        destructive: true,
+        disabled: !writable,
+        hidden: Boolean(task.linked),
+      },
     },
   ]
 }
@@ -187,14 +192,8 @@ export function useTaskSheets({
       confirm: t.common.actions.delete,
       cancel: t.common.actions.cancel,
       onConfirm: () => {
-        const gone = () => onDeleted?.(task)
-        if (task.linked) {
-          // The provider first: the screen leaves once the task is gone there.
-          actions.deleteTask(task).then(gone, writeFailed)
-          return
-        }
-        actions.deleteTask(task)
-        gone()
+        actions.deleteTask(task.id)
+        onDeleted?.(task)
       },
     })
 

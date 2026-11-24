@@ -124,12 +124,6 @@ export interface TaskProviderWriter {
     taskId: string,
     fetchImpl?: typeof fetch,
   ): Promise<WriteOutcome>
-  deleteTask(
-    accessToken: string,
-    config: SourceConfig,
-    taskId: string,
-    fetchImpl?: typeof fetch,
-  ): Promise<WriteOutcome>
   /** Under another task, or out to the top of the list with null. */
   moveTask(
     accessToken: string,

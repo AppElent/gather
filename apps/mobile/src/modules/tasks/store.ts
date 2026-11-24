@@ -1274,12 +1274,8 @@ export function useTaskActions() {
       edit(task, { priority: value ?? null }),
     setLabels: (task: TaskRef, labels: string[]) => edit(task, { labels }),
     setNotes: (id: string, notes: string) => patch(id, { notes }),
-    deleteTask: (task: TaskRef): Promise<unknown> => {
-      const listId = linkedListOf(task)
-      return listId
-        ? write(listId, { kind: 'delete', taskId: task.id })
-        : remove({ taskId: task.id as Id<'tasks'>, groupSlug })
-    },
+    deleteTask: (id: string) =>
+      remove({ taskId: id as Id<'tasks'>, groupSlug }),
     /** A linked task under another on its list, or out of it with null. */
     moveUnder: (task: Pick<Task, 'id' | 'listId'>, parentId: string | null) =>
       write(task.listId, { kind: 'move', taskId: task.id, parentId }),

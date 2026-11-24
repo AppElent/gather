@@ -487,17 +487,6 @@ describe('Todoist writes (APP-448)', () => {
     expect(todoist.calls[1].query.get('project_id')).toBe('proj')
   })
 
-  test('deletes', async () => {
-    const todoist = fakeTodoist({
-      'GET /tasks/t1': apiTask(),
-      'DELETE /tasks/t1': null,
-    })
-    await writer.deleteTask('tok', config, 't1', todoist.fetchImpl)
-    expect(todoist.writes().map((c) => `${c.method} ${c.path}`)).toEqual([
-      'DELETE /tasks/t1',
-    ])
-  })
-
   test('moves under a parent, and back out to the project', async () => {
     const todoist = fakeTodoist({
       'GET /tasks/t1': apiTask(),
@@ -543,7 +532,6 @@ describe('Todoist writes (APP-448)', () => {
     ['update', (f) => writer.updateTask('tok', config, 't1', { title: 'x' }, f)],
     ['close', (f) => writer.closeTask('tok', config, 't1', { withSubtasks: false }, f)],
     ['reopen', (f) => writer.reopenTask('tok', config, 't1', f)],
-    ['delete', (f) => writer.deleteTask('tok', config, 't1', f)],
     ['move', (f) => writer.moveTask('tok', config, 't1', null, f)],
   ]
 
@@ -565,7 +553,6 @@ describe('Todoist writes (APP-448)', () => {
       'POST /sync': refuse,
       'POST /tasks/t1/close': refuse,
       'POST /tasks/t1/reopen': refuse,
-      'DELETE /tasks/t1': refuse,
       'POST /tasks/t1/move': refuse,
     })
   }
@@ -589,10 +576,10 @@ describe('Todoist writes (APP-448)', () => {
       new Response(JSON.stringify({ error_tag }), { status: 403 })
     const todoist = fakeTodoist({
       'GET /tasks/t1': apiTask(),
-      'DELETE /tasks/t1': forbidden,
+      'POST /tasks/t1/reopen': forbidden,
     })
     await expect(
-      writer.deleteTask('tok', config, 't1', todoist.fetchImpl),
+      writer.reopenTask('tok', config, 't1', todoist.fetchImpl),
     ).rejects.toThrow(expected)
   })
 

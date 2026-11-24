@@ -234,24 +234,6 @@ export function ExternalTaskList({
     })
   }
 
-  function remove(task: UnifiedTask) {
-    const count = childrenOf(task.externalId).length
-    const run = () => write({ kind: 'delete', taskId: task.externalId })
-    if (count === 0) {
-      void run()
-      return
-    }
-    confirm({
-      title: fmt(local.delete, { task: task.title }),
-      body: fmt(count === 1 ? subtaskWords.deleteBodyOne : subtaskWords.deleteBody, {
-        count,
-      }),
-      confirmLabel: messages.common.actions.delete,
-      errorFallback: fmt(linkedWrite.failed.failed, { provider: label }),
-      run,
-    })
-  }
-
   const canWrite = writes && state === 'ok'
   const known = new Set(rows.map((row) => row.externalId))
 
@@ -332,15 +314,6 @@ export function ExternalTaskList({
                       <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                   ) : null}
-                  <button
-                    type="button"
-                    aria-label={fmt(local.delete, { task: task.title })}
-                    className={iconButtonClass}
-                    disabled={!canWrite || busy}
-                    onClick={() => remove(task)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
                 </span>
               ) : undefined
             }

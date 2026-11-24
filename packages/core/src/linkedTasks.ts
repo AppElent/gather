@@ -18,7 +18,6 @@ export type LinkedWriteShape =
   | { kind: 'create' }
   | { kind: 'update'; taskId: string }
   | { kind: 'setDone'; taskId: string; done: boolean }
-  | { kind: 'delete'; taskId: string }
   | { kind: 'move'; taskId: string }
 
 /** Whether a row is the task itself or anywhere under it. */
@@ -49,10 +48,6 @@ export function applyLinkedWrite<T extends LinkedRow>(
   const byId = new Map<string, LinkedRow>(rows.map((row) => [row.externalId, row]))
   const answers = new Map(answered.map((row) => [row.externalId, row]))
   let next = rows.map((row) => answers.get(row.externalId) ?? row)
-  if (write.kind === 'delete') {
-    // Todoist deletes a task's subtasks with it.
-    next = next.filter((row) => !isWithin(row, write.taskId, byId))
-  }
   if (write.kind === 'setDone' && write.done && !answers.has(write.taskId)) {
     // Closed for good, subtasks included. A recurring task is answered open,
     // on its next date.

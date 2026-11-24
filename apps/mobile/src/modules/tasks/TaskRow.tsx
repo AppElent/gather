@@ -253,7 +253,7 @@ export function TaskRow({
           </View>
         )
       }}
-      renderRightActions={(_progress, _translation, methods) => (
+      renderRightActions={task.linked ? undefined : (_progress, _translation, methods) => (
         <View style={[styles.deleteAction, { backgroundColor: tokens.danger }]}>
           <Pressable
             testID={`delete-${task.id}`}

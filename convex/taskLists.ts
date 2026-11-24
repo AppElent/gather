@@ -659,8 +659,6 @@ function runWrite(
             withSubtasks: write.withSubtasks ?? false,
           })
         : writer.reopenTask(accessToken, config, write.taskId)
-    case 'delete':
-      return writer.deleteTask(accessToken, config, write.taskId)
     case 'move':
       return writer.moveTask(accessToken, config, write.taskId, write.parentId)
   }

@@ -97,7 +97,6 @@ export const linkedTaskWriteValidator = v.union(
     /** Completes a recurring task's open subtasks with it. */
     withSubtasks: v.optional(v.boolean()),
   }),
-  v.object({ kind: v.literal('delete'), taskId: v.string() }),
   v.object({
     kind: v.literal('move'),
     taskId: v.string(),

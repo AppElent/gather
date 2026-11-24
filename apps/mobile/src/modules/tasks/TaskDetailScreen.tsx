@@ -398,31 +398,33 @@ export function TaskDetail({ taskId }: { taskId: string }) {
           </Text>
         ) : null}
 
-        <Pressable
-          testID="detail-delete"
-          accessibilityRole="button"
-          accessibilityLabel={words.delete}
-          accessibilityState={{ disabled: !writable }}
-          disabled={!writable}
-          onPress={() => open('delete')}
-          style={({ pressed }) => [
-            styles.delete,
-            { borderColor: tokens.hair, backgroundColor: tokens.surface },
-            pressed && { backgroundColor: tokens.surface2 },
-            !writable && styles.off,
-          ]}
-        >
-          <TASK_ICONS.Trash2
-            size={17}
-            color={tokens.danger}
-            strokeWidth={2}
-            accessibilityElementsHidden
-            importantForAccessibility="no"
-          />
-          <Text style={[styles.deleteText, { color: tokens.danger }]}>
-            {words.delete}
-          </Text>
-        </Pressable>
+        {task.linked ? null : (
+          <Pressable
+            testID="detail-delete"
+            accessibilityRole="button"
+            accessibilityLabel={words.delete}
+            accessibilityState={{ disabled: !writable }}
+            disabled={!writable}
+            onPress={() => open('delete')}
+            style={({ pressed }) => [
+              styles.delete,
+              { borderColor: tokens.hair, backgroundColor: tokens.surface },
+              pressed && { backgroundColor: tokens.surface2 },
+              !writable && styles.off,
+            ]}
+          >
+            <TASK_ICONS.Trash2
+              size={17}
+              color={tokens.danger}
+              strokeWidth={2}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+            <Text style={[styles.deleteText, { color: tokens.danger }]}>
+              {words.delete}
+            </Text>
+          </Pressable>
+        )}
       </ScrollView>
 
       {taskSheets.sheets}

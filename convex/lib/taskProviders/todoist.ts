@@ -67,7 +67,7 @@ async function todoistRequest<T>(
   path: string,
   fetchImpl: typeof fetch,
   init: {
-    method?: 'POST' | 'DELETE'
+    method?: 'POST'
     json?: unknown
     form?: Record<string, string>
   } = {},
@@ -444,17 +444,6 @@ const writer: TaskProviderWriter = {
       }),
     )
     return await readBack(accessToken, task.id, fetchImpl)
-  },
-
-  async deleteTask(accessToken, config, taskId, fetchImpl = fetch) {
-    const projectId = await projectIdOf(accessToken, config, fetchImpl)
-    const task = await requireTask(accessToken, projectId, taskId, fetchImpl)
-    await onTask(
-      todoistRequest(accessToken, taskPath(task.id), fetchImpl, {
-        method: 'DELETE',
-      }),
-    )
-    return { tasks: [], refresh: false }
   },
 
   async moveTask(accessToken, config, taskId, parentId, fetchImpl = fetch) {

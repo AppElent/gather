@@ -225,7 +225,7 @@ vi.mock('./store', () => ({
     removeStaple: async (id: string) => {
       state.staplesRemoved.push(id)
     },
-    deleteTask: async ({ id }: { id: string }) => {
+    deleteTask: async (id: string) => {
       if (state.undoFails) throw new Error('offline')
       state.deleted.push(id)
     },
