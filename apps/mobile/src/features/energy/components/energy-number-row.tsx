@@ -7,7 +7,7 @@
  * A problem is said in words under the row, in `danger` with the alert role,
  * and the field is outlined in `danger`, so colour is never the only signal.
  */
-import { forwardRef } from 'react'
+import { forwardRef, useId } from 'react'
 import {
   InputAccessoryView,
   Keyboard,
@@ -26,13 +26,20 @@ import { SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../../theme/tokens'
 import { useInsetSeparator } from '../../../ui/inset-list'
 
 /**
- * Dismiss bar above the iOS decimal keypad, which has no Done key of its own.
- * Uses React Native core `InputAccessoryView` so it ships over the air.
+ * The bar above the iOS decimal keypad, which has no keys to leave it: Done,
+ * and Next where there is a next field. React Native core, so it ships over
+ * the air. Each field mounts its own, because React Native gives a bar to the
+ * first field that names it and to no other.
  */
-export function KeyboardDoneBar({ nativeID }: { nativeID: string }) {
+function KeyboardDoneBar({
+  nativeID,
+  onNext,
+}: {
+  nativeID: string
+  onNext?: () => void
+}) {
   const tokens = useTokens()
   const { t } = useI18n()
-  if (Platform.OS !== 'ios') return null
   return (
     <InputAccessoryView nativeID={nativeID}>
       <View
@@ -41,10 +48,27 @@ export function KeyboardDoneBar({ nativeID }: { nativeID: string }) {
           { backgroundColor: tokens.surface, borderTopColor: tokens.hair },
         ]}
       >
+        {onNext ? (
+          <Pressable
+            testID={`${nativeID}-next`}
+            accessibilityRole="button"
+            hitSlop={12}
+            onPress={onNext}
+            style={({ pressed }) => [
+              styles.accessoryButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[TYPE.body, { color: tokens.ink }]}>
+              {t.actions.next}
+            </Text>
+          </Pressable>
+        ) : (
+          <View />
+        )}
         <Pressable
-          testID="keyboard-done"
+          testID={`${nativeID}-done`}
           accessibilityRole="button"
-          accessibilityLabel={t.actions.done}
           hitSlop={12}
           onPress={() => Keyboard.dismiss()}
           style={({ pressed }) => [
@@ -74,7 +98,8 @@ export const EnergyNumberRow = forwardRef<
     /** `default` for a name typed in the same row grammar. */
     keyboardType?: TextInputProps['keyboardType']
     returnKeyType?: TextInputProps['returnKeyType']
-    inputAccessoryViewID?: string
+    /** Moves to the next field, from the bar above the decimal keypad. */
+    onNext?: () => void
     onSubmitEditing?: () => void
     onBlur?: () => void
     autoFocus?: boolean
@@ -93,7 +118,7 @@ export const EnergyNumberRow = forwardRef<
     testID,
     keyboardType = 'decimal-pad',
     returnKeyType,
-    inputAccessoryViewID,
+    onNext,
     onSubmitEditing,
     onBlur,
     autoFocus,
@@ -105,6 +130,11 @@ export const EnergyNumberRow = forwardRef<
 ) {
   const tokens = useTokens()
   const separator = useInsetSeparator()
+  const ownId = useId().replaceAll(':', '')
+  const barId =
+    Platform.OS === 'ios' && keyboardType === 'decimal-pad'
+      ? (testID ?? `energy-number-${ownId}`)
+      : undefined
   return (
     <View style={styles.inset}>
     <View style={[styles.wrap, separator]}>
@@ -115,6 +145,8 @@ export const EnergyNumberRow = forwardRef<
             <Text style={[TYPE.footnote, { color: tokens.muted }]}>{sub}</Text>
           ) : null}
         </View>
+        {/* Before the field: one that focuses as it mounts must have its bar. */}
+        {barId ? <KeyboardDoneBar nativeID={barId} onNext={onNext} /> : null}
         <TextInput
           ref={ref}
           testID={testID}
@@ -123,7 +155,7 @@ export const EnergyNumberRow = forwardRef<
           onBlur={onBlur}
           onSubmitEditing={onSubmitEditing}
           returnKeyType={returnKeyType}
-          inputAccessoryViewID={inputAccessoryViewID}
+          inputAccessoryViewID={barId}
           autoFocus={autoFocus}
           keyboardType={keyboardType}
           placeholder={placeholder}
@@ -169,7 +201,7 @@ export const EnergyNumberRow = forwardRef<
 const styles = StyleSheet.create({
   accessory: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     alignItems: 'center',
     minHeight: SIZE.hitMin,
     paddingHorizontal: SPACE[4],

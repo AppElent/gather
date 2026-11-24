@@ -28,9 +28,8 @@ import { readEnergyRefusal } from '@gather/core/refusals'
 import { useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
 import { Stack, useRouter } from 'expo-router'
-import { useId, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
-  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -52,10 +51,7 @@ import { Button } from '../../ui/button'
 import { Card } from '../../ui/card'
 import { InsetList, InsetRow } from '../../ui/inset-list'
 import { SectionLabel } from '../../ui/section-label'
-import {
-  EnergyNumberRow,
-  KeyboardDoneBar,
-} from './components/energy-number-row'
+import { EnergyNumberRow } from './components/energy-number-row'
 import { decimalsOf } from './energy-number-text'
 
 type Form = NonNullable<FunctionReturnType<typeof api.energyReadings.form>>
@@ -145,7 +141,6 @@ function ReadingsForm({
   const [saving, setSaving] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
   const fields = useRef<(TextInputInstance | null)[]>([])
-  const keyboardDoneId = `energy-readings-done-${useId().replaceAll(':', '')}`
 
   const number = (value: number) =>
     formatEnergyNumber(value, locale, decimalsOf(value))
@@ -275,8 +270,10 @@ function ReadingsForm({
                 value={texts[channel._id] ?? ''}
                 autoFocus={index === 0}
                 returnKeyType={index === channels.length - 1 ? 'done' : 'next'}
-                inputAccessoryViewID={
-                  Platform.OS === 'ios' ? keyboardDoneId : undefined
+                onNext={
+                  index === channels.length - 1
+                    ? undefined
+                    : () => fields.current[index + 1]?.focus()
                 }
                 onSubmitEditing={() =>
                   index === channels.length - 1
@@ -316,7 +313,6 @@ function ReadingsForm({
         onPress={submit}
         testID="energy-readings-save"
       />
-      <KeyboardDoneBar nativeID={keyboardDoneId} />
     </View>
   )
 }

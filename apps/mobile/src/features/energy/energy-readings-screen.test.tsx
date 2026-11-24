@@ -188,11 +188,24 @@ test('only a meter the connected source does not measure can be added', async ()
   view.unmount()
 })
 
-test('the Done key above the decimal keypad puts the keyboard away', () => {
+test('the bar above each decimal keypad moves on and puts the keyboard away', () => {
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: true,
+    lastReadingAt: null,
+    measured: [],
+    channels: [meter, { ...meter, _id: 'c2', tariff: 't2' }],
+  }
   const view = mount(createElement(EnergyReadingsScreen))
-  expect(byTestId('keyboard-done')?.textContent).toBe(en.actions.done)
-  byTestId('keyboard-done')?.click()
-  expect(energyState.keyboardDismissals).toBe(1)
+  for (const id of ['c1', 'c2']) {
+    const done = byTestId(`energy-reading-${id}-done`)
+    expect(done?.textContent).toBe(en.actions.done)
+    done?.click()
+  }
+  expect(energyState.keyboardDismissals).toBe(2)
+  expect(byTestId('energy-reading-c1-next')?.textContent).toBe(en.actions.next)
+  byTestId('energy-reading-c1-next')?.click()
+  expect(document.activeElement).toBe(byTestId('energy-reading-c2'))
+  expect(byTestId('energy-reading-c2-next')).toBeNull()
   expect(callsTo('energyReadings:save')).toEqual([])
   view.unmount()
 })

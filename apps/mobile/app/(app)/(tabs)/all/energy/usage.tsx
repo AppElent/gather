@@ -23,6 +23,8 @@ export default function EnergyUsage() {
   }>()
   return (
     <EnergyUsageScreen
+      // A link that reaches a Usage screen already open starts it on its period.
+      key={[range, unit, day, month, year].join('|')}
       initialRange={
         range === 'day' || range === 'month' || range === 'year'
           ? (range satisfies EnergyUsageRange)
