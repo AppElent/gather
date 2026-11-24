@@ -54,13 +54,20 @@ import { useTaskSheets } from './taskMenu'
 import { WishlistFields } from './WishlistFields'
 import { useWriteFailed } from './writeFailed'
 
-export function TaskDetail({ taskId }: { taskId: string }) {
+export function TaskDetail({
+  taskId,
+  listId,
+}: {
+  taskId: string
+  /** The list it was opened from: two can show the same linked task. */
+  listId?: string
+}) {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
   const router = useRouter()
   // The task's own list only, never every list in the Group (APP-565).
-  const state = useTaskOf(taskId)
+  const state = useTaskOf(taskId, listId)
   const actions = useTaskActions()
   const writeFailed = useWriteFailed()
   const taskSheets = useTaskSheets({
@@ -89,7 +96,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
   // Local fields write on a pause, not on a keystroke — see `useDebouncedText`.
   // A linked task's title saves on blur: each save is its provider's to take,
-  // and a refused one puts the saved title back (APP-448).
+  // and a refused one stays in the field, to be sent again (APP-799).
   const title = useDebouncedText(
     task?.title ?? '',
     (next) => {
@@ -104,7 +111,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
       }
       if (next.trim() === task.title) return
       actions.renameTask(task, next).catch((error: unknown) => {
-        title.reset()
+        title.keep(next)
         writeFailed(error)
       })
     },
@@ -185,7 +192,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             editable={writable}
             value={title.draft}
             onChangeText={title.change}
-            onBlur={title.flush}
+            onBlur={title.blur}
             placeholder={words.titlePlaceholder}
             placeholderTextColor={tokens.muted}
             multiline

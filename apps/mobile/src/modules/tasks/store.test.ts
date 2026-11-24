@@ -1066,13 +1066,73 @@ describe('a linked list is written to in its provider first (APP-448)', () => {
         { kind: 'setDone', taskId: 'a', done: true },
         send,
         fetchTasks,
-        () => false,
+        { isOnline: () => false, whenOnline: () => {} },
       ),
     ).rejects.toMatchObject({ reason: 'offline' })
     expect(send).not.toHaveBeenCalled()
     expect(rows('offline')).toEqual(['a'])
     expect(writable('offline')).toBe(false)
     expect(externalSnapshot().get('offline')?.tasks[0].pending).toBeUndefined()
+  })
+
+  test('an offline refusal reads the list once the connection is back', async () => {
+    const down = () => Promise.reject(new Error('offline'))
+    const fetchTasks = vi.fn(answering(row('a')))
+    await syncExternalList('back', fetchTasks)
+    let online = false
+    const waiting: (() => unknown)[] = []
+    const connection = {
+      isOnline: () => online,
+      whenOnline: (run: () => void) => waiting.push(run),
+    }
+    const write = () =>
+      writeLinkedTask(
+        'back',
+        { kind: 'setDone', taskId: 'a', done: true },
+        taken(),
+        fetchTasks,
+        connection,
+      )
+    await expect(write()).rejects.toMatchObject({ reason: 'offline' })
+    await expect(write()).rejects.toMatchObject({ reason: 'stale' })
+    expect(waiting).toHaveLength(1)
+    expect(writable('back')).toBe(false)
+    // Back for a moment only: it waits again, and reads nothing meanwhile.
+    fetchTasks.mockImplementationOnce(down)
+    await waiting[0]()
+    expect(writable('back')).toBe(false)
+    expect(waiting).toHaveLength(2)
+    online = true
+    await waiting[1]()
+    expect(writable('back')).toBe(true)
+    expect(waiting).toHaveLength(2)
+    expect(fetchTasks).toHaveBeenCalledTimes(3)
+    await write()
+  })
+
+  test('Complete all keeps its key until Todoist took it', async () => {
+    const send = vi.fn()
+    vi.mocked(useAction).mockReturnValue(send as never)
+    send.mockResolvedValue({ status: 'error', reason: 'failed' })
+    await syncExternalList('keys', answering(row('a')))
+    const complete = () =>
+      useTaskActions().toggleTask(
+        { id: 'a', listId: 'keys', linked: true, title: 'a' },
+        { withSubtasks: true },
+      )
+    await expect(complete()).rejects.toMatchObject({ reason: 'failed' })
+    await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(2))
+    await syncExternalList('keys', answering(row('a')))
+    send.mockResolvedValue({ status: 'ok', tasks: [row('a')], refresh: false })
+    await complete()
+    await complete()
+    const keys = send.mock.calls
+      .map(([call]) => call.write?.requestKey)
+      .filter(Boolean)
+    expect(keys).toHaveLength(3)
+    expect(keys[1]).toBe(keys[0])
+    expect(keys[2]).not.toBe(keys[0])
+    for (const key of keys) expect(key).toMatch(/^[\w-]{1,64}$/)
   })
 
   test('a write that never answers fails, and what waited is not sent', async () => {
