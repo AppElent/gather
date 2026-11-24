@@ -7,6 +7,7 @@ import type { Task } from './types'
 vi.mock('expo-router', () => ({ useIsFocused: vi.fn() }))
 vi.mock('../../feedback/confirmDestructive', () => ({ confirmDestructive: vi.fn() }))
 vi.mock('../../feedback/haptics', () => ({ haptics: {} }))
+vi.mock('../../group/GroupProvider', () => ({ useGroup: vi.fn() }))
 vi.mock('../../i18n', () => ({ fmt: vi.fn(), useI18n: vi.fn() }))
 vi.mock('../../ui/undo-toast', () => ({ useUndoToast: vi.fn() }))
 vi.mock('./completeTask', () => ({ useCompleteTask: vi.fn() }))

@@ -7,7 +7,7 @@ import {
   groupRefusalSentence,
   groupTimeZoneRefusalSentence,
 } from '@gather/core/refusals'
-import { deviceTimeZone, sameTimeZone } from '@gather/core/time-zones'
+import { currentZoneName, deviceTimeZone, sameTimeZone, timeZoneLabel, timeZonePlace } from '@gather/core/time-zones'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
@@ -28,7 +28,7 @@ export function GroupTimeZoneCard() {
 
 function TimeZoneCard() {
   const tokens = useTokens()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const text = t.shell.groups.timeZone
   const { group } = useGroup()
   const setTimeZone = useMutation(api.groups.setTimeZone)
@@ -37,6 +37,8 @@ function TimeZoneCard() {
   const [problem, setProblem] = useState<string | null>(null)
   const [choosing, setChoosing] = useState(false)
   const device = deviceTimeZone()
+  const label = (zone: string) =>
+    timeZoneLabel(currentZoneName(zone), locale, text.places)
 
   async function save(
     which: 'choose' | 'device' | 'clear',
@@ -52,8 +54,10 @@ function TimeZoneCard() {
       // Our sentence on screen, the server's in the log (see `GroupForms`).
       console.warn('[gather] set group time zone failed', error)
       haptics.actionFailed()
+      const refused = groupTimeZoneRefusalSentence(error, text.refusals)
       setProblem(
-        groupTimeZoneRefusalSentence(error, text.refusals) ??
+        (refused &&
+          fmt(refused, { zone: timeZonePlace(timeZone ?? device, text.places) })) ??
           groupRefusalSentence(error, t.common.errors.groupRefusals) ??
           text.failed,
       )
@@ -79,7 +83,9 @@ function TimeZoneCard() {
         testID="group-time-zone"
         style={[styles.value, { color: tokens.ink }]}
       >
-        {group.timeZone ?? fmt(text.unset, { zone: device })}
+        {group.timeZone
+          ? label(group.timeZone)
+          : fmt(text.unset, { zone: label(device) })}
       </Text>
       <Text style={[styles.note, { color: tokens.muted }]}>{text.note}</Text>
       <AuthError message={problem} />

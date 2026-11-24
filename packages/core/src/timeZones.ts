@@ -14,22 +14,32 @@ export function deviceTimeZone(): string {
 }
 
 /**
- * The zone this runtime resolves an IANA name to (`europe/amsterdam` is
- * `Europe/Amsterdam`), or null for anything else. `Intl` also takes an offset,
- * with an ASCII or a Unicode minus (`+01:00`, U+2212), which is not a name.
+ * The IANA name of the zone `value` names (`europe/amsterdam` is
+ * `Europe/Amsterdam`, `Asia/Calcutta` is `Asia/Kolkata`), or null when this
+ * runtime does not know it. `Intl` also takes an offset, with an ASCII or a
+ * Unicode minus (`+01:00`, U+2212), which is not a name.
  */
 export function canonicalTimeZone(value: string): string | null {
   if (!/^[A-Za-z]/.test(value) || !isTimeZone(value)) return null
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone: value,
-  }).resolvedOptions().timeZone
+  const listed = LISTED.get(value.toLowerCase())
+  if (listed) return listed
+  return currentZoneName(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: value,
+    }).resolvedOptions().timeZone,
+  )
 }
 
 /**
- * Whether two names are one zone. The server stores its own runtime's
- * canonical name, which can be another alias than this device's
- * (`Asia/Calcutta`, `Asia/Kolkata`).
+ * A stored name as IANA spells it today. Runtimes on ICU still resolve to the
+ * names in `RENAMED`, and so did Groups saved before APP-814. Unlike
+ * `canonicalTimeZone` it keeps a name this runtime does not know.
  */
+export function currentZoneName(zone: string): string {
+  return RENAMED.get(zone) ?? zone
+}
+
+/** Whether two names are one zone, e.g. `Asia/Calcutta` and `Asia/Kolkata`. */
 export function sameTimeZone(a: string | undefined, b: string): boolean {
   if (a === undefined) return false
   if (a === b) return true
@@ -55,31 +65,142 @@ export function listTimeZones(...also: (string | undefined)[]): string[] {
   }
   return [
     ...new Set([
-      ...listed,
+      ...listed.map(currentZoneName),
       'UTC',
-      ...also.filter((zone) => zone !== undefined),
+      ...also.flatMap((zone) =>
+        zone === undefined ? [] : [canonicalTimeZone(zone) ?? zone],
+      ),
     ]),
   ].sort()
 }
 
+/** Places by zone that read differently from their IANA name, per language. */
+export type TimeZonePlaces = Readonly<Record<string, string>>
+
 /**
- * The zones whose name holds every word typed. `_` and `/` count as spaces, so
- * "new york" finds `America/New_York`.
+ * Where a zone is: `America/New_York` is "New York" and
+ * `America/Indiana/Knox` is "Knox, Indiana", or the language's own name for it.
+ */
+export function timeZonePlace(zone: string, places: TimeZonePlaces): string {
+  const known = places[zone]
+  if (known) return known
+  return zone
+    .split('/')
+    .slice(zone.includes('/') ? 1 : 0)
+    .reverse()
+    .join(', ')
+    .replace(/_/g, ' ')
+}
+
+const zoneNames = new Map<string, string | null>()
+
+/**
+ * What a zone is called in a language ("Central European Time"), from the
+ * runtime; null where it has no words for it.
+ */
+export function timeZoneName(zone: string, locale: string): string | null {
+  const key = `${locale} ${zone}`
+  let name = zoneNames.get(key)
+  if (name === undefined) {
+    // UTC has no generic name. Elsewhere the generic one ignores summer time
+    // where the zone has it around the date asked, so not at the epoch. A
+    // runtime without generic names may throw.
+    const styles =
+      zone === 'UTC' ? (['long'] as const) : (['longGeneric', 'long'] as const)
+    name = null
+    for (const timeZoneName of styles) {
+      try {
+        const found = new Intl.DateTimeFormat(locale, {
+          timeZone: zone,
+          timeZoneName,
+        })
+          .formatToParts(Date.now())
+          .find((part) => part.type === 'timeZoneName')?.value
+        if (found) {
+          name = found.charAt(0).toLocaleUpperCase(locale) + found.slice(1)
+          break
+        }
+      } catch {
+        // Not this style here, or not this zone: the next, or the place alone.
+      }
+    }
+    zoneNames.set(key, name)
+  }
+  return name
+}
+
+/** A zone in one line: "Amsterdam, Central European Time". */
+export function timeZoneLabel(
+  zone: string,
+  locale: string,
+  places: TimeZonePlaces,
+): string {
+  return [timeZonePlace(zone, places), timeZoneName(zone, locale)]
+    .filter(Boolean)
+    .join(', ')
+}
+
+/** Zones in the order their places are read in. */
+export function sortTimeZones(
+  zones: readonly string[],
+  locale: string,
+  places: TimeZonePlaces,
+): string[] {
+  return zones
+    .map((zone) => ({ zone, place: timeZonePlace(zone, places) }))
+    .sort((a, b) => a.place.localeCompare(b.place, locale))
+    .map(({ zone }) => zone)
+}
+
+/**
+ * The zones whose label or IANA name holds every word typed. `_` and `/` count
+ * as spaces and accents do not count, so "new york" finds `America/New_York`.
  */
 export function searchTimeZones(
   zones: readonly string[],
   query: string,
+  locale: string,
+  places: TimeZonePlaces,
 ): string[] {
   const words = plain(query).split(' ').filter(Boolean)
+  if (words.length === 0) return [...zones]
   return zones.filter((zone) => {
-    const name = plain(zone)
+    const name = plain(`${zone} ${timeZoneLabel(zone, locale, places)}`)
     return words.every((word) => name.includes(word))
   })
 }
 
 function plain(text: string): string {
-  return text.toLowerCase().replace(/[_/\s]+/g, ' ').trim()
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[_/\s]+/g, ' ')
+    .trim()
 }
+
+/** The names ICU keeps for zones IANA has renamed. */
+const RENAMED = new Map([
+  ['Africa/Asmera', 'Africa/Asmara'],
+  ['America/Buenos_Aires', 'America/Argentina/Buenos_Aires'],
+  ['America/Catamarca', 'America/Argentina/Catamarca'],
+  ['America/Coral_Harbour', 'America/Atikokan'],
+  ['America/Cordoba', 'America/Argentina/Cordoba'],
+  ['America/Godthab', 'America/Nuuk'],
+  ['America/Indianapolis', 'America/Indiana/Indianapolis'],
+  ['America/Jujuy', 'America/Argentina/Jujuy'],
+  ['America/Louisville', 'America/Kentucky/Louisville'],
+  ['America/Mendoza', 'America/Argentina/Mendoza'],
+  ['Asia/Calcutta', 'Asia/Kolkata'],
+  ['Asia/Katmandu', 'Asia/Kathmandu'],
+  ['Asia/Rangoon', 'Asia/Yangon'],
+  ['Asia/Saigon', 'Asia/Ho_Chi_Minh'],
+  ['Atlantic/Faeroe', 'Atlantic/Faroe'],
+  ['Europe/Kiev', 'Europe/Kyiv'],
+  ['Pacific/Enderbury', 'Pacific/Kanton'],
+  ['Pacific/Ponape', 'Pacific/Pohnpei'],
+  ['Pacific/Truk', 'Pacific/Chuuk'],
+])
 
 /** The zones in the IANA database's `zone.tab`, and UTC. */
 const IANA_ZONES = `
@@ -184,3 +305,6 @@ UTC
 `
   .trim()
   .split(/\s+/)
+
+/** The listed zones by their name in lower case. */
+const LISTED = new Map(IANA_ZONES.map((zone) => [zone.toLowerCase(), zone]))

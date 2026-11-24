@@ -396,6 +396,7 @@ export const en = {
         search: coreEn.settings.group.timeZoneSearch,
         noMatches: coreEn.settings.group.timeZoneNoMatches,
         refusals: coreEn.settings.group.timeZoneRefusals,
+        places: coreEn.settings.group.timeZonePlaces,
       },
       /**
        * Leaving the Current Group, in the web's words. The server refuses the

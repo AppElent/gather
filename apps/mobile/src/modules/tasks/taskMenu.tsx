@@ -9,12 +9,13 @@
  * cannot.
  */
 import type { MenuAction } from '@expo/ui/community/menu'
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import { useIsFocused } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
+import { useGroup } from '../../group/GroupProvider'
 import { fmt, type Messages, useI18n } from '../../i18n'
 import { useUndoToast } from '../../ui/undo-toast'
 import { useCompleteTask } from './completeTask'
@@ -274,6 +275,7 @@ export function useTaskSheets({
  * one completion is one toast.
  */
 function useCompletionUndo() {
+  const { group } = useGroup()
   const { t, locale } = useI18n()
   const actions = useTaskActions()
   const focused = useIsFocused()
@@ -290,7 +292,7 @@ function useCompletionUndo() {
     return onOccurrenceCompleted((done) => {
       show({
         message: fmt(words.completed, {
-          date: dueLabel(done.dueDate, localIsoDate(), locale, {
+          date: dueLabel(done.dueDate, todayIn(group.timeZone), locale, {
             today: t.tasks.task.today,
             tomorrow: t.tasks.task.tomorrow,
           }),
@@ -306,7 +308,7 @@ function useCompletionUndo() {
         },
       })
     })
-  }, [focused, show, words, locale, t])
+  }, [focused, show, words, locale, t, group.timeZone])
 
   return toast
 }

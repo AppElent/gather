@@ -51,6 +51,7 @@ function renderDialog() {
       kind="cheese"
       groupSlug="household"
       groupName="Household"
+      timeZone={undefined}
       onClose={vi.fn()}
     />,
   )

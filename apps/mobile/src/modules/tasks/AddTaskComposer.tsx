@@ -746,7 +746,7 @@ function TaskComposerCard({
 
   const dueText = task.dueDate ? dueLabel(task.dueDate, today, locale, dayWords) : undefined
   const reminderText = task.reminder
-    ? reminderLabel(task.reminder, today, locale, {
+    ? reminderLabel(task.reminder, localIsoDate(), locale, {
         ...dayWords,
         reminderAt: taskWords.reminderAt,
       })
