@@ -1,14 +1,8 @@
-import { ConvexError, v } from 'convex/values'
+import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import { mutation, type QueryCtx, query } from './_generated/server'
 import * as calendar from './calendar'
-import {
-  isVisibleToGroups,
-  requireGroupBySlug,
-  requireInGroup,
-} from './lib/groupAccess'
-import { quickLimitValidator } from './lib/kitchen'
-import { dinnerOn } from './lib/mealPlan'
+import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { recipesVisibleIn } from './lib/recipeShares'
 
 /**
@@ -39,7 +33,7 @@ async function dinnersIn(
     })
     .collect()
   return dinners
-    .filter((dinner) => (dinner.slot ?? 'dinner') === 'dinner')
+    .filter((dinner) => dinner.slot === 'dinner')
     .map((dinner) => {
       const recipe = dinner.recipeId
         ? visibleRecipes.get(dinner.recipeId)
@@ -92,18 +86,6 @@ async function pantryOf(ctx: QueryCtx, groupId: Id<'groups'>) {
   return pantry.sort((a, b) => a.title.localeCompare(b.title))
 }
 
-/**
- * The meal planner: the Group's meals, the dinners of one week, and the
- * recipes a dinner can be picked from.
- */
-export const planner = query({
-  args: { groupSlug: v.string(), from: v.string(), to: v.string() },
-  handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    return await plannerData(ctx, group._id, args)
-  },
-})
-
 /** The Pantry, alphabetical. */
 export const pantry = query({
   args: { groupSlug: v.string() },
@@ -124,7 +106,7 @@ export const groceries = query({
 
 /**
  * Everything the kitchen screens once read in one query. Installed phones call
- * it until the OTA that calls `planner`, `pantry` and `groceries` has reached
+ * it until the OTA that calls `mealPlan`, `pantry` and `groceries` has reached
  * them (docs/migrations/README.md); same arguments and result shape, but read
  * by index.
  */
@@ -216,75 +198,6 @@ export const updateMealEntry = mutation({
       title: args.title.trim(),
       prepMinutes: args.prepMinutes,
     })
-  },
-})
-
-/**
- * Phones from before meal slots (ADR-0027) plan a day's dinner with these two.
- * They act on the dinner slot only; the week view writes through `mealPlan`.
- * Keep both until the OTA that calls `mealPlan` has reached every installed
- * build (docs/migrations/README.md).
- */
-export const setDinner = mutation({
-  args: {
-    groupSlug: v.string(),
-    date: v.string(),
-    title: v.string(),
-    prepMinutes: v.optional(v.number()),
-    recipeId: v.optional(v.id('recipes')),
-    mealEntryId: v.optional(v.id('mealEntries')),
-    quickLimit: v.optional(quickLimitValidator),
-  },
-  handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    if (
-      Number(Boolean(args.recipeId)) + Number(Boolean(args.mealEntryId)) !==
-      1
-    )
-      throw new ConvexError('A dinner needs exactly one candidate')
-    let title = args.title
-    let prepMinutes = args.prepMinutes
-    if (args.mealEntryId) {
-      const { doc: meal } = await requireInGroup(
-        ctx,
-        args.groupSlug,
-        args.mealEntryId,
-        'Meal not found',
-      )
-      title = meal.title
-      prepMinutes = meal.prepMinutes
-    } else if (args.recipeId) {
-      const recipe = await ctx.db.get(args.recipeId)
-      if (!recipe || !isVisibleToGroups(recipe, [group._id]))
-        throw new ConvexError('Recipe not found')
-      title = recipe.title
-      prepMinutes = recipe.prepMinutes
-    }
-    const existing = await dinnerOn(ctx, group._id, args.date)
-    const row = {
-      recipeId: args.recipeId,
-      mealEntryId: args.mealEntryId,
-      title,
-      prepMinutes,
-      quickLimit: args.quickLimit,
-    }
-    if (existing) await ctx.db.patch(existing._id, row)
-    else
-      await ctx.db.insert('plannedDinners', {
-        groupId: group._id,
-        date: args.date,
-        slot: 'dinner',
-        ...row,
-      })
-  },
-})
-
-export const clearDinner = mutation({
-  args: { groupSlug: v.string(), date: v.string() },
-  handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const existing = await dinnerOn(ctx, group._id, args.date)
-    if (existing) await ctx.db.delete(existing._id)
   },
 })
 

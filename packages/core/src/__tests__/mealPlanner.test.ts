@@ -80,7 +80,7 @@ describe('eaters and servings', () => {
 
 describe('planMove', () => {
   const meals = [
-    { id: 'a', date: '2026-11-23' },
+    { id: 'a', date: '2026-11-23', slot: 'dinner' as const },
     { id: 'b', date: '2026-11-24', slot: 'dinner' as const },
     { id: 'c', date: '2026-11-24', slot: 'lunch' as const },
   ]

@@ -155,12 +155,14 @@ async function household(t: Harness): Promise<Household> {
     await ctx.db.insert('plannedDinners', {
       groupId: household,
       date: '2026-10-19',
+      slot: 'dinner',
       recipeId,
       title: 'Stamppot',
     })
     await ctx.db.insert('plannedDinners', {
       groupId: household,
       date: '2026-10-20',
+      slot: 'dinner',
       mealEntryId,
       title: 'Takeaway',
     })

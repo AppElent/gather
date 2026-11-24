@@ -2,12 +2,10 @@
  * The meal planner's week (APP-317): Planned meals per day and meal slot, who
  * eats along, busy evenings from the calendar, and moving meals between days.
  *
- * Planned meals live in `plannedDinners` (ADR-0027). Phones from before slots
- * still call `kitchen.planner`, `kitchen.setDinner` and `kitchen.clearDinner`,
- * which read and write the dinner slot only.
+ * Planned meals live in `plannedDinners` (ADR-0027).
  */
 import { isIsoDate } from '@gather/core/civil-date'
-import { isEveningEvent, MEAL_SLOTS, slotOf } from '@gather/core/meal-planner'
+import { isEveningEvent, MEAL_SLOTS } from '@gather/core/meal-planner'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import {
@@ -98,7 +96,7 @@ async function withLiveRecipe(
   return {
     _id: meal._id,
     date: meal.date,
-    slot: slotOf(meal),
+    slot: meal.slot,
     recipeId: live ? live._id : undefined,
     mealEntryId: meal.mealEntryId,
     title: live ? live.title : meal.title,
@@ -450,7 +448,7 @@ export const move = mutation({
       args.id,
       NOT_FOUND,
     )
-    const from = { date: doc.date, slot: slotOf(doc) }
+    const from = { date: doc.date, slot: doc.slot }
     if (from.date === args.date && from.slot === args.slot)
       return { kind: 'stay' as const }
     const other = await mealAt(ctx, group._id, args.date, args.slot)
@@ -480,7 +478,7 @@ export const remove = mutation({
     const recipe = doc.recipeId ? await ctx.db.get(doc.recipeId) : null
     return {
       date: doc.date,
-      slot: slotOf(doc),
+      slot: doc.slot,
       title: doc.title,
       prepMinutes: doc.prepMinutes,
       recipeId:

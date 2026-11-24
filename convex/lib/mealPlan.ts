@@ -20,7 +20,7 @@ export async function mealsOn(
     .collect()
 }
 
-/** The Planned meal in one slot of one day, if any. A row without a slot is a dinner. */
+/** The Planned meal in one slot of one day, if any. */
 export async function mealAt(
   ctx: QueryCtx,
   groupId: Id<'groups'>,
@@ -28,16 +28,7 @@ export async function mealAt(
   slot: MealSlot,
 ): Promise<Doc<'plannedDinners'> | null> {
   const meals = await mealsOn(ctx, groupId, date)
-  return meals.find((meal) => (meal.slot ?? 'dinner') === slot) ?? null
-}
-
-/** A day's dinner, for the functions phones from before slots call. */
-export async function dinnerOn(
-  ctx: QueryCtx,
-  groupId: Id<'groups'>,
-  date: string,
-) {
-  return await mealAt(ctx, groupId, date, 'dinner')
+  return meals.find((meal) => meal.slot === slot) ?? null
 }
 
 /** The Group's Members by name, as the planner shows them. */

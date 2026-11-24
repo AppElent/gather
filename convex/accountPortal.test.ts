@@ -721,6 +721,7 @@ describe('the read limits of one query', () => {
           await ctx.db.insert('plannedDinners', {
             groupId,
             date: '2026-10-19',
+            slot: 'dinner',
             title: at.title,
           })
           await ctx.db.insert('taskLists', {

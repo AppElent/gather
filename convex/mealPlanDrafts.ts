@@ -132,7 +132,7 @@ async function shownDrafts(
       .collect(),
   ])
   const filled = new Set(
-    meals.map((meal) => `${meal.date}|${meal.slot ?? 'dinner'}`),
+    meals.map((meal) => `${meal.date}|${meal.slot}`),
   )
   const shown = await Promise.all(
     drafts

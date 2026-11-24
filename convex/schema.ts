@@ -454,12 +454,11 @@ export default defineSchema({
 
   // Planned meals (ADR-0027). The table keeps its first name: renaming it
   // would be a copy migration with nothing to gain. At most one row per
-  // Group, date and slot; `slot` absent is a dinner planned before slots
-  // existed (`maintenance:backfillMealSlots` fills it in).
+  // Group, date and slot.
   plannedDinners: defineTable({
     groupId: v.id('groups'),
     date: v.string(),
-    slot: v.optional(mealSlotValidator),
+    slot: mealSlotValidator,
     recipeId: v.optional(v.id('recipes')),
     mealEntryId: v.optional(v.id('mealEntries')),
     title: v.string(),
@@ -469,7 +468,8 @@ export default defineSchema({
     note: v.optional(v.string()),
     // Absent: the Group's default eaters for that evening.
     eaterIds: v.optional(v.array(v.id('users'))),
-    // Written only by phones from before slots; read as a legacy field.
+    // Legacy: written by phones from before slots. Only `mealIdeas` Undo puts
+    // a stored value back.
     quickLimit: v.optional(quickLimitValidator),
   })
     .index('by_group', ['groupId'])

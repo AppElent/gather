@@ -59,10 +59,10 @@ describe('planned dinners', () => {
   test('refuses a dinner with a Recipe from another Group', async () => {
     const { t, recipe } = await seed()
     await expect(
-      t.withIdentity(alice).mutation(api.kitchen.setDinner, {
+      t.withIdentity(alice).mutation(api.mealPlan.plan, {
         groupSlug: 'other',
         date: '2026-08-31',
-        title: 'Forged',
+        slot: 'dinner',
         recipeId: recipe,
       }),
     ).rejects.toThrow('Recipe not found')
@@ -71,10 +71,10 @@ describe('planned dinners', () => {
   test('refuses a non-member before exposing a dinner', async () => {
     const { t, recipe } = await seed()
     await expect(
-      t.withIdentity(carol).mutation(api.kitchen.setDinner, {
+      t.withIdentity(carol).mutation(api.mealPlan.plan, {
         groupSlug: 'home',
         date: '2026-08-31',
-        title: 'Roast vegetables',
+        slot: 'dinner',
         recipeId: recipe,
       }),
     ).rejects.toThrow('Not a member')
@@ -85,10 +85,10 @@ describe('planned dinners', () => {
 
   test('uses a Recipe’s current fields and keeps the stored snapshot after deletion', async () => {
     const { t, recipe } = await seed()
-    await t.withIdentity(alice).mutation(api.kitchen.setDinner, {
+    await t.withIdentity(alice).mutation(api.mealPlan.plan, {
       groupSlug: 'home',
       date: '2026-08-31',
-      title: 'Ignored client title',
+      slot: 'dinner',
       recipeId: recipe,
     })
     await t.run(
@@ -156,14 +156,8 @@ const titlesOf = (rows: { title: string }[]) =>
   rows.map((row) => row.title).sort()
 
 describe('reading recipes by index (APP-299)', () => {
-  test('the planner offers the Group’s own and shared-in recipes, never an unrelated Group’s', async () => {
+  test('overview offers the Group’s own and shared-in recipes, never an unrelated Group’s', async () => {
     const { t } = await seedWithShares()
-    const planner = await t.withIdentity(bob).query(api.kitchen.planner, {
-      groupSlug: 'home',
-      from: '2026-08-31',
-      to: '2026-09-06',
-    })
-    expect(titlesOf(planner.recipes)).toEqual(['Roast vegetables', 'Shared curry'])
     const overview = await t
       .withIdentity(bob)
       .query(api.kitchen.overview, { groupSlug: 'home' })
@@ -188,12 +182,10 @@ describe('reading recipes by index (APP-299)', () => {
     await t.run(async (ctx) => {
       await ctx.db.insert('recipeShares', { recipeId: strangers, groupId: home })
     })
-    const planner = await t.withIdentity(bob).query(api.kitchen.planner, {
-      groupSlug: 'home',
-      from: '2026-08-31',
-      to: '2026-09-06',
-    })
-    expect(titlesOf(planner.recipes)).not.toContain('Stranger stew')
+    const overview = await t
+      .withIdentity(bob)
+      .query(api.kitchen.overview, { groupSlug: 'home' })
+    expect(titlesOf(overview.recipes)).not.toContain('Stranger stew')
   })
 
   test('unshare, move and delete keep the share rows in step', async () => {
@@ -238,10 +230,10 @@ describe('date ranges and the smaller queries (APP-299)', () => {
   async function withWeek() {
     const base = await seedWithShares()
     for (const date of ['2026-08-30', '2026-08-31', '2026-09-06', '2026-09-07'])
-      await base.t.withIdentity(alice).mutation(api.kitchen.setDinner, {
+      await base.t.withIdentity(alice).mutation(api.mealPlan.plan, {
         groupSlug: 'home',
         date,
-        title: 'Shared curry',
+        slot: 'dinner',
         recipeId: base.sharedIn,
       })
     await base.t.run(async (ctx) => {
@@ -264,16 +256,20 @@ describe('date ranges and the smaller queries (APP-299)', () => {
     return base
   }
 
-  test('the planner and overview return only the week asked for', async () => {
-    const { t } = await withWeek()
+  test('overview returns only the week asked for, dinners only', async () => {
+    const { t, sharedIn } = await withWeek()
     const week = { groupSlug: 'home', from: '2026-08-31', to: '2026-09-06' }
-    const planner = await t.withIdentity(bob).query(api.kitchen.planner, week)
-    expect(planner.dinners.map((d) => d.date)).toEqual(['2026-08-31', '2026-09-06'])
-    // A live, Shared-in Recipe still titles its dinner.
-    expect(planner.dinners[0]).toMatchObject({ title: 'Shared curry', prepMinutes: 20 })
-
+    // A phone from before slots would draw this lunch as the day's dinner.
+    await t.withIdentity(alice).mutation(api.mealPlan.plan, {
+      groupSlug: 'home',
+      date: '2026-09-01',
+      slot: 'lunch',
+      recipeId: sharedIn,
+    })
     const overview = await t.withIdentity(bob).query(api.kitchen.overview, week)
     expect(overview.dinners.map((d) => d.date)).toEqual(['2026-08-31', '2026-09-06'])
+    // A live, Shared-in Recipe still titles its dinner.
+    expect(overview.dinners[0]).toMatchObject({ title: 'Shared curry', prepMinutes: 20 })
     expect(overview.events.map((e) => e.date)).toEqual(['2026-09-01'])
   })
 
