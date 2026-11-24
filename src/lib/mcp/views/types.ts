@@ -30,7 +30,7 @@ export type WeekAgendaResult = {
   weekStart: string
   previousWeekStart: string
   nextWeekStart: string
-  /** The week holding the server's today (UTC). */
+  /** The week holding today in the Group's zone (UTC when it has none). */
   isCurrentWeek: boolean
   today: string
   days: { date: string; events: AgendaEvent[] }[]

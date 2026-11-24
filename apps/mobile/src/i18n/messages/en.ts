@@ -383,6 +383,16 @@ export const en = {
         shareMessage:
           'Join {group} on Gather: under Groups, choose “{join}” and enter {code}.',
       },
+      /** The zone of the Current Group's "today", in the web's words. */
+      timeZone: {
+        title: coreEn.settings.group.timeZone,
+        note: coreEn.settings.group.timeZoneNote,
+        unset: coreEn.settings.group.timeZoneUnset,
+        useDevice: coreEn.settings.group.timeZoneUseDevice,
+        clear: coreEn.settings.group.timeZoneClear,
+        failed: coreEn.settings.group.timeZoneFailed,
+        adminOnly: coreEn.settings.group.timeZoneAdminOnly,
+      },
       /**
        * Leaving the Current Group, in the web's words. The server refuses the
        * only admin while anyone else is still in it (`groups.leaveGroup`); the
