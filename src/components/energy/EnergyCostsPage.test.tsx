@@ -150,6 +150,22 @@ describe('EnergyCostsPage', () => {
     expect(within(total).getByText('October 1 to October 31')).toBeInTheDocument()
   })
 
+  test('the caption shows no range when no day carries a cost', () => {
+    const period = monthPeriod('2026-11', '2026-11-20', {}, {
+      cost: null,
+      costWithoutNet: null,
+    })
+    // A total with no costed day: the range has nothing to span, so it hides.
+    period.totals.cost = cost(6000)
+    period.totals.costWithoutNet = cost(7000)
+    state.months['2026-11'] = period
+    renderInGroup(<EnergyCostsPage />)
+    const total = screen.getByRole('region', { name: 'Total' })
+    expect(within(total).getByText('€60.00')).toBeInTheDocument()
+    expect(total).not.toHaveTextContent(/November \d+ to November \d+/)
+    expect(within(total).queryByText(/ to /)).toBeNull()
+  })
+
   test('the day that costs the most is named when days differ', () => {
     const period = monthPeriod('2026-11', '2026-11-20')
     const fifth = period.days[4]
