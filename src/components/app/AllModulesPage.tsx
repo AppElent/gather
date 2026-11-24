@@ -98,7 +98,11 @@ export function AllModulesPage() {
 
   const write = (next: string[]) => {
     setAnnouncement('')
-    void savePins({ groupSlug, moduleIds: next })
+    // A refused unpin leaves its row, so there is no focus to move later.
+    void savePins({ groupSlug, moduleIds: next }).catch((error: unknown) => {
+      setUnpinned(null)
+      throw error
+    })
   }
 
   const move = (module: ModuleDef, direction: 'up' | 'down') => {
