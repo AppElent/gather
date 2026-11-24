@@ -7,6 +7,7 @@ import { SmartListPage } from './SmartListPage'
 import { TaskListPage } from './TaskListPage'
 import { TaskPage } from './TaskPage'
 import { TasksIndexPage } from './TasksIndexPage'
+import { TasksNotices } from './TasksNotices'
 
 const state = vi.hoisted(() => ({
   queries: {} as Record<string, unknown>,
@@ -15,6 +16,7 @@ const state = vi.hoisted(() => ({
   navigated: [] as { to: string; search?: Record<string, string> }[],
   linked: { status: 'unavailable' } as unknown,
   desktop: true,
+  slow: undefined as undefined | (() => Promise<never>),
 }))
 
 vi.mock('../../../convex/_generated/api', () => {
@@ -27,6 +29,7 @@ vi.mock('convex/react', () => {
   const call = (name: string) => {
     const run = async (args: Record<string, unknown>) => {
       state.calls.push([name, args])
+      if (name === 'tasks:update' && state.slow) return state.slow()
       if (state.fail.has(name)) throw new Error('nope')
       if (name === 'taskLists:getTasks') return state.linked
       return name === 'tasks:toggleDone' ? null : 'new-id'
@@ -92,6 +95,16 @@ const DONE = task('t3', 'Vacuum', { done: true, order: 3 })
 
 const TODAY = localIsoDate()
 
+/** A page in the Tasks layout. `page` shows another in the same layout. */
+const renderTasks = (page: ReactElement) => {
+  const inLayout = (each: ReactElement) => <TasksNotices>{each}</TasksNotices>
+  const { unmount, rerender } = renderInGroup(inLayout(page))
+  return {
+    unmount,
+    goTo: (each: ReactElement) => rerender(inLayout(each)),
+  }
+}
+
 const calls = (name: string) =>
   state.calls.filter(([each]) => each === name).map(([, args]) => args)
 
@@ -101,6 +114,7 @@ beforeEach(() => {
   state.navigated = []
   state.linked = { status: 'unavailable' }
   state.desktop = true
+  state.slow = undefined
   window.matchMedia = ((query: string) => ({
     matches: state.desktop,
     media: query,
@@ -127,7 +141,7 @@ const panel = () => screen.getByRole('complementary', { name: 'Task' })
 
 describe('a list', () => {
   test('a quick-add line is read before it is added', async () => {
-    renderInGroup(<TaskListPage listId="l1" />)
+    renderTasks(<TaskListPage listId="l1" />)
     const field = screen.getByRole('textbox', { name: 'New task' })
     fireEvent.change(field, { target: { value: 'Mop floor @Sam' } })
     expect(
@@ -145,7 +159,7 @@ describe('a list', () => {
 
   test('a line that did not save comes back, and keeps its key', async () => {
     state.fail.add('tasks:add')
-    renderInGroup(<TaskListPage listId="l1" />)
+    renderTasks(<TaskListPage listId="l1" />)
     const field = screen.getByRole('textbox', { name: 'New task' })
     const form = field.closest('form') as HTMLFormElement
     fireEvent.change(field, { target: { value: 'Mop floor' } })
@@ -159,7 +173,7 @@ describe('a list', () => {
   })
 
   test('N focuses the add field, and the header button does too', () => {
-    renderInGroup(<TaskListPage listId="l1" />)
+    renderTasks(<TaskListPage listId="l1" />)
     const field = screen.getByRole('textbox', { name: 'New task' })
     fireEvent.keyDown(document.body, { key: 'n' })
     expect(document.activeElement).toBe(field)
@@ -169,7 +183,7 @@ describe('a list', () => {
   })
 
   test('a ring ticks its task; subtasks are not rows', async () => {
-    renderInGroup(<TaskListPage listId="l1" />)
+    renderTasks(<TaskListPage listId="l1" />)
     expect(screen.queryByText('Buy soap')).toBeNull()
     fireEvent.click(screen.getByRole('checkbox', { name: 'Complete Bins out' }))
     await waitFor(() =>
@@ -178,7 +192,7 @@ describe('a list', () => {
   })
 
   test('a task with open subtasks asks first', async () => {
-    renderInGroup(<TaskListPage listId="l1" />)
+    renderTasks(<TaskListPage listId="l1" />)
     fireEvent.click(
       screen.getByRole('checkbox', { name: 'Complete Wash windows' }),
     )
@@ -196,7 +210,7 @@ describe('a list', () => {
   })
 
   test('moving down keeps subtasks behind their parent', async () => {
-    renderInGroup(<TaskListPage listId="l1" />)
+    renderTasks(<TaskListPage listId="l1" />)
     fireEvent.click(
       screen.getByRole('button', { name: 'Actions for Wash windows' }),
     )
@@ -207,20 +221,20 @@ describe('a list', () => {
   })
 
   test('a list that is gone says so', () => {
-    renderInGroup(<TaskListPage listId="nope" />)
+    renderTasks(<TaskListPage listId="nope" />)
     expect(screen.getAllByText('List not found').length).toBeGreaterThan(0)
   })
 
   test('a grocery list is Groceries', () => {
     state.queries['taskLists:list'] = [list('l1', 'Shop', { grocery: true })]
-    renderInGroup(<TaskListPage listId="l1" />)
+    renderTasks(<TaskListPage listId="l1" />)
     expect(screen.getByText('navigated to /groceries')).toBeTruthy()
   })
 })
 
 describe('the panel', () => {
   test('Escape closes it, to the list itself', () => {
-    renderInGroup(<TaskListPage listId="l1" selectedTaskId="t1" />)
+    renderTasks(<TaskListPage listId="l1" selectedTaskId="t1" />)
     fireEvent.keyDown(panel(), { key: 'Escape' })
     expect(state.navigated).toEqual([
       { to: '/tasks/$listId', params: { listId: 'l1' } },
@@ -228,7 +242,7 @@ describe('the panel', () => {
   })
 
   test('Escape in an open field closes the field only', () => {
-    renderInGroup(<TaskListPage listId="l1" selectedTaskId="t1" />)
+    renderTasks(<TaskListPage listId="l1" selectedTaskId="t1" />)
     fireEvent.click(within(panel()).getByRole('button', { name: /^Who/ }))
     fireEvent.keyDown(screen.getByRole('button', { name: /Sam/ }), {
       key: 'Escape',
@@ -238,7 +252,7 @@ describe('the panel', () => {
   })
 
   test('who and when are written as they are chosen', async () => {
-    renderInGroup(<TaskListPage listId="l1" selectedTaskId="t1" />)
+    renderTasks(<TaskListPage listId="l1" selectedTaskId="t1" />)
     fireEvent.click(within(panel()).getByRole('button', { name: /^Who/ }))
     fireEvent.click(screen.getByRole('button', { name: /Sam/ }))
     await waitFor(() =>
@@ -260,7 +274,7 @@ describe('the panel', () => {
   })
 
   test('a reminder that has passed is refused', () => {
-    renderInGroup(<TaskListPage listId="l1" selectedTaskId="t1" />)
+    renderTasks(<TaskListPage listId="l1" selectedTaskId="t1" />)
     fireEvent.click(within(panel()).getByRole('button', { name: /^Reminder/ }))
     fireEvent.change(screen.getByLabelText('Pick a date'), {
       target: { value: '2020-01-01' },
@@ -272,7 +286,7 @@ describe('the panel', () => {
   })
 
   test('subtasks: count, add, and no subtasks of a subtask', async () => {
-    const { unmount } = renderInGroup(
+    const { unmount } = renderTasks(
       <TaskListPage listId="l1" selectedTaskId="t1" />,
     )
     expect(within(panel()).getByText('Subtasks · 0 of 1')).toBeTruthy()
@@ -288,21 +302,21 @@ describe('the panel', () => {
       }),
     )
     unmount()
-    renderInGroup(<TaskListPage listId="l1" selectedTaskId="s1" />)
+    renderTasks(<TaskListPage listId="l1" selectedTaskId="s1" />)
     expect(within(panel()).queryByText(/^Subtasks/)).toBeNull()
     expect(within(panel()).queryByRole('button', { name: /^Repeat/ })).toBeNull()
   })
 
   test('a task deleted while open says so; a wrong id is not found', () => {
-    const { rerender, unmount } = renderInGroup(
+    const { goTo, unmount } = renderTasks(
       <TaskListPage listId="l1" selectedTaskId="t1" />,
     )
     state.queries['tasks:listByList'] = [BINS]
     state.queries['tasks:listOf'] = () => null
-    rerender(<TaskListPage listId="l1" selectedTaskId="t1" />)
+    goTo(<TaskListPage listId="l1" selectedTaskId="t1" />)
     expect(screen.getByText('This task was deleted')).toBeTruthy()
     unmount()
-    renderInGroup(<TaskListPage listId="l1" selectedTaskId="zz" />)
+    renderTasks(<TaskListPage listId="l1" selectedTaskId="zz" />)
     expect(within(panel()).getByText('Task not found')).toBeTruthy()
   })
 
@@ -310,7 +324,7 @@ describe('the panel', () => {
     state.queries['tasks:listByList'] = [
       { ...WINDOWS, assigneeId: 'u1', assignmentNotice: { by: 'u2', at: 5 } },
     ]
-    renderInGroup(<TaskListPage listId="l1" selectedTaskId="t1" />)
+    renderTasks(<TaskListPage listId="l1" selectedTaskId="t1" />)
     await waitFor(() =>
       expect(calls('tasks:markAssignmentSeen')).toHaveLength(1),
     )
@@ -337,7 +351,7 @@ describe('the panel', () => {
         },
       ],
     }
-    renderInGroup(<TaskListPage listId="lk" selectedTaskId="x1" />)
+    renderTasks(<TaskListPage listId="lk" selectedTaskId="x1" />)
     await waitFor(() =>
       expect(within(panel()).getByRole('button', { name: /^When/ })).toBeTruthy(),
     )
@@ -382,11 +396,11 @@ describe('what a review found (APP-308)', () => {
       status: 'ok',
       tasks: [row('y1', 'Call plumber', TODAY), row('y2', 'House jobs')],
     }
-    const { unmount } = renderInGroup(<TaskListPage listId="lu" />)
+    const { unmount } = renderTasks(<TaskListPage listId="lu" />)
     await screen.findByText('Call plumber')
     unmount()
     smart(task('t2', 'Bins out', { dueDate: TODAY }))
-    renderInGroup(<SmartListPage smartList="today" />)
+    renderTasks(<SmartListPage smartList="today" />)
     await screen.findByText('Bins out')
     menuItem('Call plumber', 'Move under a task…')
     const dialog = within(screen.getByRole('dialog'))
@@ -395,7 +409,7 @@ describe('what a review found (APP-308)', () => {
   })
 
   test('Enter saves the title, and Escape then closes the task', async () => {
-    renderInGroup(<TaskListPage listId="l1" selectedTaskId="t1" />)
+    renderTasks(<TaskListPage listId="l1" selectedTaskId="t1" />)
     const title = within(panel()).getByRole('textbox', { name: 'Task title' })
     title.focus()
     fireEvent.change(title, { target: { value: 'Wash doors' } })
@@ -409,7 +423,7 @@ describe('what a review found (APP-308)', () => {
   test('a title that failed to save on leaving is said, and kept', async () => {
     state.fail.add('tasks:update')
     const page = <TaskListPage listId="l1" selectedTaskId="t1" />
-    const { unmount } = renderInGroup(page)
+    const { unmount } = renderTasks(page)
     fireEvent.change(
       within(panel()).getByRole('textbox', { name: 'Task title' }),
       { target: { value: 'Wash doors' } },
@@ -418,7 +432,7 @@ describe('what a review found (APP-308)', () => {
     await waitFor(() => expect(calls('tasks:update')).toHaveLength(1))
     await Promise.resolve()
     state.fail.clear()
-    const again = renderInGroup(page)
+    const again = renderTasks(page)
     const title = within(panel()).getByRole('textbox', { name: 'Task title' })
     expect((title as HTMLTextAreaElement).value).toBe('Wash doors')
     expect(within(panel()).getByText('Not saved. Try again.')).toBeTruthy()
@@ -433,7 +447,7 @@ describe('what a review found (APP-308)', () => {
     }) as HTMLTextAreaElement
   const lose = async (text: string) => {
     state.fail.add('tasks:update')
-    const { unmount } = renderInGroup(page)
+    const { unmount } = renderTasks(page)
     fireEvent.change(titleField(), { target: { value: text } })
     unmount()
     await waitFor(() => expect(calls('tasks:update')).toHaveLength(1))
@@ -443,20 +457,53 @@ describe('what a review found (APP-308)', () => {
   const page = <TaskListPage listId="l1" selectedTaskId="t1" />
 
   test('a save that fails after its page has gone is said on the next one', async () => {
-    await lose('ONE')
-    renderInGroup(<SmartListPage smartList="today" />)
+    state.fail.add('tasks:update')
+    const { goTo } = renderTasks(<TaskPage taskId="t1" />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Task title' }), {
+      target: { value: 'ONE' },
+    })
+    goTo(<TaskListPage listId="l1" />)
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toBe('nope'),
+    )
+  })
+
+  test('closing the panel says a save that fails', async () => {
+    state.fail.add('tasks:update')
+    const { goTo } = renderTasks(page)
+    fireEvent.change(titleField(), { target: { value: 'FOUR' } })
+    goTo(<TaskListPage listId="l1" />)
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toBe('nope'),
+    )
+  })
+
+  test('with Tasks closed, the next Tasks page says it', async () => {
+    await lose('FIVE')
+    renderTasks(<SmartListPage smartList="today" />)
     expect(screen.getByRole('alert').textContent).toBe('nope')
+  })
+
+  test('typing the stored text back is no longer a failure', async () => {
+    state.fail.add('tasks:update')
+    renderTasks(page)
+    fireEvent.change(titleField(), { target: { value: 'SIX' } })
+    fireEvent.blur(titleField())
+    const said = 'Not saved. Try again.'
+    await waitFor(() => expect(within(panel()).getByText(said)).toBeTruthy())
+    fireEvent.change(titleField(), { target: { value: 'Wash windows' } })
+    expect(within(panel()).queryByText(said)).toBeNull()
   })
 
   test('a kept draft is not sent by opening and leaving the task', async () => {
     await lose('TWO')
-    const { unmount } = renderInGroup(page)
+    const { unmount } = renderTasks(page)
     expect(titleField().value).toBe('TWO')
     unmount()
     expect(calls('tasks:update')).toHaveLength(1)
     // Nor is it put over something newer.
     state.queries['tasks:listByList'] = [{ ...WINDOWS, title: 'SAMS' }]
-    const again = renderInGroup(page)
+    const again = renderTasks(page)
     expect(titleField().value).toBe('SAMS')
     again.unmount()
     expect(calls('tasks:update')).toHaveLength(1)
@@ -464,13 +511,13 @@ describe('what a review found (APP-308)', () => {
 
   test('a newer save forgets the kept draft', async () => {
     await lose('THREE')
-    const { unmount } = renderInGroup(page)
+    const { unmount } = renderTasks(page)
     fireEvent.change(titleField(), { target: { value: 'NEWER' } })
     fireEvent.blur(titleField())
     await waitFor(() => expect(calls('tasks:update')).toHaveLength(2))
     await new Promise((done) => setTimeout(done))
     unmount()
-    renderInGroup(page)
+    renderTasks(page)
     expect(titleField().value).toBe('Wash windows')
     expect(calls('tasks:update').map((sent) => sent.title)).toEqual([
       'THREE',
@@ -478,9 +525,30 @@ describe('what a review found (APP-308)', () => {
     ])
   })
 
+  test('a draft that fails late does not come back over a newer one', async () => {
+    let refuse = (_: Error) => {}
+    state.slow = () => new Promise((_, reject) => (refuse = reject))
+    const { unmount } = renderTasks(page)
+    fireEvent.change(titleField(), { target: { value: 'OLD' } })
+    unmount()
+    state.slow = undefined
+    const again = renderTasks(page)
+    refuse(new Error('nope'))
+    await screen.findByText('nope')
+    fireEvent.change(titleField(), { target: { value: 'NEWER' } })
+    fireEvent.blur(titleField())
+    await waitFor(() => expect(calls('tasks:update')).toHaveLength(2))
+    await new Promise((done) => setTimeout(done))
+    again.unmount()
+    const last = renderTasks(page)
+    expect(titleField().value).not.toBe('OLD')
+    last.unmount()
+    expect(calls('tasks:update')).toHaveLength(2)
+  })
+
   test('duplicating from a smart list brings every subtask', async () => {
     smart(task('t1', 'Wash windows', { dueDate: TODAY }))
-    renderInGroup(<SmartListPage smartList="today" />)
+    renderTasks(<SmartListPage smartList="today" />)
     menuItem('Wash windows', 'Duplicate')
     await waitFor(() => expect(calls('tasks:add')).toHaveLength(2))
     expect(calls('tasks:add')[1]).toMatchObject({
@@ -495,7 +563,7 @@ describe('what a review found (APP-308)', () => {
     ]
     const addOne = async (page: ReactElement) => {
       state.calls = []
-      const { unmount } = renderInGroup(page)
+      const { unmount } = renderTasks(page)
       const field = screen.getByRole('textbox', { name: 'New task' })
       fireEvent.change(field, { target: { value: 'Mop floor' } })
       fireEvent.submit(field.closest('form') as HTMLFormElement)
@@ -510,7 +578,7 @@ describe('what a review found (APP-308)', () => {
 
 describe('the other pages', () => {
   test('the index lists Today, the smart lists and the lists', () => {
-    renderInGroup(<TasksIndexPage />)
+    renderTasks(<TasksIndexPage />)
     expect(screen.getByText('Nothing due today.')).toBeTruthy()
     expect(screen.getByText('My tasks')).toBeTruthy()
     expect(screen.getByText('Household')).toBeTruthy()
@@ -518,7 +586,7 @@ describe('the other pages', () => {
   })
 
   test('a new packing list arrives with its sections', async () => {
-    renderInGroup(<TasksIndexPage />)
+    renderTasks(<TasksIndexPage />)
     fireEvent.click(screen.getByRole('button', { name: 'Add list' }))
     fireEvent.click(screen.getByRole('button', { name: /^Packing list/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Create' }))
@@ -532,7 +600,7 @@ describe('the other pages', () => {
   })
 
   test('My tasks gives a new task to me', async () => {
-    renderInGroup(<SmartListPage smartList="mine" />)
+    renderTasks(<SmartListPage smartList="mine" />)
     const field = screen.getByRole('textbox', { name: 'New task' })
     fireEvent.change(field, { target: { value: 'Mop floor' } })
     fireEvent.submit(field.closest('form') as HTMLFormElement)
@@ -542,12 +610,12 @@ describe('the other pages', () => {
   })
 
   test('a smart list nobody knows goes to Tasks', () => {
-    renderInGroup(<SmartListPage smartList="never" />)
+    renderTasks(<SmartListPage smartList="never" />)
     expect(screen.getByText('navigated to /tasks')).toBeTruthy()
   })
 
   test("a task's own page has its trail and no close button", () => {
-    renderInGroup(<TaskPage taskId="t1" />)
+    renderTasks(<TaskPage taskId="t1" />)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
       'Wash windows',
     )

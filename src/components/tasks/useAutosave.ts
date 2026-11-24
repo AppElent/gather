@@ -122,6 +122,7 @@ export function useAutosave({
       latest.current.outdated = false
       setUntouched(false)
       set(next)
+      if (next === latest.current.stored) setFailed(false)
       clearTimeout(timer.current)
       if (delay !== undefined)
         timer.current = setTimeout(() => flushRef.current(), delay)

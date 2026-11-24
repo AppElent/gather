@@ -1,6 +1,5 @@
 /**
- * What every Tasks page shares (APP-308): the writes, the one line that says
- * what happened (with its Undo), the question about open subtasks, and the
+ * What every Tasks page shares (APP-308): the writes, the question about open subtasks, and the
  * dialogs a task's `⋯` menu opens. A task means the same thing on the index,
  * in a list, in a smart list and in its panel, so it is all here, once.
  */
@@ -9,8 +8,7 @@ import { externalSnapshot } from '@gather/core/linked-lists'
 import { possibleParents } from '@gather/core/linked-tasks'
 import { asksAboutSubtasks } from '@gather/core/subtasks'
 import type { Task, TaskList } from '@gather/core/task-model'
-import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from 'react'
-import { useErrorMessage } from '../../lib/errorMessage'
+import { createContext, type ReactNode, useContext, useState } from 'react'
 import { fmt, useI18n } from '../../lib/i18n'
 import { buttonClass } from '../app/buttons'
 import { useConfirmAction } from '../app/ConfirmAction'
@@ -18,16 +16,9 @@ import { Dialog } from '../app/Dialog'
 import type { RowMenuAction } from '../app/RowMenu'
 import { ChoiceList } from './ChoiceList'
 import { useTaskLists } from './data'
-import { hearLostSaves } from './lostSaves'
+import { type Notice, useTasksNotices } from './TasksNotices'
 import { type TaskActions, useTaskActions } from './useTaskActions'
-import { dayWords, deleteBody, failureWords, providerName } from './words'
-
-interface Notice {
-  message: string
-  undo?: () => void
-  /** Something that did not work. */
-  failed?: boolean
-}
+import { dayWords, deleteBody, providerName } from './words'
 
 type TaskDialog =
   | { kind: 'move' | 'section'; task: Task; list: TaskList }
@@ -64,42 +55,21 @@ export function useWorkspace(): Workspace {
   return workspace
 }
 
-const NOTICE_MS = 8000
-
 export function TasksWorkspace({ children }: { children: ReactNode }) {
   const { locale, messages: t } = useI18n()
   const words = t.tasks.web
   const actions = useTaskActions()
   const lists = useTaskLists()
-  const errorText = useErrorMessage()
   const { confirm, dialog: confirmDialog } = useConfirmAction()
-  const [notice, setNotice] = useState<Notice | null>(null)
+  const { show, fail } = useTasksNotices()
   const [dialog, setDialog] = useState<TaskDialog | null>(null)
   const close = () => setDialog(null)
-
-  useEffect(() => {
-    if (!notice) return
-    const timer = setTimeout(() => setNotice(null), NOTICE_MS)
-    return () => clearTimeout(timer)
-  }, [notice])
-
-  const fail = (error: unknown, fallback: string = words.failed) =>
-    setNotice({
-      failed: true,
-      message:
-        failureWords(error, lists, t) ??
-        errorText(error, fallback, t.tasks.assignee.refusals),
-    })
-
-  const failRef = useRef(fail)
-  failRef.current = fail
-  useEffect(() => hearLostSaves((error) => failRef.current(error)), [])
 
   const run = (task: Task, withSubtasks: boolean) => {
     actions.toggleTask(task, { withSubtasks }).then((done) => {
       // A repeating task stays open with its next date; say which one it is.
       if (!done) return
-      setNotice({
+      show({
         message: fmt(t.tasks.repeat.completed, {
           date: dayWords(done.dueDate, localIsoDate(), locale, t),
         }),
@@ -151,7 +121,7 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
               fmt(words.duplicateTitle, { title: task.title }),
               crypto.randomUUID(),
             )
-            .then(() => setNotice({ message: words.duplicated }), fail)
+            .then(() => show({ message: words.duplicated }), fail)
         })
       }
     }
@@ -181,7 +151,7 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
             run: async () => {
               await actions.remove(task.id)
               onDeleted?.()
-              setNotice({ message: fmt(words.deleted, { title: task.title }) })
+              show({ message: fmt(words.deleted, { title: task.title }) })
             },
           }),
       })
@@ -192,45 +162,15 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
   const choose = (work: () => Promise<unknown>, done?: string) => {
     close()
     work().then(() => {
-      if (done) setNotice({ message: done })
+      if (done) show({ message: done })
     }, fail)
   }
 
   return (
     <WorkspaceContext
-      value={{ actions, show: setNotice, fail, complete, menu, confirm }}
+      value={{ actions, show, fail, complete, menu, confirm }}
     >
       {children}
-
-      {/* Present before anything is said, so it is read out when it is. */}
-      <div
-        role={notice?.failed ? 'alert' : 'status'}
-        className="pointer-events-none fixed inset-x-4 bottom-[calc(96px+env(safe-area-inset-bottom))] z-40 flex justify-center md:bottom-6"
-      >
-        {notice ? (
-          <div className="pointer-events-auto flex max-w-[560px] flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-[var(--radius-card)] border-[0.5px] border-[var(--hair-strong)] bg-[var(--surface)] px-4 py-2 text-subhead text-[var(--ink)] shadow-lg">
-            <span
-              className={`py-1.5 ${
-                notice.failed ? 'font-semibold text-[var(--danger)]' : ''
-              }`}
-            >
-              {notice.message}
-            </span>
-            {notice.undo ? (
-              <button
-                type="button"
-                onClick={() => {
-                  notice.undo?.()
-                  setNotice(null)
-                }}
-                className="min-h-[var(--size-control-min)] cursor-pointer border-0 bg-transparent px-2 font-semibold text-[var(--accent-text)]"
-              >
-                {t.tasks.repeat.undo}
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
 
       {dialog?.kind === 'complete' ? (
         <CompleteDialog

@@ -342,7 +342,7 @@ export const FEATURES = defineFeatures([
     status: 'parity',
     platforms: ['web', 'mobile'],
     routes: {
-      web: ['_app/tasks/**'],
+      web: ['_app/tasks', '_app/tasks/**'],
       mobile: [
         '(app)/(tabs)/all/tasks/**',
         '(app)/(tabs)/search/tasks/**',

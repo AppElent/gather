@@ -1,6 +1,6 @@
 /**
- * Saves that failed after their page had gone. The Tasks page that is open
- * says so; with none open, the next one to open does.
+ * Saves that failed after their field had gone. The Tasks layout says so; with
+ * Tasks itself closed by then, it does when Tasks is next opened.
  */
 type Hear = (error: unknown) => void
 
