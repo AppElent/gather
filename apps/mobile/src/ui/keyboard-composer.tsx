@@ -27,7 +27,7 @@
  *   wheel or calendar, drags by its top band, because those scroll too. What counts as a drag is
  *   `composer-gestures.ts`.
  * - **The card closes; the draft stays.** Every way out (scrim, swipe down,
- *   Android Back, a share from another app) is `onClose`, and the kind keeps what was typed
+ *   Android Back, a share or link from another app) is `onClose`, and the kind keeps what was typed
  *   (`composer-drafts.ts`). Nothing asks to confirm.
  */
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'

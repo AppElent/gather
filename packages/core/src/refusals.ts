@@ -241,6 +241,17 @@ export function readTaskRefusal(error: unknown): TaskRefusalCode | null {
 }
 
 /**
+ * Why a Group's time zone was not changed (APP-475): the caller is not an
+ * admin, or no such IANA zone. The screens offer neither, so they show their
+ * own failure sentence.
+ */
+export function groupTimeZoneRefusal(
+  code: 'admin-only' | 'unknown-zone',
+): { kind: string } {
+  return { kind: `groupTimeZone:${code}` }
+}
+
+/**
  * Why a Group-scoped call was refused at the Group itself (APP-429), before
  * any row was read. `convex/lib/groupAccess.ts` builds them.
  *

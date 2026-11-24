@@ -1008,6 +1008,24 @@ describe('Gather MCP endpoint', () => {
     })
   })
 
+  it("show_week_agenda's today is in the Group's zone (APP-475)", async () => {
+    const backend = fakeBackend({
+      // 12:00Z is already the next day at UTC+14.
+      'groups:myGroups': () => [
+        { ...GROUPS[0], timeZone: 'Pacific/Kiritimati' },
+      ],
+      'calendar:listCalendars': () => ({
+        page: [],
+        isDone: true,
+        continueCursor: '',
+      }),
+    })
+    const out = await callTool(backend, 'show_week_agenda', {
+      groupId: 'group_home',
+    })
+    expect(out.structuredContent).toMatchObject({ today: '2026-11-18' })
+  })
+
   it('shows a task list as writable only with the write scope', async () => {
     const backend = () =>
       fakeBackend({

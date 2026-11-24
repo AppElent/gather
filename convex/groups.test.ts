@@ -199,6 +199,52 @@ describe('an ordinary Group', () => {
     expect(unchanged?.name).toBe('Jansen Household')
   })
 
+  test('its time zone is set and cleared by an admin (APP-475)', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const zone = async () =>
+      (await groupsOf(t, asBob)).find((g) => g._id === groupId)?.timeZone
+    const set = (timeZone: string | null) =>
+      t
+        .withIdentity(asAlice)
+        .mutation(api.groups.setTimeZone, { groupId, timeZone })
+
+    expect(await zone()).toBeUndefined()
+    await set('Europe/Amsterdam')
+    expect(await zone()).toBe('Europe/Amsterdam')
+    for (const unknown of ['Mars/Olympus', '', '+01:00'])
+      await expect(set(unknown)).rejects.toThrow('groupTimeZone:unknown-zone')
+    expect(await zone()).toBe('Europe/Amsterdam')
+    await set(null)
+    expect(await zone()).toBeUndefined()
+  })
+
+  test('its time zone is not set by a plain member, a non-member or nobody', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const args = { groupId, timeZone: 'Europe/Amsterdam' }
+
+    await expect(
+      t.withIdentity(asBob).mutation(api.groups.setTimeZone, args),
+    ).rejects.toThrow('groupTimeZone:admin-only')
+    await expect(
+      t
+        .withIdentity({ subject: 'clerk_nobody', name: 'Nobody' })
+        .mutation(api.groups.setTimeZone, args),
+    ).rejects.toThrow('groups:not-signed-in')
+    await expect(t.mutation(api.groups.setTimeZone, args)).rejects.toThrow(
+      'groups:not-signed-in',
+    )
+    const other = await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.createGroup, { name: 'Alice only' })
+    await expect(
+      t
+        .withIdentity(asBob)
+        .mutation(api.groups.setTimeZone, { ...args, groupId: other }),
+    ).rejects.toThrow('groups:not-a-member')
+  })
+
   test('renaming back to the same name keeps the slug it already had', async () => {
     const t = testConvex()
     const groupId = await household(t)

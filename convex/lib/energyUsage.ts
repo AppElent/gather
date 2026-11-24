@@ -337,6 +337,25 @@ function average(slots: readonly PriceSlot[], from: number, to: number) {
  * The time an hourly channel measured, from its first stored hour to its last.
  * Home Assistant adds the hours it missed to the next one it has, so time
  * without rows in between is counted too (APP-495).
+ *
+ * Known limit (APP-726), accepted rather than detected: the whole span is
+ * measured, so typed readings inside an outage are never counted, even when
+ * Home Assistant truly lost those hours (a recorder reset) and no catch-up
+ * row holds them. Telling the two apart needs a signal the stored data does
+ * not carry: a row holds only `hourStart`, `amount` and `estimated`, and a
+ * catch-up row is not marked, so nothing says it is one.
+ * - Row size against the typed stretch across the gap fails both ways. A
+ *   catch-up row after a quiet outage is as small as one ordinary hour, and
+ *   one after a busy outage is as large as a heavy hour; typed readings are
+ *   sparse and rarely start or end on the gap's edges.
+ * - A counter reset is not visible: Home Assistant imports a sum, and the
+ *   rows hold the hour's difference, not the counter.
+ * Any guess here risks counting an outage twice (the row and the typed
+ * stretch) in the normal catch-up case, which is the worse error: a lost gap
+ * under-counts what the typed readings could have shown, while a double
+ * count invents usage in the common case. Revisit only if the import starts storing what makes a row a
+ * catch-up (for example the number of hours it covers), which is a schema
+ * change.
  */
 export async function measuredSpan(ctx: QueryCtx, channelId: Id<'energyChannels'>) {
   const hours = () =>
@@ -564,6 +583,23 @@ export async function computeEnergyRange(
       // average of its hours, so it is only kept per hour.
       const dayBucket = dayBuckets.get(amsterdamDayOf(at))
       // One tariff alone is already in what a typed meter of both counted.
+      //
+      // Known limit (APP-725), accepted rather than pro-rated: this decides
+      // per whole hour, and Home Assistant keeps only each hour's sum.
+      // - A typed reading in the middle of a T1 hour is off by up to that
+      //   hour's T1: the hour is dropped when it starts inside a typed
+      //   stretch, counted when it starts before one, so the part of it
+      //   on the wrong side of the reading is counted twice or not at all.
+      // - A catch-up row (the hours Home Assistant missed, added to the next
+      //   hour it has) after the last typed reading counts once more than it
+      //   should, by at most the T1 of the outage hours before that reading,
+      //   which the typed stretches counted already. The row holds one sum
+      //   for the whole outage, so no split can be read back from it.
+      // Both errors are at most one outage's or one hour's T1, only where a
+      // site has a typed total beside a lone T1 counter, and the next typed
+      // reading after the outage settles the days it covers. A pro-rating
+      // guess would need an assumed hourly shape and a second pass over the
+      // readings, to fix a small error that stays bounded; so it is left.
       const typed =
         channel.tariff !== undefined &&
         typedTotals.some(

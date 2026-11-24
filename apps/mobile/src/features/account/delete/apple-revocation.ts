@@ -9,6 +9,11 @@
  * be the person linked to this account. A code for anyone else is never sent,
  * so another person's grant is never revoked.
  *
+ * A grant cannot be restored, so `stillConfirmed` (the session the person
+ * confirmed in is still the one signed in) is asked before the sheet and again
+ * before the code is sent (APP-745). Convex refuses the code as well when the
+ * account changed in between (`expectedSubject`).
+ *
  * Apple issues the code to this build's bundle ID, which differs per install
  * variant (`app.config.ts`), so Convex is told which one to revoke against.
  *
@@ -32,6 +37,7 @@ export type AppleLinkedUser = {
 export type RevokeAction = (args: {
   authorizationCode: string
   bundleId: string
+  expectedSubject: string
 }) => Promise<unknown>
 
 function appleUserIds(user: AppleLinkedUser) {
@@ -43,19 +49,29 @@ function appleUserIds(user: AppleLinkedUser) {
 export async function revokeAppleSignIn(
   user: AppleLinkedUser,
   revoke: RevokeAction,
-): Promise<'continue' | 'cancelled'> {
+  {
+    expectedSubject,
+    stillConfirmed,
+  }: {
+    /** The Clerk user the person confirmed the deletion as. */
+    expectedSubject: string
+    stillConfirmed: () => boolean
+  },
+): Promise<'continue' | 'cancelled' | 'changed'> {
   const linked = appleUserIds(user)
   if (Platform.OS !== 'ios' || linked.length === 0) return 'continue'
   try {
     const bundleId = Constants.expoConfig?.ios?.bundleIdentifier
     if (!bundleId) throw new Error('This build has no iOS bundle ID')
+    if (!stillConfirmed()) return 'changed'
     const credential = await AppleAuthentication.signInAsync()
     if (!linked.includes(credential.user))
       throw new Error('Apple sheet returned a different Apple Account')
     const { authorizationCode } = credential
     if (!authorizationCode)
       throw new Error('Apple returned no authorization code')
-    await revoke({ authorizationCode, bundleId })
+    if (!stillConfirmed()) return 'changed'
+    await revoke({ authorizationCode, bundleId, expectedSubject })
   } catch (error) {
     if ((error as { code?: string } | null)?.code === 'ERR_REQUEST_CANCELED')
       return 'cancelled'

@@ -1,3 +1,4 @@
+import { todayIn } from '@gather/core/civil-date'
 import { describe, expect, test } from 'vitest'
 
 import { editedRead, pickRows, type SourceLine, settleLine, withEdits } from '../add-to-groceries/pick'
@@ -67,6 +68,17 @@ describe('defaultDays', () => {
   test('a week still to come counts from Monday; one that is over counts whole', () => {
     expect(defaultDays('2026-11-23', '2026-11-20', week).size).toBe(5)
     expect(defaultDays('2026-11-23', '2026-12-02', week).size).toBe(5)
+  })
+})
+
+describe("defaultDays with the Group's today (APP-475)", () => {
+  test('two zones either side of midnight count from different days', () => {
+    // 23:30 Tuesday in Amsterdam is already Wednesday in Tokyo.
+    const now = new Date('2026-11-24T22:30:00Z')
+    const first = (zone: string) =>
+      [...defaultDays('2026-11-23', todayIn(zone, now), week)][0]
+    expect(first('Europe/Amsterdam')).toBe('2026-11-24')
+    expect(first('Asia/Tokyo')).toBe('2026-11-25')
   })
 })
 

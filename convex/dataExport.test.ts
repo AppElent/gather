@@ -89,6 +89,7 @@ async function household(t: Harness): Promise<Household> {
       slug: 'household',
       inviteCode: 'invite-household',
       imageId: groupPhoto,
+      timeZone: 'Europe/Amsterdam',
     })
     const allotment = await ctx.db.insert('groups', {
       name: 'Allotment',
@@ -660,6 +661,7 @@ describe('what the file contains', () => {
     expect(household.groups[0].imageUrl).toEqual(
       expect.stringContaining('http'),
     )
+    expect(household.groups[0].timeZone).toBe('Europe/Amsterdam')
     const [card] = household.loyaltyCards
     // The Group's arrangement travels with the card (APP-440).
     expect(card.order).toBe(0)

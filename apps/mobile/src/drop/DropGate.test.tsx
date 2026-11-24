@@ -4,9 +4,9 @@ import { act, createElement } from 'react'
 import { beforeEach, expect, test, vi } from 'vitest'
 
 import {
-  LATE_SHEET_DELAY_MS,
   openPrompt,
   openSheet,
+  PROMPT_SETTLE_MS,
 } from '../components/openSheets'
 import { mount } from '../testing/dom'
 import { DropGate } from './DropGate'
@@ -49,7 +49,7 @@ test('an open prompt is answered first, then its form closes, then the chooser',
   expect(order).toEqual([])
   order.push('answered')
   answered()
-  await pass(LATE_SHEET_DELAY_MS)
+  await pass(PROMPT_SETTLE_MS)
   expect(order).toEqual(['answered', 'closed', 'chooser'])
   view.unmount()
 })
@@ -60,7 +60,7 @@ test('what an answer opens is closed before the chooser', async () => {
   answered()
   const dismiss = vi.fn(() => sheet.closed())
   const sheet = openSheet(dismiss)
-  await pass(LATE_SHEET_DELAY_MS)
+  await pass(PROMPT_SETTLE_MS)
   expect(dismiss).toHaveBeenCalledOnce()
   expect(state.push).toHaveBeenCalledOnce()
   view.unmount()
@@ -72,7 +72,7 @@ test('a Drop replaced while a prompt is up opens the chooser once', async () => 
   state.pending = { sequence: 2 }
   view.rerender(createElement(DropGate))
   answered()
-  await pass(LATE_SHEET_DELAY_MS)
+  await pass(PROMPT_SETTLE_MS)
   expect(state.push).toHaveBeenCalledOnce()
   view.unmount()
 })
