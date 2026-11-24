@@ -249,8 +249,7 @@ export const shell = {
 
   /**
    * The phone's Home, "Today" (Tiles & Today): what is due, what happened
-   * today, and the Member's Pins. Durations here are written "2 h 10 min",
-   * with spaces, unlike the baby log's shared `status.duration`.
+   * today, and the Member's Pins.
    */
   today: {
     /** Under the Group's name: the date, then how many Members. */
@@ -270,13 +269,6 @@ export const shell = {
     /** The Today rail: a past entry's line, and where now is. */
     entry: '{summary} \u00b7 {child}',
     now: 'Now \u00b7 {time}',
-    duration: {
-      minutes: '{minutes} min',
-      hours: '{hours} h',
-      hoursMinutes: '{hours} h {minutes} min',
-      days: '{days} d',
-    },
-    sideMinutes: '{side} {minutes} min',
     open: 'Open',
     unpin: 'Unpin',
   },

@@ -97,7 +97,6 @@ export function railEntries(
     words: TodayWords
   },
 ): RailEntry[] {
-  const messages = homeBabyLogMessages(babyLog, words)
   const entries: RailEntry[] = []
   for (const child of children) {
     const rows = events[child._id]
@@ -109,28 +108,13 @@ export function railEntries(
         type: row.type,
         timestamp: row.timestamp,
         line: fmt(words.entry, {
-          summary: summarizeBabyEvent(row, messages),
+          summary: summarizeBabyEvent(row, babyLog),
           child: child.name,
         }),
       })
     }
   }
   return entries.sort((a, b) => a.timestamp - b.timestamp)
-}
-
-/**
- * The baby log's words with Home's durations: "2 h 10 min" rather than the
- * shared "2h 10m", which the web also prints and is not changed here.
- */
-export function homeBabyLogMessages(
-  babyLog: BabyLogMessages,
-  words: TodayWords,
-): BabyLogMessages {
-  return {
-    ...babyLog,
-    status: { ...babyLog.status, duration: words.duration },
-    summary: { ...babyLog.summary, sideMinutes: words.sideMinutes },
-  }
 }
 
 /** Midnight local time on the day `now` falls in. */

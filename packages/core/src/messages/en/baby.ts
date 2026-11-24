@@ -93,10 +93,10 @@ export const log = {
     today: 'Today',
     ago: '{duration} ago',
     duration: {
-      minutes: '{minutes}m',
-      hours: '{hours}h',
-      hoursMinutes: '{hours}h {minutes}m',
-      days: '{days}d',
+      minutes: '{minutes} min',
+      hours: '{hours} h',
+      hoursMinutes: '{hours} h {minutes} min',
+      days: '{days} d',
     },
     countToday: '{count} today',
     never: 'Nothing logged yet',
@@ -302,7 +302,7 @@ export const log = {
   summary: {
     celsiusWithMethod: '{celsius}°C ({method})',
     celsius: '{celsius}°C',
-    sideMinutes: '{side} {minutes}m',
+    sideMinutes: '{side} {minutes} min',
     /**
      * Whole phrases per kind rather than "{kind} diaper": Dutch inflects the
      * adjective ("natte luier"), so a language that composes the two in English

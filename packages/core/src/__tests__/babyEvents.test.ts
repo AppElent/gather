@@ -31,13 +31,13 @@ describe('summarizeBabyEvent — feeding', () => {
         leftMin: 10,
         rightMin: 8,
       }),
-    ).toBe('Breastfeeding · Left 10m · Right 8m')
+    ).toBe('Breastfeeding · Left 10 min · Right 8 min')
   })
 
   test('shows only the side that was fed', () => {
     expect(
       summary('feeding', { method: 'breast', side: 'right', rightMin: 7 }),
-    ).toBe('Breastfeeding · Right 7m')
+    ).toBe('Breastfeeding · Right 7 min')
   })
 
   test('falls back to the plain side for entries without minutes', () => {
@@ -79,7 +79,7 @@ describe('summarizeBabyEvent — the rest', () => {
 
   test('a sleep with a real end reads its short duration in the language', () => {
     const end = START + 70 * MINUTE
-    expect(summary('sleep', {}, end)).toBe('Sleep · 1h 10m')
+    expect(summary('sleep', {}, end)).toBe('Sleep · 1 h 10 min')
     expect(
       summarizeBabyEvent(
         { type: 'sleep', data: {}, timestamp: START, endTimestamp: end },
@@ -140,14 +140,21 @@ describe('missingRequiredField', () => {
 describe('shortDuration', () => {
   const UNITS = en.baby.log.status.duration
 
-  test('reads minutes, hours and whole hours', () => {
-    expect(shortDuration(32 * MINUTE, UNITS)).toBe('32m')
-    expect(shortDuration(180 * MINUTE, UNITS)).toBe('3h')
-    expect(shortDuration(190 * MINUTE, UNITS)).toBe('3h 10m')
+  test.each([
+    [0, '0 min', '0 min'],
+    [32, '32 min', '32 min'],
+    [180, '3 h', '3 u'],
+    [190, '3 h 10 min', '3 u 10 min'],
+    [2 * 24 * 60, '2 d', '2 d'],
+  ])('%i minutes is spaced in both languages', (minutes, english, dutch) => {
+    expect(shortDuration(minutes * MINUTE, UNITS)).toBe(english)
+    expect(shortDuration(minutes * MINUTE, nl.baby.log.status.duration)).toBe(
+      dutch,
+    )
   })
 
   test('a clock that moved backwards is not a negative duration', () => {
-    expect(shortDuration(-5000, UNITS)).toBe('0m')
+    expect(shortDuration(-5000, UNITS)).toBe('0 min')
   })
 })
 
