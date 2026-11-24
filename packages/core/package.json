@@ -49,6 +49,7 @@
     "./week-plan": "./src/weekPlan.ts",
     "./task-repeat": "./src/taskRepeat.ts",
     "./subtasks": "./src/subtasks.ts",
+    "./time-zones": "./src/timeZones.ts",
     "./tastings": "./src/tastings.ts"
   },
   "dependencies": {},

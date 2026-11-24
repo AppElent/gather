@@ -155,6 +155,16 @@ export const settings = {
     timeZoneClear: 'Eigen tijdzone per apparaat gebruiken',
     timeZoneFailed: 'Kon de tijdzone niet wijzigen.',
     timeZoneAdminOnly: 'Alleen een beheerder kan dit wijzigen.',
+    timeZoneSave: 'Tijdzone opslaan',
+    timeZoneEachDevice: 'Eigen tijdzone per apparaat',
+    timeZoneDevice: 'Dit apparaat staat in {zone}.',
+    timeZoneChoose: 'Tijdzone kiezen',
+    timeZoneSearch: 'Tijdzones zoeken',
+    timeZoneNoMatches: 'Geen tijdzone gevonden voor “{query}”.',
+    timeZoneRefusals: {
+      'admin-only': 'Alleen een beheerder van deze Groep kan de tijdzone wijzigen.',
+      'unknown-zone': 'Gather kent die tijdzone niet. Kies een andere.',
+    },
     icon: 'Icoon',
     iconOptions: {
       Users: 'Mensen',

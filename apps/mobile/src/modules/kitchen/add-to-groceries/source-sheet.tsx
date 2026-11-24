@@ -4,7 +4,7 @@
  * recipe opens APP-312's sheet; the week menu opens APP-321's sheet for the
  * current week, right here.
  */
-import { addDays, localIsoDate, mondayStart } from '@gather/core/civil-date'
+import { addDays, mondayStart, todayIn } from '@gather/core/civil-date'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
@@ -30,7 +30,9 @@ export function GroceriesSourceSheet({
 }) {
   const { t } = useI18n()
   const { group } = useGroup()
-  const [weekStart] = useState(() => mondayStart(localIsoDate()))
+  const [weekStart] = useState(() =>
+    mondayStart(todayIn(group.timeZone)),
+  )
   const [week, setWeek] = useState(false)
   const data = useQuery(
     api.mealPlan.week,

@@ -5,7 +5,7 @@
  * slimme acties it shows the Limit card instead of the form, and Zelf kiezen
  * opens Pick.
  */
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import type { MealSlot } from '@gather/core/meal-planner'
 import { WEEK_PLAN_WISHES, type WeekPlanWish, WISH_MAX } from '@gather/core/week-plan'
 import { useAction, useConvexConnectionState } from 'convex/react'
@@ -112,7 +112,7 @@ export function PlanSheet({
   const [failed, setFailed] = useState<string | null>(null)
   const [overCap, setOverCap] = useState(false)
 
-  const today = localIsoDate()
+  const today = todayIn(group.timeZone)
   const days = planDays(weekStart, data, choices, slots, flipped, today)
   const fillDates = days.filter((day) => day.state === 'fill').map((day) => day.date)
   const targets = emptyTargets(data, choices, slots, fillDates)

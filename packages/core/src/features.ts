@@ -237,8 +237,8 @@ export const FEATURES = defineFeatures([
     routes: { web: ['_app/group-settings'] },
   },
   {
-    // The zone of the Group's "today" (APP-475). The phone sets its own zone;
-    // the web lists every zone.
+    // The zone of the Group's "today" (APP-475). Both platforms list every
+    // zone.
     id: 'group-time-zone',
     kind: 'product',
     status: 'parity',

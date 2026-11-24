@@ -1,20 +1,24 @@
 /**
  * The zone of the Current Group's "today" (APP-475), on the Groups screen.
- * An admin sets it to this phone's zone or goes back to each device's own;
- * picking any other zone is on the web. Everyone else reads it.
+ * An admin picks any zone, or goes back to each device's own. Everyone else
+ * reads it.
  */
+import {
+  groupRefusalSentence,
+  groupTimeZoneRefusalSentence,
+} from '@gather/core/refusals'
+import { deviceTimeZone, sameTimeZone } from '@gather/core/time-zones'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { AuthError } from '../components/AuthError'
 import { api } from '../convex/api'
-import { useQuery } from '../convex/queries'
 import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
-import { deviceTimeZone } from '../modules/tasks/reminder'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import { Button } from '../ui/button'
 import { useGroup } from './GroupProvider'
+import { TimeZoneSheet } from './TimeZoneSheet'
 
 export function GroupTimeZoneCard() {
   const { group } = useGroup()
@@ -28,28 +32,31 @@ function TimeZoneCard() {
   const text = t.shell.groups.timeZone
   const { group } = useGroup()
   const setTimeZone = useMutation(api.groups.setTimeZone)
-  // `GroupProvider` holds the same subscription, so this reads its result.
-  const myGroups = useQuery(api.groups.myGroups, {})
-  const role = myGroups?.find((each) => each._id === group._id)?.role
-  const [busy, setBusy] = useState<'device' | 'clear' | null>(null)
-  const [failed, setFailed] = useState(false)
+  const isAdmin = group.role === 'admin'
+  const [busy, setBusy] = useState<'choose' | 'device' | 'clear' | null>(null)
+  const [problem, setProblem] = useState<string | null>(null)
+  const [choosing, setChoosing] = useState(false)
   const device = deviceTimeZone()
 
-  async function save(which: 'device' | 'clear') {
+  async function save(
+    which: 'choose' | 'device' | 'clear',
+    timeZone: string | null,
+  ) {
     if (busy) return
     setBusy(which)
-    setFailed(false)
+    setProblem(null)
     try {
-      await setTimeZone({
-        groupId: group._id,
-        timeZone: which === 'device' ? device : null,
-      })
+      await setTimeZone({ groupId: group._id, timeZone })
       haptics.itemSaved()
     } catch (error) {
       // Our sentence on screen, the server's in the log (see `GroupForms`).
       console.warn('[gather] set group time zone failed', error)
       haptics.actionFailed()
-      setFailed(true)
+      setProblem(
+        groupTimeZoneRefusalSentence(error, text.refusals) ??
+          groupRefusalSentence(error, t.common.errors.groupRefusals) ??
+          text.failed,
+      )
     } finally {
       setBusy(null)
     }
@@ -75,30 +82,50 @@ function TimeZoneCard() {
         {group.timeZone ?? fmt(text.unset, { zone: device })}
       </Text>
       <Text style={[styles.note, { color: tokens.muted }]}>{text.note}</Text>
-      <AuthError message={failed ? text.failed : null} />
-      {role === 'member' ? (
+      <AuthError message={problem} />
+      {!isAdmin ? (
         <Text style={[styles.note, { color: tokens.muted }]}>
           {text.adminOnly}
         </Text>
       ) : null}
-      {role === 'admin' && group.timeZone !== device ? (
+      {isAdmin ? (
+        <Button
+          variant="secondary"
+          label={text.choose}
+          busy={busy === 'choose'}
+          disabled={busy !== null}
+          onPress={() => setChoosing(true)}
+          testID="choose-group-time-zone"
+        />
+      ) : null}
+      {isAdmin && !sameTimeZone(group.timeZone, device) ? (
         <Button
           variant="secondary"
           label={text.useDevice}
           busy={busy === 'device'}
           disabled={busy !== null}
-          onPress={() => void save('device')}
+          onPress={() => void save('device', device)}
           testID="use-device-time-zone"
         />
       ) : null}
-      {role === 'admin' && group.timeZone !== undefined ? (
+      {isAdmin && group.timeZone !== undefined ? (
         <Button
           variant="secondary"
           label={text.clear}
           busy={busy === 'clear'}
           disabled={busy !== null}
-          onPress={() => void save('clear')}
+          onPress={() => void save('clear', null)}
           testID="clear-group-time-zone"
+        />
+      ) : null}
+      {choosing ? (
+        <TimeZoneSheet
+          selected={group.timeZone}
+          onChoose={(zone) => {
+            setChoosing(false)
+            void save('choose', zone)
+          }}
+          onClose={() => setChoosing(false)}
         />
       ) : null}
     </View>

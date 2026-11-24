@@ -12,6 +12,7 @@
  */
 import { DateTimePicker } from '@expo/ui/community/datetime-picker'
 import { presetClock, type ReminderPreset } from '@gather/core/task-reminders'
+import { deviceTimeZone } from '@gather/core/time-zones'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { NativeSheet } from '../../components/NativeSheet'
@@ -26,7 +27,6 @@ import { useSheetDraft } from '../../ui/sheet-drafts'
 import {
   availablePresets,
   clockOfDate,
-  deviceTimeZone,
   initialPick,
 } from './reminder'
 import { useTaskActions } from './store'

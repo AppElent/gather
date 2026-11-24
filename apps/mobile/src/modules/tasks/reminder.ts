@@ -15,17 +15,9 @@ import {
   type ReminderClock,
   type ReminderPreset,
 } from '@gather/core/task-reminders'
+import { deviceTimeZone } from '@gather/core/time-zones'
 
 import { dueLabel } from './taskDates'
-
-/** This phone's IANA zone; UTC when the runtime cannot say. */
-export function deviceTimeZone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-  } catch {
-    return 'UTC'
-  }
-}
 
 const pad = (value: number) => String(value).padStart(2, '0')
 

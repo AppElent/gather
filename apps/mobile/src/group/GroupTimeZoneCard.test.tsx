@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /** The Group's time zone on the phone (APP-475): who may set it, and to what. */
-import { createElement, type ReactNode } from 'react'
+import { act, createElement, type ReactNode } from 'react'
 import { beforeEach, expect, test, vi } from 'vitest'
 
 import { mount, settle } from '../testing/dom'
@@ -10,7 +10,7 @@ const state = vi.hoisted(() => ({
   timeZone: undefined as string | undefined,
   role: 'admin' as 'admin' | 'member',
   calls: [] as unknown[],
-  fails: false,
+  fails: null as unknown,
 }))
 vi.mock('react-native', () => {
   const el =
@@ -26,19 +26,27 @@ vi.mock('react-native', () => {
 vi.mock('convex/react', () => ({
   useMutation: () => async (args: unknown) => {
     state.calls.push(args)
-    if (state.fails) throw new Error('refused')
+    if (state.fails) throw state.fails
   },
 }))
 vi.mock('../convex/api', () => ({
-  api: { groups: { setTimeZone: '', myGroups: '' } },
-}))
-vi.mock('../convex/queries', () => ({
-  useQuery: () => [{ _id: 'g', role: state.role }],
+  api: { groups: { setTimeZone: '' } },
 }))
 vi.mock('./GroupProvider', () => ({
-  useGroup: () => ({ group: { _id: 'g', timeZone: state.timeZone } }),
+  useGroup: () => ({
+    group: { _id: 'g', timeZone: state.timeZone, role: state.role },
+  }),
 }))
-vi.mock('../modules/tasks/reminder', () => ({
+vi.mock('./TimeZoneSheet', () => ({
+  TimeZoneSheet: ({ onChoose }: { onChoose: (zone: string) => void }) =>
+    createElement('button', {
+      type: 'button',
+      'data-testid': 'sheet',
+      onClick: () => onChoose('America/New_York'),
+    }),
+}))
+vi.mock('@gather/core/time-zones', async (load) => ({
+  ...(await load<typeof import('@gather/core/time-zones')>()),
   deviceTimeZone: () => 'Europe/Amsterdam',
 }))
 vi.mock('../i18n', async () => {
@@ -70,7 +78,7 @@ const find = (root: HTMLElement, id: string) =>
   root.querySelector<HTMLElement>(`[data-testid="${id}"]`)
 
 beforeEach(() => {
-  Object.assign(state, { timeZone: undefined, role: 'admin', calls: [], fails: false })
+  Object.assign(state, { timeZone: undefined, role: 'admin', calls: [], fails: null })
 })
 
 test("unset: shows the phone's zone, and an admin can use it", async () => {
@@ -99,10 +107,33 @@ test('a plain member reads it and is told who may change it', () => {
   expect(container.textContent).toContain('Only an admin')
 })
 
-test('a refused write says so', async () => {
-  state.fails = true
+test('an admin picks any zone, and the list closes', async () => {
+  const { container } = mount(createElement(GroupTimeZoneCard))
+  act(() => find(container, 'choose-group-time-zone')?.click())
+  act(() => find(container, 'sheet')?.click())
+  await settle()
+  expect(state.calls).toEqual([{ groupId: 'g', timeZone: 'America/New_York' }])
+  expect(find(container, 'sheet')).toBeNull()
+})
+
+test.each([
+  [new Error('offline'), 'Could not change the time zone.'],
+  [
+    { data: { kind: 'groupTimeZone:admin-only' } },
+    'Only an admin of this group can change its time zone.',
+  ],
+  [
+    { data: { kind: 'groupTimeZone:unknown-zone' } },
+    'Gather does not know that time zone.',
+  ],
+  [
+    { data: { kind: 'groups:not-a-member', message: 'x' } },
+    'You are not a member of this group.',
+  ],
+])('a refused write says why (%#)', async (error, sentence) => {
+  state.fails = error
   const { container } = mount(createElement(GroupTimeZoneCard))
   find(container, 'use-device-time-zone')?.click()
   await settle()
-  expect(container.textContent).toContain('Could not change the time zone.')
+  expect(container.textContent).toContain(sentence)
 })

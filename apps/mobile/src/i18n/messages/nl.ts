@@ -278,6 +278,10 @@ export const nl = {
         clear: coreNl.settings.group.timeZoneClear,
         failed: coreNl.settings.group.timeZoneFailed,
         adminOnly: coreNl.settings.group.timeZoneAdminOnly,
+        choose: coreNl.settings.group.timeZoneChoose,
+        search: coreNl.settings.group.timeZoneSearch,
+        noMatches: coreNl.settings.group.timeZoneNoMatches,
+        refusals: coreNl.settings.group.timeZoneRefusals,
       },
       leave: {
         button: coreNl.settings.group.leaveButton,

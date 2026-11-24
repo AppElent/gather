@@ -30,6 +30,7 @@ import {
   sameRepeat,
   type TaskRepeat,
 } from '@gather/core/task-repeat'
+import { deviceTimeZone } from '@gather/core/time-zones'
 import { useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Platform } from 'react-native'
@@ -87,7 +88,6 @@ import {
   availablePresets,
   clockOfDate,
   dateOfClock,
-  deviceTimeZone,
   initialPick,
   reminderLabel,
   reminderPassed,
