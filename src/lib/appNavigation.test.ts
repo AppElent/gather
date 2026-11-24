@@ -45,8 +45,8 @@ describe('the navigation list', () => {
   })
 
   test('marks a Module that is not built yet', () => {
-    const items = navItems(['recipes', 'notes'], en)
-    expect(items.find((i) => i.id === 'notes')?.placeholder).toBe(true)
+    const items = navItems(['recipes', 'calendar'], en)
+    expect(items.find((i) => i.id === 'calendar')?.placeholder).toBe(true)
     expect(items.find((i) => i.id === 'recipes')?.placeholder).toBe(false)
   })
 })

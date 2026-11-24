@@ -107,7 +107,7 @@ export const MODULES = [
     id: 'notes',
     icon: 'NotebookPen',
     group: 'home',
-    status: 'placeholder',
+    status: 'live',
     mobileStatus: 'live',
   },
   /**
