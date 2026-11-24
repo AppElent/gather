@@ -127,7 +127,7 @@ export function ImageUploadField({
             className="h-20 w-20 shrink-0 rounded-lg object-cover"
           />
         ) : (
-          <div className="h-20 w-20 shrink-0 rounded-lg bg-[var(--surface-2)]" />
+          <div className="h-20 w-20 shrink-0 rounded-lg border border-[var(--hair)] bg-[var(--surface-2)]" />
         )}
         <div className="min-w-0 flex-1">
           {/* Visually hidden, not removed: it is still the field, still the
@@ -167,7 +167,7 @@ export function ImageUploadField({
             <button
               type="button"
               disabled={disabled}
-              className="mt-1 block text-xs underline"
+              className="mt-1 block text-xs underline disabled:cursor-not-allowed disabled:opacity-60"
               onClick={() => {
                 setPreviewUrl(null)
                 onChange(undefined)
