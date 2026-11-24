@@ -352,6 +352,7 @@ export const tasks = {
         'Merged with what is already there. The list shows which recipe each item is for.',
       edit: 'Edit',
       editTitle: 'Edit item',
+      editLabel: 'Ingredient',
       failed: 'These could not be added. Try again.',
     },
     aisles: {

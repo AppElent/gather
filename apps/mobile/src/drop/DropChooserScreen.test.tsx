@@ -14,6 +14,7 @@ import { DropGroupSheet } from './DropGroupSheet'
 
 const state = vi.hoisted(() => ({
   os: 'ios' as 'ios' | 'android',
+  hasDrop: true,
 }))
 
 vi.mock('react-native', async () => {
@@ -62,7 +63,18 @@ vi.mock('react-native', async () => {
     },
     ActivityIndicator: () => null,
     View: dom('div'),
-    ScrollView: dom('div'),
+    ScrollView: ({
+      children,
+      contentInsetAdjustmentBehavior,
+    }: Props) =>
+      React.createElement(
+        'div',
+        {
+          'data-scroll': 'true',
+          'data-inset': contentInsetAdjustmentBehavior as string | undefined,
+        },
+        children,
+      ),
     Text: dom('span'),
     Pressable: dom('button'),
     StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 1 },
@@ -118,14 +130,16 @@ vi.mock('../theme/tokens', () => ({
 }))
 vi.mock('./DropProvider', () => ({
   useDrop: () => ({
-    pending: {
-      drop: {
-        kind: 'url' as const,
-        url: 'https://example.com/recipe',
-        host: 'example.com',
-        title: 'Pasta',
-      },
-    },
+    pending: state.hasDrop
+      ? {
+          drop: {
+            kind: 'url' as const,
+            url: 'https://example.com/recipe',
+            host: 'example.com',
+            title: 'Pasta',
+          },
+        }
+      : null,
     offer: () => {},
     clear: () => {},
   }),
@@ -136,10 +150,27 @@ vi.mock('./useDropCommit', () => ({
 
 beforeEach(() => {
   state.os = 'ios'
+  state.hasDrop = true
 })
 
 afterEach(() => {
   state.os = 'ios'
+  state.hasDrop = true
+})
+
+test('DropChooserScreen keeps an automatically inset ScrollView both with and without a drop', () => {
+  const populated = mount(createElement(DropChooserScreen))
+  expect(
+    populated.container.querySelector('[data-scroll="true"]')?.getAttribute('data-inset'),
+  ).toBe('automatic')
+  populated.unmount()
+
+  state.hasDrop = false
+  const empty = mount(createElement(DropChooserScreen))
+  expect(
+    empty.container.querySelector('[data-scroll="true"]')?.getAttribute('data-inset'),
+  ).toBe('automatic')
+  empty.unmount()
 })
 
 for (const os of ['ios', 'android'] as const) {

@@ -179,89 +179,90 @@ export function DropChooserScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: text.title }} />
-      {!drop ? (
-        <View style={{ flex: 1, backgroundColor: tokens.ground }} />
-      ) : (
-        <ScrollView
-          style={{ backgroundColor: tokens.ground }}
-          contentContainerStyle={styles.content}
-        >
-          <DropPreview drop={drop} />
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={[styles.scroll, { backgroundColor: tokens.ground }]}
+        contentContainerStyle={styles.content}
+      >
+        {drop ? (
+          <>
+            <DropPreview drop={drop} />
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={fmt(text.savingTo, { group: named.name })}
-            onPress={() => setNaming(true)}
-            style={({ pressed }) => [
-              styles.groupRow,
-              { backgroundColor: tokens.surface, borderColor: tokens.hair },
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={[styles.groupText, { color: tokens.ink }]}>
-              {fmt(text.savingTo, { group: named.name })}
-            </Text>
-            <Text style={[styles.change, { color: tokens.accentText }]}>
-              {text.changeGroup}
-            </Text>
-          </Pressable>
-
-          <View accessibilityRole="radiogroup" style={styles.rows}>
-            {targets.map((target) => (
-              <TargetRow
-                key={target.id}
-                target={target}
-                selected={target.id === chosen?.id}
-                onPress={() => {
-                  setSelected(target.id)
-                  setProblem(null)
-                  // A picker step moved, which is the one row in the haptics
-                  // table that plays anything on an ordinary tap.
-                  haptics.selectionChanged()
-                }}
-              />
-            ))}
-          </View>
-
-          {problem ? (
-            <Text style={[styles.problem, { color: tokens.danger }]}>
-              {problem === 'failed' ? text.failed : text.problems[problem]}
-            </Text>
-          ) : null}
-
-          <Pressable
-            accessibilityRole="button"
-            disabled={saving}
-            onPress={confirm}
-            style={({ pressed }) => [
-              styles.confirm,
-              { backgroundColor: tokens.accent },
-              pressed && styles.pressed,
-            ]}
-          >
-            {saving ? (
-              <ActivityIndicator color={tokens.onAccent} />
-            ) : (
-              <Text style={[styles.confirmLabel, { color: tokens.onAccent }]}>
-                {chosen && asksBeforeCommit(chosen)
-                  ? text.continue
-                  : t.common.actions.save}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={fmt(text.savingTo, { group: named.name })}
+              onPress={() => setNaming(true)}
+              style={({ pressed }) => [
+                styles.groupRow,
+                { backgroundColor: tokens.surface, borderColor: tokens.hair },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.groupText, { color: tokens.ink }]}>
+                {fmt(text.savingTo, { group: named.name })}
               </Text>
-            )}
-          </Pressable>
+              <Text style={[styles.change, { color: tokens.accentText }]}>
+                {text.changeGroup}
+              </Text>
+            </Pressable>
 
-          <Pressable
-            accessibilityRole="button"
-            onPress={dismiss}
-            hitSlop={12}
-            style={styles.cancel}
-          >
-            <Text style={[styles.cancelLabel, { color: tokens.muted }]}>
-              {text.cancel}
-            </Text>
-          </Pressable>
-        </ScrollView>
-      )}
+            <View accessibilityRole="radiogroup" style={styles.rows}>
+              {targets.map((target) => (
+                <TargetRow
+                  key={target.id}
+                  target={target}
+                  selected={target.id === chosen?.id}
+                  onPress={() => {
+                    setSelected(target.id)
+                    setProblem(null)
+                    // A picker step moved, which is the one row in the haptics
+                    // table that plays anything on an ordinary tap.
+                    haptics.selectionChanged()
+                  }}
+                />
+              ))}
+            </View>
+
+            {problem ? (
+              <Text style={[styles.problem, { color: tokens.danger }]}>
+                {problem === 'failed' ? text.failed : text.problems[problem]}
+              </Text>
+            ) : null}
+
+            <Pressable
+              accessibilityRole="button"
+              disabled={saving}
+              onPress={confirm}
+              style={({ pressed }) => [
+                styles.confirm,
+                { backgroundColor: tokens.accent },
+                pressed && styles.pressed,
+              ]}
+            >
+              {saving ? (
+                <ActivityIndicator color={tokens.onAccent} />
+              ) : (
+                <Text style={[styles.confirmLabel, { color: tokens.onAccent }]}>
+                  {chosen && asksBeforeCommit(chosen)
+                    ? text.continue
+                    : t.common.actions.save}
+                </Text>
+              )}
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={dismiss}
+              hitSlop={12}
+              style={styles.cancel}
+            >
+              <Text style={[styles.cancelLabel, { color: tokens.muted }]}>
+                {text.cancel}
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+      </ScrollView>
 
       {naming ? (
         <DropGroupSheet
@@ -365,6 +366,7 @@ function TargetRow({
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   content: { padding: 16, gap: 14, paddingBottom: 40 },
   preview: {
     borderRadius: RADIUS.card,

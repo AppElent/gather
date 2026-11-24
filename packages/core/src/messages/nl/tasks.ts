@@ -276,6 +276,7 @@ export const tasks = {
         'Samengevoegd met wat er al op staat. De lijst ziet erbij voor welk recept het is.',
       edit: 'Wijzigen',
       editTitle: 'Item wijzigen',
+      editLabel: 'Ingrediënt',
       failed: 'Dit kon niet worden toegevoegd. Probeer het opnieuw.',
     },
     aisles: {

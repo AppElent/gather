@@ -18,8 +18,9 @@ import {
   type GroceryAmount,
 } from '@gather/core/groceries'
 import { useMutation } from 'convex/react'
-import { type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -55,6 +56,7 @@ import { SectionLabel } from '../../../ui/section-label'
 import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { useTaskList, useTaskLists } from '../../tasks/store'
 import { useInStock } from '../in-stock/use-in-stock'
+import { EditLineModal } from './edit-line-modal'
 import {
   editedRead,
   type LineRead,
@@ -147,6 +149,7 @@ export function AddToGroceriesSheet({
     chosenListId?: string
     ticks: Record<string, boolean>
     edits: Record<string, LineRead>
+    editing?: { key: string; text: string } | null
   }>(place)
   const kept = draft.kept
   const [chosenListId, setChosenListId] = useState<string | undefined>(
@@ -166,14 +169,30 @@ export function AddToGroceriesSheet({
 
   const [ticks, setTicks] = useState<Record<string, boolean>>(kept?.ticks ?? {})
   const [edits, setEdits] = useState<Record<string, LineRead>>(kept?.edits ?? {})
+  const [editing, setEditing] = useState<{ key: string; text: string } | null>(
+    kept?.editing ?? null,
+  )
+  // A restored editor waits for the sheet: on Android both are windows, and
+  // the one opened last is on top, so it must not open before the sheet does.
+  const [editorHidden, setEditorHidden] = useState(kept?.editing != null)
+  useEffect(() => {
+    // Runs after `NativeSheet`'s own mount effect, which presents the sheet.
+    setEditorHidden(false)
+  }, [])
   const [busy, setBusy] = useState(false)
-  draft.track({ chosenListId, ticks, edits }, { holding: busy })
+  draft.track({ chosenListId, ticks, edits, editing }, { holding: busy })
   const [failed, setFailed] = useState(false)
   const [rowWidth, setRowWidth] = useState<number>()
 
   const sourceLines =
     typeof lines === 'function'
-      ? lines(new Set([...Object.keys(ticks), ...Object.keys(edits)]))
+      ? lines(
+          new Set([
+            ...Object.keys(ticks),
+            ...Object.keys(edits),
+            ...(editing ? [editing.key] : []),
+          ]),
+        )
       : lines
   // A retype made while a line was still being read stays with its row.
   const shown = withEdits(sourceLines, edits)
@@ -271,9 +290,31 @@ export function AddToGroceriesSheet({
     setTicks((current) => settleLine(current, line, !row.on))
   }
 
+  const applyEdit = (key: string, value: string) => {
+    const text = value.trim()
+    if (!text) return
+    // A key the line has since left (`was`, its AI reading arrived while the
+    // editor was open) stays the key the edit and tick are stored under: the
+    // week menu keeps that meal's line apart only while the key is touched.
+    const own = shown.find((candidate) => candidate.key === key)
+    const readSince = shown.some((candidate) => candidate.was?.includes(key))
+    const line =
+      own ??
+      (readSince
+        ? undefined
+        : shown.find((candidate) => candidate.former?.includes(key))) ?? { key }
+    setEdits((current) => settleLine(current, line, editedRead(text)))
+    setTicks((current) => settleLine(current, line, true))
+  }
+
   const edit = (row: PickRow) => {
     if (busy) return
     const typed = [amountText(row.amount), row.title].filter(Boolean).join(' ')
+    if (Platform.OS !== 'ios') {
+      setEditorHidden(false)
+      setEditing({ key: row.key, text: typed })
+      return
+    }
     showPrompt(
       words.editTitle,
       undefined,
@@ -282,11 +323,7 @@ export function AddToGroceriesSheet({
         {
           text: t.common.actions.save,
           onPress: (value?: string) => {
-            const text = value?.trim()
-            if (!text) return
-            const line = shown.find((candidate) => candidate.key === row.key) ?? row
-            setEdits((current) => settleLine(current, line, editedRead(text)))
-            setTicks((current) => settleLine(current, line, true))
+            if (value) applyEdit(row.key, value)
           },
         },
       ],
@@ -380,8 +417,9 @@ export function AddToGroceriesSheet({
   )
 
   return (
-    <NativeSheet
-      title={words.title}
+    <>
+      <NativeSheet
+        title={words.title}
       onClose={onClose}
       maxHeight={0.92}
       fill
@@ -587,7 +625,24 @@ export function AddToGroceriesSheet({
           </View>
         ) : null}
       </ScrollView>
-    </NativeSheet>
+      </NativeSheet>
+      {editing && !editorHidden ? (
+        <EditLineModal
+          title={words.editTitle}
+          label={words.editLabel}
+          value={editing.text}
+          onChangeText={(text) =>
+            setEditing((current) => (current ? { ...current, text } : null))
+          }
+          onSave={(value) => {
+            applyEdit(editing.key, value)
+            setEditing(null)
+          }}
+          onClose={() => setEditing(null)}
+          onShareClose={() => setEditorHidden(true)}
+        />
+      ) : null}
+    </>
   )
 }
 
