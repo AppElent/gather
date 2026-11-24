@@ -4,7 +4,7 @@ import { fmt, useMessages } from '../../lib/i18n'
 import { moduleLink } from '../../lib/links'
 import { Breadcrumbs } from './Breadcrumbs'
 import { InsetList, SectionFooter, SectionLabel } from './InsetList'
-import { WashHeader } from './WashHeader'
+import { WashHeader, type WashSummary } from './WashHeader'
 
 /**
  * The frame of a Module's settings page (APP-800), the phone's `SettingsPage`
@@ -16,9 +16,11 @@ import { WashHeader } from './WashHeader'
  */
 export function ModuleSettingsPage({
   moduleId,
+  summary,
   children,
 }: {
   moduleId: ModuleId
+  summary?: WashSummary
   children: ReactNode
 }) {
   const messages = useMessages()
@@ -35,6 +37,7 @@ export function ModuleSettingsPage({
         group={module.group}
         icon={module.icon}
         title={title}
+        summary={summary}
         back={back}
       />
       {children}

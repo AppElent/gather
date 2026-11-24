@@ -1,6 +1,6 @@
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { fmt, useMessages } from '../../lib/i18n'
+import { fmt, plural, useI18n } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { EmptyState } from '../app/EmptyState'
 import { InsetRow } from '../app/InsetList'
@@ -17,12 +17,21 @@ import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 export function BabySettingsPage() {
   const group = useRequiredCurrentGroup()
   const babies = useQuery(api.babies.list, { groupSlug: group.slug })
-  const messages = useMessages()
+  const { locale, messages } = useI18n()
   const { list } = messages.baby.log
   const label = messages.modules.byId['baby-log'].label
 
   return (
-    <ModuleSettingsPage moduleId="baby-log">
+    <ModuleSettingsPage moduleId="baby-log"
+      summary={
+        babies
+          ? {
+              count: plural(locale, babies.length, list.count),
+              scope: group.name,
+            }
+          : undefined
+      }
+    >
       {babies === undefined ? (
         <ListLoadingState label={messages.common.errors.loading} sections={1} />
       ) : babies.length === 0 ? (

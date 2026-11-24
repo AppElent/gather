@@ -1,5 +1,5 @@
 import { SMART_LISTS } from '@gather/core/smart-lists'
-import { useMessages } from '../../lib/i18n'
+import { plural, useI18n } from '../../lib/i18n'
 import { InsetRow } from '../app/InsetList'
 import { ModuleSettingsGroup, ModuleSettingsPage } from '../app/ModuleSettingsPage'
 import { useHiddenSmartLists } from './hiddenSmartLists'
@@ -12,12 +12,16 @@ import { useHiddenSmartLists } from './hiddenSmartLists'
  * what `useHiddenSmartLists` hides.
  */
 export function TasksSettingsPage() {
-  const messages = useMessages()
+  const { locale, messages } = useI18n()
   const { smart } = messages.tasks
   const { hidden, toggle } = useHiddenSmartLists()
 
   return (
-    <ModuleSettingsPage moduleId="tasks">
+    <ModuleSettingsPage moduleId="tasks"
+      summary={{
+        count: plural(locale, SMART_LISTS.length - hidden.length, smart.shown),
+      }}
+    >
       <ModuleSettingsGroup
         title={smart.section}
         footer={messages.shell.modulePage.settingsBrowser}
