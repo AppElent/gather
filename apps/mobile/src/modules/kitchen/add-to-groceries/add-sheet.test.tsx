@@ -189,8 +189,8 @@ vi.mock('../../tasks/store', () => ({
 vi.mock('../in-stock/use-in-stock', () => ({
   useInStock: () => (state.realPick ? () => false : []),
 }))
-vi.mock('./pick', async () => {
-  const actual = await vi.importActual<typeof import('./pick')>('./pick')
+vi.mock('@gather/core/grocery-pick', async () => {
+  const actual = await vi.importActual<typeof import('@gather/core/grocery-pick')>('@gather/core/grocery-pick')
   return {
   editedRead: (text: string) =>
     state.realPick
