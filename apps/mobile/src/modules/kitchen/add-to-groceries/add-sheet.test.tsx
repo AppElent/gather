@@ -331,9 +331,13 @@ test('editing an ingredient on Android opens the in-app modal, saves, and regist
   ])
   expect(state.lastPickArgs?.ticks).toEqual({ k1: true })
 
-  // A share arriving while the modal is open closes it cleanly instead of blocking.
+  // A share arriving while the modal is open closes it cleanly, keeps the typed
+  // edit in the sheet draft, and restores it when Add to groceries reopens.
   act(() => {
     state.rowAction?.('edit')
+  })
+  act(() => {
+    state.fieldOnChange?.('4 shallots')
   })
   expect(hasOpenSheets()).toBe(true)
   expect(view.container.querySelector('[data-testid="groceries-edit-dialog"]')).not.toBeNull()
@@ -350,16 +354,25 @@ test('editing an ingredient on Android opens the in-app modal, saves, and regist
   expect(view.container.querySelector('[data-testid="groceries-edit-dialog"]')).toBeNull()
   expect(hasOpenSheets()).toBe(false)
 
-  // Cancelling also closes and releases openSheets.
-  act(() => {
-    state.rowAction?.('edit')
-  })
+  // Parent sheet unmounts as part of the share, then reopens with the edit kept.
+  view.unmount()
+  const reopened = renderSheet([
+    { key: 'k1', title: 'onions', amount: { quantity: 2 } },
+  ])
+  expect(
+    reopened.view.container.querySelector('[data-testid="groceries-edit-dialog"]'),
+  ).not.toBeNull()
+  expect(state.fieldValue).toBe('4 shallots')
   expect(hasOpenSheets()).toBe(true)
+
+  // Cancelling discards the edit, closes the modal, and releases openSheets.
   act(() => {
     state.buttons['groceries-edit-cancel']?.onPress()
   })
-  expect(view.container.querySelector('[data-testid="groceries-edit-dialog"]')).toBeNull()
+  expect(
+    reopened.view.container.querySelector('[data-testid="groceries-edit-dialog"]'),
+  ).toBeNull()
   expect(hasOpenSheets()).toBe(false)
 
-  view.unmount()
+  reopened.view.unmount()
 })

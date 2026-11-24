@@ -149,6 +149,7 @@ export function AddToGroceriesSheet({
     chosenListId?: string
     ticks: Record<string, boolean>
     edits: Record<string, LineRead>
+    editing?: { key: string; text: string } | null
   }>(place)
   const kept = draft.kept
   const [chosenListId, setChosenListId] = useState<string | undefined>(
@@ -168,13 +169,14 @@ export function AddToGroceriesSheet({
 
   const [ticks, setTicks] = useState<Record<string, boolean>>(kept?.ticks ?? {})
   const [edits, setEdits] = useState<Record<string, LineRead>>(kept?.edits ?? {})
+  const [editing, setEditing] = useState<{ key: string; text: string } | null>(
+    kept?.editing ?? null,
+  )
+  const [editorHidden, setEditorHidden] = useState(false)
   const [busy, setBusy] = useState(false)
-  draft.track({ chosenListId, ticks, edits }, { holding: busy })
+  draft.track({ chosenListId, ticks, edits, editing }, { holding: busy })
   const [failed, setFailed] = useState(false)
   const [rowWidth, setRowWidth] = useState<number>()
-  const [editing, setEditing] = useState<{ row: PickRow; typed: string } | null>(
-    null,
-  )
 
   const sourceLines =
     typeof lines === 'function'
@@ -288,7 +290,8 @@ export function AddToGroceriesSheet({
     if (busy) return
     const typed = [amountText(row.amount), row.title].filter(Boolean).join(' ')
     if (Platform.OS !== 'ios') {
-      setEditing({ row, typed })
+      setEditorHidden(false)
+      setEditing({ key: row.key, text: typed })
       return
     }
     showPrompt(
@@ -391,6 +394,11 @@ export function AddToGroceriesSheet({
       )}
     </View>
   )
+
+  const editingRow =
+    editing && !editorHidden
+      ? pick.rows.find((row) => row.key === editing.key)
+      : undefined
 
   return (
     <>
@@ -602,16 +610,20 @@ export function AddToGroceriesSheet({
         ) : null}
       </ScrollView>
       </NativeSheet>
-      {editing ? (
+      {editing && editingRow ? (
         <EditLineModal
           title={words.editTitle}
           label={words.editLabel}
-          initialValue={editing.typed}
+          value={editing.text}
+          onChangeText={(text) =>
+            setEditing((current) => (current ? { ...current, text } : null))
+          }
           onSave={(value) => {
-            applyEdit(editing.row, value)
+            applyEdit(editingRow, value)
             setEditing(null)
           }}
           onClose={() => setEditing(null)}
+          onShareClose={() => setEditorHidden(true)}
         />
       ) : null}
     </>

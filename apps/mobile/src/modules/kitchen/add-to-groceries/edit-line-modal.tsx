@@ -4,8 +4,10 @@
  *
  * Registers with `openSheets` while mounted so an arriving Drop closes it
  * alongside the Add to groceries sheet and is never held back (APP-672).
+ * `onShareClose` hides the modal without discarding the typed text, which the
+ * parent sheet keeps in its `useSheetDraft` until reopened.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
@@ -26,30 +28,34 @@ import { Modal } from '../../../ui/modal'
 export function EditLineModal({
   title,
   label,
-  initialValue,
+  value,
+  onChangeText,
   onSave,
   onClose,
+  onShareClose,
 }: {
   title: string
   label: string
-  initialValue: string
+  value: string
+  onChangeText: (text: string) => void
   onSave: (value: string) => void
   onClose: () => void
+  /** Called when an arriving Drop closes sheets, so the draft stays kept. */
+  onShareClose: () => void
 }) {
   const tokens = useTokens('kitchen')
   const { t } = useI18n()
-  const [draft, setDraft] = useState(initialValue)
-  const valid = draft.trim().length > 0
+  const valid = value.trim().length > 0
 
-  const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
+  const onShareCloseRef = useRef(onShareClose)
+  onShareCloseRef.current = onShareClose
   useEffect(() => {
-    const sheet = openSheet(() => onCloseRef.current())
+    const sheet = openSheet(() => onShareCloseRef.current())
     return sheet.closed
   }, [])
 
   const save = () => {
-    const trimmed = draft.trim()
+    const trimmed = value.trim()
     if (!trimmed) {
       haptics.actionFailed()
       return
@@ -101,8 +107,8 @@ export function EditLineModal({
             <Field
               testID="groceries-edit-field"
               label={label}
-              value={draft}
-              onChangeText={setDraft}
+              value={value}
+              onChangeText={onChangeText}
               autoFocus
               returnKeyType="done"
               onSubmitEditing={save}
