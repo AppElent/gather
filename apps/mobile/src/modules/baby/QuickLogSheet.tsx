@@ -404,6 +404,7 @@ export function QuickLogSheet({
               }
               disabled={saving}
               initialPreview={previews[each]}
+              uploadScope={`${draft.scope}:${each}`}
               onPreviewChange={(preview) =>
                 setPreviews((prev) => ({ ...prev, [each]: preview }))
               }

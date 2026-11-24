@@ -28,7 +28,7 @@ export function EntryPhotoField({
   disabled: boolean
 } & Pick<
   PhotoFieldProps,
-  'initialPreview' | 'onPreviewChange' | 'onBusyChange'
+  'initialPreview' | 'onPreviewChange' | 'onBusyChange' | 'uploadScope'
 >) {
   const { t } = useI18n()
   const generateUploadUrl = useMutation(api.babies.generateUploadUrl)

@@ -37,6 +37,8 @@ export interface TrackOptions {
 }
 
 export interface SheetDraft<T> {
+  /** The draft's key: what a form scopes its own state to (a photo's upload). */
+  scope: string
   /** The draft a share kept, read when the form opened. */
   kept: T | undefined
   /** The form's state now, called on every render. Serialisable values only. */
@@ -97,6 +99,7 @@ export function useSheetDraft<T>(place: string): SheetDraft<T> {
 
   // Plain object, made each render: the hook's state is all in refs.
   return {
+    scope: key,
     kept,
     track(value, options = {}) {
       let dirty = options.dirty

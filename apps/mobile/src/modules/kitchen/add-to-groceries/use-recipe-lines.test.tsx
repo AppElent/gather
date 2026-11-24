@@ -7,6 +7,7 @@ import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { mount, settle } from '../../../testing/dom'
+import { pickRows } from './pick'
 import type { ReadAnswer } from './read-batches'
 import { type IngredientSource, useIngredientLines } from './use-recipe-lines'
 
@@ -240,5 +241,46 @@ describe('useIngredientLines', () => {
     await settle()
     expect(calls).toHaveLength(1)
     expect(kinds(result, 'a')).toEqual(['text', 'text', 'text', 'text'])
+  })
+
+  test('a tick and a retyped line stay on their ingredient when the recipe is reordered (APP-734)', () => {
+    const edited = { kind: 'read', via: 'edited', name: 'Rode uien', quantity: 3 } as const
+    const linesOf = (ingredients: string[]) => {
+      const result = renderLines([{ id: 'a', ingredients }])
+      return result.current.lines.get('a') ?? []
+    }
+    const before = linesOf(['2 uien', '1 knoflook', '3 tomaten'])
+    const ui = before[0].key
+    const knoflook = before[1].key
+    const ticks = { [ui]: false }
+    const edits = { [knoflook]: edited }
+
+    const after = linesOf(['3 tomaten', '1 knoflook', '2 uien'])
+    const keyOf = (text: string) => after.find((line) => line.text === text)?.key
+    expect(keyOf('2 uien')).toBe(ui)
+    expect(keyOf('1 knoflook')).toBe(knoflook)
+
+    // The unticked onion is still the onion; the others keep their defaults.
+    const rows = pickRows({ lines: after, items: [], ticks }).rows
+    expect(rows.map((row) => [row.title, row.on])).toEqual([
+      ['Tomaten', true],
+      ['Knoflook', true],
+      ['Uien', false],
+    ])
+    expect(after.filter((line) => edits[line.key]).map((line) => line.text)).toEqual([
+      '1 knoflook',
+    ])
+
+    // An ingredient that is gone takes its tick with it: nothing lands on
+    // whatever now stands where it was.
+    const gone = linesOf(['3 tomaten', '1 knoflook'])
+    expect(gone.some((line) => line.key in ticks)).toBe(false)
+  })
+
+  test('a repeated ingredient keeps one key per copy', () => {
+    const result = renderLines([{ id: 'a', ingredients: ['zout', 'peper', 'zout', ''] }])
+    const keys = (result.current.lines.get('a') ?? []).map((line) => line.key)
+    expect(new Set(keys).size).toBe(keys.length)
+    expect(keys).toEqual(['zout', 'peper', 'zout#1'])
   })
 })
