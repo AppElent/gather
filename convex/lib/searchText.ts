@@ -37,7 +37,7 @@ function termsOf(words: string[]): string[] {
  * search with (empty when no word is searchable), and whether a text matches.
  * An index returns rows with *any* word; `matches` asks for every word, by the
  * index's own rule: a word matches whole, and the last one, still being typed,
- * from its start.
+ * from its start. Words the index leaves out (`termsOf`) are not asked for.
  */
 export function indexSearch(text: string) {
   const words = wordsOf(text)

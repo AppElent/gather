@@ -18,8 +18,8 @@ const GROUP_RECORD_LIMIT = 200
 /**
  * At most this many recipes Shared into the Group are searched. They come out
  * of the recipe budget rather than on top of it (the Group's own recipes get
- * what the shares leave), so this query never reads more recipe documents
- * than it did before shares were searched. Rows, not bytes, are what the
+ * what the shares leave), so shares add no recipe documents to the scan; the
+ * title index adds up to `GROUP_MATCH_LIMIT` more. Rows, not bytes, are what the
  * budgets bound, and a recipe or note can be large.
  */
 const SHARED_RECIPE_LIMIT = 50
@@ -199,68 +199,68 @@ export const group = query({
       taskLists,
       loyaltyCards,
     ] = await Promise.all([
-        accepts.has('recipe')
-          ? ctx.db
-              .query('recipes')
-              .withIndex('by_group', (q) => q.eq('groupId', groupId))
-              .order('desc')
-              .take(GROUP_RECORD_LIMIT - sharedIds.length)
-          : none,
-        accepts.has('recipe') && searchable
-          ? ctx.db
-              .query('recipes')
-              .withSearchIndex('search_title', (q) =>
-                q.search('title', search).eq('groupId', groupId),
-              )
-              .take(GROUP_MATCH_LIMIT)
-          : none,
-        accepts.has('note')
-          ? findNotes(ctx, groupId, args.query)
-          : none,
-        accepts.has('tasting')
-          ? args.kind
-            ? ctx.db
-                .query('tastingSubjects')
-                .withIndex('by_group_kind', (q) =>
-                  q.eq('groupId', groupId).eq('kind', args.kind!),
-                )
-                .order('desc')
-                .take(GROUP_RECORD_LIMIT)
-            : ctx.db
-                .query('tastingSubjects')
-                .withIndex('by_group', (q) => q.eq('groupId', groupId))
-                .order('desc')
-                .take(GROUP_RECORD_LIMIT)
-          : none,
-        accepts.has('tasting') && searchable
+      accepts.has('recipe')
+        ? ctx.db
+            .query('recipes')
+            .withIndex('by_group', (q) => q.eq('groupId', groupId))
+            .order('desc')
+            .take(GROUP_RECORD_LIMIT - sharedIds.length)
+        : none,
+      accepts.has('recipe') && searchable
+        ? ctx.db
+            .query('recipes')
+            .withSearchIndex('search_title', (q) =>
+              q.search('title', search).eq('groupId', groupId),
+            )
+            .take(GROUP_MATCH_LIMIT)
+        : none,
+      accepts.has('note')
+        ? findNotes(ctx, groupId, args.query)
+        : none,
+      accepts.has('tasting')
+        ? args.kind
           ? ctx.db
               .query('tastingSubjects')
-              .withSearchIndex('search_name', (q) => {
-                const inGroup = q.search('name', search).eq('groupId', groupId)
-                return args.kind ? inGroup.eq('kind', args.kind) : inGroup
-              })
-              .take(GROUP_MATCH_LIMIT)
-          : none,
-        accepts.has('calendarEvent')
-          ? ctx.db
-              .query('calendars')
-              .withIndex('by_group', (q) => q.eq('groupId', groupId))
-              .take(PARENT_LIMIT)
-          : none,
-        accepts.has('task')
-          ? ctx.db
-              .query('taskLists')
-              .withIndex('by_group', (q) => q.eq('groupId', groupId))
-              .take(PARENT_LIMIT)
-          : none,
-        accepts.has('loyaltyCard')
-          ? ctx.db
-              .query('loyaltyCards')
+              .withIndex('by_group_kind', (q) =>
+                q.eq('groupId', groupId).eq('kind', args.kind!),
+              )
+              .order('desc')
+              .take(GROUP_RECORD_LIMIT)
+          : ctx.db
+              .query('tastingSubjects')
               .withIndex('by_group', (q) => q.eq('groupId', groupId))
               .order('desc')
               .take(GROUP_RECORD_LIMIT)
-          : none,
-      ])
+        : none,
+      accepts.has('tasting') && searchable
+        ? ctx.db
+            .query('tastingSubjects')
+            .withSearchIndex('search_name', (q) => {
+              const inGroup = q.search('name', search).eq('groupId', groupId)
+              return args.kind ? inGroup.eq('kind', args.kind) : inGroup
+            })
+            .take(GROUP_MATCH_LIMIT)
+        : none,
+      accepts.has('calendarEvent')
+        ? ctx.db
+            .query('calendars')
+            .withIndex('by_group', (q) => q.eq('groupId', groupId))
+            .take(PARENT_LIMIT)
+        : none,
+      accepts.has('task')
+        ? ctx.db
+            .query('taskLists')
+            .withIndex('by_group', (q) => q.eq('groupId', groupId))
+            .take(PARENT_LIMIT)
+        : none,
+      accepts.has('loyaltyCard')
+        ? ctx.db
+            .query('loyaltyCards')
+            .withIndex('by_group', (q) => q.eq('groupId', groupId))
+            .order('desc')
+            .take(GROUP_RECORD_LIMIT)
+        : none,
+    ])
 
     // Recipes Shared into the Group are in its collection too
     // (`lib/recipeShares.ts`). Each share row is re-checked against the recipe

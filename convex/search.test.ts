@@ -765,6 +765,7 @@ describe('Group search past the newest rows (APP-758)', () => {
         for (let index = 0; index < newer - 1; index += 1)
           await add(`Row ${index}`)
         await add('Nieuwe dranklijst', 'beer')
+        if (type === 'recipe') await add('Nieuwe -- map')
       }
     })
     return async (query: string, kind?: 'wine' | 'beer') =>
@@ -800,8 +801,7 @@ describe('Group search past the newest rows (APP-758)', () => {
 
   test('a search with no searchable word still scans', async () => {
     const search = await seedOld('recipe')
-    expect(await search(': ')).toEqual([])
-    expect(await search('--')).toEqual([])
+    expect(await search('--')).toEqual(['Nieuwe -- map'])
   })
 
   test('filters an old match and keeps the ranking', async () => {
@@ -833,6 +833,7 @@ describe('Group search past the newest rows (APP-758)', () => {
         ...task,
         title: 'Milk',
         done: true,
+        dueDate: '2020-03-01',
         createdBy: samId,
       })
       for (let index = 0; index < 60; index += 1)
@@ -846,6 +847,8 @@ describe('Group search past the newest rows (APP-758)', () => {
     const search = async (filters: {
       createdBy?: string
       status?: 'open' | 'done'
+      when?: 'today'
+      today?: string
     }) =>
       (
         await t.withIdentity(gail).query(api.search.group, {
@@ -862,5 +865,6 @@ describe('Group search past the newest rows (APP-758)', () => {
     expect(await search({ createdBy: samId })).toEqual(['Milk'])
     expect(await search({ status: 'done' })).toEqual(['Milk'])
     expect(await search({ status: 'open' })).not.toContain('Milk')
+    expect(await search({ when: 'today', today: '2020-03-01' })).toEqual(['Milk'])
   })
 })
