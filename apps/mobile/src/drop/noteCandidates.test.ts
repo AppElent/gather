@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { pickableNotes } from './noteCandidates'
+import { asksServer, pickableNotes } from './noteCandidates'
 
 const note = (id: string, title: string) => ({ _id: id, title, body: '' })
 const recent = [note('1', 'Boiler manual'), note('2', '')]
@@ -30,4 +30,10 @@ test('is still loading, not empty, until the server has answered', () => {
   expect(pick('wifi', recent, [])).toEqual([])
   expect(pick('w', recent)).toEqual([])
   expect(pick('w', undefined)).toBeUndefined()
+})
+
+test('a letter that lowercases to two is still one, and waits for nothing', () => {
+  expect(asksServer(' İ ')).toBe(false)
+  expect(asksServer('wi')).toBe(true)
+  expect(pick('İ', recent)).toEqual([])
 })

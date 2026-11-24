@@ -1,5 +1,13 @@
 /** The shortest search `notes.searchNotes` answers. */
-export const MINIMUM_NOTE_QUERY = 2
+const MINIMUM_QUERY = 2
+
+/**
+ * Whether the server is asked. Counted before lowercasing, as the server does:
+ * "İ" lowercases to two characters.
+ */
+export function asksServer(query: string): boolean {
+  return query.trim().length >= MINIMUM_QUERY
+}
 
 export interface PickableNote {
   _id: string
@@ -20,7 +28,7 @@ export function pickableNotes(
 ): PickableNote[] | undefined {
   const needle = query.trim().toLowerCase()
   if (!needle) return recent
-  const searching = needle.length >= MINIMUM_NOTE_QUERY
+  const searching = asksServer(query)
   const local = (recent ?? []).filter((note) =>
     (note.title || untitled).toLowerCase().includes(needle),
   )

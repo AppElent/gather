@@ -51,7 +51,13 @@ export const noteTools = [
     access: 'read',
     input: {
       groupId,
-      query: z.string().max(100).optional(),
+      query: z
+        .string()
+        .max(100)
+        .optional()
+        .describe(
+          'Words to find, at least two characters. total counts at most 200 matches.',
+        ),
       limit: z.number().int().min(1).max(100).default(30),
       cursor: z
         .string()

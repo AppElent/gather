@@ -54,7 +54,7 @@ import {
   type DropTargetId,
   dropTargetById,
 } from './dropTargets'
-import { MINIMUM_NOTE_QUERY, pickableNotes } from './noteCandidates'
+import { asksServer, pickableNotes } from './noteCandidates'
 import { type DropPicked, useDropCommit } from './useDropCommit'
 
 /** One row of whatever stage two is listing. */
@@ -295,7 +295,7 @@ function useCandidates(
     api.notes.searchNotes,
     picks === 'note' &&
       debounced === query.trim() &&
-      debounced.length >= MINIMUM_NOTE_QUERY
+      asksServer(debounced)
       ? { groupSlug, query: debounced }
       : 'skip',
   )
