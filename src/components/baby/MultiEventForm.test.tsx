@@ -1,7 +1,8 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { beforeEach, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { renderWithI18n } from '../../lib/i18n/testing'
+import { stubImagePipeline } from '../photo/testing'
 import { MultiEventForm } from './MultiEventForm'
 
 const add = vi.fn()
@@ -16,6 +17,11 @@ beforeEach(() => {
   add.mockReset()
   add.mockResolvedValue('event1')
   window.localStorage.clear()
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 
 function renderForm(onDone = vi.fn()) {
@@ -110,4 +116,46 @@ test('a failed save keeps the unsaved entries on screen', async () => {
   // Temperature saved, so only feeding and diaper are still pending.
   expect(screen.queryByText('Temperature (°C)')).toBeNull()
   expect(screen.getByRole('button', { name: 'Save 2 entries' })).toBeDefined()
+})
+
+async function addMemoryWithPhoto() {
+  stubImagePipeline()
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: true, json: async () => ({ storageId: 'p1' }) })),
+  )
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Memory' }))
+  fireEvent.change(screen.getByLabelText('What happened'), {
+    target: { value: 'First laugh' },
+  })
+  fireEvent.change(screen.getByLabelText('Photo'), {
+    target: { files: [new File(['x'], 'a.jpg', { type: 'image/jpeg' })] },
+  })
+  fireEvent.click(await screen.findByRole('button', { name: 'Use photo' }))
+  await screen.findByRole('button', { name: 'Remove photo' })
+}
+
+const savedMemory = () =>
+  add.mock.calls.map(([args]) => args).find((c) => c?.type === 'memory')
+
+test('a Memory among several entries carries its photo, and only it', async () => {
+  renderForm()
+  await addMemoryWithPhoto()
+  fireEvent.click(screen.getByRole('button', { name: 'Save 4 entries' }))
+
+  await waitFor(() => expect(savedMemory()?.photoId).toBe('p1'))
+  const others = add.mock.calls.filter(([args]) => args?.type && args.type !== 'memory')
+  expect(others.every(([args]) => args.photoId === undefined)).toBe(true)
+})
+
+test('unticking a Memory drops its photo', async () => {
+  renderForm()
+  await addMemoryWithPhoto()
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Memory' }))
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Memory' }))
+  expect(screen.queryByRole('button', { name: 'Remove photo' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Save 4 entries' }))
+
+  await waitFor(() => expect(savedMemory()).toBeDefined())
+  expect(savedMemory().photoId).toBeUndefined()
 })

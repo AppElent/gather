@@ -54,6 +54,8 @@ interface ImageUploadFieldProps {
   onUploadingChange?: (uploading: boolean) => void
   /** Held while the form saves, so a photo cannot change under the save. */
   disabled?: boolean
+  /** `false` for a row inside a form that already has its own surface. */
+  framed?: boolean
 }
 
 export function ImageUploadField({
@@ -65,6 +67,7 @@ export function ImageUploadField({
   fieldId = 'image-upload',
   onUploadingChange,
   disabled = false,
+  framed = true,
 }: ImageUploadFieldProps) {
   const image = useMessages().common.image
   const [uploading, setUploading] = useState(false)
@@ -108,7 +111,11 @@ export function ImageUploadField({
   const displayUrl = previewUrl ?? imageUrl
 
   return (
-    <div className="mx-auto mb-6 max-w-2xl rounded-xl border p-4">
+    <div
+      className={
+        framed ? 'mx-auto mb-6 max-w-2xl rounded-xl border p-4' : undefined
+      }
+    >
       <label htmlFor={fieldId} className="mb-2 block text-sm font-medium">
         {label ?? image.label}
       </label>

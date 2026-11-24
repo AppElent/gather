@@ -41,6 +41,7 @@ export function EntryPhotoField({
       onChange={(id) => onChange(id ?? null)}
       onUploadingChange={onUploadingChange}
       disabled={disabled}
+      framed={false}
     />
   )
 }
