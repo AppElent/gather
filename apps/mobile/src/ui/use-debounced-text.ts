@@ -28,6 +28,8 @@ export function useDebouncedText(
   const pending = useRef<string | null>(null)
   /** What a refused save left in the field, until a blur sends it again. */
   const refused = useRef<string | null>(null)
+  /** The text last sent, so a refusal of an older one is not kept over it. */
+  const sent = useRef<string | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const latest = useRef(commit)
   latest.current = commit
@@ -39,7 +41,9 @@ export function useDebouncedText(
     }
     const next = pending.current
     pending.current = null
-    if (next !== null) latest.current(next)
+    if (next === null) return
+    sent.current = next
+    latest.current(next)
   }, [])
 
   // Adopt a change that came from somewhere else — another screen, another
@@ -74,11 +78,11 @@ export function useDebouncedText(
   }, [flush])
 
   /**
-   * Keeps a refused text in the field to try again, unless typed in since.
-   * Leaving does not send it: only a blur does.
+   * Keeps a refused text in the field to try again, unless typed in or
+   * sent again since. Leaving does not send it: only a blur does.
    */
   const keep = useCallback((text: string) => {
-    if (pending.current !== null) return
+    if (pending.current !== null || sent.current !== text) return
     refused.current = text
     setDraft(text)
   }, [])
