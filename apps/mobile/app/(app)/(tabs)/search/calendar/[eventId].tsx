@@ -5,6 +5,6 @@ import { CalendarEventScreen } from '../../../../../src/modules/calendar/Calenda
 
 export default function SearchEvent() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>()
-  // Keyed: a link to another record reuses this screen with new params (APP-774).
+  // Keyed, so no text being typed in one record can reach another (APP-774).
   return <CalendarEventScreen key={eventId} eventId={eventId} />
 }

@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 /**
- * A notification for another task or event reuses the detail route that is
- * open, with new params. The screen starts over, or text still being typed in
- * one record would be saved to the other (APP-774).
+ * A detail route that gets another record's id starts its screen over, or text
+ * still being typed in one record could be saved to the other. The router
+ * pushes a second route today; the key keeps that from being what data rests on
+ * (APP-774).
  */
 import { useState } from 'react'
 import { expect, test, vi } from 'vitest'
