@@ -1,9 +1,10 @@
 /**
- * Navigation: Home, your pins, All — one list, two surfaces.
+ * Navigation: Home, your pins, All — one list, one predicate for which is
+ * active.
  *
- * The desktop sidebar and the mobile dock render the same items in the same
- * order, and ask the same function which one is active. That is the point of
- * this file existing: the previous shape had a "Today" block and a "Modules"
+ * The desktop sidebar renders these items; at phone width the bar is the
+ * phone's fixed destinations instead (`activeTab`). That this list exists once
+ * is the point of this file: the previous shape had a "Today" block and a "Modules"
  * block that each built their own links, so "Tasks" appeared twice pointing at
  * two different places, one of which quietly left the Group you were in. Two
  * lists that have to agree eventually stop agreeing.
@@ -42,6 +43,8 @@ export interface NavItem {
   link: AppLink
   /** Declared but not built yet. */
   placeholder: boolean
+  /** A Module's group, whose tile it wears; none for Home and All. */
+  group?: ModuleGroup
 }
 
 export interface RouteContext {
@@ -53,9 +56,6 @@ export interface RouteContext {
 const HOME = 'home'
 const ALL = 'all'
 
-/** How many items the mobile dock has room for, Home and All included. */
-export const DOCK_SLOTS = 5
-
 function moduleItem(module: ModuleDef, messages: NavMessages): NavItem {
   return {
     id: module.id,
@@ -63,6 +63,7 @@ function moduleItem(module: ModuleDef, messages: NavMessages): NavItem {
     icon: module.icon,
     link: moduleLink(module),
     placeholder: module.status === 'placeholder',
+    group: module.group,
   }
 }
 
@@ -101,41 +102,10 @@ export function navItems(
 }
 
 /**
- * The same list cut down to what a phone has room for: Home and All keep their
- * ends, and the pins in between lose their tail.
- *
- * Truncation is a rendering decision and nothing more — which item is active is
- * still decided against the full list by `activeNavItemId`, so the dock and the
- * sidebar cannot answer differently. The active pin is kept in the last pin
- * slot when it would otherwise have been dropped, so the answer they agree on
- * is also one the dock can show.
- */
-export function dockNavItems(
-  items: readonly NavItem[],
-  activeId: string | null = null,
-): NavItem[] {
-  if (items.length <= DOCK_SLOTS) return [...items]
-
-  const first = items[0]
-  const last = items[items.length - 1]
-  const middle = items.slice(1, -1)
-  const shown = middle.slice(0, DOCK_SLOTS - 2)
-
-  const active = middle.find((item) => item.id === activeId)
-  if (active && shown.length > 0 && !shown.includes(active)) {
-    shown[shown.length - 1] = active
-  }
-
-  return [first, ...shown, last]
-}
-
-/**
- * Which item to light up for a given route — the one predicate both the
- * sidebar and the dock call, so they cannot disagree about it.
+ * Which item to light up for a given route.
  *
  * A Module nobody pinned is reached through All and listed on it, so All stays
- * lit while you are inside one. Pass the full list even from the dock: it is
- * the truncation, not the route, that the dock does differently.
+ * lit while you are inside one.
  *
  * The router's `Link` makes its own claim on top: by default it marks a link
  * `aria-current="page"` when its address is a segment prefix of this page, and
@@ -154,6 +124,23 @@ export function activeNavItemId(
   if (items.some((item) => item.id === target)) return target
   if (!moduleById(target)) return null
   return items.some((item) => item.id === ALL) ? ALL : null
+}
+
+/** The phone's destinations, as the bar below 768 px draws them (ADR-0018). */
+export type Tab = 'home' | 'add' | 'settings' | 'all'
+
+/**
+ * Which tab of the phone-width bar is the page you are on. The bar has no
+ * place for pins, so every Module page — pinned or not — belongs to All, as on
+ * the phone. Pages that are no tab (Groups, Account, a Group's settings) light
+ * none.
+ */
+export function activeTab(pathname: string): Tab | null {
+  if (normalizePath(pathname) === ROUTES.settings) return 'settings'
+  const target = indexSurfaceOf(pathname)
+  if (target === HOME) return 'home'
+  if (target === ALL || (target && moduleById(target))) return 'all'
+  return null
 }
 
 /** Somewhere the jump-to palette can send you. */
@@ -182,7 +169,7 @@ export function shellJumpTargets(messages: NavMessages): JumpTarget[] {
  *
  * Every Module, not only the pinned ones — the palette is how you reach the
  * Module you did not pin without going through All first. Home and All are
- * the same links the sidebar and dock use.
+ * the same links the sidebar and the tab bar use.
  *
  * A Group's *own* settings are a different page from yours and are offered
  * under a label that says whose settings they are, because the two would

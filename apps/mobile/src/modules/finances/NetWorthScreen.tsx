@@ -27,6 +27,7 @@ import { NativeSheet } from '../../components/NativeSheet'
 import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { FINANCE_ICONS } from './icons'
 import { toLoanParts } from './loanParts'
 import { netWorthRows } from './netWorthRows'
@@ -57,11 +58,30 @@ export function NetWorthScreen() {
   const snapshots = useQuery(api.netWorth.snapshots, { groupSlug })
   const addEntry = useMutation(api.netWorth.addEntry)
   const take = useMutation(api.netWorth.take)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, writes } = useFinanceWrite()
 
   const [adding, setAdding] = useState<'asset' | 'liability' | null>(null)
   const [label, setLabel] = useState('')
   const [amount, setAmount] = useState('')
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resume = useSheetResume({
+    place: 'finances:net-worth',
+    open: adding,
+    values: { label, amount },
+    restore: (was) => {
+      setLabel(was.label)
+      setAmount(was.amount)
+    },
+    writes,
+  })
+
+  function open(kind: 'asset' | 'liability') {
+    if (!resume(kind)) {
+      setLabel('')
+      setAmount('')
+    }
+    setAdding(kind)
+  }
 
   const Scale = FINANCE_ICONS.Scale
 
@@ -146,7 +166,7 @@ export function NetWorthScreen() {
             title={text.netWorth.emptyTitle}
             body={text.netWorth.emptyBody}
             actionLabel={text.netWorth.addAsset}
-            onAction={() => setAdding('asset')}
+            onAction={() => open('asset')}
           />
         ) : (
           <>
@@ -191,7 +211,7 @@ export function NetWorthScreen() {
               ))}
               <AddRow
                 label={text.netWorth.addAsset}
-                onPress={() => setAdding('asset')}
+                onPress={() => open('asset')}
               />
             </Card>
 
@@ -211,7 +231,7 @@ export function NetWorthScreen() {
               ))}
               <AddRow
                 label={text.netWorth.addLiability}
-                onPress={() => setAdding('liability')}
+                onPress={() => open('liability')}
               />
             </Card>
 

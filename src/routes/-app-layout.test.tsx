@@ -17,7 +17,10 @@ const navigateMock = vi.hoisted(() => vi.fn())
 const ensureUserMock = vi.hoisted(() => vi.fn())
 const deletion = vi.hoisted(() => ({ underway: false }))
 
-vi.mock('@clerk/react', () => ({ useAuth: () => clerk }))
+vi.mock('@clerk/react', () => ({
+  useAuth: () => clerk,
+  useUser: () => ({ user: { firstName: 'Eric', lastName: 'Jansen' } }),
+}))
 
 vi.mock('convex/react', () => ({
   useConvexAuth: () => convexAuth,
@@ -66,7 +69,7 @@ beforeEach(() => {
 test('provisions the account once Convex has authenticated the session', () => {
   renderWithI18n(<AppLayout />)
 
-  expect(ensureUserMock).toHaveBeenCalledWith({})
+  expect(ensureUserMock).toHaveBeenCalledWith({ name: 'Eric Jansen' })
 })
 
 test('an account deletion in progress replaces the gate, so nothing re-provisions the account', () => {

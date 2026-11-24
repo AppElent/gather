@@ -65,8 +65,8 @@ export function parentCrumb(trail: readonly Crumb[]): Crumb | null {
  * `display: none`, so the reading order is the same and neither is a second
  * definition of where the page sits.
  *
- * The shell's own navigation is untouched by this. The sidebar, the dock and
- * the topbar say which Module you are in; they render above the route and
+ * The shell's own navigation is untouched by this. The sidebar and the tab
+ * bar say which Module you are in; they render above the route and
  * cannot know that this page is a food, or that food's edit form. This is the
  * only thing in the app that does, because the page builds it.
  */

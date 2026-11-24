@@ -58,7 +58,7 @@ export function EnergyReadingsPage() {
   return (
     <div className="mx-auto grid max-w-3xl gap-4">
       <Breadcrumbs trail={energyTrail(messages, copy.title)} className="mb-0" />
-      <h2 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h2>
+      <h1 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h1>
       {showDate ? (
         <SurfaceCard className="grid gap-2">
           <label
@@ -88,7 +88,7 @@ export function EnergyReadingsPage() {
           <p className="m-0 text-sm">{messages.energy.empty.summary}</p>
         </SurfaceCard>
       ) : form.channels.length === 0 ? (
-        <SetupMeters groupSlug={group.slug} />
+        <SetupMeters groupSlug={group.slug} measured={form.measured} />
       ) : (
         <ReadingsForm
           // A new day starts from empty fields.
@@ -304,7 +304,13 @@ function ReadingsForm({
 }
 
 /** Which meters the Group reads: one channel per counter. */
-function SetupMeters({ groupSlug }: { groupSlug: string }) {
+function SetupMeters({
+  groupSlug,
+  measured,
+}: {
+  groupSlug: string
+  measured: ReadingForm['measured']
+}) {
   const { messages } = useI18n()
   const copy = messages.energy.readings
   const refusal = useEnergyRefusal()
@@ -314,14 +320,34 @@ function SetupMeters({ groupSlug }: { groupSlug: string }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const covered = measured.includes('gridImport')
   const options: {
     key: keyof typeof choice
     label: string
     hint: string
   }[] = [
-    { key: 'split', label: copy.setupSplit, hint: copy.setupSplitHint },
-    { key: 'export', label: copy.setupExport, hint: copy.setupExportHint },
-    { key: 'gas', label: copy.setupGas, hint: copy.setupGasHint },
+    // A connected source measures these already (APP-495).
+    ...(covered
+      ? []
+      : [
+          {
+            key: 'split' as const,
+            label: copy.setupSplit,
+            hint: copy.setupSplitHint,
+          },
+        ]),
+    ...(measured.includes('gridExport')
+      ? []
+      : [
+          {
+            key: 'export' as const,
+            label: copy.setupExport,
+            hint: copy.setupExportHint,
+          },
+        ]),
+    ...(measured.includes('gas')
+      ? []
+      : [{ key: 'gas' as const, label: copy.setupGas, hint: copy.setupGasHint }]),
   ]
 
   const submit = async (event: FormEvent) => {
@@ -344,8 +370,12 @@ function SetupMeters({ groupSlug }: { groupSlug: string }) {
   return (
     <form onSubmit={submit} noValidate>
       <SurfaceCard className="grid gap-3">
-        <h3 className="m-0 text-lg font-semibold">{copy.setupTitle}</h3>
-        <p className="m-0 text-sm text-[var(--muted)]">{copy.setupBody}</p>
+        <h3 className="m-0 text-lg font-semibold">
+          {covered ? copy.measuredTitle : copy.setupTitle}
+        </h3>
+        <p className="m-0 text-sm text-[var(--muted)]">
+          {covered ? copy.measuredBody : copy.setupBody}
+        </p>
         {options.map((option) => (
           <label
             key={option.key}
@@ -379,11 +409,20 @@ function SetupMeters({ groupSlug }: { groupSlug: string }) {
             {error}
           </p>
         ) : null}
-        <div>
-          <button type="submit" className={PRIMARY} disabled={saving}>
-            {copy.setupSubmit}
-          </button>
-        </div>
+        {covered && options.length === 0 ? null : (
+          <div>
+            <button
+              type="submit"
+              className={PRIMARY}
+              disabled={
+                saving ||
+                (covered && !options.some((option) => choice[option.key]))
+              }
+            >
+              {copy.setupSubmit}
+            </button>
+          </div>
+        )}
       </SurfaceCard>
     </form>
   )

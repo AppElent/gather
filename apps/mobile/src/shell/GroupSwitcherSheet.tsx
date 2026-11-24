@@ -7,6 +7,7 @@ import { useGroup } from '../group/GroupProvider'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
+import { radioProps } from '../ui/radio-props'
 
 /** An ephemeral shell modal: changing Group leaves the current valid surface in place. */
 export function GroupSwitcherSheet({ onClose }: { onClose: () => void }) {
@@ -30,12 +31,13 @@ export function GroupSwitcherSheet({ onClose }: { onClose: () => void }) {
       <ScrollView contentContainerStyle={styles.content}>
         {groups.map((group) => {
           const isCurrent = group._id === current._id
+          const radio = radioProps(isCurrent, t.a11y.radioButton)
           return (
             <Pressable
               key={group._id}
-              accessibilityRole="button"
+              {...radio}
               accessibilityState={{
-                selected: isCurrent,
+                ...radio.accessibilityState,
                 disabled: !serviceActionsEnabled,
               }}
               disabled={!serviceActionsEnabled}

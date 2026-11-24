@@ -47,7 +47,7 @@ export function NewLoyaltyCardPage() {
   return (
     <div className="mx-auto grid max-w-2xl gap-4">
       <Breadcrumbs trail={trail} className="mb-0" />
-      <h2 className="m-0 font-rounded text-2xl font-bold">{copy.form.createTitle}</h2>
+      <h1 className="m-0 font-rounded text-2xl font-bold">{copy.form.createTitle}</h1>
 
       {choice === null ? (
         <RetailerPicker

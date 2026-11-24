@@ -8,7 +8,7 @@ export const tasks = {
 
   page: {
     subtitle:
-      'Gedeelde lijsten — lokale staan hier, gekoppelde spiegelen Notion of Todoist.',
+      'Gedeelde lijsten — lokale staan hier, gekoppelde staan in Notion of Todoist.',
     addList: 'Lijst toevoegen',
     emptyTitle: 'Nog geen lijsten',
     emptyBody: 'Maak een lokale lijst, of koppel er een uit Notion of Todoist.',
@@ -47,6 +47,27 @@ export const tasks = {
     empty: 'Geen open taken in deze {provider}-lijst.',
   },
 
+  linkedWrite: {
+    failedTitle: 'Niet bewaard in {provider}',
+    failed: {
+      offline:
+        'Je bent offline, dus er is niets gewijzigd. Ververs de lijst zodra je weer online bent.',
+      reconnect:
+        'Gather mag deze lijst niet wijzigen. Verbind {provider} opnieuw in de Groepsinstellingen op het web en ververs daarna de lijst. Er is niets gewijzigd.',
+      'not-found':
+        'Deze taak staat niet meer in de {provider}-lijst. De lijst wordt opnieuw geladen.',
+      stale:
+        'Deze lijst loopt niet gelijk met {provider}. Ververs hem en probeer het opnieuw.',
+      failed:
+        '{provider} heeft deze wijziging niet bevestigd. Bekijk de lijst voordat je het opnieuw probeert.',
+    },
+    moveUnder: 'Onder een taak plaatsen…',
+    parentTask: 'Hoofdtaak',
+    topLevel: 'Niet onder een taak',
+    noParents: 'Er is geen taak op deze lijst waar hij onder kan.',
+    addSubtask: 'Subtaak toevoegen aan {task}',
+  },
+
   editor: {
     title: 'Taakomschrijving',
     dueDate: 'Datum',
@@ -64,12 +85,13 @@ export const tasks = {
     title: 'Een lijst toevoegen',
     local: 'Lokale lijst — hier gemaakt en bewerkt',
     mirror: '{provider} — alleen lezen',
+    linked: '{provider} — staat daar, hier en daar te bewerken',
     connectFirst: 'Eerst {provider} koppelen…',
     listName: 'Lijstnaam',
     create: 'Aanmaken',
     failed: 'Er ging iets mis — probeer het opnieuw.',
     pickNotion: 'Kies de Notion-database om te spiegelen:',
-    pickTodoist: 'Kies het Todoist-project om te spiegelen:',
+    pickTodoist: 'Kies het Todoist-project om te koppelen:',
     nothingFoundNotion:
       'Niets gevonden — controleer of de koppeling toegang heeft tot minstens één database.',
     nothingFoundTodoist:
@@ -141,14 +163,11 @@ export const tasks = {
     clearAmount: 'Geen hoeveelheid',
     unit: 'Eenheid',
     aisle: 'Afdeling',
+    aisleFailed: 'Verplaatsen naar {aisle} is niet gelukt. Probeer het opnieuw.',
     itemPlaceholder: 'Wat heb je nodig?',
     deleteItem: 'Item verwijderen',
     labelsOnItem: 'Op dit item',
     removeLabelEverywhere: 'Overal verwijderen',
-    recognised: 'Hoeveelheid en afdeling ingevuld op basis van wat je typt',
-    recognisedAmount: 'Hoeveelheid ingevuld op basis van wat je typt',
-    recognisedAisle: 'Afdeling ingevuld op basis van wat je typt',
-    changeAisleHint: 'Kies de afdeling waarin het wordt toegevoegd',
     aisleSection: { one: '{aisle}, {count} item', other: '{aisle}, {count} items' },
     checked: 'Afgevinkt',
     putBackAll: 'Zet terug',
@@ -279,6 +298,7 @@ export const tasks = {
         'Samengevoegd met wat er al op staat. De lijst ziet erbij voor welk recept het is.',
       edit: 'Wijzigen',
       editTitle: 'Item wijzigen',
+      editLabel: 'Ingrediënt',
       failed: 'Dit kon niet worden toegevoegd. Probeer het opnieuw.',
     },
     inStock: {
@@ -420,7 +440,7 @@ export const tasks = {
     someone: 'Iemand',
     unavailable: {
       readOnly:
-        'Wijs deze taak toe in {provider}. Gather kan gekoppelde lijsten nog niet wijzigen.',
+        'Wijs deze taak toe in {provider}. Dat kan Gather nog niet.',
       notShared:
         'Alleen een gedeeld {provider}-project heeft mensen om een taak aan te geven.',
       unsupported: 'Lijsten uit {provider} hebben geen veld voor wie een taak doet.',
@@ -571,7 +591,7 @@ export const tasks = {
       'Er staat steeds één keer open. Mis je hem, dan blijft hij als te laat staan; er komen geen kopieën bij. Subtaken gaan weer open.',
     footnoteNever: 'Een datum alleen geeft geen herinnering en geen herhaling.',
     linked:
-      'Deze lijst staat in {provider}. Gather leest hem, maar kan er niet in schrijven: stel het herhalen in {provider} in.',
+      'Deze lijst staat in {provider}. Gather laat zien hoe een taak zich herhaalt; stel dat in {provider} in.',
     completed: 'Afgevinkt. Volgende keer: {date}',
     undo: 'Ongedaan maken',
     undoFailed: 'Dat kon niet ongedaan worden gemaakt.',

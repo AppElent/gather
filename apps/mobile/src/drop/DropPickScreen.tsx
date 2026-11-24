@@ -12,9 +12,10 @@
  * still pending, Back is still the chooser, and another destination is one tap
  * away.
  *
- * Search filters what has already arrived, exactly as the collections do it: no
- * second query, and no add button hiding behind an empty result
- * (`apps/mobile/DESIGN_SYSTEM.md`).
+ * Search filters what has already arrived, exactly as the collections do it, and
+ * no add button hides behind an empty result (`apps/mobile/DESIGN_SYSTEM.md`).
+ * Notes are the exception: only the recent ones arrive, so a search also asks
+ * the server for the rest.
  *
  * The header title is set before anything else is decided, because a screen
  * reached with a stale address still has to say what it is rather than being a
@@ -22,9 +23,11 @@
  */
 
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useHeaderHeight } from 'expo-router/react-navigation'
 import { useState } from 'react'
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -46,17 +49,21 @@ import { fmt, useI18n } from '../i18n'
 import { moduleShown } from '../modules/buildModules'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, SIZE, TYPE, useTokens } from '../theme/tokens'
+import { useDebouncedQuery } from '../ui/use-debounced-query'
 import { useDrop } from './DropProvider'
 import {
   type DropTarget,
   type DropTargetId,
   dropTargetById,
 } from './dropTargets'
+import { asksServer, bodyExcerpt, pickableNotes } from './noteCandidates'
 import { type DropPicked, useDropCommit } from './useDropCommit'
 
 /** One row of whatever stage two is listing. */
 interface Candidate extends DropPicked {
   label: string
+  /** Why a note matched, when only its body did: the text around the hit. */
+  detail?: string
   /** A list Gather may read but never write to (ADR-0021). */
   readOnly?: boolean
 }
@@ -65,6 +72,10 @@ export function DropPickScreen() {
   const tokens = useTokens()
   const router = useRouter()
   const { t } = useI18n()
+  // The header is see-through and iOS draws a plain view under it, so the
+  // search field starts below the header (the chooser's scroll view insets
+  // itself). Android lays the content out below the header already.
+  const headerHeight = useHeaderHeight()
   const { group, groups } = useGroup()
   const openInGroup = useOpenInGroup()
   const { pending, clear } = useDrop()
@@ -84,7 +95,7 @@ export function DropPickScreen() {
 
   const target = knownTarget(targetId)
   const drop = pending?.drop ?? null
-  const candidates = useCandidates(target, named)
+  const candidates = useCandidates(target, named, query)
   const text = t.drop
 
   // `picks: 'none'` never reaches this screen — the chooser finishes those
@@ -147,9 +158,13 @@ export function DropPickScreen() {
     }
   }
 
-  const filtered = (candidates ?? []).filter((candidate) =>
-    candidate.label.toLowerCase().includes(query.trim().toLowerCase()),
-  )
+  // Notes arrive already searched, by their body too.
+  const filtered =
+    ask === 'note'
+      ? (candidates ?? [])
+      : (candidates ?? []).filter((candidate) =>
+          candidate.label.toLowerCase().includes(query.trim().toLowerCase()),
+        )
 
   return (
     <>
@@ -159,7 +174,15 @@ export function DropPickScreen() {
           title: ask ? text.pick[ask] : text.title,
         }}
       />
-      <View style={[styles.root, { backgroundColor: tokens.ground }]}>
+      <View
+        style={[
+          styles.root,
+          {
+            backgroundColor: tokens.ground,
+            paddingTop: styles.root.padding + (Platform.OS === 'ios' ? headerHeight : 0),
+          },
+        ]}
+      >
         {!asking || !drop ? (
           // A stale address, or a Drop that was answered elsewhere. Named by
           // the header above, and one Back from the chooser.
@@ -192,7 +215,7 @@ export function DropPickScreen() {
               <ScrollView contentContainerStyle={styles.rows}>
                 {filtered.length === 0 ? (
                   <Text style={[styles.empty, { color: tokens.muted }]}>
-                    {candidates.length === 0
+                    {candidates.length === 0 && !(ask === 'note' && query.trim())
                       ? text.pick.empty
                       : fmt(text.pick.noMatches, { query: query.trim() })}
                   </Text>
@@ -201,7 +224,11 @@ export function DropPickScreen() {
                     <Pressable
                       key={candidate.id}
                       accessibilityRole="button"
-                      accessibilityLabel={candidate.label}
+                      accessibilityLabel={
+                        candidate.detail
+                          ? `${candidate.label}, ${candidate.detail}`
+                          : candidate.label
+                      }
                       accessibilityState={{
                         disabled: Boolean(candidate.readOnly),
                       }}
@@ -216,11 +243,21 @@ export function DropPickScreen() {
                         pressed && !candidate.readOnly && styles.pressed,
                       ]}
                     >
-                      <Text
-                        style={[styles.rowLabel, { color: tokens.ink }]}
-                      >
-                        {candidate.label}
-                      </Text>
+                      <View style={styles.rowText}>
+                        <Text
+                          style={[styles.rowLabel, { color: tokens.ink }]}
+                        >
+                          {candidate.label}
+                        </Text>
+                        {candidate.detail ? (
+                          <Text
+                            numberOfLines={2}
+                            style={[styles.rowNote, { color: tokens.muted }]}
+                          >
+                            {candidate.detail}
+                          </Text>
+                        ) : null}
+                      </View>
                       {saving === candidate.id ? (
                         <ActivityIndicator color={tokens.muted} />
                       ) : candidate.readOnly ? (
@@ -274,13 +311,23 @@ function knownTarget(id: string | undefined): DropTarget | null {
 function useCandidates(
   target: DropTarget | null,
   group: AmbientGroup,
+  query: string,
 ): Candidate[] | undefined {
   const groupSlug = group.slug
   const picks = target?.picks
 
-  const notes = useQuery(
-    api.notes.list,
+  const recentNotes = useQuery(
+    api.notes.picker,
     picks === 'note' ? { groupSlug } : 'skip',
+  )
+  const debounced = useDebouncedQuery(query).trim()
+  const foundNotes = useQuery(
+    api.notes.searchNotes,
+    picks === 'note' &&
+      debounced === query.trim() &&
+      asksServer(debounced)
+      ? { groupSlug, query: debounced }
+      : 'skip',
   )
   const lists = useQuery(
     api.taskLists.list,
@@ -299,9 +346,15 @@ function useCandidates(
   const { t } = useI18n()
 
   if (picks === 'note') {
-    return notes?.map((note) => ({
+    return pickableNotes(
+      query,
+      recentNotes,
+      foundNotes,
+      t.notes.untitled,
+    )?.map((note) => ({
       id: note._id,
       label: note.title || t.notes.untitled,
+      detail: bodyExcerpt(note, query, t.notes.untitled) ?? undefined,
       // Carried so the commit appends to what is on screen rather than reading
       // the note back to learn what somebody just pointed at.
       body: note.body,
@@ -364,6 +417,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
+  rowText: { flexShrink: 1, gap: 2 },
   rowLabel: { ...TYPE.body, flexShrink: 1 },
   rowNote: { ...TYPE.footnote },
   disabled: { opacity: 0.5 },

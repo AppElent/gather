@@ -30,8 +30,9 @@ import {
   withEdits,
 } from '@gather/core/grocery-pick'
 import { useMutation } from 'convex/react'
-import { type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -44,7 +45,7 @@ import { api, type Id } from '../../../convex/api'
 import { haptics } from '../../../feedback/haptics'
 import { useGroup } from '../../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../../i18n'
-import { showPrompt } from '../../../observability/native-presentation'
+import { usePrompt } from '../../../observability/native-presentation'
 import {
   lastGroceryListKey,
   readPreference,
@@ -63,8 +64,10 @@ import {
 import { Button } from '../../../ui/button'
 import { ModuleTile } from '../../../ui/module-tile'
 import { SectionLabel } from '../../../ui/section-label'
+import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { useTaskList, useTaskLists } from '../../tasks/store'
 import { useInStock } from '../in-stock/use-in-stock'
+import { EditLineModal } from './edit-line-modal'
 import { useAisleOf } from './use-aisles'
 
 export interface AddSheetSource {
@@ -76,6 +79,7 @@ export interface AddSheetSource {
 
 export function AddToGroceriesSheet({
   source,
+  place,
   lines,
   servings,
   aiCount,
@@ -85,9 +89,12 @@ export function AddToGroceriesSheet({
   byAisle = false,
   after,
   footnote,
+  onSending,
   onClose,
 }: {
   source: AddSheetSource
+  /** Where a share keeps the ticks, retyped lines and list (APP-622). */
+  place: string
   /**
    * The lines, or a function of the keys of the rows the person has ticked,
    * unticked or retyped: the week menu keeps a line they touched while it was
@@ -115,11 +122,14 @@ export function AddToGroceriesSheet({
   after?: (listId: string | undefined) => ReactNode
   /** Under the button, instead of the recipe's. */
   footnote?: string
+  /** Told as the lines are sent, so a source can hold its own draft. */
+  onSending?: (state: 'sending' | 'failed') => void
   onClose: () => void
 }) {
   const tokens = useTokens('kitchen')
   const kitchen = tokens.tintOf('kitchen')
   const { t, locale } = useI18n()
+  const showPrompt = usePrompt()
   const words = t.tasks.grocery.addLines
   const { group } = useGroup()
   const add = useMutation(api.groceryLines.add)
@@ -134,7 +144,16 @@ export function AddToGroceriesSheet({
       ),
     [allLists],
   )
-  const [chosenListId, setChosenListId] = useState<string>()
+  const draft = useSheetDraft<{
+    chosenListId?: string
+    ticks: Record<string, boolean>
+    edits: Record<string, LineRead>
+    editing?: { key: string; text: string } | null
+  }>(place)
+  const kept = draft.kept
+  const [chosenListId, setChosenListId] = useState<string | undefined>(
+    kept?.chosenListId,
+  )
   const listId = [
     chosenListId,
     preferredListId,
@@ -147,15 +166,32 @@ export function AddToGroceriesSheet({
   // In stock starts unticked (APP-314), for a recipe and the week menu alike.
   const inStock = useInStock(group.slug)
 
-  const [ticks, setTicks] = useState<Record<string, boolean>>({})
-  const [edits, setEdits] = useState<Record<string, LineRead>>({})
+  const [ticks, setTicks] = useState<Record<string, boolean>>(kept?.ticks ?? {})
+  const [edits, setEdits] = useState<Record<string, LineRead>>(kept?.edits ?? {})
+  const [editing, setEditing] = useState<{ key: string; text: string } | null>(
+    kept?.editing ?? null,
+  )
+  // A restored editor waits for the sheet: on Android both are windows, and
+  // the one opened last is on top, so it must not open before the sheet does.
+  const [editorHidden, setEditorHidden] = useState(kept?.editing != null)
+  useEffect(() => {
+    // Runs after `NativeSheet`'s own mount effect, which presents the sheet.
+    setEditorHidden(false)
+  }, [])
   const [busy, setBusy] = useState(false)
+  draft.track({ chosenListId, ticks, edits, editing }, { holding: busy })
   const [failed, setFailed] = useState(false)
   const [rowWidth, setRowWidth] = useState<number>()
 
   const sourceLines =
     typeof lines === 'function'
-      ? lines(new Set([...Object.keys(ticks), ...Object.keys(edits)]))
+      ? lines(
+          new Set([
+            ...Object.keys(ticks),
+            ...Object.keys(edits),
+            ...(editing ? [editing.key] : []),
+          ]),
+        )
       : lines
   // A retype made while a line was still being read stays with its row.
   const shown = withEdits(sourceLines, edits)
@@ -245,14 +281,39 @@ export function AddToGroceriesSheet({
     [byAisle, pick.rows, aisleOf],
   )
 
+  // Nothing changes while the lines are being sent: it would not be sent.
   const toggle = (row: PickRow) => {
+    if (busy) return
     haptics.selectionChanged()
     const line = shown.find((candidate) => candidate.key === row.key) ?? row
     setTicks((current) => settleLine(current, line, !row.on))
   }
 
+  const applyEdit = (key: string, value: string) => {
+    const text = value.trim()
+    if (!text) return
+    // A key the line has since left (`was`, its AI reading arrived while the
+    // editor was open) stays the key the edit and tick are stored under: the
+    // week menu keeps that meal's line apart only while the key is touched.
+    const own = shown.find((candidate) => candidate.key === key)
+    const readSince = shown.some((candidate) => candidate.was?.includes(key))
+    const line =
+      own ??
+      (readSince
+        ? undefined
+        : shown.find((candidate) => candidate.former?.includes(key))) ?? { key }
+    setEdits((current) => settleLine(current, line, editedRead(text)))
+    setTicks((current) => settleLine(current, line, true))
+  }
+
   const edit = (row: PickRow) => {
+    if (busy) return
     const typed = [amountText(row.amount), row.title].filter(Boolean).join(' ')
+    if (Platform.OS !== 'ios') {
+      setEditorHidden(false)
+      setEditing({ key: row.key, text: typed })
+      return
+    }
     showPrompt(
       words.editTitle,
       undefined,
@@ -261,11 +322,7 @@ export function AddToGroceriesSheet({
         {
           text: t.common.actions.save,
           onPress: (value?: string) => {
-            const text = value?.trim()
-            if (!text) return
-            const line = shown.find((candidate) => candidate.key === row.key) ?? row
-            setEdits((current) => settleLine(current, line, editedRead(text)))
-            setTicks((current) => settleLine(current, line, true))
+            if (value) applyEdit(row.key, value)
           },
         },
       ],
@@ -275,8 +332,9 @@ export function AddToGroceriesSheet({
   }
 
   const submit = async () => {
-    if (!listId || count === 0) return
+    if (busy || !listId || count === 0) return
     setBusy(true)
+    onSending?.('sending')
     setFailed(false)
     try {
       await add({
@@ -285,14 +343,21 @@ export function AddToGroceriesSheet({
         source: source.title,
         lines: pick.lines,
       })
-      writePreference(lastGroceryListKey(group.slug), listId)
-      haptics.itemSaved()
-      onClose()
     } catch {
       haptics.actionFailed()
+      draft.failed()
+      onSending?.('failed')
       setFailed(true)
       setBusy(false)
+      return
     }
+    // The lines are on the list: nothing after this may say the add failed, or
+    // they would be added twice. The list to open on next is only a preference.
+    try {
+      writePreference(lastGroceryListKey(group.slug), listId)
+    } catch {}
+    haptics.itemSaved()
+    if (!draft.gone()) onClose()
   }
 
   const Updown = UI_ICONS.ChevronsUpDown
@@ -339,6 +404,7 @@ export function AddToGroceriesSheet({
               candidate._id === listId ? ('on' as const) : ('off' as const),
           }))}
           onPressAction={(event) => {
+            if (busy) return
             haptics.selectionChanged()
             setChosenListId(event.nativeEvent.event)
           }}
@@ -350,8 +416,9 @@ export function AddToGroceriesSheet({
   )
 
   return (
-    <NativeSheet
-      title={words.title}
+    <>
+      <NativeSheet
+        title={words.title}
       onClose={onClose}
       maxHeight={0.92}
       fill
@@ -412,6 +479,7 @@ export function AddToGroceriesSheet({
                   { name: 'decrement' },
                 ]}
                 onAccessibilityAction={(event) => {
+                  if (busy) return
                   const step = event.nativeEvent.actionName === 'increment' ? 1 : -1
                   servings.onChange(Math.max(1, servings.value + step))
                 }}
@@ -421,7 +489,7 @@ export function AddToGroceriesSheet({
                   testID="servings-fewer"
                   label={words.fewer}
                   glyph="minus"
-                  disabled={servings.value <= 1}
+                  disabled={busy || servings.value <= 1}
                   onPress={() => {
                     haptics.selectionChanged()
                     servings.onChange(Math.max(1, servings.value - 1))
@@ -437,7 +505,7 @@ export function AddToGroceriesSheet({
                   testID="servings-more"
                   label={words.more}
                   glyph="plus"
-                  disabled={servings.value >= 99}
+                  disabled={busy || servings.value >= 99}
                   onPress={() => {
                     haptics.selectionChanged()
                     servings.onChange(Math.min(99, servings.value + 1))
@@ -556,7 +624,24 @@ export function AddToGroceriesSheet({
           </View>
         ) : null}
       </ScrollView>
-    </NativeSheet>
+      </NativeSheet>
+      {editing && !editorHidden ? (
+        <EditLineModal
+          title={words.editTitle}
+          label={words.editLabel}
+          value={editing.text}
+          onChangeText={(text) =>
+            setEditing((current) => (current ? { ...current, text } : null))
+          }
+          onSave={(value) => {
+            applyEdit(editing.key, value)
+            setEditing(null)
+          }}
+          onClose={() => setEditing(null)}
+          onShareClose={() => setEditorHidden(true)}
+        />
+      ) : null}
+    </>
   )
 }
 

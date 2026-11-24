@@ -7,7 +7,8 @@
  * `new Date('2026-08-22')` parses as midnight *UTC*, and `toISOString()` writes
  * UTC back out: either one is the wrong day for somebody near midnight. So the
  * arithmetic below runs on UTC midnights it builds itself and never sees a local
- * timestamp, and only `localIsoDate` and `localMidnight` touch the local calendar.
+ * timestamp, and only `localIsoDate`, `localMidnight` and `todayIn` (its
+ * fallback) touch the local calendar.
  */
 
 export interface CivilDateParts {
@@ -64,6 +65,45 @@ function utcMidnight(value: string): number {
 export function localIsoDate(at: Date | number = new Date()): string {
   const date = new Date(at)
   return isoDate(date.getFullYear(), date.getMonth() + 1, date.getDate())
+}
+
+/**
+ * The day it is at a moment in one IANA time zone, for a server told the
+ * reader's zone. Throws `RangeError` for a zone the runtime does not know.
+ * Returns a function because building the formatter is the expensive part.
+ */
+export function isoDateIn(timeZone: string): (at: number) => string {
+  const format = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  })
+  return (at) => {
+    const parts = format.formatToParts(at)
+    const get = (type: Intl.DateTimeFormatPartTypes) =>
+      Number(parts.find((part) => part.type === type)?.value)
+    return isoDate(get('year'), get('month'), get('day'))
+  }
+}
+
+/**
+ * The day it is at `at` in a zone, e.g. a Group's; on this device's calendar
+ * when there is none, or when this runtime does not know the one a newer
+ * runtime stored.
+ */
+export function todayIn(
+  timeZone: string | undefined,
+  at: Date | number = new Date(),
+): string {
+  if (timeZone !== undefined) {
+    try {
+      return isoDateIn(timeZone)(Number(at))
+    } catch {
+      // Not a zone here: the device's own day, below.
+    }
+  }
+  return localIsoDate(at)
 }
 
 /** Local midnight on the day named, for handing to a locale formatter. */

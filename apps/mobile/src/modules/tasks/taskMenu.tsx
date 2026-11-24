@@ -25,12 +25,14 @@ import {
   DueDateSheet,
   LabelsSheet,
   MoveToListSheet,
+  MoveUnderSheet,
   PrioritySheet,
   RenameSheet,
 } from './sheets'
 import { onOccurrenceCompleted, useTaskActions } from './store'
 import { dueLabel } from './taskDates'
 import type { Task } from './types'
+import { useWriteFailed } from './writeFailed'
 
 /**
  * The menu, in the order the detail screen lists the same properties.
@@ -65,10 +67,37 @@ export function taskMenuActions(
       image: 'pencil',
       attributes: { disabled: !writable },
     },
-    { id: 'due', title: t.tasks.list.dueDate, image: 'calendar' },
-    { id: 'priority', title: t.tasks.list.priority, image: 'flag' },
-    { id: 'labels', title: t.tasks.list.labels, image: 'tag' },
-    { id: 'move', title: t.tasks.list.moveToList, image: 'tray' },
+    {
+      id: 'due',
+      title: t.tasks.list.dueDate,
+      image: 'calendar',
+      attributes: { disabled: !writable },
+    },
+    {
+      id: 'priority',
+      title: t.tasks.list.priority,
+      image: 'flag',
+      attributes: { disabled: !writable },
+    },
+    {
+      id: 'labels',
+      title: t.tasks.list.labels,
+      image: 'tag',
+      attributes: { disabled: !writable },
+    },
+    {
+      id: 'move',
+      title: t.tasks.list.moveToList,
+      image: 'tray',
+      attributes: { hidden: Boolean(task.linked) },
+    },
+    {
+      id: 'under',
+      title: t.tasks.linkedWrite.moveUnder,
+      image: 'arrow.turn.down.right',
+      // A linked task moves within its list only (APP-448).
+      attributes: { disabled: !writable || task.done, hidden: !task.linked },
+    },
     {
       id: 'section',
       title: t.tasks.sections.moveToSection,
@@ -81,13 +110,21 @@ export function taskMenuActions(
       image: 'arrow.up.arrow.down',
       // Rearranging belongs to a list. Today is a view across all of them, so
       // there is no order here to be the one you changed.
-      attributes: { disabled: !writable, hidden: !reorder },
+      attributes: {
+        disabled: !writable,
+        hidden: !reorder || Boolean(task.linked),
+      },
     },
     {
       id: 'delete',
       title: t.common.actions.delete,
       image: 'trash',
-      attributes: { destructive: true },
+      // Gather does not delete a task from its provider.
+      attributes: {
+        destructive: true,
+        disabled: !writable,
+        hidden: Boolean(task.linked),
+      },
     },
   ]
 }
@@ -107,6 +144,7 @@ type TaskSheet =
   | 'priority'
   | 'labels'
   | 'move'
+  | 'under'
   | 'rename'
   | 'reminder'
   | 'section'
@@ -143,6 +181,7 @@ export function useTaskSheets({
     null,
   )
   const completeTask = useCompleteTask()
+  const writeFailed = useWriteFailed()
   const close = () => setOpen(null)
   const task = open && tasks.find((each) => each.id === open.taskId)
 
@@ -169,6 +208,7 @@ export function useTaskSheets({
       case 'priority':
       case 'labels':
       case 'move':
+      case 'under':
       case 'reminder':
       case 'section':
         setOpen({ kind: action, taskId: task.id })
@@ -201,6 +241,9 @@ export function useTaskSheets({
       {open.kind === 'move' ? (
         <MoveToListSheet task={task} onClose={close} />
       ) : null}
+      {open.kind === 'under' ? (
+        <MoveUnderSheet task={task} tasks={tasks} onClose={close} />
+      ) : null}
       {open.kind === 'reminder' ? (
         <ReminderSheet task={task} onClose={close} />
       ) : null}
@@ -211,7 +254,10 @@ export function useTaskSheets({
         <RenameSheet
           title={t.tasks.list.renameTask}
           value={task.title}
-          onSave={(next) => actions.renameTask(task.id, next)}
+          place={`tasks:rename-task:${task.id}`}
+          onSave={(next) => {
+            actions.renameTask(task, next).catch(writeFailed)
+          }}
           onClose={close}
         />
       ) : null}

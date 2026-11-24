@@ -1,8 +1,8 @@
 /**
  * A grocery item's amount and aisle (APP-309; `designs/groceries/README.md`,
- * "Recognition" and "Item sheet"), in the three places a grocery list shows
- * them: trailing a row, under the composer while a line is typed, and on the
- * item's own screen.
+ * "Recognition" and "Item sheet"), where a grocery list shows them: trailing
+ * a row, on the composer's chips (`GroceryComposer`), and on the item's own
+ * screen.
  *
  * The item screen keeps the Tasks rule of no Save: a step, a unit or an aisle
  * writes as it is chosen, and the typed amount writes when the field is left.
@@ -15,30 +15,31 @@ import {
   GROCERY_AISLES,
   type GroceryAisle,
   type GroceryUnit,
-  groceryAddFields,
   isGroceryAisle,
   isGroceryQuantity,
   roundGroceryQuantity,
   stepGroceryQuantity,
 } from '@gather/core/groceries'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
-import { useI18n } from '../../i18n'
+import { fmt, useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
+import { radioProps } from '../../ui/radio-props'
 import { useAisleOf } from '../kitchen/add-to-groceries/use-aisles'
-import { useTaskActions } from './store'
+import { useTaskActions, type WholeAmount } from './store'
 import type { Task } from './types'
 
 /** How long typing pauses before the composer asks the list for an aisle. */
 const ASK_AFTER_MS = 250
 
 /** The units offered as pills, in the design's order; others stay readable. */
-const OFFERED_UNITS: readonly GroceryUnit[] = [
+export const OFFERED_UNITS: readonly GroceryUnit[] = [
   'stuks',
   'pak',
   'fles',
@@ -77,108 +78,25 @@ export function GroceryAmount({ task }: { task: Task }) {
 }
 
 /**
- * Under the composer while a line is typed: what the line will be saved as.
- * The amount is read here, on the phone, without AI and offline. The aisle is
- * the one the list itself would give the line (`useAisleOf`: the Group's own
- * choices, then the list's history, then the dictionary), the phone's
- * dictionary until that answer is in.
- *
- * The aisle chip opens the aisle menu (APP-524; `designs/groceries/README.md`,
- * "Recognition", 3): an aisle chosen there is the one the line is added in.
- * Untouched, the server decides the aisle as it always has.
+ * The aisle a typed name would be added in, for the composer's chip: the one
+ * the list itself would give it (`useAisleOf`: the Group's own choices, then
+ * the list's history, then the dictionary), the phone's dictionary until that
+ * answer is in.
  */
-export function GroceryPreview({
-  listId,
-  line,
-  aisle: chosen,
-  onAisle,
-}: {
-  listId: string
-  line: string
-  /** The aisle a Member chose for this line, if any. */
-  aisle: GroceryAisle | undefined
-  onAisle: (aisle: GroceryAisle) => void
-}) {
-  const tokens = useTokens('kitchen')
-  const { t } = useI18n()
+export function useTypedAisle(
+  listId: string | undefined,
+  name: string,
+): GroceryAisle | undefined {
   const { group } = useGroup()
-  const words = t.tasks.grocery
-  const amountText = useGroceryAmountText()
-  const typed = line.trim()
-  // Asked once typing pauses, not per keystroke; until the answer for this
-  // line is in, the phone's dictionary answers.
+  const typed = name.trim()
+  // Asked once typing pauses, not per keystroke.
   const [asked, setAsked] = useState(typed)
   useEffect(() => {
     const timer = setTimeout(() => setAsked(typed), ASK_AFTER_MS)
     return () => clearTimeout(timer)
   }, [typed])
   const aisleOf = useAisleOf(group.slug, listId, asked ? [asked] : [])
-  if (!typed) return null
-  const fields = groceryAddFields(line)
-  const amount = amountText(fields.quantity, fields.unit)
-  const detected = aisleOf(typed)
-  const aisle = chosen ?? detected
-  const aisleFilled = chosen === undefined && detected !== 'other'
-  const hint = amount
-    ? aisleFilled
-      ? words.recognised
-      : words.recognisedAmount
-    : aisleFilled
-      ? words.recognisedAisle
-      : null
-  const tint = tokens.tintOf('kitchen')
-  const chip = [styles.chip, { backgroundColor: tint.wash, color: tint.text }]
-  return (
-    <View
-      testID="grocery-preview"
-      accessibilityLiveRegion="polite"
-      style={styles.preview}
-    >
-      {amount ? <Text style={chip}>{amount}</Text> : null}
-      <MenuView
-        testID="grocery-preview-aisle"
-        actions={GROCERY_AISLES.map((id) => ({
-          id,
-          title: words.aisles[id],
-          state: id === aisle ? ('on' as const) : ('off' as const),
-        }))}
-        onPressAction={(event) => {
-          const next = event.nativeEvent.event
-          // Any aisle tapped is a choice, the one shown too: "keep it in
-          // Other" holds against a later AI answer.
-          if (!isGroceryAisle(next) || next === chosen) return
-          haptics.selectionChanged()
-          onAisle(next)
-        }}
-      >
-        <View
-          accessibilityRole="button"
-          accessibilityLabel={`${words.aisle}, ${words.aisles[aisle]}`}
-          accessibilityHint={words.changeAisleHint}
-          style={styles.aisleTarget}
-        >
-          <View style={[styles.aisleChip, { backgroundColor: tint.wash }]}>
-          <Text style={[styles.chipText, { color: tint.text }]}>
-            {words.aisles[aisle]}
-          </Text>
-          <UI_ICONS.ChevronDown
-            size={12}
-            color={tint.text}
-            strokeWidth={2.6}
-            accessibilityElementsHidden
-            importantForAccessibility="no"
-          />
-          </View>
-        </View>
-      </MenuView>
-      {/* What was filled in from the line: an amount, an aisle the Member
-          has not chosen themselves, or both; a chosen aisle was not filled
-          in (APP-536). */}
-      {hint ? (
-        <Text style={[styles.hint, { color: tokens.muted }]}>{hint}</Text>
-      ) : null}
-    </View>
-  )
+  return typed ? aisleOf(typed) : undefined
 }
 
 function amountDraft(quantity: number | undefined, locale: string): string {
@@ -215,46 +133,116 @@ export function GroceryFields({
   const actions = useTaskActions()
   const [draft, setDraft] = useState(amountDraft(task.quantity, locale))
 
-  // Somebody else's edit arrives while the field is not being typed in.
-  useEffect(
-    () => setDraft(amountDraft(task.quantity, locale)),
-    [task.quantity, locale],
-  )
+  // The last amount written, until it settles: a quick second tap follows it,
+  // not the row, which may still show the one before. It is sent once that
+  // write landed, and not at all when it was refused.
+  const sent = useRef<{ to: WholeAmount; done: Promise<unknown> } | null>(null)
+  const [pending, setPending] = useState(false)
 
-  const write = (quantity: number | null, unit: GroceryUnit | null) => {
-    haptics.selectionChanged()
-    actions
-      .setAmount(task.id, quantity, unit)
-      .catch(() => haptics.actionFailed())
+  // The amount the field's text belongs to, and the text while it is typed and
+  // not committed yet. Typing never moves the text to another amount: it stays
+  // while that amount stands, and gives way to anybody's change of it. Refs: a
+  // quick tap may come before the render of what it follows.
+  const draftOf = useRef<WholeAmount>({
+    quantity: task.quantity ?? null,
+    unit: task.unit ?? null,
+  })
+  const typed = useRef<string | null>(null)
+
+  /** The amount a change starts from: the last one written, or the row's. */
+  const latest = (): WholeAmount =>
+    sent.current?.to ?? {
+      quantity: task.quantity ?? null,
+      unit: task.unit ?? null,
+    }
+
+  /** Whether the field's text belongs to the amount there is now. */
+  const draftStands = (): boolean => {
+    const { quantity, unit } = latest()
+    return draftOf.current.quantity === quantity && draftOf.current.unit === unit
   }
 
-  // What the field holds now, typed but maybe not yet committed: a step or a
+  /** Puts an amount in the field, in place of what it holds. */
+  const show = (amount: WholeAmount) => {
+    draftOf.current = amount
+    typed.current = null
+    setDraft(amountDraft(amount.quantity ?? undefined, locale))
+  }
+
+  // The row's amount goes into the field. Not while our own writes are on
+  // their way: the row may show one before the last.
+  useEffect(() => {
+    if (pending) return
+    const row = { quantity: task.quantity ?? null, unit: task.unit ?? null }
+    const of = draftOf.current
+    const same = of.quantity === row.quantity && of.unit === row.unit
+    if (typed.current !== null && same) return
+    draftOf.current = row
+    typed.current = null
+    setDraft(amountDraft(task.quantity, locale))
+  }, [task.quantity, task.unit, locale, pending])
+
+  /** Over the amount it was chosen from; another Member's change stands. */
+  const write = (quantity: number | null, unit: GroceryUnit | null) => {
+    haptics.selectionChanged()
+    const to = { quantity, unit }
+    const before = sent.current
+    const expected = latest()
+    show(to)
+    const send = () => actions.setAmount(task.id, to, expected)
+    const entry = { to, done: before ? before.done.then(send) : send() }
+    sent.current = entry
+    setPending(true)
+    entry.done
+      .catch(() => {
+        // One answer for a run of taps, from the last of them.
+        if (sent.current === entry) haptics.actionFailed()
+      })
+      .finally(() => {
+        if (sent.current !== entry) return
+        sent.current = null
+        setPending(false)
+      })
+  }
+
+  // What was typed and not committed yet, or the amount there is: a step or a
   // unit tapped while typing starts from what was typed, not from before it.
-  const current = () => parseAmount(draft) ?? task.quantity
+  // Text that belongs to an amount that is gone does not count.
+  const current = () =>
+    (typed.current !== null && draftStands()
+      ? parseAmount(typed.current)
+      : undefined) ??
+    latest().quantity ??
+    undefined
 
   const step = (direction: 1 | -1) => {
-    const next = stepGroceryQuantity(current(), task.unit, direction)
+    const { unit } = latest()
+    const next = stepGroceryQuantity(current(), unit ?? undefined, direction)
     if (next === null) return
-    setDraft(amountDraft(next, locale))
-    write(next, task.unit ?? null)
+    write(next, unit)
+  }
+
+  const chooseUnit = (unit: GroceryUnit) => write(current() ?? 1, unit)
+
+  const type = (text: string) => {
+    typed.current = text
+    setDraft(text)
   }
 
   const commitDraft = () => {
-    const typed = draft.trim()
-    if (!typed) {
-      if (task.quantity !== undefined) write(null, task.unit ?? null)
-      return
-    }
-    const value = parseAmount(typed)
-    if (value === undefined) {
-      // Not an amount: put back the one that was there.
-      setDraft(amountDraft(task.quantity, locale))
+    // Nothing typed: leaving the field changes nothing. A submit also blurs.
+    if (typed.current === null) return
+    const { quantity, unit } = latest()
+    const text = typed.current.trim()
+    const value = text ? parseAmount(text) : null
+    if (value === undefined || !draftStands()) {
+      // Not an amount, or typed for one that is gone: show the one there is.
+      show(latest())
       haptics.actionFailed()
       return
     }
-    const rounded = value
-    setDraft(amountDraft(rounded, locale))
-    if (rounded !== task.quantity) write(rounded, task.unit ?? null)
+    if (value === quantity) show({ quantity, unit })
+    else write(value, unit)
   }
 
   const canDecrease =
@@ -282,10 +270,7 @@ export function GroceryFields({
               testID="grocery-clear-amount"
               accessibilityRole="button"
               hitSlop={12}
-              onPress={() => {
-                setDraft('')
-                write(null, null)
-              }}
+              onPress={() => write(null, null)}
             >
               <Text style={[styles.textButton, { color: tokens.accentText }]}>
                 {words.clearAmount}
@@ -304,7 +289,7 @@ export function GroceryFields({
           <TextInput
             testID="grocery-quantity"
             value={draft}
-            onChangeText={setDraft}
+            onChangeText={type}
             onBlur={commitDraft}
             onSubmitEditing={commitDraft}
             editable={writable}
@@ -335,16 +320,20 @@ export function GroceryFields({
         >
           {units.map((unit) => {
             const on = unit === selectedUnit
+            const radio = radioProps(on, t.a11y.radioButton)
             return (
               <Pressable
                 key={unit}
                 testID={`grocery-unit-${unit}`}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: on, disabled: !writable }}
+                {...radio}
+                accessibilityState={{
+                  ...radio.accessibilityState,
+                  disabled: !writable,
+                }}
                 accessibilityLabel={pillWord(unit)}
                 disabled={!writable}
                 hitSlop={{ top: 5, bottom: 5 }}
-                onPress={() => (on ? undefined : write(current() ?? 1, unit))}
+                onPress={() => (on ? undefined : chooseUnit(unit))}
                 style={({ pressed }) => [
                   styles.pill,
                   {
@@ -380,9 +369,11 @@ export function GroceryFields({
             const chosen = event.nativeEvent.event
             if (!isGroceryAisle(chosen) || chosen === aisle) return
             haptics.selectionChanged()
-            actions
-              .setAisle(task.id, chosen)
-              .catch(() => haptics.actionFailed())
+            actions.setAisle(task.id, chosen).catch(() => {
+              // A haptic is never the only word (APP-621).
+              haptics.actionFailed()
+              showAlert(fmt(words.aisleFailed, { aisle: words.aisles[chosen] }))
+            })
           }}
         >
           <View

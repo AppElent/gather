@@ -28,6 +28,11 @@ export interface TaskList {
   id: string
   name: string
   provider: TaskProviderId
+  /**
+   * Whether its tasks can be written: every local list, and a linked one whose
+   * provider can be written to and answered last time (APP-448). Whether the
+   * list itself (its name, order, sections) is Gather's is `provider`.
+   */
   writable: boolean
   display: ListDisplay
   order: number
@@ -100,6 +105,10 @@ export interface Task {
   /** The section it sits in; none, or one that is gone, is "No section". */
   sectionId?: string
   order: number
+  /** A linked list's row: its provider holds it, not Convex. */
+  linked?: true
+  /** A write to it is on its way to the provider. */
+  pending?: true
   /**
    * The task it is a step of (APP-304); absent on a task of its own. A list
    * draws a subtask under its parent only, never as a row.

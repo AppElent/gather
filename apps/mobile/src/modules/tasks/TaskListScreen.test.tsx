@@ -186,7 +186,11 @@ vi.mock('./listFace', () => ({ AppearanceSheet: stub }))
 vi.mock('./packing', () => ({ PackingProgress: stub, UncheckAll: stub }))
 vi.mock('./sections', () => ({ SectionHeading: stub, SectionsSheet: stub }))
 vi.mock('./sheets', () => ({ RenameSheet: stub }))
-vi.mock('./TaskRow', () => ({ TaskComposer: stub, TaskRow: stub }))
+vi.mock('./TaskRow', () => ({ TaskRow: stub }))
+vi.mock('./GroceryComposer', () => ({
+  AddGrocery: stub,
+  GROCERY_BAR_HEIGHT: 68,
+}))
 vi.mock('./AddTaskComposer', () => ({ AddTask: stub }))
 vi.mock('./taskMenu', () => ({
   useTaskSheets: () => ({ onAction: () => {}, sheets: null }),

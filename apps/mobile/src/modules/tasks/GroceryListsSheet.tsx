@@ -19,6 +19,7 @@ import { MODULE_ICONS, UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, useInsetSeparator } from '../../ui/inset-list'
 import { ModuleTile } from '../../ui/module-tile'
+import { radioProps } from '../../ui/radio-props'
 import { useTasksOf } from './store'
 
 type ListRow = FunctionReturnType<typeof api.taskLists.list>[number]
@@ -175,12 +176,12 @@ function ListRadio({
   onPress: () => void
 }) {
   const tokens = useTokens('kitchen')
+  const { t } = useI18n()
   const separator = useInsetSeparator()
   return (
     <Pressable
       testID={`grocery-list-${name}`}
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
+      {...radioProps(selected, t.a11y.radioButton)}
       accessibilityLabel={[name, subtitle, countLabel].filter(Boolean).join(', ')}
       onPress={onPress}
       style={({ pressed }) => [

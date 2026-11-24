@@ -11,8 +11,8 @@ import type {
  * The Tasks module's own words.
  *
  * A task's title, a list's name, and the labels a household invents are
- * content. So is anything mirrored from Notion or Todoist — those rows belong
- * to the other app, and gather only reads them.
+ * content. So is anything linked from Notion or Todoist — those rows belong
+ * to the other app; Gather reads Notion, and reads and writes Todoist.
  */
 export const tasks = {
   /** The summary under a task screen's large title. */
@@ -23,7 +23,7 @@ export const tasks = {
 
   page: {
     subtitle:
-      'Shared lists — local ones live here, linked ones mirror Notion or Todoist.',
+      'Shared lists — local ones live here, linked ones live in Notion or Todoist.',
     addList: 'Add list',
     emptyTitle: 'No lists yet',
     emptyBody: 'Create a local list, or link one from Notion or Todoist.',
@@ -62,6 +62,32 @@ export const tasks = {
     empty: 'No open tasks in this {provider} list.',
   },
 
+  /**
+   * Writing to a linked list (APP-448). The provider takes a change first, so
+   * each of these means nothing changed in Gather.
+   */
+  linkedWrite: {
+    failedTitle: 'Not saved in {provider}',
+    failed: {
+      offline:
+        'You are offline, so nothing was changed. Refresh the list once you are back online.',
+      reconnect:
+        'Gather is not allowed to change this list. Reconnect {provider} in the group’s settings on the web, then refresh the list. Nothing was changed.',
+      'not-found':
+        'This task is not in the {provider} list any more. The list is loading again.',
+      stale:
+        'This list is not up to date with {provider}. Refresh it, then try again.',
+      failed:
+        '{provider} did not confirm this change. Check the list before you try again.',
+    },
+    /** A task going under another one on its list, and back out. */
+    moveUnder: 'Move under a task…',
+    parentTask: 'Parent task',
+    topLevel: 'Not under a task',
+    noParents: 'There is no task on this list it can go under.',
+    addSubtask: 'Add a subtask to {task}',
+  },
+
   editor: {
     title: 'Task title',
     dueDate: 'Due date',
@@ -79,12 +105,13 @@ export const tasks = {
     title: 'Add a list',
     local: 'Local list — created and edited here',
     mirror: '{provider} — read-only mirror',
+    linked: '{provider} — kept there, edited from both',
     connectFirst: 'Connect {provider} first…',
     listName: 'List name',
     create: 'Create',
     failed: 'Something went wrong — try again.',
     pickNotion: 'Pick the Notion database to mirror:',
-    pickTodoist: 'Pick the Todoist project to mirror:',
+    pickTodoist: 'Pick the Todoist project to link:',
     nothingFoundNotion:
       'Nothing found — make sure the connection has access to at least one database.',
     nothingFoundTodoist:
@@ -176,6 +203,8 @@ export const tasks = {
     clearAmount: 'No amount',
     unit: 'Unit',
     aisle: 'Aisle',
+    /** An item's aisle chosen on its screen did not save (APP-621). */
+    aisleFailed: 'Could not move it to {aisle}. Try again.',
     /** An item's own screen says item, not task (APP-387). */
     itemPlaceholder: 'What do you need?',
     deleteItem: 'Delete item',
@@ -185,14 +214,6 @@ export const tasks = {
      */
     labelsOnItem: 'On this item',
     removeLabelEverywhere: 'Remove everywhere',
-    /** Under the composer while a line is typed. */
-    recognised: 'Amount and aisle filled in from what you type',
-    /** The same, when only the amount was read: the aisle was chosen, or not known. */
-    recognisedAmount: 'Amount filled in from what you type',
-    /** The same, when only the aisle was filled in. */
-    recognisedAisle: 'Aisle filled in from what you type',
-    /** Read out for the composer's aisle chip, which opens the aisle menu. */
-    changeAisleHint: 'Choose the aisle it is added in',
     // The list in aisle sections, the Checked row and Recent (APP-310;
     // `designs/groceries/README.md` sections 1 and 4).
     /** Read out for an aisle section's heading: the aisle and its count. */
@@ -358,6 +379,7 @@ export const tasks = {
         'Merged with what is already there. The list shows which recipe each item is for.',
       edit: 'Edit',
       editTitle: 'Edit item',
+      editLabel: 'Ingredient',
       failed: 'These could not be added. Try again.',
     },
     /**
@@ -506,7 +528,7 @@ export const tasks = {
     /** Why the Who row is off on a list (`assigneeUnavailable`). */
     unavailable: {
       readOnly:
-        'Assign this task in {provider}. Gather cannot change linked lists yet.',
+        'Assign this task in {provider}. Gather cannot do that yet.',
       notShared:
         'Only a shared {provider} project has people to give a task to.',
       unsupported: '{provider} lists have no field for who does a task.',
@@ -678,7 +700,7 @@ export const tasks = {
     footnoteNever: 'A date alone sets no reminder and no repeat.',
     /** A linked list's task: its repeat lives in the other app. */
     linked:
-      'This list lives in {provider}. Gather reads it but cannot write to it, so set the repeat in {provider}.',
+      'This list lives in {provider}. Gather shows how a task repeats; set or change it in {provider}.',
     /** After completing a repeating task. */
     completed: 'Done. Next: {date}',
     undo: 'Undo',

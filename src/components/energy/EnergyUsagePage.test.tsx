@@ -168,18 +168,55 @@ describe('EnergyUsagePage', () => {
     expect(screen.queryByText('From the grid')).not.toBeInTheDocument()
   })
 
-  test('a month per day', () => {
+  test('a month per day, with no peak day when every day uses the same', () => {
     renderInGroup(<EnergyUsagePage />)
     fireEvent.click(screen.getByRole('tab', { name: 'Month' }))
     expect(screen.getByText('November 2026')).toBeInTheDocument()
     expect(
-      screen.getByRole('figure', {
-        name: 'Usage per day in November. Most usage on November 1, 10.0 kWh.',
-      }),
+      screen.getByRole('figure', { name: 'Usage per day in November.' }),
     ).toBeInTheDocument()
+    expect(screen.queryByText(/Most usage on/)).not.toBeInTheDocument()
     expect(
       screen.getByText('On average 10.0 kWh a day. October: 10.0 a day.'),
     ).toBeInTheDocument()
+  })
+
+  test('a month with one clear peak names that day', () => {
+    const period = monthPeriod('2026-11', '2026-11-20')
+    const fifth = period.days[4]
+    if (fifth) fifth.consumptionKwh = 18
+    state.months['2026-11'] = period
+    renderInGroup(<EnergyUsagePage />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Month' }))
+    expect(
+      screen.getByRole('figure', {
+        name: 'Usage per day in November. Most usage on November 5, 18.0 kWh.',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  test('a day with the same usage every hour names no peak hour', () => {
+    const period = hourlyDay()
+    state.day = {
+      ...period,
+      channels: { ...CHANNELS },
+      hours: period.hours.map((hour) => ({
+        ...hour,
+        importKwh: 0.5,
+        consumptionKwh: 0.5,
+      })),
+    }
+    renderInGroup(<EnergyUsagePage />)
+    expect(
+      screen.getByRole('figure', { name: 'Usage per hour on November 20.' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Usage highest at/)).not.toBeInTheDocument()
+  })
+
+  test('opens on the year the link names', () => {
+    renderInGroup(<EnergyUsagePage initialRange="year" initialYear={2025} />)
+    expect(screen.getByRole('button', { name: 'Next year' })).toBeEnabled()
+    expect(screen.getByText('Per month, 2025 and 2024')).toBeInTheDocument()
   })
 
   test('a year next to the year before, over the same completed months', () => {

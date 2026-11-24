@@ -39,7 +39,9 @@ defined in the [glossary](../../GLOSSARY.md).
   `groups:not-signed-in`, `groups:unknown-slug` and `groups:not-a-member`
   (APP-429); read it with `readGroupRefusal`. The sign-in helpers in
   `convex/lib/sharing.ts` throw the same `groups:not-signed-in`, and the Group
-  mutations that name a Group by id throw `groups:unknown-group` (APP-581). Its data also carries the English
+  mutations that name a Group by id throw `groups:unknown-group` (APP-581). The
+  account, AI-usage, export and account-portal (`portalCaller`) paths throw it
+  too (APP-620, APP-682). Its data also carries the English
   sentence it threw before the keys, as `message`, so a reader without wording
   for the kind shows what it always showed.
 - **Provenance is permission-checked on read and safe to dangle.** A copied

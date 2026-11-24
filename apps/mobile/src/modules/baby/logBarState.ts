@@ -18,3 +18,13 @@ export function showAllSlots<T>(
   }
   return next
 }
+
+/**
+ * The key of a log bar item's context menu. The item is only as wide as its
+ * label, and the menu cannot see a new label in a slot that sizes itself, so
+ * the key follows the label: a language switch remounts the menu at the new
+ * width (APP-764).
+ */
+export function slotMenuKey(slot: string, label: string): string {
+  return `${slot}:${label}`
+}

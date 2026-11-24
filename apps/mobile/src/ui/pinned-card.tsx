@@ -5,9 +5,10 @@
  * - **Photo card:** the photo 104 high, the title in `body-strong` on
  *   `surface` under it. Nothing laid over the photo.
  * - **Fill card:** the group's fill, a 30 pt glyph top left and the label in
- *   `card-label` and the group's `on` colour bottom left. The label wraps; the
- *   card is at least `pinned-min-height` and grows with Dynamic Type. A word
- *   too long for the card shrinks rather than breaking mid-word.
+ *   `card-label` and the group's `on` colour bottom left. The label takes a line
+ *   per word and never shrinks, so every label in a row is the same size at
+ *   any Dynamic Type size. The card is at least `pinned-width` by
+ *   `pinned-min-height` and grows to fit its longest word.
  *
  * Holding a card opens the native context menu (Unpin, Open), whose actions
  * the caller supplies. No counts and no badges.
@@ -15,7 +16,13 @@
 import type { MenuAction } from '@expo/ui/community/menu'
 import { Image } from 'expo-image'
 import type { ReactNode } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 
 import { NativeContextMenu } from '../components/NativeContextMenu'
 import type { Glyph } from '../theme/glyph'
@@ -32,6 +39,11 @@ import {
 const PINNED_PHOTO_HEIGHT = 104
 /** The glyph on a fill card. */
 const PINNED_GLYPH = 30
+/**
+ * Where a fill card's label stops growing, the same for every card: the
+ * longest word ("Maaltijdplanner") then still fits a narrow phone unbroken.
+ */
+const LABEL_MAX_SCALE = 2
 
 export type PinnedCardFace =
   | { photo: string }
@@ -82,14 +94,10 @@ export function PinnedCard({
           importantForAccessibility="no"
         />
         <Text
-          // One line per word at most, shrinking to fit: a long compound
-          // ("Babylogboek") gets smaller rather than split mid-word.
-          numberOfLines={wordCount(title)}
-          adjustsFontSizeToFit
-          minimumFontScale={0.6}
+          maxFontSizeMultiplier={LABEL_MAX_SCALE}
           style={[styles.label, { color: tint.on }]}
         >
-          {title}
+          {title.trim().replace(/\s+/g, '\n')}
         </Text>
       </View>
     )
@@ -103,6 +111,7 @@ export function PinnedCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
+        'photo' in face ? styles.photoCard : styles.fillCard,
         { backgroundColor: background },
         pressed && styles.pressed,
       ]}
@@ -113,14 +122,17 @@ export function PinnedCard({
 
   if (!menu) return card
   return (
-    <NativeContextMenu actions={menu.actions} onAction={menu.onAction}>
+    // A fill card is only as wide as its label, so the slot never changes when
+    // the title does and the menu cannot see it; the menu follows the text
+    // size and its slot itself.
+    <NativeContextMenu
+      key={title}
+      actions={menu.actions}
+      onAction={menu.onAction}
+    >
       {card}
     </NativeContextMenu>
   )
-}
-
-function wordCount(text: string): number {
-  return Math.max(1, text.trim().split(/\s+/).length)
 }
 
 /**
@@ -148,12 +160,13 @@ export function PinnedRow({
 
 const styles = StyleSheet.create({
   card: {
-    width: SIZE.pinnedWidth,
     minHeight: SIZE.pinnedMinHeight,
     borderRadius: RADIUS.card,
     borderCurve: 'continuous',
     overflow: 'hidden',
   },
+  photoCard: { width: SIZE.pinnedWidth },
+  fillCard: { minWidth: SIZE.pinnedWidth },
   photo: { width: '100%', height: PINNED_PHOTO_HEIGHT },
   photoTitle: {
     ...TYPE.bodyStrong,

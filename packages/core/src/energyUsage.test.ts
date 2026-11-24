@@ -17,7 +17,9 @@ import {
   type EnergyContractTerms,
   type EnergyDayUse,
   energyContractOn,
+  energyCostPeriod,
   energyDayCost,
+  energyDayFixedCost,
   energyMonthDays,
   energyNetMetering,
   energyReadingMoment,
@@ -97,6 +99,22 @@ describe('spreadReadingsOverDays', () => {
         '2026-11-01',
       ]),
     ).toEqual([null])
+  })
+
+  test('a reading lower than the one before (replaced meter) never spreads a negative amount', () => {
+    const readings = [
+      { at: noonOn('2026-11-01'), value: 1000 },
+      { at: noonOn('2026-11-11'), value: 50 },
+      { at: noonOn('2026-11-13'), value: 70 },
+    ]
+    const spread = spreadReadingsOverDays(readings, [
+      '2026-11-05',
+      '2026-11-11',
+      '2026-11-12',
+    ])
+    expect(spread[0]).toBeNull()
+    expect(spread[1]).toBeCloseTo(5)
+    expect(spread[2]).toBeCloseTo(10)
   })
 })
 
@@ -375,10 +393,58 @@ describe('net metering ends on 1 January 2027', () => {
   })
 })
 
+describe('energyNetMetering with export above import', () => {
+  test('never adds cost: each day keeps what it costs without', () => {
+    const days = [
+      {
+        importKwh: 10,
+        exportKwh: 0,
+        cost: { ...ZERO_ENERGY_COST, importCents: 100, totalCents: 100 },
+      },
+      {
+        importKwh: 0,
+        exportKwh: 10,
+        cost: { ...ZERO_ENERGY_COST, exportCents: -300, totalCents: -300 },
+      },
+    ]
+    expect(energyNetMetering(days)).toEqual(days.map((day) => day.cost))
+  })
+})
+
+describe('energyDayFixedCost', () => {
+  const terms = { monthlyFixedCents: 3000, yearlyTaxCreditCents: 36500, vatPercent: 0 }
+  test('is the month’s share of the fee and the year’s of the credit', () => {
+    expect(energyDayFixedCost('2026-11-05', terms)).toEqual({
+      ...ZERO_ENERGY_COST,
+      fixedCents: 100,
+      creditCents: -100,
+      totalCents: 0,
+    })
+  })
+  test('is nothing under a contract with neither', () => {
+    expect(
+      energyDayFixedCost('2026-11-05', { monthlyFixedCents: 0, vatPercent: 21 }),
+    ).toBeNull()
+  })
+})
+
 describe('forecastMonthCents', () => {
   test('extends the days so far to the whole month', () => {
-    expect(forecastMonthCents(1000, 10, '2026-11')).toBe(3000)
-    expect(forecastMonthCents(1000, 0, '2026-11')).toBeNull()
+    const cost = { ...ZERO_ENERGY_COST, importCents: 1000, totalCents: 1000 }
+    expect(forecastMonthCents(cost, 10, 10, '2026-11')).toBe(3000)
+    expect(forecastMonthCents(cost, 0, 10, '2026-11')).toBeNull()
+  })
+
+  test('extends fixed costs from the days they ran, not the days with usage', () => {
+    const cost = {
+      ...ZERO_ENERGY_COST,
+      importCents: 1000,
+      fixedCents: 2000,
+      creditCents: -1000,
+      totalCents: 2000,
+    }
+    // 10 days of usage, 20 days of fixed costs: 1000 × 3 + 1000 × 1.5.
+    expect(forecastMonthCents(cost, 10, 20, '2026-11')).toBe(4500)
   })
 })
 
@@ -448,5 +514,24 @@ describe('presenting', () => {
       percent: 20,
     })
     expect(compareYears([], [], 0)).toBeNull()
+  })
+})
+
+describe('energyCostPeriod', () => {
+  const priced = (day: string) => ({ day, cost: ZERO_ENERGY_COST })
+  const unpriced = (day: string) => ({ day, cost: null })
+  test('runs from the first to the last day that carries a cost', () => {
+    expect(
+      energyCostPeriod([
+        priced('2026-11-01'),
+        priced('2026-11-02'),
+        priced('2026-11-03'),
+        unpriced('2026-11-04'),
+      ]),
+    ).toEqual({ from: '2026-11-01', to: '2026-11-03' })
+  })
+  test('is nothing when no day carries a cost', () => {
+    expect(energyCostPeriod([unpriced('2026-11-01')])).toBeNull()
+    expect(energyCostPeriod([])).toBeNull()
   })
 })

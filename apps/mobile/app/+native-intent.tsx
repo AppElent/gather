@@ -16,10 +16,13 @@
  *   it opens at `/`, which is Home for a signed-in person and the welcome
  *   screen otherwise, and the current Group stays as it was.
  *
- * Every other link goes on unchanged.
+ * Every other link goes on unchanged, but one that reaches a running app waits
+ * until the sheets over the screen have closed (`linkAfterSheets`, APP-747). A
+ * share does not wait here: `DropGate` closes the sheets before the chooser.
  */
 import { getShareExtensionKey } from 'expo-share-intent'
 
+import { dropHeldLink, linkAfterSheets } from '../src/shell/linkAfterSheets'
 import { isOldGroupLink } from '../src/shell/oldGroupLink'
 
 export function redirectSystemPath({
@@ -29,7 +32,10 @@ export function redirectSystemPath({
   path: string
   initial: boolean
 }) {
-  if (isOldGroupLink(path)) return '/'
-  if (!path.includes(`dataUrl=${getShareExtensionKey()}`)) return path
-  return initial ? '/' : null
+  if (path.includes(`dataUrl=${getShareExtensionKey()}`)) {
+    dropHeldLink()
+    return initial ? '/' : null
+  }
+  const address = isOldGroupLink(path) ? '/' : path
+  return initial ? address : linkAfterSheets(address)
 }

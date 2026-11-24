@@ -23,6 +23,7 @@ export interface ShellGroup {
   icon?: string
   imageId?: Id<'_storage'>
   imageUrl?: string | null
+  timeZone?: string
   role: 'admin' | 'member'
 }
 

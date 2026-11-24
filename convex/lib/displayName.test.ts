@@ -38,3 +38,21 @@ describe('storedName', () => {
     expect(storedName({})).toBe(FALLBACK_MEMBER_NAME)
   })
 })
+
+describe('storedName with the name the app sends (APP-676)', () => {
+  test('uses it when the token has no name, over a stored fallback', () => {
+    expect(storedName({}, FALLBACK_MEMBER_NAME, ' Eric  Jansen ')).toBe('Eric Jansen')
+  })
+
+  test('a name in the token still wins', () => {
+    expect(storedName({ name: 'Sanne Bos' }, undefined, 'Someone else')).toBe('Sanne Bos')
+  })
+
+  test('a blank one changes nothing', () => {
+    expect(storedName({}, 'Sanne', '  ')).toBe('Sanne')
+  })
+
+  test('is cut to a sane length', () => {
+    expect(storedName({}, undefined, 'x'.repeat(500))).toHaveLength(80)
+  })
+})

@@ -57,9 +57,88 @@ export class ProviderAuthError extends Error {
   }
 }
 
+/** The asked-for task is not (or no longer) in the list's project. */
+export class ProviderTaskNotFoundError extends Error {
+  constructor(provider: ExternalProviderId) {
+    super(`${provider} has no such task in this list`)
+    this.name = 'ProviderTaskNotFoundError'
+  }
+}
+
+/** What a task can be created with or changed to; null clears a field. */
+export interface TaskFieldChanges {
+  title?: string
+  dueDate?: string | null
+  priority?: 1 | 2 | 3 | 4 | null
+  labels?: string[]
+}
+
+export interface NewProviderTask extends TaskFieldChanges {
+  title: string
+  parentId?: string
+  /** The same key makes one task, however often it is sent. */
+  requestKey?: string
+}
+
+/** What a provider answered to an accepted write. */
+export interface WriteOutcome {
+  /** Tasks as the provider has them now; rows it did not answer for are absent. */
+  tasks: UnifiedTask[]
+  /**
+   * The write was accepted, but the list has to be read again to know all of
+   * what it did (a recurring task's next date, or a failed read-back).
+   */
+  refresh: boolean
+}
+
+/**
+ * A provider's write calls. Every one is confined to `config`'s source: a task
+ * or parent elsewhere in the connected account is refused as not found.
+ * A call resolves only once the provider accepted the change.
+ */
+export interface TaskProviderWriter {
+  createTask(
+    accessToken: string,
+    config: SourceConfig,
+    task: NewProviderTask,
+    fetchImpl?: typeof fetch,
+  ): Promise<WriteOutcome>
+  updateTask(
+    accessToken: string,
+    config: SourceConfig,
+    taskId: string,
+    changes: TaskFieldChanges,
+    fetchImpl?: typeof fetch,
+  ): Promise<WriteOutcome>
+  /** `withSubtasks` completes a recurring task's open subtasks with it. */
+  closeTask(
+    accessToken: string,
+    config: SourceConfig,
+    taskId: string,
+    options: { withSubtasks: boolean },
+    fetchImpl?: typeof fetch,
+  ): Promise<WriteOutcome>
+  reopenTask(
+    accessToken: string,
+    config: SourceConfig,
+    taskId: string,
+    fetchImpl?: typeof fetch,
+  ): Promise<WriteOutcome>
+  /** Under another task, or out to the top of the list with null. */
+  moveTask(
+    accessToken: string,
+    config: SourceConfig,
+    taskId: string,
+    parentId: string | null,
+    fetchImpl?: typeof fetch,
+  ): Promise<WriteOutcome>
+}
+
 export interface TaskProviderAdapter {
   id: ExternalProviderId
   capabilities: ProviderCapabilities
+  /** Present exactly when `capabilities.write`. */
+  writer?: TaskProviderWriter
   listAvailableSources(
     accessToken: string,
     fetchImpl?: typeof fetch,

@@ -1,6 +1,7 @@
+import { addDays } from '@gather/core/civil-date'
 import { amsterdamDayHours, amsterdamDayStart } from '@gather/core/energy'
 import { describe, expect, test } from 'vitest'
-import { alice, bob, carol } from '../test/convexHarness'
+import { alice, bob, carol, testConvexWithLimits } from '../test/convexHarness'
 import {
   DYNAMIC_TERMS,
   FIXED_TERMS,
@@ -13,6 +14,8 @@ import {
 } from '../test/energyUsageFixture'
 import { api } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
+import type { MutationCtx } from './_generated/server'
+import { MAX_CHANNELS } from './lib/energyChannelLimit'
 
 /**
  * Usage and costs (APP-494), computed from typed readings and hourly
@@ -199,7 +202,104 @@ describe('a month from typed readings', () => {
   })
 })
 
+describe('fixed costs and the tax credit', () => {
+  // Per day in November: 113 ct fixed, 174 ct credit.
+  test('run on every day of a month with gaps', async () => {
+    const { t } = await seedReadSite()
+    const month = await t
+      .withIdentity(bob)
+      .query(api.energyUsage.month, { ...NOVEMBER, today: '2026-11-30' })
+    expect(month?.totals.daysWithData).toBe(11)
+    expect(month?.totals.cost?.fixedCents).toBe(30 * 113)
+    expect(month?.totals.cost?.creditCents).toBe(-30 * 174)
+    const gap = month?.days.find((day) => day.day === '2026-11-25')
+    expect(gap).toMatchObject({ hasData: false, costStatus: 'noData' })
+    expect(gap?.cost).toEqual({
+      importCents: 0,
+      exportCents: 0,
+      gasCents: 0,
+      fixedCents: 113,
+      creditCents: -174,
+      totalCents: -61,
+    })
+  })
+
+  test('run up to and including today, never on days to come', async () => {
+    const { t } = await seedReadSite()
+    const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
+    expect(month?.totals.cost?.fixedCents).toBe(20 * 113)
+    expect(month?.totals.costWithoutNet?.creditCents).toBe(-20 * 174)
+    expect(month?.days.find((day) => day.day === '2026-11-20')?.cost).not.toBeNull()
+    expect(month?.days.find((day) => day.day === '2026-11-21')?.cost).toBeNull()
+  })
+
+  test('run only from the day the contract starts', async () => {
+    const { t } = await seedReadSite({
+      contract: { ...FIXED_TERMS, validFrom: '2026-11-06' },
+    })
+    const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
+    expect(month?.totals.cost?.fixedCents).toBe(15 * 113)
+  })
+
+  test('run in a month without any usage, with the status still saying so', async () => {
+    const { t } = await seedReadSite()
+    const month = await t
+      .withIdentity(bob)
+      .query(api.energyUsage.month, { ...NOVEMBER, month: '2026-10' })
+    expect(month?.totals).toMatchObject({
+      daysWithData: 0,
+      costStatus: 'noData',
+      cost: {
+        importCents: 0,
+        fixedCents: 31 * 109, // €33.94 over 31 days
+        creditCents: -31 * 174,
+        totalCents: 31 * (109 - 174),
+      },
+    })
+  })
+})
+
 describe('a dynamic contract', () => {
+  test('a month with an unpriced day totals the priced ones and all fixed costs', async () => {
+    const { t } = await seedReadSite({
+      contract: { ...DYNAMIC_TERMS, monthlyFixedCents: 3000, vatPercent: 0 },
+    })
+    await t.run(async (ctx) => {
+      for (const day of ['2026-11-01', '2026-11-02', '2026-11-03']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+    })
+    const month = await t
+      .withIdentity(bob)
+      .query(api.energyUsage.month, { ...NOVEMBER, today: '2026-11-04' })
+    expect(month?.totals).toMatchObject({
+      daysWithData: 4,
+      costMissingDays: 1,
+      costStatus: 'ok',
+    })
+    const fourth = month?.days.find((day) => day.day === '2026-11-04')
+    expect(fourth?.costStatus).toBe('noPrices')
+    expect(fourth?.cost).toMatchObject({
+      importCents: 0,
+      gasCents: 0,
+      fixedCents: 100,
+      totalCents: 100,
+    })
+    // 2.5 days of 10 kWh × (0.10 + 0.02 + 0.10), excl. VAT here.
+    expect(month?.totals.cost?.importCents).toBe(550)
+    expect(month?.totals.cost?.fixedCents).toBe(400)
+    // Alone, that day has only its fixed cost, and says so.
+    const day = await t.withIdentity(bob).query(api.energyUsage.day, {
+      ...HOME,
+      day: '2026-11-04',
+      today: '2026-11-04',
+    })
+    expect(day?.totals).toMatchObject({
+      costStatus: 'noPrices',
+      cost: { importCents: 0, fixedCents: 100, totalCents: 100 },
+    })
+  })
+
   test('without prices has no costs, never a number', async () => {
     const { t } = await seedReadSite({ contract: DYNAMIC_TERMS })
     const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
@@ -254,6 +354,166 @@ describe('a dynamic contract', () => {
       totalCents: 517,
     })
     expect(month?.totals.cost?.totalCents).toBeGreaterThan(0)
+  })
+
+  /** One price all day, of a provider or of a feed. */
+  async function priceDay(
+    ctx: MutationCtx,
+    day: string,
+    provider: 'energyzero' | 'entsoe' | 'tibber',
+    eurPerUnit: number,
+    feedId?: Id<'energyPriceFeeds'>,
+  ) {
+    await ctx.db.insert('energyPrices', {
+      provider,
+      feedId,
+      carrier: 'electricity',
+      start: amsterdamDayStart(day),
+      minutes: 1440,
+      eurPerUnit,
+    })
+    if (provider === 'energyzero') {
+      await ctx.db.insert('energyPrices', {
+        provider,
+        carrier: 'gas',
+        start: amsterdamDayStart(day) + 6 * 3_600_000,
+        minutes: 1440,
+        eurPerUnit: 0.5,
+      })
+    }
+  }
+  const feedRow = (
+    homeId: Id<'groups'>,
+    siteId: Id<'energySites'>,
+    provider: 'entsoe' | 'tibber',
+  ) => ({
+    groupId: homeId,
+    siteId,
+    provider,
+    scope: provider === 'tibber' ? ('account' as const) : ('market' as const),
+    secret: 'key',
+    includesTaxes: provider === 'tibber',
+    status: 'ok' as const,
+  })
+  const costOn = async (
+    t: Awaited<ReturnType<typeof seedReadSite>>['t'],
+    day: string,
+  ) => {
+    const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
+    return month?.days.find((each) => each.day === day)
+  }
+
+  test("another Group's account prices never price this one (APP-493)", async () => {
+    const { t, otherId, carolId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const otherSite = await insertSite(ctx, otherId, carolId)
+      const feedId = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(otherId, otherSite, 'tibber'),
+      )
+      await priceDay(ctx, '2026-11-10', 'energyzero', 0.1)
+      await priceDay(ctx, '2026-11-10', 'tibber', 9, feedId)
+    })
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(266)
+  })
+
+  test('account prices are the import price; gas and export keep the contract (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const feedId = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(homeId, siteId, 'tibber'),
+      )
+      await priceDay(ctx, '2026-11-10', 'energyzero', 0.1)
+      await priceDay(ctx, '2026-11-10', 'tibber', 0.3, feedId)
+    })
+    // 10 kWh × 0.30, with no markup, tax or VAT on top; the rest as above.
+    expect((await costOn(t, '2026-11-10'))?.cost).toEqual({
+      importCents: 300,
+      exportCents: -27,
+      gasCents: 278,
+      fixedCents: 0,
+      creditCents: 0,
+      totalCents: 551,
+    })
+  })
+
+  test('another source later rewrites no account day (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const feedId = await ctx.db.insert('energyPriceFeeds', {
+        ...feedRow(homeId, siteId, 'tibber'),
+        provider: 'energyzero',
+        scope: 'market',
+        includesTaxes: false,
+        secret: undefined,
+      })
+      for (const day of ['2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-09', 'tibber', 0.3, feedId)
+    })
+    expect((await costOn(t, '2026-11-09'))?.cost?.importCents).toBe(300)
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(266)
+  })
+
+  test('a day an account feed missed has no price, never the market one (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const feedId = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(homeId, siteId, 'tibber'),
+      )
+      for (const day of ['2026-11-08', '2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-09', 'tibber', 0.3, feedId)
+    })
+    // Before the feed's first day it was not the source yet.
+    expect((await costOn(t, '2026-11-08'))?.cost?.importCents).toBe(266)
+    expect(await costOn(t, '2026-11-10')).toMatchObject({
+      cost: null,
+      costStatus: 'noPrices',
+    })
+  })
+
+  test('returning to an account source rewrites no day between (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const earlier = await ctx.db.insert('energyPriceFeeds', {
+        ...feedRow(homeId, siteId, 'tibber'),
+        provider: 'energyzero',
+        scope: 'market',
+        includesTaxes: false,
+        secret: undefined,
+      })
+      const now = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(homeId, siteId, 'tibber'),
+      )
+      for (const day of ['2026-11-08', '2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-08', 'tibber', 0.3, earlier)
+      await priceDay(ctx, '2026-11-10', 'tibber', 0.4, now)
+    })
+    expect((await costOn(t, '2026-11-08'))?.cost?.importCents).toBe(300)
+    expect((await costOn(t, '2026-11-09'))?.cost?.importCents).toBe(266)
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(400)
+  })
+
+  test('ENTSO-E prices a day it has, EnergyZero the others (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      await ctx.db.insert('energyPriceFeeds', feedRow(homeId, siteId, 'entsoe'))
+      for (const day of ['2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-10', 'entsoe', 0.2)
+    })
+    expect((await costOn(t, '2026-11-09'))?.cost?.importCents).toBe(266)
+    // 10 × (0.20 + 0.02 + 0.10) × 1.21
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(387)
   })
 })
 
@@ -509,6 +769,41 @@ describe('a day', () => {
     expect(day?.days[0]?.importKwh).toBeCloseTo(12.5)
   })
 
+  test('after today has nothing in it, not even fixed costs', async () => {
+    const { t } = await seedReadSite()
+    const day = await t
+      .withIdentity(bob)
+      .query(api.energyUsage.day, { ...HOME, day: '2026-11-06', today: '2026-11-05' })
+    // The reading of the 11th reaches the 6th, but that day is still to come.
+    expect(day?.days).toEqual([
+      expect.objectContaining({
+        day: '2026-11-06',
+        hasData: false,
+        importKwh: 0,
+        cost: null,
+        costWithoutNet: null,
+        costStatus: 'noData',
+      }),
+    ])
+    expect(day?.totals).toMatchObject({
+      daysWithData: 0,
+      cost: null,
+      costWithoutNet: null,
+      costStatus: 'noData',
+    })
+  })
+
+  test('after today from an hourly source has empty hours', async () => {
+    const { t } = await seedHourlySite('2026-11-21')
+    const day = await t
+      .withIdentity(bob)
+      .query(api.energyUsage.day, { ...HOME, day: '2026-11-21', today: '2026-11-20' })
+    expect(day?.hours).toHaveLength(24)
+    expect(day?.hours.every((hour) => !hour.hasData)).toBe(true)
+    expect(day?.hours[0]).toMatchObject({ importKwh: 0, solarKwh: null })
+    expect(day?.totals.cost).toBeNull()
+  })
+
   test('from typed readings is an estimate without hours', async () => {
     const { t } = await seedReadSite()
     const day = await t
@@ -560,4 +855,293 @@ describe('who may read usage', () => {
       t.withIdentity(bob).query(api.energyUsage.day, { ...HOME, day: 'nope', today: '2026-11-20' }),
     ).rejects.toThrow('energy:notFound')
   })
+})
+
+describe('the most channels a connection may have', () => {
+  /** October 2026, the longest month: 745 hours. */
+  const OCTOBER = { ...HOME, month: '2026-10', today: '2026-11-20' }
+  const start = amsterdamDayStart('2026-10-01')
+  const hours = Array.from({ length: 745 }, (_, index) => start + index * 3_600_000)
+
+  async function seedFullSite() {
+    const seeded = await seedEnergyGroups(testConvexWithLimits())
+    const { t, homeId, aliceId } = seeded
+    const { siteId, sourceId } = await t.run(async (ctx) => {
+      const siteId = await insertSite(ctx, homeId, aliceId)
+      const sourceId = await ctx.db.insert('energySources', {
+        groupId: homeId,
+        siteId,
+        kind: 'homeAssistant',
+        label: 'Home Assistant',
+        status: 'ok',
+        connectedByUserId: aliceId,
+      })
+      await insertManualMeters(ctx, homeId, siteId, aliceId)
+      await insertContract(ctx, homeId, siteId, {
+        ...DYNAMIC_TERMS,
+        netMetering: true,
+      })
+      return { siteId, sourceId }
+    })
+    const channel = (
+      hourStarts: readonly number[],
+      fields: { kind: Doc<'energyChannels'>['kind']; retiredAt?: number },
+    ) =>
+      t.run(async (ctx) => {
+        const channelId = await ctx.db.insert('energyChannels', {
+          groupId: homeId,
+          siteId,
+          sourceId,
+          unit: 'kWh',
+          ...fields,
+        })
+        for (const hourStart of hourStarts) {
+          await ctx.db.insert('energyIntervals', {
+            groupId: homeId,
+            channelId,
+            hourStart,
+            amount: 1,
+            estimated: false,
+          })
+        }
+      })
+    for (let index = 0; index < MAX_CHANNELS; index += 1) {
+      // Half of them retired since, and the month still counts them.
+      await channel(hours, {
+        kind: 'gridImport',
+        ...(index % 2 ? { retiredAt: amsterdamDayStart('2026-11-10') } : {}),
+      })
+    }
+    // Retired ones without hours in October, as many again.
+    await t.run(async (ctx) => {
+      for (let index = 0; index < MAX_CHANNELS; index += 1) {
+        const channelId = await ctx.db.insert('energyChannels', {
+          groupId: homeId,
+          siteId,
+          sourceId,
+          kind: 'solar',
+          unit: 'kWh',
+          retiredAt: amsterdamDayStart('2026-11-10'),
+        })
+        // Read for its first and last hour only.
+        for (const hourStart of [start - 3_600_000, start - 7_200_000]) {
+          await ctx.db.insert('energyIntervals', {
+            groupId: homeId,
+            channelId,
+            hourStart,
+            amount: 1,
+            estimated: false,
+          })
+        }
+      }
+    })
+    // Market prices for every quarter, the account's too, and gas.
+    const feedId = await t.run((ctx) =>
+      ctx.db.insert('energyPriceFeeds', {
+        groupId: homeId,
+        siteId,
+        provider: 'tibber',
+        scope: 'account',
+        includesTaxes: true,
+        status: 'ok',
+      }),
+    )
+    await t.run(async (ctx) => {
+      for (const at of hours) {
+        await ctx.db.insert('energyPrices', {
+          provider: 'energyzero',
+          carrier: 'gas',
+          start: at,
+          minutes: 60,
+          eurPerUnit: 1,
+        })
+        for (const quarter of [0, 1, 2, 3]) {
+          const price = {
+            carrier: 'electricity' as const,
+            start: at + quarter * 900_000,
+            minutes: 15,
+            eurPerUnit: 0.1,
+          }
+          await ctx.db.insert('energyPrices', { provider: 'energyzero', ...price })
+          await ctx.db.insert('energyPrices', { provider: 'tibber', feedId, ...price })
+        }
+      }
+    })
+    return { ...seeded, channel }
+  }
+
+  test('a month and its days stay within Convex limits', async () => {
+    const { t, channel } = await seedFullSite()
+    const month = await t.withIdentity(bob).query(api.energyUsage.month, OCTOBER)
+    expect(month?.totals.importKwh).toBe(MAX_CHANNELS * 745)
+    expect(month?.totals.costStatus).toBe('ok')
+    const day = await t.withIdentity(bob).query(api.energyUsage.day, {
+      ...HOME,
+      day: '2026-10-25',
+      today: '2026-11-20',
+    })
+    expect(day?.hours).toHaveLength(25)
+    expect(day?.days).toEqual(month?.days.filter((each) => each.day === '2026-10-25'))
+
+    // Proof that the limits are on: four channels more are too many.
+    for (let more = 0; more < 4; more += 1) {
+      await channel(hours, { kind: 'solar' })
+    }
+    await expect(
+      t.withIdentity(bob).query(api.energyUsage.month, OCTOBER),
+    ).rejects.toThrow(/documents/i)
+  }, 60_000)
+
+  test('a channel is not read for a range it retired before', async () => {
+    const { t, channel } = await seedHourlyOnly()
+    await channel(start)
+    const importKwh = async () =>
+      (await t.withIdentity(bob).query(api.energyUsage.month, OCTOBER))?.totals
+        .importKwh
+    // It cannot have this hour; were it read, it would count.
+    expect(await importKwh()).toBe(0)
+    await channel(start + 1)
+    expect(await importKwh()).toBe(1)
+  })
+
+  async function seedHourlyOnly() {
+    const { t, homeId, aliceId } = await seedEnergyGroups()
+    const ids = await t.run(async (ctx) => {
+      const siteId = await insertSite(ctx, homeId, aliceId)
+      const sourceId = await ctx.db.insert('energySources', {
+        groupId: homeId,
+        siteId,
+        kind: 'homeAssistant',
+        label: 'Home Assistant',
+        status: 'ok',
+        connectedByUserId: aliceId,
+      })
+      return { siteId, sourceId }
+    })
+    const channel = (retiredAt: number) =>
+      t.run(async (ctx) => {
+        const channelId = await ctx.db.insert('energyChannels', {
+          groupId: homeId,
+          ...ids,
+          kind: 'gridImport',
+          unit: 'kWh',
+          retiredAt,
+        })
+        await ctx.db.insert('energyIntervals', {
+          groupId: homeId,
+          channelId,
+          hourStart: start,
+          amount: 1,
+          estimated: false,
+        })
+      })
+    return { t, channel }
+  }
+})
+
+describe('a month priced by a feed that leaves days open', () => {
+  /** October 2026: 745 hours, and an own feed (ENTSO-E) with four days open. */
+  const OCTOBER = { ...HOME, month: '2026-10', today: '2026-11-20' }
+  const OPEN = ['2026-10-05', '2026-10-12', '2026-10-19', '2026-10-26']
+  const start = amsterdamDayStart('2026-10-01')
+  const hours = Array.from({ length: 745 }, (_, index) => start + index * 3_600_000)
+  const isOpen = (at: number) =>
+    OPEN.some(
+      (day) =>
+        at >= amsterdamDayStart(day) && at < amsterdamDayStart(addDays(day, 1)),
+    )
+  // More hourly channels than a connection may have (`MAX_CHANNELS`), so the
+  // month is within the limits only while EnergyZero is read for the open days.
+  const CHANNELS = 35
+
+  test('EnergyZero is read for those days only, so the month stays within the limits', async () => {
+    const seeded = await seedEnergyGroups(testConvexWithLimits())
+    const { t, homeId, aliceId } = seeded
+    const { siteId, sourceId } = await t.run(async (ctx) => {
+      const siteId = await insertSite(ctx, homeId, aliceId)
+      const sourceId = await ctx.db.insert('energySources', {
+        groupId: homeId,
+        siteId,
+        kind: 'homeAssistant',
+        label: 'Home Assistant',
+        status: 'ok',
+        connectedByUserId: aliceId,
+      })
+      await insertContract(ctx, homeId, siteId, DYNAMIC_TERMS)
+      await ctx.db.insert('energyPriceFeeds', {
+        groupId: homeId,
+        siteId,
+        provider: 'entsoe',
+        scope: 'market',
+        secret: 'key',
+        includesTaxes: false,
+        status: 'ok',
+      })
+      return { siteId, sourceId }
+    })
+    // One channel that is priced, and solar ones that only take up reads. A
+    // function may write 16,000 documents, so one run for each.
+    for (let index = 0; index < CHANNELS; index += 1) {
+      await t.run(async (ctx) => {
+        const channelId = await ctx.db.insert('energyChannels', {
+          groupId: homeId,
+          siteId,
+          sourceId,
+          kind: index === 0 ? 'gridImport' : 'solar',
+          unit: 'kWh',
+        })
+        for (const hourStart of hours) {
+          await ctx.db.insert('energyIntervals', {
+            groupId: homeId,
+            channelId,
+            hourStart,
+            amount: 1,
+            estimated: false,
+          })
+        }
+      })
+    }
+    await t.run(async (ctx) => {
+      for (const at of hours) {
+        await ctx.db.insert('energyPrices', {
+          provider: 'energyzero',
+          carrier: 'gas',
+          start: at,
+          minutes: 60,
+          eurPerUnit: 1,
+        })
+        for (const quarter of [0, 1, 2, 3]) {
+          const slot = {
+            carrier: 'electricity' as const,
+            start: at + quarter * 900_000,
+            minutes: 15,
+          }
+          // EnergyZero has every quarter; ENTSO-E all but the open days.
+          await ctx.db.insert('energyPrices', {
+            provider: 'energyzero',
+            eurPerUnit: 0.1,
+            ...slot,
+          })
+          if (!isOpen(at)) {
+            await ctx.db.insert('energyPrices', {
+              provider: 'entsoe',
+              eurPerUnit: 0.2,
+              ...slot,
+            })
+          }
+        }
+      }
+    })
+
+    const month = await t.withIdentity(bob).query(api.energyUsage.month, OCTOBER)
+    expect(month?.totals.costStatus).toBe('ok')
+    const cost = (day: string) =>
+      month?.days.find((each) => each.day === day)?.cost?.importCents
+    // 24 kWh × (price + 0.02 + 0.10) × 1.21. A day ENTSO-E has is its price
+    // alone, never mixed with EnergyZero's 0.10 (an average of 0.15 is 782).
+    expect(cost('2026-10-06')).toBe(929)
+    expect(cost('2026-10-27')).toBe(929)
+    // A day it left open is EnergyZero's: 24 × 0.22 × 1.21.
+    for (const day of OPEN) expect(cost(day)).toBe(639)
+  }, 120_000)
 })

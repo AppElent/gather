@@ -76,6 +76,10 @@ export const ROUTES = {
   energyCosts: '/energy/costs',
   energyReadings: '/energy/readings',
   energyContract: '/energy/contract',
+  energySources: '/energy/sources',
+  energyConnect: '/energy/connect',
+  energyPrices: '/energy/prices',
+  energyPriceFeed: '/energy/price-source',
 
   cheese: '/cheeses/$subjectId',
   editCheese: '/cheeses/$subjectId/edit',

@@ -39,7 +39,7 @@ export type LineRead =
 
 /** One line of the source, as the sheet receives it. */
 export interface SourceLine {
-  /** Stable within the sheet: the line's position in its source. */
+  /** Stable within the sheet: follows the ingredient, not its position (`ingredientKeys`). */
   key: string
   /** As the source wrote it ("2 rode paprika's, in reepjes"). */
   text: string
