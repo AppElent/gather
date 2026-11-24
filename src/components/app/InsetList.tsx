@@ -98,6 +98,11 @@ export interface InsetRowProps {
   controls?: ReactNode
   /** `aria-pressed`/selected look for a choice row (a language). */
   selected?: boolean
+  /**
+   * Makes the row an on/off choice: with `onClick`, its target is a switch
+   * and the track is drawn at the row's end.
+   */
+  switchedOn?: boolean
   /** Extra content under the footnote, inside the text column. */
   children?: ReactNode
 }
@@ -121,6 +126,7 @@ export function InsetRow({
   menu,
   controls,
   selected,
+  switchedOn,
   children,
 }: InsetRowProps) {
   const stretched =
@@ -144,6 +150,9 @@ export function InsetRow({
       type="button"
       aria-label={accessibleName}
       aria-pressed={selected}
+      {...(switchedOn === undefined
+        ? {}
+        : { role: 'switch', 'aria-checked': switchedOn })}
       onClick={onClick}
       className={`w-full cursor-pointer border-0 bg-transparent p-0 text-left font-[inherit] ${stretched}`}
     >
@@ -184,6 +193,7 @@ export function InsetRow({
             {trailing}
           </span>
         ) : null}
+        {switchedOn === undefined ? null : <SwitchTrack on={switchedOn} />}
         {controls ? (
           <span className="relative z-[1] flex shrink-0 items-center gap-1">
             {controls}
@@ -204,6 +214,24 @@ export function InsetRow({
         ) : null}
       </div>
     </li>
+  )
+}
+
+/** A switch row's track; the row itself is the control. */
+function SwitchTrack({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-flex h-7 w-12 shrink-0 items-center rounded-[var(--radius-pill)] transition-colors motion-reduce:transition-none ${
+        on ? 'bg-[var(--accent-text)]' : 'bg-[var(--hair-strong)]'
+      }`}
+    >
+      <span
+        className={`size-6 rounded-[var(--radius-pill)] bg-white transition-transform motion-reduce:transition-none ${
+          on ? 'translate-x-[22px]' : 'translate-x-0.5'
+        }`}
+      />
+    </span>
   )
 }
 

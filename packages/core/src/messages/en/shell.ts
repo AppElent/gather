@@ -133,6 +133,12 @@ export const shell = {
     searchIn: 'Search in {module}',
     /** The gear, where the Module has a settings page. */
     settingsOf: 'Settings for {module}',
+    /** A Module's settings page: its title. */
+    settingsTitle: '{module} settings',
+    /** Under settings the whole Group shares; `{group}` is its name. */
+    settingsShared: 'Shared with everyone in {group}.',
+    /** Under settings kept in this browser only. */
+    settingsBrowser: 'Kept in this browser, the same in every group.',
     /** The detail panel's close button in the list-and-detail layout. */
     closePanel: 'Close panel',
   },

@@ -1,14 +1,14 @@
 ---
 type: runbook
 description: Read when adding a Module, a nested web route, a Convex table with a groupId, a _storage column, a photo preset, or a schema-keyed message.
-version: 2.1.0
+version: 2.2.0
 ---
 
 # Add a Module
 
 Gather's registries that every new Module, route or column has to reach.
-Every row but the last fails `pnpm typecheck` or `pnpm test` when forgotten;
-`PHOTO_PRESETS` is kept honest only by this page. Work through every row in
+Every row but two fails `pnpm typecheck` or `pnpm test` when forgotten;
+the web gear and `PHOTO_PRESETS` are kept honest only by this page. Work through every row in
 the same change as the Module.
 
 ## Prerequisites
@@ -39,6 +39,7 @@ the same change as the Module.
 | `apps/mobile/src/settings/module-pages.ts` `MODULE_SETTINGS_PAGES`, its two route files (`all/<module>/settings`, `settings/<module>`), and `settingsHref` on the root's `ModuleHeaderButtons` | When the phone Module has a standing setting (not an action); a Module with none gets no gear and no page (APP-611) | `pnpm test` (`module-pages.test.ts`: both route files exist; `sections.test.ts`: Settings › Modules lists it) | [Mobile design system](../../apps/mobile/DESIGN_SYSTEM.md) |
 | `apps/mobile/src/shell/quickActions.ts` `ACTIONS_BY_MODULE` | Every Module; an empty list if it has no capture verb for the Add tab | `pnpm typecheck` (`Record<ModuleId, …>`) | [Mobile design system](../../apps/mobile/DESIGN_SYSTEM.md#forms-and-quick-actions) |
 | Seed contribution in `convex/lib/seed/`, and the Module's row in `SAMPLE_CONTENT` (`convex/seed.test.ts`) | Every Module: a Catalog fixture if it needs reference data, Sample household fixtures always | `pnpm typecheck` (`SAMPLE_CONTENT` is a `Record<ModuleId, …>`); `pnpm test` when the Sample household has no rows for it | [Seed data](../contracts/seed-data.md) |
+| Web settings page: `src/routes/_app/<module>/settings.tsx` rendering `ModuleSettingsPage`, a `<module>Settings` entry in `src/lib/links.ts` `ROUTES`, and `settings` on the Module's `WashHeader` | When the web Module has a standing setting (not an action); a Module with none gets no gear and no page (APP-800) | `pnpm test` for the trail (`Breadcrumbs.routes.test.ts`); the gear is kept honest by this page | [Navigation](../contracts/navigation.md) |
 | `packages/core/src/features.ts` `FEATURES` | Every route file on either platform, and every Module (its platforms and why) | `pnpm test` (`scripts/feature-manifest.test.ts`: every route file belongs to a feature, every pattern matches a file) | [ADR-0042](../adr/0042-the-phone-leads-and-the-web-is-where-a-household-is-managed.md) |
 | `<Breadcrumbs>` trail | Every route below an index | `pnpm test` (`src/components/app/Breadcrumbs.routes.test.ts` walks `src/routes/_app/`; an exception needs an entry with its reason) | [Navigation](../contracts/navigation.md) |
 | `packages/core/src/photoPresets.ts` `PHOTO_PRESETS` | A new kind of photo | Silent drift: a dimension written at a call site | [Stored files](../contracts/stored-files.md) |

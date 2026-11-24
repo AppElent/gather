@@ -7,7 +7,9 @@ import { describe, expect, test } from 'vitest'
  * (docs/contracts/navigation.md): a page you can enter has a way back.
  *
  * The route files are one-liners that render a page component, so the trail
- * is looked for in the route file and in the files it imports.
+ * is looked for in the route file and in the files it imports. A Module's
+ * settings page gets its trail from `ModuleSettingsPage`, whose own test holds
+ * it to that.
  */
 const APP = join(process.cwd(), 'src/routes/_app')
 
@@ -58,9 +60,11 @@ describe('every route below an index', () => {
       const sources = [file, ...importedFiles(file)].map((path) =>
         readFileSync(path, 'utf8'),
       )
-      expect(sources.some((source) => source.includes('<Breadcrumbs'))).toBe(
-        true,
-      )
+      expect(
+        sources.some((source) =>
+          /<(Breadcrumbs|ModuleSettingsPage)\b/.test(source),
+        ),
+      ).toBe(true)
     },
   )
 

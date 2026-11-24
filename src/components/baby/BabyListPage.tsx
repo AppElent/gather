@@ -1,42 +1,42 @@
 import { formatAge } from '@gather/core/baby-age'
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { Plus } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
-import { useI18n } from '../../lib/i18n'
+import { plural, useI18n } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { WashHeader } from '../app/WashHeader'
 
 /**
  * The children in the Current Group's log, whole: that Group's children and
  * nobody else's.
  */
 export function BabyListPage() {
-  const { slug: groupSlug } = useRequiredCurrentGroup()
+  const group = useRequiredCurrentGroup()
+  const groupSlug = group.slug
   const babies = useQuery(api.babies.list, { groupSlug })
   const { locale, messages } = useI18n()
   const { child, list } = messages.baby.log
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="m-0 font-rounded text-2xl font-bold">
-            {messages.modules.byId['baby-log'].label}
-          </h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {list.subtitle}
-          </p>
-        </div>
-        <Link
-          {...linkTo('newChild')}
-          className="inline-flex min-h-9 items-center gap-2 rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--ink)] no-underline"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          {list.addChild}
-        </Link>
-      </div>
+    <div className="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] gap-4">
+      <WashHeader
+        group="home"
+        icon="Baby"
+        title={messages.modules.byId['baby-log'].label}
+        summary={
+          babies
+            ? {
+                count: plural(locale, babies.length, list.count),
+                scope: group.name,
+              }
+            : undefined
+        }
+        back={{ label: messages.shell.allModules.title, link: linkTo('all') }}
+        settings={linkTo('babySettings')}
+        primary={{ label: list.addChild, link: linkTo('newChild') }}
+      />
 
       {babies === undefined ? (
         <div className="grid gap-3 sm:grid-cols-2">

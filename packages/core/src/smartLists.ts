@@ -29,6 +29,31 @@ export function isSmartListId(value: unknown): value is SmartListId {
   return (SMART_LISTS as readonly unknown[]).includes(value)
 }
 
+/**
+ * The smart lists a device hides from its Tasks index, as it stored them: a
+ * JSON array of ids, dropping anything this build does not know. Unreadable is
+ * "nothing hidden", which is what a fresh device shows.
+ */
+export function parseHiddenSmartLists(raw: string | null): SmartListId[] {
+  if (!raw) return []
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter(isSmartListId) : []
+  } catch {
+    return []
+  }
+}
+
+/** The ids with `id` hidden if it was shown, and shown if it was hidden. */
+export function toggledSmartLists(
+  current: readonly SmartListId[],
+  id: SmartListId,
+): SmartListId[] {
+  return current.includes(id)
+    ? current.filter((each) => each !== id)
+    : [...current, id]
+}
+
 /** What a rule reads of a task. */
 export interface SmartTask {
   done: boolean

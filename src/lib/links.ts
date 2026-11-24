@@ -64,6 +64,10 @@ export const ROUTES = {
   groceriesInStock: '/groceries/in-stock',
   groceriesItem: '/groceries/item/$itemId',
 
+  // Not linked yet: the gear comes with the web's smart lists (APP-308).
+  tasksSettings: '/tasks/settings',
+
+  babySettings: '/baby/settings',
   newChild: '/baby/new',
   child: '/baby/$babyId',
   editChild: '/baby/$babyId/edit',

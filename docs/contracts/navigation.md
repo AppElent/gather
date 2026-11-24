@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a nested web route, breadcrumbs, a back link, or a Module's web address.
-version: 2.1.0
+version: 2.2.0
 status: current
 ---
 
@@ -26,6 +26,10 @@ apply as written. Gather binds them:
   (`src/components/app/ListDetailLayout.tsx`). The page keeps the selection in
   the URL. Below 1024 px the open record replaces the list, or a row goes to a
   page of its own with a trail.
+- **A Module's settings page is `/<module>/settings`**, rendered by
+  `ModuleSettingsPage` (`src/components/app/ModuleSettingsPage.tsx`), which
+  draws the trail Module → settings. The gear in the Module's `WashHeader`
+  (`settings`) opens it; a Module with nothing to set has neither.
 - **Content labels** (a recipe's title, a cheese's name) are never translated
   ([ADR-0011](../adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md)).
 - **Every link to a page in the signed-in app is built with `linkTo` or

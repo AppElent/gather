@@ -97,6 +97,9 @@ export const shell = {
   modulePage: {
     searchIn: 'Zoeken in {module}',
     settingsOf: 'Instellingen van {module}',
+    settingsTitle: '{module}-instellingen',
+    settingsShared: 'Gedeeld met iedereen in {group}.',
+    settingsBrowser: 'Bewaard in deze browser, hetzelfde in elke groep.',
     closePanel: 'Paneel sluiten',
   },
 
