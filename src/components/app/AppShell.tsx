@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from '@tanstack/react-router'
+import { Navigate, useLocation, useMatches } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { getRouteContext, getRouteGroup } from '../../lib/appNavigation'
@@ -36,7 +36,19 @@ function AppShellBody({ children }: { children: ReactNode }) {
   // A Group page reads the Group with `useRequiredCurrentGroup`, so it is held
   // here until the Groups arrive, and somebody in no Group is sent to make or
   // join one. Personal pages need neither.
-  const groupPage = needsCurrentGroup(location.pathname)
+  //
+  // The address alone is not enough: the router moves the address as soon as
+  // a navigation starts but swaps the page on screen only when it commits. On
+  // the way from a Group page to /groups the address already says /groups
+  // while the old Group page is still the one rendered (APP-815), so the page
+  // on screen is asked too.
+  const shownPath = useMatches({
+    select: (matches) => matches.at(-1)?.pathname,
+  })
+  const addressIsGroupPage = needsCurrentGroup(location.pathname)
+  const groupPage =
+    addressIsGroupPage ||
+    (shownPath !== undefined && needsCurrentGroup(shownPath))
   // The dock is only on screen when there is a navigation to put in it, and the
   // room reserved for it has to go when it does — asked of the same list the
   // dock renders, so the space and the bar cannot disagree.
@@ -78,7 +90,8 @@ function AppShellBody({ children }: { children: ReactNode }) {
           >
             {!groupPage || currentGroup ? (
               children
-            ) : groups === undefined ? (
+            ) : groups === undefined || !addressIsGroupPage ? (
+              // Still loading, or already on the way out of a Group page.
               <p className="text-sm opacity-60">
                 {messages.common.errors.loading}
               </p>

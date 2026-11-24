@@ -12,6 +12,9 @@ import { useRequiredCurrentGroup } from './useCurrentGroup'
 
 const state = vi.hoisted(() => ({
   pathname: '/baby',
+  // The page the router has on screen; `undefined` means the same as the
+  // address. Mid-navigation the two differ.
+  shownPathname: undefined as string | undefined,
   groups: undefined as unknown[] | undefined,
 }))
 const redirects = vi.hoisted(() => [] as unknown[])
@@ -30,6 +33,11 @@ vi.mock('../../../convex/_generated/api', () => ({
 
 vi.mock('@tanstack/react-router', () => ({
   useLocation: () => ({ pathname: state.pathname }),
+  useMatches: ({
+    select,
+  }: {
+    select: (matches: { pathname: string }[]) => unknown
+  }) => select([{ pathname: state.shownPathname ?? state.pathname }]),
   Navigate: (props: unknown) => {
     redirects.push(props)
     return null
@@ -57,6 +65,7 @@ function GroupPage() {
 
 beforeEach(() => {
   state.pathname = '/baby'
+  state.shownPathname = undefined
   state.groups = undefined
   redirects.length = 0
   localStorage.clear()
@@ -127,4 +136,50 @@ test.each([
 
   expect(screen.getByText('Your own page')).toBeInTheDocument()
   expect(redirects).toEqual([])
+})
+
+test('keeps the old Group page off screen while the redirect to Groups is under way', () => {
+  // The address has already moved to /groups; the router still renders /home.
+  state.pathname = '/groups'
+  state.shownPathname = '/home'
+  state.groups = []
+
+  renderWithI18n(
+    <AppShell>
+      <GroupPage />
+    </AppShell>,
+  )
+
+  expect(screen.queryByText(/^In /)).toBeNull()
+  expect(screen.getByText('Loading…')).toBeInTheDocument()
+  // The redirect is already on its way; it is not sent twice.
+  expect(redirects).toEqual([])
+})
+
+test('holds a Group page that is still on screen while the Groups are loading', () => {
+  state.pathname = '/settings'
+  state.shownPathname = '/home'
+
+  renderWithI18n(
+    <AppShell>
+      <GroupPage />
+    </AppShell>,
+  )
+
+  expect(screen.queryByText(/^In /)).toBeNull()
+  expect(screen.getByText('Loading…')).toBeInTheDocument()
+})
+
+test('renders a Group page that is still on screen while there is a Current Group', () => {
+  state.pathname = '/settings'
+  state.shownPathname = '/home'
+  state.groups = [HOUSEHOLD]
+
+  renderWithI18n(
+    <AppShell>
+      <GroupPage />
+    </AppShell>,
+  )
+
+  expect(screen.getByText('In Jansen household')).toBeInTheDocument()
 })
