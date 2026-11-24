@@ -55,6 +55,18 @@ test('typing on replaces it, and a refusal keeps what was typed since', () => {
   expect(commit).toHaveBeenLastCalledWith('Newer')
 })
 
+test('a late refusal does not come back over a newer text already sent', () => {
+  const { commit, text } = field()
+  act(() => text().change('New'))
+  act(() => text().blur())
+  act(() => text().change('Newer'))
+  act(() => text().blur())
+  act(() => text().keep('New'))
+  expect(text().draft).toBe('Newer')
+  act(() => text().blur())
+  expect(commit.mock.calls).toEqual([['New'], ['Newer']])
+})
+
 test('once the server holds it after all, later changes show again', () => {
   const { commit, text, refuse, saved } = field()
   refuse('New ')
