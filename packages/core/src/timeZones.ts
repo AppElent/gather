@@ -44,8 +44,12 @@ export function sameTimeZone(a: string | undefined, b: string): boolean {
 export function listTimeZones(...also: (string | undefined)[]): string[] {
   let listed: readonly string[] = IANA_ZONES
   try {
-    const supported = Intl.supportedValuesOf('timeZone')
-    if (supported.length > 0) listed = supported
+    // `supportedValuesOf` is ES2022; Convex typechecks this file against
+    // ES2021 (convex/tsconfig.json), so reach it without the newer lib.
+    const supported = (
+      Intl as { supportedValuesOf?: (key: 'timeZone') => string[] }
+    ).supportedValuesOf?.('timeZone')
+    if (supported && supported.length > 0) listed = supported
   } catch {
     // Not here: the IANA list.
   }

@@ -31,7 +31,7 @@ const state = vi.hoisted(() => ({
 
 vi.mock('expo-router', () => ({
   router: {
-    replace: (href: unknown, options?: unknown) => {
+    dismissTo: (href: unknown, options?: unknown) => {
       state.replaced.push(href)
       state.replaceOptions.push(options)
     },

@@ -24,11 +24,10 @@ export const CLOSE_SHEETS_TIMEOUT_MS = 1500
 export const LATE_SHEET_DELAY_MS = 350
 
 /**
- * How long an answered prompt gets to leave, the keyboard to come back to the
- * form under it, and that form to finish moving. Closing a keyboard composer
- * while its card still animates crashes the app in Reanimated (APP-747).
+ * How long an answered prompt gets to leave, and what its answer changed or
+ * opened to render and present.
  */
-export const PROMPT_SETTLE_MS = 1000
+export const PROMPT_SETTLE_MS = 350
 
 export interface OpenSheet {
   /** The sheet has closed, however it happened. Safe to call more than once. */

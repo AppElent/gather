@@ -34,6 +34,7 @@ import {
   homeScreenActionItems,
   homeScreenActionRequest,
 } from './homeScreenActions'
+import { isWaitingForSheets, openAfterSheets } from './linkAfterSheets'
 import {
   type QuickSheetRequest,
   quickSheetHref,
@@ -55,11 +56,17 @@ let launchItemFollowed = false
  */
 const loadedAt = Date.now()
 
-/** Opens the sheet in place when it is up, else through its route. */
+/**
+ * Opens the sheet in place when it is up, else through its route once every
+ * other sheet has closed (APP-774). In place only while it stays up: something
+ * that waits for the sheets is closing it.
+ */
 function openQuickSheet(request: QuickSheetRequest) {
-  if (requestQuickSheetInPlace(request)) return
+  if (!isWaitingForSheets() && requestQuickSheetInPlace(request)) return
   // A tick later, so a cold start's router has mounted its first screen.
-  setTimeout(() => router.navigate(quickSheetHref(request)))
+  openAfterSheets(() =>
+    setTimeout(() => router.navigate(quickSheetHref(request))),
+  )
 }
 
 /**
@@ -88,7 +95,9 @@ function followControl() {
     via: 'control',
   })
   // With the All index beneath the card, so it has a back button (APP-454).
-  setTimeout(() => router.navigate(href, { withAnchor: true }))
+  openAfterSheets(() =>
+    setTimeout(() => router.navigate(href, { withAnchor: true })),
+  )
 }
 
 export function HomeScreenActionLinks() {
