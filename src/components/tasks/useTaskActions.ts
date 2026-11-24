@@ -4,12 +4,14 @@ import {
   type LinkedTaskWrite,
   writeLinkedTask,
 } from '@gather/core/linked-lists'
+import { subtasksOf } from '@gather/core/subtasks'
 import type { TaskListColor, TaskListIcon } from '@gather/core/task-lists'
 import {
   type ListDisplay,
   type Priority,
   type Task,
   type TaskList,
+  taskFromRow,
   toggled,
   toggledRows,
 } from '@gather/core/task-model'
@@ -178,10 +180,16 @@ export function useTaskActions() {
     duplicate: async (
       task: Task,
       title: string,
-      subtasks: readonly Pick<Task, 'title'>[],
       saveKey: string,
     ) => {
       const listId = task.listId as Id<'taskLists'>
+      // Read before anything is written: a page may show only some of them.
+      const subtasks = subtasksOf(
+        (await convex.query(api.tasks.listByList, { listId, groupSlug })).map(
+          taskFromRow,
+        ),
+        task.id,
+      )
       const taskId = await add({
         listId,
         groupSlug,

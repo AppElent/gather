@@ -1,5 +1,6 @@
+import { localIsoDate } from '@gather/core/civil-date'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
-import type { ReactNode } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { renderInGroup } from '../app/testing'
 import { SmartListPage } from './SmartListPage'
@@ -41,6 +42,10 @@ vi.mock('convex/react', () => {
     useMutation: call,
     useAction: call,
     useConvex: () => ({
+      query: async (name: string, args: unknown) => {
+        const answer = state.queries[name]
+        return typeof answer === 'function' ? answer(args) : answer
+      },
       connectionState: () => ({ isWebSocketConnected: true }),
     }),
   }
@@ -84,6 +89,8 @@ const WINDOWS = task('t1', 'Wash windows', { notes: 'Both sides' })
 const BINS = task('t2', 'Bins out', { order: 2 })
 const SOAP = task('s1', 'Buy soap', { parentTaskId: 't1' })
 const DONE = task('t3', 'Vacuum', { done: true, order: 3 })
+
+const TODAY = localIsoDate()
 
 const calls = (name: string) =>
   state.calls.filter(([each]) => each === name).map(([, args]) => args)
@@ -337,6 +344,116 @@ describe('the panel', () => {
     for (const name of [/^Who/, /^Reminder/, /^Repeat/])
       expect(within(panel()).queryByRole('button', { name })).toBeNull()
     expect(within(panel()).queryByLabelText('Note')).toBeNull()
+  })
+})
+
+describe('what a review found (APP-308)', () => {
+  const smart = (...tasks: object[]) => {
+    state.queries['tasks:smartLists'] = {
+      me: 'u1',
+      tasks,
+      subtasks: [],
+      parents: [],
+    }
+  }
+  const menuItem = (title: string, name: string) => {
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(`Actions for ${title}`) }),
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name }))
+  }
+
+  test('Move under offers its own list only, and all of it', async () => {
+    state.queries['taskLists:list'] = [
+      list('l1', 'Household'),
+      list('lu', 'Todoist', {
+        provider: 'todoist',
+        capabilities: { write: true },
+      }),
+    ]
+    const row = (externalId: string, title: string, due?: string) => ({
+      externalId,
+      title,
+      done: false,
+      labels: [],
+      ...(due ? { dueDate: due } : {}),
+    })
+    state.linked = {
+      status: 'ok',
+      tasks: [row('y1', 'Call plumber', TODAY), row('y2', 'House jobs')],
+    }
+    const { unmount } = renderInGroup(<TaskListPage listId="lu" />)
+    await screen.findByText('Call plumber')
+    unmount()
+    smart(task('t2', 'Bins out', { dueDate: TODAY }))
+    renderInGroup(<SmartListPage smartList="today" />)
+    await screen.findByText('Bins out')
+    menuItem('Call plumber', 'Move under a task…')
+    const dialog = within(screen.getByRole('dialog'))
+    expect(dialog.getByText('House jobs')).toBeTruthy()
+    expect(dialog.queryByText('Bins out')).toBeNull()
+  })
+
+  test('Enter saves the title, and Escape then closes the task', async () => {
+    renderInGroup(<TaskListPage listId="l1" selectedTaskId="t1" />)
+    const title = within(panel()).getByRole('textbox', { name: 'Task title' })
+    title.focus()
+    fireEvent.change(title, { target: { value: 'Wash doors' } })
+    fireEvent.keyDown(title, { key: 'Enter' })
+    await waitFor(() => expect(calls('tasks:update')).toHaveLength(1))
+    expect(document.activeElement).toBe(document.body)
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    expect(state.navigated).toHaveLength(1)
+  })
+
+  test('a title that failed to save on leaving is said, and kept', async () => {
+    state.fail.add('tasks:update')
+    const page = <TaskListPage listId="l1" selectedTaskId="t1" />
+    const { unmount } = renderInGroup(page)
+    fireEvent.change(
+      within(panel()).getByRole('textbox', { name: 'Task title' }),
+      { target: { value: 'Wash doors' } },
+    )
+    unmount()
+    await waitFor(() => expect(calls('tasks:update')).toHaveLength(1))
+    await Promise.resolve()
+    state.fail.clear()
+    const again = renderInGroup(page)
+    const title = within(panel()).getByRole('textbox', { name: 'Task title' })
+    expect((title as HTMLTextAreaElement).value).toBe('Wash doors')
+    expect(within(panel()).getByText('Not saved. Try again.')).toBeTruthy()
+    fireEvent.blur(title)
+    await waitFor(() => expect(calls('tasks:update')).toHaveLength(2))
+    again.unmount()
+  })
+
+  test('duplicating from a smart list brings every subtask', async () => {
+    smart(task('t1', 'Wash windows', { dueDate: TODAY }))
+    renderInGroup(<SmartListPage smartList="today" />)
+    menuItem('Wash windows', 'Duplicate')
+    await waitFor(() => expect(calls('tasks:add')).toHaveLength(2))
+    expect(calls('tasks:add')[1]).toMatchObject({
+      title: 'Buy soap',
+      parentTaskId: 'new-id',
+    })
+  })
+
+  test('only a list itself adds to its last section', async () => {
+    state.queries['taskLists:list'] = [
+      list('l1', 'Household', { sections: [{ id: 'b', name: 'B' }] }),
+    ]
+    const addOne = async (page: ReactElement) => {
+      state.calls = []
+      const { unmount } = renderInGroup(page)
+      const field = screen.getByRole('textbox', { name: 'New task' })
+      fireEvent.change(field, { target: { value: 'Mop floor' } })
+      fireEvent.submit(field.closest('form') as HTMLFormElement)
+      await waitFor(() => expect(calls('tasks:add')).toHaveLength(1))
+      unmount()
+      return calls('tasks:add')[0]?.sectionId
+    }
+    expect(await addOne(<TaskListPage listId="l1" />)).toBe('b')
+    expect(await addOne(<SmartListPage smartList="today" />)).toBeUndefined()
   })
 })
 

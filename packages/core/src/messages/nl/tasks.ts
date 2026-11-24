@@ -212,8 +212,6 @@ export const tasks = {
     deleteListFailed: 'Kon die lijst niet verwijderen.',
   },
 
-
-
   row: {
     toggle: '{task} afvinken',
     openInSource: '{task} openen in de app waar het vandaan komt',
@@ -246,7 +244,6 @@ export const tasks = {
     noParents: 'Er is geen taak op deze lijst waar hij onder kan.',
     addSubtask: 'Subtaak toevoegen aan {task}',
   },
-
 
   addList: {
     title: 'Een lijst toevoegen',

@@ -22,6 +22,7 @@ import { listLink, placeLink, type TaskPlace, taskLink } from './selection'
 import { TaskListRow } from './TaskListRow'
 import { TaskPanel } from './TaskPanel'
 import { TasksWorkspace, useWorkspace } from './TasksWorkspace'
+import { useCloseOnEscape } from './useCloseOnEscape'
 import { providerName } from './words'
 
 interface TaskListPageProps {
@@ -49,6 +50,7 @@ function TaskListBody({ listId, selectedTaskId }: TaskListPageProps) {
   const field = useRef<HTMLInputElement>(null)
   const place: TaskPlace = { kind: 'list', listId }
   const close = () => void navigate(placeLink(place))
+  useCloseOnEscape(Boolean(selectedTaskId), close)
   const parent = { label: words.parent, link: linkTo('tasks') }
 
   if (list?.grocery) return <Navigate {...listLink(list)} replace />
@@ -66,84 +68,86 @@ function TaskListBody({ listId, selectedTaskId }: TaskListPageProps) {
         backInHeader
         className="mx-auto -mb-1 w-full max-w-6xl"
       />
-      <div><ListDetailLayout
-        header={
-          <WashHeader
-            group={list && !linked ? list.color : 'home'}
-            icon={list && !linked ? LIST_GLYPHS[list.icon] : 'ListChecks'}
-            title={name}
-            back={parent}
-            summary={
-              list && tasks
-                ? {
-                    count: plural(locale, open, t.tasks.count.open),
-                    scope: linked
-                      ? fmt(words.scope.linked, {
-                          provider: providerName(list.provider),
-                        })
-                      : words.scope.household,
-                  }
-                : undefined
-            }
-            extra={
-              list ? (
-                <RowMenu
-                  item={list.name}
-                  alwaysVisible
-                  actions={listMenu(list)}
-                />
-              ) : undefined
-            }
-            primary={
-              list?.writable
-                ? {
-                    label: words.add.primary,
-                    onClick: () => field.current?.focus(),
-                  }
-                : undefined
-            }
-          />
-        }
-        list={
-          status === 'missing' ? (
-            <EmptyState
-              kind="nothing-found"
-              title={words.listMissingTitle}
-              body={words.listMissingBody}
-              action={{ label: words.toTasks, link: linkTo('tasks') }}
+      <div>
+        <ListDetailLayout
+          header={
+            <WashHeader
+              group={list && !linked ? list.color : 'home'}
+              icon={list && !linked ? LIST_GLYPHS[list.icon] : 'ListChecks'}
+              title={name}
+              back={parent}
+              summary={
+                list && tasks
+                  ? {
+                      count: plural(locale, open, t.tasks.count.open),
+                      scope: linked
+                        ? fmt(words.scope.linked, {
+                            provider: providerName(list.provider),
+                          })
+                        : words.scope.household,
+                    }
+                  : undefined
+              }
+              extra={
+                list ? (
+                  <RowMenu
+                    item={list.name}
+                    alwaysVisible
+                    actions={listMenu(list)}
+                  />
+                ) : undefined
+              }
+              primary={
+                list?.writable
+                  ? {
+                      label: words.add.primary,
+                      onClick: () => field.current?.focus(),
+                    }
+                  : undefined
+              }
             />
-          ) : !list ? (
-            <ListLoadingState label={words.loading} />
-          ) : (
-            <>
-              {list.writable ? (
-                <QuickAdd lists={[list]} fieldRef={field} />
-              ) : null}
-              <LinkedNotice list={list} />
-              {tasks ? (
-                <ListRows
-                  list={list}
-                  tasks={tasks}
-                  rows={rows}
-                  today={today}
-                  selectedTaskId={selectedTaskId}
-                  onClose={close}
-                />
-              ) : linked && list.sync !== 'loading' ? null : (
-                <ListLoadingState label={words.loading} />
-              )}
-            </>
-          )
-        }
-        panel={
-          selectedTaskId ? (
-            <TaskPanel state={state} place={place} onClose={close} />
-          ) : undefined
-        }
-        panelLabel={words.panel.label}
-        recordKey={selectedTaskId}
-        onCloseRecord={close}
-      /></div>
+          }
+          list={
+            status === 'missing' ? (
+              <EmptyState
+                kind="nothing-found"
+                title={words.listMissingTitle}
+                body={words.listMissingBody}
+                action={{ label: words.toTasks, link: linkTo('tasks') }}
+              />
+            ) : !list ? (
+              <ListLoadingState label={words.loading} />
+            ) : (
+              <>
+                {list.writable ? (
+                  <QuickAdd lists={[list]} fieldRef={field} toLastSection />
+                ) : null}
+                <LinkedNotice list={list} />
+                {tasks ? (
+                  <ListRows
+                    list={list}
+                    tasks={tasks}
+                    rows={rows}
+                    today={today}
+                    selectedTaskId={selectedTaskId}
+                    onClose={close}
+                  />
+                ) : linked && list.sync !== 'loading' ? null : (
+                  <ListLoadingState label={words.loading} />
+                )}
+              </>
+            )
+          }
+          panel={
+            selectedTaskId ? (
+              <TaskPanel state={state} place={place} onClose={close} />
+            ) : undefined
+          }
+          panelLabel={words.panel.label}
+          recordKey={selectedTaskId}
+          onCloseRecord={close}
+        />
+      </div>
       {dialog && list ? (
         <ListDialog kind={dialog} list={list} onClose={() => setDialog(null)} />
       ) : null}
@@ -330,7 +334,6 @@ function ListRows({
         menu={menu({
           task,
           list,
-          tasks,
           onMove:
             section && local && list.writable
               ? {

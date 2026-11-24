@@ -165,7 +165,7 @@ function TasksIndex(props: StartCreatingProps) {
                             desktop,
                           )}
                           menu={
-                            list ? menu({ task, list, tasks: smart.tasks }) : []
+                            list ? menu({ task, list }) : []
                           }
                         />
                       )

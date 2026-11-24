@@ -261,8 +261,6 @@ export const tasks = {
     deleteListFailed: 'Could not delete that list.',
   },
 
-
-
   row: {
     toggle: 'Toggle {task}',
     openInSource: 'Open {task} in its source app',
@@ -300,7 +298,6 @@ export const tasks = {
     noParents: 'There is no task on this list it can go under.',
     addSubtask: 'Add a subtask to {task}',
   },
-
 
   addList: {
     title: 'Add a list',

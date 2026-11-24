@@ -16,6 +16,7 @@ import { SMART_GLYPHS } from './smartGlyphs'
 import { type SmartDate, TaskListRow } from './TaskListRow'
 import { TaskPanel } from './TaskPanel'
 import { TasksWorkspace, useWorkspace } from './TasksWorkspace'
+import { useCloseOnEscape } from './useCloseOnEscape'
 import { dayHeading } from './words'
 
 interface SmartListPageProps {
@@ -50,6 +51,7 @@ function SmartListBody({
   const state = useTaskOf(selectedTaskId)
   const place: TaskPlace = { kind: 'smart', smartList: id }
   const close = () => void navigate(placeLink(place))
+  useCloseOnEscape(Boolean(selectedTaskId), close)
   const words = t.tasks.smart
   const title = words.lists[id].title
   const tasks = smart.byList[id]
@@ -81,7 +83,6 @@ function SmartListBody({
               ? menu({
                   task,
                   list,
-                  tasks: smart.tasks,
                   onDeleted: task.id === selectedTaskId ? close : undefined,
                 })
               : []
@@ -100,79 +101,81 @@ function SmartListBody({
         backInHeader
         className="mx-auto -mb-1 w-full max-w-6xl"
       />
-      <div><ListDetailLayout
-        header={
-          <WashHeader
-            group="home"
-            icon={SMART_GLYPHS[id]}
-            title={title}
-            back={{ label: t.tasks.web.parent, link: linkTo('tasks') }}
-            summary={
-              smart.loaded
-                ? {
-                    count: plural(locale, tasks.length, words.count),
-                    scope: words.fromAll,
+      <div>
+        <ListDetailLayout
+          header={
+            <WashHeader
+              group="home"
+              icon={SMART_GLYPHS[id]}
+              title={title}
+              back={{ label: t.tasks.web.parent, link: linkTo('tasks') }}
+              summary={
+                smart.loaded
+                  ? {
+                      count: plural(locale, tasks.length, words.count),
+                      scope: words.fromAll,
+                    }
+                  : undefined
+              }
+              primary={
+                addable.length > 0
+                  ? {
+                      label: t.tasks.web.add.primary,
+                      onClick: () => field.current?.focus(),
+                    }
+                  : undefined
+              }
+            />
+          }
+          list={
+            !smart.loaded ? (
+              <ListLoadingState label={t.tasks.web.loading} />
+            ) : (
+              <>
+                <QuickAdd
+                  lists={addable}
+                  fieldRef={field}
+                  preset={
+                    id === 'today'
+                      ? { dueDate: smart.today }
+                      : id === 'mine' && smart.me
+                        ? { assigneeId: smart.me }
+                        : {}
                   }
-                : undefined
-            }
-            primary={
-              addable.length > 0
-                ? {
-                    label: t.tasks.web.add.primary,
-                    onClick: () => field.current?.focus(),
-                  }
-                : undefined
-            }
-          />
-        }
-        list={
-          !smart.loaded ? (
-            <ListLoadingState label={t.tasks.web.loading} />
-          ) : (
-            <>
-              <QuickAdd
-                lists={addable}
-                fieldRef={field}
-                preset={
-                  id === 'today'
-                    ? { dueDate: smart.today }
-                    : id === 'mine' && smart.me
-                      ? { assigneeId: smart.me }
-                      : {}
-                }
-              />
-              {tasks.length === 0 ? (
-                <EmptyState kind="nothing-for-you" title={words.empty[id]} />
-              ) : id === 'upcoming' ? (
-                upcomingDays(tasks, smart.today).map((day) => (
-                  <section key={day.key}>
-                    <SectionLabel>
-                      {day.date
-                        ? dayHeading(day.date, smart.today, locale, t)
-                        : words.days.overdue}
-                    </SectionLabel>
-                    <InsetList>
-                      {rows(day.tasks, day.date ? 'none' : 'past')}
-                    </InsetList>
-                  </section>
-                ))
-              ) : (
-                <InsetList label={title}>
-                  {rows(tasks, date)}
-                </InsetList>
-              )}
-            </>
-          )
-        }
-        panel={
-          selectedTaskId ? (
-            <TaskPanel state={state} place={place} onClose={close} />
-          ) : undefined
-        }
-        panelLabel={t.tasks.web.panel.label}
-        recordKey={selectedTaskId}
-        onCloseRecord={close}
-      /></div>
+                />
+                {tasks.length === 0 ? (
+                  <EmptyState kind="nothing-for-you" title={words.empty[id]} />
+                ) : id === 'upcoming' ? (
+                  upcomingDays(tasks, smart.today).map((day) => (
+                    <section key={day.key}>
+                      <SectionLabel>
+                        {day.date
+                          ? dayHeading(day.date, smart.today, locale, t)
+                          : words.days.overdue}
+                      </SectionLabel>
+                      <InsetList>
+                        {rows(day.tasks, day.date ? 'none' : 'past')}
+                      </InsetList>
+                    </section>
+                  ))
+                ) : (
+                  <InsetList label={title}>
+                    {rows(tasks, date)}
+                  </InsetList>
+                )}
+              </>
+            )
+          }
+          panel={
+            selectedTaskId ? (
+              <TaskPanel state={state} place={place} onClose={close} />
+            ) : undefined
+          }
+          panelLabel={t.tasks.web.panel.label}
+          recordKey={selectedTaskId}
+          onCloseRecord={close}
+        />
+      </div>
     </div>
   )
 }

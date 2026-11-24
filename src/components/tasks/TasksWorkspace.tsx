@@ -5,8 +5,9 @@
  * in a list, in a smart list and in its panel, so it is all here, once.
  */
 import { localIsoDate } from '@gather/core/civil-date'
+import { externalSnapshot } from '@gather/core/linked-lists'
 import { possibleParents } from '@gather/core/linked-tasks'
-import { asksAboutSubtasks, subtasksOf } from '@gather/core/subtasks'
+import { asksAboutSubtasks } from '@gather/core/subtasks'
 import type { Task, TaskList } from '@gather/core/task-model'
 import { createContext, type ReactNode, useContext, useEffect, useState } from 'react'
 import { useErrorMessage } from '../../lib/errorMessage'
@@ -29,14 +30,12 @@ interface Notice {
 
 type TaskDialog =
   | { kind: 'move' | 'section'; task: Task; list: TaskList }
-  | { kind: 'under'; task: Task; list: TaskList; tasks: readonly Task[] }
+  | { kind: 'under'; task: Task }
   | { kind: 'complete'; task: Task }
 
 interface MenuContext {
   task: Task
   list: TaskList
-  /** Every task on its list, for subtasks and possible parents. */
-  tasks?: readonly Task[]
   /** Where in its group it may go, when its place is the list's to give. */
   onMove?: { up?: () => void; down?: () => void }
   onOpen?: () => void
@@ -118,7 +117,6 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
   const menu = ({
     task,
     list,
-    tasks = [],
     onMove,
     onOpen,
     onDeleted,
@@ -146,7 +144,6 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
             .duplicate(
               task,
               fmt(words.duplicateTitle, { title: task.title }),
-              subtasksOf(tasks, task.id),
               crypto.randomUUID(),
             )
             .then(() => setNotice({ message: words.duplicated }), fail)
@@ -155,7 +152,7 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
     }
     if (!local && list.writable && !task.done) {
       add('under', t.tasks.linkedWrite.moveUnder, () =>
-        setDialog({ kind: 'under', task, list, tasks }),
+        setDialog({ kind: 'under', task }),
       )
     }
     if (task.sourceUrl) {
@@ -287,7 +284,6 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
       {dialog?.kind === 'under' ? (
         <UnderDialog
           task={dialog.task}
-          tasks={dialog.tasks}
           onClose={close}
           onChoose={(id) => choose(() => actions.moveUnder(dialog.task, id))}
         />
@@ -358,19 +354,18 @@ function CompleteDialog({
 
 function UnderDialog({
   task,
-  tasks,
   onClose,
   onChoose,
 }: {
   task: Task
-  tasks: readonly Task[]
   onClose: () => void
   onChoose: (id: string | null) => void
 }) {
   const { messages: t } = useI18n()
   const words = t.tasks.linkedWrite
   const parents = possibleParents(
-    tasks.map((each) => ({
+    // The whole of its own list, whatever the page it was opened on shows.
+    (externalSnapshot().get(task.listId)?.tasks ?? []).map((each) => ({
       ...each,
       externalId: each.id,
       parentExternalId: each.parentTaskId,

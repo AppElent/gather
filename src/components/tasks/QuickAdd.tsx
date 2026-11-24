@@ -25,12 +25,15 @@ const clock = () => {
 export function QuickAdd({
   lists,
   preset = {},
+  toLastSection = false,
   fieldRef,
 }: {
   /** The lists it can go on, the first one unless another is chosen. */
   lists: readonly TaskList[]
   /** What the page gives a task added on it: Today's date, or me. */
   preset?: { dueDate?: string; assigneeId?: string }
+  /** A list's own page adds at its end, so in its last section. */
+  toLastSection?: boolean
   fieldRef?: RefObject<HTMLInputElement | null>
 }) {
   const { locale, messages: t } = useI18n()
@@ -72,8 +75,7 @@ export function QuickAdd({
     try {
       const { reminderFailed } = await actions.addParsed(list.id, sent, key, {
         assigneeId: linked ? undefined : preset.assigneeId,
-        // A new task goes to the end of the list, in its last section.
-        sectionId: list.sections.at(-1)?.id,
+        sectionId: toLastSection ? list.sections.at(-1)?.id : undefined,
       })
       retry.current = null
       if (reminderFailed)
