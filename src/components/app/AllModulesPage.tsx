@@ -8,7 +8,7 @@ import {
 } from '@gather/core/pins'
 import { useMutation, useQuery } from 'convex/react'
 import { ArrowDown, ArrowUp } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { fmt, useMessages } from '../../lib/i18n'
 import { moduleLink } from '../../lib/links'
@@ -73,6 +73,29 @@ export function AllModulesPage() {
     setFocusNext(null)
   }, [focusNext, order])
 
+  // Unpinning takes the row, and the focus on its menu, out of the pinned
+  // list once Convex answers. Focus moves to the pin that took its place, the
+  // last one, or with none left the Module's own row below.
+  const pageRef = useRef<HTMLDivElement>(null)
+  const [unpinned, setUnpinned] = useState<{ id: string; at: number } | null>(
+    null,
+  )
+  useEffect(() => {
+    if (!unpinned || !loaded) return
+    const left = order === '' ? [] : order.split(',')
+    if (left.includes(unpinned.id)) return
+    setUnpinned(null)
+    // Still somewhere (its row below, or wherever the reader went since).
+    if (document.activeElement !== document.body) return
+    const row =
+      left.length > 0
+        ? `[data-pin="${left[Math.min(unpinned.at, left.length - 1)]}"]`
+        : `[data-module="${unpinned.id}"]`
+    pageRef.current
+      ?.querySelector<HTMLElement>(`${row} [data-row-menu]`)
+      ?.focus()
+  }, [unpinned, loaded, order])
+
   const write = (next: string[]) => {
     setAnnouncement('')
     void savePins({ groupSlug, moduleIds: next })
@@ -101,12 +124,15 @@ export function AllModulesPage() {
     return {
       id: isOn ? 'unpin' : 'pin',
       label: isOn ? allModules.unpin : allModules.pin,
-      onSelect: () => write(togglePin(ids, module.id)),
+      onSelect: () => {
+        if (isOn) setUnpinned({ id: module.id, at: ids.indexOf(module.id) })
+        write(togglePin(ids, module.id))
+      },
     }
   }
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-6">
+    <div ref={pageRef} className="mx-auto grid max-w-3xl gap-6">
       <header>
         <h1 className="m-0 font-rounded text-large-title font-bold">
           {allModules.title}
@@ -149,7 +175,12 @@ export function AllModulesPage() {
                 link={moduleLink(module)}
                 leading={<ModuleTile group={module.group} icon={module.icon} />}
                 menu={
-                  <RowMenu item={label(module)} actions={[pinAction(module)]} />
+                  <span data-pin={module.id}>
+                    <RowMenu
+                      item={label(module)}
+                      actions={[pinAction(module)]}
+                    />
+                  </span>
                 }
                 controls={
                   reordering ? (
@@ -215,10 +246,12 @@ export function AllModulesPage() {
                   // Until the pins arrive, Pin and Unpin would be guesses.
                   menu={
                     loaded ? (
-                      <RowMenu
-                        item={label(module)}
-                        actions={[pinAction(module)]}
-                      />
+                      <span data-module={module.id}>
+                        <RowMenu
+                          item={label(module)}
+                          actions={[pinAction(module)]}
+                        />
+                      </span>
                     ) : undefined
                   }
                 />

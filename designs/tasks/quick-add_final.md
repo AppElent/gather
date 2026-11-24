@@ -33,8 +33,8 @@ fills the same chips.
 | Notes                                                   | Add button    | —                                                                                                                                         |
 | Calendar                                                | Add button    | Calendar: the last used. Date: the selected day, else today. Time: none (all day off, no time chosen = "Tijd").                           |
 
-Grocery lists keep their inline `TaskComposer` row with suggestions and aisle
-choice (APP-311, APP-524). The other lists drop the inline last-row composer in
+Grocery lists add from a bar at the bottom, which opens their own variant
+([composer_final.md](../groceries/composer_final.md), APP-664). The other lists drop the inline last-row composer in
 favour of the add button; a list without tasks still shows its empty state.
 
 **Add button:** 60 pt circle, Module primary (`home` fill, `home-on` plus,

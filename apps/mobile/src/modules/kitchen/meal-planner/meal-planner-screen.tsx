@@ -10,9 +10,8 @@
  */
 
 import { MenuView } from '@expo/ui/community/menu'
-import { addDays, localIsoDate, mondayStart } from '@gather/core/civil-date'
+import { addDays, mondayStart, todayIn } from '@gather/core/civil-date'
 import type { MealSlot } from '@gather/core/meal-planner'
-import type { WeekPlanWish } from '@gather/core/week-plan'
 import { useAction, useMutation } from 'convex/react'
 import { router, Stack } from 'expo-router'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -82,7 +81,7 @@ import {
   weekRange,
 } from './week'
 import { WeekGroceriesSheet } from './week-groceries-sheet'
-import { type Draft, draftIn } from './week-plan'
+import { type Draft, draftIn, storedWishes } from './week-plan'
 
 /** Eetvoorkeuren, from the bar menu and the button beside Boodschappen. */
 const PREFERENCES_PATH: ModulePath = '/all/meal-planner/settings'
@@ -133,7 +132,9 @@ export function MealPlannerScreen() {
   const bare = isAccessibilityTextSize(useWindowDimensions().fontScale)
   const insets = useSafeAreaInsets()
   const tile = moduleTile('meal-planner')
-  const [weekStart, setWeekStart] = useState(() => mondayStart(localIsoDate()))
+  const [weekStart, setWeekStart] = useState(() =>
+    mondayStart(todayIn(group.timeZone)),
+  )
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const { show: showToast, toast } = useUndoToast()
   const from = weekStart
@@ -163,9 +164,6 @@ export function MealPlannerScreen() {
   } = useProposalBar(weekStart, drafts)
   const [regenerating, setRegenerating] = useState<string | null>(null)
   const [accepting, setAccepting] = useState(false)
-  // The start sheet's wishes per week, so Ander voorstel keeps them (APP-460).
-  // This visit only: a proposal reopened later regenerates without them.
-  const planWishes = useRef(new Map<string, { wishes: WeekPlanWish[]; wish?: string }>())
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
@@ -344,13 +342,13 @@ export function MealPlannerScreen() {
         showToast({ message: words.failed })
       })
   }
+  // The server asks with the wishes the proposal keeps (APP-679).
   const onRegenerate = (draft: Draft) => {
     setRegenerating(draft._id)
     regenerate({
       groupSlug: group.slug,
       id: draft._id,
       locale,
-      ...planWishes.current.get(weekStart),
     })
       .then((result) => {
         if (result.status === 'limit') {
@@ -376,12 +374,10 @@ export function MealPlannerScreen() {
       .finally(() => setRegenerating(null))
   }
   const onPlanned = (outcome: PlanOutcome) => {
-    setSheet(null)
     if (outcome.status === 'empty') showToast({ message: words.plan.empty })
     // Nothing fitted: the open proposal, if any, stays as it was.
     else if (outcome.count === 0) showToast({ message: words.plan.nothingFits })
     else {
-      planWishes.current.set(weekStart, { wishes: outcome.wishes, wish: outcome.wish })
       closeProposal()
       scrollRef.current?.scrollTo({ y: 0, animated: true })
     }
@@ -644,6 +640,7 @@ export function MealPlannerScreen() {
           key={weekStart}
           weekStart={weekStart}
           data={data}
+          stored={storedWishes(drafts)}
           onClose={() => setSheet(null)}
           onPlanned={onPlanned}
           onChooseYourself={(date, slot) => setSheet({ kind: 'pick', date, slot })}
@@ -716,10 +713,7 @@ export function MealPlannerScreen() {
               replacing: sheet.replacing,
             })
           }
-          onSaved={(message) => {
-            setSheet(null)
-            showToast({ message })
-          }}
+          onSaved={(message) => showToast({ message })}
         />
       ) : null}
       {data && sheet?.kind === 'groceries' ? (

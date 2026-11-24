@@ -19,10 +19,12 @@
  *   parser's `dismissed`, which the line keeps.
  */
 import { addDays, mondayStart } from '@gather/core/civil-date'
-import type {
-  QuickAdd,
-  QuickAddKind,
-  QuickAddPart,
+import {
+  parseQuickAdd,
+  type QuickAdd,
+  type QuickAddContext,
+  type QuickAddKind,
+  type QuickAddPart,
 } from '@gather/core/task-quick-add'
 import { normalizeRepeat, type TaskRepeat } from '@gather/core/task-repeat'
 import { newSaveKey } from '../../ui/composer-drafts'
@@ -70,6 +72,37 @@ export interface TaskDraft {
    * often it is sent, across a close and a reopen. A new draft has a new one.
    */
   saveKey: string
+}
+
+/** What a line can read for a linked list's task (APP-448). */
+export const LINKED_KINDS: readonly QuickAddKind[] = ['date', 'label']
+
+/** A line read for only these details: the rest of it stays the title. */
+export function parseOnly(
+  line: string,
+  context: QuickAddContext,
+  kinds: readonly QuickAddKind[] | undefined,
+): QuickAdd {
+  let dismissed = context.dismissed ?? []
+  for (;;) {
+    const parsed = parseQuickAdd(line, { ...context, dismissed })
+    const left = kinds
+      ? parsed.parts.filter((part) => !kinds.includes(part.kind))
+      : []
+    if (left.length === 0) return parsed
+    dismissed = [...dismissed, ...left.map((part) => part.key)]
+  }
+}
+
+/** The composed task as a linked list's provider can hold it. */
+export function linkedTask(task: ComposedTask): ComposedTask {
+  const { title, dueDate, labels, priority } = task
+  return {
+    title,
+    labels,
+    ...(dueDate ? { dueDate } : {}),
+    ...(priority ? { priority } : {}),
+  }
 }
 
 /** The fields one new task is saved with. */

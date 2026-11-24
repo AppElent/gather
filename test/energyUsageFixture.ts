@@ -49,8 +49,7 @@ export const DYNAMIC_TERMS = {
   netMetering: false,
 } satisfies Omit<Doc<'energyContracts'>, '_id' | '_creationTime' | 'groupId' | 'siteId'>
 
-export async function seedEnergyGroups() {
-  const t = testConvex()
+export async function seedEnergyGroups(t = testConvex()) {
   const ids = await t.run(async (ctx) => {
     const [aliceId, bobId, carolId] = await Promise.all(
       [alice, bob, carol].map((person) =>

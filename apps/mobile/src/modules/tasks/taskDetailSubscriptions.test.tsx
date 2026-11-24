@@ -27,6 +27,7 @@ vi.mock('../../group/GroupProvider', () => ({
 }))
 vi.mock('convex/react', () => ({
   useAction: () => vi.fn(),
+  useConvex: () => ({}),
   useMutation: () => Object.assign(vi.fn(), { withOptimisticUpdate: vi.fn() }),
 }))
 vi.mock('../../convex/queries', () => ({

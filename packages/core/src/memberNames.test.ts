@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { firstName, memberFirstNames } from './memberNames'
+import { clerkUserName, firstName, memberFirstNames } from './memberNames'
 
 describe('firstName', () => {
   test('is the first word of the display name', () => {
@@ -46,5 +46,18 @@ describe('memberFirstNames', () => {
 
   test('leaves a blank name blank', () => {
     expect(memberFirstNames([{ id: 'a', name: '  ' }]).get('a')).toBe('')
+  })
+})
+
+describe('clerkUserName (APP-676)', () => {
+  test('prefers the full name, then first and last, then the username', () => {
+    expect(clerkUserName({ fullName: 'Eric Jansen', firstName: 'E' })).toBe('Eric Jansen')
+    expect(clerkUserName({ firstName: 'Eric', lastName: null })).toBe('Eric')
+    expect(clerkUserName({ username: 'eric' })).toBe('eric')
+  })
+
+  test('is undefined without a user or a name', () => {
+    expect(clerkUserName(null)).toBeUndefined()
+    expect(clerkUserName({ fullName: ' ', firstName: null })).toBeUndefined()
   })
 })

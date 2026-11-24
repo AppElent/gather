@@ -41,6 +41,7 @@ import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { useKeyboardDoneBar } from '../../ui/keyboard-done-bar'
 import { TASTING_UI_ICONS } from './icons'
 import { VocabularySheet } from './VocabularySheet'
 import { fieldLabel, type TastingWords, term, unitLabel } from './words'
@@ -373,6 +374,9 @@ function NumberField({ field, value, onChange, disabled }: TastingFieldProps) {
   )
   const unit = unitLabel(t.tastings, field)
 
+  const { inputAccessoryViewID, accessory } = useKeyboardDoneBar({
+    keyboardType: 'decimal-pad',
+  })
   return (
     <View
       style={[
@@ -380,6 +384,7 @@ function NumberField({ field, value, onChange, disabled }: TastingFieldProps) {
         { backgroundColor: tokens.surface, borderColor: tokens.hair },
       ]}
     >
+      {accessory}
       <TextInput
         value={draft}
         onChangeText={(next) => {
@@ -388,6 +393,7 @@ function NumberField({ field, value, onChange, disabled }: TastingFieldProps) {
         }}
         editable={!disabled}
         keyboardType="decimal-pad"
+        inputAccessoryViewID={inputAccessoryViewID}
         placeholder={t.tastings.composer.none}
         placeholderTextColor={tokens.muted}
         accessibilityLabel={fieldLabel(t.tastings, field)}

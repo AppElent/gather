@@ -87,7 +87,7 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
 
   return (
     <article className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-5">
-      <Breadcrumbs trail={trail} className="-mb-2" />
+      <Breadcrumbs trail={trail} className="-mb-2" backInHeader />
       <WashHeader
         group="kitchen"
         icon={RECIPES_ICON}
@@ -102,6 +102,10 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
           scope: recipe.addedByName
             ? fmt(detail.addedBy, { name: recipe.addedByName })
             : undefined,
+        }}
+        back={{
+          label: messages.modules.byId.recipes.label,
+          link: linkTo('recipes'),
         }}
         // A recipe reaches a Group it was only shared into as something to
         // read: writing follows the home Group. Offering Edit anyway would be

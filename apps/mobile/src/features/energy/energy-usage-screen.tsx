@@ -68,12 +68,16 @@ export type EnergyUsageUnit = 'kwh' | 'euro'
 type Period = NonNullable<FunctionReturnType<typeof api.energyUsage.month>>
 
 export function EnergyUsageScreen({
-  initialRange = 'day',
+  initialRange,
   initialUnit = 'kwh',
+  initialDay,
+  initialMonth,
   initialYear,
 }: {
   initialRange?: EnergyUsageRange
   initialUnit?: EnergyUsageUnit
+  initialDay?: string
+  initialMonth?: string
   initialYear?: number
 }) {
   const tokens = useTokens('home')
@@ -82,12 +86,33 @@ export function EnergyUsageScreen({
   const router = useRouter()
   const words = t.energy
   const today = amsterdamIsoDate()
+  const thisMonth = energyMonthOf(today)
   const thisYear = Number(today.slice(0, 4))
-  const [range, setRange] = useState<EnergyUsageRange>(initialRange)
-  const [day, setDay] = useState(today)
-  const [month, setMonth] = useState(energyMonthOf(today))
+  const validDay =
+    initialDay && initialDay <= today
+      ? initialDay
+      : undefined
+  const validMonth =
+    initialMonth && initialMonth <= thisMonth
+      ? initialMonth
+      : undefined
+  const validYear =
+    initialYear && initialYear <= thisYear ? initialYear : undefined
+  const [range, setRange] = useState<EnergyUsageRange>(
+    initialRange ??
+      (validDay ? 'day' : validMonth ? 'month' : validYear ? 'year' : 'day'),
+  )
+  const [day, setDay] = useState(validDay ?? today)
+  const [month, setMonth] = useState(
+    validMonth ?? (validDay ? energyMonthOf(validDay) : thisMonth),
+  )
   const [year, setYear] = useState(
-    initialYear && initialYear <= thisYear ? initialYear : thisYear,
+    validYear ??
+      (validMonth
+        ? Number(validMonth.slice(0, 4))
+        : validDay
+          ? Number(validDay.slice(0, 4))
+          : thisYear),
   )
 
   const stepper =

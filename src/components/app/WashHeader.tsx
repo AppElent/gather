@@ -1,6 +1,6 @@
 import type { ModuleGroup } from '@gather/core/modules'
 import { Link } from '@tanstack/react-router'
-import { ChevronRight, Plus, Search, Settings } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Search, Settings } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { fmt, useMessages } from '../../lib/i18n'
 import type { AppLink } from '../../lib/links'
@@ -49,6 +49,11 @@ export interface WashHeaderProps {
   summary?: WashSummary
   /** Above the title on a nested page whose trail is one step deep. */
   parent?: { label: string; link: AppLink }
+  /**
+   * Below `md`: the round back button at the start of the header's buttons, to
+   * the page this one belongs to. From `md` the sidebar or the trail does it.
+   */
+  back?: { label: string; link: AppLink }
   /** "Zoeken in {module}": opens this Module's search. Hidden when absent. */
   onSearch?: () => void
   /**
@@ -97,13 +102,14 @@ export function WashHeader({
   title,
   summary,
   parent,
+  back,
   onSearch,
   settings,
   moduleName = title,
   primary,
   extra,
 }: WashHeaderProps) {
-  const { modulePage } = useMessages().shell
+  const { breadcrumbs, modulePage } = useMessages().shell
 
   return (
     <header
@@ -115,6 +121,16 @@ export function WashHeader({
           run along the top and the tile sits beside the summary; from md the
           tile, the title column and the buttons share one row. */}
       <div className="flex items-center justify-end gap-2 [grid-area:b] empty:hidden">
+        {back ? (
+          <Link
+            {...back.link}
+            aria-label={fmt(breadcrumbs.backTo, { page: back.label })}
+            title={fmt(breadcrumbs.backTo, { page: back.label })}
+            className={`${buttonClass.round} mr-auto md:hidden`}
+          >
+            <ChevronLeft className="size-5" aria-hidden="true" />
+          </Link>
+        ) : null}
         {onSearch ? (
           <button
             type="button"

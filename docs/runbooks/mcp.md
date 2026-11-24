@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when connecting to, operating, or changing the Gather MCP server.
-version: 1.2.0
+version: 1.3.0
 ---
 
 # Gather MCP
@@ -73,9 +73,14 @@ Rules for every tool:
   `idempotencyKeys`; a retry with the same key returns the first row.
   `plan_meal` counts as a create: a retry with its key answers the first
   meal instead of finding the slot taken.
+- `list_notes` answers one page, with `nextCursor` while there is more; pass it
+  back as `cursor`. With a `query` it searches in Convex (`searchNotes`: whole
+  words, the last one from its start) and answers the best matches and `total`;
+  a query shorter than two characters is refused with a message, not answered
+  with no notes.
 - There are no delete tools. People delete in the app.
 - Recipes shared into a Group can be read there but changed only from their
-  home Group. Task lists that mirror Notion or Todoist are listed but their
+  home Group. Task lists that live in Notion or Todoist are listed but their
   tasks are not readable here.
 - Results are JSON in `structuredContent` and as text, without internal user
   ids, storage ids, or other Groups' ids. Errors show Gather's own refusals

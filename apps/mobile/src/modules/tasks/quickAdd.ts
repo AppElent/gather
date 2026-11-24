@@ -9,8 +9,8 @@ import {
  * Which lists the Add tab's "Add a task" can write to, and which one it is
  * aimed at.
  *
- * Only a local list has `tasks` rows; a linked list is read from its provider
- * and Gather has no write path into it (ADR-0021), so it is never offered.
+ * Only a local list has `tasks` rows. A linked list is written to from its own
+ * screen, in its provider (ADR-0021, APP-448), so it is never offered here.
  */
 interface QuickAddList {
   _id: string

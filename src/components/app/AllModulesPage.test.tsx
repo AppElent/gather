@@ -94,6 +94,29 @@ describe('AllModulesPage', () => {
     expect(status()).toHaveTextContent('')
   })
 
+  test('focus follows an unpin to the pin that took its place', () => {
+    const { rerender } = renderInGroup(<AllModulesPage />)
+    const unpin = (name: string, left: string[]) => {
+      const button = screen.getAllByRole('button', {
+        name: `Actions for ${name}`,
+      })[0]
+      fireEvent.click(button)
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Unpin' }))
+      pins.value = left
+      act(() => rerender(<AllModulesPage />))
+    }
+    const menus = (name: string) =>
+      screen.getAllByRole('button', { name: `Actions for ${name}` })
+
+    unpin('Recipes', ['tasks', 'notes'])
+    expect(menus('Tasks')[0]).toHaveFocus()
+    unpin('Notes', ['tasks'])
+    expect(menus('Tasks')[0]).toHaveFocus()
+    unpin('Tasks', [])
+    expect(menus('Tasks')).toHaveLength(1)
+    expect(menus('Tasks')[0]).toHaveFocus()
+  })
+
   test('the arrows wait for Reorder, and Done puts them away', () => {
     renderInGroup(<AllModulesPage />)
     expect(screen.queryByRole('button', { name: 'Move Tasks down' })).toBeNull()

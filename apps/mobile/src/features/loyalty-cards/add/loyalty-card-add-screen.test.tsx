@@ -207,6 +207,9 @@ vi.mock('../../../i18n', async () => {
   const { fmt } = await import('@gather/core/i18n')
   return { fmt, useI18n: () => ({ t: en, locale: 'en' }) }
 })
+vi.mock('../../../ui/keyboard-done-bar', () => ({
+  useKeyboardDoneBar: () => ({ accessory: null }),
+}))
 vi.mock('../../../theme/appearance', () => ({
   useAppearance: () => ({ scheme: 'light' }),
 }))

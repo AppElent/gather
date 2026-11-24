@@ -7,6 +7,10 @@ import { fmt, useMessages } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import {
+  type StartCreatingProps,
+  useStartCreating,
+} from '../app/useStartCreating'
 import { AddListFlow } from './AddListFlow'
 import { ExternalTaskList } from './ExternalTaskList'
 import { LocalTaskList } from './LocalTaskList'
@@ -18,11 +22,12 @@ import { LocalTaskList } from './LocalTaskList'
  * read and every write, and adding one — local or linked — puts it in the
  * Current Group.
  */
-export function TasksPage() {
+export function TasksPage(props: StartCreatingProps = {}) {
   const { slug: groupSlug } = useRequiredCurrentGroup()
   const lists = useQuery(api.taskLists.list, { groupSlug })
   const removeList = useMutation(api.taskLists.remove)
   const [adding, setAdding] = useState(false)
+  useStartCreating(props, () => setAdding(true))
   const { confirm, dialog } = useConfirmAction()
   const messages = useMessages()
   const { page } = messages.tasks
@@ -47,9 +52,9 @@ export function TasksPage() {
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="m-0 font-rounded text-2xl font-bold">
+          <h1 className="m-0 font-rounded text-2xl font-bold">
             {messages.modules.byId.tasks.label}
-          </h2>
+          </h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {page.subtitle}
           </p>
@@ -116,6 +121,7 @@ export function TasksPage() {
                 groupSlug={groupSlug}
                 name={l.name}
                 provider={l.provider}
+                writes={l.capabilities.write}
                 onRemoveList={() => confirmRemove(l._id, l.name)}
               />
             ),

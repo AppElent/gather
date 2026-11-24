@@ -32,7 +32,7 @@
  */
 import type { PhotoPresetName } from '@gather/core/photo-presets'
 import { Image } from 'expo-image'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -41,9 +41,15 @@ import {
   View,
 } from 'react-native'
 
-import { type PhotoSource, pickPhoto, uploadPhoto } from '../photo/pickPhoto'
+import { type PhotoSource, pickPhoto, uploadPhotoOnce } from '../photo/pickPhoto'
 import { UI_ICONS } from '../theme/icons'
 import { type ModuleGroup, RADIUS, TYPE, useTokens } from '../theme/tokens'
+
+/** The local file a row shows, and whether its upload has finished. */
+export interface PhotoPreview {
+  uri: string
+  uploaded: boolean
+}
 
 /** Every word this row can show, resolved by whichever Module is drawing it. */
 export interface PhotoFieldLabels {
@@ -83,6 +89,18 @@ export interface PhotoFieldProps {
    * photo it shows is the photo it sends.
    */
   onBusyChange?: (busy: boolean) => void
+  /**
+   * A preview to open on: a form reopened on a kept draft. One whose upload had
+   * not finished takes up that upload, or starts another if it failed.
+   */
+  initialPreview?: PhotoPreview | null
+  /** Told what the row shows of a local file, for a form that keeps a draft. */
+  onPreviewChange?: (preview: PhotoPreview | null) => void
+  /**
+   * The draft this row belongs to (`useSheetDraft`'s `scope`): an upload is
+   * taken up again only within it, and is forgotten when the draft is.
+   */
+  uploadScope?: string
   /** Prefix for the controls' `testID`s, so a verification run can reach them. */
   testID?: string
 }
@@ -97,16 +115,27 @@ export function PhotoField({
   group = 'home',
   disabled,
   onBusyChange,
+  initialPreview,
+  onPreviewChange,
+  uploadScope,
   testID,
 }: PhotoFieldProps) {
   const tokens = useTokens(group)
 
-  const [preview, setPreview] = useState<string | null>(null)
+  const [preview, setPreview] = useState<string | null>(
+    initialPreview?.uri ?? null,
+  )
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
 
   // `value === null` is an explicit removal and beats whatever is stored.
   const shown = value === null ? null : (preview ?? photoUrl ?? null)
+
+  const mounted = useRef(true)
+  // Told when an upload's row goes: the next row takes up the
+  // kept preview's upload itself, and this upload, landing late, must not replace that one's photo.
+  // A form that keeps no preview still gets its photo.
+  const stale = () => !mounted.current && onPreviewChange !== undefined
 
   async function choose(source: PhotoSource) {
     setProblem(null)
@@ -123,25 +152,55 @@ export function PhotoField({
       return
     }
 
+    await upload(picked.uri)
+  }
+
+  async function upload(uri: string) {
+    if (stale()) return
     // Shown before it is uploaded: the file is already on the phone, and a
     // second of blank space while the bytes go up reads as nothing happening.
-    setPreview(picked.uri)
+    setPreview(uri)
+    onPreviewChange?.({ uri, uploaded: false })
     setBusy(true)
     onBusyChange?.(true)
     try {
-      const storageId = await uploadPhoto(picked.uri, await generateUploadUrl())
+      const storageId = await uploadPhotoOnce(uri, generateUploadUrl, uploadScope)
+      if (stale()) return
       onChange(storageId)
+      onPreviewChange?.({ uri, uploaded: true })
     } catch {
+      if (stale()) return
       setPreview(null)
+      onPreviewChange?.(null)
       setProblem(labels.failed)
     } finally {
-      setBusy(false)
-      onBusyChange?.(false)
+      if (!stale()) {
+        setBusy(false)
+        onBusyChange?.(false)
+      }
     }
   }
 
+  // A kept draft whose upload had not finished: finish it, once.
+  const unfinished = useRef(
+    initialPreview && !initialPreview.uploaded ? initialPreview.uri : null,
+  )
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on mount only
+  useEffect(() => {
+    const uri = unfinished.current
+    unfinished.current = null
+    mounted.current = true
+    if (uri) void upload(uri)
+    return () => {
+      mounted.current = false
+      // Its upload no longer answers, so it holds the form no longer.
+      if (stale()) onBusyChange?.(false)
+    }
+  }, [])
+
   function remove() {
     setPreview(null)
+    onPreviewChange?.(null)
     setProblem(null)
     onChange(null)
   }

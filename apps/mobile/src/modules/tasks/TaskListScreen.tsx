@@ -60,6 +60,7 @@ import { useUndoToast } from '../../ui/undo-toast'
 import { WashHeader } from '../../ui/wash-header'
 import { AddTask } from './AddTaskComposer'
 import { Chip, priorityColor } from './components'
+import { AddGrocery, GROCERY_BAR_HEIGHT } from './GroceryComposer'
 import { GroceryAmount, useGroceryAmountText } from './GroceryFields'
 import { GroceryListBody } from './GroceryListBody'
 import {
@@ -70,11 +71,12 @@ import {
 import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
 import { AppearanceSheet } from './listFace'
 import { PackingProgress, UncheckAll } from './packing'
+import { providerName } from './providerName'
 import { ReorderMode } from './ReorderMode'
 import { SectionHeading, SectionsSheet } from './sections'
 import { RenameSheet } from './sheets'
 import { taskSections, useTaskActions, useTaskList } from './store'
-import { type KeptGroceryLine, TaskComposer, TaskRow } from './TaskRow'
+import { TaskRow } from './TaskRow'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
 import type { ListDisplay, Task, TaskList as TaskListModel } from './types'
@@ -93,7 +95,6 @@ export function TaskList({
   listId,
   moduleId = 'tasks',
   menuExtras = [],
-  addPlaceholder,
   washAccessory,
   headerAfter,
 }: {
@@ -105,8 +106,6 @@ export function TaskList({
    * the system Back is the one way out of a pushed screen.
    */
   menuExtras?: readonly ListMenuExtra[]
-  /** The composer's words, when the list is not a list of tasks. */
-  addPlaceholder?: string
   /** Under the wash's summary: the grocery list's store pill (APP-313). */
   washAccessory?: ReactNode
   /**
@@ -123,15 +122,14 @@ export function TaskList({
   const { list, tasks, today, refresh } = useTaskList(listId)
   const actions = useTaskActions()
   const amountText = useGroceryAmountText()
-  const undoToast = useUndoToast()
+  const undoToast = useUndoToast(
+    list?.grocery && list.writable ? GROCERY_BAR_HEIGHT : 0,
+  )
 
   const [renamingList, setRenamingList] = useState(false)
   const [restyling, setRestyling] = useState(false)
   const [editingSections, setEditingSections] = useState(false)
   const [reordering, setReordering] = useState(false)
-  // The grocery composer is away in Reorder mode; its half-typed line and
-  // the aisle chosen for it wait here (APP-536).
-  const keptLine = useRef<KeptGroceryLine | undefined>(undefined)
   // A drop the server refused puts Reorder mode back to the list's saved
   // order, which a remount reads, and says so (APP-534). Without it the mode
   // keeps the order it opened with, so after another Member adds an item
@@ -176,8 +174,8 @@ export function TaskList({
   // A packing list keeps its checked items where they are: it is reset for
   // the next trip rather than worked through (APP-306).
   const inPlace = keepsCheckedInPlace(list.kind)
-  // A list of tasks adds from the keyboard composer; a grocery list keeps its
-  // inline row (APP-311).
+  // A list of tasks adds from the add button, a grocery list from the bar
+  // pinned under it (APP-664); both open the keyboard composer.
   const addsWithButton = list.writable && !list.grocery
   const listed = inPlace ? rows : active
   const finished = inPlace ? [] : completed
@@ -342,7 +340,7 @@ export function TaskList({
       }
       onOpen={() => openTask(task)}
       menu={{
-        reorder: true,
+        reorder: !linked,
         sections: sectioned,
         onAction: (action) => taskSheets.onAction(task, action),
       }}
@@ -398,13 +396,13 @@ export function TaskList({
                     id: 'reorder',
                     title: t.actions.reorder,
                     image: 'arrow.up.arrow.down',
-                    attributes: { disabled: !list.writable },
+                    attributes: { disabled: !list.writable || linked },
                   },
                   {
                     id: 'rename',
                     title: t.tasks.list.rename,
                     image: 'pencil',
-                    attributes: { disabled: !list.writable },
+                    attributes: { disabled: linked },
                   },
                   ...(linked
                     ? []
@@ -479,15 +477,16 @@ export function TaskList({
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
-        // A grocery list's composer is its last row: on a small iPhone the
-        // keyboard would cover it and the line's recognised chips (APP-309).
-        // Any other list adds through the keyboard composer, which floats over
-        // the list: an inset there would scroll the tasks under the header
-        // every time the keyboard rose for it (APP-661).
-        automaticallyAdjustKeyboardInsets={grocery}
+        // No keyboard inset: the composer floats over the list, and an inset
+        // would scroll it under the header every time the keyboard rose
+        // (APP-661, APP-664).
         scrollEnabled={!dragging}
         contentContainerStyle={{
-          paddingBottom: insets.bottom + 24 + (addsWithButton ? ADD_BUTTON_CLEARANCE : 0),
+          paddingBottom:
+            insets.bottom +
+            24 +
+            (addsWithButton ? ADD_BUTTON_CLEARANCE : 0) +
+            (grocery && list.writable ? GROCERY_BAR_HEIGHT : 0),
         }}
         refreshControl={
           // Only a provider-backed list has anything to fetch. Convex keeps
@@ -627,18 +626,6 @@ export function TaskList({
                       </Text>
                     </View>
                   }
-                  composer={
-                    list.writable ? (
-                      <TaskComposer
-                        listId={list.id}
-                        placeholder={addPlaceholder ?? t.kitchen.addGroceryItem}
-                        grocery
-                        tasks={tasks}
-                        scrollRef={scrollRef}
-                        keep={keptLine}
-                      />
-                    ) : null
-                  }
                   onUndoable={(message, undo) =>
                     undoToast.show({
                       message,
@@ -648,11 +635,7 @@ export function TaskList({
                 />
               ) : (
                 <>
-              {groups.map((section, index) => {
-                // On a grocery list the last section holds the composer, which
-                // adds to it. A list of tasks has the add button (APP-587).
-                const composer =
-                  grocery && list.writable && index === groups.length - 1
+              {groups.map((section) => {
                 return (
                   <View key={section.id ?? 'none'} style={styles.section}>
                     {sectioned ? (
@@ -666,13 +649,13 @@ export function TaskList({
                           <Text style={[styles.empty, { color: tokens.muted }]}>
                             {linked && list.sync === 'loading'
                               ? fmt(t.tasks.list.loading, {
-                                  provider: list.provider,
+                                  provider: providerName(list.provider),
                                 })
                               : t.tasks.list.empty}
                           </Text>
                         </View>
                       ) : null}
-                      {sectioned && section.tasks.length === 0 && !composer ? (
+                      {sectioned && section.tasks.length === 0 ? (
                         <View style={styles.emptyRow}>
                           <Text style={[styles.empty, { color: tokens.muted }]}>
                             {t.tasks.sections.empty}
@@ -680,16 +663,6 @@ export function TaskList({
                         </View>
                       ) : null}
                       {section.tasks.map(row)}
-                      {composer ? (
-                        <TaskComposer
-                          listId={list.id}
-                          placeholder={addPlaceholder ?? t.kitchen.addGroceryItem}
-                          grocery
-                          sectionId={section.id ?? undefined}
-                          scrollRef={scrollRef}
-                          keep={keptLine}
-                        />
-                      ) : null}
                     </InsetList>
                   </View>
                 )
@@ -706,7 +679,7 @@ export function TaskList({
                 </>
               )}
 
-              {inPlace && list.writable && tasks.length > 0 ? (
+              {inPlace && list.writable && !linked && tasks.length > 0 ? (
                 <UncheckAll listId={list.id} doneCount={doneCount} />
               ) : null}
             </>
@@ -721,12 +694,16 @@ export function TaskList({
           sectionId={groups[groups.length - 1]?.id ?? undefined}
         />
       ) : null}
+      {grocery && list.writable && !reordering ? (
+        <AddGrocery listId={list.id} />
+      ) : null}
       {undoToast.toast}
       {taskSheets.sheets}
       {renamingList ? (
         <RenameSheet
           title={t.tasks.list.rename}
           value={list.name}
+          place={`tasks:rename-list:${list.id}`}
           onSave={(next) => actions.renameList(list.id, next)}
           onClose={() => setRenamingList(false)}
         />
@@ -750,7 +727,7 @@ function syncNotice(
   refreshed: boolean,
   t: Messages,
 ): string | null {
-  const provider = { provider: list.provider }
+  const provider = { provider: providerName(list.provider) }
   if (list.sync === 'reconnect') return fmt(t.tasks.list.reconnect, provider)
   if (list.sync === 'failed') return fmt(t.tasks.list.failed, provider)
   const synced = refreshed && list.sync === 'synced'

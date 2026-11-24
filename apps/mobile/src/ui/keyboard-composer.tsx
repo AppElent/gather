@@ -27,7 +27,7 @@
  *   wheel or calendar, drags by its top band, because those scroll too. What counts as a drag is
  *   `composer-gestures.ts`.
  * - **The card closes; the draft stays.** Every way out (scrim, swipe down,
- *   Android Back) is `onClose`, and the kind keeps what was typed
+ *   Android Back, a share or link from another app) is `onClose`, and the kind keeps what was typed
  *   (`composer-drafts.ts`). Nothing asks to confirm.
  */
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
@@ -69,6 +69,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context'
 
+import { openSheet } from '../components/openSheets'
 import { useI18n } from '../i18n'
 import type { Glyph } from '../theme/glyph'
 import { UI_ICONS } from '../theme/icons'
@@ -98,7 +99,10 @@ export interface ComposerChip {
   /** The chip's native menu. Ends with Remove when the chip is set. */
   menu?: MenuAction[]
   onMenu?: (actionId: string) => void
-  /** A chip without a menu is a plain toggle (a note's Pin): `set` is its state. */
+  /**
+   * A chip without a menu is a plain toggle (a note's Pin): `set` is its
+   * state. With neither it only says something (the one grocery list).
+   */
   onPress?: () => void
   testID?: string
 }
@@ -170,10 +174,30 @@ export interface KeyboardComposerProps {
   panel?: ReactNode
   /** Asked when expanding, to bring the description field into view. */
   onExpandedChange?: (expanded: boolean) => void
+  /**
+   * False for a kind with one size (a grocery item, APP-664): no expand
+   * button, and the handle closes the card instead, keeping the draft.
+   */
+  expandable?: boolean
+  /** A card above the composer's own, such as a grocery item's completions. */
+  above?: ReactNode
+  /** Under the chips: what was just added, and its undo. */
+  status?: ReactNode
+  /** What the send button is called; Save when not given. */
+  saveLabel?: string
   testID?: string
 }
 
 export function KeyboardComposer(props: KeyboardComposerProps) {
+  // A modal covers the chooser as a sheet does, so a share closes it the way
+  // its scrim does, and the kind keeps the draft (APP-672).
+  const onClose = useRef(props.onClose)
+  onClose.current = props.onClose
+  useEffect(() => {
+    const open = openSheet(() => onClose.current())
+    return open.closed
+  }, [])
+
   return (
     <Modal
       transparent
@@ -206,6 +230,10 @@ function ComposerCard({
   notice,
   panel,
   onExpandedChange,
+  expandable = true,
+  above,
+  status,
+  saveLabel,
   testID,
 }: KeyboardComposerProps) {
   const tokens = useTokens(group)
@@ -221,6 +249,8 @@ function ComposerCard({
   // After a save the next one is typed in the title, wherever the cursor was.
   const submit = () => {
     onSave()
+    // A description asked for was for the one just saved.
+    setBodyAsked(false)
     if (!panel) titleRef.current?.focus()
   }
   const focusBody = () => {
@@ -263,12 +293,17 @@ function ComposerCard({
       .activeOffsetY([-activeOffset, activeOffset])
       .failOffsetX([-12, 12])
       .onUpdate((event) => {
-        drag.value = dragOffset(event.translationY, expanded)
+        drag.value = dragOffset(event.translationY, expanded, expandable)
       })
       .onEnd((event, success) => {
         // A pan the system cancelled (a call, Control Centre) does nothing.
         if (!success) return
-        const outcome = dragOutcome(event, expanded, closeDistance(heights.current))
+        const outcome = dragOutcome(
+          event,
+          expanded,
+          closeDistance(heights.current),
+          expandable,
+        )
         if (outcome === 'expand') toggle(true)
         else if (outcome === 'collapse') toggle(false)
         else if (outcome === 'close') onClose()
@@ -292,7 +327,7 @@ function ComposerCard({
     <Pressable
       testID={testID ? `${testID}-save` : undefined}
       accessibilityRole="button"
-      accessibilityLabel={words.save}
+      accessibilityLabel={saveLabel ?? words.save}
       accessibilityState={{ disabled: !canSave, busy }}
       disabled={!canSave || busy}
       onPress={submit}
@@ -359,6 +394,21 @@ function ComposerCard({
           pointerEvents="box-none"
         >
           {expanded ? null : <View style={styles.fill} pointerEvents="box-none" />}
+          {above && !expanded && !panel ? (
+            <View
+              style={[styles.above, { backgroundColor: tokens.surface }]}
+              testID={testID ? `${testID}-above` : undefined}
+            >
+              {/* Scrolls when the keyboard leaves too little room for it. */}
+              <ScrollView
+                bounces={false}
+                keyboardShouldPersistTaps="always"
+                style={styles.aboveScroll}
+              >
+                {above}
+              </ScrollView>
+            </View>
+          ) : null}
           <GestureDetector gesture={cardPan}>
           <Animated.View
             testID={testID}
@@ -381,8 +431,8 @@ function ComposerCard({
               <Pressable
                 testID={testID ? `${testID}-handle` : undefined}
                 accessibilityRole="button"
-                accessibilityLabel={expandLabel}
-                onPress={() => toggle()}
+                accessibilityLabel={expandable ? expandLabel : words.closeKeeping}
+                onPress={() => (expandable ? toggle() : onClose())}
                 style={styles.handleBand}
               >
                 <View style={[styles.handle, { backgroundColor: tokens.hair }]} />
@@ -420,16 +470,18 @@ function ComposerCard({
                   />
                 ) : null}
               </View>
-              <Pressable
-                testID={testID ? `${testID}-expand` : undefined}
-                accessibilityRole="button"
-                accessibilityLabel={expandLabel}
-                onPress={() => toggle()}
-                hitSlop={4}
-                style={({ pressed }) => [styles.expand, pressed && styles.pressed]}
-              >
-                <ExpandIcon size={18} strokeWidth={2.2} color={tokens.muted} />
-              </Pressable>
+              {expandable ? (
+                <Pressable
+                  testID={testID ? `${testID}-expand` : undefined}
+                  accessibilityRole="button"
+                  accessibilityLabel={expandLabel}
+                  onPress={() => toggle()}
+                  hitSlop={4}
+                  style={({ pressed }) => [styles.expand, pressed && styles.pressed]}
+                >
+                  <ExpandIcon size={18} strokeWidth={2.2} color={tokens.muted} />
+                </Pressable>
+              ) : null}
             </View>
 
             <View
@@ -457,6 +509,8 @@ function ComposerCard({
               )}
               {send}
             </View>
+
+            {status}
 
             {notice ? (
               <Text
@@ -502,6 +556,18 @@ function ChipButton({ chip, group }: { chip: ComposerChip; group: ModuleGroup })
     chip.leading ? styles.chipWithTile : null,
     { backgroundColor: chip.set ? tokens.tintOf(group).wash : tokens.surface2 },
   ]
+  if (!chip.menu && !chip.onPress) {
+    return (
+      <View
+        testID={chip.testID}
+        accessible
+        accessibilityLabel={chip.accessibilityLabel}
+        style={chipStyle}
+      >
+        {face}
+      </View>
+    )
+  }
   if (!chip.menu) {
     return (
       <Pressable
@@ -614,6 +680,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
+  // Shrinks before the composer's own card does, and its rows then scroll.
+  above: {
+    flexShrink: 1,
+    marginHorizontal: SPACE[2],
+    marginBottom: SPACE[2],
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+  },
+  aboveScroll: { flexGrow: 0 },
   expanded: { flex: 1 },
   // The card's whole width: the handle is 36 points, a finger is not.
   handleBand: {

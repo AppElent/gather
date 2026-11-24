@@ -40,6 +40,14 @@ export const en = {
   common: coreEn.common,
 
   /**
+   * Spoken accessibility terms that only the phone needs — e.g. iOS has no
+   * native radio trait, so `radioProps` announces this in the app's language.
+   */
+  a11y: {
+    radioButton: 'radio button',
+  },
+
+  /**
    * The Baby log's words, taken whole from the shared tree rather than
    * retyped: the phone owns its look and shares its words (ADR-0017), and a
    * second English for "Diaper" is the failure that rule names.
@@ -375,6 +383,20 @@ export const en = {
         shareMessage:
           'Join {group} on Gather: under Groups, choose “{join}” and enter {code}.',
       },
+      /** The zone of the Current Group's "today", in the web's words. */
+      timeZone: {
+        title: coreEn.settings.group.timeZone,
+        note: coreEn.settings.group.timeZoneNote,
+        unset: coreEn.settings.group.timeZoneUnset,
+        useDevice: coreEn.settings.group.timeZoneUseDevice,
+        clear: coreEn.settings.group.timeZoneClear,
+        failed: coreEn.settings.group.timeZoneFailed,
+        adminOnly: coreEn.settings.group.timeZoneAdminOnly,
+        choose: coreEn.settings.group.timeZoneChoose,
+        search: coreEn.settings.group.timeZoneSearch,
+        noMatches: coreEn.settings.group.timeZoneNoMatches,
+        refusals: coreEn.settings.group.timeZoneRefusals,
+      },
       /**
        * Leaving the Current Group, in the web's words. The server refuses the
        * only admin while anyone else is still in it (`groups.leaveGroup`); the
@@ -624,7 +646,6 @@ export const en = {
   kitchen: {
     name: 'Name',
     quantity: 'Quantity (optional)',
-    addGroceryItem: 'Add an item…',
     deleteTitle: 'Delete “{title}”?',
     deleteBody: 'This cannot be undone.',
     /**
@@ -920,6 +941,8 @@ export const en = {
   actions: {
     resend: 'Send it again',
     done: 'Done',
+    /** Moves to the next field, above the keypad. */
+    next: 'Next',
     completed: 'Completed ({count})',
     showCompleted: 'Show completed tasks',
     hideCompleted: 'Hide completed tasks',
@@ -1188,6 +1211,8 @@ export const en = {
     save: 'Save',
     /** The dim scrim behind the composer, for VoiceOver. */
     close: 'Close',
+    /** The handle of a composer with one size (a grocery item's, APP-664). */
+    closeKeeping: 'Close, the draft is kept',
     /** The add button on the Tasks screens. */
     addTask: 'Add task',
     taskTitle: 'Task name',
@@ -1221,6 +1246,30 @@ export const en = {
     tryAgain: 'Try again',
     discard: 'Discard',
     ok: 'OK',
+    /** The grocery item composer (APP-664, designs/groceries/composer_final.md). */
+    grocery: {
+      /** The bar at the bottom of a grocery list, which opens the composer. */
+      bar: 'Add an item, e.g. 2 milk',
+      barLabel: 'Add an item',
+      title: 'Item, e.g. 2 milk',
+      titleLabel: 'Add an item to {list}',
+      note: 'Note',
+      notePlaceholder: 'Note, e.g. the large one',
+      /** Keeps the item in In stock too. */
+      staple: 'Staple',
+      unit: 'Unit',
+      send: 'Add',
+      /** The status line, for what this composer added since it opened. */
+      added: '{name} added',
+      addedMany: '{count} added: {names}',
+      /** A completion whose amount went onto an item already on the list. */
+      merged: '{name} updated: {amount}',
+      already: '{name} is already on the list',
+      undo: 'Undo',
+      undoFailed: 'Undo did not work. Try again.',
+      /** The item went in; its aisle, note or staple did not. */
+      detailsFailed: 'The item was added, but not all of its details.',
+    },
     /** The add button on Calendar (APP-589), and the event's fields. */
     addEvent: 'Add event',
     eventTitle: 'What’s happening?',
@@ -1252,6 +1301,7 @@ export const en = {
     packing: coreEn.tasks.packing,
     /** APP-304: subtasks, shared with the web. */
     subtasks: coreEn.tasks.subtasks,
+    linkedWrite: coreEn.tasks.linkedWrite,
     repeat: coreEn.tasks.repeat,
     wishlist: coreEn.tasks.wishlist,
     grocery: coreEn.tasks.grocery,
@@ -1437,6 +1487,7 @@ export const en = {
     pinned: 'Pinned',
     recent: 'Recent',
     empty: 'No notes yet.',
+    showMore: 'Show more notes',
     untitled: 'Untitled note',
     titlePlaceholder: 'Title',
     bodyPlaceholder: 'Start writing…',

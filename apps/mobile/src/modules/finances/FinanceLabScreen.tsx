@@ -15,6 +15,7 @@ import { NativeSheet } from '../../components/NativeSheet'
 import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt, useI18n } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
 import { toLoanParts } from './loanParts'
@@ -45,7 +46,15 @@ export function FinanceLabScreen() {
   const holdings = useQuery(api.holdings.list, { groupSlug })
   const snapshots = useQuery(api.netWorth.snapshots, { groupSlug })
   const createHouse = useMutation(api.houses.create)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, writes } = useFinanceWrite()
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resume = useSheetResume({
+    place: 'finances:new-house',
+    open: naming,
+    values: name,
+    restore: setName,
+    writes,
+  })
 
   const HouseIcon = FINANCE_ICONS.House
   const Chart = FINANCE_ICONS.Chart
@@ -123,7 +132,10 @@ export function FinanceLabScreen() {
               />
             )
           })}
-          <AddRow label={text.index.addHouse} onPress={() => setNaming(true)} />
+          <AddRow label={text.index.addHouse} onPress={() => {
+              if (!resume(true)) setName('')
+              setNaming(true)
+            }} />
         </Card>
 
         <Section title={text.index.overviews} />

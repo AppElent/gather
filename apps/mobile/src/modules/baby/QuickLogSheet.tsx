@@ -27,6 +27,11 @@
  *
  * The frame — drag-to-dismiss, close button, scrim — is `NativeSheet`'s; this
  * file is only what the sheet asks.
+ *
+ * A share that closes the sheet keeps everything in it, photos included, as a
+ * draft that the same button on the same Child opens on (APP-622,
+ * `ui/sheet-drafts.ts`). A photo still uploading goes on,
+ * and the reopened sheet takes up that same upload.
  */
 import { missingRequiredField } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
@@ -43,11 +48,13 @@ import {
   View,
 } from 'react-native'
 import { NativeSheet } from '../../components/NativeSheet'
+import type { PhotoPreview } from '../../components/PhotoField'
 import { api, type Id } from '../../convex/api'
 import { haptics } from '../../feedback/haptics'
 import { fmt, plural, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 import { DateTimeField } from './DateTimeField'
 import { EntryFields, fieldLabel } from './EntryFields'
 import { EntryPhotoField } from './EntryPhotoField'
@@ -75,6 +82,18 @@ export interface QuickLogSheetProps {
 }
 
 type Picks = Record<string, string>
+type Previews = Partial<Record<BabyEventType, PhotoPreview | null>>
+
+/** What a share keeps of the sheet (`useSheetDraft`). */
+interface QuickLogDraft {
+  included: BabyEventType[]
+  picks: Record<string, Picks>
+  notes: Record<string, string>
+  opened: number
+  timestamp: number
+  photos: Partial<Record<BabyEventType, string | null>>
+  previews: Previews
+}
 
 export function QuickLogSheet({
   babyId,
@@ -89,11 +108,19 @@ export function QuickLogSheet({
   const { t, locale } = useI18n()
   const add = useMutation(api.babyEvents.add)
 
-  const [included, setIncluded] = useState<BabyEventType[]>([type])
-  const [picks, setPicks] = useState<Record<string, Picks>>(() => ({
-    [type]: initialPicks(type, latestOf(previous, type)),
-  }))
-  const [notes, setNotes] = useState<Record<string, string>>({})
+  // Per Child and button: a draft for a feed does not open on a nappy.
+  const draft = useSheetDraft<QuickLogDraft>(`baby-log:quick:${babyId}:${type}`)
+  const kept = draft.kept
+  const [included, setIncluded] = useState<BabyEventType[]>(
+    kept?.included ?? [type],
+  )
+  const [picks, setPicks] = useState<Record<string, Picks>>(
+    () =>
+      kept?.picks ?? {
+        [type]: initialPicks(type, latestOf(previous, type)),
+      },
+  )
+  const [notes, setNotes] = useState<Record<string, string>>(kept?.notes ?? {})
   const [saving, setSaving] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const [whenOpen, setWhenOpen] = useState(false)
@@ -101,13 +128,23 @@ export function QuickLogSheet({
   // `opened` is held once, at open: it anchors "Today" and "Yesterday" on the
   // When row, so they keep meaning the same day across a midnight somebody
   // happens to be logging through. `timestamp` is what gets written.
-  const [opened] = useState(() => Date.now())
-  const [timestamp, setTimestamp] = useState(opened)
+  // A kept draft keeps both: the time it was logging is still the moment.
+  const [opened] = useState(() => kept?.opened ?? Date.now())
+  const [timestamp, setTimestamp] = useState(kept?.timestamp ?? opened)
   // Keyed by type for the same reason notes are: several types can be open at
   // once, and a picture of a first laugh is not a picture of a nappy.
   const [photos, setPhotos] = useState<
     Partial<Record<BabyEventType, string | null>>
-  >({})
+  >(kept?.photos ?? {})
+  // The local files those photos show, so a kept draft shows them again.
+  const [previews, setPreviews] = useState<Previews>(kept?.previews ?? {})
+  // Per type: one type's photo being done must not release Save for another's.
+  const [uploads, setUploads] = useState<readonly string[]>([])
+  const uploading = uploads.length > 0
+  draft.track(
+    { included, picks, notes, opened, timestamp, photos, previews },
+    { holding: saving },
+  )
 
 
   const fieldLabels = t.baby.log.fields as Record<string, string>
@@ -157,7 +194,7 @@ export function QuickLogSheet({
   }
 
   async function save() {
-    if (blocked) return
+    if (blocked || uploading) return
     setSaving(true)
     setFailure(null)
 
@@ -185,9 +222,10 @@ export function QuickLogSheet({
 
     if (failed.length === 0) {
       haptics.itemSaved()
-      onClose()
+      if (!draft.gone()) onClose()
       return
     }
+    draft.failed({ included: failed, picks, notes, opened, timestamp, photos, previews })
     haptics.actionFailed()
     // Stays open holding only what did not land, and says so. Closing on a
     // partial save would hide the half that is missing; keeping the half that
@@ -216,14 +254,14 @@ export function QuickLogSheet({
       footer={
         <Pressable
           accessibilityRole="button"
-          disabled={saving || blocked}
+          disabled={saving || blocked || uploading}
           onPress={save}
           style={({ pressed }) => [
             styles.save,
             {
               backgroundColor: blocked ? tokens.surface2 : tokens.accent,
             },
-            (pressed || saving) && styles.pressed,
+            (pressed || saving || uploading) && styles.pressed,
           ]}
         >
           {saving ? (
@@ -365,6 +403,17 @@ export function QuickLogSheet({
                 setPhotos((prev) => ({ ...prev, [each]: storageId }))
               }
               disabled={saving}
+              initialPreview={previews[each]}
+              uploadScope={`${draft.scope}:${each}`}
+              onPreviewChange={(preview) =>
+                setPreviews((prev) => ({ ...prev, [each]: preview }))
+              }
+              onBusyChange={(busy) =>
+                setUploads((current) => [
+                  ...current.filter((type) => type !== each),
+                  ...(busy ? [each] : []),
+                ])
+              }
             />
           </View>
         ))}

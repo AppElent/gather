@@ -27,4 +27,31 @@ crons.hourly(
   {},
 )
 
+// Home Assistant's hourly statistics, which it writes just after each hour
+// (APP-495).
+crons.hourly(
+  'sync energy sources',
+  { minuteUTC: 20 },
+  internal.energySources.startSyncs,
+  {},
+)
+
+// Home Assistant's corrections to hours already stored (APP-729), between two
+// hourly syncs.
+crons.daily(
+  'pick up energy corrections',
+  { hourUTC: 2, minuteUTC: 50 },
+  internal.energySources.startSyncs,
+  { lookback: true },
+)
+
+// Day-ahead prices, published around 13:00 in Amsterdam (APP-493): 13:35 in
+// summer, and in winter 12:35, whose retries carry on from there.
+crons.daily(
+  'fetch energy prices',
+  { hourUTC: 11, minuteUTC: 35 },
+  internal.energyPrices.startFetches,
+  {},
+)
+
 export default crons

@@ -102,7 +102,7 @@ export function EnergyReadingsScreen() {
             {words.refusals.notFound}
           </Text>
         ) : form.channels.length === 0 ? (
-          <MeterSetup groupSlug={group.slug} />
+          <MeterSetup groupSlug={group.slug} measured={form.measured} />
         ) : (
           <ReadingsForm
             groupSlug={group.slug}
@@ -270,6 +270,11 @@ function ReadingsForm({
                 value={texts[channel._id] ?? ''}
                 autoFocus={index === 0}
                 returnKeyType={index === channels.length - 1 ? 'done' : 'next'}
+                onNext={
+                  index === channels.length - 1
+                    ? undefined
+                    : () => fields.current[index + 1]?.focus()
+                }
                 onSubmitEditing={() =>
                   index === channels.length - 1
                     ? submit()
@@ -313,14 +318,21 @@ function ReadingsForm({
 }
 
 /** Which meters the Group reads, before the first reading. */
-function MeterSetup({ groupSlug }: { groupSlug: string }) {
+function MeterSetup({
+  groupSlug,
+  measured,
+}: {
+  groupSlug: string
+  measured: Form['measured']
+}) {
   const tokens = useTokens('home')
   const { t } = useI18n()
   const words = t.energy
   const setup = useMutation(api.energyReadings.setupChannels)
   const [split, setSplit] = useState(true)
+  const covered = measured.includes('gridImport')
   const [exported, setExported] = useState(false)
-  const [gas, setGas] = useState(true)
+  const [gas, setGas] = useState(!measured.includes('gas') && !covered)
   const [saving, setSaving] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
 
@@ -347,6 +359,8 @@ function MeterSetup({ groupSlug }: { groupSlug: string }) {
   const switches = [
     {
       key: 'split',
+      // A connected source measures these already (APP-495).
+      hidden: covered,
       title: words.readings.setupSplit,
       hint: words.readings.setupSplitHint,
       value: split,
@@ -354,6 +368,7 @@ function MeterSetup({ groupSlug }: { groupSlug: string }) {
     },
     {
       key: 'export',
+      hidden: measured.includes('gridExport'),
       title: words.readings.setupExport,
       hint: words.readings.setupExportHint,
       value: exported,
@@ -361,12 +376,13 @@ function MeterSetup({ groupSlug }: { groupSlug: string }) {
     },
     {
       key: 'gas',
+      hidden: measured.includes('gas'),
       title: words.readings.setupGas,
       hint: words.readings.setupGasHint,
       value: gas,
       set: setGas,
     },
-  ]
+  ].filter((each) => !each.hidden)
 
   return (
     <View style={styles.form} testID="energy-meter-setup">
@@ -375,34 +391,36 @@ function MeterSetup({ groupSlug }: { groupSlug: string }) {
           accessibilityRole="header"
           style={[TYPE.title3, { color: tokens.ink }]}
         >
-          {words.readings.setupTitle}
+          {covered ? words.readings.measuredTitle : words.readings.setupTitle}
         </Text>
         <Text style={[TYPE.body, { color: tokens.ink }]}>
-          {words.readings.setupBody}
+          {covered ? words.readings.measuredBody : words.readings.setupBody}
         </Text>
       </View>
-      <InsetList>
-        {switches.map((each) => (
-          <InsetRow
-            key={each.key}
-            title={each.title}
-            subtitle={each.hint}
-            trailing={
-              <Switch
-                testID={`energy-setup-${each.key}`}
-                value={each.value}
-                accessibilityLabel={each.title}
-                accessibilityHint={each.hint}
-                onValueChange={(next) => {
-                  haptics.selectionChanged()
-                  each.set(next)
-                }}
-                trackColor={{ false: tokens.surface2 }}
-              />
-            }
-          />
-        ))}
-      </InsetList>
+      {switches.length > 0 ? (
+        <InsetList>
+          {switches.map((each) => (
+            <InsetRow
+              key={each.key}
+              title={each.title}
+              subtitle={each.hint}
+              trailing={
+                <Switch
+                  testID={`energy-setup-${each.key}`}
+                  value={each.value}
+                  accessibilityLabel={each.title}
+                  accessibilityHint={each.hint}
+                  onValueChange={(next) => {
+                    haptics.selectionChanged()
+                    each.set(next)
+                  }}
+                  trackColor={{ false: tokens.surface2 }}
+                />
+              }
+            />
+          ))}
+        </InsetList>
+      ) : null}
       {problem ? (
         <Text
           accessibilityRole="alert"
@@ -411,13 +429,16 @@ function MeterSetup({ groupSlug }: { groupSlug: string }) {
           {problem}
         </Text>
       ) : null}
-      <Button
-        label={words.readings.setupSubmit}
-        group="home"
-        busy={saving}
-        onPress={submit}
-        testID="energy-setup-submit"
-      />
+      {covered && switches.length === 0 ? null : (
+        <Button
+          label={words.readings.setupSubmit}
+          group="home"
+          busy={saving}
+          onPress={submit}
+          disabled={covered && !switches.some((each) => each.value)}
+          testID="energy-setup-submit"
+        />
+      )}
     </View>
   )
 }

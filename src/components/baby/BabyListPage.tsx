@@ -22,9 +22,9 @@ export function BabyListPage() {
     <div className="mx-auto grid max-w-5xl gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="m-0 font-rounded text-2xl font-bold">
+          <h1 className="m-0 font-rounded text-2xl font-bold">
             {messages.modules.byId['baby-log'].label}
-          </h2>
+          </h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {list.subtitle}
           </p>

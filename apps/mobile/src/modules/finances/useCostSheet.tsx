@@ -23,6 +23,7 @@ import { StyleSheet, View } from 'react-native'
 import { NativeSheet } from '../../components/NativeSheet'
 import { api } from '../../convex/api'
 import { useI18n } from '../../i18n'
+import { useSheetResume } from '../../ui/sheet-drafts'
 import { Chip, Field, PrimaryButton } from './ui'
 import { useFinanceWrite } from './useFinanceWrite'
 
@@ -33,19 +34,34 @@ export function useCostSheet(groupSlug: string): {
   const { t } = useI18n()
   const text = t.finances
   const create = useMutation(api.recurringCosts.create)
-  const { attempt, failure } = useFinanceWrite()
+  const { attempt, failure, writes } = useFinanceWrite()
 
   const [showing, setShowing] = useState(false)
   const [name, setName] = useState('')
   const [amount, setAmount] = useState('')
   const [frequency, setFrequency] = useState<CostFrequency>('monthly')
   const [category, setCategory] = useState<CostCategory>('housing')
+  // A share closed the sheet: open on what was typed (APP-622).
+  const resume = useSheetResume({
+    place: 'finances:costs',
+    open: showing,
+    values: { name, amount, frequency, category },
+    restore: (was) => {
+      setName(was.name)
+      setAmount(was.amount)
+      setFrequency(was.frequency)
+      setCategory(was.category)
+    },
+    writes,
+  })
 
   function open() {
-    setName('')
-    setAmount('')
-    setFrequency('monthly')
-    setCategory('housing')
+    if (!resume(true)) {
+      setName('')
+      setAmount('')
+      setFrequency('monthly')
+      setCategory('housing')
+    }
     setShowing(true)
   }
 

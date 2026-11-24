@@ -71,9 +71,9 @@ function OAuthCallback() {
       <SurfaceCard>
         {failure ? (
           <div className="grid gap-2">
-            <h2 className="m-0 text-base font-semibold">
+            <h1 className="m-0 text-base font-semibold">
               {oauthCallback.failedTitle}
-            </h2>
+            </h1>
             <p className="m-0 text-sm text-[var(--muted)]">
               {failure.kind === 'error'
                 ? failure.message || oauthCallback.failed

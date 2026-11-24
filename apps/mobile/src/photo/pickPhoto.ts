@@ -61,6 +61,7 @@ import { File, UploadType } from 'expo-file-system'
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
 
 import * as ImagePicker from '../observability/native-presentation'
+import { uploadOnce } from './uploads'
 
 export type PhotoSource = 'camera' | 'library'
 
@@ -194,4 +195,22 @@ export async function uploadPhoto(
     throw new Error(`Upload failed: ${result.status}`)
   const { storageId } = JSON.parse(result.body) as { storageId: string }
   return storageId
+}
+
+/**
+ * `uploadPhoto`, once per prepared file within a draft: a form reopened on a
+ * kept draft takes up the upload its closed row started, landed or not, instead
+ * of storing the photo twice and leaving the first copy with no row (APP-672).
+ * `scope` is the draft's key (`useSheetDraft`'s `scope`); the uploads are
+ * forgotten with the draft, so another draft never takes one up (APP-734). A
+ * form that keeps no draft passes none and uploads every time. A failed upload
+ * is forgotten, so asking again sends it again.
+ */
+export function uploadPhotoOnce(
+  uri: string,
+  generateUploadUrl: () => Promise<string>,
+  scope?: string,
+): Promise<string> {
+  const send = () => generateUploadUrl().then((url) => uploadPhoto(uri, url))
+  return scope === undefined ? send() : uploadOnce(scope, uri, send)
 }

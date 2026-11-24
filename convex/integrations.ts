@@ -203,7 +203,7 @@ export const getAuthorizeUrl = action({
     }
     const url = new URL('https://todoist.com/oauth/authorize')
     url.searchParams.set('client_id', requireEnv('TODOIST_CLIENT_ID'))
-    url.searchParams.set('scope', 'data:read')
+    url.searchParams.set('scope', 'data:read_write')
     url.searchParams.set('state', args.state)
     return url.toString()
   },

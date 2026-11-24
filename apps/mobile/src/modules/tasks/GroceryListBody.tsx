@@ -1,7 +1,7 @@
 /**
  * A grocery list's body (APP-310; `designs/groceries/README.md`, "1. List"):
  * the action row, the open items in aisle sections in the list's own aisle
- * order (APP-313), the composer, and the Checked row with Put back.
+ * order (APP-313), and the Checked row with Put back.
  *
  * A checked item stays where it is for a moment, so a mistaken tap can be
  * tapped back, and then leaves its aisle for Checked. Checked holds what was
@@ -36,7 +36,6 @@ export function GroceryListBody({
   list,
   tasks,
   row,
-  composer,
   empty,
   lingering,
   onUndoable,
@@ -50,8 +49,6 @@ export function GroceryListBody({
   lingering: ReadonlySet<string>
   /** One item as a row, the same row every list draws. */
   row: (task: Task) => ReactNode
-  /** The add row, or nothing on a list Gather cannot write to. */
-  composer: ReactNode
   /** What the list says with nothing on it. */
   empty: ReactNode
   /** Shows a message with Undo, outside the scroll view. */
@@ -100,7 +97,7 @@ export function GroceryListBody({
       <View style={styles.actions}>
         {/* Shopping checks items off, and Recent puts them back onto this
             list, so a list Gather cannot write to (a linked one) has
-            neither, as it has no composer. */}
+            neither, as it has no composer bar. */}
         {list.writable ? (
           <Pressable
             testID="grocery-shop"
@@ -173,10 +170,9 @@ export function GroceryListBody({
         </View>
       ))}
 
-      <InsetList>
-        {open.length === 0 && checked.length === 0 ? empty : null}
-        {composer}
-      </InsetList>
+      {open.length === 0 && checked.length === 0 ? (
+        <InsetList>{empty}</InsetList>
+      ) : null}
 
       <CompletedSection
         count={checked.length}

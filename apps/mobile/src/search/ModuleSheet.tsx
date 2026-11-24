@@ -9,6 +9,7 @@ import { NativeSheet } from '../components/NativeSheet'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
+import { radioProps } from '../ui/radio-props'
 import type { SearchModuleId } from './searchFilters'
 
 export function ModuleSheet({
@@ -50,8 +51,7 @@ export function ModuleSheet({
               <Pressable
                 key={choice.id ?? 'all'}
                 testID={`search-module-${choice.id ?? 'all'}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: current }}
+                {...radioProps(current, t.a11y.radioButton)}
                 onPress={() => {
                   onSelect(choice.id)
                   onClose()

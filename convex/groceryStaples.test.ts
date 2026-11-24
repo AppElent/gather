@@ -63,13 +63,17 @@ async function staple(t: Seeded['t'], id: Id<'groceryStaples'>) {
   return await t.run((ctx) => ctx.db.get(id))
 }
 
+/** As an installed app calls it: no `report`, and the id alone back. */
+async function addStaple(as: Seeded['as'], name: string, groupSlug = SLUG) {
+  const id = await as.mutation(api.groceryStaples.add, { groupSlug, name })
+  if (typeof id !== 'string') throw new Error('Expected the id alone')
+  return id
+}
+
 describe('staples', () => {
   test('a new staple is in stock, in its aisle, and named once per Group', async () => {
     const { t, as } = await seed()
-    const id = await as.mutation(api.groceryStaples.add, {
-      groupSlug: SLUG,
-      name: '  Melk ',
-    })
+    const id = await addStaple(as, '  Melk ')
     expect(await staple(t, id)).toMatchObject({
       name: 'Melk',
       key: 'melk',
@@ -77,7 +81,7 @@ describe('staples', () => {
       low: false,
     })
     expect(
-      await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'melk' }),
+      await addStaple(as, 'melk'),
     ).toBe(id)
     const { staples, list } = await as.query(api.groceryStaples.list, {
       groupSlug: SLUG,
@@ -85,16 +89,143 @@ describe('staples', () => {
     expect(list?.name).toBe('Albert Heijn')
     expect(staples).toHaveLength(1)
     await expect(
-      as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: '   ' }),
+      addStaple(as, '   '),
     ).rejects.toThrow('That is not a name')
+  })
+
+  test('the same staple from two Members at once has one maker', async () => {
+    const { t, as, asBob, groupId, bobId } = await seed()
+    await t.run((ctx) => seedMember(ctx, groupId, bobId, 'member'))
+    const add = (who: Seeded['as']) =>
+      who.mutation(api.groceryStaples.add, {
+        groupSlug: SLUG,
+        name: 'Melk',
+        report: true,
+      })
+    const answers = await Promise.all([add(asBob), add(as)])
+    const [bobs, alices] = answers.map((answer) => {
+      if (typeof answer === 'string') throw new Error('Expected a report')
+      return answer
+    })
+    expect(alices.id).toBe(bobs.id)
+    expect([bobs.created, alices.created].sort()).toEqual([false, true])
+  })
+
+  test('an undone staple stays when another Member marked it low', async () => {
+    const { t, as, asBob, groupId, bobId } = await seed()
+    await t.run((ctx) => seedMember(ctx, groupId, bobId, 'member'))
+    const undo = (id: Id<'groceryStaples'>) =>
+      as.mutation(api.groceryStaples.remove, {
+        groupSlug: SLUG,
+        id,
+        unlessLow: true,
+      })
+    const milk = await addStaple(as, 'Melk')
+    await undo(milk)
+    expect(await staple(t, milk)).toBeNull()
+    const bread = await addStaple(as, 'Brood')
+    await asBob.mutation(api.groceryStaples.setLow, {
+      groupSlug: SLUG,
+      id: bread,
+      low: true,
+    })
+    await undo(bread)
+    expect(await staple(t, bread)).toMatchObject({ low: true })
+  })
+
+  describe('undo when another Member added it too (APP-681)', () => {
+    const add = (who: Seeded['as'], report?: true) =>
+      who.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'melk', report })
+    const undo = (who: Seeded['as'], id: Id<'groceryStaples'>) =>
+      who.mutation(api.groceryStaples.remove, { groupSlug: SLUG, id, unlessLow: true })
+
+    async function seedBoth() {
+      const seeded = await seed()
+      const { t, groupId, bobId } = seeded
+      await t.run((ctx) => seedMember(ctx, groupId, bobId, 'member'))
+      return seeded
+    }
+
+    // `undefined` is how an installed app, and In stock, add one.
+    for (const report of [true, undefined] as const)
+      test(`it stays for Bob (report: ${report})`, async () => {
+        const { t, as, asBob, aliceId, bobId } = await seedBoth()
+        const id = await addStaple(as, 'Melk')
+        await add(asBob, report)
+        await add(asBob, report)
+        await undo(as, id)
+        expect(await staple(t, id)).toMatchObject({
+          createdBy: aliceId,
+          keptBy: [bobId],
+        })
+      })
+
+    test('Alice adding it again herself does not keep it', async () => {
+      const { t, as } = await seedBoth()
+      const id = await addStaple(as, 'Melk')
+      await add(as, true)
+      expect((await staple(t, id))?.keptBy).toBeUndefined()
+      await undo(as, id)
+      expect(await staple(t, id)).toBeNull()
+    })
+
+    test('a Member who only could have added it does not keep it', async () => {
+      const { t, as, asBob } = await seedBoth()
+      const id = await addStaple(as, 'Melk')
+      await asBob.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Brood' })
+      await undo(as, id)
+      expect(await staple(t, id)).toBeNull()
+    })
+
+    test('In stock still removes it, without the undo’s condition', async () => {
+      const { t, as, asBob } = await seedBoth()
+      const id = await addStaple(as, 'Melk')
+      await add(asBob)
+      await as.mutation(api.groceryStaples.remove, { groupSlug: SLUG, id })
+      expect(await staple(t, id)).toBeNull()
+    })
+
+    test('a Member who left no longer keeps it', async () => {
+      const { t, as, asBob, groupId } = await seedBoth()
+      const id = await addStaple(as, 'Melk')
+      await add(asBob)
+      await asBob.mutation(api.groups.leaveGroup, { groupId })
+      expect((await staple(t, id))?.keptBy).toEqual([])
+      await undo(as, id)
+      expect(await staple(t, id)).toBeNull()
+    })
+
+    test('a deleted account is named on no staple', async () => {
+      vi.useFakeTimers()
+      try {
+        const { t, as, asBob, bobId } = await seedBoth()
+        const id = await addStaple(as, 'Melk')
+        await add(asBob)
+        await asBob.mutation(api.accounts.deleteAccount, {})
+        await t.finishAllScheduledFunctions(vi.runAllTimers)
+        expect(await t.run((ctx) => ctx.db.get(bobId))).toBeNull()
+        expect((await staple(t, id))?.keptBy).toEqual([])
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+  })
+
+  test('a staple the Group had is reported as not made', async () => {
+    const { as } = await seed()
+    const id = await addStaple(as, 'Melk')
+    expect(
+      await as.mutation(api.groceryStaples.add, {
+        groupSlug: SLUG,
+        name: 'melk',
+        report: true,
+      }),
+    ).toEqual({ id, created: false })
   })
 
   test('running low puts it on the grocery list once', async () => {
     const { t, as, groceries } = await seed()
-    const id = await as.mutation(api.groceryStaples.add, {
-      groupSlug: SLUG,
-      name: 'Koffiebonen',
-    })
+    const id = await addStaple(as, 'Koffiebonen')
     expect(
       await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true }),
     ).toEqual({ onList: true })
@@ -115,7 +246,7 @@ describe('staples', () => {
       quantity: 2,
       unit: 'zak',
     })
-    const id = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'rijst' })
+    const id = await addStaple(as, 'rijst')
     await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true })
     expect(await itemsOn(t, groceries)).toHaveLength(1)
   })
@@ -146,7 +277,7 @@ describe('staples', () => {
   test('without a grocery list it is low but on no list', async () => {
     const { t, as, groupId } = await seed()
     await t.run((ctx) => ctx.db.patch(groupId, { groceryListId: undefined }))
-    const id = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Uien' })
+    const id = await addStaple(as, 'Uien')
     expect(
       await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true }),
     ).toEqual({ onList: false })
@@ -155,7 +286,7 @@ describe('staples', () => {
 
   test('checking it off on the list puts it back in stock', async () => {
     const { t, as, groceries } = await seed()
-    const id = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Knoflook' })
+    const id = await addStaple(as, 'Knoflook')
     await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true })
     const [item] = await itemsOn(t, groceries)
     await as.mutation(api.tasks.toggleDone, { groupSlug: SLUG, taskId: item._id })
@@ -167,7 +298,7 @@ describe('staples', () => {
 
   test('a repeating grocery item checked off restocks and moves on (APP-303)', async () => {
     const { t, as, groceries } = await seed()
-    const id = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Koffie' })
+    const id = await addStaple(as, 'Koffie')
     await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true })
     const [item] = await itemsOn(t, groceries)
     await t.run((ctx) =>
@@ -203,8 +334,8 @@ describe('staples', () => {
 
   test('every way of checking off restocks: update and check-all', async () => {
     const { t, as, groceries } = await seed()
-    const oil = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Olijfolie' })
-    const rice = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Rijst' })
+    const oil = await addStaple(as, 'Olijfolie')
+    const rice = await addStaple(as, 'Rijst')
     for (const id of [oil, rice])
       await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true })
     const items = await itemsOn(t, groceries)
@@ -223,7 +354,7 @@ describe('staples', () => {
 
   test('an item with an amount in its title still restocks', async () => {
     const { t, as, groceries, aliceId } = await seed()
-    const id = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Melk' })
+    const id = await addStaple(as, 'Melk')
     await t.run((ctx) => ctx.db.patch(id, { low: true }))
     // An installed app from before amounts keeps the amount in the title.
     const taskId = await t.run((ctx) =>
@@ -241,7 +372,7 @@ describe('staples', () => {
 
   test('checking off on a list that is not for groceries changes nothing', async () => {
     const { t, as, chores } = await seed()
-    const id = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Wasmiddel' })
+    const id = await addStaple(as, 'Wasmiddel')
     await t.run((ctx) => ctx.db.patch(id, { low: true }))
     const taskId = await as.mutation(api.tasks.add, {
       groupSlug: SLUG,
@@ -254,7 +385,7 @@ describe('staples', () => {
 
   test('another Group can neither see nor change them', async () => {
     const { asBob, as } = await seed()
-    const id = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Hagelslag' })
+    const id = await addStaple(as, 'Hagelslag')
     await expect(
       asBob.query(api.groceryStaples.list, { groupSlug: SLUG }),
     ).rejects.toThrow()
@@ -268,7 +399,7 @@ describe('staples', () => {
 
   test('removing a staple leaves the grocery list alone', async () => {
     const { t, as, groceries } = await seed()
-    const id = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Toiletpapier' })
+    const id = await addStaple(as, 'Toiletpapier')
     await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true })
     await as.mutation(api.groceryStaples.remove, { groupSlug: SLUG, id })
     expect(await staple(t, id)).toBeNull()
@@ -277,7 +408,7 @@ describe('staples', () => {
 
   test('deleting the Group deletes its staples', async () => {
     const { t, as, groupId } = await seed()
-    await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Spaghetti' })
+    await addStaple(as, 'Spaghetti')
     await as.mutation(api.groups.deleteGroup, { groupId })
     const left = await t.run((ctx) =>
       ctx.db
@@ -297,7 +428,7 @@ describe('staples', () => {
         groupSlug: SLUG,
         name: 'Koffie',
       })
-      await asBob.mutation(api.groceryStaples.add, { groupSlug: 'other', name: 'Thee' })
+      await addStaple(asBob, 'Thee', 'other')
       await asBob.mutation(api.accounts.deleteAccount, { keepLogin: true })
       await t.finishAllScheduledFunctions(vi.runAllTimers)
       const rows = await t.run((ctx) => ctx.db.query('groceryStaples').collect())
@@ -396,10 +527,7 @@ describe('migratePantryToStaples', () => {
 
   test('pages with a cursor, and a staple the Group already keeps wins', async () => {
     const { t, as } = await withPantry()
-    const existing = await as.mutation(api.groceryStaples.add, {
-      groupSlug: SLUG,
-      name: 'Rijst',
-    })
+    const existing = await addStaple(as, 'Rijst')
     await as.mutation(api.groceryStaples.setLow, {
       groupSlug: SLUG,
       id: existing,

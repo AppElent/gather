@@ -1,9 +1,9 @@
 /**
  * Energy: what a Group's home uses, produces and pays (APP-491, ADR-0051).
  *
- * Only the Module's shell so far (APP-492): the Group's address and the
- * source it starts with. Prices, contracts, readings and Home Assistant land
- * with APP-493..496 and add their own functions here.
+ * The Module's shell (APP-492): the Group's address and the source it starts
+ * with. Readings, usage, contracts, Home Assistant and prices each have their
+ * own `energy*.ts` beside this file.
  *
  * Every function is Group-scoped and authorises through the Group the caller
  * names (ADR-0031). A House or site in another Group answers like one that

@@ -799,7 +799,7 @@ const USER_REFERENCES: {
   pantryEntries: { createdBy: 'repoint' },
   mealPreferences: { memberDefaults: 'repoint', updatedBy: 'repoint' },
   mealPlanDrafts: { createdBy: 'repoint' },
-  groceryStaples: { createdBy: 'repoint' },
+  groceryStaples: { createdBy: 'repoint', keptBy: 'repoint' },
   calendars: { createdBy: 'repoint' },
   calendarEvents: { createdBy: 'repoint', assigneeIds: 'repoint' },
   integrationConnections: { connectedBy: 'repoint' },

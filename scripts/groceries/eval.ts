@@ -1,9 +1,10 @@
 // Prints the grocery recognition score against the labelled eval set, for
 // the shipped dictionary and for each data source on its own (APP-353):
 //   node --import ./scripts/groceries/ts-hooks.mjs scripts/groceries/eval.ts \
-//     [--split all|train|holdout] [--worst 20] [--misses]
+//     [--split all|train|holdout|fresh] [--worst 20] [--misses]
 // The holdout split (every fifth line) is never used to choose curated terms,
 // so its score shows how well the dictionary does on lines nobody tuned for.
+// The fresh split is `freshLines.txt`, which nothing is ever tuned on.
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -32,7 +33,8 @@ const { values } = parseArgs({
   },
 })
 
-const all = parseEvalSet(fs.readFileSync(path.join(evalDir, 'groceryLines.txt'), 'utf8'))
+const file = values.split === 'fresh' ? 'freshLines.txt' : 'groceryLines.txt'
+const all = parseEvalSet(fs.readFileSync(path.join(evalDir, file), 'utf8'))
 const rows: EvalRow[] = all.filter((_, index) =>
   values.split === 'train'
     ? index % 5 !== 4

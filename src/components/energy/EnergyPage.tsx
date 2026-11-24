@@ -1,7 +1,15 @@
 import { checkEnergySiteName, ENERGY_LIMITS } from '@gather/core/energy'
-import { formatEnergyDate, formatEnergyEuro } from '@gather/core/energy-present'
+import {
+  type EnergySourceState,
+  energyHomeHasProblem,
+  energyHomeSourceLine,
+  energyHomeSources,
+  energyPriceStateLine,
+  formatEnergyDate,
+  formatEnergyEuro,
+} from '@gather/core/energy-present'
 import { readEnergyRefusal } from '@gather/core/refusals'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { type FormEvent, useId, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -11,6 +19,7 @@ import { fmt, useI18n } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { PriceFootnote, PriceNowCard, PriceTodayCard } from './energyPriceCards'
 import { daySeries, dayTicks, hourSeries } from './energySeries'
 import {
   ChartFigure,
@@ -23,6 +32,8 @@ import {
   PRIMARY,
   RowList,
   readingDate,
+  SECONDARY,
+  useEnergyMinute,
   useEnergyToday,
 } from './energyShared'
 
@@ -34,13 +45,16 @@ type SourceChoice = 'homeAssistant' | 'manual'
  * Empty, it says what the Module is for and offers one step: adding an address
  * (ADR-0022). The form asks a name, an optional House from Finances and how the
  * data comes in, as `designs/energy/Main.dc.html` draws it. Choosing meter
- * readings saves that source with the address; Home Assistant is connected on
- * its own screen later (APP-495), so choosing it saves the address alone.
+ * readings saves that source with the address; choosing
+ * Home Assistant saves the address alone and goes on to connecting it
+ * (APP-495).
  *
  * With an address (APP-494), the page names it and its source, invites the
  * first meter readings while nothing is measured, shows usage per hour (an
  * hourly source) or per day (typed readings) and links to Usage, Costs,
- * Meter readings and Contract.
+ * Meter readings, Contract and Sources. Above usage, what power costs now and
+ * per hour today (APP-493), from any price source. A source with a problem says so in
+ * the summary's second line, with when its data is from (ADR-0020).
  */
 export function EnergyPage() {
   const group = useRequiredCurrentGroup()
@@ -51,9 +65,9 @@ export function EnergyPage() {
     <div className="mx-auto grid max-w-3xl gap-4">
       <header>
         <div className="min-w-0">
-          <h2 className="m-0 font-rounded text-2xl font-bold">
+          <h1 className="m-0 font-rounded text-2xl font-bold">
             {messages.modules.byId.energy.label}
-          </h2>
+          </h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {overview === undefined
               ? ' '
@@ -85,13 +99,14 @@ function SiteHome({
 }: {
   overview: {
     site: { name: string }
-    sources: { kind: string; label: string }[]
+    sources: EnergySourceState[]
   }
   groupSlug: string
 }) {
   const { messages, locale } = useI18n()
   const copy = messages.energy
-  const { today, month } = useEnergyToday()
+  const { today, month, now } = useEnergyMinute()
+  const prices = useQuery(api.energyPrices.view, { groupSlug, day: today })
   const form = useQuery(api.energyReadings.form, { groupSlug, day: today })
   const period = useQuery(api.energyUsage.month, { groupSlug, month, today })
   const hourly = period?.hasHourly === true
@@ -99,28 +114,43 @@ function SiteHome({
     api.energyUsage.day,
     hourly ? { groupSlug, day: today, today } : 'skip',
   )
-  const manual = overview.sources.find((source) => source.kind === 'manual')
   const typedChannels = form?.channels.length ?? 0
 
-  const sourceLine = manual
-    ? form?.lastReadingAt
-      ? fmt(copy.site.lastReading, {
-          source: manual.label,
-          date: readingDate(form.lastReadingAt, locale),
-        })
-      : fmt(copy.site.noReadingYet, { source: manual.label })
-    : overview.sources.length === 0
+  const shown = energyHomeSources(overview.sources, typedChannels)
+  const sourceLine =
+    overview.sources.length === 0
       ? copy.site.sourceNone
-      : overview.sources.map((source) => source.label).join(' · ')
+      : shown
+          .map((source) =>
+            source.kind !== 'manual'
+              ? energyHomeSourceLine(source, now, copy, locale)
+              : form?.lastReadingAt
+                ? fmt(copy.site.lastReading, {
+                    source: source.label,
+                    date: readingDate(form.lastReadingAt, locale),
+                  })
+                : fmt(copy.site.noReadingYet, { source: source.label }),
+          )
+          .join(' · ')
+  const problem = energyHomeHasProblem(shown)
+  const connected = shown.some((source) => source.kind !== 'manual')
 
-  const monthCost = period?.totals.cost
+  const priceState = prices
+    ? energyPriceStateLine(prices, now, copy, locale)
+    : null
+  const monthCost =
+    period?.totals.costStatus === 'ok' ? period.totals.cost : null
   const contract = period?.contract
 
   return (
     <>
       <SurfaceCard className="grid gap-1">
         <h3 className="m-0 text-lg font-semibold">{overview.site.name}</h3>
-        <p className="m-0 text-sm text-[var(--muted)]">{sourceLine}</p>
+        <p
+          className={`m-0 text-sm ${problem ? 'font-semibold text-[var(--danger)]' : 'text-[var(--muted)]'}`}
+        >
+          {sourceLine}
+        </p>
       </SurfaceCard>
 
       {overview.sources.length === 0 ? (
@@ -129,13 +159,16 @@ function SiteHome({
           <p className="m-0 text-sm text-[var(--muted)]">
             {copy.site.nextHomeAssistant}
           </p>
-          <div>
-            <Link {...linkTo('energyReadings')} className={PRIMARY}>
+          <div className="flex flex-wrap gap-2">
+            <Link {...linkTo('energyConnect')} className={PRIMARY}>
+              {copy.site.nextConnect}
+            </Link>
+            <Link {...linkTo('energyReadings')} className={SECONDARY}>
               {copy.home.firstReadingAction}
             </Link>
           </div>
         </SurfaceCard>
-      ) : form && period && typedChannels === 0 && !hourly ? (
+      ) : form && period && typedChannels === 0 && !hourly && !connected ? (
         <SurfaceCard className="grid gap-2">
           <h3 className="m-0 text-lg font-semibold">
             {copy.home.firstReadingTitle}
@@ -147,6 +180,11 @@ function SiteHome({
             </Link>
           </div>
         </SurfaceCard>
+      ) : null}
+
+      {prices ? <PriceNowCard view={prices} now={now} /> : null}
+      {prices?.today ? (
+        <PriceTodayCard prices={prices.today} now={now} />
       ) : null}
 
       {period ? (
@@ -164,6 +202,14 @@ function SiteHome({
           link={linkTo('energyUsage')}
           label={copy.home.usage}
           sub={hourly ? copy.home.usageSubHourly : copy.home.usageSubDaily}
+        />
+        <NavRow
+          link={linkTo('energyPrices')}
+          label={copy.home.prices}
+          sub={
+            priceState?.problem ? priceState.text : copy.home.pricesSub
+          }
+          danger={priceState?.problem}
         />
         <NavRow
           link={linkTo('energyCosts')}
@@ -197,7 +243,13 @@ function SiteHome({
               : copy.home.contractSubNone
           }
         />
+        <NavRow
+          link={linkTo('energySources')}
+          label={copy.sources.title}
+          sub={copy.sources.homeRowSub}
+        />
       </RowList>
+      {prices?.today ? <PriceFootnote prices={prices.today} /> : null}
     </>
   )
 }
@@ -308,6 +360,7 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
   const copy = messages.energy
   const houses = useQuery(api.houses.list, { groupSlug })
   const createSite = useMutation(api.energy.createSite)
+  const navigate = useNavigate()
   const [name, setName] = useState(copy.form.defaultName)
   const [houseId, setHouseId] = useState('')
   const [source, setSource] = useState<SourceChoice>('homeAssistant')
@@ -334,6 +387,7 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
             ? { kind: 'manual', label: copy.site.manualSourceLabel }
             : { kind: 'homeAssistant' },
       })
+      if (source === 'homeAssistant') await navigate(linkTo('energyConnect'))
     } catch (caught) {
       const code = readEnergyRefusal(caught)
       setError(
@@ -424,6 +478,8 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
           ))}
         </fieldset>
       </SurfaceCard>
+
+      <p className="m-0 text-sm text-[var(--muted)]">{copy.form.footnote}</p>
 
       {error ? (
         <p role="alert" className="m-0 text-sm text-[var(--danger)]">

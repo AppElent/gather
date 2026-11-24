@@ -338,6 +338,16 @@
     border-color: var(--ink);
   }
 
+  /* The phone-width tab bar is drawn by the web (no Liquid Glass in a
+     browser): surface at 78 % over a blur, with a soft shadow to lift it off
+     the page scrolling under it. No hand-written `-webkit-` twin: the
+     build then keeps only the twin, and Chrome and Edge lose the blur. */
+  .tab-bar-glass {
+    background: color-mix(in oklch, var(--surface) 78%, transparent);
+    box-shadow: 0 6px 24px color-mix(in oklch, var(--ink) 14%, transparent);
+    backdrop-filter: blur(16px);
+  }
+
   .shell-pill {
     display: inline-flex;
     min-height: 1.5rem;

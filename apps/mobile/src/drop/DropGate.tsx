@@ -24,23 +24,21 @@
  *
  * A `NativeSheet` is presented natively above the navigation stack, so a push
  * lands behind it. An open sheet is closed first, the same way its own Close
- * closes it (`openSheets.ts`), and the chooser is pushed once it is gone.
+ * closes it (`openSheets.ts`), and the chooser is pushed once it is gone. The
+ * keyboard composer is a native modal and closes the same way. A prompt cannot
+ * be closed from here, so the chooser waits for its answer, which then lands in
+ * the form it was asked for before that form is closed (APP-672).
  */
 import { useRouter } from 'expo-router'
 import { useEffect, useRef } from 'react'
 
-import { closeOpenSheets, hasOpenSheets } from '../components/openSheets'
+import {
+  closeAllSheets,
+  hasOpenPrompts,
+  hasOpenSheets,
+} from '../components/openSheets'
 import { useDrop } from './DropProvider'
 import { dropHref } from './paths'
-
-/** Rounds of closing, for a sheet that replaces one as it closes. */
-const CLOSE_ROUNDS = 2
-
-async function closeAllSheets() {
-  for (let round = 0; round < CLOSE_ROUNDS && hasOpenSheets(); round++) {
-    await closeOpenSheets()
-  }
-}
 
 export function DropGate() {
   const { pending } = useDrop()
@@ -63,7 +61,7 @@ export function DropGate() {
     opened.current = pending.sequence
     // A sheet is presented above the stack, so the chooser would open behind
     // it (APP-618): close any that are up, as their Close does, then push.
-    if (!hasOpenSheets()) {
+    if (!hasOpenSheets() && !hasOpenPrompts()) {
       router.push(dropHref())
       return
     }
@@ -71,10 +69,10 @@ export function DropGate() {
     // mounted: a replacing share pushes for itself, a cleared Drop needs no
     // chooser, and a remounted gate opens the still-pending Drop on its own.
     const sequence = pending.sequence
-    closeAllSheets().then(() => {
-      if (mounted.current && latest.current?.sequence === sequence) {
-        router.push(dropHref())
-      }
+    const current = () =>
+      mounted.current && latest.current?.sequence === sequence
+    closeAllSheets(current).then(() => {
+      if (current()) router.push(dropHref())
     })
   }, [pending, router])
 

@@ -161,6 +161,24 @@ export const ENERGY_REFUSAL_CODES = [
   'channelsExist',
   'contractInvalid',
   'contractDateTaken',
+  // APP-495: Home Assistant.
+  'adminOnly',
+  'addressNotHttps',
+  'addressInvalid',
+  'addressPrivate',
+  'tokenNeeded',
+  'channelTwice',
+  'channelsMixed',
+  'tooManyChannels',
+  'statisticNotFound',
+  'pickChannel',
+  'sourceUnreachable',
+  'sourceNotHomeAssistant',
+  'sourceBadToken',
+  'sourceRefused',
+  // APP-493: the price source.
+  'priceKeyNeeded',
+  'priceKeyInvalid',
 ] as const
 export type EnergyRefusalCode = (typeof ENERGY_REFUSAL_CODES)[number]
 
@@ -187,6 +205,8 @@ export function readEnergyRefusal(error: unknown): EnergyRefusalCode | null {
  *   have come from, such as one in the future (APP-403).
  * - `clear-superseded`: the list was cleared again, or already put back,
  *   since the clear being undone; nothing changed (APP-403).
+ * - `amount-changed`: a grocery item's amount is not the one the write expected,
+ *   or no longer adds up with it; nothing changed (APP-671).
  * - `subtask-depth` (APP-304): a subtask cannot have subtasks, and a task
  *   with subtasks cannot become one.
  * - `subtask-list`: a subtask sits on its parent's list, in its parent's
@@ -202,6 +222,7 @@ export const TASK_REFUSAL_CODES = [
   'not-grocery-list',
   'invalid-undo',
   'clear-superseded',
+  'amount-changed',
   'subtask-depth',
   'subtask-list',
   'subtask-repeat',
@@ -217,6 +238,38 @@ export function taskRefusal(code: TaskRefusalCode): { kind: string } {
 export function readTaskRefusal(error: unknown): TaskRefusalCode | null {
   const kind = refusalKind(error)
   return TASK_REFUSAL_CODES.find((code) => `tasks:${code}` === kind) ?? null
+}
+
+/**
+ * Why a Group's time zone was not changed (APP-475): the caller is not an
+ * admin, or no such IANA zone.
+ */
+export const GROUP_TIME_ZONE_REFUSAL_CODES = [
+  'admin-only',
+  'unknown-zone',
+] as const
+export type GroupTimeZoneRefusalCode =
+  (typeof GROUP_TIME_ZONE_REFUSAL_CODES)[number]
+
+export function groupTimeZoneRefusal(code: GroupTimeZoneRefusalCode): {
+  kind: string
+} {
+  return { kind: `groupTimeZone:${code}` }
+}
+
+/**
+ * A refused time zone in the reader's own words: the sentence `sentences`
+ * holds for its code, or null when the thrown value is not one.
+ */
+export function groupTimeZoneRefusalSentence(
+  error: unknown,
+  sentences: Readonly<Record<GroupTimeZoneRefusalCode, string>>,
+): string | null {
+  const kind = refusalKind(error)
+  const code = GROUP_TIME_ZONE_REFUSAL_CODES.find(
+    (each) => `groupTimeZone:${each}` === kind,
+  )
+  return code === undefined ? null : sentences[code]
 }
 
 /**

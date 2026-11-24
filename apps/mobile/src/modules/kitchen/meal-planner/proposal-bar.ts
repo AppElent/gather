@@ -9,8 +9,12 @@
  * change. The tail is set when an accept starts, not when it resolves: the
  * drafts query may drop the last draft first, and the bar would flash off.
  * An accept that resolves after a week change marks nothing on the new week.
+ * The tail and its marks belong to the week they were made on, so a week
+ * change hides them in its first frame, before the reset runs (APP-477).
  */
 import { useEffect, useRef, useState } from 'react'
+
+const NO_SLOTS: ReadonlySet<string> = new Set()
 
 export function slotKey(meal: { date: string; slot: string }) {
   return `${meal.date}|${meal.slot}`
@@ -20,20 +24,25 @@ export function useProposalBar(
   weekStart: string,
   drafts: readonly { source: 'ai' | 'rules' | 'fallback' }[],
 ) {
-  const [savedTail, setSavedTail] = useState(false)
-  const [justAccepted, setJustAccepted] = useState<ReadonlySet<string>>(new Set())
+  // The week the tail and the marks were made on: read only on that week.
+  const [tailWeek, setTailWeek] = useState<string | null>(null)
+  const [accepted, setAccepted] = useState<{ week: string; slots: ReadonlySet<string> }>({
+    week: weekStart,
+    slots: NO_SLOTS,
+  })
   const [fallback, setFallback] = useState(false)
   const week = useRef(weekStart)
   week.current = weekStart
-  const accepted = useRef(justAccepted)
-  accepted.current = justAccepted
+  const acceptedNow = useRef(accepted)
+  acceptedNow.current = accepted
+  const savedTail = tailWeek === weekStart
+  const justAccepted = accepted.week === weekStart ? accepted.slots : NO_SLOTS
 
   // A new week starts with no proposal of this visit. Declared first, so the
   // effects below see the new week's drafts after the reset.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset per week
   useEffect(() => {
-    setSavedTail(false)
-    setJustAccepted(new Set())
+    setTailWeek(null)
+    setAccepted({ week: weekStart, slots: NO_SLOTS })
   }, [weekStart])
   const draftFallback = drafts.some((draft) => draft.source === 'fallback')
   // Kept from the drafts, so the all-saved tail still says which kind it was.
@@ -47,18 +56,24 @@ export function useProposalBar(
    */
   const startAccept = () => {
     const started = week.current
-    setSavedTail(true)
+    setTailWeek(started)
     return (planned: readonly string[]) => {
       if (week.current !== started) return
       if (planned.length > 0)
-        setJustAccepted((current) => new Set([...current, ...planned]))
-      else if (accepted.current.size === 0) setSavedTail(false)
+        setAccepted((current) => ({
+          week: started,
+          slots: new Set([...(current.week === started ? current.slots : []), ...planned]),
+        }))
+      else {
+        const now = acceptedNow.current
+        if (now.week !== started || now.slots.size === 0) setTailWeek(null)
+      }
     }
   }
   /** Klaar, Weggooien, a new plan: the tail and its marks go. */
   const close = () => {
-    setSavedTail(false)
-    setJustAccepted(new Set())
+    setTailWeek(null)
+    setAccepted({ week: week.current, slots: NO_SLOTS })
   }
 
   return {

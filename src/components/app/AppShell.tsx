@@ -1,24 +1,23 @@
 import { Navigate, useLocation } from '@tanstack/react-router'
-import { X } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { getRouteContext, getRouteGroup } from '../../lib/appNavigation'
 import { useMessages } from '../../lib/i18n'
 import { linkTo, needsCurrentGroup } from '../../lib/links'
+import { AccountMenu } from './AccountMenu'
 import { CommandPalette } from './CommandPalette'
 import { GatherPanel } from './GatherPanel'
+import { GroupSwitcher } from './GroupSwitcher'
 import { IssueReporterModal } from './IssueReporterModal'
 import { MobileDock } from './MobileDock'
-import { IconButton } from './ShellPrimitives'
 import { Sidebar } from './Sidebar'
-import { Topbar } from './Topbar'
 import { CurrentGroupProvider, useCurrentGroup } from './useCurrentGroup'
-import { useModalFocus } from './useModalFocus'
 import { useNavigation } from './useNavigation'
 
 /**
  * The provider sits outside the shell rather than inside it because the shell
- * itself asks for the navigation — it reserves the dock's space from the same
- * list the dock renders — so the memory has to exist above that call.
+ * itself asks for the navigation — it keeps the page clear of the tab bar
+ * from the same list the bar is drawn from — so the memory has to exist above
+ * that call.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -28,6 +27,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   )
 }
 
+/**
+ * The sidebar beside the page from 768 px; below it, the page with two round
+ * buttons at its top (the Group, the account menu) and the phone's tab bar
+ * floating over its foot. There is no topbar: each page draws its own title,
+ * once.
+ */
 function AppShellBody({ children }: { children: ReactNode }) {
   const location = useLocation()
   const messages = useMessages()
@@ -37,44 +42,47 @@ function AppShellBody({ children }: { children: ReactNode }) {
   // here until the Groups arrive, and somebody in no Group is sent to make or
   // join one. Personal pages need neither.
   const groupPage = needsCurrentGroup(location.pathname)
-  // The dock is only on screen when there is a navigation to put in it, and the
-  // room reserved for it has to go when it does — asked of the same list the
-  // dock renders, so the space and the bar cannot disagree.
+  // The tab bar is only on screen when there is a navigation to put in it, and
+  // the room kept clear for it has to go when it does — asked of the same list
+  // the bar asks, so the space and the bar cannot disagree.
   const { items: navigation } = useNavigation()
-  const [navigationOpen, setNavigationOpen] = useState(false)
   const [gatherOpen, setGatherOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [reporterOpen, setReporterOpen] = useState(false)
-  const drawer = useModalFocus<HTMLElement>({
-    open: navigationOpen,
-    onClose: () => setNavigationOpen(false),
-  })
+  const openPalette = () => setPaletteOpen(true)
+  const openGather = () => setGatherOpen(true)
+  const reportIssue = () => setReporterOpen(true)
 
   return (
     <div className="app-shell">
-      {/* Two columns at every width above a phone. No rail about the Group
-          beside them: Home is the Group's surface (#22), and a rail would be a
-          second copy to keep in step with it. */}
-      <div className="grid min-h-svh md:grid-cols-[264px_minmax(0,1fr)]">
-        <Sidebar />
+      <div className="min-h-svh md:grid md:grid-cols-[248px_minmax(0,1fr)]">
+        <Sidebar
+          onOpenPalette={openPalette}
+          onOpenGather={openGather}
+          onReportIssue={reportIssue}
+        />
         <div
           className={`flex min-w-0 flex-col md:pb-0 ${
-            navigation.length > 0 ? 'pb-20' : ''
+            navigation.length > 0
+              ? 'pb-[calc(104px+env(safe-area-inset-bottom))]'
+              : ''
           }`}
         >
-          <Topbar
-            context={context}
-            groupName={currentGroup?.name}
-            onOpenNavigation={() => setNavigationOpen(true)}
-            onOpenGather={() => setGatherOpen(true)}
-            onOpenPalette={() => setPaletteOpen(true)}
-            onReportIssue={() => setReporterOpen(true)}
-          />
+          {/* Phone width: the Group and you, as the phone's round header
+              buttons. The sidebar carries both from 768 px. */}
+          <div className="flex items-center justify-between px-4 pt-3 md:hidden">
+            <GroupSwitcher variant="round" />
+            <AccountMenu
+              variant="round"
+              onOpenGather={openGather}
+              onReportIssue={reportIssue}
+            />
+          </div>
           {/* A Module's page wears its group's colours (`data-group` in
               styles.css); the navigation around it stays neutral. */}
           <main
             data-group={getRouteGroup(location.pathname)}
-            className="min-w-0 flex-1 px-3 py-4 md:px-5 md:py-5"
+            className="min-w-0 flex-1 px-4 py-4 md:px-6 md:py-6"
           >
             {!groupPage || currentGroup ? (
               children
@@ -89,38 +97,7 @@ function AppShellBody({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      {navigationOpen ? (
-        <div
-          data-testid="navigation-backdrop"
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/20 md:hidden"
-          onClick={() => setNavigationOpen(false)}
-        >
-          <aside
-            ref={drawer.ref}
-            role="dialog"
-            aria-modal="true"
-            aria-label={messages.shell.drawer.label}
-            onKeyDown={drawer.onKeyDown}
-            onClick={(event) => event.stopPropagation()}
-            className="min-h-full w-[min(22rem,92vw)] overflow-y-auto border-r border-[var(--hair)] bg-[var(--surface)]"
-          >
-            <div className="flex justify-end p-3">
-              <IconButton
-                label={messages.shell.drawer.close}
-                onClick={() => setNavigationOpen(false)}
-              >
-                <X className="h-4 w-4" aria-hidden="true" />
-              </IconButton>
-            </div>
-            <Sidebar
-              variant="drawer"
-              onNavigate={() => setNavigationOpen(false)}
-            />
-          </aside>
-        </div>
-      ) : null}
-
-      <MobileDock />
+      <MobileDock onOpenPalette={openPalette} />
       <GatherPanel
         open={gatherOpen}
         // The Current Group, or none — the same answer the switcher at the top

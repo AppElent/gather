@@ -20,6 +20,7 @@ import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { RADIUS, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { ModuleTile, TILE_METRICS, type TileSize } from '../../ui/module-tile'
+import { radioProps } from '../../ui/radio-props'
 import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
 import { useTaskActions } from './store'
 import type { TaskList } from './types'
@@ -84,9 +85,8 @@ export function ColorSwatches({
           <Pressable
             key={color}
             testID={`list-color-${color}`}
-            accessibilityRole="radio"
+            {...radioProps(selected, t.a11y.radioButton)}
             accessibilityLabel={t.tasks.colors[color]}
-            accessibilityState={{ checked: selected }}
             onPress={() => {
               if (!selected) haptics.selectionChanged()
               onChange(color)
@@ -141,13 +141,12 @@ export function IconChoices({
           <Pressable
             key={icon}
             testID={`list-icon-${icon}`}
-            accessibilityRole="radio"
+            {...radioProps(selected, t.a11y.radioButton)}
             accessibilityLabel={
               index === 0 && firstLabel
                 ? `${firstLabel}, ${t.tasks.icons[icon]}`
                 : t.tasks.icons[icon]
             }
-            accessibilityState={{ checked: selected }}
             onPress={() => {
               if (!selected) haptics.selectionChanged()
               onChange(icon)

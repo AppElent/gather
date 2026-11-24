@@ -104,6 +104,45 @@ describe('the connected-app gate', () => {
     ).rejects.toThrow(CONNECTED_APP_NO_ACCESS)
   })
 
+  test('a read grant pages notes with listPage, and a grant without a Gather scope cannot', async () => {
+    const { t, groupId, userId } = await seed()
+    await t.run(async (ctx) => {
+      for (let index = 1; index <= 5; index += 1)
+        await ctx.db.insert('notes', {
+          groupId,
+          title: `Note ${index}`,
+          body: `Body ${index}`,
+          pinned: index === 3,
+          createdBy: userId,
+          updatedAt: 100 + index,
+        })
+    })
+    const reader = t.withIdentity(app('openid gather:read'))
+    const read = (cursor: string | null) =>
+      reader.query(api.notes.listPage, {
+        groupSlug: 'mcp-home',
+        unpinnedOnly: true,
+        paginationOpts: { numItems: 2, cursor },
+      })
+    const first = await read(null)
+    const second = await read(first.continueCursor)
+    expect(
+      [...first.page, ...second.page].map((note) => note.title),
+    ).toEqual(['Note 5', 'Note 4', 'Note 2', 'Note 1'])
+    expect(
+      (await reader.query(api.notes.listPinned, { groupSlug: 'mcp-home' })).map(
+        (note) => note.title,
+      ),
+    ).toEqual(['Note 3'])
+    const other = t.withIdentity(app('openid foundry:read'))
+    await expect(
+      other.query(api.notes.listPage, {
+        groupSlug: 'mcp-home',
+        paginationOpts: { numItems: 2, cursor: null },
+      }),
+    ).rejects.toThrow(CONNECTED_APP_NO_ACCESS)
+  })
+
   test('a write grant writes', async () => {
     const { t } = await seed()
     const writer = t.withIdentity(app('gather:write'))
@@ -155,6 +194,16 @@ describe('the connected-app gate', () => {
     // Nothing happened.
     const group = await t.run((ctx) => ctx.db.get(groupId))
     expect(group).not.toBeNull()
+  })
+  test('a connected app lists its Groups without their invite codes', async () => {
+    const { t, groupId } = await seed()
+    for (const scope of ['gather:read', 'gather:read gather:write']) {
+      const groups = await t
+        .withIdentity(app(scope))
+        .query(api.groups.myGroups, {})
+      expect(groups.map((g) => g._id)).toEqual([groupId])
+      expect(groups[0]).not.toHaveProperty('inviteCode')
+    }
   })
 })
 

@@ -2,6 +2,7 @@ import {
   formatEnergyDate,
   formatEnergyHour,
   formatEnergyNumber,
+  highestUsageSlot,
   mirrorHeights,
   peakOf,
 } from '@gather/core/energy-present'
@@ -38,16 +39,22 @@ export function hourSeries(
     })),
   )
   const withData = hours.filter((hour) => hour.hasData)
-  const peak = peakOf(withData, (hour) => hourUsageKwh(hour, hasSolar))
-  const solarPeak = hasSolar ? peakOf(withData, (hour) => hour.solarKwh) : null
+  const used = peakOf(withData, (hour) => hourUsageKwh(hour, hasSolar))
+  const peak = highestUsageSlot(withData, (hour) => hourUsageKwh(hour, hasSolar))
+  const solarPeak = hasSolar
+    ? highestUsageSlot(withData, (hour) => hour.solarKwh)
+    : null
   const day = period.days[0]?.day
+  const date = day ? formatEnergyDate(day, locale, 'dayMonth') : ''
   const label =
-    peak && day
-      ? fmt(words.hourLabel, {
-          date: formatEnergyDate(day, locale, 'dayMonth'),
-          hour: formatEnergyHour(peak.item.hourStart, locale),
-          kwh: formatEnergyNumber(peak.value, locale),
-        }) +
+    used && day
+      ? (peak
+          ? fmt(words.hourLabel, {
+              date,
+              hour: formatEnergyHour(peak.item.hourStart, locale),
+              kwh: formatEnergyNumber(peak.value, locale),
+            })
+          : fmt(words.hourLabelFlat, { date })) +
         (solarPeak
           ? fmt(words.hourLabelSolar, {
               hour: formatEnergyHour(solarPeak.item.hourStart, locale),
@@ -75,16 +82,22 @@ export function daySeries(
     })),
   )
   const withData = period.days.filter((day) => day.hasData)
-  const peak = peakOf(withData, (day) => day.consumptionKwh)
-  const solarPeak = hasSolar ? peakOf(withData, (day) => day.solarKwh) : null
+  const used = peakOf(withData, (day) => day.consumptionKwh)
+  const peak = highestUsageSlot(withData, (day) => day.consumptionKwh)
+  const solarPeak = hasSolar
+    ? highestUsageSlot(withData, (day) => day.solarKwh)
+    : null
   const month = period.days[0]?.day.slice(0, 7)
+  const monthWord = month ? formatEnergyDate(month, locale, 'month') : ''
   const label =
-    peak && month
-      ? fmt(words.dayLabel, {
-          month: formatEnergyDate(month, locale, 'month'),
-          day: formatEnergyDate(peak.item.day, locale, 'dayMonth'),
-          kwh: formatEnergyNumber(peak.value, locale),
-        }) +
+    used && month
+      ? (peak
+          ? fmt(words.dayLabel, {
+              month: monthWord,
+              day: formatEnergyDate(peak.item.day, locale, 'dayMonth'),
+              kwh: formatEnergyNumber(peak.value, locale),
+            })
+          : fmt(words.dayLabelFlat, { month: monthWord })) +
         (solarPeak
           ? fmt(words.dayLabelSolar, {
               day: formatEnergyDate(solarPeak.item.day, locale, 'dayMonth'),

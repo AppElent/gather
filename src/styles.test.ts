@@ -387,3 +387,9 @@ describe('control edge contrast', () => {
     expect(fields.match(/border-\[var\(--control-edge\)\]/g)).toHaveLength(2)
   })
 })
+
+/** Beside a `-webkit-` twin the build drops the plain line, and Chrome and Edge lose the blur. */
+test('backdrop-filter is written once, unprefixed', () => {
+  expect(css).toContain('backdrop-filter')
+  expect(css).not.toContain('-webkit-backdrop-filter')
+})
