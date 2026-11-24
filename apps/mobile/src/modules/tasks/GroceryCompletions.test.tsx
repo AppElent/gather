@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 /**
- * The composer's completions (APP-311, APP-427): a name already open on the
- * list is never added beside it. A typed amount that adds up is added to the
+ * The composer's completions (APP-311, APP-427): what a tap hands the
+ * composer. A name already open on the list is never added beside it. A typed amount that adds up is added to the
  * open item and shown as `+2 pak`; anything else leaves the item as it is.
  * React Native, the store and the theme are replaced; the component is real.
  */
-import type { GroceryHabit } from '@gather/core/groceries'
+import { type GroceryHabit, groceryAddFields } from '@gather/core/groceries'
 import { act, type ReactNode } from 'react'
 import { beforeEach, expect, test, vi } from 'vitest'
 
@@ -15,9 +15,6 @@ import type { Task } from './types'
 
 const state = vi.hoisted(() => ({
   habits: [] as GroceryHabit[],
-  added: [] as unknown[],
-  amounts: [] as unknown[][],
-  moved: [] as unknown[][],
 }))
 
 vi.mock('react-native', async () => {
@@ -80,18 +77,6 @@ vi.mock('./GroceryFields', async () => {
 })
 vi.mock('./store', () => ({
   useGroceryHabits: () => ({ habits: state.habits, suggestions: [] }),
-  useTaskActions: () => ({
-    addGrocery: async (_listId: string, item: unknown) => {
-      state.added.push(item)
-      return 'new-melk'
-    },
-    setAisle: async (...args: unknown[]) => {
-      state.moved.push(args)
-    },
-    setAmount: async (...args: unknown[]) => {
-      state.amounts.push(args)
-    },
-  }),
 }))
 
 const melk: GroceryHabit = {
@@ -117,19 +102,18 @@ const openMelk: Task = {
 
 beforeEach(() => {
   state.habits = [melk]
-  state.added = []
-  state.amounts = []
-  state.moved = []
 })
 
-async function pick(line: string, tasks: Task[], aisle?: 'bakery') {
+async function pick(line: string, tasks: Task[]) {
+  const onPick = vi.fn()
+  const { title, ...amount } = groceryAddFields(line)
   const view = mount(
     <GroceryCompletions
       listId="list"
-      line={line}
-      aisle={aisle}
+      line={title}
+      amount={Object.keys(amount).length ? amount : undefined}
       tasks={tasks}
-      onPicked={() => {}}
+      onPick={onPick}
     />,
   )
   await settle()
@@ -138,32 +122,39 @@ async function pick(line: string, tasks: Task[], aisle?: 'bakery') {
   ) as HTMLElement
   const text = row.textContent
   await act(async () => row.click())
-  await settle()
-  return text
+  return { text, picked: onPick.mock.calls.map(([payload]) => payload) }
 }
 
-test('a name not on the list is added with the typed amount', async () => {
-  await pick('2 pak me', [])
-  expect(state.added).toEqual([{ title: 'melk', quantity: 2, unit: 'pak' }])
-  expect(state.amounts).toEqual([])
+test('a name not on the list is picked with the typed amount', async () => {
+  const { picked } = await pick('2 pak me', [])
+  expect(picked).toHaveLength(1)
+  expect(picked[0]).toMatchObject({ title: 'melk', quantity: 2, unit: 'pak' })
+  expect(picked[0].open).toBeUndefined()
+})
+
+test('without a typed amount it is picked with the usual one', async () => {
+  const { picked } = await pick('me', [])
+  expect(picked[0]).toMatchObject({ title: 'melk', quantity: 1, unit: 'pak' })
 })
 
 test('a typed amount that adds up goes onto the open item, shown as +2 packs', async () => {
-  const text = await pick('2 pak me', [openMelk])
+  const { text, picked } = await pick('2 pak me', [openMelk])
   expect(text).toContain('+2 packs')
-  expect(state.added).toEqual([])
-  expect(state.amounts).toEqual([['open-melk', 3, 'pak']])
+  expect(picked[0]).toMatchObject({
+    open: { id: 'open-melk' },
+    merged: { quantity: 3, unit: 'pak' },
+  })
 })
 
 test('without a typed amount the open item stays as it is', async () => {
-  await pick('me', [openMelk])
-  expect(state.added).toEqual([])
-  expect(state.amounts).toEqual([])
+  const { picked } = await pick('me', [openMelk])
+  expect(picked[0]).toMatchObject({ open: { id: 'open-melk' } })
+  expect(picked[0].merged).toBeUndefined()
 })
 
 test('the typed part of the name is its own text, for the 600 weight', async () => {
   const view = mount(
-    <GroceryCompletions listId="list" line="me" tasks={[]} onPicked={() => {}} />,
+    <GroceryCompletions listId="list" line="me" tasks={[]} onPick={() => {}} />,
   )
   await settle()
   const row = view.container.querySelector('[data-testid="completion-melk"]')
@@ -171,21 +162,4 @@ test('the typed part of the name is its own text, for the 600 weight', async () 
     (span) => span.textContent,
   )
   expect(spans).toContain('me')
-})
-
-test('an aisle chosen in the composer goes with a picked new item (APP-536)', async () => {
-  await pick('me', [], 'bakery')
-  expect(state.added).toEqual([{ title: 'melk', quantity: 1, unit: 'pak' }])
-  expect(state.moved).toEqual([['new-melk', 'bakery']])
-})
-
-test('without a chosen aisle a picked item is only added', async () => {
-  await pick('me', [])
-  expect(state.moved).toEqual([])
-})
-
-test('an item already open keeps its aisle when picked', async () => {
-  await pick('2 pak me', [openMelk], 'bakery')
-  expect(state.amounts).toEqual([['open-melk', 3, 'pak']])
-  expect(state.moved).toEqual([])
 })

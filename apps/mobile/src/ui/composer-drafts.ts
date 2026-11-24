@@ -7,6 +7,8 @@
  * account, the Group and the place it was opened from, so a draft never
  * reappears for someone else or in another Group ([editors](../../../../docs/standards/editors.md)).
  */
+import { forgetAllUploads, forgetUploads } from '../photo/uploads'
+
 const drafts = new Map<string, unknown>()
 
 /**
@@ -40,8 +42,11 @@ export function keptDraft<T>(key: string): T | undefined {
 
 /** Keeps `draft` for `key`; `undefined` forgets it (saved, or nothing typed). */
 export function keepDraft<T>(key: string, draft: T | undefined): void {
-  if (draft === undefined) drafts.delete(key)
-  else drafts.set(key, draft)
+  if (draft === undefined) {
+    drafts.delete(key)
+    // The uploads a form started for this draft go with it (APP-734).
+    forgetUploads(key)
+  } else drafts.set(key, draft)
 }
 
 /**
@@ -54,7 +59,7 @@ export function forgetSentDraft<T extends { saveKey: string }>(
   key: string,
   saveKey: string,
 ): void {
-  if (keptDraft<T>(key)?.saveKey === saveKey) drafts.delete(key)
+  if (keptDraft<T>(key)?.saveKey === saveKey) keepDraft(key, undefined)
 }
 
 /** Marks `key`'s draft as being saved until `saving` settles. */
@@ -75,4 +80,5 @@ export function pendingSave(key: string): Promise<boolean> | undefined {
 export function forgetDrafts(): void {
   drafts.clear()
   pending.clear()
+  forgetAllUploads()
 }

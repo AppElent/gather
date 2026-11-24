@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   byLineKey,
   editedRead,
+  ingredientKeys,
   ingredientsDigest,
   type PickRow,
   pickRows,
@@ -235,4 +236,9 @@ describe('sectionsByAisle', () => {
       ['other', ['3', '4']],
     ])
   })
+})
+
+it('an ingredient keeps its key when the recipe is reordered (APP-734)', () => {
+  expect(ingredientKeys(['1 ui', '2 eieren', '1 ui '])).toEqual(['1 ui', '2 eieren', '1 ui#1'])
+  expect(ingredientKeys(['2 eieren', '1 ui'])).toEqual(['2 eieren', '1 ui'])
 })

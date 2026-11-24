@@ -129,6 +129,30 @@ describe('calendar drafts', () => {
     ).toBe('conflict')
   })
 
+  test('a draft being saved refuses changes and copies', () => {
+    const open = {
+      draft: createCalendarDraft('user', 'group', '2026-09-12', 'calendar-1'),
+      presentation: 'card' as const,
+    }
+    const saving = reduceCalendarDraft(open, { type: 'saveStart' })
+    for (const action of [
+      { type: 'change', field: 'title', value: 'Late' },
+      { type: 'duplicate', draftId: 'create:1' },
+    ] as const)
+      expect(reduceCalendarDraft(saving, action)).toBe(saving)
+    const failed = reduceCalendarDraft(saving, {
+      type: 'saveFailure',
+      error: 'save',
+    })
+    expect(
+      reduceCalendarDraft(failed, {
+        type: 'change',
+        field: 'title',
+        value: 'Late',
+      }).draft?.values.title,
+    ).toBe('Late')
+  })
+
   test('serializes and rejects cross-user, cross-group and unknown drafts', () => {
     const draft = createCalendarDraft(
       'user',

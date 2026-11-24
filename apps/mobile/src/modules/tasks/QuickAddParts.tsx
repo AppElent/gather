@@ -7,11 +7,7 @@
  * recognition; its words stay in the title as plain text.
  */
 import { localIsoDate } from '@gather/core/civil-date'
-import {
-  parseQuickAdd,
-  type QuickAdd,
-  type QuickAddKind,
-} from '@gather/core/task-quick-add'
+import type { QuickAdd, QuickAddKind } from '@gather/core/task-quick-add'
 import { type ComponentRef, type Ref, useMemo, useState } from 'react'
 import {
   Pressable,
@@ -24,8 +20,9 @@ import {
 
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { TYPE, useTokens } from '../../theme/tokens'
+import { type ModuleGroup, TYPE, useTokens } from '../../theme/tokens'
 import { useTaskPeople } from './assignee'
+import { parseOnly } from './composerDraft'
 import { TASK_ICONS } from './icons'
 import { quickAddChipLabel } from './quickAdd'
 
@@ -39,6 +36,8 @@ const pad = (value: number) => String(value).padStart(2, '0')
 export function useQuickAddLine(
   recognise = true,
   initial?: { line: string; dismissed: readonly string[] },
+  /** The only details to read, where the list cannot hold the others. */
+  kinds?: readonly QuickAddKind[],
 ) {
   const { people } = useTaskPeople()
   const [line, setLine] = useState(initial?.line ?? '')
@@ -51,9 +50,9 @@ export function useQuickAddLine(
   const parsed = useMemo(
     (): QuickAdd =>
       recognise
-        ? parseQuickAdd(line, { today, now, members: people, dismissed })
+        ? parseOnly(line, { today, now, members: people, dismissed }, kinds)
         : { title: line.trim(), parts: [], labels: [] },
-    [recognise, line, today, now, people, dismissed],
+    [recognise, line, today, now, people, dismissed, kinds],
   )
   return {
     line,
@@ -81,23 +80,24 @@ export function useQuickAddLine(
 }
 
 /**
- * The field, with each recognised part on the `home` wash. The words are
+ * The field, with each recognised part on the group's wash. The words are
  * nested `Text` in the input, which iOS draws as one attributed string, so
  * the caret and selection behave as in a plain field.
  */
 export function QuickAddInput({
   line,
   parsed,
+  group = 'home',
   inputRef,
   style,
   ...props
 }: Omit<TextInputProps, 'value' | 'children'> & {
   line: string
-  parsed: QuickAdd
+  parsed: { parts: readonly { start: number; end: number }[] }
+  group?: ModuleGroup
   inputRef?: Ref<ComponentRef<typeof TextInput>>
 }) {
-  const tokens = useTokens('home')
-  const wash = tokens.tintOf('home').wash
+  const wash = useTokens(group).tintOf(group).wash
   const segments: { at: number; text: string; part: boolean }[] = []
   let from = 0
   for (const part of parsed.parts) {

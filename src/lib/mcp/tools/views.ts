@@ -1,3 +1,4 @@
+import { todayIn } from '@gather/core/civil-date'
 import { z } from 'zod'
 import { api } from '../../../../convex/_generated/api'
 import { MCP_SCOPES } from '../auth'
@@ -80,7 +81,7 @@ export const viewTools = [
     },
     async run({ groupId, weekStart }, context): Promise<WeekAgendaResult> {
       const group = await groupOf(context, groupId)
-      const today = context.now().toISOString().slice(0, 10)
+      const today = todayIn(group.timeZone ?? 'UTC', context.now())
       const monday = mondayOf(weekStart ?? today)
       const sunday = shiftDay(monday, 7)
       const events: Event[] = []
@@ -114,6 +115,7 @@ export const viewTools = [
         nextWeekStart: sunday,
         isCurrentWeek: mondayOf(today) === monday,
         today,
+        timeZone: group.timeZone,
         days,
         truncated: events.length >= WEEK_EVENTS,
       }

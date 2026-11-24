@@ -17,6 +17,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
 import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { useKeyboardDoneBar } from '../../ui/keyboard-done-bar'
 import { type SheetField, stepValue } from './sheetFields'
 
 export interface NumberFieldProps {
@@ -39,6 +40,9 @@ export function NumberField({
 }: NumberFieldProps) {
   const tokens = useTokens('home')
   const tint = tokens.tintOf('home')
+  const { inputAccessoryViewID, accessory } = useKeyboardDoneBar({
+    keyboardType: 'decimal-pad',
+  })
 
   return (
     <View style={styles.wrap}>
@@ -93,10 +97,12 @@ export function NumberField({
           <Text style={[styles.stepGlyph, { color: tint.text }]}>−</Text>
         </Pressable>
 
+        {accessory}
         <TextInput
           value={value}
           onChangeText={onChange}
           keyboardType="decimal-pad"
+          inputAccessoryViewID={inputAccessoryViewID}
           selectTextOnFocus
           accessibilityLabel={label}
           placeholder={field.fallback || '—'}

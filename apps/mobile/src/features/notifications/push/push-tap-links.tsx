@@ -16,6 +16,7 @@ import * as Notifications from 'expo-notifications'
 import { router } from 'expo-router'
 import { useEffect } from 'react'
 
+import { openAfterSheets } from '../../../shell/linkAfterSheets'
 import { rememberGroupLink } from '../../../shell/pendingGroupLink'
 
 /**
@@ -41,9 +42,12 @@ function follow(response: Notifications.NotificationResponse | null) {
   lastFollowed = id
   const link = notificationLink(response.notification.request.content.data)
   if (!link) return
-  rememberGroupLink(link)
-  // A tick later, so a cold start's router has mounted its first screen.
-  setTimeout(() => router.navigate('/open-notification'))
+  // Once the sheets over the screen have closed (APP-774).
+  openAfterSheets(() => {
+    rememberGroupLink(link)
+    // A tick later, so a cold start's router has mounted its first screen.
+    setTimeout(() => router.navigate('/open-notification'))
+  })
 }
 
 export function PushTapLinks() {

@@ -83,7 +83,7 @@ export function ConnectedCalendarScreen() {
         },
       },
       { text: t.calendar.stay, style: 'cancel' },
-    ])
+    ], { holdsShare: true })
   }
   /**
    * The composer's All details: the full editor takes its draft, unless the
@@ -116,7 +116,7 @@ export function ConnectedCalendarScreen() {
           },
         },
         { text: t.calendar.stay, style: 'cancel', onPress: () => resolve('stay') },
-      ])
+      ], { holdsShare: true, onDismiss: () => resolve('stay') })
     })
   // Back once the editor has saved, closed or set its draft aside.
   const composerHidden =

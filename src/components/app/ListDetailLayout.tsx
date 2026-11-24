@@ -182,19 +182,23 @@ export function ModuleToolbar({
 export function DetailPanelHeader({
   title,
   subtitle,
+  level = 2,
   onClose,
 }: {
   title: string
+  /** 1 on a page of its own, whose only h1 this is; 2 in the panel. */
+  level?: 1 | 2
   subtitle?: ReactNode
   onClose?: () => void
 }) {
   const closePanel = useMessages().shell.modulePage.closePanel
+  const Heading = level === 1 ? 'h1' : 'h2'
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <h2 className="m-0 font-rounded text-title-2 font-bold break-words text-[var(--ink)]">
+        <Heading className="m-0 font-rounded text-title-2 font-bold break-words text-[var(--ink)]">
           {title}
-        </h2>
+        </Heading>
         {subtitle ? (
           <p className="m-0 mt-1 text-footnote text-[var(--muted)]">
             {subtitle}

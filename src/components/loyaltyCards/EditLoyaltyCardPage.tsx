@@ -82,9 +82,9 @@ function EditForm({
     <div className="mx-auto grid max-w-2xl gap-4">
       <Breadcrumbs trail={trail} className="mb-0" />
       <div className="flex items-center justify-between gap-3">
-        <h2 className="m-0 font-rounded text-2xl font-bold">
+        <h1 className="m-0 font-rounded text-2xl font-bold">
           {fmt(copy.editTitle, { store: card.storeName })}
-        </h2>
+        </h1>
         <button
           type="button"
           aria-label={messages.common.actions.delete}

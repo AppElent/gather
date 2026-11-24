@@ -269,3 +269,14 @@ export function swapReason(
 export function draftIn(drafts: readonly Draft[], date: string, slot: MealSlot) {
   return drafts.find((draft) => draft.date === date && draft.slot === slot)
 }
+
+/**
+ * What the week's open proposal was planned with, for the start sheet to open
+ * on (APP-778). Every draft of a plan carries the same wishes; a later
+ * Ander voorstel may have changed its own, so the newest-looking one is not
+ * special: the first draft that has any is read. `undefined` when none do.
+ */
+export function storedWishes(drafts: readonly Draft[]) {
+  const draft = drafts.find((d) => (d.wishes?.length ?? 0) > 0 || d.wish)
+  return draft ? { wishes: draft.wishes ?? [], wish: draft.wish ?? '' } : undefined
+}

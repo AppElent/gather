@@ -8,7 +8,11 @@ import { mount, settle } from '../testing/dom'
 import { type Provisioning, useEnsureUser } from './useEnsureUser'
 
 const backend = vi.hoisted(() => ({
-  ensureUser: vi.fn<() => Promise<unknown>>(),
+  ensureUser: vi.fn<(args: { name?: string }) => Promise<unknown>>(),
+}))
+
+vi.mock('@clerk/expo', () => ({
+  useUser: () => ({ user: { fullName: 'Sanne Bos', firstName: 'Sanne' } }),
 }))
 
 vi.mock('convex/react', () => ({
@@ -38,6 +42,13 @@ describe('useEnsureUser', () => {
     await settle()
     expect(backend.ensureUser).toHaveBeenCalledOnce()
     expect(result.current.failed).toBe(false)
+  })
+
+  test('sends the name Clerk has for the account (APP-676)', async () => {
+    backend.ensureUser.mockResolvedValue('user-id')
+    renderHook()
+    await settle()
+    expect(backend.ensureUser).toHaveBeenCalledWith({ name: 'Sanne Bos' })
   })
 
   test('reports a refused provisioning instead of swallowing it, and retry runs it again', async () => {

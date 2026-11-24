@@ -6,14 +6,16 @@
  * Module is for, with one step: adding an address (ADR-0022). That step opens
  * the form in place, as `designs/energy/Main.dc.html` draws it: a name, an
  * optional House from Finances and how the data comes in. Choosing meter
- * readings saves that source with the address; Home Assistant is connected on
- * its own screen later (APP-495), so choosing it saves the address alone.
+ * readings saves that source with the address; choosing Home Assistant saves
+ * the address alone and goes on to connecting it (APP-495).
  *
  * With an address, the wash names it and its sources, with when the last
- * meter reading was typed so stale figures never look current. Then the
- * usage card (hours from an hourly source, estimated days from readings, or
- * the first step towards either) and the rows to Usage, Costs per month,
- * Meter readings and Contract (designs/energy, sections 1 and 11).
+ * meter reading was typed so stale figures never look current, and a source's
+ * problem in words with when its data is from (ADR-0020). Then what power
+ * costs now and per hour today (APP-493), the usage card (hours from an hourly
+ * source, estimated days from readings, or the first step towards either) and
+ * the rows to Usage, Prices, Costs per month, Meter readings, Contract and
+ * Sources (designs/energy, sections 1 and 11).
  */
 import { MenuView } from '@expo/ui/community/menu'
 import { amsterdamIsoDate } from '@gather/core/civil-date'
@@ -25,6 +27,10 @@ import {
   energyMonthOf,
 } from '@gather/core/energy'
 import {
+  energyHomeSourceLine,
+  energyHomeSources,
+  energyPriceFootnote,
+  energyPriceStateLine,
   formatEnergyDate,
   formatEnergyEuro,
 } from '@gather/core/energy-present'
@@ -50,6 +56,7 @@ import { Card } from '../../ui/card'
 import { Field } from '../../ui/field'
 import { InsetList, InsetRow } from '../../ui/inset-list'
 import { moduleTile } from '../../ui/module-tile'
+import { radioProps } from '../../ui/radio-props'
 import { washScreenOptions } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
 import { WashHeader } from '../../ui/wash-header'
@@ -58,6 +65,10 @@ import {
   EnergyMirrorChart,
   energySolarColour,
 } from './components/energy-mirror-chart'
+import {
+  EnergyPriceNowCard,
+  EnergyPriceTodayCard,
+} from './components/energy-price-cards'
 import {
   daySlots,
   type EnergyHourRow,
@@ -70,6 +81,7 @@ import {
   hourChartSentence,
 } from './energy-chart-text'
 import { contractSummary } from './energy-summary-text'
+import { useEnergyMinute } from './use-energy-minute'
 
 type SourceChoice = 'homeAssistant' | 'manual'
 
@@ -92,6 +104,10 @@ export function EnergyScreen() {
   const lastReading = readings?.lastReadingAt
     ? formatEnergyDate(amsterdamDayOf(readings.lastReadingAt), locale, 'dayMonth')
     : null
+  const shown = energyHomeSources(
+    overview?.sources ?? [],
+    readings?.channels.length ?? 0,
+  )
   const summary =
     overview === null
       ? { count: words.empty.summary, sub: words.empty.sub }
@@ -101,18 +117,20 @@ export function EnergyScreen() {
             sub:
               overview.sources.length === 0
                 ? words.site.sourceNone
-                : overview.sources
+                : shown
                     .map((source) =>
-                      source.kind !== 'manual' || readings === undefined
-                        ? source.label
-                        : lastReading
-                          ? fmt(words.site.lastReading, {
-                              source: source.label,
-                              date: lastReading,
-                            })
-                          : fmt(words.site.noReadingYet, {
-                              source: source.label,
-                            }),
+                      source.kind !== 'manual'
+                        ? energyHomeSourceLine(source, Date.now(), words, locale)
+                        : readings === undefined
+                          ? source.label
+                          : lastReading
+                            ? fmt(words.site.lastReading, {
+                                source: source.label,
+                                date: lastReading,
+                              })
+                            : fmt(words.site.noReadingYet, {
+                                source: source.label,
+                              }),
                     )
                     .join(' · '),
           }
@@ -138,6 +156,7 @@ export function EnergyScreen() {
               groupSlug={group.slug}
               today={today}
               hasSources={overview.sources.length > 0}
+              connected={shown.some((source) => source.kind !== 'manual')}
               typedMeters={readings ? readings.channels.length : null}
               lastReading={lastReading}
             />
@@ -179,12 +198,15 @@ function SiteHome({
   groupSlug,
   today,
   hasSources,
+  connected,
   typedMeters,
   lastReading,
 }: {
   groupSlug: string
   today: string
   hasSources: boolean
+  /** A source other than typed meters feeds the address. */
+  connected: boolean
   /** How many meters the Group reads itself; null while loading. */
   typedMeters: number | null
   lastReading: string | null
@@ -200,15 +222,25 @@ function SiteHome({
     usage?.hasHourly ? { groupSlug, day: today, today } : 'skip',
   )
   const contracts = useQuery(api.energyContracts.list, { groupSlug })
+  const now = useEnergyMinute()
+  const prices = useQuery(api.energyPrices.view, {
+    groupSlug,
+    day: amsterdamDayOf(now),
+  })
+  const priceState = prices
+    ? energyPriceStateLine(prices, now, words, locale)
+    : null
 
   if (usage === undefined || typedMeters === null) {
     return <LoadingSkeleton rows={3} label={t.actions.loading} />
   }
 
   const hourly = usage?.hasHourly ?? false
-  const needsFirstReading = typedMeters === 0 && !hourly
-  const open = (path: '/all/energy/usage' | '/all/energy/costs' | '/all/energy/readings' | '/all/energy/contract') =>
-    router.push(moduleHref(path))
+  const needsFirstReading =
+    hasSources && typedMeters === 0 && !hourly && !connected
+  const open = (
+    path: `/all/energy/${'usage' | 'costs' | 'readings' | 'contract' | 'sources' | 'connect' | 'prices'}`,
+  ) => router.push(moduleHref(path))
 
   const cost = usage?.totals.cost
   const latest = contracts?.[0]?.terms
@@ -216,17 +248,38 @@ function SiteHome({
   return (
     <>
       {!hasSources && !hourly ? (
-        <Card style={styles.note}>
+        <Card style={styles.intro}>
           <Text
             accessibilityRole="header"
-            style={[TYPE.bodyStrong, { color: tokens.ink }]}
+            style={[TYPE.title3, { color: tokens.ink }]}
           >
             {words.site.nextTitle}
           </Text>
-          <Text style={[TYPE.subhead, { color: tokens.muted }]}>
+          <Text style={[TYPE.body, { color: tokens.ink }]}>
             {words.site.nextHomeAssistant}
           </Text>
+          <Button
+            label={words.site.nextConnect}
+            group="home"
+            onPress={() => open('/all/energy/connect')}
+            testID="energy-connect"
+          />
+          <Button
+            label={words.home.firstReadingAction}
+            variant="secondary"
+            onPress={() => open('/all/energy/readings')}
+            testID="energy-first-reading"
+          />
         </Card>
+      ) : null}
+
+      {prices ? <EnergyPriceNowCard view={prices} now={now} /> : null}
+      {prices?.today ? (
+        <EnergyPriceTodayCard
+          prices={prices.today}
+          now={now}
+          onPress={() => open('/all/energy/prices')}
+        />
       ) : null}
 
       {needsFirstReading ? (
@@ -253,7 +306,16 @@ function SiteHome({
           hourly={hourly}
           usage={usage}
           hours={hours?.hours ?? []}
-          onPress={() => open('/all/energy/usage')}
+          onPress={() =>
+            router.push(
+              moduleHref(
+                '/all/energy/usage',
+                hourly
+                  ? { range: 'day', day: today }
+                  : { range: 'month', month },
+              ),
+            )
+          }
         />
       ) : null}
 
@@ -267,6 +329,17 @@ function SiteHome({
           }
           chevron
           onPress={() => open('/all/energy/usage')}
+        />
+        <InsetRow
+          key="prices"
+          testID="energy-row-prices"
+          title={words.home.prices}
+          subtitle={
+            priceState?.problem ? priceState.text : words.home.pricesSub
+          }
+          subtitleTone={priceState?.problem ? 'danger' : 'muted'}
+          chevron
+          onPress={() => open('/all/energy/prices')}
         />
         <InsetRow
           key="costs"
@@ -307,7 +380,20 @@ function SiteHome({
           chevron
           onPress={() => open('/all/energy/contract')}
         />
+        <InsetRow
+          key="sources"
+          testID="energy-row-sources"
+          title={words.sources.title}
+          subtitle={words.sources.homeRowSub}
+          chevron
+          onPress={() => open('/all/energy/sources')}
+        />
       </InsetList>
+      {prices?.today ? (
+        <Text style={[TYPE.footnote, styles.hint, { color: tokens.muted }]}>
+          {energyPriceFootnote(prices.today, words)}
+        </Text>
+      ) : null}
     </>
   )
 }
@@ -415,6 +501,7 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
   const words = t.energy
   const houses = useQuery(api.houses.list, { groupSlug })
   const createSite = useMutation(api.energy.createSite)
+  const router = useRouter()
   const [name, setName] = useState(words.form.defaultName)
   const [houseId, setHouseId] = useState<Id<'houses'> | null>(null)
   const [source, setSource] = useState<SourceChoice>('homeAssistant')
@@ -442,6 +529,9 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
             : { kind: 'homeAssistant' },
       })
       haptics.itemSaved()
+      if (source === 'homeAssistant') {
+        router.push(moduleHref('/all/energy/connect'))
+      }
     } catch (caught) {
       haptics.actionFailed()
       const code = readEnergyRefusal(caught)
@@ -530,8 +620,7 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
             return (
               <Pressable
                 key={option.value}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: selected }}
+                {...radioProps(selected, words.form.sourceRadio)}
                 accessibilityLabel={`${option.label}. ${option.hint}`}
                 testID={`energy-source-${option.value}`}
                 onPress={() => {
@@ -589,6 +678,9 @@ function AddressForm({ groupSlug }: { groupSlug: string }) {
         onPress={submit}
         testID="energy-submit"
       />
+      <Text style={[TYPE.footnote, styles.hint, { color: tokens.muted }]}>
+        {words.form.footnote}
+      </Text>
     </View>
   )
 }
@@ -605,7 +697,6 @@ const styles = StyleSheet.create({
   chartHead: { flexDirection: 'row', alignItems: 'baseline', gap: SPACE[2] },
   chartLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   intro: { gap: SPACE[3], paddingVertical: SPACE[4] },
-  note: { gap: SPACE[1], paddingVertical: SPACE[3] },
   form: { gap: SPACE[5] },
   section: { gap: SPACE[2] },
   picker: {

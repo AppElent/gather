@@ -28,6 +28,7 @@
     "./groups": "./src/groups.ts",
     "./home-today": "./src/homeToday.ts",
     "./i18n": "./src/i18n.ts",
+    "./linked-tasks": "./src/linkedTasks.ts",
     "./loyalty-cards": "./src/loyaltyCards.ts",
     "./meal-planner": "./src/mealPlanner.ts",
     "./meal-ideas": "./src/mealIdeas.ts",
@@ -42,6 +43,7 @@
     "./pins": "./src/pins.ts",
     "./refusals": "./src/refusals.ts",
     "./retailer-logos": "./src/retailerLogos.ts",
+    "./search-filters": "./src/searchFilters.ts",
     "./sentry-privacy": "./src/sentryPrivacy.ts",
     "./smart-lists": "./src/smartLists.ts",
     "./task-lists": "./src/taskLists.ts",
@@ -50,6 +52,7 @@
     "./week-plan": "./src/weekPlan.ts",
     "./task-repeat": "./src/taskRepeat.ts",
     "./subtasks": "./src/subtasks.ts",
+    "./time-zones": "./src/timeZones.ts",
     "./tastings": "./src/tastings.ts"
   },
   "dependencies": {},

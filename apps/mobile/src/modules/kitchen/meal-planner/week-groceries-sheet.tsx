@@ -7,7 +7,7 @@
  * lines top the list up, so a second run for the same week adds only what is
  * not on it yet.
  */
-import { localIsoDate, localMidnight } from '@gather/core/civil-date'
+import { localMidnight, todayIn } from '@gather/core/civil-date'
 import { router } from 'expo-router'
 import { useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
@@ -20,6 +20,7 @@ import { fmt, plural, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { SectionLabel } from '../../../ui/section-label'
+import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { moduleHref } from '../../moduleDestination'
 import { AddToGroceriesSheet } from '../add-to-groceries/add-sheet'
 import { useIngredientLines } from '../add-to-groceries/use-recipe-lines'
@@ -66,9 +67,21 @@ export function WeekGroceriesSheet({
     () => data.meals.filter((meal) => meal.date >= from && meal.date <= to),
     [data.meals, from, to],
   )
+  // A share keeps the days counted with the sheet's ticks (APP-622).
+  const place = `groceries:week:${weekStart}`
+  const draft = useSheetDraft<{ counted: string[] }>(`${place}:days`)
   const [counted, setCounted] = useState(() =>
-    defaultDays(weekStart, localIsoDate(), meals),
+    draft.kept
+      ? new Set(draft.kept.counted)
+      : defaultDays(weekStart, todayIn(group.timeZone), meals),
   )
+  const [sending, setSending] = useState(false)
+  draft.track({ counted: [...counted].sort() }, { holding: sending })
+  // Held with the sheet's own draft: kept again only if the add fails.
+  const onSending = (state: 'sending' | 'failed') => {
+    setSending(state === 'sending')
+    if (state === 'failed') draft.failed()
+  }
 
   const sources = useMemo(
     () =>
@@ -146,6 +159,7 @@ export function WeekGroceriesSheet({
   })
 
   const toggle = (date: string) => {
+    if (sending) return
     haptics.selectionChanged()
     setCounted((current) => {
       const next = new Set(current)
@@ -157,6 +171,8 @@ export function WeekGroceriesSheet({
 
   return (
     <AddToGroceriesSheet
+      place={place}
+      onSending={onSending}
       source={{
         title: fmt(words.source, { range }),
         subtitle:
@@ -178,6 +194,7 @@ export function WeekGroceriesSheet({
           days={days}
           meals={meals}
           counted={counted}
+          locked={sending}
           onToggle={toggle}
         />
       }
@@ -209,11 +226,14 @@ function DayGrid({
   days,
   meals,
   counted,
+  locked,
   onToggle,
 }: {
   days: readonly string[]
   meals: readonly PlannedMeal[]
   counted: ReadonlySet<string>
+  /** The lines are being sent: the days stay as they were sent. */
+  locked: boolean
   onToggle: (date: string) => void
 }) {
   const { t, locale } = useI18n()
@@ -240,7 +260,7 @@ function DayGrid({
               key={date}
               testID={`week-groceries-day-${date}`}
               accessibilityRole="button"
-              accessibilityState={{ selected: on, disabled: !planned }}
+              accessibilityState={{ selected: on, disabled: locked || !planned }}
               accessibilityLabel={
                 !planned
                   ? fmt(words.dayEmpty, { day })
@@ -249,7 +269,7 @@ function DayGrid({
                       meals: titles.join(', '),
                     })
               }
-              disabled={!planned}
+              disabled={locked || !planned}
               onPress={() => onToggle(date)}
               style={({ pressed }) => [
                 styles.cell,

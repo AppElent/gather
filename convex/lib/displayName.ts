@@ -33,11 +33,23 @@ export function nameFromIdentity(identity: NameClaims): string | null {
   return clean(identity.nickname) || clean(identity.preferredUsername) || null
 }
 
+/** The most characters of a name the app may send. */
+export const MAX_NAME_LENGTH = 80
+
 /**
- * The name to store: the claims' name when they have one, else what is
- * stored already, else the fallback. A stored name only changes when the
- * claims say something, so a token without names never erases a real one.
+ * The name to store: the claims' name when they have one, else the name the
+ * app read from Clerk, else what is stored already, else the fallback. A
+ * stored name only changes when one of those says something, so a token and
+ * app without names never erase a real one.
  */
-export function storedName(identity: NameClaims, existing?: string): string {
-  return nameFromIdentity(identity) ?? existing ?? FALLBACK_MEMBER_NAME
+export function storedName(
+  identity: NameClaims,
+  existing?: string,
+  fromApp?: string,
+): string {
+  const sent = clean(fromApp).slice(0, MAX_NAME_LENGTH).trim()
+  return (
+    nameFromIdentity(identity) || sent || existing || FALLBACK_MEMBER_NAME
+  )
 }
+

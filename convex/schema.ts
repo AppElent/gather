@@ -42,7 +42,7 @@ import {
   groceryUnitValidator,
 } from './lib/groceryFields'
 import { groupRoleValidator } from './lib/groupAccess'
-import { mealSlotValidator, quickLimitValidator } from './lib/kitchen'
+import { mealSlotValidator, quickLimitValidator, weekPlanWishValidator } from './lib/kitchen'
 import {
   barcodeFormatValidator,
   formatConfidenceValidator,
@@ -137,6 +137,9 @@ export default defineSchema({
     isPersonal: v.optional(v.boolean()),
     icon: v.optional(v.string()),
     imageId: v.optional(v.id('_storage')),
+    // IANA zone of the Group's calendar "today" (APP-475), validated by
+    // `groups.setTimeZone`. Absent: clients use the device's zone.
+    timeZone: v.optional(v.string()),
     // The list the Groceries Module opened before a Group could have several
     // grocery lists (APP-313). Installed phones still read it through
     // `kitchen.groceries` and write it through `kitchen.setGroceryList`; a
@@ -191,7 +194,14 @@ export default defineSchema({
     createdByUserId: v.id('users'),
     ...recipeFields,
     nutritionStale: v.optional(v.boolean()),
-  }).index('by_group', ['groupId']),
+  })
+    .index('by_group', ['groupId'])
+    // Old recipes by title word, as the next three `search_` indexes do for
+    // theirs (`search.ts`, APP-758).
+    .searchIndex('search_title', {
+      searchField: 'title',
+      filterFields: ['groupId'],
+    }),
 
   // One row per Group a recipe is Shared into: an index of
   // `recipes.sharedGroupIds`, which stays the source of truth. A Convex index
@@ -337,7 +347,11 @@ export default defineSchema({
     // notice, and later the "Mine" smart list (APP-301).
     .index('by_assignee', ['assigneeId'])
     // A task's subtasks without reading the rest of its list (APP-304).
-    .index('by_parent', ['parentTaskId']),
+    .index('by_parent', ['parentTaskId'])
+    .searchIndex('search_title', {
+      searchField: 'title',
+      filterFields: ['listId'],
+    }),
 
   /**
    * One completion of a repeating task (APP-303): who, when, and the due
@@ -431,7 +445,27 @@ export default defineSchema({
     // added; the creator is the last editor of those.
     updatedBy: v.optional(v.id('users')),
     updatedAt: v.number(),
-  }).index('by_group', ['groupId']),
+    // Title and body, for `search_text`; written by `lib/noteSearch.ts` only,
+    // never shown. Optional until `migrations:backfillNoteSearchText` has run.
+    searchText: v.optional(v.string()),
+  })
+    .index('by_group', ['groupId'])
+    // Newest first, page by page (`notes.listPage`, APP-700).
+    .index('by_group_and_updatedAt', ['groupId', 'updatedAt'])
+    // Title and body together (APP-701).
+    .searchIndex('search_text', {
+      searchField: 'searchText',
+      filterFields: ['groupId'],
+    })
+    // Only for notes still without `searchText`; dropped in the narrow step.
+    .searchIndex('search_title', {
+      searchField: 'title',
+      filterFields: ['groupId'],
+    })
+    .searchIndex('search_body', {
+      searchField: 'body',
+      filterFields: ['groupId'],
+    }),
 
   mealEntries: defineTable({
     groupId: v.id('groups'),
@@ -484,7 +518,9 @@ export default defineSchema({
   // `quickMeal` is set; `mealEntryId` when the quick meal is one the Group
   // has. `reason` is the model's line; `source` says which planner chose it:
   // the model (`ai`), the rules for a slot the model left open (`rules`), or
-  // the rules because the model was not reachable (`fallback`).
+  // the rules because the model was not reachable (`fallback`). `wishes` and
+  // `wish` are what the start sheet asked for, on every row, so Ander voorstel
+  // keeps them for every Member (APP-679); absent when nothing was asked.
   mealPlanDrafts: defineTable({
     groupId: v.id('groups'),
     /** Monday of the week, `YYYY-MM-DD`. */
@@ -497,6 +533,8 @@ export default defineSchema({
     prepMinutes: v.optional(v.number()),
     reason: v.optional(v.string()),
     source: v.union(v.literal('ai'), v.literal('rules'), v.literal('fallback')),
+    wishes: v.optional(v.array(weekPlanWishValidator)),
+    wish: v.optional(v.string()),
     createdBy: v.id('users'),
     expiresAt: v.number(),
   })
@@ -531,6 +569,12 @@ export default defineSchema({
     /** A pantry entry's free quantity ("2 pakken"), kept from the migration. */
     note: v.optional(v.string()),
     createdBy: v.id('users'),
+    /**
+     * The Members, other than its maker, who added it again since (APP-681):
+     * the maker's undo leaves a staple somebody else keeps. Each is here once,
+     * and goes when they leave the Group (`detachFromGroup`).
+     */
+    keptBy: v.optional(v.array(v.id('users'))),
   })
     .index('by_group', ['groupId'])
     .index('by_group_and_key', ['groupId', 'key']),
@@ -557,7 +601,11 @@ export default defineSchema({
     revision: v.optional(v.number()),
   })
     .index('by_calendar', ['calendarId'])
-    .index('by_calendar_date', ['calendarId', 'date']),
+    .index('by_calendar_date', ['calendarId', 'date'])
+    .searchIndex('search_title', {
+      searchField: 'title',
+      filterFields: ['calendarId'],
+    }),
 
   integrationConnections: defineTable({
     groupId: v.id('groups'),
@@ -923,7 +971,11 @@ export default defineSchema({
     .index('by_group', ['groupId'])
     .index('by_group_kind', ['groupId', 'kind'])
     // Materialising a catalog entry asks exactly this question, on every log.
-    .index('by_group_kind_catalogKey', ['groupId', 'kind', 'catalogKey']),
+    .index('by_group_kind_catalogKey', ['groupId', 'kind', 'catalogKey'])
+    .searchIndex('search_name', {
+      searchField: 'name',
+      filterFields: ['groupId', 'kind'],
+    }),
 
   /**
    * One person's tasting of one subject, on one day.

@@ -19,7 +19,9 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { TYPE, useTokens } from '../../theme/tokens'
+import { radioProps } from '../../ui/radio-props'
 import { SectionLabel } from '../../ui/section-label'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 import { useTaskActions, useTaskLists } from './store'
 import type { Task, TaskList } from './types'
 
@@ -43,7 +45,10 @@ export function SectionsSheet({
   const tokens = useTokens('home')
   const { t } = useI18n()
   const actions = useTaskActions()
-  const [draft, setDraft] = useState('')
+  // A share keeps the new section's name (APP-622).
+  const kept = useSheetDraft<{ draft: string }>(`tasks:sections:${list.id}`)
+  const [draft, setDraft] = useState(kept.kept?.draft ?? '')
+  kept.track({ draft }, { dirty: draft.trim() !== '' })
   const sections = list.sections
 
   const report = (write: Promise<unknown>) =>
@@ -60,6 +65,7 @@ export function SectionsSheet({
       () => haptics.itemSaved(),
       () => {
         haptics.actionFailed()
+        kept.failed({ draft: name })
         // A refused add (the 31st section, say) gives the name back to retype.
         setDraft((current) => current || name)
       },
@@ -95,6 +101,7 @@ export function SectionsSheet({
           style={[styles.row, { borderBottomColor: tokens.hair }]}
         >
           <SectionNameField
+            id={section.id}
             // A rename from another phone replaces what this field holds.
             key={section.name}
             name={section.name}
@@ -180,15 +187,20 @@ export function SectionsSheet({
 
 /** A section's name, renamed by typing; an emptied field puts it back. */
 function SectionNameField({
+  id,
   name,
   onRename,
 }: {
+  id: string
   name: string
   onRename: (name: string) => void
 }) {
   const tokens = useTokens('home')
   const { t } = useI18n()
-  const [draft, setDraft] = useState(name)
+  const kept = useSheetDraft<{ draft: string }>(`tasks:section-name:${id}`)
+  const [draft, setDraft] = useState(kept.kept?.draft ?? name)
+  // A rename the field committed as it closed is the saved name already.
+  kept.track({ draft }, { dirty: draft.trim() !== name })
   const commit = () => {
     const next = draft.trim()
     if (!next || next === name) {
@@ -236,8 +248,7 @@ export function MoveToSectionSheet({
         <Pressable
           key={option.id ?? 'none'}
           testID={`move-section-${option.id ?? 'none'}`}
-          accessibilityRole="button"
-          accessibilityState={{ selected: option.id === current }}
+          {...radioProps(option.id === current, t.a11y.radioButton)}
           accessibilityLabel={option.name}
           onPress={() => {
             onClose()

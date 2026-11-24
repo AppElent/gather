@@ -159,3 +159,73 @@ test('the costs row opens Costs on the month in view', () => {
   ])
   view.unmount()
 })
+
+test('a month in the route opens that month', () => {
+  const view = mount(createElement(EnergyUsageScreen, { initialMonth: '2026-09' }))
+  expect(byTestId('energy-usage-days')).not.toBeNull()
+  expect(byTestId('energy-usage-period-label')?.textContent).toBe('September 2026')
+  view.unmount()
+})
+
+test('a day in the route opens that day, and its month behind it', async () => {
+  energyState.queries['energyUsage:day'] = hourlyDay()
+  const view = mount(createElement(EnergyUsageScreen, { initialDay: '2026-09-14' }))
+  expect(byTestId('energy-usage-period-label')?.textContent).toContain('14')
+  button(en.energy.usage.month)?.click()
+  await settle()
+  expect(byTestId('energy-usage-period-label')?.textContent).toBe('September 2026')
+  view.unmount()
+})
+
+test('a month in the route still to come opens this month', () => {
+  const view = mount(
+    createElement(EnergyUsageScreen, { initialRange: 'month', initialMonth: '2026-12' }),
+  )
+  expect(byTestId('energy-usage-period-label')?.textContent).toBe('November 2026')
+  view.unmount()
+})
+
+test('Month names the peak day only when one day stands out', async () => {
+  energyState.queries['energyUsage:day'] = hourlyDay()
+  const view = mount(createElement(EnergyUsageScreen))
+  button(en.energy.usage.month)?.click()
+  await settle()
+  // Every day uses 10 kWh: no peak, no "Most usage on".
+  expect(byTestId('energy-usage-days')?.getAttribute('aria-label')).toBe(
+    'Usage per day in November.',
+  )
+  expect(document.body.textContent).not.toContain('Most usage on')
+  view.unmount()
+
+  energyState.queries['energyUsage:month'] = (args: { month: string }) => {
+    const period = usagePeriod({
+      days: energyMonthDays(args.month),
+      lastDay: '2026-11-22',
+      kwhPerDay: 10,
+    })
+    const fifth = period.days[4]
+    if (fifth) fifth.consumptionKwh = 18
+    return period
+  }
+  const peaked = mount(createElement(EnergyUsageScreen))
+  button(en.energy.usage.month)?.click()
+  await settle()
+  expect(byTestId('energy-usage-days')?.getAttribute('aria-label')).toBe(
+    'Usage per day in November. Most usage on November 5, 18.0 kWh.',
+  )
+  peaked.unmount()
+})
+
+test('Day names no peak hour when every hour uses the same', () => {
+  const day = hourlyDay()
+  for (const hour of day.hours as { importKwh: number; consumptionKwh: number }[]) {
+    hour.importKwh = 0.4
+    hour.consumptionKwh = 0.4
+  }
+  energyState.queries['energyUsage:day'] = day
+  const view = mount(createElement(EnergyUsageScreen))
+  expect(byTestId('energy-usage-hours')?.getAttribute('aria-label')).toBe(
+    'Usage per hour on November 23.',
+  )
+  view.unmount()
+})

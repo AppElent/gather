@@ -12,6 +12,7 @@
  */
 import { DateTimePicker } from '@expo/ui/community/datetime-picker'
 import { presetClock, type ReminderPreset } from '@gather/core/task-reminders'
+import { deviceTimeZone } from '@gather/core/time-zones'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { NativeSheet } from '../../components/NativeSheet'
@@ -22,10 +23,10 @@ import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { showAlert } from '../../observability/native-presentation'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 import {
   availablePresets,
   clockOfDate,
-  deviceTimeZone,
   initialPick,
 } from './reminder'
 import { useTaskActions } from './store'
@@ -48,9 +49,14 @@ export function ReminderSheet({
   const { ask } = usePushPermission()
   const me = useQuery(api.users.me, {})
   const [now] = useState(() => new Date())
+  // A share keeps the picked moment, as a number (APP-622).
+  const draft = useSheetDraft<{ picked: number }>(`tasks:reminder:${task.id}`)
   const [picked, setPicked] = useState(() =>
-    initialPick(task.reminder, task.dueDate, now),
+    draft.kept
+      ? new Date(draft.kept.picked)
+      : initialPick(task.reminder, task.dueDate, now),
   )
+  draft.track({ picked: picked.getTime() })
   const presets = availablePresets(task.dueDate, now)
   const someoneElse = Boolean(
     task.reminder && me && task.reminder.userId !== me._id,

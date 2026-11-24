@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { GroupForms } from '../../../../src/components/GroupForms'
 import { useGroup } from '../../../../src/group/GroupProvider'
+import { GroupTimeZoneCard } from '../../../../src/group/GroupTimeZoneCard'
 import { InviteCodeCard } from '../../../../src/group/InviteCodeCard'
 import { LeaveOrDeleteGroupSection } from '../../../../src/group/LeaveOrDeleteGroupSection'
 import { useI18n } from '../../../../src/i18n'
@@ -66,6 +67,7 @@ export default function Groups() {
       </View>
       {/* Inviting is about the Current Group, so it sits right under the list. */}
       <InviteCodeCard />
+      <GroupTimeZoneCard />
       <GroupForms />
       {/* The ways out, so last: below everything that adds somebody. */}
       <LeaveOrDeleteGroupSection />

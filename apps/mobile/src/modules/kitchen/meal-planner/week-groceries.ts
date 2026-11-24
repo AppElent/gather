@@ -26,7 +26,8 @@ export function weekDays(from: string): string[] {
 /**
  * The days that count when the sheet opens: from today to the end of the
  * week, from Monday for a week still to come, and the whole week for one
- * that is over. Only days with a meal can count.
+ * that is over. Only days with a meal can count. `today` is the Group's local date
+ * (`todayIn` its zone, APP-475).
  */
 export function defaultDays(
   from: string,

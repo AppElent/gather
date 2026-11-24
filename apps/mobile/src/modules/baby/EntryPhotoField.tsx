@@ -7,7 +7,7 @@
  */
 import type { BabyEventType } from '@gather/core/domain'
 import { useMutation } from 'convex/react'
-import { PhotoField } from '../../components/PhotoField'
+import { PhotoField, type PhotoFieldProps } from '../../components/PhotoField'
 import { api } from '../../convex/api'
 import { fmt, useI18n } from '../../i18n'
 
@@ -19,13 +19,17 @@ export function EntryPhotoField({
   value,
   onChange,
   disabled,
+  ...rest
 }: {
   type: BabyEventType
   photoUrl?: string | null
   value: string | null | undefined
   onChange: (storageId: string | null) => void
   disabled: boolean
-}) {
+} & Pick<
+  PhotoFieldProps,
+  'initialPreview' | 'onPreviewChange' | 'onBusyChange' | 'uploadScope'
+>) {
   const { t } = useI18n()
   const generateUploadUrl = useMutation(api.babies.generateUploadUrl)
   if (!OFFERS_PHOTO.includes(type)) return null
@@ -49,6 +53,7 @@ export function EntryPhotoField({
       }}
       preset="memoryPhoto"
       disabled={disabled}
+      {...rest}
     />
   )
 }

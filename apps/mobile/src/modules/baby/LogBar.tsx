@@ -60,6 +60,7 @@ import type { Glyph } from '../../theme/glyph'
 import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { BABY_UI_ICONS, EVENT_ICONS } from './icons'
 import { dragTarget, residualOffset } from './logBarArrange'
+import { slotMenuKey } from './logBarState'
 
 /** The width of one button while logging. Arranging measures its own. */
 const ITEM_WIDTH = 61
@@ -254,8 +255,10 @@ export function LogBar({
           const label = slotLabel(slot, t)
           const shortcut = isBabyBarShortcut(slot)
           return (
+            // The button is as wide as its label, which changes with the
+            // language, so the menu's key follows the label.
             <NativeContextMenu
-              key={slot}
+              key={slotMenuKey(slot, label)}
               actions={[
                 { id: 'reorder', title: t.actions.reorder },
                 { id: 'hide', title: t.actions.hide },

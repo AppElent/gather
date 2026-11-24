@@ -3,12 +3,13 @@ import { type Locale, SUPPORTED_LOCALES, useI18n } from '../../lib/i18n'
 import { InsetList, InsetRow, SectionFooter, SectionLabel } from '../app/InsetList'
 
 /**
- * The same choice the topbar toggle makes, on the page somebody looks at when
- * they are looking for a setting rather than for a button.
+ * The same choice the account menu's language item makes, on the page
+ * somebody looks at when they are looking for a setting rather than for a
+ * button.
  *
  * Not a duplicate state to keep in step — both read and write the one
  * `useI18n()` value — but a duplicate *entrance*, which is the point: the
- * toggle is for flipping, this is for finding.
+ * menu item is for flipping, this is for finding.
  *
  * Each language is written in itself. "Dutch" is only helpful to somebody who
  * already reads English, which is exactly the reader this row is not for.

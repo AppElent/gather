@@ -84,6 +84,20 @@ describe('WashHeader', () => {
     expect(screen.queryByRole('button', { name: /Search in/ })).toBeNull()
   })
 
+  test('the phone-width back button names where it goes', () => {
+    renderWithI18n(
+      <WashHeader
+        group="kitchen"
+        icon="ChefHat"
+        title="Shakshuka"
+        back={{ label: 'Recipes', link: { to: '/recipes' } }}
+      />,
+    )
+    const back = screen.getByRole('link', { name: 'Back to Recipes' })
+    expect(back).toHaveAttribute('href', '/recipes')
+    expect(back).toHaveClass('md:hidden')
+  })
+
   test('a nested page links to its parent above the title', () => {
     renderWithI18n(
       <WashHeader

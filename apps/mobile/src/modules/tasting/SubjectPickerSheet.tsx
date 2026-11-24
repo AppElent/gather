@@ -38,6 +38,7 @@ import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { useSheetDraft } from '../../ui/sheet-drafts'
 import { KIND_ICONS, TASTING_UI_ICONS } from './icons'
 import { subjectFacts } from './summary'
 import { kindWords } from './words'
@@ -62,7 +63,10 @@ export function SubjectPickerSheet({
   const tokens = useTokens('tasting')
   const { t } = useI18n()
   const { group } = useGroup()
-  const [query, setQuery] = useState('')
+  // A share keeps what was typed: it doubles as a new subject's name (APP-622).
+  const draft = useSheetDraft<{ query: string }>(`tasting:subject:${kind}`)
+  const [query, setQuery] = useState(draft.kept?.query ?? '')
+  draft.track({ query })
 
   const words = kindWords(t.tastings, kind)
   const Chevron = UI_ICONS.ChevronRight

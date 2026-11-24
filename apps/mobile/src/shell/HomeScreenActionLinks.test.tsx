@@ -7,6 +7,7 @@
  */
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
+import { openSheet } from '../components/openSheets'
 import { mount, settle } from '../testing/dom'
 import { HomeScreenActionLinks } from './HomeScreenActionLinks'
 
@@ -83,4 +84,19 @@ test('the control opens the open card with the All index beneath it, so it has a
     params: { cardId: 'card_1', via: 'control' },
   })
   expect(state.navigated[0]?.options).toEqual({ withAnchor: true })
+})
+
+test('the control closes an open sheet before it opens the quick sheet (APP-774)', async () => {
+  state.card = null
+  const asked: (() => void)[] = []
+  const sheet = openSheet(() => asked.push(() => sheet.closed()))
+  mount(<HomeScreenActionLinks />)
+  await settle()
+  expect(asked).toHaveLength(1)
+  expect(state.navigated).toEqual([])
+
+  asked[0]?.()
+  await settle()
+  await settle()
+  expect(state.navigated).toHaveLength(1)
 })

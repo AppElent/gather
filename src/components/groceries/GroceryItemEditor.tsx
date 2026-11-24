@@ -219,6 +219,7 @@ export function GroceryItemEditor({
             ? fmt(g.web.addedBy, { name: addedBy.name, date: addedOn })
             : fmt(g.web.addedOn, { date: addedOn })
         }
+        level={onClose ? 2 : 1}
         onClose={onClose}
       />
 
@@ -505,7 +506,11 @@ export function GroceryItemNotice({
   const words = messages.tasks.grocery.web
   return (
     <div className="grid gap-3 p-4" aria-busy={loading}>
-      <DetailPanelHeader title={words.itemTitle} onClose={onClose} />
+      <DetailPanelHeader
+        title={words.itemTitle}
+        level={onClose ? 2 : 1}
+        onClose={onClose}
+      />
       <p role="status" className="m-0 text-subhead text-[var(--muted)]">
         {loading
           ? messages.common.errors.loading

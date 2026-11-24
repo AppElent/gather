@@ -285,14 +285,16 @@ describe('APP-460', () => {
 
   test('draftCheck: "controleer zelf" for an allergy a draft cannot rule out', () => {
     const shellfish = { ...none, allergens: ['crustaceans' as const] }
-    expect(draftCheck({ quickMeal: 'Tosti' }, shellfish)).toMatchObject({
+    expect(draftCheck({ quickMeal: 'Tosti', own: false }, shellfish)).toMatchObject({
       kind: 'allergen',
       id: 'crustaceans',
       uncertain: true,
     })
-    expect(draftCheck({ quickMeal: 'Tosti' }, none)).toBeUndefined()
+    expect(draftCheck({ quickMeal: 'Tosti', own: false }, none)).toBeUndefined()
+    // The Group's own quick meal is a dish it knows: no hint (APP-477).
+    expect(draftCheck({ quickMeal: 'Tosti', own: true }, shellfish)).toBeUndefined()
     // A quick meal's name never flags a diet: it would flag every name.
-    expect(draftCheck({ quickMeal: 'Tosti' }, { ...none, diets: ['vegetarian'] })).toBeUndefined()
+    expect(draftCheck({ quickMeal: 'Tosti', own: false }, { ...none, diets: ['vegetarian'] })).toBeUndefined()
     const pasta = { title: 'Pasta pesto', ingredients: ['pasta', 'pesto'], tags: [] }
     // Pesto often holds nuts.
     expect(draftCheck({ recipe: pasta }, { ...none, allergens: ['nuts'] })).toMatchObject({

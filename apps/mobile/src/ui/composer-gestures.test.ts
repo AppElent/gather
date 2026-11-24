@@ -65,3 +65,15 @@ describe('closing from expanded', () => {
     expect(closeDistance({ small: 120, expanded: 0 })).toBe(DRAG_CLOSE_EXPANDED)
   })
 })
+
+describe('a card with one size', () => {
+  test('never expands, and closes on a drag down', () => {
+    expect(dragOutcome(drag(-200, -1200), false, undefined, false)).toBeNull()
+    expect(dragOutcome(drag(DRAG_CLOSE + 1), false, undefined, false)).toBe('close')
+  })
+
+  test('follows a drag down only', () => {
+    expect(dragOffset(-100, false, false)).toBe(0)
+    expect(dragOffset(60, false, false)).toBe(60)
+  })
+})

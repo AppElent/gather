@@ -37,9 +37,26 @@ export type LineRead =
   /** Nobody could read it: it goes on the list as written. */
   | { kind: 'text' }
 
+/**
+ * A key per ingredient that follows the ingredient, not its position: a recipe
+ * has no ingredient ids, so the line's own text names it, and the nth copy of
+ * a repeated line is `text#n`. Ticks, retyped lines and the open editor are
+ * kept under it, so reordering a recipe leaves each on its own row, and an
+ * ingredient that is gone takes its tick with it (APP-734).
+ */
+export function ingredientKeys(ingredients: readonly string[]): string[] {
+  const seen = new Map<string, number>()
+  return ingredients.map((text) => {
+    const base = text.trim()
+    const n = seen.get(base) ?? 0
+    seen.set(base, n + 1)
+    return n === 0 ? base : `${base}#${n}`
+  })
+}
+
 /** One line of the source, as the sheet receives it. */
 export interface SourceLine {
-  /** Stable within the sheet: the line's position in its source. */
+  /** Stable within the sheet: follows the ingredient, not its position (`ingredientKeys`). */
   key: string
   /** As the source wrote it ("2 rode paprika's, in reepjes"). */
   text: string

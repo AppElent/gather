@@ -3,7 +3,8 @@
  * servings, a move grid for the week, a note, and the meal's actions.
  *
  * Changes apply when the sheet closes, by Done, the close button or a drag
- * down, so a note half typed is never lost. Remove applies at once and offers
+ * down, so a note half typed is never lost. A share's close saves nothing and
+ * keeps the changes as a draft instead (APP-622). Remove applies at once and offers
  * an undo instead of asking first.
  */
 import { addDays, localMidnight } from '@gather/core/civil-date'
@@ -20,6 +21,7 @@ import { fmt, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../../theme/tokens'
 import { InsetList, InsetRow } from '../../../ui/inset-list'
+import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { moduleHref } from '../../moduleDestination'
 import { Coin } from './parts'
 import {
@@ -48,6 +50,15 @@ type Toast = (toast: {
 
 const sameList = (a: readonly string[] | undefined, b: readonly string[] | undefined) =>
   JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+
+/** What a share keeps of the sheet (`useSheetDraft`). */
+interface MealDraft {
+  opened: Pick<PlannedMeal, 'date' | 'eaterIds' | 'servings' | 'note'>
+  eaterIds?: string[]
+  servings?: number
+  note: string
+  moveTo: string
+}
 
 export function MealSheet({
   id,
@@ -113,11 +124,32 @@ function MealSheetBody({
 
   // The meal as the sheet opened on it: closing saves only what changed here,
   // so an edit made meanwhile on another phone is never written back over.
-  const opened = useRef(meal).current
-  const [eaterIds, setEaterIds] = useState<string[] | undefined>(meal.eaterIds)
-  const [servings, setServings] = useState<number | undefined>(meal.servings)
-  const [note, setNote] = useState(meal.note ?? '')
-  const [moveTo, setMoveTo] = useState(meal.date)
+  // A kept draft brings the meal it was opened on with it.
+  const draft = useSheetDraft<MealDraft>(`meal-planner:meal:${meal._id}`)
+  const kept = draft.kept
+  // Moved on another phone since, and not here: it is on its new day.
+  const still = kept && kept.moveTo === kept.opened.date
+  const opened = useRef<MealDraft['opened']>(
+    kept
+      ? { ...kept.opened, date: still ? meal.date : kept.opened.date }
+      : {
+      date: meal.date,
+      eaterIds: meal.eaterIds,
+      servings: meal.servings,
+      note: meal.note,
+    },
+  ).current
+  const [eaterIds, setEaterIds] = useState<string[] | undefined>(
+    kept ? kept.eaterIds : meal.eaterIds,
+  )
+  const [servings, setServings] = useState<number | undefined>(
+    kept ? kept.servings : meal.servings,
+  )
+  const [note, setNote] = useState(kept?.note ?? meal.note ?? '')
+  const [moveTo, setMoveTo] = useState(
+    kept && !still ? kept.moveTo : meal.date,
+  )
+  draft.track({ opened, eaterIds, servings, note, moveTo })
   const finished = useRef(false)
 
   // Who eats follows the day the meal will be on, so a day picked in the grid
@@ -254,7 +286,7 @@ function MealSheetBody({
     <NativeSheet
       title={meal.title}
       subtitle={`${dayTitle(meal.date, locale)} · ${words.slots[meal.slot]} · ${meta}`}
-      onClose={() => close(true)}
+      onClose={() => close(!draft.sharing())}
       maxHeight={0.92}
       fill
       background="ground"

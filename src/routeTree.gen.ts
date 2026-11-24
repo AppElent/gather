@@ -39,9 +39,13 @@ import { Route as AppBabyNewRouteImport } from './routes/_app/baby/new'
 import { Route as AppBeersIndexRouteImport } from './routes/_app/beers/index'
 import { Route as AppCheesesIndexRouteImport } from './routes/_app/cheeses/index'
 import { Route as AppEnergyIndexRouteImport } from './routes/_app/energy/index'
+import { Route as AppEnergyConnectRouteImport } from './routes/_app/energy/connect'
 import { Route as AppEnergyContractRouteImport } from './routes/_app/energy/contract'
 import { Route as AppEnergyCostsRouteImport } from './routes/_app/energy/costs'
+import { Route as AppEnergyPriceSourceRouteImport } from './routes/_app/energy/price-source'
+import { Route as AppEnergyPricesRouteImport } from './routes/_app/energy/prices'
 import { Route as AppEnergyReadingsRouteImport } from './routes/_app/energy/readings'
+import { Route as AppEnergySourcesRouteImport } from './routes/_app/energy/sources'
 import { Route as AppEnergyUsageRouteImport } from './routes/_app/energy/usage'
 import { Route as AppGroceriesIndexRouteImport } from './routes/_app/groceries/index'
 import { Route as AppGroceriesInStockRouteImport } from './routes/_app/groceries/in-stock'
@@ -215,6 +219,11 @@ const AppEnergyIndexRoute = AppEnergyIndexRouteImport.update({
   path: '/energy/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEnergyConnectRoute = AppEnergyConnectRouteImport.update({
+  id: '/energy/connect',
+  path: '/energy/connect',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEnergyContractRoute = AppEnergyContractRouteImport.update({
   id: '/energy/contract',
   path: '/energy/contract',
@@ -225,9 +234,24 @@ const AppEnergyCostsRoute = AppEnergyCostsRouteImport.update({
   path: '/energy/costs',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEnergyPriceSourceRoute = AppEnergyPriceSourceRouteImport.update({
+  id: '/energy/price-source',
+  path: '/energy/price-source',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEnergyPricesRoute = AppEnergyPricesRouteImport.update({
+  id: '/energy/prices',
+  path: '/energy/prices',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEnergyReadingsRoute = AppEnergyReadingsRouteImport.update({
   id: '/energy/readings',
   path: '/energy/readings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEnergySourcesRoute = AppEnergySourcesRouteImport.update({
+  id: '/energy/sources',
+  path: '/energy/sources',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEnergyUsageRoute = AppEnergyUsageRouteImport.update({
@@ -375,9 +399,13 @@ export interface FileRoutesByFullPath {
   '/shared-costs': typeof AppSharedCostsRoute
   '/tasks': typeof AppTasksRoute
   '/baby/new': typeof AppBabyNewRoute
+  '/energy/connect': typeof AppEnergyConnectRoute
   '/energy/contract': typeof AppEnergyContractRoute
   '/energy/costs': typeof AppEnergyCostsRoute
+  '/energy/price-source': typeof AppEnergyPriceSourceRoute
+  '/energy/prices': typeof AppEnergyPricesRoute
   '/energy/readings': typeof AppEnergyReadingsRoute
+  '/energy/sources': typeof AppEnergySourcesRoute
   '/energy/usage': typeof AppEnergyUsageRoute
   '/groceries/in-stock': typeof AppGroceriesInStockRoute
   '/groceries/recent': typeof AppGroceriesRecentRoute
@@ -432,9 +460,13 @@ export interface FileRoutesByTo {
   '/tasks': typeof AppTasksRoute
   '/': typeof AppIndexRoute
   '/baby/new': typeof AppBabyNewRoute
+  '/energy/connect': typeof AppEnergyConnectRoute
   '/energy/contract': typeof AppEnergyContractRoute
   '/energy/costs': typeof AppEnergyCostsRoute
+  '/energy/price-source': typeof AppEnergyPriceSourceRoute
+  '/energy/prices': typeof AppEnergyPricesRoute
   '/energy/readings': typeof AppEnergyReadingsRoute
+  '/energy/sources': typeof AppEnergySourcesRoute
   '/energy/usage': typeof AppEnergyUsageRoute
   '/groceries/in-stock': typeof AppGroceriesInStockRoute
   '/groceries/recent': typeof AppGroceriesRecentRoute
@@ -491,9 +523,13 @@ export interface FileRoutesById {
   '/_app/tasks': typeof AppTasksRoute
   '/_app/': typeof AppIndexRoute
   '/_app/baby/new': typeof AppBabyNewRoute
+  '/_app/energy/connect': typeof AppEnergyConnectRoute
   '/_app/energy/contract': typeof AppEnergyContractRoute
   '/_app/energy/costs': typeof AppEnergyCostsRoute
+  '/_app/energy/price-source': typeof AppEnergyPriceSourceRoute
+  '/_app/energy/prices': typeof AppEnergyPricesRoute
   '/_app/energy/readings': typeof AppEnergyReadingsRoute
+  '/_app/energy/sources': typeof AppEnergySourcesRoute
   '/_app/energy/usage': typeof AppEnergyUsageRoute
   '/_app/groceries/in-stock': typeof AppGroceriesInStockRoute
   '/_app/groceries/recent': typeof AppGroceriesRecentRoute
@@ -550,9 +586,13 @@ export interface FileRouteTypes {
     | '/shared-costs'
     | '/tasks'
     | '/baby/new'
+    | '/energy/connect'
     | '/energy/contract'
     | '/energy/costs'
+    | '/energy/price-source'
+    | '/energy/prices'
     | '/energy/readings'
+    | '/energy/sources'
     | '/energy/usage'
     | '/groceries/in-stock'
     | '/groceries/recent'
@@ -607,9 +647,13 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/'
     | '/baby/new'
+    | '/energy/connect'
     | '/energy/contract'
     | '/energy/costs'
+    | '/energy/price-source'
+    | '/energy/prices'
     | '/energy/readings'
+    | '/energy/sources'
     | '/energy/usage'
     | '/groceries/in-stock'
     | '/groceries/recent'
@@ -665,9 +709,13 @@ export interface FileRouteTypes {
     | '/_app/tasks'
     | '/_app/'
     | '/_app/baby/new'
+    | '/_app/energy/connect'
     | '/_app/energy/contract'
     | '/_app/energy/costs'
+    | '/_app/energy/price-source'
+    | '/_app/energy/prices'
     | '/_app/energy/readings'
+    | '/_app/energy/sources'
     | '/_app/energy/usage'
     | '/_app/groceries/in-stock'
     | '/_app/groceries/recent'
@@ -921,6 +969,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEnergyIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/energy/connect': {
+      id: '/_app/energy/connect'
+      path: '/energy/connect'
+      fullPath: '/energy/connect'
+      preLoaderRoute: typeof AppEnergyConnectRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/energy/contract': {
       id: '/_app/energy/contract'
       path: '/energy/contract'
@@ -935,11 +990,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEnergyCostsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/energy/price-source': {
+      id: '/_app/energy/price-source'
+      path: '/energy/price-source'
+      fullPath: '/energy/price-source'
+      preLoaderRoute: typeof AppEnergyPriceSourceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/energy/prices': {
+      id: '/_app/energy/prices'
+      path: '/energy/prices'
+      fullPath: '/energy/prices'
+      preLoaderRoute: typeof AppEnergyPricesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/energy/readings': {
       id: '/_app/energy/readings'
       path: '/energy/readings'
       fullPath: '/energy/readings'
       preLoaderRoute: typeof AppEnergyReadingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/energy/sources': {
+      id: '/_app/energy/sources'
+      path: '/energy/sources'
+      fullPath: '/energy/sources'
+      preLoaderRoute: typeof AppEnergySourcesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/energy/usage': {
@@ -1124,9 +1200,13 @@ interface AppRouteChildren {
   AppTasksRoute: typeof AppTasksRoute
   AppIndexRoute: typeof AppIndexRoute
   AppBabyNewRoute: typeof AppBabyNewRoute
+  AppEnergyConnectRoute: typeof AppEnergyConnectRoute
   AppEnergyContractRoute: typeof AppEnergyContractRoute
   AppEnergyCostsRoute: typeof AppEnergyCostsRoute
+  AppEnergyPriceSourceRoute: typeof AppEnergyPriceSourceRoute
+  AppEnergyPricesRoute: typeof AppEnergyPricesRoute
   AppEnergyReadingsRoute: typeof AppEnergyReadingsRoute
+  AppEnergySourcesRoute: typeof AppEnergySourcesRoute
   AppEnergyUsageRoute: typeof AppEnergyUsageRoute
   AppGroceriesInStockRoute: typeof AppGroceriesInStockRoute
   AppGroceriesRecentRoute: typeof AppGroceriesRecentRoute
@@ -1174,9 +1254,13 @@ const AppRouteChildren: AppRouteChildren = {
   AppTasksRoute: AppTasksRoute,
   AppIndexRoute: AppIndexRoute,
   AppBabyNewRoute: AppBabyNewRoute,
+  AppEnergyConnectRoute: AppEnergyConnectRoute,
   AppEnergyContractRoute: AppEnergyContractRoute,
   AppEnergyCostsRoute: AppEnergyCostsRoute,
+  AppEnergyPriceSourceRoute: AppEnergyPriceSourceRoute,
+  AppEnergyPricesRoute: AppEnergyPricesRoute,
   AppEnergyReadingsRoute: AppEnergyReadingsRoute,
+  AppEnergySourcesRoute: AppEnergySourcesRoute,
   AppEnergyUsageRoute: AppEnergyUsageRoute,
   AppGroceriesInStockRoute: AppGroceriesInStockRoute,
   AppGroceriesRecentRoute: AppGroceriesRecentRoute,

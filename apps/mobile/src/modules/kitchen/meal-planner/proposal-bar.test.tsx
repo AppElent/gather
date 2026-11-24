@@ -112,4 +112,28 @@ describe('useProposalBar', () => {
     view.rerender(render(NEXT_WEEK, []))
     expect(barIn(view.container)?.textContent).toBe('2026-11-25|dinner')
   })
+  test('a week change from an all-saved week to an empty week hides the bar in its first frame', () => {
+    const view = mount(render(NEXT_WEEK, [tue]))
+    const done = press()
+    view.rerender(render(NEXT_WEEK, []))
+    resolve(done, [slotKey(tue)])
+    view.rerender(render(NEXT_WEEK, []))
+    expect(barIn(view.container)).not.toBeNull()
+    frames.length = 0
+    view.rerender(render(THIS_WEEK, []))
+    expect(barIn(view.container)).toBeNull()
+    expect(frames.length).toBeGreaterThan(0)
+    expect(frames.every((frame) => !frame.showBar)).toBe(true)
+  })
+
+  test('coming back to the week does not bring its tail back', () => {
+    const view = mount(render(NEXT_WEEK, [tue]))
+    const done = press()
+    view.rerender(render(NEXT_WEEK, []))
+    resolve(done, [slotKey(tue)])
+    view.rerender(render(THIS_WEEK, []))
+    frames.length = 0
+    view.rerender(render(NEXT_WEEK, []))
+    expect(frames.every((frame) => !frame.showBar)).toBe(true)
+  })
 })

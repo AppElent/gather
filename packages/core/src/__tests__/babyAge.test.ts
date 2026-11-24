@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { formatAge } from '../babyAge'
-import { en } from '../messages'
+import { en, nl } from '../messages'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -44,7 +44,18 @@ describe('formatAge', () => {
         'en',
         new Date('2026-07-01T00:00:00').getTime(),
       ),
-    ).toBe('2y 6m old')
+    ).toBe('2 yr 6 mo old')
+  })
+
+  test('two years and beyond in Dutch', () => {
+    expect(
+      formatAge(
+        '2024-01-01',
+        nl.baby.log.child.age,
+        'nl',
+        new Date('2026-07-01T00:00:00').getTime(),
+      ),
+    ).toBe('2 jr 6 mnd oud')
   })
 
   test('exact whole years with no leftover months', () => {

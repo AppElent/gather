@@ -6,6 +6,7 @@ interface QuickAddFormProps {
   /** Names the field: which list the task goes into. */
   fieldLabel: string
   buttonLabel: string
+  /** Resolving to false means it was not added: the title comes back. */
   onAdd: (title: string) => Promise<unknown>
 }
 
@@ -26,7 +27,8 @@ export function QuickAddForm({
     const trimmed = title.trim()
     if (!trimmed) return
     setTitle('')
-    await onAdd(trimmed)
+    const added = await onAdd(trimmed)
+    if (added === false) setTitle((typed) => typed || trimmed)
   }
 
   return (
