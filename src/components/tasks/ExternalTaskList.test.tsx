@@ -228,6 +228,48 @@ test('completing a parent asks, and completes its subtasks', async () => {
   })
 })
 
+test('a repeating task offers "Only this", which advances it alone', async () => {
+  const weekly = { ...parent, repeatText: 'every week', dueDate: '2026-11-24' }
+  getTasks.mockResolvedValue({ status: 'ok', tasks: [weekly, step] })
+  writeTask.mockResolvedValue({
+    status: 'ok',
+    tasks: [{ ...weekly, dueDate: '2026-12-01' }],
+    refresh: false,
+  })
+  renderList()
+  await screen.findByText('Pack')
+  fireEvent.click(screen.getByLabelText('Toggle Pack'))
+  fireEvent.click(screen.getByRole('button', { name: 'Only this' }))
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  expect(writeTask).toHaveBeenCalledTimes(1)
+  expect(writeTask.mock.calls[0][0].write).toEqual({
+    kind: 'setDone',
+    taskId: 'p',
+    done: true,
+  })
+  expect(screen.getByLabelText('Toggle Socks')).not.toBeChecked()
+})
+
+test('a repeating task can still be completed with its subtasks', async () => {
+  const weekly = { ...parent, repeatText: 'every week' }
+  getTasks.mockResolvedValue({ status: 'ok', tasks: [weekly, step] })
+  writeTask.mockResolvedValue({ status: 'ok', tasks: [weekly], refresh: false })
+  renderList()
+  await screen.findByText('Pack')
+  fireEvent.click(screen.getByLabelText('Toggle Pack'))
+  fireEvent.click(screen.getByRole('button', { name: 'Complete all' }))
+  await waitFor(() => expect(writeTask).toHaveBeenCalledTimes(1))
+  expect(writeTask.mock.calls[0][0].write).toMatchObject({ withSubtasks: true })
+})
+
+test('a one-off linked task has no "Only this": Todoist closes its subtasks', async () => {
+  renderList()
+  await screen.findByText('Pack')
+  fireEvent.click(screen.getByLabelText('Toggle Pack'))
+  expect(screen.getByRole('button', { name: 'Complete all' })).toBeVisible()
+  expect(screen.queryByRole('button', { name: 'Only this' })).toBeNull()
+})
+
 test('Complete all retried carries the same key until Todoist took it', async () => {
   const completeAll = async (times: number) => {
     await waitFor(() => expect(screen.getByLabelText('Toggle Pack')).toBeEnabled())

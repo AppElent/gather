@@ -1,9 +1,11 @@
+import { asksAboutSubtasks, subtaskProgress } from '@gather/core/subtasks'
 import { useMutation, useQuery } from 'convex/react'
 import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, useMessages } from '../../lib/i18n'
+import { useConfirmAction } from '../app/ConfirmAction'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import { QuickAddForm } from './QuickAddForm'
 import { TaskEditor, type TaskEditorValues } from './TaskEditor'
@@ -35,7 +37,37 @@ export function LocalTaskList({
   const [showDetails, setShowDetails] = useState(false)
   const [editingId, setEditingId] = useState<Id<'tasks'> | null>(null)
   const messages = useMessages()
-  const { local } = messages.tasks
+  const { local, subtasks: subtaskWords } = messages.tasks
+  const { confirm, dialog } = useConfirmAction()
+  const progress = subtaskProgress(
+    (tasks ?? []).map((t) => ({ ...t, id: t._id })),
+  )
+
+  /** Ticks a task, asking about its open subtasks as the phone does (APP-820). */
+  function toggle(task: NonNullable<typeof tasks>[number]) {
+    const counts = progress.get(task._id)
+    const run = (withSubtasks: boolean) =>
+      toggleDone({
+        taskId: task._id,
+        groupSlug,
+        ...(withSubtasks ? { withSubtasks: true } : {}),
+      })
+    if (!counts || !asksAboutSubtasks(task, counts)) {
+      void run(false)
+      return
+    }
+    const open = counts.total - counts.done
+    confirm({
+      title: subtaskWords.askTitle,
+      body: fmt(open === 1 ? subtaskWords.askBodyOne : subtaskWords.askBody, {
+        count: open,
+        title: task.title,
+      }),
+      confirmLabel: subtaskWords.completeAll,
+      run: () => run(true),
+      alternative: { label: subtaskWords.onlyThis, run: () => run(false) },
+    })
+  }
 
   async function detailedAdd(values: TaskEditorValues) {
     setShowDetails(false)
@@ -117,7 +149,7 @@ export function LocalTaskList({
               priority: t.priority,
               labels: t.labels,
             }}
-            onToggle={() => void toggleDone({ taskId: t._id, groupSlug })}
+            onToggle={() => toggle(t)}
             actions={
               <span className="flex items-center gap-1">
                 <button
@@ -168,6 +200,7 @@ export function LocalTaskList({
       {tasks?.length === 0 && (
         <p className="m-0 text-sm text-[var(--muted)]">{local.empty}</p>
       )}
+      {dialog}
     </SurfaceCard>
   )
 }

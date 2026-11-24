@@ -273,6 +273,16 @@ export function ExternalTaskList({
       confirmLabel: subtaskWords.completeAll,
       errorFallback: fmt(linkedWrite.failed.failed, { provider: label }),
       run: () => run(true),
+      // Todoist always completes a task's subtasks with it, unless the task
+      // repeats and so stays open; the phone offers the same (APP-820).
+      ...(task.repeatText
+        ? {
+            alternative: {
+              label: subtaskWords.onlyThis,
+              run: () => run(false),
+            },
+          }
+        : {}),
     })
   }
 
