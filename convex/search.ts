@@ -8,7 +8,11 @@ import { isTimeZone } from '@gather/core/task-reminders'
 import { ConvexError, type Infer, v } from 'convex/values'
 
 import { query } from './_generated/server'
-import { isVisibleToGroups, requireGroupBySlug } from './lib/groupAccess'
+import {
+  getMembership,
+  isVisibleToGroups,
+  requireGroupBySlug,
+} from './lib/groupAccess'
 import { findNotes, noteExcerpt } from './lib/noteSearch'
 import { indexSearch, normalized } from './lib/searchText'
 import { tastingKindValidator } from './lib/tastings'
@@ -30,6 +34,10 @@ const CHILD_RECORD_LIMIT = 50
  * matches by title however old, per Group for recipes and tastings, and per
  * list or calendar for tasks and events (APP-758). A read budget, not a page
  * size: past this many matches, the least relevant older ones are not read.
+ * Who and Status narrow the index reads themselves, so rows they rule out use
+ * none of it (APP-787). When cannot: search filters are equality only and When
+ * is a date range. It filters the rows read, so an old row in the range can be
+ * missed behind more than this many better matches outside it.
  */
 const GROUP_MATCH_LIMIT = 100
 const CHILD_MATCH_LIMIT = 50
@@ -178,6 +186,15 @@ export const group = query({
     const groupId = group._id
     const none = Promise.resolve([])
 
+    // Who, as the index reads take it: a Member of this Group. Anything else,
+    // a malformed id included, is left to the row filter below, which returns
+    // only rows with exactly that creator.
+    const whoId = args.createdBy
+      ? ctx.db.normalizeId('users', args.createdBy)
+      : null
+    const creator =
+      whoId && (await getMembership(ctx, groupId, whoId)) ? whoId : null
+
     // Share rows are small; read first so the Group's own recipes can take
     // whatever of the recipe budget the shares leave.
     const shares = accepts.has('recipe')
@@ -209,9 +226,10 @@ export const group = query({
       accepts.has('recipe') && searchable
         ? ctx.db
             .query('recipes')
-            .withSearchIndex('search_title', (q) =>
-              q.search('title', search).eq('groupId', groupId),
-            )
+            .withSearchIndex('search_title', (q) => {
+              const inGroup = q.search('title', search).eq('groupId', groupId)
+              return creator ? inGroup.eq('createdByUserId', creator) : inGroup
+            })
             .take(GROUP_MATCH_LIMIT)
         : none,
       accepts.has('note')
@@ -237,7 +255,8 @@ export const group = query({
             .query('tastingSubjects')
             .withSearchIndex('search_name', (q) => {
               const inGroup = q.search('name', search).eq('groupId', groupId)
-              return args.kind ? inGroup.eq('kind', args.kind) : inGroup
+              const ofKind = args.kind ? inGroup.eq('kind', args.kind) : inGroup
+              return creator ? ofKind.eq('createdByUserId', creator) : ofKind
             })
             .take(GROUP_MATCH_LIMIT)
         : none,
@@ -289,9 +308,13 @@ export const group = query({
             searchable
               ? ctx.db
                   .query('tasks')
-                  .withSearchIndex('search_title', (q) =>
-                    q.search('title', search).eq('listId', list._id),
-                  )
+                  .withSearchIndex('search_title', (q) => {
+                    const inList = q.search('title', search).eq('listId', list._id)
+                    const byWho = creator ? inList.eq('createdBy', creator) : inList
+                    return args.status
+                      ? byWho.eq('done', args.status === 'done')
+                      : byWho
+                  })
                   .take(CHILD_MATCH_LIMIT)
               : none,
           ])
@@ -309,9 +332,12 @@ export const group = query({
             searchable
               ? ctx.db
                   .query('calendarEvents')
-                  .withSearchIndex('search_title', (q) =>
-                    q.search('title', search).eq('calendarId', calendar._id),
-                  )
+                  .withSearchIndex('search_title', (q) => {
+                    const inCalendar = q
+                      .search('title', search)
+                      .eq('calendarId', calendar._id)
+                    return creator ? inCalendar.eq('createdBy', creator) : inCalendar
+                  })
                   .take(CHILD_MATCH_LIMIT)
               : none,
           ])
