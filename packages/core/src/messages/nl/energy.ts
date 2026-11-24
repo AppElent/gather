@@ -494,7 +494,7 @@ export const energy = {
       'Gather kan niet bij een adres binnen je thuisnetwerk. Gebruik het adres van buiten.',
     tokenNeeded: 'Plak het token. Een nieuw adres vraagt het altijd opnieuw.',
     channelTwice: 'Eén sensor is twee keer gekozen.',
-    tooManyChannels: 'Te veel sensoren, samen met eerdere die nog gegevens hebben. Laat er een paar weg.',
+    tooManyChannels: 'Te veel sensoren, samen met eerdere met gegevens uit dezelfde periode. Laat er een paar weg.',
     channelsMixed:
       'Kies van een kanaal het totaal of de sensoren voor dal en normaal, niet allebei.',
     statisticNotFound: 'Een gekozen sensor bestaat niet meer in Home Assistant. Test opnieuw.',

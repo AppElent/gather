@@ -285,23 +285,22 @@ async function loadPrices(
   }))
   const within = (slots: readonly PriceSlot[], at: { from: number; to: number }) =>
     slots.some((slot) => slot.start >= at.from && slot.start < at.to)
-  // Only the stretch the feed's own provider leaves open.
-  const open = bounds.filter((day) => !within(own, day))
-  const fallback = open.length
-    ? await marketPrices(
-        ctx,
-        DEFAULT_ENERGY_PRICE_PROVIDER,
-        'electricity',
-        open[0]?.from ?? start,
-        open[open.length - 1]?.to ?? end,
-      )
-    : []
-  const market: PriceSlot[] = [
-    ...own,
-    ...fallback.filter((slot) =>
-      open.some((day) => slot.start >= day.from && slot.start < day.to),
-    ),
-  ]
+  // Only the days the feed's own provider leaves open, so the two together
+  // are never more than one price for each quarter (`MAX_CHANNELS`).
+  const fallback = await Promise.all(
+    bounds
+      .filter((day) => !within(own, day))
+      .map((day) =>
+        marketPrices(
+          ctx,
+          DEFAULT_ENERGY_PRICE_PROVIDER,
+          'electricity',
+          day.from,
+          day.to,
+        ),
+      ),
+  )
+  const market: PriceSlot[] = [...own, ...fallback.flat()]
   const allInDays = new Set(
     bounds
       .filter(
@@ -339,7 +338,7 @@ function average(slots: readonly PriceSlot[], from: number, to: number) {
  * Home Assistant adds the hours it missed to the next one it has, so time
  * without rows in between is counted too (APP-495).
  */
-async function measuredSpan(ctx: QueryCtx, channelId: Id<'energyChannels'>) {
+export async function measuredSpan(ctx: QueryCtx, channelId: Id<'energyChannels'>) {
   const hours = () =>
     ctx.db
       .query('energyIntervals')
@@ -397,6 +396,17 @@ function countedTwice(
   }
 }
 
+/** A site's contracts, oldest first. */
+export async function siteContracts(
+  ctx: QueryCtx,
+  siteId: Id<'energySites'>,
+) {
+  return ctx.db
+    .query('energyContracts')
+    .withIndex('by_site_validFrom', (q) => q.eq('siteId', siteId))
+    .collect()
+}
+
 export interface EnergyRange {
   days: EnergyDay[]
   /** Per hour, only when asked for and only from hourly sources. */
@@ -406,15 +416,15 @@ export interface EnergyRange {
 
 /**
  * Usage and costs for each of `days` (consecutive, in order). With
- * `hourly`, also each hour of the range from hourly sources. `net: false`
- * leaves out net metering, for a caller that nets the whole month itself.
+ * `hourly`, also each hour of the range from hourly sources. Net metering is
+ * over the days given, so a day's share takes its whole month.
  */
 export async function computeEnergyRange(
   ctx: QueryCtx,
   site: Doc<'energySites'>,
   channels: readonly ChannelWithSource[],
   days: readonly string[],
-  options: { hourly?: boolean; net?: boolean } = {},
+  options: { hourly?: boolean } = {},
 ): Promise<EnergyRange> {
   const first = days[0]
   const last = days[days.length - 1]
@@ -435,9 +445,15 @@ export async function computeEnergyRange(
 
   // What hourly sources measured decides what may still be added from typed
   // readings and from counters that overlap (APP-495).
+  // A retired channel gets no hours after it retired, so one that did before
+  // the range has nothing in it and is not read at all (APP-724).
   const hourly = await Promise.all(
     channels
-      .filter((each) => !each.manual)
+      .filter(
+        ({ manual, channel }) =>
+          !manual &&
+          (channel.retiredAt === undefined || channel.retiredAt > start),
+      )
       .map(async ({ channel }) => ({
         channel,
         intervals: await ctx.db
@@ -567,10 +583,7 @@ export async function computeEnergyRange(
     }
   }
 
-  const contracts = await ctx.db
-    .query('energyContracts')
-    .withIndex('by_site_validFrom', (q) => q.eq('siteId', site._id))
-    .collect()
+  const contracts = await siteContracts(ctx, site._id)
   const needsPrices = days.some(
     (day) => energyContractOn(contracts, day)?.kind === 'dynamic',
   )
@@ -652,7 +665,7 @@ export async function computeEnergyRange(
       costStatus: priced ? ('ok' as const) : ('noPrices' as const),
     }
   })
-  if (options.net !== false) netEachMonth(result, contracts)
+  netEachMonth(result, contracts)
 
   const hours: EnergyHour[] = !options.hourly
     ? []
