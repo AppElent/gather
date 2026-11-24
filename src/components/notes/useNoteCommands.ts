@@ -25,7 +25,7 @@ export function useNoteCommands() {
       try {
         await actions.togglePin(note)
       } catch (caught) {
-        setError(errorText(caught, words.web.actionFailed))
+        setError(errorText(caught, messages.common.errors.didNotWork))
       }
     },
     confirmDelete: (note: Target, onDeleted: () => void) =>

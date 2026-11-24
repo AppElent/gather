@@ -26,7 +26,6 @@ export const notes = {
     editedByYou: 'Bewerkt door jou · {when}',
     edited: 'Bewerkt · {when}',
     saved: 'Opgeslagen',
-    saving: 'Opslaan…',
     notSaved: 'Niet opgeslagen',
     notSavedBody: 'Je tekst staat hier nog. {reason}',
     emptyBody: 'Bewaar wat het huishouden vaker opzoekt: de wificode, wat er mee moet.',
@@ -42,6 +41,5 @@ export const notes = {
     loadErrorTitle: 'Notities konden niet worden geladen',
     loadErrorBody: 'Controleer je verbinding en probeer het opnieuw.',
     createFailed: 'De notitie kon niet worden gemaakt. Probeer het opnieuw.',
-    actionFailed: 'Dat lukte niet. Probeer het opnieuw.',
   },
 } satisfies typeof enNotes

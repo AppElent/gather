@@ -44,10 +44,9 @@ export function NotesPage({
     useNotesList()
   const note = useNote(noteId)
 
-  const [searchOpen, setSearchOpen] = useState(false)
   const [typed, setTyped] = useState('')
   const query = usePaused(typed.trim(), SEARCH_PAUSE)
-  const searching = searchOpen && typed.trim().length > 0
+  const searching = typed.trim().length > 0
   const found = useQuery(
     api.notes.searchNotes,
     searching && query.length >= MIN_QUERY ? { groupSlug, query } : 'skip',
@@ -85,7 +84,7 @@ export function NotesPage({
     commands.setError(null)
     try {
       const id = await commands.createEmpty()
-      closeSearch()
+      setTyped('')
       void navigate(latestAddress.current(id))
     } catch (caught) {
       commands.setError(errorText(caught, words.web.createFailed))
@@ -95,13 +94,10 @@ export function NotesPage({
   }
   useStartCreating({ startCreating, onCreateStarted }, () => void create())
 
-  const closeSearch = () => {
-    setSearchOpen(false)
+  const clearSearch = () => {
     setTyped('')
+    searchRef.current?.focus()
   }
-  useEffect(() => {
-    if (searchOpen) searchRef.current?.focus()
-  }, [searchOpen])
 
   const row = (item: Note) => (
     <NoteRow
@@ -140,7 +136,7 @@ export function NotesPage({
         </p>
       ) : null}
 
-      {searchOpen ? (
+      {loading || none ? null : (
         <div className="flex items-center gap-2">
           <input
             ref={searchRef}
@@ -150,26 +146,25 @@ export function NotesPage({
             placeholder={words.search}
             onChange={(event) => setTyped(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key !== 'Escape') return
+              if (event.key !== 'Escape' || typed === '') return
               event.preventDefault()
-              closeSearch()
-              document
-                .querySelector<HTMLElement>('header[data-group="home"] button')
-                ?.focus()
+              clearSearch()
             }}
             className={`${inputClass} min-w-0 flex-1`}
           />
-          <button
-            type="button"
-            aria-label={words.web.clearSearch}
-            title={words.web.clearSearch}
-            onClick={closeSearch}
-            className={buttonClass.round}
-          >
-            <X className="size-4" aria-hidden="true" />
-          </button>
+          {typed ? (
+            <button
+              type="button"
+              aria-label={words.web.clearSearch}
+              title={words.web.clearSearch}
+              onClick={clearSearch}
+              className={buttonClass.round}
+            >
+              <X className="size-4" aria-hidden="true" />
+            </button>
+          ) : null}
         </div>
-      ) : null}
+      )}
 
       {searching ? (
         query.length < MIN_QUERY ? (
@@ -182,7 +177,7 @@ export function NotesPage({
           <EmptyState
             kind="nothing-found"
             title={words.web.searchNone}
-            action={{ label: words.web.clearSearch, onClick: closeSearch }}
+            action={{ label: words.web.clearSearch, onClick: clearSearch }}
           />
         ) : (
           <InsetList label={words.search}>{found.map(row)}</InsetList>
@@ -265,12 +260,7 @@ export function NotesPage({
                   }
             }
             onSearch={
-              none
-                ? undefined
-                : () => {
-                    setSearchOpen(true)
-                    searchRef.current?.focus()
-                  }
+              loading || none ? undefined : () => searchRef.current?.focus()
             }
             primary={{ label: words.newNote, onClick: () => void create() }}
           />

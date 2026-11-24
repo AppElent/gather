@@ -148,8 +148,8 @@ describe('the list', () => {
     state.queries['notes:searchNotes'] = ({ query }: { query: string }) =>
       query === 'gi' ? [GIFTS] : []
     renderInGroup(<NotesPage />)
+    const field = screen.getByRole('searchbox', { name: 'Search notes' })
     fireEvent.click(screen.getByRole('button', { name: 'Search in Notes' }))
-    const field = screen.getByRole('searchbox')
     expect(field).toHaveFocus()
     fireEvent.change(field, { target: { value: 'g' } })
     expect(screen.getByText('Type at least two letters.')).toBeInTheDocument()
@@ -160,6 +160,8 @@ describe('the list', () => {
     expect(await screen.findByText('No notes found')).toBeInTheDocument()
     fireEvent.keyDown(field, { key: 'Escape' })
     expect(row('Wifi')).toBeInTheDocument()
+    expect(field).toHaveValue('')
+    expect(field).toHaveFocus()
   })
 
   test('no notes is an invitation, in Dutch too', () => {

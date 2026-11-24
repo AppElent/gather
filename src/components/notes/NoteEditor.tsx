@@ -79,7 +79,7 @@ export function NoteEditor({
     ? words.web.saved
     : failed
       ? words.web.notSaved
-      : words.web.saving
+      : messages.common.actions.saving
   const pinLabel = note.pinned ? words.unpin : words.pin
 
   return (

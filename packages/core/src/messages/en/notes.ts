@@ -28,7 +28,6 @@ export const notes = {
     editedByYou: 'Edited by you · {when}',
     edited: 'Edited · {when}',
     saved: 'Saved',
-    saving: 'Saving…',
     notSaved: 'Not saved',
     notSavedBody: 'Your text is still here. {reason}',
     emptyBody: 'Keep what the household looks up again: the wifi code, what to pack.',
@@ -44,6 +43,5 @@ export const notes = {
     loadErrorTitle: 'Notes could not be loaded',
     loadErrorBody: 'Check your connection and try again.',
     createFailed: 'The note could not be created. Try again.',
-    actionFailed: 'That did not work. Try again.',
   },
 }
