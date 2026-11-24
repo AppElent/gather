@@ -32,8 +32,10 @@ const SHARED_RECIPE_LIMIT = 50
  * The first `FULL_PARENT_LIMIT` also scan their newest `CHILD_RECORD_LIMIT`
  * rows, as a substring match needs; the rest read only their title index. Per
  * type that is at most 20 x (50 + 50) + 60 x 50 = 5,000 rows, so tasks and
- * events together stay near 10,000 of Convex's 16,384 reads, leaving room for
- * the other types (about 2,500 at most).
+ * events together stay near 10,000 document reads, leaving room for the other
+ * types (about 2,500 at most) below Convex's 32,000. That counts rows, not
+ * bytes: only a Group with long notes on nearly every match nears 16 MiB.
+ * Raising `FULL_PARENT_LIMIT` raises that worst case a lot.
  */
 const PARENT_LIMIT = 80
 const FULL_PARENT_LIMIT = 20
@@ -135,7 +137,8 @@ function matched(
  * Notes come from their search indexes and their newest records (APP-348,
  * `lib/noteSearch.ts`). So do recipes, tastings, tasks and calendar events, by
  * title only (APP-758): the newest rows are matched on any substring, tags and
- * notes included, and older ones by whole word or last-word prefix. Loyalty
+ * notes included, and older ones by whole word or last-word prefix. Every row
+ * of the task lists and calendars past the 20th is matched that way (APP-786). Loyalty
  * cards, Shared-in recipes, lists and calendars are only scanned (the first
  * `PARENT_LIMIT` of each, APP-786). The fan-out
  * is globally bounded below Convex's read limit. That is a safety boundary, not

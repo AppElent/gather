@@ -998,6 +998,14 @@ describe('Group search past the first 20 lists and calendars (APP-786)', () => {
     expect(await search('elsewhere')).toEqual([])
   })
 
+  test('matches inside a word only in the first 20 lists', async () => {
+    const { search } = await seedMany({ 20: 'Zolderkast', 21: 'Zolderkast' })
+    expect(await search('kast', { accepts: ['task'] })).toEqual([
+      'task:Zolderkast',
+    ])
+    expect(await search('zolderkast', { accepts: ['task'] })).toHaveLength(2)
+  })
+
   test('keeps the bound: the last searched list is found, the next is not', async () => {
     const { search } = await seedMany({
       [PARENT_LIMIT]: 'Laatste kelder',
