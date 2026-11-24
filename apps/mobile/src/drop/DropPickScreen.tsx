@@ -54,12 +54,14 @@ import {
   type DropTargetId,
   dropTargetById,
 } from './dropTargets'
-import { asksServer, pickableNotes } from './noteCandidates'
+import { asksServer, bodyExcerpt, pickableNotes } from './noteCandidates'
 import { type DropPicked, useDropCommit } from './useDropCommit'
 
 /** One row of whatever stage two is listing. */
 interface Candidate extends DropPicked {
   label: string
+  /** Why a note matched, when only its body did: the text around the hit. */
+  detail?: string
   /** A list Gather may read but never write to (ADR-0021). */
   readOnly?: boolean
 }
@@ -208,7 +210,11 @@ export function DropPickScreen() {
                     <Pressable
                       key={candidate.id}
                       accessibilityRole="button"
-                      accessibilityLabel={candidate.label}
+                      accessibilityLabel={
+                        candidate.detail
+                          ? `${candidate.label}, ${candidate.detail}`
+                          : candidate.label
+                      }
                       accessibilityState={{
                         disabled: Boolean(candidate.readOnly),
                       }}
@@ -223,11 +229,21 @@ export function DropPickScreen() {
                         pressed && !candidate.readOnly && styles.pressed,
                       ]}
                     >
-                      <Text
-                        style={[styles.rowLabel, { color: tokens.ink }]}
-                      >
-                        {candidate.label}
-                      </Text>
+                      <View style={styles.rowText}>
+                        <Text
+                          style={[styles.rowLabel, { color: tokens.ink }]}
+                        >
+                          {candidate.label}
+                        </Text>
+                        {candidate.detail ? (
+                          <Text
+                            numberOfLines={2}
+                            style={[styles.rowNote, { color: tokens.muted }]}
+                          >
+                            {candidate.detail}
+                          </Text>
+                        ) : null}
+                      </View>
                       {saving === candidate.id ? (
                         <ActivityIndicator color={tokens.muted} />
                       ) : candidate.readOnly ? (
@@ -324,6 +340,7 @@ function useCandidates(
     )?.map((note) => ({
       id: note._id,
       label: note.title || t.notes.untitled,
+      detail: bodyExcerpt(note, query, t.notes.untitled) ?? undefined,
       // Carried so the commit appends to what is on screen rather than reading
       // the note back to learn what somebody just pointed at.
       body: note.body,
@@ -386,6 +403,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
+  rowText: { flexShrink: 1, gap: 2 },
   rowLabel: { ...TYPE.body, flexShrink: 1 },
   rowNote: { ...TYPE.footnote },
   disabled: { opacity: 0.5 },
