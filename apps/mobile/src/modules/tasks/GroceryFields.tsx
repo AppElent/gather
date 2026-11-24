@@ -25,7 +25,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
-import { useI18n } from '../../i18n'
+import { fmt, useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
@@ -363,9 +364,11 @@ export function GroceryFields({
             const chosen = event.nativeEvent.event
             if (!isGroceryAisle(chosen) || chosen === aisle) return
             haptics.selectionChanged()
-            actions
-              .setAisle(task.id, chosen)
-              .catch(() => haptics.actionFailed())
+            actions.setAisle(task.id, chosen).catch(() => {
+              // A haptic is never the only word (APP-621).
+              haptics.actionFailed()
+              showAlert(fmt(words.aisleFailed, { aisle: words.aisles[chosen] }))
+            })
           }}
         >
           <View

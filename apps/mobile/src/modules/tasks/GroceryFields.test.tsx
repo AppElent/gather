@@ -16,6 +16,11 @@ const state = vi.hoisted(() => ({
   submit: () => {},
   blur: () => {},
   writes: [] as { to: unknown; expected: unknown; land: () => void; fail: () => void }[],
+  /** The aisle menu's choice handler, as the native menu calls it. */
+  pickAisle: (_id: string) => {},
+  aisleFails: false,
+  moves: [] as [string, string][],
+  alerts: [] as string[],
 }))
 
 vi.mock('react-native', async () => {
@@ -46,7 +51,22 @@ vi.mock('react-native', async () => {
     StyleSheet: { create: <T,>(styles: T) => styles },
   }
 })
-vi.mock('@expo/ui/community/menu', () => ({ MenuView: () => null }))
+vi.mock('@expo/ui/community/menu', () => ({
+  MenuView: ({
+    testID,
+    onPressAction,
+  }: {
+    testID?: string
+    onPressAction: (event: { nativeEvent: { event: string } }) => void
+  }) => {
+    if (testID === 'grocery-aisle')
+      state.pickAisle = (id) => onPressAction({ nativeEvent: { event: id } })
+    return null
+  },
+}))
+vi.mock('../../observability/native-presentation', () => ({
+  showAlert: (title: string) => state.alerts.push(title),
+}))
 vi.mock('../../feedback/haptics', () => ({
   haptics: new Proxy({}, { get: () => () => {} }),
 }))
@@ -55,7 +75,8 @@ vi.mock('../../group/GroupProvider', () => ({
 }))
 vi.mock('../../i18n', async () => {
   const { en } = await import('../../i18n/messages/en')
-  return { useI18n: () => ({ t: en, locale: 'en' }) }
+  const { fmt } = await import('@gather/core/i18n')
+  return { fmt, useI18n: () => ({ t: en, locale: 'en' }) }
 })
 vi.mock('../../theme/icons', () => ({
   UI_ICONS: new Proxy({}, { get: () => () => null }),
@@ -74,6 +95,10 @@ vi.mock('../kitchen/add-to-groceries/use-aisles', () => ({
 }))
 vi.mock('./store', () => ({
   useTaskActions: () => ({
+    setAisle: async (id: string, aisle: string) => {
+      state.moves.push([id, aisle])
+      if (state.aisleFails) throw new Error('offline')
+    },
     setAmount: (_id: string, to: unknown, expected: unknown) =>
       new Promise<void>((resolve, reject) => {
         state.writes.push({
@@ -91,6 +116,9 @@ const melk = { id: 'melk', title: 'Melk', done: false, ...pak(1) } as Task
 
 beforeEach(() => {
   state.writes = []
+  state.aisleFails = false
+  state.moves = []
+  state.alerts = []
 })
 
 /** The keyboard's Done: the field submits, then blurs. */
@@ -353,4 +381,21 @@ test('Done before the render of what was typed sends it', () => {
     state.blur()
   })
   expect(state.writes.map(({ to }) => to)).toEqual([pak(5)])
+})
+
+test('a failed aisle move is said, not only felt (APP-621)', async () => {
+  state.aisleFails = true
+  open()
+  await act(async () => state.pickAisle('dairy'))
+  await settle()
+  expect(state.moves).toEqual([['melk', 'dairy']])
+  expect(state.alerts).toEqual(['Could not move it to Dairy and eggs. Try again.'])
+})
+
+test('an aisle move that lands says nothing', async () => {
+  open()
+  await act(async () => state.pickAisle('dairy'))
+  await settle()
+  expect(state.moves).toEqual([['melk', 'dairy']])
+  expect(state.alerts).toEqual([])
 })

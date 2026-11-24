@@ -141,6 +141,7 @@ export const tasks = {
     clearAmount: 'Geen hoeveelheid',
     unit: 'Eenheid',
     aisle: 'Afdeling',
+    aisleFailed: 'Verplaatsen naar {aisle} is niet gelukt. Probeer het opnieuw.',
     itemPlaceholder: 'Wat heb je nodig?',
     deleteItem: 'Item verwijderen',
     labelsOnItem: 'Op dit item',
