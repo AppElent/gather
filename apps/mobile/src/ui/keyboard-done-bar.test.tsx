@@ -123,4 +123,19 @@ describe('useKeyboardDoneBar', () => {
       expect(container.innerHTML).toBe('')
     }
   })
+
+  test('the input key follows keyboardType so a changed keypad remounts the field', () => {
+    const keyFor = (keyboardType?: Parameters<typeof useKeyboardDoneBar>[0]['keyboardType']) => {
+      render({ keyboardType, id: 'amount' })
+      return probe.inputKey
+    }
+    const keys = ['default', 'decimal-pad', 'number-pad'].map((k) =>
+      keyFor(k as 'default'),
+    )
+    expect(new Set(keys).size).toBe(3)
+    expect(keyFor('decimal-pad')).toBe(keys[1])
+    expect(keyFor(undefined)).toBe(keys[0])
+    rn.os = 'android'
+    expect(keyFor('decimal-pad')).toBe(keys[1])
+  })
 })

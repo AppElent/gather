@@ -309,13 +309,14 @@ function Input({
   ...props
 }: React.ComponentProps<typeof TextInput> & { minHeight?: number }) {
   const tokens = useTokens('kitchen')
-  const { inputAccessoryViewID, accessory } = useKeyboardDoneBar({
+  const { inputAccessoryViewID, accessory, inputKey } = useKeyboardDoneBar({
     keyboardType: props.keyboardType,
   })
   return (
     <>
       {accessory}
       <TextInput
+        key={inputKey}
         {...props}
         inputAccessoryViewID={inputAccessoryViewID}
         multiline={multiline}
