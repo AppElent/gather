@@ -263,6 +263,18 @@ describe('the note', () => {
     expect(screen.queryByLabelText('Your text that was not saved')).toBeNull()
   })
 
+  test('an emptied field of a note somebody deleted can be discarded', async () => {
+    state.fail.add('notes:update')
+    const { rerender } = renderInGroup(<NotesPage noteId="n1" />)
+    fireEvent.change(body(), { target: { value: '' } })
+    fireEvent.blur(body())
+    await screen.findByRole('alert')
+    state.queries['notes:get'] = null
+    rerender(<NotesPage noteId="n1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Discard text' }))
+    expect(screen.queryByRole('button', { name: 'Discard text' })).toBeNull()
+  })
+
   test('another Member’s change shows, but not over unsaved text', () => {
     const { rerender } = renderInGroup(<NotesPage noteId="n1" />)
     state.queries['notes:get'] = { ...WIFI, body: 'theirs' }

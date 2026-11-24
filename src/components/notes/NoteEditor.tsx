@@ -92,6 +92,7 @@ export function NoteEditor({
           {edited}
           {' · '}
           <span
+            role="status"
             data-testid="note-status"
             className={failed ? 'font-semibold text-[var(--danger)]' : ''}
           >
@@ -250,7 +251,7 @@ export function NoteNotice({
         >
           {words.backToNotes}
         </button>
-        {draft && kept ? (
+        {draft ? (
           <button
             type="button"
             onClick={() => discardDraft(key)}
