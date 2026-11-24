@@ -10,6 +10,7 @@ import {
   onSheetsClosing,
   openPrompt,
   openSheet,
+  PROMPT_SETTLE_MS,
   promptsAnswered,
 } from './openSheets'
 
@@ -28,6 +29,7 @@ function sheet() {
 
 afterEach(() => {
   for (const handle of registered.splice(0)) handle.closed()
+  if (vi.isFakeTimers()) vi.runOnlyPendingTimers()
   vi.useRealTimers()
 })
 
@@ -266,6 +268,20 @@ describe('openSheets', () => {
 })
 
 describe('prompts', () => {
+  it('makes a share or link that arrives just after the answer wait too', async () => {
+    vi.useFakeTimers()
+    openPrompt()()
+    await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS - 100)
+    let ready = false
+    promptsAnswered().then(() => {
+      ready = true
+    })
+    await vi.advanceTimersByTimeAsync(99)
+    expect(ready).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(ready).toBe(true)
+  })
+
   it('waits for every open prompt, then for what its answer opened', async () => {
     vi.useFakeTimers()
     const first = openPrompt()
@@ -282,7 +298,7 @@ describe('prompts', () => {
 
     second()
     expect(hasOpenPrompts()).toBe(false)
-    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS - 1)
+    await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS - 1)
     expect(answered).toBe(false)
     await vi.advanceTimersByTimeAsync(1)
     await waiting
@@ -298,10 +314,10 @@ describe('prompts', () => {
     })
     first()
     const next = openPrompt()
-    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS * 2)
+    await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS * 2)
     expect(answered).toBe(false)
     next()
-    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
+    await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS)
     expect(answered).toBe(true)
   })
 
@@ -317,7 +333,7 @@ describe('prompts', () => {
     expect(done).toBe(false)
     typing()
     late()
-    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
+    await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS)
     expect(done).toBe(true)
     openPrompt(1000)
     await vi.advanceTimersByTimeAsync(1000)

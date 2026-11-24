@@ -33,28 +33,12 @@ import { useRouter } from 'expo-router'
 import { useEffect, useRef } from 'react'
 
 import {
-  closeOpenSheets,
+  closeAllSheets,
   hasOpenPrompts,
   hasOpenSheets,
-  promptsAnswered,
 } from '../components/openSheets'
 import { useDrop } from './DropProvider'
 import { dropHref } from './paths'
-
-/** Rounds of closing, for a sheet that replaces one as it closes. */
-const CLOSE_ROUNDS = 2
-
-/** Closes what is open, for as long as the share that asked is `current`. */
-async function closeAllSheets(current: () => boolean) {
-  await promptsAnswered()
-  for (
-    let round = 0;
-    round < CLOSE_ROUNDS && current() && hasOpenSheets();
-    round++
-  ) {
-    await closeOpenSheets()
-  }
-}
 
 export function DropGate() {
   const { pending } = useDrop()

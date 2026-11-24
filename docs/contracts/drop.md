@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the share sheet, a Drop, its destinations, host rules, or expo-share-intent.
-version: 1.5.0
+version: 1.6.0
 status: current
 ---
 
@@ -40,8 +40,15 @@ that already means making Group content visible to a second Group.
   being typed. Outside iOS a prompt does nothing and holds nothing. A
   share also waits, at most five minutes (`ALERT_HOLD_MS`), for an alert whose
   answer opens a sheet (`showAlert` with `holdsShare`: the calendar's
-  unsaved-changes questions). Any other alert stays in front of the chooser and
-  loses nothing.
+  unsaved-changes questions). After the answer it waits another second
+  (`PROMPT_SETTLE_MS`): closing a composer while its card still moves crashes
+  the app. Any other alert stays in front of the chooser and loses nothing.
+- **A link waits the same way** (`src/shell/linkAfterSheets.ts`, APP-747). Any
+  link that reaches a running app, `gather-dev://drop` included, closes the open
+  sheets and waits for a prompt before the router navigates: on iOS a sheet
+  whose screen has been covered no longer closes. A newer link or share
+  replaces a link that waits, even a share Gather cannot place. A link does not
+  replace a share that waits: both open. A link that launches the app is never held.
 - **There is one chooser.** The chooser route is singular
   (`app/(app)/drop/_layout.tsx`): a second share, or `gather-dev://drop`, while
   one is open brings it back to the top and does not stack another. It shows
@@ -103,10 +110,10 @@ that already means making Group content visible to a second Group.
 
 ## Acceptance
 
-- Link and text Drops are verified through the `gather-dev://drop` harness
-  when nothing is open. A real share is driven on the iOS simulator with
-  `agent-device`: open Safari, tap its Share button, then tap Gather's row with
-  coordinate taps, because the share sheet's accessibility refs report stale
-  frames. That is how a Drop over an open sheet or prompt is checked. Image
-  Drops are verified by sharing a photo from the Photos app by hand
+- Link and text Drops are verified through the `gather-dev://drop` harness. A
+  real share is driven on the iOS simulator with `agent-device`: open Safari,
+  tap its Share button, then tap Gather's row with coordinate taps, because the
+  share sheet's accessibility refs report stale frames. That is how a Drop over
+  an open sheet or prompt is checked. Image Drops are verified by sharing a photo
+  from the Photos app by hand
   ([mobile verification](../runbooks/mobile-verification.md#verifying-a-drop)).
