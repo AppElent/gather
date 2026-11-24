@@ -220,11 +220,82 @@ describe('searching notes', () => {
     })
   })
 
-  test('earlier words match whole; only the last is completed', async () => {
+  test('a word is found inside a longer one, whole words and prefixes first', async () => {
     const { t } = await seed()
     await addNote(t, 'Boilerplate manual')
     await addNote(t, 'Boiler manual')
-    expect(await titles(t, 'boiler manu')).toEqual(['Boiler manual'])
+    expect(await titles(t, 'boiler manu')).toEqual([
+      'Boiler manual',
+      'Boilerplate manual',
+    ])
+    await addNote(t, 'Wijnkaart', 'rood')
+    await addNote(t, 'Kaart', 'wijn')
+    await addNote(t, 'Lunch', 'de wijnkaart van Piet')
+    expect(await titles(t, 'kaart')).toEqual(
+      expect.arrayContaining(['Wijnkaart', 'Kaart', 'Lunch']),
+    )
+    expect((await titles(t, 'kaart'))[0]).toBe('Kaart')
+    expect(await titles(t, 'wijn kaart')).toEqual(
+      expect.arrayContaining(['Wijnkaart', 'Kaart', 'Lunch']),
+    )
+    expect(await titles(t, 'kaart rood')).toEqual(['Wijnkaart'])
+  })
+
+  test('finds words with combining marks whole, in Thai and Hindi', async () => {
+    const { t } = await seed()
+    await addNote(t, 'Talen', 'Zij spreekt ภาษาไทย en हिन्दी')
+    await addNote(t, 'Other', 'nothing here')
+    expect(await titles(t, 'ภาษาไทย')).toEqual(['Talen'])
+    expect(await titles(t, 'हिन्दी')).toEqual(['Talen'])
+    expect(await titles(t, 'spreekt हिन्दी')).toEqual(['Talen'])
+  })
+
+  test('finds long words, words past the sixteenth and symbol-only searches', async () => {
+    const { t } = await seed()
+    const long = 'x'.repeat(40)
+    await addNote(t, 'Long', `see ${long}`)
+    await addNote(t, 'Smile', 'a 😀 b')
+    await addNote(t, 'Dash', 'a -- b')
+    expect(await titles(t, long)).toEqual(['Long'])
+    expect(await titles(t, `see ${long.slice(5)}`)).toEqual(['Long'])
+    expect(await titles(t, '😀')).toEqual(['Smile'])
+    expect(await titles(t, '--')).toEqual(['Dash'])
+    await addNote(t, 'Many', 'a1 a2 a3 a4 a5 a6 a7 a8 a9 b1 b2 b3 b4 b5 b6 b7 b8 end')
+    expect(
+      await titles(t, 'a1 a2 a3 a4 a5 a6 a7 a8 a9 b1 b2 b3 b4 b5 b6 b7 b8 end'),
+    ).toEqual(['Many'])
+  })
+
+  test('reads a bounded set: an old note is found by whole word, not inside one', async () => {
+    const { t } = await seed()
+    await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', 'notes-first'))
+        .unique()
+      const user = await ctx.db.query('users').first()
+      const note = { groupId: group!._id, createdBy: user!._id }
+      await ctx.db.insert('notes', {
+        ...note,
+        title: 'Old whole',
+        body: 'kaart',
+        updatedAt: 1,
+      })
+      await ctx.db.insert('notes', {
+        ...note,
+        title: 'Old inside',
+        body: 'wijnkaart',
+        updatedAt: 1,
+      })
+      for (let index = 0; index < 150; index += 1)
+        await ctx.db.insert('notes', {
+          ...note,
+          title: `Filler ${index}`,
+          body: '',
+          updatedAt: 1000 + index,
+        })
+    })
+    expect(await titles(t, 'kaart')).toEqual(['Old whole'])
   })
 
   test('finds letters that change length when lowercased, and ignores words too long to index', async () => {

@@ -3,6 +3,7 @@ import { type Infer, v } from 'convex/values'
 import { query } from './_generated/server'
 import { isVisibleToGroups, requireGroupBySlug } from './lib/groupAccess'
 import { findNotes, noteExcerpt } from './lib/noteSearch'
+import { normalized } from './lib/searchText'
 import { tastingKindValidator } from './lib/tastings'
 
 const RESULT_LIMIT = 30
@@ -67,10 +68,6 @@ const resultValidator = v.object({
 
 type SearchResult = Infer<typeof resultValidator> & { rank: number }
 
-function normalized(value: string) {
-  return value.trim().toLocaleLowerCase()
-}
-
 function matchRank(title: string, supportingText: string[], needle: string) {
   const primary = normalized(title)
   if (primary === needle) return 0
@@ -95,8 +92,8 @@ function matched(
  * records in one authorization-aware query so the phone never combines module
  * lists or learns about data it could not otherwise read.
  *
- * Notes come from their search indexes (APP-348); the other tables are still
- * scanned. The fan-out is globally bounded below Convex's read limit. That is a safety
+ * Notes come from their search indexes and their newest records (APP-348,
+ * `lib/noteSearch.ts`); the other tables are still scanned. The fan-out is globally bounded below Convex's read limit. That is a safety
  * boundary for this pre-indexed first release, not pagination; promote it to a
  * maintained full-text projection when real Group volumes require it.
  */

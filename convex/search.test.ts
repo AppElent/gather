@@ -398,6 +398,47 @@ describe('Group search for notes (APP-348)', () => {
   })
 })
 
+describe('Group search for notes inside words (APP-702)', () => {
+  const frank = {
+    subject: 'search_frank',
+    name: 'Frank',
+    email: 'search-frank@example.com',
+  }
+
+  test('finds a word inside a compound and in Thai and Hindi, like the other types', async () => {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const frankId = await ctx.db.insert('users', {
+        clerkId: frank.subject,
+        name: frank.name,
+        email: frank.email,
+      })
+      const groupId = await seedGroup(ctx, {
+        name: 'Inside',
+        slug: 'search-inside-words',
+        inviteCode: 'search-inside-words',
+      })
+      await seedMember(ctx, groupId, frankId, 'admin')
+      const note = { groupId, createdBy: frankId, updatedAt: 1 }
+      await ctx.db.insert('notes', { ...note, title: 'Menu', body: 'De wijnkaart' })
+      await ctx.db.insert('notes', { ...note, title: 'Talen', body: 'ภาษาไทย हिन्दी' })
+    })
+    const titles = async (query: string) =>
+      (
+        await t.withIdentity(frank).query(api.search.group, {
+          groupSlug: 'search-inside-words',
+          query,
+          accepts: ['note'],
+        })
+      ).map((result) => result.title)
+
+    expect(await titles('kaart')).toEqual(['Menu'])
+    expect(await titles('wijn kaart')).toEqual(['Menu'])
+    expect(await titles('ภาษาไทย')).toEqual(['Talen'])
+    expect(await titles('हिन्दी')).toEqual(['Talen'])
+  })
+})
+
 describe('Group search recipe budget', () => {
   const dan = {
     subject: 'search_dan',
