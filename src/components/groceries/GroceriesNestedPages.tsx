@@ -59,11 +59,15 @@ export function GroceriesRecentPage({ listId }: { listId?: string }) {
   const now = Date.now()
   return (
     <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-4">
-      <Breadcrumbs trail={trail} className="-mb-1" />
+      <Breadcrumbs trail={trail} className="-mb-1" backInHeader />
       <WashHeader
         group="kitchen"
         icon="Clock"
         title={g.recent.title}
+        back={{
+          label: messages.modules.byId.groceries.label,
+          link: linkTo('groceries'),
+        }}
         summary={
           recent
             ? {
@@ -109,11 +113,15 @@ export function GroceriesInStockPage() {
 
   return (
     <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-4">
-      <Breadcrumbs trail={trail} className="-mb-1" />
+      <Breadcrumbs trail={trail} className="-mb-1" backInHeader />
       <WashHeader
         group="kitchen"
         icon="Home"
         title={g.inStock.title}
+        back={{
+          label: messages.modules.byId.groceries.label,
+          link: linkTo('groceries'),
+        }}
         summary={
           data
             ? {

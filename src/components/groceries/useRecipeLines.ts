@@ -9,6 +9,7 @@ import {
   readInBatches,
 } from '@gather/core/grocery-ai-batches'
 import {
+  ingredientKeys,
   ingredientsDigest,
   type LineRead,
   type SourceLine,
@@ -145,8 +146,9 @@ export function useRecipeLines(recipe: IngredientSource): {
     }
   }, [id, local.digest, unreadKey, readLines])
 
-  const lines = useMemo(
-    () =>
+  const lines = useMemo(() => {
+    const keys = ingredientKeys(ingredients)
+    return (
       ingredients
         .map((text, index): SourceLine => {
           const mine = local.reads[index]
@@ -166,15 +168,15 @@ export function useRecipeLines(recipe: IngredientSource): {
             else read = { kind: 'reading' }
           }
           return {
-            key: String(index),
+            key: keys[index],
             text,
             read,
             ...(servings ? { servings } : {}),
           }
         })
-        .filter((line) => line.text.trim()),
-    [ingredients, local.reads, unreadSet, ai, servings],
-  )
+        .filter((line) => line.text.trim())
+    )
+  }, [ingredients, local.reads, unreadSet, ai, servings])
 
   return {
     lines,
