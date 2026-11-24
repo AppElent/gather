@@ -29,7 +29,6 @@ import {
   mealPreferencesOf,
   membersOf,
 } from './lib/mealPlan'
-import { nextOrder } from './lib/order'
 import { recipesVisibleIn } from './lib/recipeShares'
 
 /** The longest range one week read covers, so one answer stays one screen. */
@@ -550,55 +549,5 @@ export const restore = mutation({
         ...new Set(args.eaterIds.filter((id) => members.has(id))),
       ],
     })
-  },
-})
-
-/**
- * Puts a planned Recipe's ingredient lines on the Group's grocery list,
- * skipping lines the list already has open (same words, any case). The
- * richer sheet with quantities and merging is APP-312's.
- */
-export const addToGroceries = mutation({
-  args: { groupSlug: v.string(), id: v.id('plannedDinners') },
-  handler: async (ctx, args) => {
-    const { group, doc, user } = await requireInGroup(
-      ctx,
-      args.groupSlug,
-      args.id,
-      NOT_FOUND,
-    )
-    const recipe = doc.recipeId ? await ctx.db.get(doc.recipeId) : null
-    if (!recipe || !isVisibleToGroups(recipe, [group._id]))
-      throw new ConvexError('Recipe not found')
-    const listId = group.groceryListId
-    const list = listId ? await ctx.db.get(listId) : null
-    if (!list || list.groupId !== group._id || list.provider !== 'local')
-      return { status: 'no-list' as const, added: 0 }
-    const tasks = await ctx.db
-      .query('tasks')
-      .withIndex('by_list', (q) => q.eq('listId', list._id))
-      .collect()
-    const open = new Set(
-      tasks
-        .filter((task) => !task.done)
-        .map((task) => task.title.trim().toLocaleLowerCase()),
-    )
-    let order = nextOrder(tasks)
-    let added = 0
-    for (const line of recipe.ingredients) {
-      const title = line.trim()
-      const key = title.toLocaleLowerCase()
-      if (!title || open.has(key)) continue
-      open.add(key)
-      await ctx.db.insert('tasks', {
-        listId: list._id,
-        title,
-        done: false,
-        createdBy: user._id,
-        order: order++,
-      })
-      added++
-    }
-    return { status: 'added' as const, added, listName: list.name }
   },
 })
