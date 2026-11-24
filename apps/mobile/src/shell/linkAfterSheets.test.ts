@@ -9,6 +9,7 @@ import {
   openSheet,
   PROMPT_SETTLE_MS,
 } from '../components/openSheets'
+import { openAfterSheets } from './linkAfterSheets'
 
 vi.mock('expo-share-intent', () => ({
   getShareExtensionKey: () => 'gather-devShareKey',
@@ -105,4 +106,54 @@ test('a form opened after the held link was replaced is not closed for it', asyn
   expect(await first).toBeNull()
   expect(dismiss).not.toHaveBeenCalled()
   sheet.closed()
+})
+
+test('a link that follows a waiting share replaces it', async () => {
+  const answered = openPrompt()
+  const chooser = vi.fn()
+  openAfterSheets(chooser, { share: true })
+  const link = opened(LINK)
+  answered()
+  await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS)
+  expect(await link).toBe(LINK)
+  expect(chooser).not.toHaveBeenCalled()
+})
+
+test("a waiting share outlives a share's link, which may carry nothing", async () => {
+  const answered = openPrompt()
+  const chooser = vi.fn()
+  openAfterSheets(chooser, { share: true })
+  opened(SHARE)
+  answered()
+  await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS)
+  expect(chooser).toHaveBeenCalledOnce()
+})
+
+test('a second link during a close replaces the first, and asks the sheet once', async () => {
+  const dismiss = vi.fn(() => setTimeout(() => sheet.closed(), 400))
+  const sheet = openSheet(dismiss)
+  const first = opened(LINK)
+  await vi.advanceTimersByTimeAsync(200)
+  const second = opened('gather-dev://all/tasks')
+  await vi.advanceTimersByTimeAsync(200)
+  expect(await first).toBeNull()
+  expect(await second).toBe('gather-dev://all/tasks')
+  expect(dismiss).toHaveBeenCalledOnce()
+})
+
+test('nothing open: a tap opens its screen at once', () => {
+  const open = vi.fn()
+  openAfterSheets(open)
+  expect(open).toHaveBeenCalledOnce()
+})
+
+test('a tap that is no longer wanted opens nothing', async () => {
+  const answered = openPrompt()
+  const open = vi.fn()
+  let wanted = true
+  openAfterSheets(open, { wanted: () => wanted })
+  wanted = false
+  answered()
+  await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS)
+  expect(open).not.toHaveBeenCalled()
 })

@@ -102,7 +102,9 @@ export function DropChooserScreen() {
     if (drop) return
     const seeded = dropFromLink({ url: seedUrl, text: seedText })
     if (seeded) offer(seeded)
-    else router.replace('/home')
+    // Back to the tabs underneath: replacing this screen would stack a second
+    // tabs layout over them, which `<scheme>://quick` then opens behind (APP-775).
+    else router.dismissTo('/home')
     // Destructured rather than depending on the params object, which
     // `useLocalSearchParams` rebuilds every render.
   }, [drop, offer, router, seedUrl, seedText])

@@ -8,6 +8,7 @@ import {
   openSheet,
   PROMPT_SETTLE_MS,
 } from '../components/openSheets'
+import { linkAfterSheets } from '../shell/linkAfterSheets'
 import { mount } from '../testing/dom'
 import { DropGate } from './DropGate'
 
@@ -93,4 +94,15 @@ test('a form opened after the Drop was cleared or left is not closed', async () 
     sheet.closed()
     if (leave === 'cleared') view.unmount()
   }
+})
+
+test('a link that follows a waiting share opens instead of the chooser (APP-774)', async () => {
+  const answered = openPrompt()
+  const view = share(1)
+  const link = linkAfterSheets('gather-dev://all/tasks')
+  answered()
+  await pass(PROMPT_SETTLE_MS)
+  expect(await link).toBe('gather-dev://all/tasks')
+  expect(state.push).not.toHaveBeenCalled()
+  view.unmount()
 })
