@@ -502,6 +502,9 @@ export const beginSync = internalMutation({
     ),
   },
   handler: async (ctx, args): Promise<SyncPlan | null> => {
+    if (args.history && !(await isPending(ctx, args.history.importId))) {
+      return null
+    }
     const source = await ctx.db.get(args.sourceId)
     if (
       !source ||
@@ -509,15 +512,13 @@ export const beginSync = internalMutation({
       !source.baseUrl ||
       !source.secret
     ) {
+      if (args.history) await ctx.scheduler.cancel(args.history.importId)
       return null
     }
     const channels = await ctx.db
       .query('energyChannels')
       .withIndex('by_source', (q) => q.eq('sourceId', source._id))
       .collect()
-    if (args.history && !(await isPending(ctx, args.history.importId))) {
-      return null
-    }
     let retryId: Id<'_scheduled_functions'> | undefined
     if (args.history && args.history.attempt < HISTORY_RETRIES) {
       retryId = await ctx.scheduler.runAfter(
@@ -535,7 +536,10 @@ export const beginSync = internalMutation({
       )
     }
     // A refused token waits for a new one; so does its import.
-    if (args.history && source.status === 'needsReconnect') return null
+    if (args.history && source.status === 'needsReconnect') {
+      if (!retryId) await ctx.scheduler.cancel(args.history.importId)
+      return null
+    }
     // Only a long import shows as busy; the hourly one is done in seconds.
     if (args.history && source.status !== 'syncing') {
       await ctx.db.patch(source._id, { status: 'syncing' })
@@ -660,6 +664,7 @@ export const continueImport = internalMutation({
     sums: v.array(v.object({ statisticId: v.string(), sum: v.number() })),
     incomplete: v.boolean(),
     historyFor: v.optional(v.array(v.string())),
+    missed: v.optional(v.array(v.string())),
   },
   returns: v.null(),
   handler: async (ctx, { retryId, ...args }) => {

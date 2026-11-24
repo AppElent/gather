@@ -297,6 +297,8 @@ export const syncSource = internalAction({
     historyFrom: v.optional(v.number()),
     /** Statistics that still need `historyFrom`; omitted means every channel. */
     historyFor: v.optional(v.array(v.string())),
+    /** Statistics that were missing in an earlier continuation of this run. */
+    missed: v.optional(v.array(v.string())),
     attempt: v.optional(v.number()),
     /** The import this run belongs to (`IMPORT_MS`). */
     importId: v.optional(v.id('_scheduled_functions')),
@@ -329,7 +331,10 @@ export const syncSource = internalAction({
     const finish = (
       problem: HomeAssistantError['problem'] | 'statisticMissing' | 'syncFailed' | null,
       missing: string[] = [],
-      retry?: { historyFrom: number; attempt: number; historyFor: string[] },
+      options: {
+        retry?: { historyFrom: number; attempt: number; historyFor: string[] }
+        done?: boolean
+      } = {},
     ) =>
       ctx.runMutation(internal.energySources.finishSync, {
         sourceId: args.sourceId,
@@ -339,8 +344,8 @@ export const syncSource = internalAction({
         missing,
         ...(args.importId ? { importId: args.importId } : {}),
         ...(retryId ? { retryId } : {}),
-        ...(retry ? { retry } : {}),
-        done: problem === null && !incomplete,
+        ...(options.retry ? { retry: options.retry } : {}),
+        done: options.done ?? (problem === null && !incomplete),
       })
 
     // The hour still running has no statistic yet.
@@ -443,6 +448,7 @@ export const syncSource = internalAction({
         }
         if (!(await flush())) return null
         from = to
+        const allMissing = [...new Set([...(args.missed ?? []), ...missing])]
         if (
           retryId &&
           args.importId &&
@@ -460,39 +466,41 @@ export const syncSource = internalAction({
             sums: channels.flatMap(({ statisticId, baseline }) =>
               baseline === null ? [] : [{ statisticId, sum: baseline }],
             ),
-            incomplete: incomplete || missing.length > 0,
+            incomplete,
             ...(args.historyFor !== undefined
               ? { historyFor: args.historyFor }
               : {}),
+            ...(allMissing.length > 0 ? { missed: allMissing } : {}),
           })
           return null
         }
       }
       // Every present channel finished its history read, so the retry only
-      // needs `historyFrom` for the statistics that were still missing.
+      // needs `historyFrom` for statistics missing in this or an earlier slice.
+      const allMissing = [...new Set([...(args.missed ?? []), ...missing])]
       const nextHistoryFor =
         args.historyFor !== undefined
-          ? missing.filter((id) => args.historyFor?.includes(id))
-          : missing
+          ? allMissing.filter((id) => args.historyFor?.includes(id))
+          : allMissing
       const narrowed =
         !incomplete &&
-        missing.length > 0 &&
+        allMissing.length > 0 &&
         retryId !== undefined &&
         args.importId !== undefined &&
         args.historyFrom !== undefined &&
         (args.historyFor === undefined ||
           nextHistoryFor.length < args.historyFor.length)
-      await finish(
-        missing.length ? 'statisticMissing' : null,
-        missing,
-        narrowed && args.historyFrom !== undefined
-          ? {
-              historyFrom: args.historyFrom,
-              attempt: args.attempt ?? 0,
-              historyFor: nextHistoryFor,
-            }
-          : undefined,
-      )
+      await finish(missing.length ? 'statisticMissing' : null, missing, {
+        done: missing.length === 0 && !incomplete && allMissing.length === 0,
+        retry:
+          narrowed && args.historyFrom !== undefined
+            ? {
+                historyFrom: args.historyFrom,
+                attempt: args.attempt ?? 0,
+                historyFor: nextHistoryFor,
+              }
+            : undefined,
+      })
     } catch (error) {
       // Not Home Assistant's doing: a failed write. Convex reports it, and
       // the next sync, or the import's next try, starts again.

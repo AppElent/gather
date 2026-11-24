@@ -242,13 +242,17 @@ const Field = forwardRef<
   }
 >(function Field({ value, onChangeText, testID, secure, placeholder }, ref) {
   const input = useRef<HTMLInputElement>(null)
-  useImperativeHandle(ref, () => ({
-    focus: () => input.current?.focus(),
-    clear: () => {
-      energyState.fieldClears.push(testID)
-      if (input.current) input.current.value = ''
-    },
-  }))
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => input.current?.focus(),
+      clear: () => {
+        energyState.fieldClears.push(testID)
+        if (input.current) input.current.value = ''
+      },
+    }),
+    [testID],
+  )
   return createElement('input', {
     ref: input,
     'data-testid': testID,

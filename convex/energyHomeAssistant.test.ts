@@ -1194,13 +1194,57 @@ describe('an import and the connection it belongs to', () => {
       attempt: 60,
       importId,
     })
-    const pendingEnd = await seeded.t.run(async (ctx) =>
-      (await ctx.db.system.query('_scheduled_functions').collect()).filter(
-        (each) => each.state.kind === 'pending' && each.name.includes('endImport'),
-      ),
-    )
-    expect(pendingEnd).toEqual([])
+    const pendingEnd = () =>
+      seeded.t.run(async (ctx) =>
+        (await ctx.db.system.query('_scheduled_functions').collect()).filter(
+          (each) => each.state.kind === 'pending' && each.name.includes('endImport'),
+        ),
+      )
+    expect(await pendingEnd()).toEqual([])
     expect(await imports(seeded.t)).toEqual([])
+
+    // Also when the final attempt exits early in `beginSync` for `needsReconnect`.
+    const reconnectImportId = await seeded.t.run(async (ctx) => {
+      await ctx.db.patch(sourceId, { status: 'needsReconnect' })
+      return ctx.scheduler.runAfter(15 * DAY, internal.energySources.endImport, {})
+    })
+    await seeded.t.action(internal.energyHomeAssistant.syncSource, {
+      sourceId,
+      historyFrom: THIS_HOUR - 10 * HOUR,
+      attempt: 60,
+      importId: reconnectImportId,
+    })
+    expect(await pendingEnd()).toEqual([])
+  })
+
+  test('a continued import with a missing statistic still narrows its retry', async () => {
+    const seeded = await seed()
+    const from = THIS_HOUR - 20 * HOUR
+    fake.sums[IMPORT.statisticId] = counter(from, 20, 1)
+    fake.sums[GAS.statisticId] = counter(from, 20, 1)
+    await connect(seeded, [IMPORT, GAS])
+    const [source] = await rows(seeded.t, 'energySources')
+    const sourceId = source?._id as Id<'energySources'>
+    const importId = await seeded.t.run((ctx) =>
+      ctx.scheduler.runAfter(15 * DAY, internal.energySources.endImport, {}),
+    )
+    // Continuation of a run where GAS was missing in the first slice and came
+    // back before the second slice finished: IMPORT is complete, GAS still needs history.
+    await seeded.t.action(internal.energyHomeAssistant.syncSource, {
+      sourceId,
+      historyFrom: from,
+      attempt: 0,
+      importId,
+      readFrom: THIS_HOUR - 5 * HOUR,
+      sums: [{ statisticId: IMPORT.statisticId, sum: 15 }],
+      incomplete: false,
+      missed: [GAS.statisticId],
+    })
+    const [retry] = await imports(seeded.t)
+    expect(retry?.args[0]).toMatchObject({
+      attempt: 1,
+      historyFor: [GAS.statisticId],
+    })
   })
 
   test('a long import goes on in a new run, unless it was dropped', async () => {

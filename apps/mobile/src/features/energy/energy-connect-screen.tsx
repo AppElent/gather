@@ -13,7 +13,7 @@ import { readEnergyRefusal } from '@gather/core/refusals'
 import { useAction, useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
 import { Stack, useNavigation, useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Keyboard,
   ScrollView,
@@ -120,7 +120,18 @@ function ConnectForm({
   const connected = existing?.connected ?? false
   const [address, setAddress] = useState(list.homeAssistantAddress ?? '')
   const [token, setToken] = useState('')
+  const tokenRef = useRef(token)
+  tokenRef.current = token
   const tokenField = useRef<TextInputInstance>(null)
+  // Ref cleanup runs synchronously before the native view detaches, so even an
+  // unmount without a navigation event empties the secure field first.
+  const setTokenField = useCallback((instance: TextInputInstance | null) => {
+    tokenField.current = instance
+    return () => {
+      instance?.clear()
+      if (tokenField.current === instance) tokenField.current = null
+    }
+  }, [])
   const [tested, setTested] = useState<Tested | null>(null)
   const [history, setHistory] = useState(!connected)
   const [busy, setBusy] = useState<'test' | 'connect' | null>(null)
@@ -133,16 +144,19 @@ function ConnectForm({
     setToken('')
   }
   useEffect(() => {
-    const clear = () => {
+    const clearOnLeave = () => {
       tokenField.current?.clear()
+      if (!tokenRef.current) return
       setToken('')
+      // Any test result came from the pasted token that was just dropped.
+      setTested(null)
+      setProblem(null)
     }
-    const onRemove = navigation.addListener('beforeRemove', clear)
-    const onBlur = navigation.addListener('blur', clear)
+    const onRemove = navigation.addListener('beforeRemove', clearOnLeave)
+    const onBlur = navigation.addListener('blur', clearOnLeave)
     return () => {
       onRemove()
       onBlur()
-      tokenField.current?.clear()
     }
   }, [navigation])
 
@@ -251,7 +265,7 @@ function ConnectForm({
           testID="energy-connect-address"
         />
         <Field
-          ref={tokenField}
+          ref={setTokenField}
           label={copy.token}
           value={token}
           onChangeText={(text) => {
