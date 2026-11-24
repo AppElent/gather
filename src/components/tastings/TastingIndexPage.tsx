@@ -7,11 +7,18 @@ import { api } from '../../../convex/_generated/api'
 import { fmt, plural, useI18n, useMessages } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import {
+  type StartCreatingProps,
+  useStartCreating,
+} from '../app/useStartCreating'
 import { TastingDialog } from './TastingDialog'
 import { TASTING_LINKS } from './tastingNav'
 import { subjectFacts } from './tastingText'
 
-export function TastingIndexPage({ kind }: { kind: TastingKind }) {
+export function TastingIndexPage({
+  kind,
+  ...start
+}: { kind: TastingKind } & StartCreatingProps) {
   const { slug: groupSlug, name: groupName } = useRequiredCurrentGroup()
   const nav = TASTING_LINKS[kind]
   const messages = useMessages()
@@ -23,6 +30,7 @@ export function TastingIndexPage({ kind }: { kind: TastingKind }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
+  useStartCreating(start, () => setDialogOpen(true))
   const needle = query.trim().toLocaleLowerCase()
   const rows = useMemo(
     () =>

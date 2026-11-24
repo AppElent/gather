@@ -367,3 +367,9 @@ describe('link and action contrast', () => {
     expect(ratio(rgb(t['--on-ink']), rgb(t['--ink']))).toBeGreaterThanOrEqual(4.5)
   })
 })
+
+/** Beside a `-webkit-` twin the build drops the plain line, and Chrome and Edge lose the blur. */
+test('backdrop-filter is written once, unprefixed', () => {
+  expect(css).toContain('backdrop-filter')
+  expect(css).not.toContain('-webkit-backdrop-filter')
+})

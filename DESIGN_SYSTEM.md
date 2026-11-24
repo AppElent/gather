@@ -52,7 +52,9 @@ declares them as custom properties for light and dark (`[data-theme]` and
   bars, points, swatches, switch tracks) take `--accent-text` or
   `--<group>-text`; a group `fill` is for filled buttons only, since it can be
   below 3:1 on `surface`. Group colour never goes on navigation, rows or
-  selection.
+  selection; a Module's tile is the exception, and takes it through
+  `.tile[data-tile="<group>"]` (`src/components/app/Tile.tsx`), never by naming
+  the fill.
 - Type: `--font-rounded` (`font-rounded`; `ui-rounded`, SF Pro Rounded,
   Nunito) at 700 for titles and numerals, the system stack for text; body 16px,
   subhead 15, footnote 13. No web font is loaded.
