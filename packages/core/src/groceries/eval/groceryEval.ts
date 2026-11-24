@@ -39,6 +39,20 @@ export function parseEvalSet(text: string): EvalRow[] {
   return rows
 }
 
+/** Names of these lines the dictionary does not know: `groceryKey` → the name the model is asked. */
+export function unknownEvalNames(
+  rows: readonly EvalRow[],
+  dictionary: GroceryDictionary,
+): Map<string, string> {
+  const unknown = new Map<string, string>()
+  for (const row of rows) {
+    const result = resolveGroceryLine(row.line, dictionary)
+    if (result.source === 'none' && result.key)
+      unknown.set(result.key, result.cleanName)
+  }
+  return unknown
+}
+
 export interface EvalMiss {
   line: string
   expected: GroceryAisle
