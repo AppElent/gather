@@ -6,19 +6,24 @@
  * month queries, so no single query ever reads a whole year of hours.
  *
  * A channel of a manual source counts from its readings, spread over days
- * and marked estimated; any other channel counts from its intervals.
+ * and marked estimated; any other channel counts from its intervals. A typed
+ * meter adds nothing between the first and the last hour hourly channels measured
+ * of the same thing: hours missed in between are in the next one they have.
  */
 import { addDays } from '@gather/core/civil-date'
 import {
   addEnergyCosts,
   amsterdamDayOf,
   amsterdamDayStart,
+  DEFAULT_ENERGY_PRICE_PROVIDER,
   type EnergyByTariff,
   type EnergyContractTerms,
   type EnergyCost,
   type EnergyDayUse,
+  type EnergyElectricityPrice,
   energyContractOn,
   energyDayCost,
+  energyDayFixedCost,
   energyNetMetering,
   netMeteringOn,
   primaryEnergySite,
@@ -27,9 +32,9 @@ import {
 import { v } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
+import { accountPrices, firstAccountPrice, marketPrices, priceFeedsOf } from './energyPriceRows'
 
 const HOUR_MS = 3_600_000
-const DEFAULT_PRICE_PROVIDER = 'energyzero'
 
 export const energyCostValidator = v.object({
   importCents: v.number(),
@@ -59,7 +64,10 @@ export const energyDayValidator = v.object({
   batteryChargeKwh: v.union(v.number(), v.null()),
   batteryDischargeKwh: v.union(v.number(), v.null()),
   consumptionKwh: v.number(),
-  /** With net metering when the day's contract has it, else as below. */
+  /**
+   * With net metering when the day's contract has it, else as below. Only the
+   * fixed costs and tax credit when `costStatus` is not `ok`.
+   */
   cost: v.union(energyCostValidator, v.null()),
   /** Always without net metering: what the day costs from 2027. */
   costWithoutNet: v.union(energyCostValidator, v.null()),
@@ -228,57 +236,90 @@ function consumption(bucket: Bucket, hasSolar: boolean) {
 
 type PriceSlot = { start: number; eurPerUnit: number }
 
+type SitePrices = {
+  /** The prices over [from, to) of one day. */
+  electricity: (from: number, to: number) => EnergyElectricityPrice
+  gas: PriceSlot[]
+}
+
+const NO_PRICES: SitePrices = {
+  electricity: () => ({ marketEurPerKwh: null }),
+  gas: [],
+}
+
 /**
- * The prices a site is priced at in [start, end): its account feed's when it
- * has one, otherwise the market prices of its feed's provider (EnergyZero by
- * default). Read only when a dynamic contract needs them.
+ * The prices a site is priced at in [start, end), whole days. Read only when a
+ * dynamic contract needs them.
+ *
+ * A day with account prices is priced at those; every other day at the market
+ * price of the feed's provider, and at EnergyZero's, the same auction, where
+ * that has none. Account days stay account days when the feed is given
+ * another provider later, so it rewrites no month. Export always earns the
+ * market price: an account price holds tax. Gas is always EnergyZero's, for
+ * the contract to price.
  */
 async function loadPrices(
   ctx: QueryCtx,
   siteId: Id<'energySites'>,
+  days: readonly string[],
   start: number,
   end: number,
-) {
-  const feed = await ctx.db
-    .query('energyPriceFeeds')
-    .withIndex('by_site', (q) => q.eq('siteId', siteId))
-    .first()
-  const read = async (carrier: 'electricity' | 'gas', from: number) => {
-    if (feed && feed.scope === 'account') {
-      return ctx.db
-        .query('energyPrices')
-        .withIndex('by_feed_carrier_start', (q) =>
-          q
-            .eq('feedId', feed._id)
-            .eq('carrier', carrier)
-            .gte('start', from)
-            .lt('start', end),
-        )
-        .collect()
-    }
-    const rows = await ctx.db
-      .query('energyPrices')
-      .withIndex('by_provider_carrier_start', (q) =>
-        q
-          .eq('provider', feed?.provider ?? DEFAULT_PRICE_PROVIDER)
-          .eq('carrier', carrier)
-          .gte('start', from)
-          .lt('start', end),
+): Promise<SitePrices> {
+  const feeds = await priceFeedsOf(ctx, siteId)
+  const feed = feeds[0]
+  const account = (
+    await Promise.all(
+      feeds.map((each) => accountPrices(ctx, each._id, start, end)),
+    )
+  ).flat()
+  const firstAccount =
+    feed?.scope === 'account' ? await firstAccountPrice(ctx, feed._id) : null
+
+  const own =
+    feed?.provider === 'entsoe'
+      ? await marketPrices(ctx, 'entsoe', 'electricity', start, end)
+      : []
+  const bounds = days.map((day) => ({
+    from: amsterdamDayStart(day),
+    to: amsterdamDayStart(addDays(day, 1)),
+  }))
+  const within = (slots: readonly PriceSlot[], at: { from: number; to: number }) =>
+    slots.some((slot) => slot.start >= at.from && slot.start < at.to)
+  // Only the stretch the feed's own provider leaves open.
+  const open = bounds.filter((day) => !within(own, day))
+  const fallback = open.length
+    ? await marketPrices(
+        ctx,
+        DEFAULT_ENERGY_PRICE_PROVIDER,
+        'electricity',
+        open[0]?.from ?? start,
+        open[open.length - 1]?.to ?? end,
       )
-      .collect()
-    return rows.filter((row) => row.feedId === undefined)
-  }
-  const [electricity, gas] = await Promise.all([
-    read('electricity', start),
-    read('gas', start),
-  ])
+    : []
+  const market: PriceSlot[] = [
+    ...own,
+    ...fallback.filter((slot) =>
+      open.some((day) => slot.start >= day.from && slot.start < day.to),
+    ),
+  ]
+  const allInDays = new Set(
+    bounds
+      .filter(
+        (day) =>
+          within(account, day) ||
+          (firstAccount !== null && firstAccount.start <= day.from),
+      )
+      .map((day) => day.from),
+  )
   return {
-    allIn: Boolean(feed && feed.scope === 'account' && feed.includesTaxes),
-    electricity: electricity.map(({ start, eurPerUnit }) => ({
-      start,
-      eurPerUnit,
-    })),
-    gas: gas.map(({ start, eurPerUnit }) => ({ start, eurPerUnit })),
+    electricity: (from, to) => {
+      const marketEurPerKwh = average(market, from, to)
+      const day = bounds.find((each) => from >= each.from && from < each.to)
+      return day && allInDays.has(day.from)
+        ? { marketEurPerKwh, allInEurPerKwh: average(account, from, to) }
+        : { marketEurPerKwh }
+    },
+    gas: await marketPrices(ctx, DEFAULT_ENERGY_PRICE_PROVIDER, 'gas', start, end),
   }
 }
 
@@ -293,6 +334,69 @@ function average(slots: readonly PriceSlot[], from: number, to: number) {
   return count === 0 ? null : total / count
 }
 
+/**
+ * The time an hourly channel measured, from its first stored hour to its last.
+ * Home Assistant adds the hours it missed to the next one it has, so time
+ * without rows in between is counted too (APP-495).
+ */
+async function measuredSpan(ctx: QueryCtx, channelId: Id<'energyChannels'>) {
+  const hours = () =>
+    ctx.db
+      .query('energyIntervals')
+      .withIndex('by_channel_hour', (q) => q.eq('channelId', channelId))
+  const [first, last] = await Promise.all([
+    hours().order('asc').first(),
+    hours().order('desc').first(),
+  ])
+  if (!first || !last) return null
+  return {
+    from: first.hourStart,
+    to: last.hourStart + HOUR_MS,
+  }
+}
+
+type Span = { from: number; to: number }
+
+/** The share of `day` inside any of `spans`. */
+function shareWithin(spans: readonly Span[], day: Span) {
+  let covered = 0
+  let until = day.from
+  for (const span of [...spans].sort((a, b) => a.from - b.from)) {
+    const from = Math.max(span.from, until)
+    const to = Math.min(span.to, day.to)
+    if (to <= from) continue
+    covered += to - from
+    until = to
+  }
+  return covered / (day.to - day.from)
+}
+
+/**
+ * Whether an hour of `channel` is counted by another hourly one as well: a
+ * total's by its two tariffs together, one tariff's by a total without both.
+ */
+function countedTwice(
+  hourly: readonly {
+    channel: Doc<'energyChannels'>
+    intervals: readonly Doc<'energyIntervals'>[]
+  }[],
+) {
+  const key = (
+    { kind, tariff }: Pick<Doc<'energyChannels'>, 'kind' | 'tariff'>,
+    hourStart: number,
+  ) => `${kind}:${tariff ?? 'total'}:${hourStart}`
+  const stored = new Set<string>()
+  for (const { channel, intervals } of hourly) {
+    for (const each of intervals) stored.add(key(channel, each.hourStart))
+  }
+  return ({ kind, tariff }: Doc<'energyChannels'>, hourStart: number) => {
+    const has = (of: 't1' | 't2' | undefined) =>
+      stored.has(key({ kind, tariff: of }, hourStart))
+    const pair = has('t1') && has('t2')
+    return tariff ? has(undefined) && !pair : pair
+  }
+}
+
 export interface EnergyRange {
   days: EnergyDay[]
   /** Per hour, only when asked for and only from hourly sources. */
@@ -302,14 +406,15 @@ export interface EnergyRange {
 
 /**
  * Usage and costs for each of `days` (consecutive, in order). With
- * `hourly`, also each hour of the range from hourly sources.
+ * `hourly`, also each hour of the range from hourly sources. `net: false`
+ * leaves out net metering, for a caller that nets the whole month itself.
  */
 export async function computeEnergyRange(
   ctx: QueryCtx,
   site: Doc<'energySites'>,
   channels: readonly ChannelWithSource[],
   days: readonly string[],
-  options: { hourly?: boolean } = {},
+  options: { hourly?: boolean; net?: boolean } = {},
 ): Promise<EnergyRange> {
   const first = days[0]
   const last = days[days.length - 1]
@@ -328,57 +433,135 @@ export async function computeEnergyRange(
     }
   }
 
-  for (const { channel, manual } of channels) {
-    if (manual) {
-      if (channel.kind === 'batterySoc') continue
-      const [before, inside, after] = await Promise.all([
-        ctx.db
-          .query('energyReadings')
-          .withIndex('by_channel_at', (q) =>
-            q.eq('channelId', channel._id).lt('at', start),
-          )
-          .order('desc')
-          .first(),
-        ctx.db
-          .query('energyReadings')
-          .withIndex('by_channel_at', (q) =>
-            q.eq('channelId', channel._id).gte('at', start).lt('at', end),
+  // What hourly sources measured decides what may still be added from typed
+  // readings and from counters that overlap (APP-495).
+  const hourly = await Promise.all(
+    channels
+      .filter((each) => !each.manual)
+      .map(async ({ channel }) => ({
+        channel,
+        intervals: await ctx.db
+          .query('energyIntervals')
+          .withIndex('by_channel_hour', (q) =>
+            q
+              .eq('channelId', channel._id)
+              .gte('hourStart', start)
+              .lt('hourStart', end),
           )
           .collect(),
-        ctx.db
-          .query('energyReadings')
-          .withIndex('by_channel_at', (q) =>
-            q.eq('channelId', channel._id).gte('at', end),
-          )
-          .first(),
-      ])
-      const readings = [
-        ...(before ? [before] : []),
-        ...inside,
-        ...(after ? [after] : []),
-      ]
-      const spread = spreadReadingsOverDays(readings, days)
-      spread.forEach((amount, index) => {
-        const bucket = dayBuckets.get(days[index] as string)
-        if (amount !== null && bucket) addTo(bucket, channel, amount, true)
-      })
-      continue
+      })),
+  )
+  const spans: ({ channel: Doc<'energyChannels'> } & Span)[] = []
+  if (channels.some((each) => each.manual)) {
+    await Promise.all(
+      hourly.map(async ({ channel }) => {
+        const span = await measuredSpan(ctx, channel._id)
+        if (span) spans.push({ channel, ...span })
+      }),
+    )
+  }
+  // Typed meters of every tariff: when they were read, and the hours measured.
+  const typedTotals: (Span & {
+    kind: Doc<'energyChannels'>['kind']
+    whole: Span[]
+  })[] = []
+  for (const { channel, manual } of channels) {
+    if (!manual || channel.kind === 'batterySoc') continue
+    const [before, inside, after] = await Promise.all([
+      ctx.db
+        .query('energyReadings')
+        .withIndex('by_channel_at', (q) =>
+          q.eq('channelId', channel._id).lt('at', start),
+        )
+        .order('desc')
+        .first(),
+      ctx.db
+        .query('energyReadings')
+        .withIndex('by_channel_at', (q) =>
+          q.eq('channelId', channel._id).gte('at', start).lt('at', end),
+        )
+        .collect(),
+      ctx.db
+        .query('energyReadings')
+        .withIndex('by_channel_at', (q) =>
+          q.eq('channelId', channel._id).gte('at', end),
+        )
+        .first(),
+    ])
+    const readings = [
+      ...(before ? [before] : []),
+      ...inside,
+      ...(after ? [after] : []),
+    ]
+    if (readings.length < 2) continue
+    const same = spans.filter((each) => each.channel.kind === channel.kind)
+    const of = (tariff: 't1' | 't2') =>
+      same.filter((each) => each.channel.tariff === tariff)
+    // Where hours count all this meter counts: a total, its own tariff, or
+    // for a meter of every tariff both of them.
+    const whole: Span[] = same.filter(
+      (each) => !each.channel.tariff || each.channel.tariff === channel.tariff,
+    )
+    if (!channel.tariff) {
+      for (const t1 of of('t1')) {
+        for (const t2 of of('t2')) {
+          whole.push({
+            from: Math.max(t1.from, t2.from),
+            to: Math.min(t1.to, t2.to),
+          })
+        }
+      }
     }
-    const intervals = await ctx.db
-      .query('energyIntervals')
-      .withIndex('by_channel_hour', (q) =>
-        q.eq('channelId', channel._id).gte('hourStart', start).lt('hourStart', end),
-      )
-      .collect()
-    // State of charge is a level, not an amount: a day's figure is the
-    // average of its hours, so it is only kept per hour.
+    // Each stretch between two readings loses the part hours count already.
+    // A stretch where the count goes down (a replaced meter) counts nothing.
+    for (const [index, reading] of readings.entries()) {
+      const next = readings[index + 1]
+      if (!next || next.value < reading.value) continue
+      if (!channel.tariff) {
+        typedTotals.push({
+          kind: channel.kind,
+          from: reading.at,
+          to: next.at,
+          whole,
+        })
+      }
+      const spread = spreadReadingsOverDays([reading, next], days)
+      for (const [dayIndex, amount] of spread.entries()) {
+        const day = days[dayIndex] as string
+        const bucket = dayBuckets.get(day)
+        if (amount === null || !bucket) continue
+        const share = shareWithin(whole, {
+          from: Math.max(reading.at, amsterdamDayStart(day)),
+          to: Math.min(next.at, amsterdamDayStart(addDays(day, 1))),
+        })
+        if (share < 1) addTo(bucket, channel, amount * (1 - share), true)
+      }
+    }
+  }
+
+  const twice = countedTwice(hourly)
+  for (const { channel, intervals } of hourly) {
     for (const interval of intervals) {
-      const dayBucket = dayBuckets.get(amsterdamDayOf(interval.hourStart))
-      if (dayBucket && channel.kind !== 'batterySoc') {
+      const at = interval.hourStart
+      if (twice(channel, at)) continue
+      // State of charge is a level, not an amount: a day's figure is the
+      // average of its hours, so it is only kept per hour.
+      const dayBucket = dayBuckets.get(amsterdamDayOf(at))
+      // One tariff alone is already in what a typed meter of both counted.
+      const typed =
+        channel.tariff !== undefined &&
+        typedTotals.some(
+          (each) =>
+            each.kind === channel.kind &&
+            each.from <= at &&
+            at < each.to &&
+            !each.whole.some((span) => span.from <= at && at < span.to),
+        )
+      if (dayBucket && channel.kind !== 'batterySoc' && !typed) {
         addTo(dayBucket, channel, interval.amount, interval.estimated)
       }
-      const hourBucket = hourBuckets.get(interval.hourStart)
-      if (hourBucket) {
+      const hourBucket = hourBuckets.get(at)
+      if (hourBucket && !typed) {
         addTo(hourBucket, channel, interval.amount, interval.estimated)
       }
     }
@@ -392,8 +575,8 @@ export async function computeEnergyRange(
     (day) => energyContractOn(contracts, day)?.kind === 'dynamic',
   )
   const prices = needsPrices
-    ? await loadPrices(ctx, site._id, start, end)
-    : { allIn: false, electricity: [], gas: [] }
+    ? await loadPrices(ctx, site._id, days, start, end)
+    : NO_PRICES
 
   const hourlyChannels = channels.some(
     (each) => !each.manual && each.channel.kind === 'gridImport',
@@ -413,10 +596,18 @@ export async function computeEnergyRange(
       batteryDischargeKwh: bucket.discharge,
       consumptionKwh: consumption(bucket, hasSolar),
     }
-    if (!bucket.hasData) {
-      return { ...base, cost: null, costWithoutNet: null, costStatus: 'noData' as const }
-    }
     const contract = energyContractOn(contracts, day)
+    // Fixed costs run on every day of a contract, also one without usage or
+    // prices (APP-635); null when the contract has none.
+    const fixed = contract ? energyDayFixedCost(day, contract) : null
+    if (!bucket.hasData) {
+      return {
+        ...base,
+        cost: fixed,
+        costWithoutNet: fixed,
+        costStatus: 'noData' as const,
+      }
+    }
     if (!contract) {
       return {
         ...base,
@@ -429,16 +620,16 @@ export async function computeEnergyRange(
     const dayEnd = amsterdamDayStart(addDays(day, 1))
     let hours: EnergyDayUse['hours']
     if (contract.kind === 'dynamic' && hourlyChannels && !bucket.electricityEstimated) {
-      const priced: NonNullable<EnergyDayUse['hours']>[number][] = []
+      const pricedHours: NonNullable<EnergyDayUse['hours']>[number][] = []
       for (let at = dayStart; at < dayEnd; at += HOUR_MS) {
         const hour = hourBuckets.get(at)
-        priced.push({
+        pricedHours.push({
           importKwh: hour ? sum(hour.importKwh) : 0,
           exportKwh: hour ? sum(hour.exportKwh) : 0,
-          marketEurPerKwh: average(prices.electricity, at, at + HOUR_MS),
+          ...prices.electricity(at, at + HOUR_MS),
         })
       }
-      hours = priced
+      hours = pricedHours
     }
     // Typed readings have no hours: such a day is priced at its average
     // market price.
@@ -448,20 +639,20 @@ export async function computeEnergyRange(
       exportKwh: bucket.exportKwh,
       gasM3: bucket.gas,
       hours,
-      marketEurPerKwh: average(prices.electricity, dayStart, dayEnd),
+      ...prices.electricity(dayStart, dayEnd),
       gasMarketEurPerM3: average(prices.gas, dayStart, dayEnd),
-      allInPrices: prices.allIn,
     }
-    const costWithoutNet = energyDayCost(use, contract as EnergyContractTerms)
+    const priced = energyDayCost(use, contract as EnergyContractTerms)
+    const costWithoutNet = priced ?? fixed
     return {
       ...base,
       // Net metering is applied to the whole month below.
       cost: costWithoutNet,
       costWithoutNet,
-      costStatus: costWithoutNet ? ('ok' as const) : ('noPrices' as const),
+      costStatus: priced ? ('ok' as const) : ('noPrices' as const),
     }
   })
-  netEachMonth(result, contracts)
+  if (options.net !== false) netEachMonth(result, contracts)
 
   const hours: EnergyHour[] = !options.hourly
     ? []
@@ -494,7 +685,12 @@ function netEachMonth(
   const months = new Map<string, EnergyDay[]>()
   for (const day of days) {
     const contract = energyContractOn(contracts, day.day)
-    if (!day.costWithoutNet || !contract || !netMeteringOn(contract, day.day)) {
+    if (
+      day.costStatus !== 'ok' ||
+      !day.costWithoutNet ||
+      !contract ||
+      !netMeteringOn(contract, day.day)
+    ) {
       continue
     }
     // Each contract settles its own days: a supplier switch mid-month nets

@@ -163,6 +163,7 @@ export const tasks = {
     clearAmount: 'Geen hoeveelheid',
     unit: 'Eenheid',
     aisle: 'Afdeling',
+    aisleFailed: 'Verplaatsen naar {aisle} is niet gelukt. Probeer het opnieuw.',
     itemPlaceholder: 'Wat heb je nodig?',
     deleteItem: 'Item verwijderen',
     labelsOnItem: 'Op dit item',
@@ -297,6 +298,7 @@ export const tasks = {
         'Samengevoegd met wat er al op staat. De lijst ziet erbij voor welk recept het is.',
       edit: 'Wijzigen',
       editTitle: 'Item wijzigen',
+      editLabel: 'Ingrediënt',
       failed: 'Dit kon niet worden toegevoegd. Probeer het opnieuw.',
     },
     aisles: {

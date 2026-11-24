@@ -174,7 +174,8 @@ function factsOf(period: EnergyPeriod, messages: Messages, locale: string) {
   const copy = messages.energy.usage
   const kwh = (value: number) =>
     `${formatEnergyNumber(value, locale)} ${messages.energy.units.kWh}`
-  const cost = period.totals.cost
+  const cost =
+    period.totals.costStatus === 'ok' ? period.totals.cost : null
   return [
     { label: copy.factFromGrid, value: kwh(period.totals.importKwh) },
     ...(period.channels.solar

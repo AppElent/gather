@@ -13,6 +13,7 @@
 import { amsterdamIsoDate } from '@gather/core/civil-date'
 import {
   addEnergyMonths,
+  energyCostDays,
   energyMonthDays,
   energyMonthOf,
   forecastMonthCents,
@@ -24,8 +25,8 @@ import {
   formatEnergyDate,
   formatEnergyEuro,
   formatEnergyNumber,
+  highestCostDay,
   monthName,
-  peakOf,
 } from '@gather/core/energy-present'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
@@ -99,6 +100,7 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
     const pick = (cost: typeof data.totals.cost, without: typeof data.totals.cost) =>
       shown === 'with' ? cost : without
     const totals = data.totals
+    const fixedDays = energyCostDays(data.days)
     const cost = pick(totals.cost, totals.costWithoutNet)
     const status = totals.costStatus
     // The days the figure covers: to the last day a reading reaches, as on
@@ -139,7 +141,12 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
       )
       const forecast =
         month === thisMonth
-          ? forecastMonthCents(cost.totalCents, totals.daysWithData, month)
+          ? forecastMonthCents(
+              cost,
+              totals.daysWithData - totals.costMissingDays,
+              fixedDays,
+              month,
+            )
           : null
       if (earlier && forecast !== null) {
         notes.push(
@@ -167,21 +174,26 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
 
     // Per day
     const bars = data.days.map((day) => {
-      const dayCost = pick(day.cost, day.costWithoutNet)
+      const dayCost =
+        status === 'ok' ? pick(day.cost, day.costWithoutNet) : null
       return {
         key: day.day,
         value: dayCost ? dayCost.totalCents : null,
         future: day.day > today,
       }
     })
-    const peak = peakOf(bars, (bar) => bar.value)
-    const perDay = peak
-      ? fmt(words.costs.perDayLabel, {
-          month: monthWord,
-          day: formatEnergyDate(peak.item.key, locale, 'dayMonth'),
-          amount: euro(peak.value),
-        })
-      : fmt(words.costs.perDayEmpty, { month: monthWord })
+    const hasAnyBar = bars.some((bar) => bar.value !== null)
+    const peak = highestCostDay(bars, (bar) => bar.value)
+    const perDayLabel = !hasAnyBar
+      ? fmt(words.costs.perDayEmpty, { month: monthWord })
+      : peak
+        ? fmt(words.costs.perDayLabel, {
+            month: monthWord,
+            day: formatEnergyDate(peak.item.key, locale, 'dayMonth'),
+            amount: euro(peak.value),
+          })
+        : fmt(words.costs.perDayPlain, { month: monthWord })
+    const perDayCaption = !hasAnyBar || peak ? perDayLabel : null
 
     // Per month, this year and the one before
     const yearCents = shown === 'with' ? series.cents : series.centsWithoutNet
@@ -240,10 +252,17 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
             testID="energy-costs-days"
             bars={bars}
             height={80}
-            label={perDay}
+            label={perDayLabel}
             ticks={dayTicks(bars.length)}
           />
-          <Text style={[TYPE.subhead, { color: tokens.ink }]}>{perDay}</Text>
+          {perDayCaption ? (
+            <Text
+              testID="energy-costs-days-caption"
+              style={[TYPE.subhead, { color: tokens.ink }]}
+            >
+              {perDayCaption}
+            </Text>
+          ) : null}
         </View>
 
         <View style={[styles.card, { backgroundColor: tokens.surface }]}>
@@ -262,6 +281,7 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
                     range: 'year',
                     unit: 'euro',
                     year: String(year),
+                    month,
                   }),
                 )
               }
@@ -293,10 +313,13 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
           <Text style={[TYPE.subhead, { color: tokens.ink }]}>{yearLine}</Text>
         </View>
 
-        {status === 'ok' && cost ? (
+        {cost ? (
           <InsetList testID="energy-costs-lines">
-            <CostLine key="import" label={words.costs.lineImport} cents={cost.importCents} />
-            {data.channels.gridExport ? (
+            {/* Unless the status is ok, only the fixed costs are known. */}
+            {status === 'ok' ? (
+              <CostLine key="import" label={words.costs.lineImport} cents={cost.importCents} />
+            ) : null}
+            {status === 'ok' && data.channels.gridExport ? (
               <CostLine
                 key="export"
                 label={words.costs.lineExport}
@@ -309,19 +332,19 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
                 cents={cost.exportCents}
               />
             ) : null}
-            {data.channels.gas ? (
+            {status === 'ok' && data.channels.gas ? (
               <CostLine key="gas" label={words.costs.lineGas} cents={cost.gasCents} />
             ) : null}
             <CostLine
               key="fixed"
               label={words.costs.lineFixed}
-              sub={dayCount(totals.daysWithData)}
+              sub={dayCount(fixedDays)}
               cents={cost.fixedCents}
             />
             <CostLine
               key="credit"
               label={words.costs.lineCredit}
-              sub={dayCount(totals.daysWithData)}
+              sub={dayCount(fixedDays)}
               cents={cost.creditCents}
             />
           </InsetList>

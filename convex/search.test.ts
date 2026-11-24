@@ -351,6 +351,94 @@ describe('Group search narrowed to one Module (APP-613)', () => {
   })
 })
 
+describe('Group search for notes (APP-348)', () => {
+  const erin = {
+    subject: 'search_erin',
+    name: 'Erin',
+    email: 'search-erin@example.com',
+  }
+
+  test('finds the oldest of many notes, in this Group only, with words apart', async () => {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const erinId = await ctx.db.insert('users', {
+        clerkId: erin.subject,
+        name: erin.name,
+        email: erin.email,
+      })
+      const groupId = await seedGroup(ctx, {
+        name: 'Notes',
+        slug: 'search-old-notes',
+        inviteCode: 'search-old-notes',
+      })
+      const otherGroupId = await seedGroup(ctx, {
+        name: 'Other notes',
+        slug: 'search-other-notes',
+        inviteCode: 'search-other-notes',
+      })
+      await seedMember(ctx, groupId, erinId, 'admin')
+      await seedMember(ctx, otherGroupId, erinId, 'admin')
+      const note = { body: '', createdBy: erinId, updatedAt: 1 }
+      await ctx.db.insert('notes', { ...note, groupId, title: 'Boiler: manual' })
+      await ctx.db.insert('notes', {
+        ...note,
+        groupId: otherGroupId,
+        title: 'Boiler manual elsewhere',
+      })
+      for (let index = 0; index < 220; index += 1)
+        await ctx.db.insert('notes', { ...note, groupId, title: `Note ${index}` })
+    })
+
+    const results = await t.withIdentity(erin).query(api.search.group, {
+      groupSlug: 'search-old-notes',
+      query: 'manual boiler',
+      accepts: ['note'],
+    })
+    expect(results.map((result) => result.title)).toEqual(['Boiler: manual'])
+  })
+})
+
+describe('Group search for notes inside words (APP-702)', () => {
+  const frank = {
+    subject: 'search_frank',
+    name: 'Frank',
+    email: 'search-frank@example.com',
+  }
+
+  test('finds a word inside a compound and in Thai and Hindi, like the other types', async () => {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const frankId = await ctx.db.insert('users', {
+        clerkId: frank.subject,
+        name: frank.name,
+        email: frank.email,
+      })
+      const groupId = await seedGroup(ctx, {
+        name: 'Inside',
+        slug: 'search-inside-words',
+        inviteCode: 'search-inside-words',
+      })
+      await seedMember(ctx, groupId, frankId, 'admin')
+      const note = { groupId, createdBy: frankId, updatedAt: 1 }
+      await ctx.db.insert('notes', { ...note, title: 'Menu', body: 'De wijnkaart' })
+      await ctx.db.insert('notes', { ...note, title: 'Talen', body: 'ภาษาไทย हिन्दी' })
+    })
+    const titles = async (query: string) =>
+      (
+        await t.withIdentity(frank).query(api.search.group, {
+          groupSlug: 'search-inside-words',
+          query,
+          accepts: ['note'],
+        })
+      ).map((result) => result.title)
+
+    expect(await titles('kaart')).toEqual(['Menu'])
+    expect(await titles('wijn kaart')).toEqual(['Menu'])
+    expect(await titles('ภาษาไทย')).toEqual(['Talen'])
+    expect(await titles('हिन्दी')).toEqual(['Talen'])
+  })
+})
+
 describe('Group search recipe budget', () => {
   const dan = {
     subject: 'search_dan',

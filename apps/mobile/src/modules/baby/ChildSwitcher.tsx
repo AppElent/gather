@@ -21,6 +21,7 @@ import { NativeSheet } from '../../components/NativeSheet'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { TYPE, useTokens } from '../../theme/tokens'
+import { radioProps } from '../../ui/radio-props'
 import { BABY_UI_ICONS } from './icons'
 
 export interface SwitchableChild {
@@ -79,8 +80,7 @@ export function ChildSwitcher({
             >
               <View style={[styles.row, { borderBottomColor: tokens.hair }]}>
                 <Pressable
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
+                  {...radioProps(selected, t.a11y.radioButton)}
                   onPress={() => onSelect(item._id)}
                   style={({ pressed }) => [
                     styles.rowMain,

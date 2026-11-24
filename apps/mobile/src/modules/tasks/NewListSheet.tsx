@@ -35,6 +35,7 @@ import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, useInsetSeparator } from '../../ui/inset-list'
 import { ModuleTile } from '../../ui/module-tile'
+import { radioProps } from '../../ui/radio-props'
 import { SectionLabel } from '../../ui/section-label'
 import { useSheetDraft } from '../../ui/sheet-drafts'
 import { TASK_LIST_GLYPHS } from './icons'
@@ -244,8 +245,7 @@ function KindRow({
   return (
     <Pressable
       testID={`new-list-kind-${kind}`}
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
+      {...radioProps(selected, t.a11y.radioButton)}
       accessibilityLabel={`${copy.title}, ${copy.description}`}
       onPress={onPress}
       style={({ pressed }) => [

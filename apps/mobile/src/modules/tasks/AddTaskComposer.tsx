@@ -191,9 +191,10 @@ export function AddTask({ place, preset, sectionId }: AddTaskProps) {
               choices: { ...draft.choices, repeat: rule },
             })
           }}
-          onClose={() => {
+          onClose={(byShare) => {
             setRepeatFor(null)
-            setOpen(true)
+            // A share's chooser is coming: the draft waits in its place.
+            setOpen(!byShare)
           }}
         />
       ) : null}

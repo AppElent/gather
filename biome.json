@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.6.7/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.8/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -148,7 +148,7 @@
                   },
                   "react-native": {
                     "importNames": ["Modal", "Alert", "ActionSheetIOS"],
-                    "message": "Import Modal from src/ui/modal, and showAlert / showPrompt / showActionSheet from src/observability/native-presentation: they pause shake-to-report while visible (APP-439)."
+                    "message": "Import Modal from src/ui/modal, and showAlert / usePrompt / showActionSheet from src/observability/native-presentation: they pause shake-to-report while visible (APP-439)."
                   },
                   "expo-image-picker": "Import the pickers from src/observability/native-presentation: they pause shake-to-report while open (APP-439).",
                   "expo-web-browser": "Import openBrowserAsync from src/observability/native-presentation: it pauses shake-to-report while the browser is open (APP-439)."

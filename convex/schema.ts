@@ -431,7 +431,19 @@ export default defineSchema({
     // added; the creator is the last editor of those.
     updatedBy: v.optional(v.id('users')),
     updatedAt: v.number(),
-  }).index('by_group', ['groupId']),
+  })
+    .index('by_group', ['groupId'])
+    // Newest first, page by page (`notes.listPage`, APP-700).
+    .index('by_group_and_updatedAt', ['groupId', 'updatedAt'])
+    // A search index covers one field, so a note has two (`lib/noteSearch.ts`).
+    .searchIndex('search_title', {
+      searchField: 'title',
+      filterFields: ['groupId'],
+    })
+    .searchIndex('search_body', {
+      searchField: 'body',
+      filterFields: ['groupId'],
+    }),
 
   mealEntries: defineTable({
     groupId: v.id('groups'),
@@ -531,6 +543,12 @@ export default defineSchema({
     /** A pantry entry's free quantity ("2 pakken"), kept from the migration. */
     note: v.optional(v.string()),
     createdBy: v.id('users'),
+    /**
+     * The Members, other than its maker, who added it again since (APP-681):
+     * the maker's undo leaves a staple somebody else keeps. Each is here once,
+     * and goes when they leave the Group (`detachFromGroup`).
+     */
+    keptBy: v.optional(v.array(v.id('users'))),
   })
     .index('by_group', ['groupId'])
     .index('by_group_and_key', ['groupId', 'key']),

@@ -394,26 +394,23 @@ const GROUP_CONTENT: {
 
   // Energy (APP-491), children before the sites they hang off. Every table
   // has `by_group`, so no entry needs its parent to find its rows.
-  energyReadings: async (ctx, groupId) =>
-    purge(
-      ctx,
-      'energyReadings',
-      await ctx.db
-        .query('energyReadings')
-        .withIndex('by_group', (q) => q.eq('groupId', groupId))
-        .collect(),
-    ),
-
-  energyIntervals: async (ctx, groupId) =>
-    purge(
-      ctx,
-      'energyIntervals',
-      await ctx.db
-        .query('energyIntervals')
-        .withIndex('by_group', (q) => q.eq('groupId', groupId))
-        .collect(),
-    ),
-
+  // Too many rows for this transaction: deleted a page at a time by
+  // `cascade.purgeEnergyRows`. Nothing writes new ones meanwhile, because a
+  // sync checks that its source and channel still exist.
+  energyReadings: async (ctx, groupId) => {
+    await ctx.scheduler.runAfter(0, internal.cascade.purgeEnergyRows, {
+      groupId,
+      table: 'energyReadings',
+    })
+    return []
+  },
+  energyIntervals: async (ctx, groupId) => {
+    await ctx.scheduler.runAfter(0, internal.cascade.purgeEnergyRows, {
+      groupId,
+      table: 'energyIntervals',
+    })
+    return []
+  },
   energyChannels: async (ctx, groupId) =>
     purge(
       ctx,
@@ -455,23 +452,21 @@ const GROUP_CONTENT: {
         .collect(),
     ),
 
-  // A feed holds the Member's own API key, and its account prices carry no
-  // Group id: they are found through the feed and go with it. Market prices
-  // (no `feedId`) are every Group's and stay.
+  // A feed holds the Member's own API key, so the feed goes at once. Its
+  // account prices carry no Group id and are some 35,000 rows a year: they are
+  // found through the feed's id and deleted a page at a time by
+  // `cascade.purgeAccountPrices`. Nothing writes new ones meanwhile, because a
+  // fetch checks that its feed still exists. Market prices (no `feedId`) are
+  // every Group's and stay.
   energyPriceFeeds: async (ctx, groupId) => {
     const feeds = await ctx.db
       .query('energyPriceFeeds')
       .withIndex('by_group', (q) => q.eq('groupId', groupId))
       .collect()
     for (const feed of feeds) {
-      await purge(
-        ctx,
-        'energyPrices',
-        await ctx.db
-          .query('energyPrices')
-          .withIndex('by_feed_carrier_start', (q) => q.eq('feedId', feed._id))
-          .collect(),
-      )
+      await ctx.scheduler.runAfter(0, internal.cascade.purgeAccountPrices, {
+        feedId: feed._id,
+      })
     }
     return purge(ctx, 'energyPriceFeeds', feeds)
   },
@@ -662,6 +657,9 @@ export async function destroyGroup(
  *
  * A **Planned meal's eaters** drop the person; the meal stays.
  *
+ * A **staple** they added after its maker did (`keptBy`, APP-681) drops them;
+ * the staple stays.
+ *
  * A **task** they were responsible for goes back to nobody (APP-302), with
  * any notice they had not opened.
  *
@@ -727,6 +725,17 @@ export async function detachFromGroup(
     if (!meal.eaterIds?.includes(userId)) continue
     await ctx.db.patch(meal._id, {
       eaterIds: meal.eaterIds.filter((id) => id !== userId),
+    })
+  }
+
+  const staples = await ctx.db
+    .query('groceryStaples')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .collect()
+  for (const staple of staples) {
+    if (!staple.keptBy?.includes(userId)) continue
+    await ctx.db.patch(staple._id, {
+      keptBy: staple.keptBy.filter((id) => id !== userId),
     })
   }
 

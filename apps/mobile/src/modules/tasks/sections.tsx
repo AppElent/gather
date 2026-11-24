@@ -19,6 +19,7 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { TYPE, useTokens } from '../../theme/tokens'
+import { radioProps } from '../../ui/radio-props'
 import { SectionLabel } from '../../ui/section-label'
 import { useSheetDraft } from '../../ui/sheet-drafts'
 import { useTaskActions, useTaskLists } from './store'
@@ -247,8 +248,7 @@ export function MoveToSectionSheet({
         <Pressable
           key={option.id ?? 'none'}
           testID={`move-section-${option.id ?? 'none'}`}
-          accessibilityRole="button"
-          accessibilityState={{ selected: option.id === current }}
+          {...radioProps(option.id === current, t.a11y.radioButton)}
           accessibilityLabel={option.name}
           onPress={() => {
             onClose()

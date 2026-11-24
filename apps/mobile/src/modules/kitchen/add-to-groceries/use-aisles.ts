@@ -6,16 +6,18 @@
  * recogniser answers, so rows do not wait; what an earlier answer said is kept
  * while a new question is out, so rows do not jump between aisles. A question
  * the server refuses or fails (APP-536) is answered the same way, by the
- * phone, instead of throwing into the screen's error boundary.
+ * phone, instead of throwing into the screen's error boundary, and is
+ * reported once, so a server regression does not go unnoticed (APP-621).
  */
 import {
   type GroceryAisle,
   recogniseGroceryLine,
 } from '@gather/core/groceries'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { api, type Id } from '../../../convex/api'
 import { useLiveQueries } from '../../../convex/queries'
+import { reportError } from '../../../observability/report'
 
 /** Titles one question carries (`convex/groceryLines.ts`). */
 const TITLES_MAX = 200
@@ -49,6 +51,13 @@ export function useAisleOf(
   )
   const reply = answers.aisles
   const answer = Array.isArray(reply) ? (reply as GroceryAisle[]) : undefined
+  // The phone answers a failed question quietly; Sentry hears of it once.
+  const reported = useRef(false)
+  useEffect(() => {
+    if (!(reply instanceof Error) || reported.current) return
+    reported.current = true
+    reportError(reply)
+  }, [reply])
   const [known, setKnown] = useState<Known>({
     listId: undefined,
     aisles: new Map(),

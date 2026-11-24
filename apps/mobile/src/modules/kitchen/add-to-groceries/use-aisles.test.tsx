@@ -18,6 +18,7 @@ const server = vi.hoisted(() => ({
   /** The same answer object for the same question, as Convex returns it. */
   answers: new Map<string, unknown>(),
   asked: [] as unknown[],
+  reported: [] as unknown[],
 }))
 
 /** Change what the server answers; the next render gets a new answer. */
@@ -45,6 +46,10 @@ vi.mock('../../../convex/queries', () => ({
   },
 }))
 
+vi.mock('../../../observability/report', () => ({
+  reportError: (error: unknown) => server.reported.push(error),
+}))
+
 interface Props {
   listId: string | undefined
   titles: string[]
@@ -68,6 +73,7 @@ const UNKNOWN = 'Zzqxv'
 
 beforeEach(() => {
   server.asked = []
+  server.reported = []
   answerWith(() => undefined)
 })
 afterEach(() => {
@@ -139,6 +145,23 @@ describe('useAisleOf', () => {
     rerender({ listId: 'list-1', titles: [EGGS, ONION] })
     expect(result.current(EGGS)).toBe('snacks')
     expect(result.current(ONION)).toBe('produce')
+  })
+
+  test('a failed question is reported once, not on every render (APP-621)', () => {
+    const failure = new Error('Server Error')
+    answerWith(() => failure)
+    const { rerender } = render({ listId: 'list-1', titles: [EGGS] })
+    rerender({ listId: 'list-1', titles: [EGGS] })
+    // A new question that fails again is not reported a second time.
+    answerWith(() => new Error('Server Error'))
+    rerender({ listId: 'list-1', titles: [EGGS, ONION] })
+    expect(server.reported).toEqual([failure])
+  })
+
+  test('an answered question reports nothing', () => {
+    answerWith((titles) => titles.map(() => 'snacks' as const))
+    render({ listId: 'list-1', titles: [EGGS] })
+    expect(server.reported).toEqual([])
   })
 
   test('without titles nothing is asked', () => {

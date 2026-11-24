@@ -19,6 +19,7 @@ import {
 
 import { SPACE, TABULAR, TYPE, useTokens } from '../../../theme/tokens'
 import { useInsetSeparator } from '../../../ui/inset-list'
+import { useKeyboardDoneBar } from '../../../ui/keyboard-done-bar'
 
 export const EnergyNumberRow = forwardRef<
   TextInputInstance,
@@ -33,6 +34,8 @@ export const EnergyNumberRow = forwardRef<
     /** `default` for a name typed in the same row grammar. */
     keyboardType?: TextInputProps['keyboardType']
     returnKeyType?: TextInputProps['returnKeyType']
+    /** Moves to the next field, from the bar above the decimal keypad. */
+    onNext?: () => void
     onSubmitEditing?: () => void
     onBlur?: () => void
     autoFocus?: boolean
@@ -51,6 +54,7 @@ export const EnergyNumberRow = forwardRef<
     testID,
     keyboardType = 'decimal-pad',
     returnKeyType,
+    onNext,
     onSubmitEditing,
     onBlur,
     autoFocus,
@@ -62,6 +66,11 @@ export const EnergyNumberRow = forwardRef<
 ) {
   const tokens = useTokens()
   const separator = useInsetSeparator()
+  const { inputAccessoryViewID: barId, accessory } = useKeyboardDoneBar({
+    keyboardType,
+    id: testID,
+    onNext,
+  })
   return (
     <View style={styles.inset}>
     <View style={[styles.wrap, separator]}>
@@ -72,6 +81,8 @@ export const EnergyNumberRow = forwardRef<
             <Text style={[TYPE.footnote, { color: tokens.muted }]}>{sub}</Text>
           ) : null}
         </View>
+        {/* Before the field: one that focuses as it mounts must have its bar. */}
+        {accessory}
         <TextInput
           ref={ref}
           testID={testID}
@@ -80,6 +91,7 @@ export const EnergyNumberRow = forwardRef<
           onBlur={onBlur}
           onSubmitEditing={onSubmitEditing}
           returnKeyType={returnKeyType}
+          inputAccessoryViewID={barId}
           autoFocus={autoFocus}
           keyboardType={keyboardType}
           placeholder={placeholder}

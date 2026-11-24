@@ -71,7 +71,7 @@ vi.mock('react-native', async () => {
 
 vi.mock('../../observability/native-presentation', () => ({
   showAlert: vi.fn(),
-  showPrompt: vi.fn(),
+  usePrompt: () => vi.fn(),
 }))
 vi.mock('react-native-gesture-handler/ReanimatedSwipeable', () => ({
   default: () => null,

@@ -159,3 +159,28 @@ test('the costs row opens Costs on the month in view', () => {
   ])
   view.unmount()
 })
+
+test('a month in the route opens that month', () => {
+  const view = mount(createElement(EnergyUsageScreen, { initialMonth: '2026-09' }))
+  expect(byTestId('energy-usage-days')).not.toBeNull()
+  expect(byTestId('energy-usage-period-label')?.textContent).toBe('September 2026')
+  view.unmount()
+})
+
+test('a day in the route opens that day, and its month behind it', async () => {
+  energyState.queries['energyUsage:day'] = hourlyDay()
+  const view = mount(createElement(EnergyUsageScreen, { initialDay: '2026-09-14' }))
+  expect(byTestId('energy-usage-period-label')?.textContent).toContain('14')
+  button(en.energy.usage.month)?.click()
+  await settle()
+  expect(byTestId('energy-usage-period-label')?.textContent).toBe('September 2026')
+  view.unmount()
+})
+
+test('a month in the route still to come opens this month', () => {
+  const view = mount(
+    createElement(EnergyUsageScreen, { initialRange: 'month', initialMonth: '2026-12' }),
+  )
+  expect(byTestId('energy-usage-period-label')?.textContent).toBe('November 2026')
+  view.unmount()
+})

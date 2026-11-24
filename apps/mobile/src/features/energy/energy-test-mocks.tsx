@@ -10,6 +10,7 @@
  * either a value or a function of the arguments; mutations are recorded in
  * `energyState.calls`.
  */
+import { amsterdamDayHours } from '@gather/core/energy'
 import {
   createElement,
   forwardRef,
@@ -27,7 +28,14 @@ export const energyState = {
   refuse: null as null | { kind: string },
   pushes: [] as unknown[],
   backs: 0,
+  keyboardDismissals: 0,
   wash: null as unknown,
+  /** What an action resolves to, by its `module:fn` name. */
+  actions: {} as Record<string, unknown>,
+  dismissed: [] as unknown[],
+  confirms: [] as { title: string; onConfirm: () => void }[],
+  navListeners: {} as Record<string, Set<() => void>>,
+  fieldClears: [] as string[],
 }
 
 export function resetEnergyState() {
@@ -36,7 +44,13 @@ export function resetEnergyState() {
   energyState.refuse = null
   energyState.pushes = []
   energyState.backs = 0
+  energyState.keyboardDismissals = 0
   energyState.wash = null
+  energyState.actions = {}
+  energyState.dismissed = []
+  energyState.confirms = []
+  energyState.navListeners = {}
+  energyState.fieldClears = []
 }
 
 /** The calls made to one mutation, by its `module:fn` name. */
@@ -120,11 +134,12 @@ const TextInput = forwardRef<{ focus: () => void }, Props>(
     })
   },
 )
-const Switch = ({ value, onValueChange, ...props }: Props) =>
+const Switch = ({ value, onValueChange, disabled, ...props }: Props) =>
   createElement('input', {
     ...common(props),
     type: 'checkbox',
     checked: Boolean(value),
+    disabled: disabled as boolean | undefined,
     onChange: () =>
       (onValueChange as ((next: boolean) => void) | undefined)?.(!value),
   })
@@ -136,14 +151,16 @@ const Button = ({
   label,
   onPress,
   testID,
+  disabled,
 }: {
   label: string
   onPress: () => void
   testID?: string
+  disabled?: boolean
 }) =>
   createElement(
     'button',
-    { type: 'button', 'data-testid': testID, onClick: onPress },
+    { type: 'button', 'data-testid': testID, onClick: onPress, disabled },
     label,
   )
 const Card = ({ children }: { children: ReactNode }) =>
@@ -152,7 +169,15 @@ const SectionLabel = ({ children }: { children: ReactNode }) =>
   createElement('h4', null, children)
 const InsetList = ({ children, ...props }: Props) =>
   createElement('div', common(props), children)
-const InsetRow = ({ title, subtitle, trailing, onPress, ...props }: Props) =>
+const InsetRow = ({
+  title,
+  subtitle,
+  subtitleTone,
+  trailing,
+  children,
+  onPress,
+  ...props
+}: Props) =>
   createElement(
     onPress ? 'button' : 'div',
     {
@@ -161,8 +186,38 @@ const InsetRow = ({ title, subtitle, trailing, onPress, ...props }: Props) =>
       onClick: onPress as (() => void) | undefined,
     },
     createElement('span', null, title as string),
-    subtitle ? createElement('span', null, subtitle as string) : null,
+    subtitle
+      ? createElement(
+          'span',
+          { 'data-tone': subtitleTone as string | undefined },
+          subtitle as string,
+        )
+      : null,
     trailing as ReactNode,
+    children,
+  )
+const Segmented = ({
+  options,
+  onChange,
+}: {
+  options: { value: string; label: string }[]
+  onChange: (value: string) => void
+}) =>
+  createElement(
+    'div',
+    null,
+    options.map((option) =>
+      createElement(
+        'button',
+        {
+          type: 'button',
+          key: option.value,
+          'data-testid': `segment-${option.value}`,
+          onClick: () => onChange(option.value),
+        },
+        option.label,
+      ),
+    ),
   )
 const DateTimeChip = ({
   testID,
@@ -176,21 +231,41 @@ const DateTimeChip = ({
     'data-testid': testID,
     onClick: onPress,
   })
-const Field = ({
-  value,
-  onChangeText,
-  testID,
-}: {
-  value: string
-  onChangeText: (text: string) => void
-  testID: string
-}) =>
-  createElement('input', {
+const Field = forwardRef<
+  { clear: () => void; focus: () => void },
+  {
+    value: string
+    onChangeText: (text: string) => void
+    testID: string
+    secure?: boolean
+    placeholder?: string
+  }
+>(function Field({ value, onChangeText, testID, secure, placeholder }, ref) {
+  const input = useRef<HTMLInputElement>(null)
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => input.current?.focus(),
+      clear: () => {
+        // Mirror React Native TextInput's guard: native `clear()` is a no-op
+        // once the child input's own ref has been detached.
+        if (!input.current) return
+        energyState.fieldClears.push(testID)
+        input.current.value = ''
+      },
+    }),
+    [testID],
+  )
+  return createElement('input', {
+    ref: input,
     'data-testid': testID,
+    type: secure ? 'password' : 'text',
+    placeholder,
     value,
     onChange: (event: { target: { value: string } }) =>
       onChangeText(event.target.value),
   })
+})
 const WashHeader = ({ summary }: { summary: unknown }) => {
   energyState.wash = summary
   return null
@@ -199,8 +274,10 @@ const MenuView = ({
   testID,
   actions,
   onPressAction,
+  children,
 }: {
   testID: string
+  children?: ReactNode
   actions: { id: string }[]
   onPressAction: (event: { nativeEvent: { event: string } }) => void
 }) =>
@@ -215,6 +292,7 @@ const MenuView = ({
         onClick: () => onPressAction({ nativeEvent: { event: action.id } }),
       }),
     ),
+    children,
   )
 
 const router = {
@@ -223,6 +301,7 @@ const router = {
     energyState.backs += 1
   },
   canGoBack: () => true,
+  dismissTo: (href: unknown) => energyState.dismissed.push(href),
 }
 
 const tokens = new Proxy(
@@ -245,6 +324,14 @@ export const reactNativeMock = () => ({
   ScrollView: View,
   Pressable,
   TextInput,
+  Platform: { OS: 'ios' },
+  Keyboard: {
+    dismiss: () => {
+      energyState.keyboardDismissals += 1
+    },
+  },
+  InputAccessoryView: View,
+  AppState: { addEventListener: () => ({ remove: () => undefined }) },
   Switch,
   StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 1, flatten },
   useWindowDimensions: () => ({ width: 390, height: 844, fontScale: 1, scale: 3 }),
@@ -259,15 +346,33 @@ export const svgMock = () => ({
 export const safeAreaMock = () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 })
-export const routerMock = () => ({ Stack, useRouter: () => router })
-export const convexReactMock = () => ({
-  useMutation: (name: string) => async (args: unknown) => {
-    energyState.calls.push({ name, args })
-    if (energyState.refuse) {
-      throw Object.assign(new Error('refused'), { data: energyState.refuse })
-    }
-    return 'id1'
+const navigation = {
+  addListener: (event: string, listener: () => void) => {
+    const set = energyState.navListeners[event] ?? new Set()
+    set.add(listener)
+    energyState.navListeners[event] = set
+    return () => set.delete(listener)
   },
+}
+export const routerMock = () => ({
+  Stack,
+  useRouter: () => router,
+  useNavigation: () => navigation,
+})
+const recorded = (name: string) => async (args: unknown) => {
+  energyState.calls.push({ name, args })
+  if (energyState.refuse) {
+    throw Object.assign(new Error('refused'), { data: energyState.refuse })
+  }
+  return name in energyState.actions ? energyState.actions[name] : 'id1'
+}
+export const convexReactMock = () => ({
+  useMutation: recorded,
+  useAction: recorded,
+})
+export const confirmMock = () => ({
+  confirmDestructive: (options: { title: string; onConfirm: () => void }) =>
+    energyState.confirms.push(options),
 })
 export const apiMock = () => ({
   api: new Proxy(
@@ -294,8 +399,8 @@ export const groupMock = () => ({
 })
 export async function i18nMock() {
   const { en } = await import('../../i18n/messages/en')
-  const { fmt } = await import('@gather/core/i18n')
-  return { useI18n: () => ({ t: en, locale: 'en' }), fmt }
+  const { fmt, plural } = await import('@gather/core/i18n')
+  return { useI18n: () => ({ t: en, locale: 'en' }), fmt, plural }
 }
 export const iconsMock = () => ({
   UI_ICONS: new Proxy({}, { get: () => Nothing }),
@@ -334,6 +439,7 @@ export const moduleTileMock = () => ({
 })
 export const screenHeaderMock = () => ({ washScreenOptions: () => ({}) })
 export const washHeaderMock = () => ({ WashHeader })
+export const segmentedMock = () => ({ Segmented })
 export const menuMock = () => ({ MenuView })
 
 export const byTestId = (id: string) =>
@@ -389,6 +495,7 @@ export function usagePeriod({
   costStatus = 'ok',
   cost = null,
   costWithoutNet = null,
+  dayCost,
   hours = [],
 }: {
   days: readonly string[]
@@ -400,6 +507,8 @@ export function usagePeriod({
   costStatus?: 'ok' | 'noData' | 'noContract' | 'noPrices'
   cost?: number | null
   costWithoutNet?: number | null
+  /** What each day with data costs; none by default. */
+  dayCost?: (day: string) => number
   hours?: unknown[]
 }) {
   const rows = days.map((day) => {
@@ -415,8 +524,8 @@ export function usagePeriod({
       batteryChargeKwh: 0,
       batteryDischargeKwh: 0,
       consumptionKwh: hasData ? kwhPerDay : 0,
-      cost: null,
-      costWithoutNet: null,
+      cost: hasData && dayCost ? costOf(dayCost(day)) : null,
+      costWithoutNet: hasData && dayCost ? costOf(dayCost(day)) : null,
       costStatus,
     }
   })
@@ -445,5 +554,42 @@ export function usagePeriod({
       costMissingDays: 0,
       costStatus,
     },
+  }
+}
+
+/** A day of prices: 30 cents, but for `changes` by hour. */
+function priceDay(day: string, changes: Record<number, number>) {
+  return {
+    day,
+    provider: 'energyzero',
+    basis: 'allIn',
+    terms: {
+      supplierName: 'Frank Energie',
+      importMarkupEurPerKwh: 0.02,
+      energyTaxEurPerKwh: 0.1,
+      vatPercent: 21,
+    },
+    exportFeeEurPerKwh: -0.01,
+    hours: amsterdamDayHours(day).map((start, index) => {
+      const price = changes[index] ?? 0.3
+      return { start, price, market: price / 1.21 - 0.12 }
+    }),
+  }
+}
+
+/** What `energyPrices.view` answers on 23 November 2026. */
+export function priceView(overrides: Record<string, unknown> = {}) {
+  return {
+    siteName: 'Thuis',
+    canManage: true,
+    provider: 'energyzero',
+    hasKey: false,
+    status: 'ok',
+    lastError: null,
+    lastFetchedAt: Date.parse('2026-11-23T11:40:00Z'),
+    contract: { kind: 'dynamic', supplierName: 'Frank Energie' },
+    today: priceDay('2026-11-23', { 2: 0.2, 3: 0.2, 4: 0.2, 13: 0.4 }),
+    tomorrow: priceDay('2026-11-24', { 12: 0.1, 13: 0.1, 14: 0.1, 18: 0.5 }),
+    ...overrides,
   }
 }
