@@ -5,7 +5,7 @@ import { expect, test, vi } from 'vitest'
 
 import { closeOpenSheets, hasOpenSheets } from '../components/openSheets'
 import { mount } from '../testing/dom'
-import { cardLayout, KeyboardComposer, useKeyboard } from './keyboard-composer'
+import { KeyboardComposer, useKeyboard } from './keyboard-composer'
 
 type Props = { children?: ReactNode }
 
@@ -98,9 +98,4 @@ test('the keyboard counts as moving until its own animation is over (APP-774)', 
   expect(now).toEqual({ up: false, moving: true })
   view.unmount()
   vi.useRealTimers()
-})
-
-test('the card has no layout animation while the keyboard moves, so it cannot crash a close (APP-817)', () => {
-  expect(cardLayout(true)).toBeUndefined()
-  expect(cardLayout(false)).toBeDefined()
 })

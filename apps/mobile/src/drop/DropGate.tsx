@@ -29,12 +29,13 @@
  * prompt cannot be closed from here, so the chooser waits for its answer, which
  * then lands in the form it was asked for before that form is closed (APP-672).
  * A link, a notification or a quick action that arrives while it waits replaces
- * it (APP-774): the newer screen opens, and once it is up with nothing in front
- * of it the chooser comes back for the Drop that is still pending (APP-817).
- * No new control: the chooser is the same one, a moment later.
+ * it (APP-774): the newer screen opens, and once that arrival has opened and
+ * nothing is in front of it the chooser comes back for the Drop that is still
+ * pending (APP-817). It is the arrival opening that brings it back, never the
+ * person's next move. No new control: the same chooser, a moment later.
  */
 import { usePathname, useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 import { hasOpenPrompts, hasOpenSheets } from '../components/openSheets'
 import { isWaitingForSheets, openAfterSheets } from '../shell/linkAfterSheets'
@@ -42,9 +43,8 @@ import { useDrop } from './DropProvider'
 import { dropHref } from './paths'
 
 /**
- * How long a replaced Drop waits for the newer screen to open. A newer link to
- * the screen already in front changes no path, and a chooser that came much
- * later would be a surprise.
+ * How long, after the newer arrival opened, the chooser waits for a hand-off
+ * route or the quick sheet to be done before it gives up.
  */
 export const REOFFER_WINDOW_MS = 5000
 
@@ -57,6 +57,9 @@ export const REOFFER_SETTLE_MS = 400
 /** The route a tapped notification passes through on its way to its record. */
 const HANDOFF_PATH = '/open-notification'
 
+/** The route the home-screen quick actions open the quick sheet on. */
+const QUICK_PATH = '/quick'
+
 export function DropGate() {
   const { pending } = useDrop()
   const router = useRouter()
@@ -65,48 +68,56 @@ export function DropGate() {
   // The Drop as of the last render, so a wait that ends reads the current one.
   const latest = useRef(pending)
   latest.current = pending
-  // The chooser of this Drop lost its place to a newer arrival: which Drop,
-  // and the screen it was waiting on, so the newer screen's path can be told
-  // from it.
   const pathname = usePathname()
   const here = useRef(pathname)
   here.current = pathname
-  const [lost, setLost] = useState<{ sequence: number; from: string } | null>(
-    null,
-  )
+  // Which re-offer is live: a newer one, or the gate going, ends the older.
+  const reoffer = useRef(0)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     mounted.current = true
     return () => {
       mounted.current = false
+      reoffer.current++
+      clearTimeout(timer.current)
     }
   }, [])
 
-  // Gives up when the newer screen takes too long, or never changes the path.
-  useEffect(() => {
-    if (!lost) return
-    const timer = setTimeout(() => setLost(null), REOFFER_WINDOW_MS)
-    return () => clearTimeout(timer)
-  }, [lost])
-
-  // The newer screen is up: bring the chooser back, unless something is in
-  // front of it (a sheet or prompt the arrival opened), which is left alone.
-  useEffect(() => {
-    if (
-      !lost ||
-      pathname === lost.from ||
-      pathname === HANDOFF_PATH ||
-      pathname === dropHref()
-    )
-      return
-    const timer = setTimeout(() => {
-      setLost(null)
-      if (!mounted.current || latest.current?.sequence !== lost.sequence) return
-      if (hasOpenSheets() || hasOpenPrompts() || isWaitingForSheets()) return
-      router.push(dropHref())
-    }, REOFFER_SETTLE_MS)
-    return () => clearTimeout(timer)
-  }, [lost, pathname, router])
+  // The newer arrival opened: give it a moment to present what it opens, then
+  // bring the chooser back unless something is in front of it. It is the
+  // arrival opening that starts this, not the person's next move, so a
+  // navigation after the newer screen settled never brings the chooser back.
+  const bringBack = useCallback(
+    (sequence: number, newerOpened: Promise<boolean>) => {
+    const token = ++reoffer.current
+    clearTimeout(timer.current)
+    void newerOpened.then((went) => {
+      if (!went || token !== reoffer.current) return
+      const deadline = Date.now() + REOFFER_WINDOW_MS
+      const settle = () => {
+        if (!mounted.current || token !== reoffer.current) return
+        if (latest.current?.sequence !== sequence) return
+        // Still on the way: the notification hand-off, or the quick sheet.
+        if (here.current === HANDOFF_PATH || here.current === QUICK_PATH) {
+          if (Date.now() < deadline)
+            timer.current = setTimeout(settle, REOFFER_SETTLE_MS)
+          return
+        }
+        if (
+          here.current === dropHref() ||
+          hasOpenSheets() ||
+          hasOpenPrompts() ||
+          isWaitingForSheets()
+        )
+          return
+        router.push(dropHref())
+      }
+      timer.current = setTimeout(settle, REOFFER_SETTLE_MS)
+    })
+  },
+    [router],
+  )
 
   useEffect(() => {
     if (!pending || pending.sequence === opened.current) return
@@ -117,15 +128,14 @@ export function DropGate() {
     // mounted: a replacing share pushes for itself, a cleared Drop needs no
     // chooser, and a remounted gate opens the still-pending Drop on its own.
     const sequence = pending.sequence
-    const from = here.current
-    openAfterSheets(() => router.push(dropHref()), {
+        openAfterSheets(() => router.push(dropHref()), {
       share: true,
       wanted: () => mounted.current && latest.current?.sequence === sequence,
-      onSuperseded: () => {
-        if (mounted.current) setLost({ sequence, from })
+      onSuperseded: (newerOpened) => {
+        if (mounted.current) bringBack(sequence, newerOpened)
       },
     })
-  }, [pending, router])
+  }, [pending, router, bringBack])
 
   return null
 }

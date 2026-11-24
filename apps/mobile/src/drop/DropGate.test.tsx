@@ -146,25 +146,48 @@ test('it waits out the notification handoff route', async () => {
   view.unmount()
 })
 
-test('a sheet the newer screen opened keeps the chooser away', async () => {
+test('a sheet the newer screen opened keeps the chooser away, and later moves do not bring it back', async () => {
   const view = await lostToLink()
+  // A quick action: through the quick route, back to Home, its sheet open.
   state.pathname = '/quick'
+  view.rerender(createElement(DropGate))
+  await pass(100)
+  state.pathname = '/home'
   view.rerender(createElement(DropGate))
   const sheet = openSheet(() => {})
   await pass(REOFFER_SETTLE_MS)
   expect(state.push).not.toHaveBeenCalled()
+  // The person closes it and goes elsewhere, inside the window.
   sheet.closed()
+  await pass(1000)
+  state.pathname = '/all/tasks'
+  view.rerender(createElement(DropGate))
   await pass(REOFFER_WINDOW_MS)
   expect(state.push).not.toHaveBeenCalled()
   view.unmount()
 })
 
-test('a link to the screen already in front brings nothing back, and not later', async () => {
+test('a link to the screen already in front still brings the chooser back, once', async () => {
   const view = await lostToLink()
+  await pass(REOFFER_SETTLE_MS)
+  expect(state.push).toHaveBeenCalledExactlyOnceWith('/drop')
+  state.pathname = '/all/tasks'
+  view.rerender(createElement(DropGate))
   await pass(REOFFER_WINDOW_MS)
+  expect(state.push).toHaveBeenCalledOnce()
+  view.unmount()
+})
+
+test('moving on before the newer screen settles still waits for the sheet check', async () => {
+  const view = await lostToLink()
+  const sheet = openSheet(() => {})
   state.pathname = '/all/notes'
   view.rerender(createElement(DropGate))
   await pass(REOFFER_SETTLE_MS)
+  sheet.closed()
+  state.pathname = '/all/tasks'
+  view.rerender(createElement(DropGate))
+  await pass(REOFFER_WINDOW_MS)
   expect(state.push).not.toHaveBeenCalled()
   view.unmount()
 })

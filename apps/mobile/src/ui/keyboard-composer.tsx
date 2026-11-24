@@ -647,7 +647,7 @@ export const ADD_BUTTON_CLEARANCE = 60 + SPACE[4] + SPACE[2]
 const CARD_TRANSITION = LinearTransition.duration(220)
 
 /** The card's `layout`: none while the keyboard moves, see `useKeyboard`. */
-export function cardLayout(moving: boolean) {
+function cardLayout(moving: boolean) {
   return moving ? undefined : CARD_TRANSITION
 }
 

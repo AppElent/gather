@@ -25,6 +25,13 @@ import {
 let held: { share: boolean } | null = null
 
 /**
+ * Whether the newest arrival to wait or pass went on to open. A share that
+ * loses is told with this, so its chooser comes back from the newer arrival
+ * opening and not from whatever the person does next.
+ */
+let newest: Promise<boolean> = Promise.resolve(false)
+
+/**
  * The share extension's link is in: forgets a link that waits. A share that
  * waits stays, because this one may carry nothing Gather can place; one that
  * does replaces it when its own chooser comes to open.
@@ -45,20 +52,25 @@ export function isWaitingForSheets() {
 function wayClear(
   share: boolean,
   wanted: () => boolean,
-  onSuperseded?: () => void,
+  onSuperseded?: (newerOpened: Promise<boolean>) => void,
 ): true | Promise<boolean> {
   held = null
-  if (!hasOpenSheets() && !hasOpenPrompts()) return true
+  if (!hasOpenSheets() && !hasOpenPrompts()) {
+    newest = Promise.resolve(wanted())
+    return true
+  }
   const arrival = { share }
   held = arrival
   const current = () => held === arrival && wanted()
-  return closeAllSheets(current).then(() => {
+  const done = closeAllSheets(current).then(() => {
     const go = current()
     // Something newer took the slot while this one still wanted it.
-    if (held !== arrival && wanted()) onSuperseded?.()
+    if (held !== arrival && wanted()) onSuperseded?.(newest)
     if (held === arrival) held = null
     return go
   })
+  newest = done
+  return done
 }
 
 /**
@@ -83,8 +95,11 @@ export function openAfterSheets(
   }: {
     share?: boolean
     wanted?: () => boolean
-    /** Called once when something newer replaced this while it still wanted to open. */
-    onSuperseded?: () => void
+    /**
+     * Called once when something newer replaced this while it still wanted to
+     * open, with whether that newer arrival went on to open.
+     */
+    onSuperseded?: (newerOpened: Promise<boolean>) => void
   } = {},
 ) {
   const clear = wayClear(share, wanted, onSuperseded)
