@@ -785,20 +785,22 @@ export const finishSync = internalMutation({
  * person makes a few times a year. The most channels a connection may have, 30,
  * read 5,760 rows, still 192 to a mutation. Nothing is written unless
  * something differs. A refresh button would cost less, but someone has to know
- * to use it. Anything older than the window, or a statistic changed throughout
- * (`AGREEING_HOURS`), still needs "Fetch history".
+ * to use it. Anything older than the window, or hours that fail
+ * `AGREEING_HOURS`, still needs "Fetch history".
  */
 const LOOKBACK_MS = 8 * 24 * HOUR_MS
 /**
  * A run of hours that differ is a correction only between two stretches of
  * this many hours that are as stored, and when no more than `CORRECTED_HOURS`
- * of it replace a stored hour (hours filled in are not counted). A channel may
- * have been given another sensor, and back, and one sensor's past must not
- * replace the other's hours; nothing stored says when. Those hours differ for
- * longer, or up to the window's edge. A correction at the new edge is written
- * by a later day's pass, when hours follow it; one at the old edge was seen
- * when it was newer. Known limit: a sensor given for less than a day and then
- * taken back looks like a correction.
+ * stored hours lie from its first to its last. Those that agree in between
+ * count too (a night of solar); hours filled in do not. A channel may have
+ * been given another sensor, and back, and one sensor's past must not replace
+ * the other's hours; nothing stored says when. Those hours differ for longer,
+ * or up to the window's edge. A correction at the new edge is written by a
+ * later day's pass, when hours follow it; one at the old edge was seen when it
+ * was newer. Known limits: a sensor given for up to a day (from the first hour
+ * that differs to the last) and then taken back looks like a correction, and a
+ * channel too flat or sparse to agree on both sides is never corrected.
  *
  * Hours at zero (a night of solar) or the same as the hour before (a full
  * battery, a steady load) agree between any two sensors, so they do not count.
@@ -923,7 +925,11 @@ export const storeCorrections = internalMutation({
         if (amount <= 0 || repeated) continue
         agreeing += 1
         if (agreeing < AGREEING_HOURS) continue
-        const replaced = run.filter((each) => byHour.has(each.hourStart)).length
+        const from = run[0]?.hourStart ?? hourStart
+        const to = run[run.length - 1]?.hourStart ?? from
+        const replaced = stored.filter(
+          (each) => each.hourStart >= from && each.hourStart <= to,
+        ).length
         if (anchored && !lost && replaced <= CORRECTED_HOURS) {
           for (const each of run) {
             const stale = byHour.get(each.hourStart)

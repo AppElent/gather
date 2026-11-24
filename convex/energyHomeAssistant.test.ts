@@ -808,6 +808,32 @@ describe('the daily lookback for corrections', () => {
     expect(await rows(t, 'energyIntervals')).toEqual(before)
   })
 
+  test('nor when zeros at night lie between its hours', async () => {
+    // Eight hours a day, never two the same; zero at night.
+    const sums = new Map<number, number>()
+    let sum = 100
+    for (let hour = 300; hour > 0; hour -= 1) {
+      if (hour % 24 < 8) sum += (400 - hour) / 100
+      sums.set(THIS_HOUR - hour * HOUR, sum)
+    }
+    const { t, lookback } = await connected(sums)
+    // Three days of another sensor: 24 hours that differ, over 56 in all.
+    let differing = 0
+    await t.run(async (ctx) => {
+      for (const each of await ctx.db.query('energyIntervals').collect()) {
+        const ago = (THIS_HOUR - each.hourStart) / HOUR
+        if (ago >= 48 && ago < 120 && each.amount > 0) {
+          differing += 1
+          await ctx.db.patch(each._id, { amount: each.amount + 7 })
+        }
+      }
+    })
+    expect(differing).toBe(24)
+    const before = await rows(t, 'energyIntervals')
+    await lookback()
+    expect(await rows(t, 'energyIntervals')).toEqual(before)
+  })
+
   test('a full battery does not make two sensors the same', async () => {
     const seeded = await seed()
     const id = 'sensor.battery_soc'
