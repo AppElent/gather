@@ -35,7 +35,7 @@ export const log = {
       weeks: { one: '{count} week old', other: '{count} weeks old' },
       months: { one: '{count} month old', other: '{count} months old' },
       years: { one: '{count} year old', other: '{count} years old' },
-      yearsMonths: '{years}y {months}m old',
+      yearsMonths: '{years} yr {months} mo old',
     },
     notFound: 'Child not found.',
     switch: 'Switch child',

@@ -33,7 +33,7 @@ export const log = {
       weeks: { one: '{count} week oud', other: '{count} weken oud' },
       months: { one: '{count} maand oud', other: '{count} maanden oud' },
       years: { one: '{count} jaar oud', other: '{count} jaar oud' },
-      yearsMonths: '{years}j {months}m oud',
+      yearsMonths: '{years} jr {months} mnd oud',
     },
     notFound: 'Kind niet gevonden.',
     switch: 'Ander kind kiezen',
