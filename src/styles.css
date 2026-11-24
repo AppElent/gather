@@ -333,6 +333,58 @@
     border-color: var(--ink);
   }
 
+  /* A Module's tile: its group's fill with the icon in `on`. Tiles are the
+     one place navigation wears a group colour (designs/web-shell, "Colour
+     rule"); a tile with no group is the quiet one, for shell destinations.
+     Components name the group (`data-tile`) and never the fill itself, which
+     `styles.test.ts` holds them to. */
+  .tile {
+    display: inline-grid;
+    flex-shrink: 0;
+    place-items: center;
+    inline-size: var(--size-tile-s);
+    block-size: var(--size-tile-s);
+    border-radius: var(--radius-tile-s);
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+
+  .tile[data-size="xs"] {
+    inline-size: var(--size-tile-xs);
+    block-size: var(--size-tile-xs);
+    border-radius: var(--radius-tile-xs);
+  }
+
+  .tile[data-tile="kitchen"] {
+    background: var(--kitchen-fill);
+    color: var(--kitchen-on);
+  }
+
+  .tile[data-tile="home"] {
+    background: var(--home-fill);
+    color: var(--home-on);
+  }
+
+  .tile[data-tile="tasting"] {
+    background: var(--tasting-fill);
+    color: var(--tasting-on);
+  }
+
+  .tile[data-tile="money"] {
+    background: var(--money-fill);
+    color: var(--money-on);
+  }
+
+  /* The phone-width tab bar is drawn by the web (no Liquid Glass in a
+     browser): surface at 78 % over a blur, with a soft shadow to lift it off
+     the page scrolling under it. No hand-written `-webkit-` twin: the
+     build then keeps only the twin, and Chrome and Edge lose the blur. */
+  .tab-bar-glass {
+    background: color-mix(in oklch, var(--surface) 78%, transparent);
+    box-shadow: 0 6px 24px color-mix(in oklch, var(--ink) 14%, transparent);
+    backdrop-filter: blur(16px);
+  }
+
   .shell-pill {
     display: inline-flex;
     min-height: 1.5rem;

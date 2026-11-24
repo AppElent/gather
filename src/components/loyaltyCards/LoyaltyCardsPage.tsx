@@ -110,9 +110,9 @@ export function LoyaltyCardsPage() {
     <div className="mx-auto grid max-w-5xl gap-4">
       <header className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="m-0 font-rounded text-2xl font-bold">
+          <h1 className="m-0 font-rounded text-2xl font-bold">
             {messages.modules.byId['loyalty-cards'].label}
-          </h2>
+          </h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {copy.subtitle}
           </p>
