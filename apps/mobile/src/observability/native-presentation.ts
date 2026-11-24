@@ -20,6 +20,7 @@ import {
   type AlertButton,
   type AlertOptions,
   type AlertType,
+  Platform,
 } from 'react-native'
 
 import { openPrompt } from '../components/openSheets'
@@ -83,6 +84,8 @@ export function showAlert(
 /**
  * `Alert.prompt` (iOS only), held until one of its buttons. A share waits for
  * it: closing the form under it would drop what is being typed (APP-672).
+ * Elsewhere `Alert.prompt` shows nothing and calls nothing back, so nothing is
+ * held: the hold would never end.
  */
 export function showPrompt(
   title: string,
@@ -91,6 +94,7 @@ export function showPrompt(
   type?: AlertType,
   defaultValue?: string,
 ) {
+  if (Platform.OS !== 'ios') return
   const release = holdAlert(true)
   try {
     Alert.prompt(title, message, releasing(buttons, release), type, defaultValue)

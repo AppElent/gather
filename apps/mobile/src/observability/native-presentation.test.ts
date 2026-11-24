@@ -11,7 +11,7 @@ import {
   requestMediaLibraryPermissionsAsync as nativeLibraryPermission,
 } from 'expo-image-picker'
 import { openBrowserAsync as nativeOpenBrowser } from 'expo-web-browser'
-import { ActionSheetIOS, Alert, type AlertButton } from 'react-native'
+import { ActionSheetIOS, Alert, type AlertButton, Platform } from 'react-native'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { hasOpenPrompts } from '../components/openSheets'
@@ -150,6 +150,29 @@ describe('showPrompt', () => {
     const shown = buttons as AlertButton[]
     shown[1].onPress?.('3 eggs')
     expect(onSave).toHaveBeenCalledWith('3 eggs')
+    expect(hasOpenPrompts()).toBe(false)
+    settle()
+    expect(listening()).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('showPrompt, when nothing shows', () => {
+  afterEach(() => {
+    Platform.OS = 'ios'
+  })
+
+  it('holds nothing on Android, where no button ever comes back', () => {
+    Platform.OS = 'android'
+    showPrompt('Edit', undefined, [{ text: 'Save' }])
+    expect(hasOpenPrompts()).toBe(false)
+    expect(paused()).not.toHaveBeenCalled()
+  })
+
+  it('releases when Alert.prompt throws', () => {
+    vi.mocked(Alert.prompt).mockImplementation(() => {
+      throw new Error('boom')
+    })
+    expect(() => showPrompt('Edit', undefined, [])).toThrow('boom')
     expect(hasOpenPrompts()).toBe(false)
     settle()
     expect(listening()).toHaveBeenCalledTimes(1)

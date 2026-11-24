@@ -21,6 +21,13 @@ export const CLOSE_SHEETS_TIMEOUT_MS = 1500
  */
 export const LATE_SHEET_DELAY_MS = 350
 
+/**
+ * The longest a share waits for a dialog. A person answers far sooner; this is
+ * for one that can never be answered, so it cannot hold every share back until
+ * the app restarts.
+ */
+export const PROMPTS_TIMEOUT_MS = 5 * 60_000
+
 export interface OpenSheet {
   /** The sheet has closed, however it happened. Safe to call more than once. */
   closed: () => void
@@ -145,10 +152,13 @@ export function openPrompt(): () => void {
   const id = Symbol('prompt')
   prompts.add(id)
   return () => {
-    if (!prompts.delete(id) || prompts.size > 0) return
-    for (const resolve of [...promptWaiters]) resolve()
-    promptWaiters.clear()
+    if (prompts.delete(id) && prompts.size === 0) promptsGone()
   }
+}
+
+function promptsGone() {
+  for (const resolve of [...promptWaiters]) resolve()
+  promptWaiters.clear()
 }
 
 export function hasOpenPrompts() {
@@ -157,14 +167,24 @@ export function hasOpenPrompts() {
 
 /**
  * Resolves once no dialog is up, and what its answer changed or opened has had
- * time to render and present. There is no time limit: the dialog is in front
- * of the person, and goes only when they answer it.
+ * time to render and present. A dialog still listed after `timeoutMs` is taken
+ * off the list, so the next share does not wait for it again.
  */
-export async function promptsAnswered(): Promise<void> {
-  while (prompts.size > 0) {
+export async function promptsAnswered(
+  timeoutMs = PROMPTS_TIMEOUT_MS,
+): Promise<void> {
+  if (prompts.size === 0) return
+  let late = false
+  const timer = setTimeout(() => {
+    late = true
+    prompts.clear()
+    promptsGone()
+  }, timeoutMs)
+  while (prompts.size > 0 && !late) {
     await new Promise<void>((resolve) => {
       promptWaiters.add(resolve)
     })
     await new Promise((resolve) => setTimeout(resolve, LATE_SHEET_DELAY_MS))
   }
+  clearTimeout(timer)
 }

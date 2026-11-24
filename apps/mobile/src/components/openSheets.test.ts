@@ -10,6 +10,7 @@ import {
   onSheetsClosing,
   openPrompt,
   openSheet,
+  PROMPTS_TIMEOUT_MS,
   promptsAnswered,
 } from './openSheets'
 
@@ -247,6 +248,22 @@ describe('prompts', () => {
     next()
     await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS)
     expect(answered).toBe(true)
+  })
+
+  it('gives up on a prompt nothing answers, and does not wait for it again', async () => {
+    vi.useFakeTimers()
+    const answer = openPrompt()
+    let done = false
+    void promptsAnswered().then(() => {
+      done = true
+    })
+    await vi.advanceTimersByTimeAsync(PROMPTS_TIMEOUT_MS - 1)
+    expect(done).toBe(false)
+    await vi.advanceTimersByTimeAsync(LATE_SHEET_DELAY_MS + 1)
+    expect(done).toBe(true)
+    expect(hasOpenPrompts()).toBe(false)
+    answer()
+    await expect(promptsAnswered()).resolves.toBeUndefined()
   })
 
   it('resolves at once when none is open', async () => {

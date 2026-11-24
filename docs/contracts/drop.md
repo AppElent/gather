@@ -35,9 +35,12 @@ that already means making Group content visible to a second Group.
   what was under it: Repeat does not bring its composer back.
 - **A share waits for a prompt.** An OS dialog cannot be closed from JS, so the
   chooser waits until a `showPrompt` is answered; the answer lands in the form,
-  which is then closed and kept like any other. So does an alert whose answer
-  opens a sheet (`showAlert` with `holdsShare`: the calendar's unsaved-changes
-  questions). Any other alert stays in front of the chooser and loses nothing.
+  which is then closed and kept like any other. `showPrompt` does nothing
+  outside iOS, so it holds nothing there, and after five minutes a share opens
+  the chooser anyway (`PROMPTS_TIMEOUT_MS`). A share also waits for an alert
+  whose answer opens a sheet (`showAlert` with `holdsShare`: the calendar's
+  unsaved-changes questions). Any other alert stays in front of the chooser and
+  loses nothing.
 - Arrivals are counted for the whole session, so a share after a finished or
   abandoned one opens the chooser again.
 - **A share keeps what was typed.** The person did not ask for that close,
