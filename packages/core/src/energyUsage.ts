@@ -355,6 +355,41 @@ export function addEnergyCosts(a: EnergyCost, b: EnergyCost): EnergyCost {
 }
 
 /**
+ * One day's fixed costs and energy tax reduction under `contract`, VAT
+ * included, or null when the contract has neither. They run on every day of
+ * the contract, with or without usage.
+ */
+export function energyDayFixedCost(
+  day: string,
+  contract: Pick<
+    EnergyContractTerms,
+    'monthlyFixedCents' | 'yearlyTaxCreditCents' | 'vatPercent'
+  >,
+): EnergyCost | null {
+  const parts = parseIsoDate(day)
+  if (!parts) return null
+  const vat = 1 + contract.vatPercent / 100
+  const daysThisMonth = daysInMonth(parts.year, parts.month)
+  const daysThisYear =
+    parts.year % 4 === 0 && (parts.year % 100 !== 0 || parts.year % 400 === 0)
+      ? 366
+      : 365
+  const fixedCents = roundCents((contract.monthlyFixedCents / daysThisMonth) * vat)
+  // Credits are negative, and a credit of nothing is 0, never −0 (which
+  // formats as "€ -0,00").
+  const creditCents = negativeCents(
+    ((contract.yearlyTaxCreditCents ?? 0) / daysThisYear) * vat,
+  )
+  if (fixedCents === 0 && creditCents === 0) return null
+  return {
+    ...ZERO_ENERGY_COST,
+    fixedCents,
+    creditCents,
+    totalCents: fixedCents + creditCents,
+  }
+}
+
+/**
  * What a day costs under `contract`, or null when a price it needs is not in
  * yet (a dynamic contract before its prices arrive). Never a guess.
  *
@@ -438,16 +473,8 @@ export function energyDayCost(
     }
   }
 
-  const parts = parseIsoDate(use.day)
-  if (!parts) return null
-  const daysThisMonth = daysInMonth(parts.year, parts.month)
-  const daysThisYear = parts.year % 4 === 0 && (parts.year % 100 !== 0 || parts.year % 400 === 0) ? 366 : 365
-  const fixedCents = roundCents((contract.monthlyFixedCents / daysThisMonth) * vat)
-  // Credits are negative, and a credit of nothing is 0, never −0 (which
-  // formats as "€ -0,00").
-  const creditCents = negativeCents(
-    ((contract.yearlyTaxCreditCents ?? 0) / daysThisYear) * vat,
-  )
+  if (!parseIsoDate(use.day)) return null
+  const fixed = energyDayFixedCost(use.day, contract) ?? ZERO_ENERGY_COST
 
   const importCents = roundCents(importEur * 100)
   const exportCents = negativeCents(exportEur * 100)
@@ -456,9 +483,10 @@ export function energyDayCost(
     importCents,
     exportCents,
     gasCents,
-    fixedCents,
-    creditCents,
-    totalCents: importCents + exportCents + gasCents + fixedCents + creditCents,
+    fixedCents: fixed.fixedCents,
+    creditCents: fixed.creditCents,
+    totalCents:
+      importCents + exportCents + gasCents + fixed.fixedCents + fixed.creditCents,
   }
 }
 
@@ -473,8 +501,9 @@ export interface EnergyNetDay {
  * Net metering (salderen) over a period, a month so far: the period's export
  * up to its import is netted at the period's average import price instead of
  * earning the export price, so a sunny day offsets a grey one. The credit is
- * shared over the days by what each exported, so the days still add up to
- * the period. Returns each day's cost with net metering, in order.
+ * floored at zero so netting never adds cost when export earns more than
+ * import, and shared over the days by what each exported so the days still
+ * add up to the period. Returns each day's cost with net metering, in order.
  */
 export function energyNetMetering(days: readonly EnergyNetDay[]): EnergyCost[] {
   const importKwh = days.reduce((total, day) => total + day.importKwh, 0)
@@ -483,9 +512,11 @@ export function energyNetMetering(days: readonly EnergyNetDay[]): EnergyCost[] {
   const importCents = days.reduce((total, day) => total + day.cost.importCents, 0)
   const earnedCents = -days.reduce((total, day) => total + day.cost.exportCents, 0)
   const netted = Math.min(importKwh, exportKwh)
-  const creditCents = Math.round(
-    netted * (importCents / importKwh - earnedCents / exportKwh),
+  const creditCents = Math.max(
+    0,
+    Math.round(netted * (importCents / importKwh - earnedCents / exportKwh)),
   )
+  if (creditCents === 0) return days.map((day) => day.cost)
   let exportedSoFar = 0
   let given = 0
   return days.map((day) => {
@@ -505,13 +536,26 @@ function negativeCents(value: number): number {
   return -roundCents(value) || 0
 }
 
-/** A month's expected total from the days so far, or null with none. */
+/** How many of `days` carry a cost, so fixed costs: the days it counts for. */
+export function energyCostDays(
+  days: readonly { cost: EnergyCost | null }[],
+): number {
+  return days.filter((day) => day.cost !== null).length
+}
+
+/**
+ * A month's expected total, or null with no usage yet: what was used extended
+ * from the days with usage, and the fixed costs from the days they ran.
+ */
 export function forecastMonthCents(
-  totalCents: number,
+  cost: EnergyCost,
   daysWithData: number,
+  costDays: number,
   month: string,
 ): number | null {
-  if (daysWithData <= 0) return null
+  if (daysWithData <= 0 || costDays <= 0) return null
   const days = energyMonthDays(month).length
-  return Math.round((totalCents / daysWithData) * days)
+  const fixed = cost.fixedCents + cost.creditCents
+  const used = cost.totalCents - fixed
+  return Math.round((used / daysWithData + fixed / costDays) * days)
 }

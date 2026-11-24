@@ -28,6 +28,7 @@ export const energyState = {
   refuse: null as null | { kind: string },
   pushes: [] as unknown[],
   backs: 0,
+  keyboardDismissals: 0,
   wash: null as unknown,
   /** What an action resolves to, by its `module:fn` name. */
   actions: {} as Record<string, unknown>,
@@ -41,6 +42,7 @@ export function resetEnergyState() {
   energyState.refuse = null
   energyState.pushes = []
   energyState.backs = 0
+  energyState.keyboardDismissals = 0
   energyState.wash = null
   energyState.actions = {}
   energyState.dismissed = []
@@ -305,7 +307,12 @@ export const reactNativeMock = () => ({
   Pressable,
   TextInput,
   Platform: { OS: 'ios' },
-  Keyboard: { dismiss: () => undefined },
+  Keyboard: {
+    dismiss: () => {
+      energyState.keyboardDismissals += 1
+    },
+  },
+  InputAccessoryView: View,
   AppState: { addEventListener: () => ({ remove: () => undefined }) },
   Switch,
   StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 1, flatten },
@@ -458,6 +465,7 @@ export function usagePeriod({
   costStatus = 'ok',
   cost = null,
   costWithoutNet = null,
+  dayCost,
   hours = [],
 }: {
   days: readonly string[]
@@ -469,6 +477,8 @@ export function usagePeriod({
   costStatus?: 'ok' | 'noData' | 'noContract' | 'noPrices'
   cost?: number | null
   costWithoutNet?: number | null
+  /** What each day with data costs; none by default. */
+  dayCost?: (day: string) => number
   hours?: unknown[]
 }) {
   const rows = days.map((day) => {
@@ -484,8 +494,8 @@ export function usagePeriod({
       batteryChargeKwh: 0,
       batteryDischargeKwh: 0,
       consumptionKwh: hasData ? kwhPerDay : 0,
-      cost: null,
-      costWithoutNet: null,
+      cost: hasData && dayCost ? costOf(dayCost(day)) : null,
+      costWithoutNet: hasData && dayCost ? costOf(dayCost(day)) : null,
       costStatus,
     }
   })

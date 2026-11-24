@@ -25,6 +25,7 @@ import { energyContractKindValidator } from './lib/energy'
 import {
   channelsPresent,
   computeEnergyRange,
+  type EnergyDay,
   type EnergyHour,
   energyChannelsPresentValidator,
   energyCostStatusValidator,
@@ -78,7 +79,26 @@ const periodValidator = v.union(
   }),
 )
 
-function totalsOf(days: (typeof energyDayValidator.type)[]) {
+/** A day still to come: part of the period, with nothing in it yet. */
+function emptyDay(day: string): EnergyDay {
+  return {
+    day,
+    hasData: false,
+    estimated: false,
+    importKwh: 0,
+    exportKwh: 0,
+    solarKwh: null,
+    gasM3: null,
+    batteryChargeKwh: null,
+    batteryDischargeKwh: null,
+    consumptionKwh: 0,
+    cost: null,
+    costWithoutNet: null,
+    costStatus: 'noData' as const,
+  }
+}
+
+function totalsOf(days: EnergyDay[]) {
   const withData = days.filter((day) => day.hasData)
   const nullableSum = (pick: (day: (typeof withData)[number]) => number | null) => {
     const values = withData.map(pick).filter((value) => value !== null)
@@ -86,6 +106,16 @@ function totalsOf(days: (typeof energyDayValidator.type)[]) {
   }
   const missing = withData.filter((day) => day.costStatus !== 'ok')
   const statuses = new Set(missing.map((day) => day.costStatus))
+  const costStatus =
+    withData.length === 0
+      ? ('noData' as const)
+      : missing.length < withData.length
+        ? ('ok' as const)
+        : statuses.has('noContract')
+          ? ('noContract' as const)
+          : ('noPrices' as const)
+  // Fixed costs alone are no figure: without one priced day there is no total.
+  const hasCost = costStatus === 'ok'
   return {
     importKwh: withData.reduce((total, day) => total + day.importKwh, 0),
     exportKwh: withData.reduce((total, day) => total + day.exportKwh, 0),
@@ -99,17 +129,12 @@ function totalsOf(days: (typeof energyDayValidator.type)[]) {
     daysWithData: withData.length,
     firstDay: withData[0]?.day ?? null,
     lastDay: withData[withData.length - 1]?.day ?? null,
-    cost: sumCosts(withData.map((day) => day.cost)),
-    costWithoutNet: sumCosts(withData.map((day) => day.costWithoutNet)),
+    cost: hasCost ? sumCosts(days.map((day) => day.cost)) : null,
+    costWithoutNet: hasCost
+      ? sumCosts(days.map((day) => day.costWithoutNet))
+      : null,
     costMissingDays: missing.length,
-    costStatus:
-      withData.length === 0
-        ? ('noData' as const)
-        : missing.length < withData.length
-          ? ('ok' as const)
-          : statuses.has('noContract')
-            ? ('noContract' as const)
-            : ('noPrices' as const),
+    costStatus,
   }
 }
 
@@ -133,21 +158,7 @@ export const month = query({
     // Days still to come are part of the month, with nothing in them yet.
     const future = energyMonthDays(args.month)
       .filter((day) => day > args.today)
-      .map((day) => ({
-        day,
-        hasData: false,
-        estimated: false,
-        importKwh: 0,
-        exportKwh: 0,
-        solarKwh: null,
-        gasM3: null,
-        batteryChargeKwh: null,
-        batteryDischargeKwh: null,
-        consumptionKwh: 0,
-        cost: null,
-        costWithoutNet: null,
-        costStatus: 'noData' as const,
-      }))
+      .map(emptyDay)
     const lastDay = days[days.length - 1] ?? `${args.month}-01`
     const contract = energyContractOn(range.contracts, lastDay) ?? null
     return {
@@ -192,14 +203,16 @@ export const day = query({
     const hourly = hasHourlySource(channels)
     const range = await computeEnergyRange(ctx, site, channels, [args.day], {
       hourly,
+      net: false,
     })
+    // A day still to come has nothing in it, as in `month`.
+    if (args.day > args.today) range.days = [emptyDay(args.day)]
     const contract = energyContractOn(range.contracts, args.day) ?? null
     const own = range.days[0]
     if (
-      own?.costWithoutNet &&
+      own?.costStatus === 'ok' &&
       contract &&
-      netMeteringOn(contract, args.day) &&
-      args.day <= args.today
+      netMeteringOn(contract, args.day)
     ) {
       const monthSoFar = energyMonthDays(args.day.slice(0, 7)).filter(
         (each) => each <= args.today,

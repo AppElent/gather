@@ -187,6 +187,11 @@ test('with readings, the home shows the month and rows to every Energy screen', 
     byTestId(`energy-row-${row}`)?.click()
     expect(energyState.pushes.at(-1)).toBe(path)
   }
+  byTestId('energy-usage-card')?.click()
+  expect(energyState.pushes.at(-1)).toEqual({
+    pathname: '/all/energy/usage',
+    params: { range: 'month', month: '2026-11' },
+  })
   view.unmount()
 })
 

@@ -18,6 +18,7 @@ import {
   type EnergyDayUse,
   energyContractOn,
   energyDayCost,
+  energyDayFixedCost,
   energyMonthDays,
   energyNetMetering,
   energyReadingMoment,
@@ -375,10 +376,58 @@ describe('net metering ends on 1 January 2027', () => {
   })
 })
 
+describe('energyNetMetering with export above import', () => {
+  test('never adds cost: each day keeps what it costs without', () => {
+    const days = [
+      {
+        importKwh: 10,
+        exportKwh: 0,
+        cost: { ...ZERO_ENERGY_COST, importCents: 100, totalCents: 100 },
+      },
+      {
+        importKwh: 0,
+        exportKwh: 10,
+        cost: { ...ZERO_ENERGY_COST, exportCents: -300, totalCents: -300 },
+      },
+    ]
+    expect(energyNetMetering(days)).toEqual(days.map((day) => day.cost))
+  })
+})
+
+describe('energyDayFixedCost', () => {
+  const terms = { monthlyFixedCents: 3000, yearlyTaxCreditCents: 36500, vatPercent: 0 }
+  test('is the month’s share of the fee and the year’s of the credit', () => {
+    expect(energyDayFixedCost('2026-11-05', terms)).toEqual({
+      ...ZERO_ENERGY_COST,
+      fixedCents: 100,
+      creditCents: -100,
+      totalCents: 0,
+    })
+  })
+  test('is nothing under a contract with neither', () => {
+    expect(
+      energyDayFixedCost('2026-11-05', { monthlyFixedCents: 0, vatPercent: 21 }),
+    ).toBeNull()
+  })
+})
+
 describe('forecastMonthCents', () => {
   test('extends the days so far to the whole month', () => {
-    expect(forecastMonthCents(1000, 10, '2026-11')).toBe(3000)
-    expect(forecastMonthCents(1000, 0, '2026-11')).toBeNull()
+    const cost = { ...ZERO_ENERGY_COST, importCents: 1000, totalCents: 1000 }
+    expect(forecastMonthCents(cost, 10, 10, '2026-11')).toBe(3000)
+    expect(forecastMonthCents(cost, 0, 10, '2026-11')).toBeNull()
+  })
+
+  test('extends fixed costs from the days they ran, not the days with usage', () => {
+    const cost = {
+      ...ZERO_ENERGY_COST,
+      importCents: 1000,
+      fixedCents: 2000,
+      creditCents: -1000,
+      totalCents: 2000,
+    }
+    // 10 days of usage, 20 days of fixed costs: 1000 × 3 + 1000 × 1.5.
+    expect(forecastMonthCents(cost, 10, 20, '2026-11')).toBe(4500)
   })
 })
 

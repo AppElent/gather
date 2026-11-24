@@ -15,9 +15,12 @@ and previews live in the [Gather design system](https://claude.ai/artifact/Rwyfb
 The boards it was drawn from, and the council notes, are on the
 [directions canvas](https://claude.ai/artifact/RoKALMenqvjekPVR9BcHqv).
 
-The tokens live in `src/theme/`: neutrals in `palette.ts`; text styles
-(`TYPE`, `TABULAR`), spacing (`SPACE`), radii (`RADIUS`), sizes (`SIZE`) and
-`useTokens(group?)` in `tokens.ts`. Each Module group's four colours (`fill`,
+The tokens live in `src/theme/`: neutrals in `palette.ts` (`ground`, `surface`,
+`surface2`, `ink`, `muted`, `hair`, `hairStrong`, `danger`, `onInk`, where
+`hairStrong` is the stronger decorative rule for chart baselines, future-slot
+dashed outlines and non-text chart fills); text styles (`TYPE`, `TABULAR`),
+spacing (`SPACE`), radii (`RADIUS`), sizes (`SIZE`) and `useTokens(group?)` in
+`tokens.ts`. Each Module group's four colours (`fill`,
 `on`, `text`, `wash`) are `MODULE_TINTS` in `@gather/core/module-tints`.
 `src/theme/contrast.test.ts` holds every allowed text pair to 4.5:1 in both
 themes, and `scripts/check-mobile-structure.mjs` rejects a literal `fontSize`

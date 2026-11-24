@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { renderInGroup } from '../app/testing'
 import { EnergyCostsPage } from './EnergyCostsPage'
 import type { EnergyPeriod } from './energyShared'
-import { monthPeriod } from './testing'
+import { cost, monthPeriod } from './testing'
 
 /**
  * Costs per month (APP-494): with or without net metering before 2027, only
@@ -87,14 +87,27 @@ describe('EnergyCostsPage', () => {
     ).toBeInTheDocument()
     expect(
       screen.getByRole('figure', {
-        name: 'Costs per day in November. Highest on November 1: €3.00.',
+        name: 'Costs per day in November.',
       }),
     ).toBeInTheDocument()
+    // Every day costs the same, so no day is the highest.
+    expect(screen.queryByText(/Highest on/)).toBeNull()
     expect(screen.getByRole('link', { name: 'Year ›' })).toHaveAttribute(
       'href',
       '/energy/usage?range=year',
     )
     expect(screen.getByText('40.0 kWh, netted against usage')).toBeInTheDocument()
+  })
+
+  test('the day that costs the most is named when days differ', () => {
+    const period = monthPeriod('2026-11', '2026-11-20')
+    const fifth = period.days[4]
+    if (fifth) fifth.cost = cost(500)
+    state.months['2026-11'] = period
+    renderInGroup(<EnergyCostsPage />)
+    expect(
+      screen.getByText('Costs per day in November. Highest on November 5: €5.00.'),
+    ).toBeInTheDocument()
   })
 
   test('without net metering, what the month costs from 2027 and the difference', () => {

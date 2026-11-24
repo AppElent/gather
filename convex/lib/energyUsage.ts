@@ -23,6 +23,7 @@ import {
   type EnergyElectricityPrice,
   energyContractOn,
   energyDayCost,
+  energyDayFixedCost,
   energyNetMetering,
   netMeteringOn,
   primaryEnergySite,
@@ -63,7 +64,10 @@ export const energyDayValidator = v.object({
   batteryChargeKwh: v.union(v.number(), v.null()),
   batteryDischargeKwh: v.union(v.number(), v.null()),
   consumptionKwh: v.number(),
-  /** With net metering when the day's contract has it, else as below. */
+  /**
+   * With net metering when the day's contract has it, else as below. Only the
+   * fixed costs and tax credit when `costStatus` is not `ok`.
+   */
   cost: v.union(energyCostValidator, v.null()),
   /** Always without net metering: what the day costs from 2027. */
   costWithoutNet: v.union(energyCostValidator, v.null()),
@@ -402,14 +406,15 @@ export interface EnergyRange {
 
 /**
  * Usage and costs for each of `days` (consecutive, in order). With
- * `hourly`, also each hour of the range from hourly sources.
+ * `hourly`, also each hour of the range from hourly sources. `net: false`
+ * leaves out net metering, for a caller that nets the whole month itself.
  */
 export async function computeEnergyRange(
   ctx: QueryCtx,
   site: Doc<'energySites'>,
   channels: readonly ChannelWithSource[],
   days: readonly string[],
-  options: { hourly?: boolean } = {},
+  options: { hourly?: boolean; net?: boolean } = {},
 ): Promise<EnergyRange> {
   const first = days[0]
   const last = days[days.length - 1]
@@ -585,10 +590,18 @@ export async function computeEnergyRange(
       batteryDischargeKwh: bucket.discharge,
       consumptionKwh: consumption(bucket, hasSolar),
     }
-    if (!bucket.hasData) {
-      return { ...base, cost: null, costWithoutNet: null, costStatus: 'noData' as const }
-    }
     const contract = energyContractOn(contracts, day)
+    // Fixed costs run on every day of a contract, also one without usage or
+    // prices (APP-635); null when the contract has none.
+    const fixed = contract ? energyDayFixedCost(day, contract) : null
+    if (!bucket.hasData) {
+      return {
+        ...base,
+        cost: fixed,
+        costWithoutNet: fixed,
+        costStatus: 'noData' as const,
+      }
+    }
     if (!contract) {
       return {
         ...base,
@@ -601,16 +614,16 @@ export async function computeEnergyRange(
     const dayEnd = amsterdamDayStart(addDays(day, 1))
     let hours: EnergyDayUse['hours']
     if (contract.kind === 'dynamic' && hourlyChannels && !bucket.electricityEstimated) {
-      const priced: NonNullable<EnergyDayUse['hours']>[number][] = []
+      const pricedHours: NonNullable<EnergyDayUse['hours']>[number][] = []
       for (let at = dayStart; at < dayEnd; at += HOUR_MS) {
         const hour = hourBuckets.get(at)
-        priced.push({
+        pricedHours.push({
           importKwh: hour ? sum(hour.importKwh) : 0,
           exportKwh: hour ? sum(hour.exportKwh) : 0,
           ...prices.electricity(at, at + HOUR_MS),
         })
       }
-      hours = priced
+      hours = pricedHours
     }
     // Typed readings have no hours: such a day is priced at its average
     // market price.
@@ -623,16 +636,17 @@ export async function computeEnergyRange(
       ...prices.electricity(dayStart, dayEnd),
       gasMarketEurPerM3: average(prices.gas, dayStart, dayEnd),
     }
-    const costWithoutNet = energyDayCost(use, contract as EnergyContractTerms)
+    const priced = energyDayCost(use, contract as EnergyContractTerms)
+    const costWithoutNet = priced ?? fixed
     return {
       ...base,
       // Net metering is applied to the whole month below.
       cost: costWithoutNet,
       costWithoutNet,
-      costStatus: costWithoutNet ? ('ok' as const) : ('noPrices' as const),
+      costStatus: priced ? ('ok' as const) : ('noPrices' as const),
     }
   })
-  netEachMonth(result, contracts)
+  if (options.net !== false) netEachMonth(result, contracts)
 
   const hours: EnergyHour[] = !options.hourly
     ? []
@@ -665,7 +679,12 @@ function netEachMonth(
   const months = new Map<string, EnergyDay[]>()
   for (const day of days) {
     const contract = energyContractOn(contracts, day.day)
-    if (!day.costWithoutNet || !contract || !netMeteringOn(contract, day.day)) {
+    if (
+      day.costStatus !== 'ok' ||
+      !day.costWithoutNet ||
+      !contract ||
+      !netMeteringOn(contract, day.day)
+    ) {
       continue
     }
     // Each contract settles its own days: a supplier switch mid-month nets

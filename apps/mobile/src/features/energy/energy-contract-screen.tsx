@@ -23,8 +23,8 @@ import { readEnergyRefusal } from '@gather/core/refusals'
 import { useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
+import { useId, useState } from 'react'
+import { Platform, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { DateTimeChip, DateTimeWheel } from '../../components/DateTimeField'
@@ -39,7 +39,10 @@ import { SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { Button } from '../../ui/button'
 import { InsetList, InsetRow } from '../../ui/inset-list'
 import { SectionLabel } from '../../ui/section-label'
-import { EnergyNumberRow } from './components/energy-number-row'
+import {
+  EnergyNumberRow,
+  KeyboardDoneBar,
+} from './components/energy-number-row'
 import { decimalsOf, editableNumber } from './energy-number-text'
 
 type Contracts = NonNullable<FunctionReturnType<typeof api.energyContracts.list>>
@@ -228,6 +231,7 @@ function ContractForm({
   const [problem, setProblem] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const netMeteringShown = validFrom < ENERGY_NET_METERING_ENDS
+  const keyboardDoneId = `energy-contract-done-${useId().replaceAll(':', '')}`
 
   const submit = async () => {
     const bad = new Set<AmountKey>()
@@ -304,6 +308,7 @@ function ContractForm({
       sub={sub}
       unit={unit}
       value={texts[key]}
+      inputAccessoryViewID={Platform.OS === 'ios' ? keyboardDoneId : undefined}
       onChangeText={(text) => setTexts((current) => ({ ...current, [key]: text }))}
       problem={invalid.has(key) ? words.contract.invalid : null}
     />
@@ -444,6 +449,7 @@ function ContractForm({
         onPress={submit}
         testID="energy-contract-save"
       />
+      <KeyboardDoneBar nativeID={keyboardDoneId} />
     </View>
   )
 }

@@ -1,3 +1,5 @@
+import { isIsoDate } from '@gather/core/civil-date'
+import { isEnergyMonth } from '@gather/core/energy'
 import { useLocalSearchParams } from 'expo-router'
 
 import {
@@ -7,14 +9,16 @@ import {
 } from '../../../../../src/features/energy/energy-usage-screen'
 
 /**
- * `?range=day|month|year`, `?unit=kwh|euro` and `?year=YYYY` open Usage on
- * that view (the costs screen links to the year in euro); anything else is
- * ignored.
+ * `?range=day|month|year`, `?unit=kwh|euro`, `?day=YYYY-MM-DD`, `?month=YYYY-MM`
+ * and `?year=YYYY` open Usage on that view (Home's month card opens the month,
+ * and Costs links to the year in euro with its month); anything else is ignored.
  */
 export default function EnergyUsage() {
-  const { range, unit, year } = useLocalSearchParams<{
+  const { range, unit, day, month, year } = useLocalSearchParams<{
     range?: string
     unit?: string
+    day?: string
+    month?: string
     year?: string
   }>()
   return (
@@ -29,6 +33,8 @@ export default function EnergyUsage() {
           ? (unit satisfies EnergyUsageUnit)
           : undefined
       }
+      initialDay={day && isIsoDate(day) ? day : undefined}
+      initialMonth={month && isEnergyMonth(month) ? month : undefined}
       initialYear={year && /^\d{4}$/.test(year) ? Number(year) : undefined}
     />
   )

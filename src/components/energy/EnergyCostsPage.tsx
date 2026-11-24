@@ -1,10 +1,12 @@
 import {
   addEnergyMonths,
+  energyCostDays,
   forecastMonthCents,
   netMeteringPossibleIn,
 } from '@gather/core/energy'
 import {
   compareYears,
+  distinctPeakOf,
   formatEnergyDate,
   formatEnergyEuro,
   formatEnergyNumber,
@@ -147,7 +149,12 @@ function nowNote(
   const previousWord = monthTitle(addEnergyMonths(month, -1), locale)
   const forecast =
     month === thisMonth && total
-      ? forecastMonthCents(total.totalCents, period.totals.daysWithData, month)
+      ? forecastMonthCents(
+          total,
+          period.totals.daysWithData,
+          energyCostDays(period.days),
+          month,
+        )
       : null
   const notes: string[] = []
   if (before && forecast !== null) {
@@ -296,21 +303,26 @@ function PerDayChart({
   const month = period.days[0]?.day.slice(0, 7) ?? today.slice(0, 7)
   const monthWord = formatEnergyDate(month, locale, 'month')
   const dayCost = (day: EnergyPeriod['days'][number]) => {
+    if (period.totals.costStatus !== 'ok') return null
     const cost = method === 'without' ? day.costWithoutNet : day.cost
     return cost ? cost.totalCents : null
   }
-  const peak = peakOf(period.days, dayCost)
-  const max = peak?.value ?? 0
-  const label = peak
-    ? fmt(copy.perDayLabel, {
-        month: monthWord,
-        day: formatEnergyDate(peak.item.day, locale, 'dayMonth'),
-        amount: formatEnergyEuro(peak.value, locale),
-      })
-    : fmt(copy.perDayEmpty, { month: monthWord })
+  const hasAny = period.days.some((day) => dayCost(day) !== null)
+  const max = peakOf(period.days, dayCost)?.value ?? 0
+  const peak = distinctPeakOf(period.days, dayCost)
+  const label = !hasAny
+    ? fmt(copy.perDayEmpty, { month: monthWord })
+    : peak
+      ? fmt(copy.perDayLabel, {
+          month: monthWord,
+          day: formatEnergyDate(peak.item.day, locale, 'dayMonth'),
+          amount: formatEnergyEuro(peak.value, locale),
+        })
+      : fmt(copy.perDayPlain, { month: monthWord })
+  const sentence = !hasAny || peak ? label : null
   const height = 80
   return (
-    <ChartFigure title={copy.perDay} label={label} sentence={label}>
+    <ChartFigure title={copy.perDay} label={label} sentence={sentence}>
       <div aria-hidden="true" className="grid">
         <div className="flex items-end gap-[2px]" style={{ height }}>
           {period.days.map((day) => {
@@ -438,10 +450,9 @@ function Breakdown({
   const totals = period.totals
   const euro = (cents: number) => formatEnergyEuro(cents, locale)
   const kwh = (value: number) => formatEnergyNumber(value, locale)
+  const fixedDays = energyCostDays(period.days)
   const days =
-    totals.daysWithData === 1
-      ? copy.day
-      : fmt(copy.days, { count: totals.daysWithData })
+    fixedDays === 1 ? copy.day : fmt(copy.days, { count: fixedDays })
   const netted =
     method === 'with' &&
     period.netMeteringChoice &&

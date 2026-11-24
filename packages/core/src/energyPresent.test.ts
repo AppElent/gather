@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import {
   compareYears,
+  distinctPeakOf,
   energyHomeHasProblem,
   energyHomeSources,
   signedDifference,
@@ -50,5 +51,20 @@ describe('energyHomeSources', () => {
   test('a refused token is a problem, a first sync is not', () => {
     expect(energyHomeHasProblem([ha({ status: 'needsReconnect' })])).toBe(true)
     expect(energyHomeHasProblem([ha({ status: 'syncing' })])).toBe(false)
+  })
+})
+
+describe('distinctPeakOf', () => {
+  const peak = (values: (number | null)[]) =>
+    distinctPeakOf(values, (value) => value)?.value ?? null
+  test('is the highest when days differ', () => {
+    expect(peak([1, null, 3, 2])).toBe(3)
+    expect(peak([-5, 0, 1])).toBe(1)
+  })
+  test('is nothing when every day is the same, zero, or there are none', () => {
+    expect(peak([3, null, 3])).toBeNull()
+    expect(peak([0, 0])).toBeNull()
+    expect(peak([null])).toBeNull()
+    expect(peak([])).toBeNull()
   })
 })

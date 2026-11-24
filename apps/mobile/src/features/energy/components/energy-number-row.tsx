@@ -9,6 +9,10 @@
  */
 import { forwardRef } from 'react'
 import {
+  InputAccessoryView,
+  Keyboard,
+  Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -17,8 +21,45 @@ import {
   View,
 } from 'react-native'
 
-import { SPACE, TABULAR, TYPE, useTokens } from '../../../theme/tokens'
+import { useI18n } from '../../../i18n'
+import { SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../../theme/tokens'
 import { useInsetSeparator } from '../../../ui/inset-list'
+
+/**
+ * Dismiss bar above the iOS decimal keypad, which has no Done key of its own.
+ * Uses React Native core `InputAccessoryView` so it ships over the air.
+ */
+export function KeyboardDoneBar({ nativeID }: { nativeID: string }) {
+  const tokens = useTokens()
+  const { t } = useI18n()
+  if (Platform.OS !== 'ios') return null
+  return (
+    <InputAccessoryView nativeID={nativeID}>
+      <View
+        style={[
+          styles.accessory,
+          { backgroundColor: tokens.surface, borderTopColor: tokens.hair },
+        ]}
+      >
+        <Pressable
+          testID="keyboard-done"
+          accessibilityRole="button"
+          accessibilityLabel={t.actions.done}
+          hitSlop={12}
+          onPress={() => Keyboard.dismiss()}
+          style={({ pressed }) => [
+            styles.accessoryButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={[TYPE.bodyStrong, { color: tokens.ink }]}>
+            {t.actions.done}
+          </Text>
+        </Pressable>
+      </View>
+    </InputAccessoryView>
+  )
+}
 
 export const EnergyNumberRow = forwardRef<
   TextInputInstance,
@@ -33,6 +74,7 @@ export const EnergyNumberRow = forwardRef<
     /** `default` for a name typed in the same row grammar. */
     keyboardType?: TextInputProps['keyboardType']
     returnKeyType?: TextInputProps['returnKeyType']
+    inputAccessoryViewID?: string
     onSubmitEditing?: () => void
     onBlur?: () => void
     autoFocus?: boolean
@@ -51,6 +93,7 @@ export const EnergyNumberRow = forwardRef<
     testID,
     keyboardType = 'decimal-pad',
     returnKeyType,
+    inputAccessoryViewID,
     onSubmitEditing,
     onBlur,
     autoFocus,
@@ -80,6 +123,7 @@ export const EnergyNumberRow = forwardRef<
           onBlur={onBlur}
           onSubmitEditing={onSubmitEditing}
           returnKeyType={returnKeyType}
+          inputAccessoryViewID={inputAccessoryViewID}
           autoFocus={autoFocus}
           keyboardType={keyboardType}
           placeholder={placeholder}
@@ -123,6 +167,19 @@ export const EnergyNumberRow = forwardRef<
 })
 
 const styles = StyleSheet.create({
+  accessory: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    minHeight: SIZE.hitMin,
+    paddingHorizontal: SPACE[4],
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  accessoryButton: {
+    paddingVertical: SPACE[2],
+    paddingHorizontal: SPACE[1],
+  },
+  pressed: { opacity: 0.6 },
   inset: { paddingLeft: SPACE[4] },
   wrap: { paddingVertical: SPACE[2], paddingRight: SPACE[4], gap: SPACE[1] },
   row: {

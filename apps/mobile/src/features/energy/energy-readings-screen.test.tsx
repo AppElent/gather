@@ -187,3 +187,12 @@ test('only a meter the connected source does not measure can be added', async ()
   ])
   view.unmount()
 })
+
+test('the Done key above the decimal keypad puts the keyboard away', () => {
+  const view = mount(createElement(EnergyReadingsScreen))
+  expect(byTestId('keyboard-done')?.textContent).toBe(en.actions.done)
+  byTestId('keyboard-done')?.click()
+  expect(energyState.keyboardDismissals).toBe(1)
+  expect(callsTo('energyReadings:save')).toEqual([])
+  view.unmount()
+})

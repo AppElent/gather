@@ -172,6 +172,31 @@ export function peakOf<T>(
   return best
 }
 
+/**
+ * The highest slot when it stands out from the others: null when no slot is
+ * positive or every valued slot has the same value (including a single slot or
+ * all zeros).
+ */
+export function distinctPeakOf<T>(
+  items: readonly T[],
+  value: (item: T) => number | null,
+): { item: T; value: number } | null {
+  let best: { item: T; value: number } | null = null
+  let min: number | null = null
+  let max: number | null = null
+  for (const item of items) {
+    const figure = value(item)
+    if (figure === null) continue
+    if (min === null || figure < min) min = figure
+    if (max === null || figure > max) max = figure
+    if (figure > 0 && (!best || figure > best.value)) {
+      best = { item, value: figure }
+    }
+  }
+  if (!best || min === null || max === null || min === max) return null
+  return best
+}
+
 /** Twelve month pairs: last year muted, this year ink, the running one outlined. */
 export function yearPairHeights(
   previous: readonly (number | null)[],

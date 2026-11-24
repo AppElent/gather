@@ -173,6 +173,7 @@ export const energy = {
     noteFrom2027: 'Net metering ended on 1 January 2027, so every cost is without it.',
     perDay: 'Per day',
     perDayLabel: 'Costs per day in {month}. Highest on {day}: {amount}.',
+    perDayPlain: 'Costs per day in {month}.',
     perDayEmpty: 'No costs per day in {month} yet.',
     perMonth: 'Per month, {year} and {previous}',
     yearLink: 'Year',
