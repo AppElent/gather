@@ -11,6 +11,7 @@
  * them are in the past, so the rail has no upcoming section.
  */
 import { summarizeBabyEvent } from './babyEvents'
+import { localMidnight } from './civilDate'
 import type { BabyEventType } from './domain'
 import { fmt } from './i18n'
 import type { Messages } from './messages'
@@ -117,13 +118,6 @@ export function railEntries(
   return entries.sort((a, b) => a.timestamp - b.timestamp)
 }
 
-/** Midnight local time on the day `now` falls in. */
-export function startOfDay(now: number): number {
-  const date = new Date(now)
-  date.setHours(0, 0, 0, 0)
-  return date.getTime()
-}
-
 /** `HH:MM` on the 24-hour clock, in local time. */
 export function clockTime(ms: number): string {
   const date = new Date(ms)
@@ -137,11 +131,11 @@ export function clockTime(ms: number): string {
  * line.
  */
 export function spelledDate(
-  now: number,
+  day: string,
   locale: string,
   template: string,
 ): string {
-  const date = new Date(now)
+  const date = localMidnight(day)
   const text = fmt(template, {
     weekday: date.toLocaleDateString(locale, { weekday: 'long' }),
     day: date.getDate(),

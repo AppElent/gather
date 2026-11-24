@@ -4,7 +4,7 @@
  * recipe opens APP-312's sheet; the week menu opens APP-321's sheet for the
  * current week, right here.
  */
-import { addDays, mondayStart, todayIn } from '@gather/core/civil-date'
+import { addDays } from '@gather/core/civil-date'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
@@ -16,6 +16,7 @@ import { useI18n } from '../../../i18n'
 import { SPACE } from '../../../theme/tokens'
 import { InsetList, InsetRow } from '../../../ui/inset-list'
 import { ModuleTile, moduleTile } from '../../../ui/module-tile'
+import { useGroupWeek } from '../meal-planner/use-group-week'
 import { WeekGroceriesSheet } from '../meal-planner/week-groceries-sheet'
 
 export function GroceriesSourceSheet({
@@ -30,9 +31,7 @@ export function GroceriesSourceSheet({
 }) {
   const { t } = useI18n()
   const { group } = useGroup()
-  const [weekStart] = useState(() =>
-    mondayStart(todayIn(group.timeZone)),
-  )
+  const [weekStart] = useGroupWeek()
   const [week, setWeek] = useState(false)
   const data = useQuery(
     api.mealPlan.week,
@@ -50,6 +49,7 @@ export function GroceriesSourceSheet({
     if (!data) return null
     return (
       <WeekGroceriesSheet
+        key={weekStart}
         data={data}
         weekStart={weekStart}
         listId={listId}

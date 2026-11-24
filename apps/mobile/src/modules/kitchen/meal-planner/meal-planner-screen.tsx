@@ -10,7 +10,7 @@
  */
 
 import { MenuView } from '@expo/ui/community/menu'
-import { addDays, mondayStart, todayIn } from '@gather/core/civil-date'
+import { addDays } from '@gather/core/civil-date'
 import type { MealSlot } from '@gather/core/meal-planner'
 import { useAction, useMutation } from 'convex/react'
 import { router, Stack } from 'expo-router'
@@ -64,6 +64,7 @@ import { type PlanOutcome, PlanSheet } from './plan-sheet'
 import { DraftCard, ProposalBar, ProposalCard } from './proposal'
 import { slotKey, useProposalBar } from './proposal-bar'
 import { SwapSheet } from './swap-sheet'
+import { useGroupWeek } from './use-group-week'
 import {
   busyEvent,
   clock,
@@ -132,9 +133,7 @@ export function MealPlannerScreen() {
   const bare = isAccessibilityTextSize(useWindowDimensions().fontScale)
   const insets = useSafeAreaInsets()
   const tile = moduleTile('meal-planner')
-  const [weekStart, setWeekStart] = useState(() =>
-    mondayStart(todayIn(group.timeZone)),
-  )
+  const [weekStart, setWeekStart] = useGroupWeek()
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const { show: showToast, toast } = useUndoToast()
   const from = weekStart
@@ -171,7 +170,7 @@ export function MealPlannerScreen() {
 
   const goWeek = useCallback(
     (step: number) => setWeekStart((start) => addDays(start, step * 7)),
-    [],
+    [setWeekStart],
   )
   // A fling across the week turns it, like the round buttons. Vertical
   // scrolling is untouched: a fling only fires on a horizontal flick.

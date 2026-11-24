@@ -184,6 +184,10 @@ describe('parseQuickAdd', () => {
   it('reads a time that has passed today as tomorrow', () => {
     expect(parse('Pills at 9:00', { now: '21:00' }).dueDate).toBe('2026-11-19')
     expect(parse('Pills at 22:00', { now: '21:00' }).dueDate).toBe('2026-11-18')
+    // The Group is a day ahead: a time is on the phone's clock, a word is not.
+    const ahead = { today: '2026-11-19', clockDay: '2026-11-18', now: '21:00' }
+    expect(parse('Pills at 22:00', ahead).dueDate).toBe('2026-11-18')
+    expect(parse('Pills tomorrow', ahead).dueDate).toBe('2026-11-20')
   })
 
   it('refuses dates and times that do not exist', () => {

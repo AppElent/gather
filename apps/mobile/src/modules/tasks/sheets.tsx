@@ -15,10 +15,10 @@
 import {
   addDays,
   addMonths,
-  localIsoDate,
   localMidnight,
   monthGrid,
   monthStart,
+  todayIn,
 } from '@gather/core/civil-date'
 import { possibleParents } from '@gather/core/linked-tasks'
 import { useState } from 'react'
@@ -28,6 +28,7 @@ import { MonthGridView, WeekdayStrip } from '../../components/MonthGridView'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { NativeSheet } from '../../components/NativeSheet'
 import { haptics } from '../../feedback/haptics'
+import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
@@ -63,7 +64,8 @@ export function DueDateSheet({
   const { t, locale } = useI18n()
   const actions = useTaskActions()
   const writeFailed = useWriteFailed()
-  const today = localIsoDate()
+  const { group } = useGroup()
+  const today = todayIn(group.timeZone)
   const [month, setMonth] = useState(() => monthStart(task.dueDate ?? today))
 
   const grid = monthGrid(month)

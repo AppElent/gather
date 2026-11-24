@@ -156,11 +156,9 @@ describe('event composer draft', () => {
 
 describe('event composer time', () => {
   test('starts on the next whole hour today, nine on another day', () => {
-    const at = new Date(2026, 10, 28, 14, 20)
-    expect(defaultStart('2026-11-28', '2026-11-28', at)).toBe(15 * 60)
-    expect(defaultStart('2026-11-29', '2026-11-28', at)).toBe(9 * 60)
-    const late = new Date(2026, 10, 28, 23, 40)
-    expect(defaultStart('2026-11-28', '2026-11-28', late)).toBe(23 * 60)
+    expect(defaultStart('2026-11-28', '2026-11-28', 14)).toBe(15 * 60)
+    expect(defaultStart('2026-11-29', '2026-11-28', 14)).toBe(9 * 60)
+    expect(defaultStart('2026-11-28', '2026-11-28', 23)).toBe(23 * 60)
   })
 
   test('the end defaults to an hour after the start, within the day', () => {

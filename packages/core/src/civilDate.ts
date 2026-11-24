@@ -7,8 +7,8 @@
  * `new Date('2026-08-22')` parses as midnight *UTC*, and `toISOString()` writes
  * UTC back out: either one is the wrong day for somebody near midnight. So the
  * arithmetic below runs on UTC midnights it builds itself and never sees a local
- * timestamp, and only `localIsoDate`, `localMidnight` and `todayIn` (its
- * fallback) touch the local calendar.
+ * timestamp, and only `localIsoDate`, `localMidnight`, `dayIn` and `hourIn`
+ * (their fallback) touch the local calendar.
  */
 
 export interface CivilDateParts {
@@ -88,22 +88,69 @@ export function isoDateIn(timeZone: string): (at: number) => string {
 }
 
 /**
- * The day it is at `at` in a zone, e.g. a Group's; on this device's calendar
- * when there is none, or when this runtime does not know the one a newer
- * runtime stored.
+ * The day it is at a moment in a zone, e.g. a Group's; on this device's
+ * calendar when there is none, or when this runtime does not know the one a
+ * newer runtime stored.
  */
-export function todayIn(
-  timeZone: string | undefined,
-  at: Date | number = new Date(),
-): string {
+export function dayIn(timeZone: string | undefined): (at: number) => string {
   if (timeZone !== undefined) {
     try {
-      return isoDateIn(timeZone)(Number(at))
+      return isoDateIn(timeZone)
     } catch {
       // Not a zone here: the device's own day, below.
     }
   }
-  return localIsoDate(at)
+  return localIsoDate
+}
+
+/** Today, or the day it is at `at`, in a zone: `dayIn` for one moment. */
+export function todayIn(
+  timeZone: string | undefined,
+  at: Date | number = new Date(),
+): string {
+  return dayIn(timeZone)(Number(at))
+}
+
+/**
+ * The first moment of the day `at` falls in, in a zone, as `dayIn` reads it.
+ * Searched rather than computed: a day can start at 01:00 where the clocks
+ * skip midnight.
+ */
+export function dayStartIn(timeZone: string | undefined, at: number): number {
+  const dayAt = dayIn(timeZone)
+  const day = dayAt(at)
+  // No day is longer than 25 hours, so this is in the one before.
+  let before = at - 26 * 3_600_000
+  let within = at
+  while (within - before > 1) {
+    const middle = Math.floor((before + within) / 2)
+    if (dayAt(middle) === day) within = middle
+    else before = middle
+  }
+  return within
+}
+
+/** The whole hour it is (0-23) in a zone, falling back as `dayIn` does. */
+export function hourIn(
+  timeZone: string | undefined,
+  at: Date = new Date(),
+): number {
+  if (timeZone !== undefined) {
+    try {
+      return Number(
+        new Intl.DateTimeFormat('en-US', {
+          timeZone,
+          hourCycle: 'h23',
+          hour: '2-digit',
+        })
+          .formatToParts(at)
+          .find((part) => part.type === 'hour')?.value,
+      )
+    } catch {
+      // Not a zone here: the device's own hour, below.
+    }
+  }
+  return at.getHours()
 }
 
 /** Local midnight on the day named, for handing to a locale formatter. */

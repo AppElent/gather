@@ -4,7 +4,7 @@
  * order, Recent in days, newest first, and which of a Group's grocery lists
  * the Groceries Module opens.
  */
-import { localIsoDate } from '@gather/core/civil-date'
+import { dayIn } from '@gather/core/civil-date'
 import {
   aisleOrder,
   type GroceryAisle,
@@ -58,15 +58,17 @@ export function aisleArrangement(
 }
 
 /**
- * Recent in days, newest first: each row under the local calendar day it was
- * checked. Rows arrive newest first and keep that order within a day.
+ * Recent in days, newest first: each row under the day it was checked, in the
+ * Group's zone. Rows arrive newest first and keep that order within a day.
  */
 export function recentDays<T extends { doneAt: number }>(
   rows: readonly T[],
+  timeZone?: string,
 ): { date: string; rows: T[] }[] {
+  const dayAt = dayIn(timeZone)
   const days: { date: string; rows: T[] }[] = []
   for (const row of rows) {
-    const date = localIsoDate(new Date(row.doneAt))
+    const date = dayAt(row.doneAt)
     const last = days.at(-1)
     if (last?.date === date) last.rows.push(row)
     else days.push({ date, rows: [row] })

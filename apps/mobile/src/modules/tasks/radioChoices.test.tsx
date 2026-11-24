@@ -113,6 +113,7 @@ vi.mock('../../feedback/confirmDestructive', () => ({
 vi.mock('../../feedback/haptics', () => ({
   haptics: new Proxy({}, { get: () => () => {} }),
 }))
+vi.mock('../../group/GroupProvider', () => ({ useGroup: () => ({ group: {} }) }))
 vi.mock('../../i18n', async () => {
   const { en: messages } = await import('../../i18n/messages/en')
   const { fmt, plural } = await import('@gather/core/i18n')

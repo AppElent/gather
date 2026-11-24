@@ -1,8 +1,9 @@
+import { localIsoDate } from '@gather/core/civil-date'
 import type { App } from '@modelcontextprotocol/ext-apps'
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { WeekAgendaResult } from '../types'
-import { localToday, viewText } from './i18n'
+import { viewText } from './i18n'
 import { WeekAgenda } from './WeekAgenda'
 
 beforeEach(() => {
@@ -50,5 +51,5 @@ it("highlights today in the Group's zone, not the viewer's", () => {
 })
 
 it("highlights the viewer's day when the Group has no zone", () => {
-  expect(highlighted()).toBe(Number(localToday().slice(-2)) - 16)
+  expect(highlighted()).toBe(Number(localIsoDate().slice(-2)) - 16)
 })
