@@ -606,12 +606,7 @@ export const storeIntervals = internalMutation({
       const first = batch.hours[0]
       const last = batch.hours[batch.hours.length - 1]
       if (!first || !last) continue
-      if (
-        !channel ||
-        channel.sourceId !== source._id ||
-        channel.externalRef !== batch.statisticId ||
-        channel.retiredAt !== undefined
-      ) {
+      if (!channel || !readsFrom(channel, source, batch.statisticId)) {
         // Edited meanwhile: the other channels carry on.
         partly = true
         continue
@@ -644,6 +639,16 @@ export const storeIntervals = internalMutation({
     return partly ? ('partly' as const) : ('stored' as const)
   },
 })
+
+/** Whether a channel is still in use and still given this sensor. */
+const readsFrom = (
+  channel: Doc<'energyChannels'>,
+  source: Doc<'energySources'>,
+  statisticId: string,
+) =>
+  channel.sourceId === source._id &&
+  channel.externalRef === statisticId &&
+  channel.retiredAt === undefined
 
 async function isPending(ctx: QueryCtx, id: Id<'_scheduled_functions'>) {
   return (await ctx.db.system.get(id))?.state.kind === 'pending'
@@ -765,16 +770,214 @@ export const finishSync = internalMutation({
   },
 })
 
+// -- Corrections (APP-729) ---------------------------------------------------------
+
+/**
+ * Home Assistant may correct hours already stored: an admin adjusts a sum, or
+ * an integration backfills hours late. The hourly sync reads on from the last
+ * stored hour and never sees that, so once a day the last eight days are read
+ * again (`crons.ts`) and what differs is written.
+ *
+ * Once a day, rather than eight days with every hourly sync. For a household of
+ * seven channels one pass is one connection, one question, and 7 × 192 ≈ 1,350
+ * interval rows read (under 0.3 MB of some 200 bytes each) in seven mutations;
+ * hourly it would be 24 times that, 32,000 rows a day, for a correction a
+ * person makes a few times a year. The most channels a connection may have, 30,
+ * read 5,760 rows, still 192 to a mutation. Nothing is written unless
+ * something differs. A refresh button would cost less, but someone has to know
+ * to use it. Anything older than the window, or hours that fail
+ * `AGREEING_HOURS`, still needs "Fetch history".
+ */
+const LOOKBACK_MS = 8 * 24 * HOUR_MS
+/**
+ * A run of hours that differ is a correction only between two stretches of
+ * this many hours that are as stored, and when the stored hours it replaces
+ * start and end within `CORRECTED_MS`. That is time, not rows, so a night of
+ * zeros or without rows counts; hours filled in replace nothing and do not.
+ * A channel may have been given another sensor, and back, and one sensor's
+ * past must not replace the other's hours; nothing stored says when. Those
+ * hours differ for longer, or up to the window's edge. A correction at the new
+ * edge is written by a later day's pass, when hours follow it; one at the old
+ * edge was seen when it was newer. Known limits: hours of a sensor taken back
+ * look like a correction when those that differ lie within 24 hours, and a
+ * channel too flat or sparse to agree on both sides is never corrected.
+ *
+ * Hours at zero (a night of solar) or the same as the hour before (a full
+ * battery, a steady load) agree between any two sensors, so they do not count.
+ */
+const AGREEING_HOURS = 6
+const CORRECTED_MS = 24 * HOUR_MS
+
+type CorrectionPlan = {
+  baseUrl: string
+  secret: string
+  channels: (SyncPlan['channels'][number] & { to: number })[]
+}
+
+/** What a lookback reads, per channel in use. Null when there is nothing. */
+export const beginLookback = internalQuery({
+  args: { sourceId: v.id('energySources'), now: v.number() },
+  handler: async (ctx, args): Promise<CorrectionPlan | null> => {
+    const source = await ctx.db.get(args.sourceId)
+    if (
+      source?.kind !== 'homeAssistant' ||
+      !source.baseUrl ||
+      !source.secret ||
+      source.status === 'needsReconnect'
+    ) {
+      return null
+    }
+    const channels: CorrectionPlan['channels'] = []
+    for (const channel of await ctx.db
+      .query('energyChannels')
+      .withIndex('by_source', (q) => q.eq('sourceId', source._id))
+      .collect()) {
+      if (channel.retiredAt !== undefined || !channel.externalRef) continue
+      // Starts at a stored hour, the baseline: hours missing before it have
+      // been added up in it (a catch-up row), and stay as they are.
+      const first = await ctx.db
+        .query('energyIntervals')
+        .withIndex('by_channel_hour', (q) =>
+          q
+            .eq('channelId', channel._id)
+            .gte('hourStart', args.now - LOOKBACK_MS),
+        )
+        .first()
+      // What comes after the last stored hour is the hourly sync's.
+      const last = await ctx.db
+        .query('energyIntervals')
+        .withIndex('by_channel_hour', (q) => q.eq('channelId', channel._id))
+        .order('desc')
+        .first()
+      if (!first || !last || last.hourStart <= first.hourStart) continue
+      channels.push({
+        channelId: channel._id,
+        kind: channel.kind,
+        statisticId: channel.externalRef,
+        from: first.hourStart,
+        to: last.hourStart + HOUR_MS,
+      })
+    }
+    return channels.length === 0
+      ? null
+      : { baseUrl: source.baseUrl, secret: source.secret, channels }
+  },
+})
+
+/**
+ * Write what Home Assistant has corrected in one channel's hours, given oldest
+ * first and whole: an hour that is as stored writes nothing. Answers how many
+ * rows were written.
+ */
+export const storeCorrections = internalMutation({
+  args: {
+    sourceId: v.id('energySources'),
+    baseUrl: v.string(),
+    channelId: v.id('energyChannels'),
+    statisticId: v.string(),
+    hours: v.array(
+      v.object({
+        hourStart: v.number(),
+        amount: v.number(),
+        /** The hour of the statistic before, which the amount counts from. */
+        after: v.number(),
+      }),
+    ),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const source = await ctx.db.get(args.sourceId)
+    const channel = await ctx.db.get(args.channelId)
+    const first = args.hours[0]
+    const last = args.hours[args.hours.length - 1]
+    if (
+      !source?.secret ||
+      source.baseUrl !== args.baseUrl ||
+      !channel ||
+      !readsFrom(channel, source, args.statisticId) ||
+      !first ||
+      !last
+    ) {
+      return 0
+    }
+    const stored = await ctx.db
+      .query('energyIntervals')
+      .withIndex('by_channel_hour', (q) =>
+        q
+          .eq('channelId', channel._id)
+          .gte('hourStart', first.hourStart)
+          .lte('hourStart', last.hourStart),
+      )
+      .collect()
+    const byHour = new Map(stored.map((each) => [each.hourStart, each]))
+    let written = 0
+    // Whether the hours before this run of differing ones agreed.
+    let anchored = false
+    let agreeing = 0
+    let previous: number | null = null
+    let run: { hourStart: number; amount: number }[] = []
+    let lost = false
+    for (const { hourStart, amount, after } of args.hours) {
+      const row = byHour.get(hourStart)
+      const repeated = amount === previous
+      previous = amount
+      if (row?.amount === amount && !row.estimated) {
+        if (amount <= 0 || repeated) continue
+        agreeing += 1
+        if (agreeing < AGREEING_HOURS) continue
+        const replaced = run.filter((each) => byHour.has(each.hourStart))
+        const from = replaced[0]?.hourStart ?? hourStart
+        const to = replaced[replaced.length - 1]?.hourStart ?? from
+        if (anchored && !lost && to + HOUR_MS - from <= CORRECTED_MS) {
+          for (const each of run) {
+            const stale = byHour.get(each.hourStart)
+            if (stale) {
+              await ctx.db.patch(stale._id, {
+                amount: each.amount,
+                estimated: false,
+              })
+            } else {
+              await ctx.db.insert('energyIntervals', {
+                groupId: channel.groupId,
+                channelId: channel._id,
+                ...each,
+                estimated: false,
+              })
+            }
+            written += 1
+          }
+        }
+        anchored = true
+        run = []
+        lost = false
+        continue
+      }
+      agreeing = 0
+      run.push({ hourStart, amount })
+      // Home Assistant lost hours that are stored (a backup put back): this
+      // one adds them up and would count them twice, so its run is left.
+      for (let at = after + HOUR_MS; at < hourStart && !lost; at += HOUR_MS) {
+        lost = byHour.has(at)
+      }
+    }
+    return written
+  },
+})
+
 /** The statuses the hourly cron syncs: every one but `needsReconnect`. */
 const SYNCED_STATUSES = ['ok', 'error', 'syncing'] as const
 
-/** Hourly: start a sync of every connected Home Assistant, a page at a time. */
+/**
+ * Start a sync of every connected Home Assistant, a page at a time: hourly of
+ * new hours, or daily (`lookback`) of corrections to stored ones.
+ */
 export const startSyncs = internalMutation({
   args: {
     status: v.optional(
       v.union(v.literal('ok'), v.literal('error'), v.literal('syncing')),
     ),
     cursor: v.optional(v.string()),
+    lookback: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -789,7 +992,9 @@ export const startSyncs = internalMutation({
       if (!source.secret) continue
       await ctx.scheduler.runAfter(
         index * SYNC_STAGGER_MS,
-        internal.energyHomeAssistant.syncSource,
+        args.lookback
+          ? internal.energyHomeAssistant.lookbackSource
+          : internal.energyHomeAssistant.syncSource,
         { sourceId: source._id },
       )
     }
@@ -800,9 +1005,11 @@ export const startSyncs = internalMutation({
       await ctx.scheduler.runAfter(
         page.page.length * SYNC_STAGGER_MS,
         internal.energySources.startSyncs,
-        page.isDone
-          ? { status: next }
-          : { status: next, cursor: page.continueCursor },
+        {
+          status: next,
+          ...(page.isDone ? {} : { cursor: page.continueCursor }),
+          ...(args.lookback ? { lookback: true } : {}),
+        },
       )
     }
     return null
