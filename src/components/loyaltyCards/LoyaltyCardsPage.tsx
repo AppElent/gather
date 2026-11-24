@@ -109,7 +109,7 @@ export function LoyaltyCardsPage() {
 
   return (
     <ListDetailLayout
-      className="max-w-5xl"
+      maxWidth="max-w-5xl"
       header={
         <header className="flex items-center justify-between gap-3">
           <div className="min-w-0">

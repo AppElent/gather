@@ -25,7 +25,7 @@ import { buttonClass } from './buttons'
  * The page owns the selection and keeps it in the URL; `recordKey` tells the
  * layout which record that is. Opening one moves focus into the panel, Escape
  * closes it, and closing it returns focus to the row it was opened from. Arrow
- * up and down move between rows.
+ * up and down move between rows, in document order (also in a card grid).
  */
 export interface ListDetailLayoutProps {
   /** Typically `<WashHeader />`. */
@@ -43,7 +43,8 @@ export interface ListDetailLayoutProps {
   width?: number
   /** Which column takes the space left. */
   wide?: 'list' | 'panel'
-  className?: string
+  /** The page's `max-w-*` utility. Replaces the default: two would conflict. */
+  maxWidth?: string
 }
 
 export function ListDetailLayout({
@@ -55,7 +56,7 @@ export function ListDetailLayout({
   onCloseRecord,
   width = 380,
   wide = 'list',
-  className = '',
+  maxWidth = 'max-w-6xl',
 }: ListDetailLayoutProps) {
   const listRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLElement>(null)
@@ -110,7 +111,7 @@ export function ListDetailLayout({
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: Escape bubbling from the list or the panel closes the open record; the controls themselves are inside
     <div
-      className={`mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-4 ${className}`.trim()}
+      className={`mx-auto grid ${maxWidth} grid-cols-[minmax(0,1fr)] gap-4`}
       onKeyDown={onKeyDown}
     >
       {header}

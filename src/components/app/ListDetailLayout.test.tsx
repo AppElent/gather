@@ -109,6 +109,14 @@ describe('ListDetailLayout', () => {
     const notes = renderInGroup(<Page wide="panel" />)
     expect(grid(notes.container)?.className).toContain('var(--fixed-column)_minmax(0,1fr)')
   })
+
+  test('a page’s max width replaces the default instead of competing with it', () => {
+    const { container } = renderInGroup(
+      <ListDetailLayout header={null} list={null} maxWidth="max-w-5xl" />,
+    )
+    const root = container.querySelector('[data-layout]')?.parentElement
+    expect(root?.className.match(/max-w-\S+/g)).toEqual(['max-w-5xl'])
+  })
 })
 
 test('DetailPanelTabs roves with the arrow keys', () => {
