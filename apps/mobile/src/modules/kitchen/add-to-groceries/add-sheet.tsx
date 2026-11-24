@@ -180,7 +180,13 @@ export function AddToGroceriesSheet({
 
   const sourceLines =
     typeof lines === 'function'
-      ? lines(new Set([...Object.keys(ticks), ...Object.keys(edits)]))
+      ? lines(
+          new Set([
+            ...Object.keys(ticks),
+            ...Object.keys(edits),
+            ...(editing ? [editing.key] : []),
+          ]),
+        )
       : lines
   // A retype made while a line was still being read stays with its row.
   const shown = withEdits(sourceLines, edits)
@@ -278,10 +284,16 @@ export function AddToGroceriesSheet({
     setTicks((current) => settleLine(current, line, !row.on))
   }
 
-  const applyEdit = (row: PickRow, value: string) => {
+  const applyEdit = (key: string, value: string) => {
     const text = value.trim()
     if (!text) return
-    const line = shown.find((candidate) => candidate.key === row.key) ?? row
+    const line =
+      shown.find(
+        (candidate) =>
+          candidate.key === key ||
+          candidate.was?.includes(key) ||
+          candidate.former?.includes(key),
+      ) ?? { key }
     setEdits((current) => settleLine(current, line, editedRead(text)))
     setTicks((current) => settleLine(current, line, true))
   }
@@ -302,7 +314,7 @@ export function AddToGroceriesSheet({
         {
           text: t.common.actions.save,
           onPress: (value?: string) => {
-            if (value) applyEdit(row, value)
+            if (value) applyEdit(row.key, value)
           },
         },
       ],
@@ -394,11 +406,6 @@ export function AddToGroceriesSheet({
       )}
     </View>
   )
-
-  const editingRow =
-    editing && !editorHidden
-      ? pick.rows.find((row) => row.key === editing.key)
-      : undefined
 
   return (
     <>
@@ -610,7 +617,7 @@ export function AddToGroceriesSheet({
         ) : null}
       </ScrollView>
       </NativeSheet>
-      {editing && editingRow ? (
+      {editing && !editorHidden ? (
         <EditLineModal
           title={words.editTitle}
           label={words.editLabel}
@@ -619,7 +626,7 @@ export function AddToGroceriesSheet({
             setEditing((current) => (current ? { ...current, text } : null))
           }
           onSave={(value) => {
-            applyEdit(editingRow, value)
+            applyEdit(editing.key, value)
             setEditing(null)
           }}
           onClose={() => setEditing(null)}

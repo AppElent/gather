@@ -376,3 +376,59 @@ test('editing an ingredient on Android opens the in-app modal, saves, and regist
 
   reopened.view.unmount()
 })
+
+test('Android edit modal stays open and saves when a row key changes via `was`', () => {
+  state.os = 'android'
+  const onClose = vi.fn()
+  const props = (lines: unknown[]) => ({
+    source: { title: 'Weekmenu', subtitle: '', glyph: (() => null) as never },
+    place: 'groceries:week-test',
+    lines: lines as never,
+    aiCount: null,
+    onClose,
+  })
+  const view = mount(
+    createElement(
+      AddToGroceriesSheet,
+      props([{ key: 'do:1', title: 'onions', amount: { quantity: 2 } }]),
+    ),
+  )
+
+  act(() => {
+    state.rowAction?.('edit')
+  })
+  act(() => {
+    state.fieldOnChange?.('3 shallots')
+  })
+
+  // AI reading arrives and replaces `do:1` with `item:ui` carrying `was: ['do:1']`.
+  view.rerender(
+    createElement(
+      AddToGroceriesSheet,
+      props([
+        {
+          key: 'item:ui',
+          was: ['do:1'],
+          title: 'onions',
+          amount: { quantity: 2 },
+        },
+      ]),
+    ),
+  )
+
+  expect(view.container.querySelector('[data-testid="groceries-edit-dialog"]')).not.toBeNull()
+  expect(state.fieldValue).toBe('3 shallots')
+
+  act(() => {
+    state.buttons['groceries-edit-save']?.onPress()
+  })
+
+  expect(view.container.querySelector('[data-testid="groceries-edit-dialog"]')).toBeNull()
+  expect(hasOpenSheets()).toBe(false)
+  expect(state.lastPickArgs?.lines).toEqual([
+    expect.objectContaining({ key: 'item:ui', title: '3 shallots' }),
+  ])
+  expect(state.lastPickArgs?.ticks).toEqual({ 'item:ui': true })
+
+  view.unmount()
+})
