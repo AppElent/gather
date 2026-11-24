@@ -12,7 +12,6 @@
 import { MenuView } from '@expo/ui/community/menu'
 import { addDays, localIsoDate, mondayStart } from '@gather/core/civil-date'
 import type { MealSlot } from '@gather/core/meal-planner'
-import type { WeekPlanWish } from '@gather/core/week-plan'
 import { useAction, useMutation } from 'convex/react'
 import { router, Stack } from 'expo-router'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -163,9 +162,6 @@ export function MealPlannerScreen() {
   } = useProposalBar(weekStart, drafts)
   const [regenerating, setRegenerating] = useState<string | null>(null)
   const [accepting, setAccepting] = useState(false)
-  // The start sheet's wishes per week, so Ander voorstel keeps them (APP-460).
-  // This visit only: a proposal reopened later regenerates without them.
-  const planWishes = useRef(new Map<string, { wishes: WeekPlanWish[]; wish?: string }>())
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
@@ -344,13 +340,13 @@ export function MealPlannerScreen() {
         showToast({ message: words.failed })
       })
   }
+  // The server asks with the wishes the proposal keeps (APP-679).
   const onRegenerate = (draft: Draft) => {
     setRegenerating(draft._id)
     regenerate({
       groupSlug: group.slug,
       id: draft._id,
       locale,
-      ...planWishes.current.get(weekStart),
     })
       .then((result) => {
         if (result.status === 'limit') {
@@ -380,7 +376,6 @@ export function MealPlannerScreen() {
     // Nothing fitted: the open proposal, if any, stays as it was.
     else if (outcome.count === 0) showToast({ message: words.plan.nothingFits })
     else {
-      planWishes.current.set(weekStart, { wishes: outcome.wishes, wish: outcome.wish })
       closeProposal()
       scrollRef.current?.scrollTo({ y: 0, animated: true })
     }

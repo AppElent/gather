@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react'
 
 import { api } from '../convex/api'
 import { useQueries } from '../convex/queries'
+import { reportError } from '../observability/report'
 import type { serverFilters } from './searchFilters'
 import type { QueryResult } from './searchResults'
 
@@ -12,6 +13,28 @@ type Held = {
   key: string
   plain: QueryResult[] | undefined
   last: QueryResult[] | undefined
+}
+
+/**
+ * An older server from before APP-633 rejects unknown filter arguments with
+ * Convex's `ArgumentValidationError`. That fallback is expected and stays
+ * quiet; any other error is reported so a real failure is not swallowed.
+ */
+function isArgumentValidationError(error: Error): boolean {
+  return (
+    error.name === 'ArgumentValidationError' ||
+    /ArgumentValidationError/.test(error.message)
+  )
+}
+
+/**
+ * Stable key for deduplicating repeated failures within one mount: Convex
+ * embeds a fresh request id in every server error message, which must not turn
+ * one broken filter into a new Sentry report on every query change.
+ */
+function errorKey(error: Error): string {
+  const message = error.message.replace(/\s*\[Request ID: [^\]]+\]/g, '')
+  return `${error.name}:${message}`
 }
 
 /** One search as a batched request, so its error is a value and not a throw. */
@@ -38,9 +61,15 @@ function useSearch(args: SearchArgs | null): Answer {
  * When the filtered search has no rows to give, the plain one answers and the
  * screen filters it, as it did before the server could. That is the case when:
  *
- * - it failed: a server from before APP-633 refuses arguments it does not
- *   know, and one may not know this phone's time zone. When the plain search
- *   fails as well, that throws to the screen's error boundary.
+ * - it failed: a server from before APP-633 refuses unknown filter arguments
+ *   with an `ArgumentValidationError`, which is expected and falls back
+ *   quietly (retire this compatibility fallback once no pre-APP-633 server
+ *   remains). Any other failure (for example `Invalid time zone`,
+ *   `Invalid date`, or a bug in the server filter) still falls back to the
+ *   plain search so the member is not blocked, and is reported to Sentry once
+ *   per distinct error message per mount (APP-760) because the plain search
+ *   can still succeed and hide it. If the plain search fails as well, that
+ *   throws to the screen's error boundary.
  * - it found nothing: the plain rows tell "nothing with these filters" from
  *   "nothing at all", which offer different ways back.
  *
@@ -61,6 +90,20 @@ export function useGroupSearch(
     narrowed instanceof Error ||
     (narrowed !== undefined && narrowed.length === 0)
   const plain = useSearch(args && usePlain ? args : null)
+
+  const reportedErrors = useRef<Set<string> | null>(null)
+  useEffect(() => {
+    if (!(narrowed instanceof Error) || isArgumentValidationError(narrowed)) {
+      return
+    }
+    if (reportedErrors.current === null) {
+      reportedErrors.current = new Set()
+    }
+    const key = errorKey(narrowed)
+    if (reportedErrors.current.has(key)) return
+    reportedErrors.current.add(key)
+    reportError(narrowed)
+  }, [narrowed])
 
   const held = useRef<Held | null>(null)
   const same =
