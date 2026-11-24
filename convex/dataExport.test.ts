@@ -260,6 +260,7 @@ async function household(t: Harness): Promise<Household> {
       groupId: household,
       title: 'Wifi',
       body: 'hunter2',
+      searchText: 'Wifi\nhunter2',
       createdBy: bob,
       updatedAt: 0,
     })
@@ -762,6 +763,10 @@ describe('what the file holds back', () => {
     const { data, text } = await exported(t)
     expect(text).not.toContain('Gouda')
     expect(text).not.toContain('Kruidvat')
+    const [wifi] = groupOf(data, 'household').notes
+    expect(wifi).toMatchObject({ title: 'Wifi', body: 'hunter2' })
+    expect(wifi).not.toHaveProperty('searchText')
+    expect(data.omittedFields.notes).toEqual(['searchText'])
     expect(groupOf(data, 'household').babies[0]).not.toHaveProperty(
       'trackedTypes',
     )

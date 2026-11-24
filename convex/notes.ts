@@ -4,7 +4,7 @@ import type { Doc, Id } from './_generated/dataModel'
 import { mutation, type QueryCtx, query } from './_generated/server'
 import { findInGroup, requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
-import { findNotes, noteExcerpt } from './lib/noteSearch'
+import { findNotes, insertNote, noteExcerpt, patchNote } from './lib/noteSearch'
 
 /** How many notes the Drop picker offers before anything is typed. */
 const PICKER_NOTES = 50
@@ -72,7 +72,8 @@ export const list = query({
       return names.get(id) ?? null
     }
     const rows = await Promise.all(
-      notes.map(async (note) => {
+      // `searchText` repeats title and body; those phones never read it.
+      notes.map(async ({ searchText: _, ...note }) => {
         const editor = note.updatedBy ?? note.createdBy
         return {
           ...note,
@@ -220,7 +221,7 @@ export const create = mutation({
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
     const now = Date.now()
     return await createOnce(ctx, user._id, 'notes', args.idempotencyKey, () =>
-      ctx.db.insert('notes', {
+      insertNote(ctx, {
         groupId: group._id,
         title: args.title,
         body: args.body,
@@ -241,13 +242,13 @@ export const update = mutation({
     pinned: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { user } = await requireInGroup(
+    const { doc, user } = await requireInGroup(
       ctx,
       args.groupSlug,
       args.noteId,
       'Note not found',
     )
-    await ctx.db.patch(args.noteId, {
+    await patchNote(ctx, doc, {
       ...(args.title !== undefined ? { title: args.title } : {}),
       ...(args.body !== undefined ? { body: args.body } : {}),
       ...(args.pinned !== undefined ? { pinned: args.pinned } : {}),
