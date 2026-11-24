@@ -1121,6 +1121,7 @@ export const nl = {
     pinned: 'Vastgezet',
     recent: 'Recent',
     empty: 'Nog geen notities.',
+    showMore: 'Meer notities tonen',
     untitled: 'Notitie zonder titel',
     titlePlaceholder: 'Titel',
     bodyPlaceholder: 'Begin met schrijven…',

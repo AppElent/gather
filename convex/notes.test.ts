@@ -212,7 +212,12 @@ describe('searching notes', () => {
       groupSlug: 'notes-first',
       query: 'boiler',
     })
-    expect(found).toMatchObject({ excerpt: 'Call Piet', pinned: false })
+    expect(found).toMatchObject({
+      body: '\n  Call Piet\nthen wait',
+      excerpt: 'Call Piet',
+      pinned: false,
+      updatedByName: 'Alice',
+    })
   })
 
   test('earlier words match whole; only the last is completed', async () => {
@@ -239,5 +244,144 @@ describe('searching notes', () => {
     const { t } = await seed()
     await addNote(t, 'Boiler manual')
     expect(await titles(t, 'boiler '.repeat(40))).toEqual(['Boiler manual'])
+  })
+})
+
+describe('the paged notes list', () => {
+  type Harness = Awaited<ReturnType<typeof seed>>['t']
+  /** Notes 1..count, changed in that order; every one named in `pinned` is. */
+  async function addNotes(t: Harness, count: number, pinned: number[] = []) {
+    return await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', 'notes-first'))
+        .unique()
+      const user = await ctx.db.query('users').first()
+      const ids = []
+      for (let index = 1; index <= count; index += 1)
+        ids.push(
+          await ctx.db.insert('notes', {
+            groupId: group!._id,
+            title: `Note ${index}`,
+            body: `Body ${index}`,
+            ...(pinned.includes(index) ? { pinned: true } : {}),
+            createdBy: user!._id,
+            updatedAt: 100 + index,
+          }),
+        )
+      return ids
+    })
+  }
+  async function page(
+    t: Harness,
+    numItems: number,
+    cursor: string | null = null,
+    unpinnedOnly?: boolean,
+  ) {
+    const result = await t.withIdentity(alice).query(api.notes.listPage, {
+      groupSlug: 'notes-first',
+      ...(unpinnedOnly ? { unpinnedOnly } : {}),
+      paginationOpts: { numItems, cursor },
+    })
+    return { ...result, titles: result.page.map((note) => note.title) }
+  }
+
+  test('answers the newest first, then the next page from its cursor', async () => {
+    const { t } = await seed()
+    await addNotes(t, 4)
+    const first = await page(t, 3)
+    expect(first.titles).toEqual(['Note 4', 'Note 3', 'Note 2'])
+    expect(first.isDone).toBe(false)
+    expect(first.page[0]).toEqual({
+      _id: expect.any(String),
+      title: 'Note 4',
+      body: 'Body 4',
+      pinned: false,
+      updatedAt: 104,
+      updatedByName: 'Alice',
+      updatedByMe: true,
+    })
+    const second = await page(t, 3, first.continueCursor)
+    expect(second.titles).toEqual(['Note 1', 'First note'])
+    expect(second.isDone).toBe(true)
+  })
+
+  test('an edited note moves to the front', async () => {
+    const { t } = await seed()
+    const [oldest] = await addNotes(t, 3)
+    await t.withIdentity(alice).mutation(api.notes.update, {
+      groupSlug: 'notes-first',
+      noteId: oldest,
+      body: 'Changed',
+    })
+    expect((await page(t, 2)).titles).toEqual(['Note 1', 'Note 3'])
+  })
+
+  test('pinned notes are listed apart, however old, and leave full pages', async () => {
+    const { t } = await seed()
+    await addNotes(t, 4, [1, 3])
+    const pinned = await t
+      .withIdentity(alice)
+      .query(api.notes.listPinned, { groupSlug: 'notes-first' })
+    expect(pinned.map((note) => note.title)).toEqual([
+      'Note 3',
+      'Note 1',
+      'First note',
+    ])
+    expect((await page(t, 2, null, true)).titles).toEqual(['Note 4', 'Note 2'])
+  })
+
+  test('get answers one note, and null for a missing, foreign or malformed id', async () => {
+    const { t, firstNote } = await seed()
+    const get = (groupSlug: string, noteId: string) =>
+      t.withIdentity(alice).query(api.notes.get, { groupSlug, noteId })
+    expect(await get('notes-first', firstNote)).toMatchObject({
+      _id: firstNote,
+      title: 'First note',
+      pinned: true,
+    })
+    // Alice is in both Groups; the note is only in the first.
+    expect(await get('notes-second', firstNote)).toBeNull()
+    expect(await get('notes-first', 'nonsense')).toBeNull()
+    await t.withIdentity(alice).mutation(api.notes.remove, {
+      groupSlug: 'notes-first',
+      noteId: firstNote,
+    })
+    expect(await get('notes-first', firstNote)).toBeNull()
+  })
+
+  test("the picker offers this Group's 50 most recently changed notes", async () => {
+    const { t } = await seed()
+    await addNotes(t, 60)
+    const notes = await t
+      .withIdentity(alice)
+      .query(api.notes.picker, { groupSlug: 'notes-first' })
+    expect(notes).toHaveLength(50)
+    expect(notes[0]).toEqual({
+      _id: expect.any(String),
+      title: 'Note 60',
+      body: 'Body 60',
+    })
+    expect(notes[49].title).toBe('Note 11')
+  })
+
+  test('every read refuses a non-member and a signed-out caller', async () => {
+    const { t, firstNote } = await seed()
+    const args = { groupSlug: 'notes-first' }
+    const paginationOpts = { numItems: 5, cursor: null }
+    const stranger = t.withIdentity(bob)
+    for (const [caller, refusal] of [
+      [stranger, /Not a member/],
+      [t, /not-signed-in/],
+    ] as const) {
+      for (const read of [
+        () => caller.query(api.notes.listPage, { ...args, paginationOpts }),
+        () => caller.query(api.notes.listPinned, args),
+        () => caller.query(api.notes.get, { ...args, noteId: firstNote }),
+        () => caller.query(api.notes.get, { ...args, noteId: 'nonsense' }),
+        () => caller.query(api.notes.picker, args),
+      ])
+        await expect(read()).rejects.toThrow(refusal)
+    }
   })
 })
