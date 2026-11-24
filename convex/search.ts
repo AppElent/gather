@@ -34,8 +34,8 @@ const CHILD_RECORD_LIMIT = 50
  * matches by title however old, per Group for recipes and tastings, and per
  * list or calendar for tasks and events (APP-758). A read budget, not a page
  * size: past this many matches, the least relevant older ones are not read.
- * Who and Status narrow the index reads themselves, so rows they rule out use
- * none of it (APP-787). When cannot: search filters are equality only and When
+ * Who narrows these four index reads themselves and Status the one on tasks, so
+ * rows they rule out use none of it (APP-787). When cannot: search filters are equality only and When
  * is a date range. It filters the rows read, so an old row in the range can be
  * missed behind more than this many better matches outside it.
  */
@@ -187,8 +187,8 @@ export const group = query({
     const none = Promise.resolve([])
 
     // Who, as the index reads take it: a Member of this Group. Anything else,
-    // a malformed id included, is left to the row filter below, which returns
-    // only rows with exactly that creator.
+    // a malformed id or a former Member's included, leaves the index reads as
+    // they are, and the row filter below returns only rows with that creator.
     const whoId = args.createdBy
       ? ctx.db.normalizeId('users', args.createdBy)
       : null

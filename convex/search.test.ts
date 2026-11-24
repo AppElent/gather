@@ -989,6 +989,8 @@ describe('Group search filters inside the index reads (APP-787)', () => {
       createdBy?: string
       status?: 'open' | 'done'
       kind?: 'wine' | 'beer'
+      when?: 'today'
+      today?: string
     }) =>
       (
         await t.withIdentity(finn).query(api.search.group, {
@@ -1025,6 +1027,14 @@ describe('Group search filters inside the index reads (APP-787)', () => {
       expect(await search({ createdBy })).toEqual([])
     // An empty one is no filter, as before.
     expect(await search({ createdBy: '' })).toHaveLength(30)
+  })
+
+  test('When still filters the rows Who narrowed the read to', async () => {
+    const { search, samId } = await seed('calendarEvent')
+    const on = (today: string) =>
+      search({ createdBy: samId, when: 'today', today })
+    expect((await on('2026-01-01')).sort()).toEqual(['Beer cocoa', 'Wanted cocoa'])
+    expect(await on('2026-01-02')).toEqual([])
   })
 
   test('Who and Kind narrow tastings together', async () => {
