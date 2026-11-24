@@ -11,9 +11,9 @@ import {
 } from './todayStatus'
 
 const UNITS = {
-  minutes: '{minutes}m',
-  hours: '{hours}h',
-  hoursMinutes: '{hours}h {minutes}m',
+  minutes: '{minutes} min',
+  hours: '{hours} h',
+  hoursMinutes: '{hours} h {minutes} min',
   days: '{days}d',
 }
 
@@ -101,7 +101,7 @@ describe('a tile', () => {
     ]
     expect(tileStatus('feeding', events, NOW, t)).toEqual({
       type: 'feeding',
-      headline: '32m ago',
+      headline: '32 min ago',
       detail: '2 today',
     })
   })

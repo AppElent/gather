@@ -71,6 +71,8 @@ export interface EvalReport {
   unitAccuracy: number
   perAisle: Record<GroceryAisle, { total: number; correct: number }>
   bySource: Partial<Record<GroceryAisleSource, number>>
+  /** Only the lines the AI cache answered: how many, and how many it got right. */
+  ai: { total: number; correct: number; accuracy: number }
   misses: EvalMiss[]
   unitMisses: string[]
 }
@@ -90,6 +92,8 @@ export function runGroceryEval(
   const misses: EvalMiss[] = []
   const unitMisses: string[] = []
   let correct = 0
+  let aiTotal = 0
+  let aiCorrect = 0
   let other = 0
   let unitsRight = 0
 
@@ -99,8 +103,10 @@ export function runGroceryEval(
     })
     perAisle[row.aisle].total++
     bySource[result.source] = (bySource[result.source] ?? 0) + 1
+    if (result.source === 'cache') aiTotal++
     if (result.aisle === row.aisle) {
       correct++
+      if (result.source === 'cache') aiCorrect++
       perAisle[row.aisle].correct++
     } else {
       if (result.aisle === 'other') other++
@@ -134,6 +140,11 @@ export function runGroceryEval(
     unitAccuracy: unitsRight / total,
     perAisle,
     bySource,
+    ai: {
+      total: aiTotal,
+      correct: aiCorrect,
+      accuracy: aiTotal === 0 ? 0 : aiCorrect / aiTotal,
+    },
     misses: rankMisses(misses),
     unitMisses,
   }
@@ -178,6 +189,11 @@ export function formatEvalReport(
     `chosen by: ${Object.entries(report.bySource)
       .map(([source, n]) => `${source} ${n}`)
       .join(', ')}`,
+    ...(report.ai.total > 0
+      ? [
+          `AI-answered lines only: ${percent(report.ai.accuracy)} (${report.ai.correct}/${report.ai.total})`,
+        ]
+      : []),
     'per aisle:',
   ]
   for (const aisle of GROCERY_AISLES) {

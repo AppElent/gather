@@ -1,6 +1,7 @@
 {
-  "about": "Answers of the grocery AI fallback (convex/lib/groceryAi.ts) for the eval lines the dictionary does not know, keyed by groceryKey. notAsked: names the server refuses to send to the model. Written by scripts/groceries/ask-ai.ts; never edit by hand.",
+  "about": "Answers of the grocery AI fallback (convex/lib/groceryAi.ts) for the eval lines the dictionary does not know, keyed by groceryKey. notAsked: names the server refuses to send to the model. promptHash: SHA-256 of the model id, tool and prompt the answers were recorded with. Written by scripts/groceries/ask-ai.ts; never edit by hand.",
   "model": "claude-haiku-5-5",
+  "promptHash": "dac3be993144dafac8ffd969d9fc6a29ed03d922defd318f4706a17f4c09e7a6",
   "recordedOn": "2026-11-24",
   "notAsked": [],
   "answers": {

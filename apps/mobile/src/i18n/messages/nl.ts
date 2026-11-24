@@ -985,6 +985,7 @@ export const nl = {
     starterSections: coreNl.tasks.starterSections,
     packing: coreNl.tasks.packing,
     subtasks: coreNl.tasks.subtasks,
+    linkedWrite: coreNl.tasks.linkedWrite,
     repeat: coreNl.tasks.repeat,
     wishlist: coreNl.tasks.wishlist,
     grocery: coreNl.tasks.grocery,

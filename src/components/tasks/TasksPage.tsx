@@ -116,6 +116,7 @@ export function TasksPage() {
                 groupSlug={groupSlug}
                 name={l.name}
                 provider={l.provider}
+                writes={l.capabilities.write}
                 onRemoveList={() => confirmRemove(l._id, l.name)}
               />
             ),

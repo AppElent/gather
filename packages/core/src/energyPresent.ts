@@ -210,6 +210,17 @@ export function highestCostDay<T>(
   return distinctPeakOf(days, cents, 1)
 }
 
+/**
+ * The slot that uses (or produces) most when slots differ. kWh figures within
+ * a hundredth of each other read the same on screen, so they count as equal.
+ */
+export function highestUsageSlot<T>(
+  items: readonly T[],
+  kwh: (item: T) => number | null,
+) {
+  return distinctPeakOf(items, kwh, 0.005)
+}
+
 /** Twelve month pairs: last year muted, this year ink, the running one outlined. */
 export function yearPairHeights(
   previous: readonly (number | null)[],

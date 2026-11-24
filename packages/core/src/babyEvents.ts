@@ -150,9 +150,9 @@ type BabyLogMessages = Messages['baby']['log']
 export type DurationUnits = BabyLogMessages['status']['duration']
 
 /**
- * "32m", "3h 10m", "2d" — or the same in the reader's language.
+ * "32 min", "3 h 10 min", "2 d" — or the same in the reader's language.
  *
- * Coarse on purpose above an hour: a parent reading "3h 10m ago" is answering
+ * Coarse on purpose above an hour: a parent reading "3 h 10 min ago" is answering
  * "is she due?", and seconds of precision would be noise.
  */
 export function shortDuration(ms: number, units: DurationUnits): string {
@@ -173,7 +173,7 @@ function feedingSummary(
   { options, summary }: BabyLogMessages,
 ): string {
   const parts = [options.feedingMethod[data.method]]
-  // Per-side minutes supersede the coarse side: "Left 10m · Right 8m" already
+  // Per-side minutes supersede the coarse side: "Left 10 min · Right 8 min" already
   // says which side.
   const { leftMin, rightMin } = data
   if (leftMin !== undefined) {

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import {
   clockTime,
   dueTodayTasks,
-  homeBabyLogMessages,
   overdueListCount,
   overdueListId,
   overdueTasks,
@@ -124,24 +123,6 @@ describe('railEntries', () => {
       { dayStart, now: noon, babyLog, words },
     )
     expect(rail).toEqual([])
-  })
-})
-
-describe('homeBabyLogMessages', () => {
-  it('writes durations with spaces in both languages', () => {
-    expect(
-      homeBabyLogMessages(en.baby.log, en.shell.today).status.duration
-        .hoursMinutes,
-    ).toBe('{hours} h {minutes} min')
-    expect(
-      homeBabyLogMessages(nl.baby.log, nl.shell.today).summary
-        .sideMinutes,
-    ).toBe('{side} {minutes} min')
-  })
-
-  it('leaves the shared baby log words alone', () => {
-    homeBabyLogMessages(en.baby.log, en.shell.today)
-    expect(en.baby.log.status.duration.hoursMinutes).toBe('{hours}h {minutes}m')
   })
 })
 

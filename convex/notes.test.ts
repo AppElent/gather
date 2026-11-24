@@ -402,6 +402,80 @@ describe('the paged notes list', () => {
     expect((await page(t, 2, null, true)).titles).toEqual(['Note 4', 'Note 2'])
   })
 
+  test('unpinnedOnly pages through every other note once, in order, with no pinned one', async () => {
+    const { t } = await seed()
+    // 9 notes plus the seeded pinned one; 2, 5 and 8 are pinned too.
+    await addNotes(t, 9, [2, 5, 8])
+    const seen: string[] = []
+    let cursor: string | null = null
+    let pages = 0
+    for (;;) {
+      const next = await page(t, 2, cursor, true)
+      pages += 1
+      expect(next.page.every((note) => !note.pinned)).toBe(true)
+      seen.push(...next.titles)
+      if (next.isDone) break
+      cursor = next.continueCursor
+      expect(pages).toBeLessThan(20)
+    }
+    expect(pages).toBeGreaterThan(1)
+    expect(seen).toEqual([
+      'Note 9',
+      'Note 7',
+      'Note 6',
+      'Note 4',
+      'Note 3',
+      'Note 1',
+    ])
+    expect(new Set(seen).size).toBe(seen.length)
+  })
+
+  test("a note another Member edited pages with their name, and reads as theirs only to them", async () => {
+    const { t } = await seed()
+    const [oldest] = await addNotes(t, 3)
+    await t.run(async (ctx) => {
+      const bobUser = await ctx.db
+        .query('users')
+        .filter((q) => q.eq(q.field('clerkId'), bob.subject))
+        .unique()
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', 'notes-first'))
+        .unique()
+      await seedMember(ctx, group!._id, bobUser!._id, 'member')
+    })
+    await t.withIdentity(bob).mutation(api.notes.update, {
+      groupSlug: 'notes-first',
+      noteId: oldest,
+      body: 'Bob was here',
+    })
+    for (const [identity, byMe] of [
+      [alice, false],
+      [bob, true],
+    ] as const) {
+      const first = await t.withIdentity(identity).query(api.notes.listPage, {
+        groupSlug: 'notes-first',
+        paginationOpts: { numItems: 2, cursor: null },
+      })
+      // The edit moved the note to the front; the next page still follows on.
+      expect(first.page.map((note) => note.title)).toEqual(['Note 1', 'Note 3'])
+      expect(first.page[0]).toMatchObject({
+        body: 'Bob was here',
+        updatedByName: 'Bob',
+        updatedByMe: byMe,
+      })
+      expect(first.isDone).toBe(false)
+      const second = await t.withIdentity(identity).query(api.notes.listPage, {
+        groupSlug: 'notes-first',
+        paginationOpts: { numItems: 2, cursor: first.continueCursor },
+      })
+      expect(second.page.map((note) => note.title)).toEqual([
+        'Note 2',
+        'First note',
+      ])
+    }
+  })
+
   test('get answers one note, and null for a missing, foreign or malformed id', async () => {
     const { t, firstNote } = await seed()
     const get = (groupSlug: string, noteId: string) =>
