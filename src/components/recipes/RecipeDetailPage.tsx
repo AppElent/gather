@@ -1,7 +1,7 @@
 import { AI_LIMIT_KIND } from '@gather/core/ai-limit'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, ShoppingCart, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
@@ -14,6 +14,7 @@ import { useConfirmAction } from '../app/ConfirmAction'
 import { InsetList, InsetRow, SectionLabel } from '../app/InsetList'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { WashHeader } from '../app/WashHeader'
+import { RecipeToGroceriesDialog } from '../groceries/AddToGroceriesDialog'
 import { NutritionPanel } from './NutritionPanel'
 import { RecipeSharingPanel } from './RecipeSharingPanel'
 import { RECIPES_ICON } from './RecipeThumbnail'
@@ -44,6 +45,8 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
   const setNutrition = useMutation(api.recipes.setNutrition)
   const [estimating, setEstimating] = useState(false)
+  const [groceriesOpen, setGroceriesOpen] = useState(false)
+  const [addedToList, setAddedToList] = useState<string | null>(null)
   const { locale, messages } = useI18n()
   const errorText = useErrorMessage()
   const { detail, form } = messages.recipes
@@ -110,6 +113,21 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
         // A recipe reaches a Group it was only shared into as something to
         // read: writing follows the home Group. Offering Edit anyway would be
         // an action that can only fail on click.
+        extra={
+          recipe.ingredients.length > 0 ? (
+            <button
+              type="button"
+              aria-label={messages.tasks.grocery.addLines.title}
+              onClick={() => setGroceriesOpen(true)}
+              className={`${buttonClass.onWash} max-lg:w-[var(--size-control-min)] max-lg:px-0`}
+            >
+              <ShoppingCart className="size-[18px]" aria-hidden="true" />
+              <span className="hidden lg:inline">
+                {messages.tasks.grocery.addLines.title}
+              </span>
+            </button>
+          ) : undefined
+        }
         primary={
           recipe.canEdit
             ? {
@@ -120,6 +138,23 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
             : undefined
         }
       />
+
+      {addedToList ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-card)] bg-[var(--surface)] px-4 py-3 text-subhead text-[var(--ink)]"
+        >
+          <span>
+            {fmt(messages.tasks.grocery.web.addedFromRecipe, {
+              list: addedToList,
+            })}
+          </span>
+          <Link {...linkTo('groceries')} className={buttonClass.small}>
+            {messages.tasks.grocery.web.viewGroceries}
+          </Link>
+        </div>
+      ) : null}
 
       {error && (
         <p
@@ -280,6 +315,14 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
             {messages.common.actions.delete}
           </button>
         </div>
+      ) : null}
+
+      {groceriesOpen ? (
+        <RecipeToGroceriesDialog
+          recipe={recipe}
+          onAdded={(listName) => setAddedToList(listName)}
+          onClose={() => setGroceriesOpen(false)}
+        />
       ) : null}
 
       {dialog}

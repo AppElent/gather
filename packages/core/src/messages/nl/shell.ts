@@ -97,6 +97,7 @@ export const shell = {
   modulePage: {
     searchIn: 'Zoeken in {module}',
     settingsOf: 'Instellingen van {module}',
+    closePanel: 'Paneel sluiten',
   },
 
   allModules: {
