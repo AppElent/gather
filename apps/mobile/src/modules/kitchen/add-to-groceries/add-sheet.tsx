@@ -18,7 +18,7 @@ import {
   type GroceryAmount,
 } from '@gather/core/groceries'
 import { useMutation } from 'convex/react'
-import { type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import {
   Platform,
   Pressable,
@@ -172,7 +172,13 @@ export function AddToGroceriesSheet({
   const [editing, setEditing] = useState<{ key: string; text: string } | null>(
     kept?.editing ?? null,
   )
-  const [editorHidden, setEditorHidden] = useState(false)
+  // A restored editor waits for the sheet: on Android both are windows, and
+  // the one opened last is on top, so it must not open before the sheet does.
+  const [editorHidden, setEditorHidden] = useState(kept?.editing != null)
+  useEffect(() => {
+    // Runs after `NativeSheet`'s own mount effect, which presents the sheet.
+    setEditorHidden(false)
+  }, [])
   const [busy, setBusy] = useState(false)
   draft.track({ chosenListId, ticks, edits, editing }, { holding: busy })
   const [failed, setFailed] = useState(false)

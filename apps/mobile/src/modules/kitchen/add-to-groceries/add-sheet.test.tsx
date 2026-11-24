@@ -5,7 +5,7 @@
  * - Editing an ingredient uses `usePrompt` on iOS and `EditLineModal` on
  *   Android, registered with `openSheets` so a share never blocks (APP-713).
  */
-import { act, createElement, type ReactNode } from 'react'
+import { act, createElement, type ReactNode, useEffect } from 'react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
 import {
@@ -23,6 +23,8 @@ type Props = Record<string, unknown> & { children?: ReactNode }
 const state = vi.hoisted(() => ({
   os: 'ios' as 'ios' | 'android',
   realPick: false,
+  sheetPresented: false,
+  modalRenders: [] as boolean[],
   add: vi.fn(),
   write: vi.fn(),
   showPrompt: vi.fn(),
@@ -83,8 +85,16 @@ vi.mock('../../../components/NativeContextMenu', () => ({
 vi.mock('../../../components/NativeSheet', async () => {
   const h = (await import('react')).createElement
   return {
-    NativeSheet: ({ children, footer }: Props) =>
-      h('div', null, children, footer as ReactNode),
+    NativeSheet: ({ children, footer }: Props) => {
+      // The real sheet presents itself from a mount effect.
+      useEffect(() => {
+        state.sheetPresented = true
+        return () => {
+          state.sheetPresented = false
+        }
+      }, [])
+      return h('div', null, children, footer as ReactNode)
+    },
   }
 })
 vi.mock('../../../feedback/haptics', () => ({
@@ -162,7 +172,10 @@ vi.mock('../../../ui/field', async () => {
 vi.mock('../../../ui/modal', async () => {
   const h = (await import('react')).createElement
   return {
-    Modal: ({ children }: Props) => h('div', { 'data-testid': 'modal' }, children),
+    Modal: ({ children }: Props) => {
+      state.modalRenders.push(state.sheetPresented)
+      return h('div', { 'data-testid': 'modal' }, children)
+    },
   }
 })
 vi.mock('../../../ui/module-tile', () => ({ ModuleTile: () => null }))
@@ -224,6 +237,8 @@ beforeEach(() => {
   forgetDrafts()
   state.os = 'ios'
   state.realPick = false
+  state.sheetPresented = false
+  state.modalRenders = []
   state.add.mockReset()
   state.write.mockReset()
   state.showPrompt.mockReset()
@@ -374,6 +389,7 @@ test('editing an ingredient on Android opens the in-app modal, saves, and regist
 
   // Parent sheet unmounts as part of the share, then reopens with the edit kept.
   view.unmount()
+  state.modalRenders = []
   const reopened = renderSheet([
     { key: 'k1', title: 'onions', amount: { quantity: 2 } },
   ])
@@ -382,6 +398,10 @@ test('editing an ingredient on Android opens the in-app modal, saves, and regist
   ).not.toBeNull()
   expect(state.fieldValue).toBe('4 shallots')
   expect(hasOpenSheets()).toBe(true)
+  // The restored editor opens only once the sheet is up, or on Android its
+  // window could end up under the sheet's.
+  expect(state.modalRenders.length).toBeGreaterThan(0)
+  expect(state.modalRenders.every(Boolean)).toBe(true)
 
   // Cancelling discards the edit, closes the modal, and releases openSheets.
   act(() => {
