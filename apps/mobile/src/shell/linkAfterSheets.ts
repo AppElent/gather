@@ -8,7 +8,8 @@
  * before the router navigates, exactly as they do for a share (`DropGate`): a
  * prompt is answered first, and what was typed is kept as a draft.
  *
- * One link is held at a time. A newer link, or a share, replaces it.
+ * One link is held at a time. A newer link, or a share, replaces it. A link does
+ * not replace a share that waits: both open.
  */
 import {
   closeAllSheets,

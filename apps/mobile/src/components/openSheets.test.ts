@@ -29,6 +29,7 @@ function sheet() {
 
 afterEach(() => {
   for (const handle of registered.splice(0)) handle.closed()
+  if (vi.isFakeTimers()) vi.runOnlyPendingTimers()
   vi.useRealTimers()
 })
 
@@ -267,6 +268,20 @@ describe('openSheets', () => {
 })
 
 describe('prompts', () => {
+  it('makes a share or link that arrives just after the answer wait too', async () => {
+    vi.useFakeTimers()
+    openPrompt()()
+    await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS - 100)
+    let ready = false
+    promptsAnswered().then(() => {
+      ready = true
+    })
+    await vi.advanceTimersByTimeAsync(99)
+    expect(ready).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(ready).toBe(true)
+  })
+
   it('waits for every open prompt, then for what its answer opened', async () => {
     vi.useFakeTimers()
     const first = openPrompt()
