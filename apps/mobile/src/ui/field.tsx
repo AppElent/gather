@@ -38,6 +38,7 @@ import {
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
+import { useKeyboardDoneBar } from './keyboard-done-bar'
 
 /**
  * iOS `passwordRules` for the Clerk password policy. The development instance
@@ -60,6 +61,8 @@ interface FieldProps extends Omit<TextInputProps, 'style'> {
   secure?: boolean
   /** Marks the border and is announced with the field. */
   invalid?: boolean
+  /** Adds Next to the iOS number keypad's Done bar. */
+  onNext?: () => void
 }
 
 export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
@@ -72,6 +75,7 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
     onBlur,
     onEndEditing,
     onSubmitEditing,
+    onNext,
     ...props
   },
   ref,
@@ -80,6 +84,10 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
   const { t } = useI18n()
   const [focused, setFocused] = useState(false)
   const [revealed, setRevealed] = useState(false)
+  const { inputAccessoryViewID, accessory } = useKeyboardDoneBar({
+    keyboardType: props.keyboardType,
+    onNext,
+  })
 
   const credential = secure || CREDENTIAL_TYPES.has(props.textContentType)
   const readOnly = props.editable === false
@@ -106,6 +114,7 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
           focused && styles.boxFocused,
         ]}
       >
+        {accessory}
         <TextInput
           ref={ref}
           style={[
@@ -121,6 +130,7 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
               ? CLERK_PASSWORD_RULES
               : undefined)
           }
+          inputAccessoryViewID={inputAccessoryViewID}
           {...props}
           onFocus={(event) => {
             setFocused(true)
