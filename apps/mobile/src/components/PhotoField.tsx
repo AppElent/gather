@@ -41,7 +41,7 @@ import {
   View,
 } from 'react-native'
 
-import { type PhotoSource, pickPhoto, uploadPhoto } from '../photo/pickPhoto'
+import { type PhotoSource, pickPhoto, uploadPhotoOnce } from '../photo/pickPhoto'
 import { UI_ICONS } from '../theme/icons'
 import { type ModuleGroup, RADIUS, TYPE, useTokens } from '../theme/tokens'
 
@@ -91,7 +91,7 @@ export interface PhotoFieldProps {
   onBusyChange?: (busy: boolean) => void
   /**
    * A preview to open on: a form reopened on a kept draft. One whose upload had
-   * not finished is uploaded again.
+   * not finished takes up that upload, or starts another if it failed.
    */
   initialPreview?: PhotoPreview | null
   /** Told what the row shows of a local file, for a form that keeps a draft. */
@@ -126,8 +126,8 @@ export function PhotoField({
   const shown = value === null ? null : (preview ?? photoUrl ?? null)
 
   const mounted = useRef(true)
-  // Told when an upload's row goes: the next row uploads the kept preview
-  // itself, and this upload, landing late, must not replace that one's photo.
+  // Told when an upload's row goes: the next row takes up the
+  // kept preview's upload itself, and this upload, landing late, must not replace that one's photo.
   // A form that keeps no preview still gets its photo.
   const stale = () => !mounted.current && onPreviewChange !== undefined
 
@@ -158,7 +158,7 @@ export function PhotoField({
     setBusy(true)
     onBusyChange?.(true)
     try {
-      const storageId = await uploadPhoto(uri, await generateUploadUrl())
+      const storageId = await uploadPhotoOnce(uri, generateUploadUrl)
       if (stale()) return
       onChange(storageId)
       onPreviewChange?.({ uri, uploaded: true })

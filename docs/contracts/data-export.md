@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a Convex table, changing what "Export your data" contains, or changing who may see a row or column.
-version: 2.1.0
+version: 2.1.1
 status: current
 ---
 
@@ -33,7 +33,8 @@ everything user-owned belongs to a Group or to a person
   ([ADR-0005](../adr/0005-pins-belong-to-a-person-in-a-group.md)).
 - **People by display name, never by identifier.** Every user id anywhere in a
   row is written as that person's name, or `null` for somebody no longer in the
-  Group (a task's `assigneeId` and its `assignmentNotice.by` included). No email, Clerk id or user id of anyone leaves; the person's own email
+  Group (a task's `assigneeId` and its `assignmentNotice.by`, and a staple's `keptBy`,
+  included). No email, Clerk id or user id of anyone leaves; the person's own email
   is in their `users` row.
 - **Groups by slug.** A Group id becomes the Group's slug when it is one of the
   person's Groups and is dropped otherwise, so the file names no Group they
@@ -53,10 +54,12 @@ everything user-owned belongs to a Group or to a person
   contract step drops that table. Its per-day question count
   (`groceryAiGroupUsage`) is spend bookkeeping, excluded like the global one,
   and deleted with the Group.
-- **No secrets.** `integrationConnections.accessToken`, `groups.inviteCode`
-  and the Energy tokens and keys (`energySources.secret`,
-  `energyPriceFeeds.secret`) are omitted columns, listed in the file's
-  `omittedFields`.
+- **No secrets or server addresses.** `integrationConnections.accessToken`,
+  `groups.inviteCode`, the Energy tokens and keys (`energySources.secret`,
+  `energyPriceFeeds.secret`), and Home Assistant's address
+  (`energySources.baseUrl`, APP-696) are omitted columns, listed in the file's
+  `omittedFields`. An `energySources` row still goes out with its non-secret
+  metadata so the file records that the connection exists.
 - **Energy goes out with its Group, prices stay in** (ADR-0051). Addresses,
   contracts, sources, channels, assets, readings and hourly intervals are
   Group content. `energyPrices` is excluded as reference data: a market price

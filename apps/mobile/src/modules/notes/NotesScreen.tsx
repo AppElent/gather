@@ -6,7 +6,7 @@
  * with a title, which is the thing a household actually keeps (the wifi code,
  * the boiler man's instructions, what to pack). That decides this screen. Rows
  * of title + first line + when, in two groups: the ones somebody pinned, and
- * the rest by recency.
+ * the rest by recency, a page at a time.
  *
  * New notes start in the keyboard composer behind the add button (APP-588);
  * the note screen is where one is read and edited.
@@ -22,10 +22,12 @@ import { Stack, useRouter } from 'expo-router'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { Button } from '../../ui/button'
 import { Card } from '../../ui/card'
 import { ADD_BUTTON_CLEARANCE } from '../../ui/keyboard-composer'
 import { ModuleHeaderButtons } from '../../ui/module-header-buttons'
@@ -33,18 +35,16 @@ import { SectionLabel } from '../../ui/section-label'
 import { AddNote } from './AddNoteComposer'
 import { confirmDeleteNote } from './notesActions'
 import { noteWhen, preview } from './noteText'
-import { type Note, useNoteActions, useNotes } from './store'
+import { type Note, useNoteActions, useNotesList } from './store'
 
 export function Notes() {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
   const router = useRouter()
-  const notes = useNotes()
+  const { loading, pinned, rest, hasMore, loadingMore, loadMore } =
+    useNotesList()
   const actions = useNoteActions()
-  const byRecency = [...notes].sort((a, b) => b.updatedAt - a.updatedAt)
-  const pinned = byRecency.filter((note) => note.pinned)
-  const rest = byRecency.filter((note) => !note.pinned)
 
   const open = (id: string) =>
     router.push({
@@ -141,7 +141,9 @@ export function Notes() {
           { paddingBottom: insets.bottom + 24 + ADD_BUTTON_CLEARANCE },
         ]}
       >
-        {notes.length === 0 ? (
+        {loading ? (
+          <LoadingSkeleton rows={5} label={t.actions.loading} />
+        ) : pinned.length === 0 && rest.length === 0 ? (
           <Text style={[styles.empty, { color: tokens.muted }]}>
             {t.notes.empty}
           </Text>
@@ -158,6 +160,15 @@ export function Notes() {
                 <SectionLabel>{t.notes.recent}</SectionLabel>
                 {rows(rest)}
               </View>
+            ) : null}
+            {hasMore ? (
+              <Button
+                testID="notes-show-more"
+                label={t.notes.showMore}
+                variant="secondary"
+                busy={loadingMore}
+                onPress={loadMore}
+              />
             ) : null}
           </>
         )}

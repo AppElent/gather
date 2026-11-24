@@ -1,8 +1,10 @@
+import { convexTest } from 'convex-test'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   alice,
   bob,
   carol,
+  modules,
   seedGroup,
   seedMember,
   testConvex,
@@ -15,6 +17,7 @@ import {
 } from '../test/energyFixture'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
+import schema from './schema'
 
 /**
  * The Energy Module's shell (APP-492): adding the Group's address, reading it
@@ -293,6 +296,108 @@ describe('when the Group goes', () => {
       expect(kept[table], table).toBeGreaterThan(0)
     }
   })
+
+  test('a year of hours and many readings go a page at a time (APP-495)', async () => {
+    // Convex's own limits per transaction apply, so one that deletes
+    // everything at once fails here as it would live.
+    const limited = convexTest({ schema, modules, transactionLimits: true })
+    const ids = await limited.run(async (ctx) => {
+      const aliceId = await ctx.db.insert('users', {
+        clerkId: alice.subject,
+        name: alice.name,
+        email: alice.email,
+      })
+      const homeId = await seedGroup(ctx, { name: 'Home', slug: 'home' })
+      await seedMember(ctx, homeId, aliceId, 'admin')
+      await insertEnergyHousehold(ctx, homeId, aliceId)
+      const [channel] = await ctx.db.query('energyChannels').collect()
+      if (!channel) throw new Error('expected a channel')
+      return { homeId, channelId: channel._id }
+    })
+    // Three channel-years of hours, in writes as small as a sync's.
+    const HOURS = 3 * 365 * 24
+    const CHUNK = 5_000
+    for (let start = 0; start < HOURS; start += CHUNK) {
+      await limited.run(async (ctx) => {
+        for (let hour = start; hour < Math.min(HOURS, start + CHUNK); hour += 1) {
+          await ctx.db.insert('energyIntervals', {
+            groupId: ids.homeId,
+            channelId: ids.channelId,
+            hourStart: hour * 3_600_000,
+            amount: 1,
+            estimated: false,
+          })
+        }
+      })
+    }
+    await limited.run(async (ctx) => {
+      for (let at = 0; at < 2_500; at += 1) {
+        await ctx.db.insert('energyReadings', {
+          groupId: ids.homeId,
+          channelId: ids.channelId,
+          at,
+          value: at,
+        })
+      }
+    })
+    await limited
+      .withIdentity(alice)
+      .mutation(api.groups.deleteGroup, { groupId: ids.homeId })
+    expect(await limited.run((ctx) => ctx.db.get(ids.homeId))).toBeNull()
+    await limited.finishAllScheduledFunctions(vi.runAllTimers)
+    const steps = await limited.run((ctx) =>
+      ctx.db.system.query('_scheduled_functions').collect(),
+    )
+    const purges = steps.filter((each) => each.name.includes('purgeEnergyRows'))
+    expect(purges.length).toBeGreaterThanOrEqual(26 + 3)
+    expect(purges.every((each) => each.state.kind === 'success')).toBe(true)
+    const left = await limited.run((ctx) => energyRowsOf(ctx, ids.homeId))
+    expect(Object.values(left).every((count) => count === 0)).toBe(true)
+  }, 120_000)
+
+  test('a year of account prices goes a page at a time (APP-493)', async () => {
+    const limited = convexTest({ schema, modules, transactionLimits: true })
+    const ids = await limited.run(async (ctx) => {
+      const aliceId = await ctx.db.insert('users', {
+        clerkId: alice.subject,
+        name: alice.name,
+        email: alice.email,
+      })
+      const homeId = await seedGroup(ctx, { name: 'Home', slug: 'home' })
+      await seedMember(ctx, homeId, aliceId, 'admin')
+      return { homeId, ...(await insertEnergyHousehold(ctx, homeId, aliceId)) }
+    })
+    const QUARTERS = 365 * 96
+    const CHUNK = 5_000
+    for (let start = 0; start < QUARTERS; start += CHUNK) {
+      await limited.run(async (ctx) => {
+        for (let at = start; at < Math.min(QUARTERS, start + CHUNK); at += 1) {
+          await ctx.db.insert('energyPrices', {
+            provider: 'tibber',
+            feedId: ids.feedId,
+            carrier: 'electricity',
+            start: at * 900_000,
+            minutes: 15,
+            eurPerUnit: 0.3,
+          })
+        }
+      })
+    }
+    await limited
+      .withIdentity(alice)
+      .mutation(api.groups.deleteGroup, { groupId: ids.homeId })
+    // The key goes with the Group, before the prices do.
+    expect(await limited.run((ctx) => ctx.db.get(ids.feedId))).toBeNull()
+    await limited.finishAllScheduledFunctions(vi.runAllTimers)
+    const steps = await limited.run((ctx) =>
+      ctx.db.system.query('_scheduled_functions').collect(),
+    )
+    const purges = steps.filter((each) => each.name.includes('purgeAccountPrices'))
+    expect(purges.length).toBeGreaterThanOrEqual(36)
+    expect(purges.every((each) => each.state.kind === 'success')).toBe(true)
+    const prices = await limited.run((ctx) => ctx.db.query('energyPrices').collect())
+    expect(prices.map((price) => price._id)).toEqual([ids.marketPriceId])
+  }, 120_000)
 })
 
 describe('when a Member deletes their account', () => {

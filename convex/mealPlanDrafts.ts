@@ -163,8 +163,9 @@ function isLeftovers(draft: Doc<'mealPlanDrafts'>) {
  * The open proposal for a week: every draft that has not expired and whose
  * slot is still empty, with its recipe's live title and photo. A draft whose
  * recipe the Group can no longer see is left out. `check` is the allergy or
- * diet the matcher can't rule out ("controleer zelf", APP-460); a phone from
- * before it ignores the field.
+ * diet the matcher can't rule out ("controleer zelf", APP-460); for a quick
+ * meal only a name the AI made up (APP-477). A phone from before it ignores
+ * the field.
  */
 export const list = query({
   args: { groupSlug: v.string(), weekStart: v.string() },
@@ -181,7 +182,10 @@ export const list = query({
             ? draftCheck({ recipe }, prefs)
             : isLeftovers(draft)
               ? undefined
-              : draftCheck({ quickMeal: draft.quickMeal ?? '' }, prefs)
+              : draftCheck(
+                  { quickMeal: draft.quickMeal ?? '', own: draft.mealEntryId !== undefined },
+                  prefs,
+                )
           return {
             _id: draft._id,
             date: draft.date,

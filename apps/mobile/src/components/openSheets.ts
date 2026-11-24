@@ -1,6 +1,7 @@
 /**
- * Every `NativeSheet` on screen, so something outside them can close them all
- * (APP-618).
+ * Every `NativeSheet` and keyboard composer on screen, so something outside
+ * them can close them all (APP-618, APP-672), and every OS dialog a share waits
+ * for, because nothing outside it can close it.
  *
  * A sheet is presented natively above the navigation stack, so pushing a
  * screen leaves it in front: a share arriving while one is up put the Drop
@@ -27,8 +28,12 @@ export interface OpenSheet {
 
 interface Entry {
   dismiss: () => void
-  /** Already asked to close, so a second share does not ask again. */
-  asked: boolean
+  /**
+   * When this sheet was last asked to close, or `null` when not currently
+   * asked, so a second share does not ask again and an earlier close timing
+   * out does not reset a sheet asked after it started.
+   */
+  askedAt: number | null
   /**
    * Opened during a close and still presenting: only its own delayed ask
    * closes it, or a second close in that window would ask too early and the
@@ -39,7 +44,10 @@ interface Entry {
 
 const sheets = new Set<Entry>()
 const waiters = new Set<() => void>()
+const prompts = new Set<symbol>()
+const promptWaiters = new Set<() => void>()
 const closingListeners = new Set<() => void>()
+let askClock = 0
 
 /** Tells the forms a share is closing sheets. */
 function tellClosing() {
@@ -69,8 +77,8 @@ function settle() {
 }
 
 function ask(entry: Entry) {
-  if (entry.asked) return
-  entry.asked = true
+  if (entry.askedAt !== null) return
+  entry.askedAt = ++askClock
   tellClosing()
   entry.dismiss()
 }
@@ -85,7 +93,11 @@ function ask(entry: Entry) {
 export function openSheet(dismiss: () => void): OpenSheet {
   // An entry per registration, so the same function registered twice is two
   // sheets.
-  const entry: Entry = { dismiss, asked: false, presenting: waiters.size > 0 }
+  const entry: Entry = {
+    dismiss,
+    askedAt: null,
+    presenting: waiters.size > 0,
+  }
   sheets.add(entry)
   if (entry.presenting) {
     setTimeout(() => {
@@ -115,15 +127,69 @@ export function closeOpenSheets(
 ): Promise<void> {
   if (sheets.size === 0) return Promise.resolve()
   return new Promise((resolve) => {
+    let cutoff = 0
     const done = () => {
       clearTimeout(timer)
       waiters.delete(done)
       resolve()
     }
-    const timer = setTimeout(done, timeoutMs)
+    const timer = setTimeout(() => {
+      done()
+      // A request that was lost is made again by the next close, rather than
+      // leaving the sheet in front of every chooser from now on. While another
+      // close is still waiting, only reset sheets asked by the time this call
+      // started so a newer sheet is not asked a second time.
+      for (const entry of sheets) {
+        if (
+          entry.askedAt !== null &&
+          (waiters.size === 0 || entry.askedAt <= cutoff)
+        ) {
+          entry.askedAt = null
+        }
+      }
+    }, timeoutMs)
     waiters.add(done)
     for (const entry of [...sheets]) if (!entry.presenting) ask(entry)
+    cutoff = askClock
     // A sheet whose dismiss reports closed at once has already settled.
     settle()
   })
+}
+
+/**
+ * Registers an OS dialog that is up and whose answer would be lost, or would
+ * open something over the chooser, if a share went ahead under it. Call the
+ * result when it is answered; more than once is safe.
+ *
+ * With `maxMs` it counts as gone after that long, answered or not. Only for a
+ * dialog that holds nothing typed: what a text prompt holds would be lost.
+ */
+export function openPrompt(maxMs?: number): () => void {
+  const id = Symbol('prompt')
+  prompts.add(id)
+  const release = () => {
+    clearTimeout(timer)
+    if (!prompts.delete(id) || prompts.size > 0) return
+    for (const resolve of [...promptWaiters]) resolve()
+    promptWaiters.clear()
+  }
+  const timer = maxMs === undefined ? undefined : setTimeout(release, maxMs)
+  return release
+}
+
+export function hasOpenPrompts() {
+  return prompts.size > 0
+}
+
+/**
+ * Resolves once no dialog is up, and what its answer changed or opened has had
+ * time to render and present.
+ */
+export async function promptsAnswered(): Promise<void> {
+  while (prompts.size > 0) {
+    await new Promise<void>((resolve) => {
+      promptWaiters.add(resolve)
+    })
+    await new Promise((resolve) => setTimeout(resolve, LATE_SHEET_DELAY_MS))
+  }
 }

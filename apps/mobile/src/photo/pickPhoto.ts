@@ -195,3 +195,27 @@ export async function uploadPhoto(
   const { storageId } = JSON.parse(result.body) as { storageId: string }
   return storageId
 }
+
+/**
+ * Uploads by local file. A prepared photo is a file of its own, so its address
+ * names one picture for as long as the app runs.
+ */
+const uploads = new Map<string, Promise<string>>()
+
+/**
+ * `uploadPhoto`, once per prepared file: a form reopened on a kept draft takes
+ * up the upload its closed row started, landed or not, instead of storing the
+ * photo twice and leaving the first copy with no row (APP-672). A failed upload
+ * is forgotten, so asking again sends it again.
+ */
+export function uploadPhotoOnce(
+  uri: string,
+  generateUploadUrl: () => Promise<string>,
+): Promise<string> {
+  const started = uploads.get(uri)
+  if (started) return started
+  const upload = generateUploadUrl().then((url) => uploadPhoto(uri, url))
+  uploads.set(uri, upload)
+  upload.catch(() => uploads.delete(uri))
+  return upload
+}

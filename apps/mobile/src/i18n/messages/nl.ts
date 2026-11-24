@@ -28,6 +28,10 @@ export const nl = {
   modules: coreNl.modules,
   common: coreNl.common,
 
+  a11y: {
+    radioButton: 'keuzerondje',
+  },
+
   baby: coreNl.baby,
   calendar: coreNl.calendar,
 
@@ -707,6 +711,7 @@ export const nl = {
   actions: {
     resend: 'Stuur opnieuw',
     done: 'Klaar',
+    next: 'Volgende',
     completed: 'Voltooid ({count})',
     showCompleted: 'Voltooide taken tonen',
     hideCompleted: 'Voltooide taken verbergen',
@@ -1116,6 +1121,7 @@ export const nl = {
     pinned: 'Vastgezet',
     recent: 'Recent',
     empty: 'Nog geen notities.',
+    showMore: 'Meer notities tonen',
     untitled: 'Notitie zonder titel',
     titlePlaceholder: 'Titel',
     bodyPlaceholder: 'Begin met schrijven…',

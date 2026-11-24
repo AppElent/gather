@@ -29,6 +29,7 @@ import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { radioProps } from '../../ui/radio-props'
 import { useSheetDraft } from '../../ui/sheet-drafts'
 import { term } from './words'
 
@@ -122,11 +123,11 @@ function Row({
   onPress: () => void
 }) {
   const tokens = useTokens('tasting')
+  const { t } = useI18n()
   const Check = UI_ICONS.Check
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: on }}
+      {...radioProps(on, t.a11y.radioButton)}
       accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => [

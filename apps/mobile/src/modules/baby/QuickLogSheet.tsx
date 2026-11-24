@@ -30,8 +30,8 @@
  *
  * A share that closes the sheet keeps everything in it, photos included, as a
  * draft that the same button on the same Child opens on (APP-622,
- * `ui/sheet-drafts.ts`). A photo still uploading is uploaded
- * again.
+ * `ui/sheet-drafts.ts`). A photo still uploading goes on,
+ * and the reopened sheet takes up that same upload.
  */
 import { missingRequiredField } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { alice, seedGroup, seedMember, testConvex } from '../test/convexHarness'
+import { alice, bob, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 
@@ -231,6 +231,139 @@ describe('changing the amount', () => {
       unit: 'bak',
     })
     expect((await row(t, second)).category).toBe('breakfast')
+  })
+})
+
+describe('two Members at once (APP-671)', () => {
+  async function seedMelk() {
+    const seeded = await seed()
+    const { t, as, groceries } = seeded
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert('users', {
+        clerkId: bob.subject,
+        name: bob.name,
+        email: bob.email,
+      })
+      const group = await ctx.db.query('groups').first()
+      if (group) await seedMember(ctx, group._id, userId, 'member')
+    })
+    const id = await as.mutation(api.tasks.add, {
+      groupSlug: SLUG,
+      listId: groceries,
+      title: 'melk',
+      quantity: 1,
+      unit: 'pak',
+    })
+    return { ...seeded, asBob: t.withIdentity(bob), id }
+  }
+  const changed = { data: { kind: 'tasks:amount-changed' } }
+  const pak = (quantity: number) => ({ quantity, unit: 'pak' as const })
+
+  test('amounts added at the same moment both count', async () => {
+    const { t, as, asBob, id } = await seedMelk()
+    await Promise.all([
+      as.mutation(api.tasks.addAmount, { groupSlug: SLUG, taskId: id, ...pak(2) }),
+      asBob.mutation(api.tasks.addAmount, { groupSlug: SLUG, taskId: id, ...pak(1) }),
+    ])
+    expect(await row(t, id)).toMatchObject(pak(4))
+  })
+
+  test('only one of two changes from the same amount lands', async () => {
+    const { t, as, asBob, id } = await seedMelk()
+    const set = (who: typeof as, quantity: number) =>
+      who.mutation(api.tasks.update, {
+        groupSlug: SLUG,
+        taskId: id,
+        ...pak(quantity),
+        expectedAmount: pak(1),
+      })
+    const [first, second] = await Promise.allSettled([set(as, 3), set(asBob, 2)])
+    expect(first.status).toBe('fulfilled')
+    expect(second).toMatchObject({ status: 'rejected', reason: changed })
+    expect(await row(t, id)).toMatchObject(pak(3))
+  })
+
+  test('an undo gives an amount back, unless another Member changed it', async () => {
+    const { t, as, asBob, id } = await seedMelk()
+    const add = () =>
+      as.mutation(api.tasks.addAmount, { groupSlug: SLUG, taskId: id, ...pak(2) })
+    const undo = ({ from, to }: Awaited<ReturnType<typeof add>>) =>
+      as.mutation(api.tasks.update, {
+        groupSlug: SLUG,
+        taskId: id,
+        ...from,
+        expectedAmount: to,
+      })
+    const first = await add()
+    expect(first).toEqual({ from: pak(1), to: pak(3) })
+    await undo(first)
+    expect(await row(t, id)).toMatchObject(pak(1))
+
+    const second = await add()
+    await asBob.mutation(api.tasks.addAmount, { groupSlug: SLUG, taskId: id, ...pak(1) })
+    await expect(undo(second)).rejects.toMatchObject(changed)
+    expect(await row(t, id)).toMatchObject(pak(4))
+  })
+
+  test('no amount is one, and its undo is no amount again', async () => {
+    const { t, as, groceries } = await seedMelk()
+    const id = await as.mutation(api.tasks.add, {
+      groupSlug: SLUG,
+      listId: groceries,
+      title: 'kaas',
+    })
+    const none = { quantity: null, unit: null }
+    expect(
+      await as.mutation(api.tasks.addAmount, {
+        groupSlug: SLUG,
+        taskId: id,
+        quantity: 2,
+      }),
+    ).toEqual({ from: none, to: { quantity: 3, unit: null } })
+    await as.mutation(api.tasks.update, {
+      groupSlug: SLUG,
+      taskId: id,
+      ...none,
+      expectedAmount: { quantity: 3, unit: null },
+    })
+    expect((await row(t, id)).quantity).toBeUndefined()
+  })
+
+  test('adding is refused when it does not add up, or is not an amount', async () => {
+    const { t, as, asBob, chores, id } = await seedMelk()
+    const add = (more: { quantity: number; unit?: 'g' }) =>
+      as.mutation(api.tasks.addAmount, { groupSlug: SLUG, taskId: id, ...more })
+    await expect(add({ quantity: 500, unit: 'g' })).rejects.toMatchObject(changed)
+    await expect(add({ quantity: -1 })).rejects.toThrow('That is not an amount')
+    expect(await row(t, id)).toMatchObject(pak(1))
+    const chore = await as.mutation(api.tasks.add, {
+      groupSlug: SLUG,
+      listId: chores,
+      title: 'stofzuigen',
+    })
+    await expect(
+      asBob.mutation(api.tasks.addAmount, {
+        groupSlug: SLUG,
+        taskId: chore,
+        quantity: 1,
+      }),
+    ).rejects.toMatchObject({ data: { kind: 'tasks:not-grocery-list' } })
+  })
+
+  test('adding is for Members', async () => {
+    const { t, as, id } = await seedMelk()
+    const more = { groupSlug: SLUG, taskId: id, quantity: 1 }
+    await expect(t.mutation(api.tasks.addAmount, more)).rejects.toMatchObject({
+      data: { kind: 'groups:not-signed-in' },
+    })
+    await t.run(async (ctx) => {
+      const other = await seedGroup(ctx, { name: 'other', slug: 'other' })
+      const user = await ctx.db.query('users').first()
+      if (user) await seedMember(ctx, other, user._id, 'admin')
+    })
+    await expect(
+      as.mutation(api.tasks.addAmount, { ...more, groupSlug: 'other' }),
+    ).rejects.toThrow('Task not found')
   })
 })
 

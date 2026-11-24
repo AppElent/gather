@@ -240,8 +240,8 @@ describe('Gather MCP endpoint', () => {
 
   it('calls Convex by the Group slug and strips private fields', async () => {
     const backend = fakeBackend({
-      'notes:list': () => [
-        {
+      'notes:listPage': () => ({
+        page: [{
           _id: 'note_1',
           _creationTime: 1,
           groupId: 'group_home',
@@ -252,14 +252,19 @@ describe('Gather MCP endpoint', () => {
           updatedAt: Date.parse('2026-11-01T10:00:00Z'),
           updatedByName: 'Ada',
           updatedByMe: true,
-        },
-      ],
+        }],
+        isDone: true,
+        continueCursor: 'end',
+      }),
     })
     const out = await callTool(backend, 'list_notes', { groupId: 'group_home' })
     expect(out.isError).toBeUndefined()
     expect(backend.calls.at(-1)).toMatchObject({
-      name: 'notes:list',
-      args: { groupSlug: 'home' },
+      name: 'notes:listPage',
+      args: {
+        groupSlug: 'home',
+        paginationOpts: { numItems: 30, cursor: null },
+      },
     })
     expect(out.structuredContent).toEqual({
       notes: [
@@ -272,9 +277,92 @@ describe('Gather MCP endpoint', () => {
           updatedByName: 'Ada',
         },
       ],
-      total: 1,
     })
     expect(out.content[0].text).not.toContain('user_internal')
+  })
+
+  it('pages notes by cursor, and reads a blank query as none', async () => {
+    const backend = fakeBackend({
+      'notes:listPage': (args: { paginationOpts: { cursor: string | null } }) =>
+        args.paginationOpts.cursor
+          ? { page: [], isDone: true, continueCursor: 'end' }
+          : { page: [], isDone: false, continueCursor: 'page-2' },
+    })
+    const first = await callTool(backend, 'list_notes', {
+      groupId: 'group_home',
+      query: ' ',
+      limit: 5,
+    })
+    expect(first.structuredContent).toEqual({ notes: [], nextCursor: 'page-2' })
+    const second = await callTool(backend, 'list_notes', {
+      groupId: 'group_home',
+      limit: 5,
+      cursor: 'page-2',
+    })
+    expect(backend.calls.at(-1)?.args).toMatchObject({
+      paginationOpts: { numItems: 5, cursor: 'page-2' },
+    })
+    expect(second.structuredContent).toEqual({ notes: [] })
+  })
+
+  it('searches notes in Convex when a query is given', async () => {
+    const note = (id: string) => ({
+      _id: id,
+      title: id,
+      body: 'Full text',
+      excerpt: 'Full',
+      pinned: false,
+      createdBy: 'user_internal',
+      updatedAt: Date.parse('2026-11-01T10:00:00Z'),
+      updatedByName: null,
+      updatedByMe: false,
+    })
+    const backend = fakeBackend({
+      'notes:searchNotes': () => [note('note_1'), note('note_2')],
+    })
+    const out = await callTool(backend, 'list_notes', {
+      groupId: 'group_home',
+      query: 'wifi ',
+      limit: 1,
+    })
+    expect(backend.calls.at(-1)).toMatchObject({
+      name: 'notes:searchNotes',
+      args: { groupSlug: 'home', query: 'wifi' },
+    })
+    expect(out.structuredContent).toEqual({
+      notes: [
+        {
+          id: 'note_1',
+          title: 'note_1',
+          body: 'Full text',
+          pinned: false,
+          updatedAt: '2026-11-01T10:00:00.000Z',
+        },
+      ],
+      total: 2,
+    })
+  })
+
+  it('tells the agent to start over when Convex refuses its cursor', async () => {
+    for (const error of [
+      new ConvexError({
+        isConvexSystemError: true,
+        paginationError: 'InvalidCursor',
+      }),
+      new Error('InvalidCursor: Failed to parse cursor'),
+    ]) {
+      const out = await callTool(
+        fakeBackend({
+          'notes:listPage': () => {
+            throw error
+          },
+        }),
+        'list_notes',
+        { groupId: 'group_home', cursor: 'stale' },
+      )
+      expect(out.isError).toBe(true)
+      expect(out.content[0].text).toMatch(/cursor is no longer valid/)
+    }
   })
 
   it('refuses a Group the caller is not in like a missing one, before any data call', async () => {
@@ -289,7 +377,7 @@ describe('Gather MCP endpoint', () => {
     for (const reason of ['unknown-slug', 'unknown-group', 'not-a-member'] as const) {
       const out = await callTool(
         fakeBackend({
-          'notes:list': () => {
+          'notes:listPage': () => {
             throw groupRefusalError(reason)
           },
         }),
@@ -303,7 +391,7 @@ describe('Gather MCP endpoint', () => {
   it('reads a keyed sign-in refusal as the sentence it always was', async () => {
     const out = await callTool(
       fakeBackend({
-        'notes:list': () => {
+        'notes:listPage': () => {
           throw groupRefusalError('not-signed-in')
         },
       }),
@@ -321,7 +409,7 @@ describe('Gather MCP endpoint', () => {
     ]) {
       const out = await callTool(
         fakeBackend({
-          'notes:list': () => {
+          'notes:listPage': () => {
             throw new ConvexError(refusal)
           },
         }),
@@ -446,7 +534,7 @@ describe('Gather MCP endpoint', () => {
   it('reports a fault generically and keeps its text from the agent', async () => {
     const out = await callTool(
       fakeBackend({
-        'notes:list': () => {
+        'notes:listPage': () => {
           throw new Error('connect ECONNREFUSED 10.0.0.1 token=sk_live_x')
         },
       }),

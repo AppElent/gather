@@ -19,6 +19,7 @@ import { useGroup } from '../group/GroupProvider'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
+import { radioProps } from '../ui/radio-props'
 
 export function DropGroupSheet({
   selected,
@@ -47,8 +48,7 @@ export function DropGroupSheet({
           return (
             <Pressable
               key={group._id}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isSelected }}
+              {...radioProps(isSelected, t.a11y.radioButton)}
               onPress={() => {
                 onSelect(group._id)
                 onClose()

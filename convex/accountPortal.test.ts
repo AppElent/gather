@@ -14,7 +14,7 @@ import {
 } from './accountPortal'
 import { CONNECTED_APP_REFUSED } from './lib/connectedApps'
 import { PAGE_SIZE } from './lib/dataExport'
-import { NOT_SIGNED_IN } from './lib/sharing'
+import { notSignedInError } from './lib/sharing'
 import schema from './schema'
 
 /**
@@ -295,12 +295,19 @@ describe('a caller who never used Gather', () => {
 
   test('without a token is refused, not shown as never used', async () => {
     const t = testConvex()
-    expect(await refusalOf(t.query(api.accountPortal.summary, {}))).toBe(
-      NOT_SIGNED_IN,
-    )
-    expect(
-      await refusalOf(t.query(api.accountPortal.exportPage, { cursor: null })),
-    ).toBe(NOT_SIGNED_IN)
+    await expect(t.query(api.accountPortal.summary, {})).rejects.toMatchObject({
+      data: notSignedInError().data,
+    })
+    await expect(
+      t.query(api.accountPortal.deletionBlocker, {}),
+    ).rejects.toMatchObject({
+      data: notSignedInError().data,
+    })
+    await expect(
+      t.query(api.accountPortal.exportPage, { cursor: null }),
+    ).rejects.toMatchObject({
+      data: notSignedInError().data,
+    })
   })
 
   test('a connected app is refused', async () => {

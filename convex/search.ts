@@ -2,6 +2,7 @@ import { type Infer, v } from 'convex/values'
 
 import { query } from './_generated/server'
 import { isVisibleToGroups, requireGroupBySlug } from './lib/groupAccess'
+import { findNotes, noteExcerpt } from './lib/noteSearch'
 import { tastingKindValidator } from './lib/tastings'
 
 const RESULT_LIMIT = 30
@@ -94,7 +95,8 @@ function matched(
  * records in one authorization-aware query so the phone never combines module
  * lists or learns about data it could not otherwise read.
  *
- * The fan-out is globally bounded below Convex's read limit. That is a safety
+ * Notes come from their search indexes (APP-348); the other tables are still
+ * scanned. The fan-out is globally bounded below Convex's read limit. That is a safety
  * boundary for this pre-indexed first release, not pagination; promote it to a
  * maintained full-text projection when real Group volumes require it.
  */
@@ -143,11 +145,7 @@ export const group = query({
               .take(GROUP_RECORD_LIMIT - sharedIds.length)
           : none,
         accepts.has('note')
-          ? ctx.db
-              .query('notes')
-              .withIndex('by_group', (q) => q.eq('groupId', groupId))
-              .order('desc')
-              .take(GROUP_RECORD_LIMIT)
+          ? findNotes(ctx, groupId, args.query)
           : none,
         accepts.has('tasting')
           ? args.kind
@@ -237,26 +235,18 @@ export const group = query({
         )
         return found ? [found] : []
       }),
-      ...notes.flatMap((note) => {
-        const found = matched(
-          {
-            id: note._id,
-            type: 'note',
-            title: note.title,
-            tags: [],
-            excerpt:
-              note.body
-                .split('\n')
-                .find((line) => line.trim())
-                ?.trim() ?? '',
-            createdBy: note.createdBy,
-            creationTime: note._creationTime,
-          },
-          [note.body],
-          needle,
-        )
-        return found ? [found] : []
-      }),
+      // Already matches: the rank only orders them, and words that are not
+      // next to each other rank with a match in the body.
+      ...notes.map((note): SearchResult => ({
+        id: note._id,
+        type: 'note',
+        title: note.title,
+        tags: [],
+        excerpt: noteExcerpt(note.body),
+        createdBy: note.createdBy,
+        creationTime: note._creationTime,
+        rank: matchRank(note.title, [], needle) ?? 3,
+      })),
       ...subjects.flatMap((subject) => {
         const found = matched(
           {

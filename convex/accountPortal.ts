@@ -43,7 +43,7 @@ import {
   readExportPage,
 } from './lib/dataExport'
 import { getMembership, groupRefusalError } from './lib/groupAccess'
-import { getUserByClerkId, NOT_SIGNED_IN } from './lib/sharing'
+import { getUserByClerkId, notSignedInError } from './lib/sharing'
 
 /** Bumped only for a breaking change to these shapes. */
 export const PORTAL_CONTRACT = 1 as const
@@ -212,7 +212,9 @@ const exportPageValidator = v.object({
 async function portalCaller(ctx: QueryCtx): Promise<Doc<'users'> | null> {
   await rejectConnectedApps(ctx)
   const identity = await getGatedIdentity(ctx)
-  if (!identity) throw new ConvexError(NOT_SIGNED_IN)
+  // Keyed refusal matched by the account portal's `isUnauthenticated`
+  // (AppElent/appelent-site, convex-client.ts) to retry with a fresh token.
+  if (!identity) throw notSignedInError()
   return await getUserByClerkId(ctx, identity.subject)
 }
 

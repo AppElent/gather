@@ -135,20 +135,29 @@ sign-out: [mobile query retention](../records/2026-10-18-mobile-query-retention.
 
 ## Verifying a Drop
 
-The share sheet cannot be automated. `agent-device` drives Gather, not Safari,
-and the OS sheet belongs to neither — so the Drop flow (ADR-0028) is verified
-through a deep link that produces the same Drop the share sheet would:
+For link and text Drops when nothing is open, the `gather-dev://drop` deep link
+is the fast path — it lands on the chooser over the same `DropProvider`, with
+the same ranking (ADR-0028):
 
 ```
 agent-device open "gather-dev://drop?url=https://www.leukerecepten.nl/recepten/pasta/" --platform ios
 agent-device open "gather-dev://drop?text=Buy%20stroopwafels" --platform ios
 ```
 
-Both land on the chooser, over the same `DropProvider`, with the same ranking.
-A photo Drop has no harness — a route param cannot carry a file — so the image
-destinations are verified by sharing a photo by hand from the gallery app.
+On the iOS simulator, Safari's share sheet can also be driven with
+`agent-device` when you need a real share — for example, to verify that a Drop
+closes an open sheet or waits for a prompt (the deep-link harness pushes the
+chooser directly and does not exercise the share extension):
 
-Two things this harness cannot tell you, and a real share can:
+1. Open Safari (`agent-device open com.apple.mobilesafari`) and load a URL.
+2. Tap Safari's Share button, then tap Gather's row in the OS share sheet using
+   coordinate taps (`press <x> <y>`) — the share sheet's accessibility refs
+   report stale frames, so snapshot refs miss the target.
+
+A photo Drop has no deep-link harness — a route param cannot carry a file — so
+the image destinations are verified by sharing a photo from the Photos app.
+
+Two things the deep-link harness cannot tell you, and a real share can:
 
 - **Whether Gather is in the sheet at all.** That is the config plugin, and it
   only exists after a build (`devbuild:android`). It is a native change, so it

@@ -176,6 +176,7 @@ async function household(t: Harness): Promise<Household> {
       aisle: 'pasta_world',
       low: false,
       createdBy: bob,
+      keptBy: [alice],
     })
 
     // Tasks, notes and the calendar.
@@ -540,7 +541,9 @@ describe('the export registry', () => {
     expect(await t.query(api.dataExport.manifest, {})).toBeNull()
     await expect(
       t.query(api.dataExport.page, { table: 'users', cursor: null }),
-    ).rejects.toThrow('Not authenticated')
+    ).rejects.toMatchObject({
+      data: { kind: 'groups:not-signed-in', message: 'Not authenticated' },
+    })
   })
 })
 
@@ -598,7 +601,9 @@ describe('what the file contains', () => {
     // The Pantry folded into In stock (APP-314): both its rows and the
     // staples they became go out.
     expect(household.pantryEntries.map((r) => r.title)).toEqual(['Rice'])
-    expect(household.groceryStaples.map((r) => r.name)).toEqual(['Rice'])
+    expect(household.groceryStaples).toEqual([
+      expect.objectContaining({ name: 'Rice', createdBy: 'Bob', keptBy: ['Alice'] }),
+    ])
     expect(groupOf(data, 'allotment').notes.map((n) => n.title)).toEqual([
       'Seeds',
     ])
@@ -722,10 +727,18 @@ describe('what the file holds back', () => {
     ])
     expect(household.energyIntervals).toHaveLength(1)
     expect(household.energyAssets).toHaveLength(1)
+    expect(household.energySources[0]).toMatchObject({
+      kind: 'homeAssistant',
+      label: 'Home Assistant',
+      status: 'ok',
+      connectedByUserId: 'Bob',
+    })
+    expect(household.energySources[0]).not.toHaveProperty('baseUrl')
     expect(household.energySources[0]).not.toHaveProperty('secret')
     expect(household.energyPriceFeeds[0]).not.toHaveProperty('secret')
-    expect(data.omittedFields.energySources).toEqual(['secret'])
+    expect(data.omittedFields.energySources).toEqual(['baseUrl', 'secret'])
     expect(data.omittedFields.energyPriceFeeds).toEqual(['secret'])
+    expect(text).not.toContain('ha.example.com')
     expect(text).not.toContain(ENERGY_SECRETS.source)
     expect(text).not.toContain(ENERGY_SECRETS.feed)
     // Prices are reference data, the account's own included (`dataExport.ts`).

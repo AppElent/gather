@@ -18,6 +18,7 @@ import {
   byTestId,
   callsTo,
   energyState,
+  priceView,
   resetEnergyState,
   usagePeriod,
 } from './energy-test-mocks'
@@ -76,7 +77,7 @@ const meter = {
 beforeEach(() => {
   resetEnergyState()
   vi.useFakeTimers({ toFake: ['Date'] })
-  vi.setSystemTime(new Date('2026-11-23T12:00:00Z'))
+  vi.setSystemTime(new Date('2026-11-23T12:10:00Z'))
   energyState.queries['energy:overview'] = null
   energyState.queries['houses:list'] = []
   energyState.queries['energyContracts:list'] = []
@@ -99,7 +100,7 @@ test('empty, the wash says there is no address and the step opens the form', asy
   byTestId('energy-add-first')?.click()
   await settle()
   expect((byTestId('energy-name') as HTMLInputElement).value).toBe('Home')
-  expect(byTestId('energy-source-homeAssistant')?.getAttribute('aria-checked')).toBe(
+  expect(byTestId('energy-source-homeAssistant')?.getAttribute('aria-selected')).toBe(
     'true',
   )
   view.unmount()
@@ -181,9 +182,107 @@ test('with readings, the home shows the month and rows to every Energy screen', 
     ['costs', '/all/energy/costs'],
     ['readings', '/all/energy/readings'],
     ['contract', '/all/energy/contract'],
+    ['sources', '/all/energy/sources'],
   ] as const) {
     byTestId(`energy-row-${row}`)?.click()
     expect(energyState.pushes.at(-1)).toBe(path)
   }
+  byTestId('energy-usage-card')?.click()
+  expect(energyState.pushes.at(-1)).toEqual({
+    pathname: '/all/energy/usage',
+    params: { range: 'month', month: '2026-11' },
+  })
+  view.unmount()
+})
+
+test('Home Assistant saves the address and goes on to connecting it', async () => {
+  const view = mount(createElement(EnergyScreen))
+  byTestId('energy-add-first')?.click()
+  await settle()
+  byTestId('energy-submit')?.click()
+  await settle()
+  expect(callsTo('energy:createSite')).toMatchObject([
+    { source: { kind: 'homeAssistant' } },
+  ])
+  expect(energyState.pushes).toEqual(['/all/energy/connect'])
+  view.unmount()
+})
+
+test('without a source, Home asks to connect one or type a reading', () => {
+  energyState.queries['energy:overview'] = { ...withAddress, sources: [] }
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: false,
+    lastReadingAt: null,
+    channels: [],
+  }
+  const view = mount(createElement(EnergyScreen))
+  byTestId('energy-connect')?.click()
+  byTestId('energy-first-reading')?.click()
+  expect(energyState.pushes).toEqual(['/all/energy/connect', '/all/energy/readings'])
+  view.unmount()
+})
+
+test('a source in error is said in words with when its data is from, and its data stays', () => {
+  energyState.queries['energy:overview'] = {
+    ...withAddress,
+    sources: [
+      {
+        _id: 'src1',
+        kind: 'homeAssistant',
+        label: 'Home Assistant',
+        status: 'error',
+        lastError: 'unreachable',
+        lastSyncedAt: Date.parse('2026-11-23T09:15:00Z'),
+      },
+    ],
+  }
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: false,
+    lastReadingAt: null,
+    channels: [],
+  }
+  const view = mount(createElement(EnergyScreen))
+  expect((energyState.wash as { sub: string }).sub).toMatch(
+    /Home Assistant does not answer.*10:15/,
+  )
+  expect(byTestId('energy-usage-card')).not.toBeNull()
+  expect(byTestId('energy-first-reading')).toBeNull()
+  view.unmount()
+})
+
+test('the Now card and the price card say what power costs, and open Prices', () => {
+  energyState.queries['energy:overview'] = withAddress
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: true,
+    lastReadingAt: null,
+    channels: [meter],
+  }
+  energyState.queries['energyPrices:view'] = priceView()
+  const view = mount(createElement(EnergyScreen))
+  expect(byTestId('energy-price-now')?.getAttribute('aria-label')).toBe(
+    'Power price now: €0.40 per kWh. Expensive: 37% above today’s average. Cheapest tomorrow: 12:00–15:00, on average €0.10',
+  )
+  expect(byTestId('energy-home-prices')?.getAttribute('aria-label')).toMatch(
+    /^Price per hour today\. Now 40 cents\./,
+  )
+  byTestId('energy-price-card')?.click()
+  byTestId('energy-row-prices')?.click()
+  expect(energyState.pushes).toEqual(['/all/energy/prices', '/all/energy/prices'])
+  view.unmount()
+})
+
+test('a price fetch that failed is said on its row, and there are no cards', () => {
+  energyState.queries['energy:overview'] = withAddress
+  energyState.queries['energyReadings:form'] = {
+    hasManualSource: true,
+    lastReadingAt: null,
+    channels: [meter],
+  }
+  energyState.queries['energyPrices:view'] = priceView({ today: null, tomorrow: null })
+  const view = mount(createElement(EnergyScreen))
+  expect(byTestId('energy-price-now')).toBeNull()
+  expect(byTestId('energy-row-prices')?.querySelector('[data-tone="danger"]')?.textContent).toContain(
+    'EnergyZero has not given all prices yet.',
+  )
   view.unmount()
 })

@@ -13,6 +13,7 @@ import {
 } from '../test/energyUsageFixture'
 import { api } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
+import type { MutationCtx } from './_generated/server'
 
 /**
  * Usage and costs (APP-494), computed from typed readings and hourly
@@ -199,7 +200,104 @@ describe('a month from typed readings', () => {
   })
 })
 
+describe('fixed costs and the tax credit', () => {
+  // Per day in November: 113 ct fixed, 174 ct credit.
+  test('run on every day of a month with gaps', async () => {
+    const { t } = await seedReadSite()
+    const month = await t
+      .withIdentity(bob)
+      .query(api.energyUsage.month, { ...NOVEMBER, today: '2026-11-30' })
+    expect(month?.totals.daysWithData).toBe(11)
+    expect(month?.totals.cost?.fixedCents).toBe(30 * 113)
+    expect(month?.totals.cost?.creditCents).toBe(-30 * 174)
+    const gap = month?.days.find((day) => day.day === '2026-11-25')
+    expect(gap).toMatchObject({ hasData: false, costStatus: 'noData' })
+    expect(gap?.cost).toEqual({
+      importCents: 0,
+      exportCents: 0,
+      gasCents: 0,
+      fixedCents: 113,
+      creditCents: -174,
+      totalCents: -61,
+    })
+  })
+
+  test('run up to and including today, never on days to come', async () => {
+    const { t } = await seedReadSite()
+    const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
+    expect(month?.totals.cost?.fixedCents).toBe(20 * 113)
+    expect(month?.totals.costWithoutNet?.creditCents).toBe(-20 * 174)
+    expect(month?.days.find((day) => day.day === '2026-11-20')?.cost).not.toBeNull()
+    expect(month?.days.find((day) => day.day === '2026-11-21')?.cost).toBeNull()
+  })
+
+  test('run only from the day the contract starts', async () => {
+    const { t } = await seedReadSite({
+      contract: { ...FIXED_TERMS, validFrom: '2026-11-06' },
+    })
+    const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
+    expect(month?.totals.cost?.fixedCents).toBe(15 * 113)
+  })
+
+  test('run in a month without any usage, with the status still saying so', async () => {
+    const { t } = await seedReadSite()
+    const month = await t
+      .withIdentity(bob)
+      .query(api.energyUsage.month, { ...NOVEMBER, month: '2026-10' })
+    expect(month?.totals).toMatchObject({
+      daysWithData: 0,
+      costStatus: 'noData',
+      cost: {
+        importCents: 0,
+        fixedCents: 31 * 109, // €33.94 over 31 days
+        creditCents: -31 * 174,
+        totalCents: 31 * (109 - 174),
+      },
+    })
+  })
+})
+
 describe('a dynamic contract', () => {
+  test('a month with an unpriced day totals the priced ones and all fixed costs', async () => {
+    const { t } = await seedReadSite({
+      contract: { ...DYNAMIC_TERMS, monthlyFixedCents: 3000, vatPercent: 0 },
+    })
+    await t.run(async (ctx) => {
+      for (const day of ['2026-11-01', '2026-11-02', '2026-11-03']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+    })
+    const month = await t
+      .withIdentity(bob)
+      .query(api.energyUsage.month, { ...NOVEMBER, today: '2026-11-04' })
+    expect(month?.totals).toMatchObject({
+      daysWithData: 4,
+      costMissingDays: 1,
+      costStatus: 'ok',
+    })
+    const fourth = month?.days.find((day) => day.day === '2026-11-04')
+    expect(fourth?.costStatus).toBe('noPrices')
+    expect(fourth?.cost).toMatchObject({
+      importCents: 0,
+      gasCents: 0,
+      fixedCents: 100,
+      totalCents: 100,
+    })
+    // 2.5 days of 10 kWh × (0.10 + 0.02 + 0.10), excl. VAT here.
+    expect(month?.totals.cost?.importCents).toBe(550)
+    expect(month?.totals.cost?.fixedCents).toBe(400)
+    // Alone, that day has only its fixed cost, and says so.
+    const day = await t.withIdentity(bob).query(api.energyUsage.day, {
+      ...HOME,
+      day: '2026-11-04',
+      today: '2026-11-04',
+    })
+    expect(day?.totals).toMatchObject({
+      costStatus: 'noPrices',
+      cost: { importCents: 0, fixedCents: 100, totalCents: 100 },
+    })
+  })
+
   test('without prices has no costs, never a number', async () => {
     const { t } = await seedReadSite({ contract: DYNAMIC_TERMS })
     const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
@@ -254,6 +352,166 @@ describe('a dynamic contract', () => {
       totalCents: 517,
     })
     expect(month?.totals.cost?.totalCents).toBeGreaterThan(0)
+  })
+
+  /** One price all day, of a provider or of a feed. */
+  async function priceDay(
+    ctx: MutationCtx,
+    day: string,
+    provider: 'energyzero' | 'entsoe' | 'tibber',
+    eurPerUnit: number,
+    feedId?: Id<'energyPriceFeeds'>,
+  ) {
+    await ctx.db.insert('energyPrices', {
+      provider,
+      feedId,
+      carrier: 'electricity',
+      start: amsterdamDayStart(day),
+      minutes: 1440,
+      eurPerUnit,
+    })
+    if (provider === 'energyzero') {
+      await ctx.db.insert('energyPrices', {
+        provider,
+        carrier: 'gas',
+        start: amsterdamDayStart(day) + 6 * 3_600_000,
+        minutes: 1440,
+        eurPerUnit: 0.5,
+      })
+    }
+  }
+  const feedRow = (
+    homeId: Id<'groups'>,
+    siteId: Id<'energySites'>,
+    provider: 'entsoe' | 'tibber',
+  ) => ({
+    groupId: homeId,
+    siteId,
+    provider,
+    scope: provider === 'tibber' ? ('account' as const) : ('market' as const),
+    secret: 'key',
+    includesTaxes: provider === 'tibber',
+    status: 'ok' as const,
+  })
+  const costOn = async (
+    t: Awaited<ReturnType<typeof seedReadSite>>['t'],
+    day: string,
+  ) => {
+    const month = await t.withIdentity(bob).query(api.energyUsage.month, NOVEMBER)
+    return month?.days.find((each) => each.day === day)
+  }
+
+  test("another Group's account prices never price this one (APP-493)", async () => {
+    const { t, otherId, carolId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const otherSite = await insertSite(ctx, otherId, carolId)
+      const feedId = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(otherId, otherSite, 'tibber'),
+      )
+      await priceDay(ctx, '2026-11-10', 'energyzero', 0.1)
+      await priceDay(ctx, '2026-11-10', 'tibber', 9, feedId)
+    })
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(266)
+  })
+
+  test('account prices are the import price; gas and export keep the contract (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const feedId = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(homeId, siteId, 'tibber'),
+      )
+      await priceDay(ctx, '2026-11-10', 'energyzero', 0.1)
+      await priceDay(ctx, '2026-11-10', 'tibber', 0.3, feedId)
+    })
+    // 10 kWh × 0.30, with no markup, tax or VAT on top; the rest as above.
+    expect((await costOn(t, '2026-11-10'))?.cost).toEqual({
+      importCents: 300,
+      exportCents: -27,
+      gasCents: 278,
+      fixedCents: 0,
+      creditCents: 0,
+      totalCents: 551,
+    })
+  })
+
+  test('another source later rewrites no account day (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const feedId = await ctx.db.insert('energyPriceFeeds', {
+        ...feedRow(homeId, siteId, 'tibber'),
+        provider: 'energyzero',
+        scope: 'market',
+        includesTaxes: false,
+        secret: undefined,
+      })
+      for (const day of ['2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-09', 'tibber', 0.3, feedId)
+    })
+    expect((await costOn(t, '2026-11-09'))?.cost?.importCents).toBe(300)
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(266)
+  })
+
+  test('a day an account feed missed has no price, never the market one (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const feedId = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(homeId, siteId, 'tibber'),
+      )
+      for (const day of ['2026-11-08', '2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-09', 'tibber', 0.3, feedId)
+    })
+    // Before the feed's first day it was not the source yet.
+    expect((await costOn(t, '2026-11-08'))?.cost?.importCents).toBe(266)
+    expect(await costOn(t, '2026-11-10')).toMatchObject({
+      cost: null,
+      costStatus: 'noPrices',
+    })
+  })
+
+  test('returning to an account source rewrites no day between (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      const earlier = await ctx.db.insert('energyPriceFeeds', {
+        ...feedRow(homeId, siteId, 'tibber'),
+        provider: 'energyzero',
+        scope: 'market',
+        includesTaxes: false,
+        secret: undefined,
+      })
+      const now = await ctx.db.insert(
+        'energyPriceFeeds',
+        feedRow(homeId, siteId, 'tibber'),
+      )
+      for (const day of ['2026-11-08', '2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-08', 'tibber', 0.3, earlier)
+      await priceDay(ctx, '2026-11-10', 'tibber', 0.4, now)
+    })
+    expect((await costOn(t, '2026-11-08'))?.cost?.importCents).toBe(300)
+    expect((await costOn(t, '2026-11-09'))?.cost?.importCents).toBe(266)
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(400)
+  })
+
+  test('ENTSO-E prices a day it has, EnergyZero the others (APP-493)', async () => {
+    const { t, homeId, siteId } = await seedReadSite({ contract: DYNAMIC_TERMS })
+    await t.run(async (ctx) => {
+      await ctx.db.insert('energyPriceFeeds', feedRow(homeId, siteId, 'entsoe'))
+      for (const day of ['2026-11-09', '2026-11-10']) {
+        await priceDay(ctx, day, 'energyzero', 0.1)
+      }
+      await priceDay(ctx, '2026-11-10', 'entsoe', 0.2)
+    })
+    expect((await costOn(t, '2026-11-09'))?.cost?.importCents).toBe(266)
+    // 10 × (0.20 + 0.02 + 0.10) × 1.21
+    expect((await costOn(t, '2026-11-10'))?.cost?.importCents).toBe(387)
   })
 })
 
@@ -507,6 +765,41 @@ describe('a day', () => {
       .query(api.energyUsage.day, { ...HOME, day: '2026-10-25', today: '2026-11-20' })
     expect(day?.hours).toHaveLength(25)
     expect(day?.days[0]?.importKwh).toBeCloseTo(12.5)
+  })
+
+  test('after today has nothing in it, not even fixed costs', async () => {
+    const { t } = await seedReadSite()
+    const day = await t
+      .withIdentity(bob)
+      .query(api.energyUsage.day, { ...HOME, day: '2026-11-06', today: '2026-11-05' })
+    // The reading of the 11th reaches the 6th, but that day is still to come.
+    expect(day?.days).toEqual([
+      expect.objectContaining({
+        day: '2026-11-06',
+        hasData: false,
+        importKwh: 0,
+        cost: null,
+        costWithoutNet: null,
+        costStatus: 'noData',
+      }),
+    ])
+    expect(day?.totals).toMatchObject({
+      daysWithData: 0,
+      cost: null,
+      costWithoutNet: null,
+      costStatus: 'noData',
+    })
+  })
+
+  test('after today from an hourly source has empty hours', async () => {
+    const { t } = await seedHourlySite('2026-11-21')
+    const day = await t
+      .withIdentity(bob)
+      .query(api.energyUsage.day, { ...HOME, day: '2026-11-21', today: '2026-11-20' })
+    expect(day?.hours).toHaveLength(24)
+    expect(day?.hours.every((hour) => !hour.hasData)).toBe(true)
+    expect(day?.hours[0]).toMatchObject({ importKwh: 0, solarKwh: null })
+    expect(day?.totals.cost).toBeNull()
   })
 
   test('from typed readings is an estimate without hours', async () => {

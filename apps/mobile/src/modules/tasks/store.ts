@@ -771,10 +771,22 @@ export function settledDetails(
   }
 }
 
+/** A name on In stock; `created` is false for one the Group already had. */
+export interface AddedStaple {
+  id: Id<'groceryStaples'>
+  created: boolean
+}
+
+/** A grocery item's whole amount; null is a part it does not have. */
+export interface WholeAmount {
+  quantity: number | null
+  unit: GroceryUnit | null
+}
+
 /** What an item's own writes after its add came to. */
 export interface GroceryDetails {
-  /** The staple it is now; its add answers one the Group already had too. */
-  stapleId?: Id<'groceryStaples'>
+  /** The staple it is now, and whether this add made it. */
+  staple?: AddedStaple
   /** Writes again only what failed; none when all went in. */
   retry?: () => Promise<GroceryDetails>
 }
@@ -787,7 +799,8 @@ export function useTaskActions() {
     toggleInPlace,
   )
   const update = useMutation(api.tasks.update)
-  const addStaple = useMutation(api.groceryStaples.add)
+  const addAmount = useMutation(api.tasks.addAmount)
+  const addStapleRow = useMutation(api.groceryStaples.add)
   const removeStaple = useMutation(api.groceryStaples.remove)
   const remove = useMutation(api.tasks.remove)
   const moveToList = useMutation(api.tasks.moveToList)
@@ -877,6 +890,13 @@ export function useTaskActions() {
     return { taskId, ...(await composedDetails(taskId, task)) }
   }
 
+  const addStaple = async (name: string): Promise<AddedStaple> => {
+    const answer = await addStapleRow({ groupSlug, name, report: true })
+    // Always the report when asked for one; an id alone says nothing of who
+    // made it, so it is not ours.
+    return typeof answer === 'string' ? { id: answer, created: false } : answer
+  }
+
   const groceryDetails = async (
     taskId: string,
     item: Pick<ComposedGrocery, 'title' | 'aisle' | 'note' | 'staple'>,
@@ -884,7 +904,7 @@ export function useTaskActions() {
     const [aisle, note, staple] = await Promise.allSettled([
       item.aisle ? patch(taskId, { category: item.aisle }) : null,
       item.note ? patch(taskId, { notes: item.note }) : null,
-      item.staple ? addStaple({ groupSlug, name: item.title }) : null,
+      item.staple ? addStaple(item.title) : null,
     ])
     const failed = {
       title: item.title,
@@ -893,7 +913,7 @@ export function useTaskActions() {
       staple: staple.status === 'rejected',
     }
     return {
-      stapleId: staple.status === 'fulfilled' ? (staple.value ?? undefined) : undefined,
+      staple: staple.status === 'fulfilled' ? (staple.value ?? undefined) : undefined,
       retry:
         failed.aisle || failed.note || failed.staple
           ? () => groceryDetails(taskId, failed)
@@ -1072,12 +1092,20 @@ export function useTaskActions() {
     setUrl: (id: string, url: string | null) => patch(id, { url }),
     setPrice: (id: string, priceCents: number | null) =>
       patch(id, { priceCents }),
-    /** A grocery item's amount and unit; null clears either (APP-309). */
-    setAmount: (
-      id: string,
-      quantity: number | null,
-      unit: GroceryUnit | null,
-    ) => patch(id, { quantity, unit }),
+    /**
+     * A grocery item's amount and unit; null clears either (APP-309). Refused
+     * as `amount-changed` when it is no longer `expected` (APP-671).
+     */
+    setAmount: (id: string, to: WholeAmount, expected: WholeAmount) =>
+      patch(id, { ...to, expectedAmount: expected }),
+    /** More of an item, on top of what it has then (APP-671). */
+    addAmount: (id: string, more: { quantity?: number; unit?: GroceryUnit }) =>
+      addAmount({
+        taskId: id as Id<'tasks'>,
+        groupSlug,
+        ...(more.quantity !== undefined ? { quantity: more.quantity } : {}),
+        ...(more.unit !== undefined ? { unit: more.unit } : {}),
+      }),
     /** A reminder for the caller at this wall clock, or none (APP-305). */
     setReminder: (id: string, clock: ReminderClock | null) =>
       setReminder({ taskId: id as Id<'tasks'>, groupSlug, reminder: clock }),
@@ -1172,8 +1200,13 @@ export function useTaskActions() {
       return { taskId, ...(await groceryDetails(taskId, item)) }
     },
     /** A name onto In stock, or the staple it already is (APP-314). */
-    addStaple: (name: string) => addStaple({ groupSlug, name }),
-    removeStaple: (id: Id<'groceryStaples'>) => removeStaple({ groupSlug, id }),
+    addStaple,
+    /**
+     * The undo of `addStaple`: one marked running low, or added by another
+     * Member, since stays.
+     */
+    undoStaple: (id: Id<'groceryStaples'>) =>
+      removeStaple({ groupSlug, id, unlessLow: true }),
     /** A grocery list's "Maybe needed" strip on or off (APP-311). */
     setSuggestions: (listId: string, on: boolean) =>
       setSuggestions({ listId: listId as Id<'taskLists'>, groupSlug, on }),
