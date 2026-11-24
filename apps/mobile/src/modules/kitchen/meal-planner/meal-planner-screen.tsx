@@ -81,7 +81,7 @@ import {
   weekRange,
 } from './week'
 import { WeekGroceriesSheet } from './week-groceries-sheet'
-import { type Draft, draftIn } from './week-plan'
+import { type Draft, draftIn, storedWishes } from './week-plan'
 
 /** Eetvoorkeuren, from the bar menu and the button beside Boodschappen. */
 const PREFERENCES_PATH: ModulePath = '/all/meal-planner/settings'
@@ -638,6 +638,7 @@ export function MealPlannerScreen() {
           key={weekStart}
           weekStart={weekStart}
           data={data}
+          stored={storedWishes(drafts)}
           onClose={() => setSheet(null)}
           onPlanned={onPlanned}
           onChooseYourself={(date, slot) => setSheet({ kind: 'pick', date, slot })}

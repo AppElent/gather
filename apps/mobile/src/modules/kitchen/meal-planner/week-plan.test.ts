@@ -5,6 +5,7 @@ import { en } from '../../../i18n/messages/en'
 import { nl } from '../../../i18n/messages/nl'
 import type { PlannedMeal, WeekData } from './week'
 import {
+  type Draft,
   defaultPlanSlots,
   draftReason,
   emptyTargets,
@@ -12,6 +13,7 @@ import {
   planSlotChoices,
   planUses,
   slotChipLabel,
+  storedWishes,
   swapReason,
 } from './week-plan'
 
@@ -144,5 +146,19 @@ describe('swapReason', () => {
       'volgens jullie regels',
     )
     expect(swapReason({ source: 'rules' }, en.mealPlanner, 'en')).toBe('following your rules')
+  })
+})
+
+describe('storedWishes', () => {
+  const draft = (extra: object) => ({ _id: 'd', date: '2026-11-24', slot: 'dinner', ...extra }) as Draft
+  test('is what the open proposal was planned with', () => {
+    expect(
+      storedWishes([draft({}), draft({ wishes: ['moreVeg'], wish: 'iets met pompoen' })]),
+    ).toEqual({ wishes: ['moreVeg'], wish: 'iets met pompoen' })
+    expect(storedWishes([draft({ wish: 'prei' })])).toEqual({ wishes: [], wish: 'prei' })
+  })
+  test('is nothing for no proposal or one planned without wishes', () => {
+    expect(storedWishes([])).toBeUndefined()
+    expect(storedWishes([draft({}), draft({ wishes: [] })])).toBeUndefined()
   })
 })

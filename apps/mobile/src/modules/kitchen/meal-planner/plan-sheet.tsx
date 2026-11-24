@@ -59,6 +59,7 @@ const USE_ICONS: Record<PlanUse['kind'], (typeof UI_ICONS)[keyof typeof UI_ICONS
 export function PlanSheet({
   weekStart,
   data,
+  stored,
   onClose,
   onPlanned,
   onChooseYourself,
@@ -66,6 +67,8 @@ export function PlanSheet({
 }: {
   weekStart: string
   data: WeekData
+  /** What the week's open proposal was planned with; the sheet opens on it (APP-778). */
+  stored?: { wishes: WeekPlanWish[]; wish: string }
   onClose: () => void
   /** After a plan came back; the sheet has closed itself. */
   onPlanned: (outcome: PlanOutcome) => void
@@ -99,8 +102,8 @@ export function PlanSheet({
   const [flipped, setFlipped] = useState<ReadonlySet<string>>(
     () => new Set(kept?.flipped ?? []),
   )
-  const [wish, setWish] = useState(kept?.wish ?? '')
-  const [wishes, setWishes] = useState<WeekPlanWish[]>(kept?.wishes ?? [])
+  const [wish, setWish] = useState(kept?.wish ?? stored?.wish ?? '')
+  const [wishes, setWishes] = useState<WeekPlanWish[]>(kept?.wishes ?? stored?.wishes ?? [])
   const [busy, setBusy] = useState(false)
   draft.track(
     { slots, flipped: [...flipped].sort(), wish, wishes },

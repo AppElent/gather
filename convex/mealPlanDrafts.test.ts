@@ -1,3 +1,4 @@
+import { WISH_MAX } from '@gather/core/week-plan'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import {
   alice,
@@ -639,6 +640,59 @@ describe('APP-460 follow-ups', () => {
         wishes: ['somethingNew'],
         wish: undefined,
       })
+    })
+
+    test('list returns them on every draft', async () => {
+      const { as } = await asked()
+      const drafts = await as.query(api.mealPlanDrafts.list, WEEK)
+      expect(drafts).toHaveLength(4)
+      for (const draft of drafts) expect(draft).toMatchObject({ wishes: ['moreVeg'], wish: 'iets met pompoen' })
+    })
+
+    test('a plan that places nothing keeps the old wishes', async () => {
+      const { t, as, drafts } = await asked()
+      // Nothing to plan, then nothing that fits: the old rows and their wishes stay.
+      expect(
+        await as.action(api.mealPlanDrafts.propose, { ...PLAN, dates: ['2026-11-23'], wishes: ['somethingNew'] }),
+      ).toEqual({ status: 'empty' })
+      await t.run(async (ctx) => {
+        for (const table of ['recipes', 'mealEntries'] as const)
+          for (const row of await ctx.db.query(table).collect()) await ctx.db.delete(row._id)
+      })
+      await as.action(api.mealPlanDrafts.propose, { ...PLAN, wishes: ['somethingNew'], wish: 'iets anders' })
+      const result = await as.action(api.mealPlanDrafts.regenerate, {
+        groupSlug: 'home',
+        id: drafts[0]._id,
+        locale: 'nl',
+        wishes: ['somethingNew'],
+      })
+      expect(result).toEqual({ status: 'none' })
+      const rows = await stored(t)
+      expect(rows).toHaveLength(4)
+      for (const row of rows) expect(row).toMatchObject({ wishes: ['moreVeg'], wish: 'iets met pompoen' })
+    })
+
+    test('the rules fallback keeps the wishes too', async () => {
+      const { t, as } = await seed()
+      vi.stubEnv('ANTHROPIC_API_KEY', '')
+      await as.action(api.mealPlanDrafts.propose, { ...PLAN, ...ASKED })
+      const rows = await t.run((ctx) => ctx.db.query('mealPlanDrafts').collect())
+      expect(rows.length).toBeGreaterThan(0)
+      for (const row of rows) {
+        expect(row.source).toBe('fallback')
+        expect(row).toMatchObject({ wishes: ['moreVeg'], wish: 'iets met pompoen' })
+      }
+      const [draft] = await as.query(api.mealPlanDrafts.list, WEEK)
+      await as.action(api.mealPlanDrafts.regenerate, { groupSlug: 'home', id: draft._id, locale: 'nl' })
+      for (const row of await stored(t)) expect(row).toMatchObject({ wishes: ['moreVeg'], wish: 'iets met pompoen' })
+    })
+
+    test('a free-text wish over WISH_MAX is cut', async () => {
+      const { t, as } = await asked()
+      await as.action(api.mealPlanDrafts.propose, { ...PLAN, wish: `${'x'.repeat(WISH_MAX + 50)}` })
+      const rows = await stored(t)
+      expect(rows.length).toBeGreaterThan(0)
+      for (const row of rows) expect(row.wish).toBe('x'.repeat(WISH_MAX))
     })
 
     test('a new plan replaces the stored wishes', async () => {

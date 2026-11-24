@@ -205,6 +205,9 @@ export const list = query({
             imageUrl: recipe?.imageId ? await ctx.storage.getUrl(recipe.imageId) : null,
             reason: draft.reason,
             source: draft.source,
+            // What the start sheet asked for (APP-679); it opens on them again (APP-778).
+            wishes: draft.wishes,
+            wish: draft.wish,
             expiresAt: draft.expiresAt,
             check,
           }
