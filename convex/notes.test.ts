@@ -396,6 +396,120 @@ describe('notes search over title and body together (APP-701)', () => {
   })
 })
 
+describe('notes whose title has the words come first (APP-806)', () => {
+  type Row = { title: string; body: string; updatedAt: number }
+
+  /** Rows go in as given, so the index reads them in that order. */
+  async function crowded(rows: Row[]) {
+    const { t } = await seed()
+    await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', 'notes-first'))
+        .unique()
+      const user = await ctx.db.query('users').first()
+      for (const { title, body, updatedAt } of rows)
+        await ctx.db.insert('notes', {
+          groupId: group!._id,
+          title,
+          body,
+          searchText: noteSearchText({ title, body }),
+          createdBy: user!._id,
+          updatedAt,
+        })
+    })
+    const asked = t.withIdentity(alice)
+    return {
+      notes: async (query: string) =>
+        (
+          await asked.query(api.notes.searchNotes, {
+            groupSlug: 'notes-first',
+            query,
+          })
+        ).map((note) => note.title),
+      search: async (query: string) =>
+        (
+          await asked.query(api.search.group, {
+            groupSlug: 'notes-first',
+            query,
+            accepts: ['note'],
+          })
+        ).map((result) => result.title),
+    }
+  }
+
+  const bodyHits = (count: number, body = 'the boiler is in the shed') =>
+    Array.from({ length: count }, (_, index) => ({
+      title: `Shed ${index}`,
+      body,
+      updatedAt: 1000 + index,
+    }))
+
+  test('lists title hits first, then the rest, each in index order', async () => {
+    const { notes } = await crowded([
+      { title: 'Shed', body: 'boiler here', updatedAt: 3 },
+      { title: 'Boiler manual', body: '', updatedAt: 2 },
+      { title: 'Garage', body: 'boiler there', updatedAt: 4 },
+      { title: 'Boilers', body: '', updatedAt: 1 },
+      { title: 'Cellar', body: 'old boiler', updatedAt: 5 },
+    ])
+    expect(await notes('boiler')).toEqual([
+      'Boiler manual',
+      'Boilers',
+      'Shed',
+      'Garage',
+      'Cellar',
+    ])
+    // Every word, in the title: a word in the body only does not count.
+    expect(await notes('boiler manual')).toEqual(['Boiler manual'])
+  })
+
+  test('finds an old note titled Boiler behind 100+ notes that only mention it', async () => {
+    const { notes, search } = await crowded([
+      ...bodyHits(150),
+      // Oldest, the last the index reads, and a long body.
+      { title: 'Boiler', body: `${'servicing '.repeat(500)}boiler`, updatedAt: 1 },
+    ])
+    const found = await notes('boiler')
+    expect(found[0]).toBe('Boiler')
+    expect(found).toHaveLength(100)
+    expect((await search('boiler'))[0]).toBe('Boiler')
+  })
+
+  test('reads on past 100 notes with every word, then caps the answer at 100', async () => {
+    const { notes } = await crowded([
+      ...bodyHits(250),
+      { title: 'Boiler', body: '', updatedAt: 1 },
+    ])
+    const found = await notes('boiler')
+    expect(found).toHaveLength(100)
+    expect(found[0]).toBe('Boiler')
+    expect(new Set(found).size).toBe(100)
+  })
+
+  test('stops reading at the character budget: a title hit past it is not found', async () => {
+    // 110 notes of about 10 000 characters pass 1 000 000 at the 100th, so
+    // the index's 111th, the oldest, is never read. It is also outside the
+    // newest 100 notes, which are read apart.
+    const body = `boiler ${'x'.repeat(10_000)}`
+    const { notes } = await crowded([
+      ...bodyHits(110, body),
+      { title: 'Boiler', body: '', updatedAt: 1 },
+    ])
+    const found = await notes('boiler')
+    expect(found).toHaveLength(100)
+    expect(found).not.toContain('Boiler')
+  })
+
+  test('short notes of the same count stay within the character budget, so the title hit is found', async () => {
+    const { notes } = await crowded([
+      ...bodyHits(110, 'boiler x'),
+      { title: 'Boiler', body: '', updatedAt: 1 },
+    ])
+    expect((await notes('boiler'))[0]).toBe('Boiler')
+  })
+})
+
 describe('the paged notes list', () => {
   type Harness = Awaited<ReturnType<typeof seed>>['t']
   /** Notes 1..count, changed in that order; every one named in `pinned` is. */

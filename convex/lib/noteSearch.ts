@@ -3,12 +3,13 @@ import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { indexSearch, normalized } from './searchText'
 
-/** A search stops at this many index matches, the most it answered before. */
+/** A search answers at most this many notes, the most it answered before. */
 const MAX_MATCHES = 100
 /**
- * How far one search looks for them in `search_text`: Convex refuses to read
- * past 1024 search results, and `MAX_CANDIDATE_CHARS` of text (1-3 bytes each,
- * stored twice) keeps long notes well inside a query's 16 MiB.
+ * How far one search reads in `search_text`, whatever it finds on the way:
+ * Convex refuses to read past 1024 search results, and `MAX_CANDIDATE_CHARS`
+ * of text (1-3 bytes each, stored twice) keeps long notes well inside a
+ * query's 16 MiB.
  */
 const MAX_CANDIDATES = 1000
 const MAX_CANDIDATE_CHARS = 1_000_000
@@ -48,19 +49,19 @@ export function patchNote(
 }
 
 /**
- * `search_text`'s notes for a search, best first, until `MAX_MATCHES` of them
- * have every word. The index ranks notes with *any* word and does not promise
- * that one with all of them comes first, so the rest are read past, not cut
- * off at a page.
+ * `search_text`'s notes for a search, best first, until the candidate or
+ * character budget is spent. The index ranks notes with *any* word and does not
+ * promise that one with all of them, or one with them in its title, comes
+ * first, so it is read on past the first matches, not cut off at a page or at
+ * `MAX_MATCHES` of them (APP-806).
  */
 async function textCandidates(
   ctx: QueryCtx,
   groupId: Id<'groups'>,
-  { search, matches }: ReturnType<typeof indexSearch>,
+  { search }: ReturnType<typeof indexSearch>,
 ): Promise<Doc<'notes'>[]> {
   const candidates: Doc<'notes'>[] = []
   if (search === '') return candidates
-  let found = 0
   let chars = 0
   for await (const note of ctx.db
     .query('notes')
@@ -68,14 +69,8 @@ async function textCandidates(
       q.search('searchText', search).eq('groupId', groupId),
     )) {
     candidates.push(note)
-    const text = noteSearchText(note)
-    if (matches(text)) found += 1
-    chars += text.length
-    if (
-      found >= MAX_MATCHES ||
-      candidates.length >= MAX_CANDIDATES ||
-      chars >= MAX_CANDIDATE_CHARS
-    )
+    chars += noteSearchText(note).length
+    if (candidates.length >= MAX_CANDIDATES || chars >= MAX_CANDIDATE_CHARS)
       break
   }
   return candidates
@@ -110,7 +105,9 @@ async function unfilledCandidates(
 
 /**
  * The notes of one Group that contain every word of `text`, in the title, the
- * body, or across the two. The caller has already authorised the Group.
+ * body, or across the two, at most `MAX_MATCHES` of them. The caller has
+ * already authorised the Group. Notes whose title has every word come first,
+ * then the rest, each in the order found (APP-806).
  *
  * Two passes, merged, the first first:
  *
@@ -155,7 +152,15 @@ export async function findNotes(
     if (needles.every((needle) => haystack.includes(needle)))
       found.set(note._id, note)
   }
-  return [...found.values()]
+  const all = [...found.values()]
+  const inTitle = (note: NoteText) => {
+    const title = normalized(note.title)
+    return needles.every((needle) => title.includes(needle))
+  }
+  return [
+    ...all.filter(inTitle),
+    ...all.filter((note) => !inTitle(note)),
+  ].slice(0, MAX_MATCHES)
 }
 
 /** The first line with anything on it: what a result row shows under the title. */
