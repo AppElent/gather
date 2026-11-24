@@ -427,6 +427,57 @@ describe('what a review found (APP-308)', () => {
     again.unmount()
   })
 
+  const titleField = () =>
+    within(panel()).getByRole('textbox', {
+      name: 'Task title',
+    }) as HTMLTextAreaElement
+  const lose = async (text: string) => {
+    state.fail.add('tasks:update')
+    const { unmount } = renderInGroup(page)
+    fireEvent.change(titleField(), { target: { value: text } })
+    unmount()
+    await waitFor(() => expect(calls('tasks:update')).toHaveLength(1))
+    await new Promise((done) => setTimeout(done))
+    state.fail.clear()
+  }
+  const page = <TaskListPage listId="l1" selectedTaskId="t1" />
+
+  test('a save that fails after its page has gone is said on the next one', async () => {
+    await lose('ONE')
+    renderInGroup(<SmartListPage smartList="today" />)
+    expect(screen.getByRole('alert').textContent).toBe('nope')
+  })
+
+  test('a kept draft is not sent by opening and leaving the task', async () => {
+    await lose('TWO')
+    const { unmount } = renderInGroup(page)
+    expect(titleField().value).toBe('TWO')
+    unmount()
+    expect(calls('tasks:update')).toHaveLength(1)
+    // Nor is it put over something newer.
+    state.queries['tasks:listByList'] = [{ ...WINDOWS, title: 'SAMS' }]
+    const again = renderInGroup(page)
+    expect(titleField().value).toBe('SAMS')
+    again.unmount()
+    expect(calls('tasks:update')).toHaveLength(1)
+  })
+
+  test('a newer save forgets the kept draft', async () => {
+    await lose('THREE')
+    const { unmount } = renderInGroup(page)
+    fireEvent.change(titleField(), { target: { value: 'NEWER' } })
+    fireEvent.blur(titleField())
+    await waitFor(() => expect(calls('tasks:update')).toHaveLength(2))
+    await new Promise((done) => setTimeout(done))
+    unmount()
+    renderInGroup(page)
+    expect(titleField().value).toBe('Wash windows')
+    expect(calls('tasks:update').map((sent) => sent.title)).toEqual([
+      'THREE',
+      'NEWER',
+    ])
+  })
+
   test('duplicating from a smart list brings every subtask', async () => {
     smart(task('t1', 'Wash windows', { dueDate: TODAY }))
     renderInGroup(<SmartListPage smartList="today" />)

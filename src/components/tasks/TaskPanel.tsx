@@ -280,10 +280,9 @@ function SaveFailed() {
 /** Keeps itself, and Enter is done: a title has one line of meaning. */
 function TitleField({ task, editable }: { task: Task; editable: boolean }) {
   const words = useI18n().messages.tasks.web.panel
-  const { actions, fail } = useWorkspace()
+  const { actions } = useWorkspace()
   const field = useAutosave({
     id: `${task.id}:title`,
-    onLost: fail,
     stored: task.title,
     save: (title) => actions.rename(task, title),
     required: true,
@@ -469,11 +468,10 @@ function WishlistFields({
 }) {
   const { locale, messages: t } = useI18n()
   const words = t.tasks.wishlist
-  const { actions, fail } = useWorkspace()
+  const { actions } = useWorkspace()
   const [badLink, setBadLink] = useState(false)
   const link = useAutosave({
     id: `${task.id}:link`,
-    onLost: fail,
     stored: task.url ?? '',
     save: (typed) => {
       const url = typed.trim() ? normalizeTaskUrl(typed) : null
@@ -487,7 +485,6 @@ function WishlistFields({
   const stored = priceText(task.priceCents, locale)
   const price = useAutosave({
     id: `${task.id}:price`,
-    onLost: fail,
     stored,
     save: (typed) => {
       const text = typed.replace(/[€\s]/g, '')
@@ -696,10 +693,9 @@ function Subtasks({
 
 function NoteField({ task, editable }: { task: Task; editable: boolean }) {
   const words = useI18n().messages.tasks.web.panel
-  const { actions, fail } = useWorkspace()
+  const { actions } = useWorkspace()
   const field = useAutosave({
     id: `${task.id}:notes`,
-    onLost: fail,
     stored: task.notes ?? '',
     save: (notes) => actions.setNotes(task.id, notes),
     delay: 800,

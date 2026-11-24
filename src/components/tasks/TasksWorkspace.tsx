@@ -9,7 +9,7 @@ import { externalSnapshot } from '@gather/core/linked-lists'
 import { possibleParents } from '@gather/core/linked-tasks'
 import { asksAboutSubtasks } from '@gather/core/subtasks'
 import type { Task, TaskList } from '@gather/core/task-model'
-import { createContext, type ReactNode, useContext, useEffect, useState } from 'react'
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from 'react'
 import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useI18n } from '../../lib/i18n'
 import { buttonClass } from '../app/buttons'
@@ -18,6 +18,7 @@ import { Dialog } from '../app/Dialog'
 import type { RowMenuAction } from '../app/RowMenu'
 import { ChoiceList } from './ChoiceList'
 import { useTaskLists } from './data'
+import { hearLostSaves } from './lostSaves'
 import { type TaskActions, useTaskActions } from './useTaskActions'
 import { dayWords, deleteBody, failureWords, providerName } from './words'
 
@@ -89,6 +90,10 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
         failureWords(error, lists, t) ??
         errorText(error, fallback, t.tasks.assignee.refusals),
     })
+
+  const failRef = useRef(fail)
+  failRef.current = fail
+  useEffect(() => hearLostSaves((error) => failRef.current(error)), [])
 
   const run = (task: Task, withSubtasks: boolean) => {
     actions.toggleTask(task, { withSubtasks }).then((done) => {
