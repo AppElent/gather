@@ -112,7 +112,13 @@ function ZoneRow({
 }
 
 const styles = StyleSheet.create({
-  list: { flex: 1, marginTop: SPACE[3] },
+  // Each row brings its own margin and the list runs to the sheet's bottom edge.
+  list: {
+    flex: 1,
+    marginTop: SPACE[3],
+    marginHorizontal: -SPACE[4],
+    marginBottom: -20,
+  },
   content: { paddingBottom: SPACE[6] },
   row: { paddingLeft: SPACE[4] },
   rowContent: {
