@@ -91,6 +91,7 @@ vi.mock('../../../convex/api', () => ({
 }))
 vi.mock('../../../auth/useSignOut', () => ({
   useForgetAccount: () => () => {},
+  useEndSession: () => () => setSignedIn(false),
   useSignOut: () => () => setSignedIn(false),
 }))
 vi.mock('../../../auth/ConvexSessionGate', () => ({
