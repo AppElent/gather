@@ -150,7 +150,7 @@ export function NotesPage({
               event.preventDefault()
               clearSearch()
             }}
-            className={`${inputClass} min-w-0 flex-1`}
+            className={`${inputClass} min-w-0 flex-1 [&::-webkit-search-cancel-button]:hidden`}
           />
           {typed ? (
             <button
