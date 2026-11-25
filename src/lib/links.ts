@@ -95,6 +95,7 @@ export const ROUTES = {
   energySources: '/energy/sources',
   energyConnect: '/energy/connect',
   energyPrices: '/energy/prices',
+  energySolar: '/energy/solar',
   energyPriceFeed: '/energy/price-source',
 
   cheese: '/cheeses/$subjectId',

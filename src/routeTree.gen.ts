@@ -45,6 +45,7 @@ import { Route as AppEnergyCostsRouteImport } from './routes/_app/energy/costs'
 import { Route as AppEnergyPriceSourceRouteImport } from './routes/_app/energy/price-source'
 import { Route as AppEnergyPricesRouteImport } from './routes/_app/energy/prices'
 import { Route as AppEnergyReadingsRouteImport } from './routes/_app/energy/readings'
+import { Route as AppEnergySolarRouteImport } from './routes/_app/energy/solar'
 import { Route as AppEnergySourcesRouteImport } from './routes/_app/energy/sources'
 import { Route as AppEnergyUsageRouteImport } from './routes/_app/energy/usage'
 import { Route as AppGroceriesIndexRouteImport } from './routes/_app/groceries/index'
@@ -261,6 +262,11 @@ const AppEnergyPricesRoute = AppEnergyPricesRouteImport.update({
 const AppEnergyReadingsRoute = AppEnergyReadingsRouteImport.update({
   id: '/energy/readings',
   path: '/energy/readings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEnergySolarRoute = AppEnergySolarRouteImport.update({
+  id: '/energy/solar',
+  path: '/energy/solar',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEnergySourcesRoute = AppEnergySourcesRouteImport.update({
@@ -490,6 +496,7 @@ export interface FileRoutesByFullPath {
   '/energy/price-source': typeof AppEnergyPriceSourceRoute
   '/energy/prices': typeof AppEnergyPricesRoute
   '/energy/readings': typeof AppEnergyReadingsRoute
+  '/energy/solar': typeof AppEnergySolarRoute
   '/energy/sources': typeof AppEnergySourcesRoute
   '/energy/usage': typeof AppEnergyUsageRoute
   '/groceries/in-stock': typeof AppGroceriesInStockRoute
@@ -563,6 +570,7 @@ export interface FileRoutesByTo {
   '/energy/price-source': typeof AppEnergyPriceSourceRoute
   '/energy/prices': typeof AppEnergyPricesRoute
   '/energy/readings': typeof AppEnergyReadingsRoute
+  '/energy/solar': typeof AppEnergySolarRoute
   '/energy/sources': typeof AppEnergySourcesRoute
   '/energy/usage': typeof AppEnergyUsageRoute
   '/groceries/in-stock': typeof AppGroceriesInStockRoute
@@ -640,6 +648,7 @@ export interface FileRoutesById {
   '/_app/energy/price-source': typeof AppEnergyPriceSourceRoute
   '/_app/energy/prices': typeof AppEnergyPricesRoute
   '/_app/energy/readings': typeof AppEnergyReadingsRoute
+  '/_app/energy/solar': typeof AppEnergySolarRoute
   '/_app/energy/sources': typeof AppEnergySourcesRoute
   '/_app/energy/usage': typeof AppEnergyUsageRoute
   '/_app/groceries/in-stock': typeof AppGroceriesInStockRoute
@@ -717,6 +726,7 @@ export interface FileRouteTypes {
     | '/energy/price-source'
     | '/energy/prices'
     | '/energy/readings'
+    | '/energy/solar'
     | '/energy/sources'
     | '/energy/usage'
     | '/groceries/in-stock'
@@ -790,6 +800,7 @@ export interface FileRouteTypes {
     | '/energy/price-source'
     | '/energy/prices'
     | '/energy/readings'
+    | '/energy/solar'
     | '/energy/sources'
     | '/energy/usage'
     | '/groceries/in-stock'
@@ -866,6 +877,7 @@ export interface FileRouteTypes {
     | '/_app/energy/price-source'
     | '/_app/energy/prices'
     | '/_app/energy/readings'
+    | '/_app/energy/solar'
     | '/_app/energy/sources'
     | '/_app/energy/usage'
     | '/_app/groceries/in-stock'
@@ -1175,6 +1187,13 @@ declare module '@tanstack/react-router' {
       path: '/energy/readings'
       fullPath: '/energy/readings'
       preLoaderRoute: typeof AppEnergyReadingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/energy/solar': {
+      id: '/_app/energy/solar'
+      path: '/energy/solar'
+      fullPath: '/energy/solar'
+      preLoaderRoute: typeof AppEnergySolarRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/energy/sources': {
@@ -1507,6 +1526,7 @@ interface AppRouteChildren {
   AppEnergyPriceSourceRoute: typeof AppEnergyPriceSourceRoute
   AppEnergyPricesRoute: typeof AppEnergyPricesRoute
   AppEnergyReadingsRoute: typeof AppEnergyReadingsRoute
+  AppEnergySolarRoute: typeof AppEnergySolarRoute
   AppEnergySourcesRoute: typeof AppEnergySourcesRoute
   AppEnergyUsageRoute: typeof AppEnergyUsageRoute
   AppGroceriesInStockRoute: typeof AppGroceriesInStockRoute
@@ -1566,6 +1586,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEnergyPriceSourceRoute: AppEnergyPriceSourceRoute,
   AppEnergyPricesRoute: AppEnergyPricesRoute,
   AppEnergyReadingsRoute: AppEnergyReadingsRoute,
+  AppEnergySolarRoute: AppEnergySolarRoute,
   AppEnergySourcesRoute: AppEnergySourcesRoute,
   AppEnergyUsageRoute: AppEnergyUsageRoute,
   AppGroceriesInStockRoute: AppGroceriesInStockRoute,
