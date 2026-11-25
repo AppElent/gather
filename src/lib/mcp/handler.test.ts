@@ -589,6 +589,20 @@ describe('Gather MCP endpoint', () => {
     expect(texts.size).toBe(1)
   })
 
+  it('says a note is too long, and how long one may be', async () => {
+    const out = await callTool(
+      fakeBackend({
+        'notes:update': () => {
+          throw new ConvexError({ kind: 'notes:too-long' })
+        },
+      }),
+      'update_note',
+      { groupId: 'group_home', noteId: 'note_1', title: 'New' },
+    )
+    expect(out.isError).toBe(true)
+    expect(out.content[0].text).toContain('100,000')
+  })
+
   it('updates an event from its current revision, keeping what was not passed', async () => {
     const backend = fakeBackend({
       'calendar:getCalendarEvent': () => ({

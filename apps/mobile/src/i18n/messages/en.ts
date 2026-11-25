@@ -577,6 +577,9 @@ export const en = {
     /** The row and the screen that writes the person's data to a file. */
     dataExport: coreEn.settings.dataExport,
 
+    /** The row that opens the AppElent account portal in the in-app browser. */
+    portal: coreEn.settings.accountPortal,
+
     /** Changing the name Clerk holds. Both halves, because Clerk stores both. */
     editName: {
       title: 'Name',
@@ -675,244 +678,7 @@ export const en = {
    * A day has one meal per enabled slot; a plural is `{ one, other }` with
    * `{count}`.
    */
-  mealPlanner: {
-    slots: { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' },
-    choose: {
-      breakfast: 'Choose breakfast',
-      lunch: 'Choose lunch',
-      dinner: 'Choose dinner',
-    },
-    summary: {
-      one: '{count} of 7 dinners planned',
-      other: '{count} of 7 dinners planned',
-    },
-    people: { one: '{count} person', other: '{count} people' },
-    previousWeek: 'Previous week',
-    nextWeek: 'Next week',
-    weekLabel: 'Week of {range}',
-    more: 'More',
-    preferences: 'Meal preferences',
-    share: 'Share week menu',
-    groceries: 'Groceries',
-    busyLabel: 'Busy evening: {title} at {time}',
-    allEating: { one: '{count} eating', other: 'All {count} eating' },
-    eatingWithout: '{count} eating, without {names}',
-    noneEating: 'Nobody eating',
-    and: '{rest} and {last}',
-    minutes: '{minutes} min',
-    without: ', without {names}',
-    dragHint:
-      'Press and hold a meal to drag it to another day. If that day has a meal, they swap.',
-    dragLabel: 'Drag {title} to another day',
-    moved: '{title} moved to {day}.',
-    swapped: '{title} swapped with {other}.',
-    failed: 'That did not work. Please try again.',
-    removed: '{title} removed from the week menu.',
-    undo: 'Undo',
-    shareTitle: 'Week menu {range}',
-    shareEmpty: 'Nothing planned yet.',
-    weekGroceries: {
-      source: 'Week menu {range}',
-      range: '{from} to {to}',
-      meals: {
-        one: '{count} meal · servings per meal from the week menu',
-        other: '{count} meals · servings per meal from the week menu',
-      },
-      days: 'Days that count',
-      counts: 'counts',
-      notCounted: 'not',
-      empty: 'empty',
-      dayCounts: '{day}: {meals}, counts',
-      dayNotCounted: '{day}: {meals}, does not count',
-      dayEmpty: '{day}: nothing planned',
-      toCheck: 'No recipe, check these',
-      quickMeta: '{weekday} · quick meal, no ingredients known',
-      recipeMeta: '{weekday} · recipe without ingredients',
-      addSomething: 'Add something',
-      addSomethingLabel: 'Add something for {title}',
-      fromOne: '{title} · {day}',
-      fromTwo: '{first}, {second}',
-      fromMany: { one: '{count} recipe', other: '{count} recipes' },
-      footnote:
-        'Merged with what is already there. Do this again for this week and only what is new is added.',
-      nothingPlanned: 'Nothing in this week menu yet. Plan a meal first.',
-    },
-    meal: {
-      done: 'Done',
-      recipe: 'recipe',
-      quickMeal: 'quick meal',
-      whoEats: "Who's eating",
-      fromCalendar: 'From the calendar: {items}',
-      calendarItem: '{name}, {title} {time}',
-      servings: 'Servings',
-      servingsFollow: "Same as who's eating",
-      servingsAdjusted: 'Adjusted, eating: {count}',
-      fewer: 'Fewer servings',
-      moreServings: 'More servings',
-      moveTo: 'Move to',
-      hasMeal: '{day}, has a meal',
-      swaps: 'Swaps with {title} on {day}.',
-      moves: '{title} goes to {day}. {weekday} becomes empty.',
-      note: 'Note',
-      notePlaceholder: 'For example: make extra for lunch',
-      openRecipe: 'Open recipe',
-      somethingElse: 'Something else',
-      somethingElseSub: 'Three alternatives that fit {weekday}',
-      groceries: 'Groceries for this recipe',
-      remove: 'Remove from week menu',
-    },
-    pick: {
-      title: '{slot} {weekday}',
-      search: { one: 'Search {count} recipe', other: 'Search {count} recipes' },
-      matches: 'Matches preferences',
-      upTo: 'Up to {minutes} min',
-      hidden: {
-        one: '{count} recipe hidden by your preferences ({reasons}). Tap Matches preferences to see it.',
-        other:
-          '{count} recipes hidden by your preferences ({reasons}). Tap Matches preferences to see them.',
-      },
-      stars: '{rating} stars',
-      alreadyOn: 'Already on {day}',
-      noMatches: 'No recipe matches.',
-      quickMeals: 'Quick meal without recipe',
-      quickMealsFooter: 'A quick meal is a dinner without a recipe, like pizza or leftovers.',
-      newQuickMeal: 'New quick meal',
-      quickName: 'Name',
-      quickMinutes: 'Minutes (optional)',
-      save: 'Save',
-      edit: 'Edit',
-      delete: 'Delete',
-      deleteTitle: 'Delete “{title}”?',
-      deleteBody: 'Meals already planned keep their name.',
-    },
-    /** Plan mijn week (APP-319): the start sheet. */
-    plan: {
-      open: 'Plan my week',
-      title: 'Plan my week',
-      subhead: '{range}. Gather only fills what is still empty, with your own recipes.',
-      days: 'Which days',
-      dayPlanned: 'planned',
-      dayFill: 'fill',
-      daySkip: 'skip',
-      dayPlannedLabel: '{day}, already planned, stays as it is',
-      dayFillLabel: '{day}, will be filled',
-      daySkipLabel: '{day}, will be skipped',
-      slotDays: '{slot} ({days})',
-      wish: 'Wish for this week (optional)',
-      wishPlaceholder: 'For example: lots of vegetables, one new thing',
-      wishes: {
-        moreVeg: 'Lots of vegetables',
-        somethingNew: 'One new thing',
-        useLow: 'Something with {item}',
-      },
-      uses: 'Gather takes into account',
-      usesPreferences: 'Meal preferences',
-      usesPreferencesNone: 'Nothing set yet',
-      adjust: 'Adjust',
-      noAllergen: 'no {name}',
-      dislike: 'rather no {name}',
-      meatFree: { one: '{count} meat-free', other: '{count} meat-free' },
-      fishDay: '{days} fish',
-      maxMinutes: 'up to {minutes} min on weekdays',
-      usesCalendar: 'Calendar',
-      busyEvening: '{day} {title} {time}: something quick',
-      usesEaters: 'Who eats',
-      fewerEaters: '{day} without {names}: for {count}',
-      usesStock: 'In stock',
-      runningLow: '{name} running low',
-      cta: { one: 'Make a plan for {count} day', other: 'Make a plan for {count} days' },
-      ctaNothing: 'Choose a day to fill',
-      working: 'Making a plan…',
-      cost: 'Costs 1 smart action · {left} of {limit} left today',
-      offline: 'Offline, try again later',
-      empty: 'Everything on these days is already planned.',
-      nothingFits: 'No proposal fits these days. Nothing in your week menu changed.',
-      failed: 'That did not work. Nothing in your week menu changed.',
-      limitTitle: 'Your smart actions for today are used up',
-      limitBody: 'You used {used} of {limit} today. Tomorrow you can again. Nothing in your week menu changed.',
-      limitHint: 'Choosing yourself still works, with the same preferences as a filter.',
-      chooseYourself: 'Choose yourself',
-    },
-    /** The proposal in the week (APP-319, direction A). */
-    proposal: {
-      aiTitle: 'Plan from Gather',
-      aiBody: 'From your own recipes, following the preferences and the calendar. Accept day by day, or all at once.',
-      fallbackTitle: 'Simple plan',
-      fallbackBody: 'The smart planner could not be reached. This plan was made with your own rules, without AI. It cost no smart action.',
-      eyebrow: 'Proposal · {slot}',
-      byRules: 'following your rules',
-      accept: 'Accept',
-      acceptLabel: 'Accept {title} for {day}',
-      somethingElse: 'Something else',
-      somethingElseLabel: 'Choose something else for {day}',
-      regenerate: 'Another proposal for {day}',
-      regenerateNone: 'No other proposal fits {day}.',
-      pending: { one: '{count} proposal not saved yet', other: '{count} proposals not saved yet' },
-      acceptAll: { one: 'Accept {count}', other: 'Accept all {count}' },
-      discard: 'Discard',
-      discarded: 'Proposal discarded. Nothing changed.',
-      allSaved: 'Everything is in the week menu',
-      groceries: 'Groceries for this week',
-      done: 'Done',
-      justAccepted: 'just accepted',
-      taken: 'Something was planned there meanwhile; it stays.',
-      gone: 'That proposal has expired.',
-      skipped: { one: '{count} day was planned meanwhile and stays.', other: '{count} days were planned meanwhile and stay.' },
-    },
-    /** Something else and New idea (APP-320). */
-    swap: {
-      title: 'Something else for {weekday}',
-      now: 'Now: {title}',
-      busyUntil: 'busy until {time}',
-      wish: 'Wish',
-      wishPlaceholder: 'Any wish? For example: chicken, quick',
-      chips: { chickenQuick: 'Chicken, quick', meatFree: 'Meat-free', faster: 'Quicker' },
-      quickMeal: 'quick meal',
-      reasonStock: 'Uses your {names}',
-      reasonFits: 'Fits in {minutes} min',
-      choose: 'Choose',
-      chosen: 'Chosen',
-      chooseLabel: 'Choose {title} for {day}',
-      chosenToast: '{weekday}: {new} instead of {old}',
-      chosenToastEmpty: '{weekday}: {new}',
-      undo: 'Undo',
-      working: 'Finding alternatives…',
-      none: 'Nothing else from your recipes fits. Try another wish, or a new idea.',
-      fallbackBody: "The smart planner couldn't be reached. These come from your own rules, without AI. It cost no smart action.",
-      newIdea: 'Nothing fits? New idea',
-      newIdeaSub: 'Gather comes up with a recipe you can save',
-      cost: 'Each ask costs 1 smart action · {left} of {limit} left today',
-      failed: "That didn't work. Nothing in your week menu changed.",
-    },
-    idea: {
-      title: 'New idea',
-      back: 'Back',
-      eyebrow: 'Made up by Gather · draft',
-      working: 'Gather is coming up with a recipe…',
-      minutes: 'minutes',
-      people: 'people',
-      ingredients: 'ingredients',
-      ingredientsHeading: 'Ingredients',
-      steps: 'Method',
-      fewer: 'One person fewer',
-      more: 'One person more',
-      inStock: 'in stock',
-      footnote: 'Made by AI. Check for allergies yourself. This idea has no nutrition values; once saved, you can add or estimate them on the recipe.',
-      savePlan: 'Save and put on {weekday}',
-      saveOnly: 'Save only',
-      another: 'Another idea',
-      saveNote: 'Saved, it becomes an ordinary recipe in {group}, source AI. Another idea costs 1 smart action.',
-      saved: '{title} is in your recipes.',
-      savedPlanned: '{weekday}: {title}',
-      takenMeanwhile: '{title} is in your recipes. Something was planned on {weekday} meanwhile.',
-      unavailableTitle: "A new idea isn't possible right now",
-      unavailableBody: "The smart planner couldn't be reached. It cost no smart action. Try again in a while.",
-      noneTitle: 'No idea that fits your preferences',
-      noneBody: "Gather left out an idea that didn't fit your meal preferences. Try Another idea.",
-      failed: "Saving didn't work. Nothing changed.",
-      askFailed: "That didn't work. Try again.",
-    },
-  },
+  mealPlanner: coreEn.mealPlanner,
 
   /**
    * Social sign-in under the email form (`SocialButtons`). Apple on iOS draws
@@ -1311,37 +1077,17 @@ export const en = {
     smart: coreEn.tasks.smart,
     title: 'Tasks',
 
-    /** The Add tab's "Add a task": a title, a list, and a save. */
-    quickAdd: {
-      /** Above the lists it can go on. Only lists Gather can write to. */
-      list: 'On the list',
-      save: 'Add task',
-      noList: 'This group has no list Gather can add a task to yet.',
-      failed: 'That task could not be added. Try again.',
-      /** APP-307: under the field; dates and the rest are read as typed. */
-      hint: 'Dates, repeats, @Member and #label are recognised',
-      /** Adds the task and opens it, for what the line cannot say. */
-      moreDetails: 'More details',
-      /** A recognised part's ×, for VoiceOver: "Remove Tomorrow, Thu 19 Nov". */
-      remove: 'Remove {part}',
-      /** The list chip, for VoiceOver. */
-      listChip: 'List: {list}, change',
-      /** A typed time is the task's reminder; the task went in without it. */
-      reminderFailed: 'The task was added, but not its reminder.',
-    },
-    today: 'Today',
-    todayEmpty: 'Nothing due today.',
-    lists: 'Lists',
-    /** The count on the right of a list's row. */
-    open: '{count} open',
-    openOne: '1 open',
-    allDone: 'All done',
-    /** The badge on a list Gather did not create. */
-    linked: 'Linked',
+    quickAdd: coreEn.tasks.quickAdd,
+    today: coreEn.tasks.index.today,
+    todayEmpty: coreEn.tasks.index.todayEmpty,
+    lists: coreEn.tasks.index.lists,
+    open: coreEn.tasks.index.open,
+    openOne: coreEn.tasks.index.openOne,
+    allDone: coreEn.tasks.index.allDone,
+    linked: coreEn.tasks.index.linked,
     /** Which list a task on the Today strip came from. */
     inList: 'in {list}',
-    /** A linked list's count, when its provider did not answer. */
-    notLoaded: 'Not loaded',
+    notLoaded: coreEn.tasks.index.notLoaded,
 
     list: {
       addTask: 'Add a task…',
@@ -1394,96 +1140,15 @@ export const en = {
       deleteBody: 'This cannot be undone.',
     },
 
-    /** A list's sections (APP-357): the ⋯ menu's Sections sheet and the hold menu. */
-    sections: {
-      title: 'Sections',
-      /** The heading over tasks in no section, on a list that has sections. */
-      none: 'No section',
-      add: 'Add section',
-      newPlaceholder: 'New section',
-      empty: 'Nothing in this section yet.',
-      moveToSection: 'Move to section…',
-      rename: 'Rename',
-      moveUp: 'Move up',
-      moveDown: 'Move down',
-      delete: 'Delete section',
-      /** The ellipsis on a row of the Sections sheet. */
-      options: 'Options for {name}',
-      deleteTitle: 'Delete the section “{name}”?',
-      deleteBody: 'Its tasks stay on the list, under No section.',
-      hint: 'Move a task between sections with Reorder, or with Move to section in its hold menu.',
-      sheetEmpty: 'No sections yet. A section groups tasks, like Kitchen or Clothes.',
-    },
+    sections: coreEn.tasks.sections,
 
-    task: {
-      titlePlaceholder: 'What needs doing?',
-      due: 'Due date',
-      priority: 'Priority',
-      labels: 'Labels',
-      list: 'List',
-      notes: 'Notes',
-      notesPlaceholder: 'Anything worth writing down',
-      /** The value shown on a row nobody has set. */
-      unset: 'None',
-      /** Back is done — the screen says so once, rather than growing a button. */
-      autosaved: 'Changes are kept as you make them. Back is done.',
-      delete: 'Delete task',
-      /** The shortcuts above the month grid. */
-      today: 'Today',
-      tomorrow: 'Tomorrow',
-      weekend: 'This weekend',
-      clear: 'No date',
-      /** Keyed by the schema's 1–4, so a fifth priority is a type error. */
-      priorities: {
-        1: 'Urgent',
-        2: 'High',
-        3: 'Normal',
-        4: 'Low',
-      },
-      /** The label editor's field. */
-      addLabel: 'Add a label',
-      /**
-       * The label sheet's two groups. There is no label table behind them: a
-       * label exists because a task carries the word, so "used in this Group"
-       * is a query over the tasks and empties itself when the last one lets go.
-       */
-      labelsOnTask: 'On this task',
-      labelsInGroup: 'Used in this Group',
-      labelsNone: 'No labels yet.',
-      /** Read out on the cross inside a label that is on the task. */
-      removeLabel: 'Remove {label}',
-      /** The hold menu on a label nobody has put on this task yet. */
-      renameLabelEverywhere: 'Rename everywhere',
-      removeLabelEverywhere: 'Remove from every task',
-      /** The field, while it is renaming a label rather than adding one. */
-      renamingLabel: 'Rename {label} to',
-      /** Announced on the calendar's month arrows. */
-      previousMonth: 'Previous month',
-      nextMonth: 'Next month',
-      overdue: 'Overdue',
-      /**
-       * The Reminder row and its sheet (APP-305). A due date alone sets no
-       * reminder; one is chosen, and it goes to the person who chose it.
-       */
-      reminder: 'Reminder',
-      /** The row's value: `{day}` is Today, Tomorrow, a weekday or a date. */
-      reminderAt: '{day} {time}',
-      reminderSheet: {
-        dueDay: 'On the day at 9:00',
-        eveningBefore: 'The evening before at 19:00',
-        remove: 'No reminder',
-        footnote: 'The reminder goes to you, as a notification on your phone.',
-        /** On a reminder another Member set, which setting one takes over. */
-        someoneElse:
-          'Another member set this reminder, and it goes to them. Setting one here makes it yours.',
-        passed: 'That time has passed. Pick a later one.',
-        failed: 'The reminder could not be set. Try again.',
-      },
-    },
+    task: coreEn.tasks.task,
   },
 
   /** The Notes Module's own words, on the same terms as `tasks` above. */
   notes: {
+    length: coreEn.notes.length,
+    refusals: coreEn.notes.refusals,
     title: 'Notes',
     pinned: 'Pinned',
     recent: 'Recent',

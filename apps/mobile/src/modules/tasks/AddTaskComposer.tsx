@@ -171,11 +171,11 @@ export function AddTask({ place, preset, sectionId }: AddTaskProps) {
             setOpen(false)
             setRepeatFor({ dueDate, repeat })
           }}
-          onOpenTask={(taskId) => {
+          onOpenTask={(taskId, listId) => {
             setOpen(false)
             router.push({
               pathname: '/all/tasks/task/[taskId]',
-              params: { taskId },
+              params: { taskId, listId },
             })
           }}
         />
@@ -222,7 +222,7 @@ function TaskComposerCard({
   onListUsed: (listId: string) => void
   onClose: () => void
   onCustomRepeat: (dueDate: string | undefined, repeat: TaskRepeat | undefined) => void
-  onOpenTask: (taskId: string) => void
+  onOpenTask: (taskId: string, listId: string) => void
 }) {
   const { t, locale } = useI18n()
   const words = t.composer
@@ -506,7 +506,7 @@ function TaskComposerCard({
       settle(true)
       if (open && mounted.current) {
         load(nextDraft(snapshot, preset))
-        onOpenTask(saved.taskId)
+        onOpenTask(saved.taskId, to)
       }
     } catch (error) {
       haptics.actionFailed()

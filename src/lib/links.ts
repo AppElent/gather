@@ -64,7 +64,19 @@ export const ROUTES = {
   groceriesInStock: '/groceries/in-stock',
   groceriesItem: '/groceries/item/$itemId',
 
-  // Not linked yet: the gear comes with the web's smart lists (APP-308).
+  note: '/notes/$noteId',
+
+  mealPlannerSettings: '/meal-planner/settings',
+  plannedMeal: '/meal-planner/meal/$mealId',
+  mealProposal: '/meal-planner/proposal/$draftId',
+
+  calendarDay: '/calendar/day/$date',
+  calendarEvent: '/calendar/event/$eventId',
+
+  taskList: '/tasks/$listId',
+  smartTaskList: '/tasks/smart/$smartList',
+  task: '/tasks/task/$taskId',
+  // Not linked yet: the Tasks index has no gear.
   tasksSettings: '/tasks/settings',
 
   babySettings: '/baby/settings',

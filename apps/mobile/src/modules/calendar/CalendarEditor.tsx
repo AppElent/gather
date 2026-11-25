@@ -1,4 +1,6 @@
 import type { CalendarPerson } from '@gather/core/calendar'
+import { useEffect, useRef } from 'react'
+import { openSheet } from '../../components/openSheets'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt, useI18n } from '../../i18n'
 import { CalendarEditorCard } from './CalendarEditorCard'
@@ -37,6 +39,21 @@ export function CalendarEditor({
 }) {
   const { t } = useI18n()
   const draft = controller.draft
+  const close = () => {
+    controller.dismiss()
+    onClose()
+  }
+  // The card is drawn in the screen, not above it, but a link, a notification
+  // or a share that leaves the screen unmounts it and the last typing with it.
+  // Registered, it closes first, the way its Close does, so its draft is kept
+  // (APP-817). The sheet registers itself.
+  const closeCard = useRef(close)
+  closeCard.current = close
+  const inCard = Boolean(draft) && controller.presentation === 'card'
+  useEffect(() => {
+    if (!inCard) return
+    return openSheet(() => closeCard.current()).closed
+  }, [inCard])
   if (!draft) return null
   const errors = validateDraft(draft)
   const shared = {
@@ -46,10 +63,7 @@ export function CalendarEditor({
     errors,
     onChange: controller.changeField,
     onSave: () => void controller.save(),
-    onClose: () => {
-      controller.dismiss()
-      onClose()
-    },
+    onClose: close,
     onExpand: controller.expand,
     onDuplicate: controller.duplicate,
     onDelete: () =>

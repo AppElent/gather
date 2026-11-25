@@ -78,6 +78,7 @@ import Target from 'lucide-react-native/icons/target'
 import Trash2 from 'lucide-react-native/icons/trash-2'
 import TriangleAlert from 'lucide-react-native/icons/triangle-alert'
 import User from 'lucide-react-native/icons/user'
+import UserCog from 'lucide-react-native/icons/user-cog'
 import Users from 'lucide-react-native/icons/users'
 import Wine from 'lucide-react-native/icons/wine'
 import X from 'lucide-react-native/icons/x'
@@ -205,6 +206,8 @@ export const UI_ICONS = {
   /** Destroying something for good — deleting an account, and nothing else. */
   Trash2: glyph(Trash2, 'trash'),
   User: glyph(User, 'person.crop.circle'),
+  /** The AppElent account portal, beside Name's plain person (APP-668). */
+  UserCog: glyph(UserCog, 'person.badge.key'),
   X: glyph(X, 'xmark'),
   /** A planned meal from a recipe, where the meal has no photo. */
   BookOpen: glyph(BookOpen, 'book'),

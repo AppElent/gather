@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.7.1
+version: 2.7.3
 status: current
 ---
 
@@ -33,6 +33,11 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   channels is some 61,000 rows. `cascade.purgeEnergyRows` deletes them 1,000
   at a time right after. Nothing can read them meanwhile, because the Group is
   gone, and no sync adds to them, because its source is (APP-495).
+- **Notes** (APP-826): a Group's notes can total more than one transaction
+  reads, so they go about 2 MiB at a time: the first page with the Group, any
+  rest right after (`cascade.purgeNotes`). Nothing reaches those meanwhile,
+  because every read and write of a note resolves its Group first. The last
+  pages may go just after the account's `users` row.
 - A repeating task's completion history (`taskCompletions`, APP-303) carries
   its `groupId`, so it goes with the Group, and with its task or list when
   either is deleted. A Member who leaves a shared Group stays named on the
@@ -134,7 +139,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   during the purge unmounts the provider, so a next person never sees it.
   Signing out and the "data deleted" alert after the purge never reach
   another session (APP-746). With no session left, the phone's local cleanup
-  still runs, without the alert (APP-771).
+  still runs, without the alert (APP-771). A session Clerk is switching to, or
+  holds without having activated it, counts as another session (APP-797).
 - **On the web, the same run and the same order**, from the Account page's
   Danger zone (`src/components/account/`). `AccountDeleteProvider` sits in
   `routes/_app.tsx` above the signed-in gate, so `ensureUser` is unmounted
@@ -202,7 +208,8 @@ subscribes `user.created` and `user.updated` and delivers (Clerk → Webhooks
 
 ## Acceptance
 
-- Deleting a Group leaves no row with its `groupId` and no blob only it held.
+- Deleting a Group leaves no row with its `groupId` and no blob only it held,
+  once its scheduled steps have run.
 - Deleting an account removes its solo Groups, leaves shared Groups intact
   without the person, and finally removes the Clerk user.
 - On the phone and the web, a Clerk refusal after the purge has started stays

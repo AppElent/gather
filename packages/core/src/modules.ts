@@ -51,7 +51,7 @@ export const MODULES = [
     id: 'meal-planner',
     icon: 'CalendarHeart',
     group: 'kitchen',
-    status: 'placeholder',
+    status: 'live',
     mobileStatus: 'live',
   },
   {
@@ -100,14 +100,14 @@ export const MODULES = [
     id: 'calendar',
     icon: 'Calendar',
     group: 'home',
-    status: 'placeholder',
+    status: 'live',
     mobileStatus: 'live',
   },
   {
     id: 'notes',
     icon: 'NotebookPen',
     group: 'home',
-    status: 'placeholder',
+    status: 'live',
     mobileStatus: 'live',
   },
   /**

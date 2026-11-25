@@ -22,6 +22,7 @@
  * blank page with no name and no way out.
  */
 
+import { noteRefusalSentence } from '@gather/core/refusals'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useHeaderHeight } from 'expo-router/react-navigation'
 import { useState } from 'react'
@@ -91,7 +92,7 @@ export function DropPickScreen() {
 
   const [query, setQuery] = useState('')
   const [saving, setSaving] = useState<string | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<string | null>(null)
 
   const target = knownTarget(targetId)
   const drop = pending?.drop ?? null
@@ -127,7 +128,7 @@ export function DropPickScreen() {
   async function save(candidate: Candidate) {
     if (!asking || !drop) return
     setSaving(candidate.id)
-    setFailed(false)
+    setFailed(null)
     try {
       const result = await commit({
         target: asking,
@@ -137,7 +138,7 @@ export function DropPickScreen() {
       })
       if (result.ok !== true) {
         haptics.actionFailed()
-        setFailed(true)
+        setFailed(text.failed)
         return
       }
       haptics.itemSaved()
@@ -148,11 +149,13 @@ export function DropPickScreen() {
         router.dismissTo('/home')
         router.push(href)
       })
-    } catch {
+    } catch (error) {
       // Back is still the chooser and the Drop is still pending, so recovery
       // needs nothing of its own — see the chooser's note.
       haptics.actionFailed()
-      setFailed(true)
+      setFailed(
+        noteRefusalSentence(error, t.notes.refusals) ?? text.failed,
+      )
     } finally {
       setSaving(null)
     }
@@ -273,7 +276,7 @@ export function DropPickScreen() {
 
             {failed ? (
               <Text style={[styles.problem, { color: tokens.danger }]}>
-                {text.failed}
+                {failed}
               </Text>
             ) : null}
           </>

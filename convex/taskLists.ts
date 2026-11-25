@@ -657,6 +657,9 @@ function runWrite(
       return write.done
         ? writer.closeTask(accessToken, config, write.taskId, {
             withSubtasks: write.withSubtasks ?? false,
+            ...(write.requestKey && REQUEST_KEY.test(write.requestKey)
+              ? { requestKey: write.requestKey }
+              : {}),
           })
         : writer.reopenTask(accessToken, config, write.taskId)
     case 'move':

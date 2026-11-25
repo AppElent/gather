@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Gather web, modules</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{color:inherit}
+input::placeholder,textarea::placeholder{color:inherit;opacity:.75}
+</style>
+</helmet>
+<div style="width: {{w}}px; height: {{h}}px; position: relative; overflow: hidden; background: {{t.ground}}; color: {{t.ink}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; display: flex">
+
+<!-- ================= DESKTOP ================= -->
+<sc-if value="{{isDesk}}" hint-placeholder-val="{{ true }}">
+  <aside style="width: 248px; flex-shrink: 0; box-sizing: border-box; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px">
+    <button type="button" style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 10px; border: 0; border-radius: 14px; background: {{t.surface}}; color: {{t.ink}}; font: inherit; text-align: left; cursor: pointer">
+      <span style="width: 32px; height: 32px; border-radius: 10px; background: {{t.ink}}; color: {{t.onInk}}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px">W</span>
+      <span style="flex-grow: 1; display: flex; flex-direction: column">
+        <span style="font-size: 15px; font-weight: 600">Willow Street</span>
+        <span style="font-size: 13px; color: {{t.muted}}">3 leden</span>
+      </span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"></path></svg>
+    </button>
+    <button type="button" style="margin: 10px 0 8px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border: 0; border-radius: 999px; background: {{t.surface2}}; color: {{t.muted}}; font: inherit; font-size: 15px; text-align: left; cursor: pointer">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM20 20l-4-4"></path></svg>
+      <span style="flex-grow: 1">Zoeken in Gather</span>
+      <span style="font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: 6px; background: {{t.surface}}">⌘K</span>
+    </button>
+    <sc-for list="{{nav}}" as="item" hint-placeholder-count="8">
+      <sc-if value="{{item.label2}}" hint-placeholder-val="{{ false }}">
+        <div style="margin: 14px 10px 4px; font-size: 13px; font-weight: 600; color: {{t.muted}}">Vastgezet</div>
+      </sc-if>
+      <a href="#" style="display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 10px; border-radius: 12px; background: {{item.bg}}; color: {{t.ink}}; text-decoration: none; font-size: 15px; font-weight: {{item.weight}}">
+        <span style="width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; {{item.tileStyle}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg></span>
+        <span style="flex-grow: 1">{{item.label}}</span>
+        <span style="font-size: 13px; color: {{t.muted}}; font-variant-numeric: tabular-nums">{{item.count}}</span>
+      </a>
+    </sc-for>
+    <div style="flex-grow: 1"></div>
+    <a href="#" style="display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 10px; border-radius: 12px; color: {{t.ink}}; text-decoration: none; font-size: 15px">
+      <span style="width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: {{t.surface2}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{I.gear}}"></path></svg></span>
+      <span>Instellingen</span>
+    </a>
+    <button type="button" aria-label="Accountmenu" style="display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 10px; border: 0; border-radius: 12px; background: transparent; color: {{t.ink}}; font: inherit; text-align: left; cursor: pointer">
+      <span style="width: 28px; height: 28px; border-radius: 999px; background: {{t.surface2}}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">TU</span>
+      <span style="flex-grow: 1; font-size: 15px">Test User</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg>
+    </button>
+  </aside>
+
+  <main style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 16px 24px 0 8px; display: flex; flex-direction: column; gap: 16px; overflow: hidden">
+    <!-- Wash header: same as the approved Module page -->
+    <header style="background: {{g.wash}}; border-radius: 22px; padding: 20px 20px 20px 24px; display: flex; align-items: center; gap: 16px">
+      <span style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 17px; background: {{g.fill}}; color: {{g.on}}; display: flex; align-items: center; justify-content: center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{head.d}}"></path></svg></span>
+      <div style="flex-grow: 1; min-width: 0">
+        <sc-if value="{{head.crumb}}" hint-placeholder-val="{{ false }}">
+          <a href="#" style="font-size: 13px; color: {{t.muted}}; text-decoration: none">{{head.crumb}} ›</a>
+        </sc-if>
+        <h1 style="margin: 0; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 34px; line-height: 41px; font-weight: 700">{{head.title}}</h1>
+        <p style="margin: 0; font-size: 15px; color: {{t.muted}}"><b style="color: {{t.ink}}">{{head.count}}</b> · {{head.scope}}</p>
+      </div>
+      <button type="button" aria-label="Zoeken in {{head.title}}" style="width: 44px; height: 44px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM20 20l-4-4"></path></svg></button>
+      <sc-if value="{{head.gear}}" hint-placeholder-val="{{ true }}">
+        <button type="button" aria-label="Instellingen van {{head.title}}" style="width: 44px; height: 44px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{I.gear}}"></path></svg></button>
+      </sc-if>
+      <sc-if value="{{head.secondary}}" hint-placeholder-val="{{ false }}">
+        <button type="button" style="height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{g.text}}; font: inherit; font-size: 17px; font-weight: 600; cursor: pointer">{{head.secondary}}</button>
+      </sc-if>
+      <button type="button" style="height: 44px; padding: 0 20px 0 16px; border: 0; border-radius: 999px; background: {{g.fill}}; color: {{g.on}}; font: inherit; font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{head.pd}}"></path></svg>{{head.primary}}</button>
+    </header>
+
+    <!-- ===== TAKEN: one list with the detail panel ===== -->
+    <sc-if value="{{sTaken}}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; min-height: 0">
+        <div style="display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 16px; border-radius: 999px; background: {{t.surface}}; color: {{t.muted}}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{g.text}}" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+            <label style="flex-grow: 1; display: flex"><span style="position: absolute; left: -9999px">Nieuwe taak</span><input type="text" placeholder="Nieuwe taak, bijv. 'Ramen lappen za elke maand @Sam'" style="flex-grow: 1; border: 0; background: transparent; font: inherit; font-size: 16px; color: {{t.ink}}; outline: none"></label>
+            <span style="font-size: 12px; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: {{t.surface2}}">N</span>
+          </div>
+          <sc-for list="{{sections}}" as="sec" hint-placeholder-count="2">
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <div style="margin: 0 4px; font-size: 13px; font-weight: 600; color: {{t.muted}}">{{sec.name}}</div>
+              <div style="background: {{t.surface}}; border-radius: 22px; overflow: hidden">
+                <sc-for list="{{sec.rows}}" as="r" hint-placeholder-count="3">
+                  <div style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 12px 8px 16px; box-sizing: border-box; border-top: {{r.border}}; background: {{r.bg}}">
+                    <button type="button" aria-label="{{r.title}} afvinken" style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 999px; border: 2px solid {{g.text}}; background: transparent; padding: 0; cursor: pointer"></button>
+                    <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                      <span style="font-size: 16px; font-weight: {{r.weight}}">{{r.title}}</span>
+                      <span style="font-size: 13px; color: {{t.muted}}"><b style="color: {{r.whenColor}}; font-weight: {{r.whenWeight}}">{{r.when}}</b>{{r.rest}}</span>
+                    </span>
+                    <sc-if value="{{r.subs}}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size: 13px; color: {{t.muted}}; font-variant-numeric: tabular-nums">{{r.subs}}</span>
+                    </sc-if>
+                    <span style="width: 26px; height: 26px; border-radius: 999px; background: {{t.surface2}}; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{r.coin}}</span>
+                    <sc-if value="{{r.hover}}" hint-placeholder-val="{{ false }}">
+                      <button type="button" aria-label="Meer voor {{r.title}}" style="width: 32px; height: 32px; border: 0; border-radius: 999px; background: {{t.surface2}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg></button>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+          <button type="button" style="align-self: flex-start; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: {{t.muted}}; font: inherit; font-size: 15px; font-weight: 600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>Afgerond (3)</button>
+        </div>
+        <section aria-label="Taak" style="background: {{t.surface}}; border-radius: 22px; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; align-items: flex-start; gap: 12px">
+            <button type="button" aria-label="Afvinken" style="margin-top: 4px; width: 26px; height: 26px; flex-shrink: 0; border-radius: 999px; border: 2px solid {{g.text}}; background: transparent; padding: 0"></button>
+            <h2 style="margin: 0; flex-grow: 1; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Bleed the radiators</h2>
+            <button type="button" aria-label="Paneel sluiten (Esc)" style="width: 32px; height: 32px; border: 0; border-radius: 999px; background: {{t.surface2}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+          </div>
+          <div style="background: {{t.ground}}; border-radius: 16px">
+            <sc-for list="{{fields}}" as="f" hint-placeholder-count="5">
+              <button type="button" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 0 14px; border: 0; border-top: {{f.border}}; background: transparent; color: {{t.ink}}; font: inherit; text-align: left; cursor: pointer">
+                <span style="flex-grow: 1; font-size: 15px">{{f.label}}</span>
+                <span style="font-size: 15px; color: {{f.color}}; font-weight: {{f.weight}}">{{f.value}}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+              </button>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div style="margin: 0 4px; font-size: 13px; font-weight: 600; color: {{t.muted}}">Subtaken · 1 van 3</div>
+            <div style="background: {{t.ground}}; border-radius: 16px">
+              <sc-for list="{{subs}}" as="s" hint-placeholder-count="3">
+                <div style="display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 0 14px; border-top: {{s.border}}">
+                  <span style="width: 18px; height: 18px; border-radius: 999px; border: 2px solid {{g.text}}; box-sizing: border-box; background: {{s.fill}}"></span>
+                  <span style="font-size: 15px; color: {{s.color}}; text-decoration: {{s.strike}}">{{s.label}}</span>
+                </div>
+              </sc-for>
+              <div style="display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 0 14px; border-top: {{line}}; color: {{g.text}}; font-size: 15px; font-weight: 600">+ Subtaak</div>
+            </div>
+          </div>
+          <div style="background: {{t.ground}}; border-radius: 16px; padding: 12px 14px; font-size: 15px; color: {{t.muted}}">Sleutel ligt in de la onder de gootsteen.</div>
+          <p style="margin: 0; font-size: 13px; color: {{t.muted}}">Herinneringen komen op de telefoon binnen. Toegevoegd door Sam · 2 nov</p>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ===== WEEKMENU: the week as a list, the meal in the panel ===== -->
+    <sc-if value="{{sWeek}}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; min-height: 0">
+        <div style="display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <button type="button" aria-label="Vorige week" style="width: 36px; height: 36px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}">‹</button>
+            <span style="font-size: 17px; font-weight: 600">23 – 29 november</span>
+            <button type="button" aria-label="Volgende week" style="width: 36px; height: 36px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}">›</button>
+            <span style="flex-grow: 1"></span>
+            <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 15px">Deze week</button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 18px; background: {{t.surface}}; border: 1.5px dashed {{g.text}}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{g.text}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>
+            <span style="flex-grow: 1; font-size: 15px"><b>Voorstel voor 3 avonden</b> · uit jullie eigen recepten, rekening met de agenda</span>
+            <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: {{t.muted}}; font: inherit; font-size: 15px; font-weight: 600">Weggooien</button>
+            <button type="button" style="height: 36px; padding: 0 16px; border: 0; border-radius: 999px; background: {{g.fill}}; color: {{g.on}}; font: inherit; font-size: 15px; font-weight: 600">Alles overnemen</button>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+            <sc-for list="{{days}}" as="day" hint-placeholder-count="6">
+              <div style="background: {{t.surface}}; border-radius: 22px; padding: 10px 0 4px">
+                <div style="display: flex; align-items: baseline; gap: 8px; padding: 0 16px 4px">
+                  <span style="font-size: 15px; font-weight: 700; color: {{day.color}}">{{day.name}}</span>
+                  <span style="font-size: 13px; color: {{t.muted}}">{{day.sub}}</span>
+                </div>
+                <sc-for list="{{day.slots}}" as="m" hint-placeholder-count="2">
+                  <button type="button" style="width: 100%; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; border: 0; border-top: {{line}}; background: {{m.bg}}; color: {{t.ink}}; font: inherit; text-align: left; cursor: pointer">
+                    <span style="width: 64px; font-size: 13px; color: {{t.muted}}">{{m.slot}}</span>
+                    <span style="flex-grow: 1; font-size: 15px; font-weight: {{m.weight}}; color: {{m.color}}; font-style: {{m.style}}">{{m.title}}</span>
+                    <sc-if value="{{m.draft}}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px dashed {{g.text}}; color: {{g.text}}">voorstel</span>
+                    </sc-if>
+                    <span style="font-size: 13px; color: {{t.muted}}">{{m.who}}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <section aria-label="Maaltijd" style="background: {{t.surface}}; border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+          <div style="height: 132px; border-radius: 16px; background: {{g.wash}}; display: flex; align-items: flex-end; padding: 12px; box-sizing: border-box; color: {{g.text}}; font-size: 13px; font-weight: 600">Receptfoto</div>
+          <div>
+            <p style="margin: 0; font-size: 13px; color: {{t.muted}}">Dinsdag 24 nov · Avondeten</p>
+            <h2 style="margin: 2px 0 0; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Shakshuka</h2>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; font-weight: 600; color: {{t.muted}}">Wie eet mee</span>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <sc-for list="{{eaters}}" as="e" hint-placeholder-count="3">
+                <button type="button" aria-pressed="{{e.pressed}}" style="height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid {{e.edge}}; background: {{e.bg}}; color: {{e.fg}}; font: inherit; font-size: 15px">{{e.name}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; background: {{t.ground}}; border-radius: 16px; padding: 0 8px 0 14px; min-height: 48px">
+            <span style="flex-grow: 1; font-size: 15px">Porties</span>
+            <button type="button" aria-label="Minder" style="width: 36px; height: 36px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; font-size: 18px">−</button>
+            <span style="width: 24px; text-align: center; font-size: 17px; font-weight: 600">3</span>
+            <button type="button" aria-label="Meer" style="width: 36px; height: 36px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; font-size: 18px">+</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; font-weight: 600; color: {{t.muted}}">Verplaatsen naar</span>
+            <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px">
+              <sc-for list="{{moveDays}}" as="d" hint-placeholder-count="7">
+                <button type="button" aria-pressed="{{d.pressed}}" style="height: 36px; border: 0; border-radius: 10px; background: {{d.bg}}; color: {{d.fg}}; font: inherit; font-size: 13px; font-weight: 600">{{d.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <button type="button" style="height: 40px; padding: 0 14px; border: 0; border-radius: 999px; background: {{g.wash}}; color: {{g.text}}; font: inherit; font-size: 15px; font-weight: 600">Recept openen</button>
+            <button type="button" style="height: 40px; padding: 0 14px; border: 0; border-radius: 999px; background: {{g.wash}}; color: {{g.text}}; font: inherit; font-size: 15px; font-weight: 600">Iets anders</button>
+            <button type="button" style="height: 40px; padding: 0 14px; border: 0; border-radius: 999px; background: {{g.wash}}; color: {{g.text}}; font: inherit; font-size: 15px; font-weight: 600">Naar boodschappen</button>
+          </div>
+          <button type="button" style="align-self: flex-start; height: 36px; padding: 0; border: 0; background: transparent; color: {{t.danger}}; font: inherit; font-size: 15px">Van het menu halen</button>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ===== AGENDA: month grid, the day in the panel ===== -->
+    <sc-if value="{{sCal}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 15px">Vandaag</button>
+        <button type="button" aria-label="Vorige maand" style="width: 36px; height: 36px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}">‹</button>
+        <button type="button" aria-label="Volgende maand" style="width: 36px; height: 36px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}">›</button>
+        <span style="font-size: 17px; font-weight: 600; margin-left: 4px">November 2026</span>
+        <span style="flex-grow: 1"></span>
+        <sc-for list="{{calChips}}" as="c" hint-placeholder-count="3">
+          <button type="button" aria-pressed="true" style="height: 32px; padding: 0 12px 0 8px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 13px; display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 999px; background: {{c.color}}"></span>{{c.label}}</button>
+        </sc-for>
+        <div role="group" aria-label="Weergave" style="display: flex; padding: 3px; border-radius: 999px; background: {{t.surface2}}">
+          <sc-for list="{{views}}" as="v" hint-placeholder-count="3">
+            <button type="button" aria-pressed="{{v.pressed}}" style="height: 30px; padding: 0 14px; border: 0; border-radius: 999px; background: {{v.bg}}; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 600">{{v.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; min-height: 0">
+        <div style="background: {{t.surface}}; border-radius: 22px; padding: 8px 8px 10px">
+          <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 4px 0 6px">
+            <sc-for list="{{wd}}" as="x" hint-placeholder-count="7"><span style="text-align: center; font-size: 12px; font-weight: 600; color: {{t.muted}}">{{x}}</span></sc-for>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px">
+            <sc-for list="{{cells}}" as="c" hint-placeholder-count="35">
+              <button type="button" style="height: 82px; box-sizing: border-box; padding: 4px; border: 0; border-radius: 12px; background: {{c.bg}}; color: {{c.color}}; font: inherit; text-align: left; display: flex; flex-direction: column; gap: 2px; overflow: hidden; cursor: pointer">
+                <span style="align-self: flex-start; min-width: 24px; height: 24px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: {{c.numBg}}; color: {{c.numFg}}; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{c.n}}</span>
+                <sc-for list="{{c.ev}}" as="e" hint-placeholder-count="1">
+                  <span style="font-size: 11px; line-height: 16px; padding: 0 5px; border-radius: 5px; background: {{e.bg}}; color: {{t.ink}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{e.t}}</span>
+                </sc-for>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+        <section aria-label="Dinsdag 24 november" style="background: {{t.surface}}; border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Dinsdag 24 november</h2>
+          <div style="background: {{t.ground}}; border-radius: 16px">
+            <sc-for list="{{dayEvents}}" as="e" hint-placeholder-count="4">
+              <a href="#" style="display: flex; gap: 12px; min-height: 56px; padding: 8px 14px; box-sizing: border-box; border-top: {{e.border}}; color: {{t.ink}}; text-decoration: none">
+                <span style="width: 4px; border-radius: 4px; background: {{e.color}}"></span>
+                <span style="width: 48px; font-size: 13px; color: {{t.muted}}; font-variant-numeric: tabular-nums">{{e.time}}</span>
+                <span style="flex-grow: 1; display: flex; flex-direction: column">
+                  <span style="font-size: 15px; font-weight: 600">{{e.title}}</span>
+                  <span style="font-size: 13px; color: {{t.muted}}">{{e.sub}}</span>
+                </span>
+              </a>
+            </sc-for>
+          </div>
+          <button type="button" style="align-self: flex-start; height: 40px; padding: 0 14px; border: 0; border-radius: 999px; background: {{g.wash}}; color: {{g.text}}; font: inherit; font-size: 15px; font-weight: 600">+ Afspraak op deze dag</button>
+          <p style="margin: 0; font-size: 13px; color: {{t.muted}}">Een afspraak openen vervangt dit paneel door de afspraak, net als een item bij Boodschappen. Afspraken uit een gekoppelde agenda (iCal) zijn alleen-lezen.</p>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ===== NOTITIES: list left, the note itself right ===== -->
+    <sc-if value="{{sNotes}}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 20px; align-items: start; min-height: 0">
+        <div style="display: flex; flex-direction: column; gap: 14px">
+          <sc-for list="{{noteGroups}}" as="grp" hint-placeholder-count="2">
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <div style="margin: 0 4px; font-size: 13px; font-weight: 600; color: {{t.muted}}">{{grp.name}}</div>
+              <div style="background: {{t.surface}}; border-radius: 22px; overflow: hidden">
+                <sc-for list="{{grp.rows}}" as="n" hint-placeholder-count="3">
+                  <a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 10px 16px; border-top: {{n.border}}; background: {{n.bg}}; color: {{t.ink}}; text-decoration: none">
+                    <span style="font-size: 16px; font-weight: 600">{{n.title}}</span>
+                    <span style="font-size: 13px; color: {{t.muted}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{n.when}} · {{n.first}}</span>
+                  </a>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <section aria-label="Notitie" style="background: {{t.surface}}; border-radius: 22px; padding: 22px 28px; min-height: 560px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: {{t.muted}}">
+            <span style="flex-grow: 1">Bewerkt door Nora · 2 uur geleden · Opgeslagen</span>
+            <button type="button" aria-label="Notitie losmaken" style="width: 36px; height: 36px; border: 0; border-radius: 999px; background: {{g.wash}}; color: {{g.text}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3H7l3-3zM12 13v8"></path></svg></button>
+            <button type="button" aria-label="Meer: verwijderen" style="width: 36px; height: 36px; border: 0; border-radius: 999px; background: {{t.surface2}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg></button>
+          </div>
+          <label style="display: flex"><span style="position: absolute; left: -9999px">Titel</span><input type="text" value="Wifi en de router" style="flex-grow: 1; border: 0; background: transparent; padding: 0; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 28px; line-height: 34px; font-weight: 700; color: {{t.ink}}; outline: none"></label>
+          <div style="max-width: 680px; font-size: 17px; line-height: 26px; white-space: pre-line">Netwerk: WillowStreet-5G
+Wachtwoord: staat op het kaartje in de meterkast.
+
+Router staat in de meterkast, bovenste plank. Bij storing: stekker eruit, 30 seconden wachten, erin.
+
+Gasten: WillowStreet-Gast, geen wachtwoord, verloopt elke zondag.</div>
+          <span style="flex-grow: 1"></span>
+          <p style="margin: 0; font-size: 13px; color: {{t.muted}}">Geen bewerkmodus: typen slaat op. Esc of een andere notitie kiezen sluit.</p>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ===== KOSTEN DELEN: calculator left, the outcome right ===== -->
+    <sc-if value="{{sCost}}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; min-height: 0">
+        <div style="display: flex; flex-direction: column; gap: 14px">
+          <p style="margin: 0; padding: 12px 16px; border-radius: 16px; background: {{t.surface}}; font-size: 15px; color: {{t.muted}}">Gather bewaart dit niet. Verrekenen doen jullie onderling, geen saldo en geen historie, tenzij je de verdeling bewaart.</p>
+          <div style="background: {{t.surface}}; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+            <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 600; color: {{t.muted}}">Waarvoor was het</span><input type="text" value="Wintersport Ischgl" style="height: 44px; padding: 0 14px; border: 1px solid {{t.edge}}; border-radius: 12px; background: {{t.ground}}; font: inherit; font-size: 16px; color: {{t.ink}}"></label>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 13px; font-weight: 600; color: {{t.muted}}">Wie heeft betaald</span>
+              <div style="background: {{t.ground}}; border-radius: 16px">
+                <sc-for list="{{payments}}" as="p" hint-placeholder-count="3">
+                  <div style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 14px; border-top: {{p.border}}">
+                    <span style="width: 28px; height: 28px; border-radius: 999px; background: {{t.surface2}}; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{p.coin}}</span>
+                    <span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-size: 15px">{{p.who}}</span><span style="font-size: 13px; color: {{t.muted}}">{{p.what}}</span></span>
+                    <span style="font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums">{{p.amount}}</span>
+                  </div>
+                </sc-for>
+                <div style="min-height: 46px; padding: 0 14px; border-top: {{line}}; display: flex; align-items: center; color: {{g.text}}; font-size: 15px; font-weight: 600">+ Betaling toevoegen</div>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <div style="display: flex; align-items: center; gap: 8px">
+                <span style="flex-grow: 1; font-size: 13px; font-weight: 600; color: {{t.muted}}">Verdelen over</span>
+                <div role="group" aria-label="Verdeling" style="display: flex; padding: 3px; border-radius: 999px; background: {{t.surface2}}">
+                  <button type="button" aria-pressed="true" style="height: 30px; padding: 0 14px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 600">Gelijk</button>
+                  <button type="button" aria-pressed="false" style="height: 30px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 600">Zelf bepalen</button>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                <sc-for list="{{splitWho}}" as="e" hint-placeholder-count="3">
+                  <button type="button" aria-pressed="{{e.pressed}}" style="height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid {{e.edge}}; background: {{e.bg}}; color: {{e.fg}}; font: inherit; font-size: 15px">{{e.name}}</button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 14px">
+          <section aria-label="Verrekenen" style="background: {{t.surface}}; border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; align-items: baseline; gap: 8px">
+              <span style="font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums">€ 420,00</span>
+              <span style="font-size: 15px; color: {{t.muted}}">per persoon</span>
+            </div>
+            <span style="font-size: 13px; color: {{t.muted}}">€ 1.260,00 over 3 personen</span>
+            <div style="font-size: 13px; font-weight: 600; color: {{t.muted}}">Verrekenen</div>
+            <div style="background: {{t.ground}}; border-radius: 16px">
+              <div style="display: flex; align-items: center; min-height: 48px; padding: 0 14px; font-size: 16px"><span style="flex-grow: 1">Test User betaalt Sam</span><b style="font-variant-numeric: tabular-nums">€ 300,00</b></div>
+              <div style="display: flex; align-items: center; min-height: 48px; padding: 0 14px; border-top: {{line}}; font-size: 16px"><span style="flex-grow: 1">Nora betaalt Sam</span><b style="font-variant-numeric: tabular-nums">€ 60,00</b></div>
+            </div>
+            <button type="button" style="height: 44px; border: 0; border-radius: 999px; background: {{g.fill}}; color: {{g.on}}; font: inherit; font-size: 17px; font-weight: 600">Dit bewaren</button>
+            <p style="margin: 0; font-size: 13px; color: {{t.muted}}">Een bewaarde verdeling houdt de getallen waarmee hij is gemaakt. Dupliceer hem om iets te wijzigen.</p>
+          </section>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <div style="margin: 0 4px; font-size: 13px; font-weight: 600; color: {{t.muted}}">Bewaarde verdelingen</div>
+            <div style="background: {{t.surface}}; border-radius: 22px">
+              <div style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 16px"><span style="flex-grow: 1; font-size: 15px">Weekend Texel</span><span style="font-size: 13px; color: {{t.muted}}">12 okt · € 486,00</span></div>
+              <div style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 16px; border-top: {{line}}"><span style="flex-grow: 1; font-size: 15px">Verjaardag Nora</span><span style="font-size: 13px; color: {{t.muted}}">3 sep · € 132,50</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+</sc-if>
+
+<!-- ================= PHONE WIDTH (390) ================= -->
+<sc-if value="{{isPhone}}" hint-placeholder-val="{{ false }}">
+  <div style="width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden">
+    <header style="background: {{g.wash}}; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <a href="#" style="font-size: 17px; color: {{g.text}}; text-decoration: none; flex-grow: 1">‹ {{head.back}}</a>
+        <button type="button" aria-label="Zoeken in {{head.title}}" style="width: 40px; height: 40px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM20 20l-4-4"></path></svg></button>
+        <sc-if value="{{head.gear}}" hint-placeholder-val="{{ true }}">
+          <button type="button" aria-label="Instellingen van {{head.title}}" style="width: 40px; height: 40px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{I.gear}}"></path></svg></button>
+        </sc-if>
+        <button type="button" aria-label="{{head.primary}}" style="width: 40px; height: 40px; border: 0; border-radius: 999px; background: {{g.fill}}; color: {{g.on}}; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{head.pd}}"></path></svg></button>
+      </div>
+      <h1 style="margin: 0; font-family: ui-rounded, 'SF Pro Rounded', Nunito, system-ui, sans-serif; font-size: 30px; line-height: 36px; font-weight: 700">{{head.title}}</h1>
+      <sc-if value="{{sCal}}" hint-placeholder-val="{{ false }}">
+        <div role="group" aria-label="Weergave" style="display: flex; padding: 3px; border-radius: 999px; background: {{t.surface}}">
+          <sc-for list="{{viewsPhone}}" as="v" hint-placeholder-count="3">
+            <button type="button" aria-pressed="{{v.pressed}}" style="flex-grow: 1; height: 32px; border: 0; border-radius: 999px; background: {{v.bg}}; color: {{v.fg}}; font: inherit; font-size: 13px; font-weight: 600">{{v.label}}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{sWeek}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 15px"><span style="flex-grow: 1; font-weight: 600">23 – 29 november</span><button type="button" style="height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: {{t.surface}}; color: {{g.text}}; font: inherit; font-size: 15px; font-weight: 600">Plan mijn week</button></div>
+      </sc-if>
+    </header>
+    <div style="flex-grow: 1; overflow: hidden; padding: 14px 16px 100px; display: flex; flex-direction: column; gap: 12px">
+      <sc-if value="{{sTaken}}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{sections}}" as="sec" hint-placeholder-count="2">
+          <div style="margin: 0 4px; font-size: 13px; font-weight: 600; color: {{t.muted}}">{{sec.name}}</div>
+          <div style="background: {{t.surface}}; border-radius: 22px">
+            <sc-for list="{{sec.rows}}" as="r" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 8px 14px; box-sizing: border-box; border-top: {{r.border}}">
+                <span style="width: 22px; height: 22px; flex-shrink: 0; border-radius: 999px; border: 2px solid {{g.text}}; box-sizing: border-box"></span>
+                <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-size: 16px">{{r.title}}</span><span style="font-size: 13px; color: {{t.muted}}"><b style="color: {{r.whenColor}}; font-weight: {{r.whenWeight}}">{{r.when}}</b>{{r.rest}}</span></span>
+                <span style="width: 24px; height: 24px; border-radius: 999px; background: {{t.surface2}}; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{r.coin}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </sc-if>
+      <sc-if value="{{sWeek}}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{daysPhone}}" as="day" hint-placeholder-count="4">
+          <div style="background: {{t.surface}}; border-radius: 22px; padding: 8px 0 2px">
+            <div style="padding: 0 14px 2px; font-size: 15px; font-weight: 700; color: {{day.color}}">{{day.name}} <span style="font-weight: 400; color: {{t.muted}}; font-size: 13px">{{day.sub}}</span></div>
+            <sc-for list="{{day.slots}}" as="m" hint-placeholder-count="2">
+              <div style="display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 14px; border-top: {{line}}">
+                <span style="width: 58px; font-size: 13px; color: {{t.muted}}">{{m.slot}}</span>
+                <span style="flex-grow: 1; font-size: 15px; font-weight: {{m.weight}}; color: {{m.color}}; font-style: {{m.style}}">{{m.title}}</span>
+                <sc-if value="{{m.draft}}" hint-placeholder-val="{{ false }}"><span style="font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px dashed {{g.text}}; color: {{g.text}}">voorstel</span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </sc-if>
+      <sc-if value="{{sCal}}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{agendaPhone}}" as="d" hint-placeholder-count="3">
+          <div style="margin: 0 4px; font-size: 13px; font-weight: 600; color: {{d.color}}">{{d.name}}</div>
+          <div style="background: {{t.surface}}; border-radius: 22px">
+            <sc-for list="{{d.ev}}" as="e" hint-placeholder-count="2">
+              <div style="display: flex; gap: 10px; min-height: 54px; padding: 8px 14px; box-sizing: border-box; border-top: {{e.border}}">
+                <span style="width: 4px; border-radius: 4px; background: {{e.color}}"></span>
+                <span style="width: 44px; font-size: 13px; color: {{t.muted}}">{{e.time}}</span>
+                <span style="display: flex; flex-direction: column"><span style="font-size: 15px; font-weight: 600">{{e.title}}</span><span style="font-size: 13px; color: {{t.muted}}">{{e.sub}}</span></span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </sc-if>
+      <sc-if value="{{sNotes}}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{noteGroups}}" as="grp" hint-placeholder-count="2">
+          <div style="margin: 0 4px; font-size: 13px; font-weight: 600; color: {{t.muted}}">{{grp.name}}</div>
+          <div style="background: {{t.surface}}; border-radius: 22px">
+            <sc-for list="{{grp.rows}}" as="n" hint-placeholder-count="3">
+              <div style="display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-top: {{n.border}}"><span style="font-size: 16px; font-weight: 600">{{n.title}}</span><span style="font-size: 13px; color: {{t.muted}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{n.when}} · {{n.first}}</span></div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </sc-if>
+      <sc-if value="{{sCost}}" hint-placeholder-val="{{ false }}">
+        <div style="background: {{t.surface}}; border-radius: 22px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 13px; font-weight: 600; color: {{t.muted}}">Waarvoor was het</span>
+          <span style="height: 44px; padding: 0 12px; border: 1px solid {{t.edge}}; border-radius: 12px; background: {{t.ground}}; font-size: 16px; display: flex; align-items: center">Wintersport Ischgl</span>
+          <span style="font-size: 13px; font-weight: 600; color: {{t.muted}}">Wie heeft betaald</span>
+          <div style="background: {{t.ground}}; border-radius: 16px">
+            <sc-for list="{{payments}}" as="p" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 12px; border-top: {{p.border}}"><span style="flex-grow: 1; font-size: 15px">{{p.who}}</span><b style="font-variant-numeric: tabular-nums">{{p.amount}}</b></div>
+            </sc-for>
+          </div>
+          <span style="color: {{g.text}}; font-size: 15px; font-weight: 600">+ Betaling toevoegen</span>
+        </div>
+        <div style="background: {{t.surface}}; border-radius: 22px; padding: 4px 0">
+          <div style="display: flex; min-height: 46px; align-items: center; padding: 0 14px; font-size: 15px"><span style="flex-grow: 1">Test User betaalt Sam</span><b>€ 300,00</b></div>
+          <div style="display: flex; min-height: 46px; align-items: center; padding: 0 14px; border-top: {{line}}; font-size: 15px"><span style="flex-grow: 1">Nora betaalt Sam</span><b>€ 60,00</b></div>
+        </div>
+      </sc-if>
+    </div>
+    <sc-if value="{{sCost}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; left: 12px; right: 12px; bottom: 84px; padding: 10px 10px 10px 16px; border-radius: 20px; background: {{t.glass}}; box-shadow: {{t.glassShadow}}; display: flex; align-items: center; gap: 10px">
+        <span style="flex-grow: 1; display: flex; flex-direction: column"><b style="font-size: 17px">€ 420,00 per persoon</b><span style="font-size: 13px; color: {{t.muted}}">€ 1.260,00 over 3 personen</span></span>
+        <button type="button" style="height: 40px; padding: 0 14px; border: 0; border-radius: 999px; background: {{g.fill}}; color: {{g.on}}; font: inherit; font-size: 15px; font-weight: 600">Dit bewaren</button>
+      </div>
+    </sc-if>
+    <nav aria-label="Tabs" style="position: absolute; left: 12px; right: 12px; bottom: 16px; height: 60px; border-radius: 999px; background: {{t.glass}}; box-shadow: {{t.glassShadow}}; display: flex; align-items: center; padding: 0 6px">
+      <sc-for list="{{tabs}}" as="tb" hint-placeholder-count="4">
+        <a href="#" aria-current="{{tb.current}}" style="flex-grow: 1; height: 48px; border-radius: 999px; background: {{tb.bg}}; color: {{t.ink}}; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 600"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{tb.d}}"></path></svg>{{tb.label}}</a>
+      </sc-for>
+    </nav>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["taken","weekmenu","agenda","notities","kosten"],"default":"taken"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"size":{"editor":"enum","options":["desktop","phone"],"default":"desktop"},"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const screen = this.props.screen ?? 'taken';
+    const dark = (this.props.theme ?? 'light') === 'dark';
+    const isDesk = (this.props.size ?? 'desktop') !== 'phone';
+    const t = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#2E3331', edge: '#59625E', danger: '#F0917F', onInk: '#0F1110',
+      glass: 'rgba(44,46,45,0.78)', glassShadow: '0 8px 24px rgba(0,0,0,0.45)', tabSel: 'rgba(255,255,255,0.12)'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', muted: '#5E6764', hair: '#DFE2DE', edge: '#8C9590', danger: '#A4372C', onInk: '#FFFFFF',
+      glass: 'rgba(255,255,255,0.78)', glassShadow: '0 8px 24px rgba(16,32,30,0.14)', tabSel: 'rgba(26,31,29,0.08)'
+    };
+    const G = dark ? {
+      kitchen: { fill: '#0B7C75', on: '#FFFFFF', text: '#6FD6CD', wash: '#133230' },
+      home: { fill: '#D99B2B', on: '#2B1F06', text: '#F2C060', wash: '#2E2611' },
+      tasting: { fill: '#B4487F', on: '#FFFFFF', text: '#E59AC0', wash: '#2E1A25' },
+      money: { fill: '#2F6BD8', on: '#FFFFFF', text: '#8FB4F5', wash: '#16223A' }
+    } : {
+      kitchen: { fill: '#0B7C75', on: '#FFFFFF', text: '#0B7C75', wash: '#DDEFEC' },
+      home: { fill: '#F2B233', on: '#2B1F06', text: '#8A5C08', wash: '#FBEBC6' },
+      tasting: { fill: '#8A2D5A', on: '#FFFFFF', text: '#8A2D5A', wash: '#F1DFE8' },
+      money: { fill: '#2F6BD8', on: '#FFFFFF', text: '#2459BD', wash: '#E1EAFB' }
+    };
+    const I = {
+      home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+      plus: 'M12 8v8M8 12h8M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z',
+      add: 'M12 5v14M5 12h14',
+      grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+      gear: 'M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1',
+      list: 'M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01',
+      fork: 'M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 0-3 2-3 5s1 4 3 4v9',
+      cart: 'M3 4h2l2.4 11h10.2L20 7H6.2M9 20h.01M17 20h.01',
+      cal: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+      note: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5',
+      euro: 'M17 6a7 7 0 1 0 0 12M4 10h9M4 14h9',
+      spark: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z',
+      week: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M8 14h3M13 14h3M8 17h3'
+    };
+    const tile = (x) => 'background:' + x.fill + ';color:' + x.on;
+    const quiet = 'background:' + t.surface2 + ';color:' + t.ink;
+    const line = '0.5px solid ' + t.hair;
+
+    const cur = { taken: 'taken', weekmenu: 'week', agenda: 'agenda', notities: 'notes', kosten: 'cost' }[screen];
+    const n = (id, label, d, style, count, label2) => ({ label, d, tileStyle: style, count: count || '', label2: !!label2, bg: cur === id ? t.surface : 'transparent', weight: cur === id ? 600 : 400 });
+    const nav = [
+      n('start', 'Start', I.home, quiet), n('add', 'Toevoegen', I.plus, quiet),
+      n('taken', 'Taken', I.list, tile(G.home), '16', true), n('agenda', 'Agenda', I.cal, tile(G.home), '3'),
+      n('notes', 'Notities', I.note, tile(G.home), ''), n('week', 'Weekmenu', I.week, tile(G.kitchen), ''),
+      n('boodschappen', 'Boodschappen', I.cart, tile(G.kitchen), '4'), n('cost', 'Kosten delen', I.euro, tile(G.money), ''),
+      n('all', 'Alle modules', I.grid, quiet)
+    ];
+
+    const heads = {
+      taken: { title: 'House', count: '5 open', scope: 'hele huishouden', d: I.list, primary: 'Taak toevoegen', pd: I.add, crumb: 'Taken', back: 'Taken', gear: true, g: G.home },
+      weekmenu: { title: 'Weekmenu', count: '9 van 14 gepland', scope: 'lunch en avondeten', d: I.week, primary: 'Plan mijn week', pd: I.spark, secondary: 'Naar boodschappen', back: 'Alles', gear: true, g: G.kitchen },
+      agenda: { title: 'Agenda', count: '3 vandaag', scope: '3 agenda’s', d: I.cal, primary: 'Afspraak', pd: I.add, back: 'Alles', gear: true, g: G.home },
+      notities: { title: 'Notities', count: '14 notities', scope: '3 vastgezet', d: I.note, primary: 'Nieuwe notitie', pd: I.add, back: 'Alles', gear: false, g: G.home },
+      kosten: { title: 'Kosten delen', count: 'Rekenhulp', scope: 'niets wordt bewaard tenzij jij dat kiest', d: I.euro, primary: 'Nieuwe verdeling', pd: I.add, back: 'Alles', gear: false, g: G.money }
+    };
+    const head = heads[screen];
+    const g = head.g;
+
+    const row = (title, when, whenColor, whenWeight, rest, coin, i, o) => Object.assign({ title, when, whenColor, whenWeight, rest, coin, border: i ? line : 'none', bg: 'transparent', weight: 400, hover: false, subs: '' }, o || {});
+    const sections = [
+      { name: 'Badkamer', rows: [
+        row('Bleed the radiators', 'Te laat · vr 20 nov', t.danger, 600, ' · elk jaar', 'SO', 0, { bg: t.surface2, weight: 600, subs: '1/3' }),
+        row('Descale the shower head', 'Za 28 nov', t.muted, 400, ' · elke 3 maanden', 'NV', 1, { hover: true })
+      ] },
+      { name: 'Tuin', rows: [
+        row('Rake the leaves', 'Zo 29 nov', t.muted, 400, '', 'TU', 0),
+        row('Clean the gutters', 'Vr 5 dec', t.muted, 400, ' · elk najaar', 'SO', 1),
+        row('Store the garden chairs', 'Geen datum', t.muted, 400, '', '–', 2)
+      ] }
+    ];
+    const fields = [
+      ['Lijst', 'House · Badkamer', t.ink, 400], ['Wanneer', 'Vr 20 nov · te laat', t.danger, 600], ['Herhalen', 'Elk jaar, na afvinken', t.muted, 400],
+      ['Wie', 'Sam Okonkwo', t.muted, 400], ['Herinnering', '09:00 op de dag', t.muted, 400]
+    ].map((f, i) => ({ label: f[0], value: f[1], color: f[2], weight: f[3], border: i ? line : 'none' }));
+    const subs = [['Ontluchtsleutel pakken', true], ['Woonkamer en keuken', false], ['Boven en zolder', false]]
+      .map((s, i) => ({ label: s[0], fill: s[1] ? g.fill : 'transparent', color: s[1] ? t.muted : t.ink, strike: s[1] ? 'line-through' : 'none', border: i ? line : 'none' }));
+
+    const meal = (slot, title, o) => Object.assign({ slot, title, weight: 400, color: t.ink, style: 'normal', who: '', draft: false, bg: 'transparent' }, o || {});
+    const empty = (slot) => meal(slot, 'Kies iets', { color: t.muted });
+    const days = [
+      { name: 'Maandag 23', sub: '', color: t.ink, slots: [meal('Lunch', 'Restjes'), meal('Avondeten', 'Pasta puttanesca', { who: '3' })] },
+      { name: 'Dinsdag 24', sub: 'vandaag', color: g.text, slots: [meal('Lunch', 'Greek salad', { who: '2' }), meal('Avondeten', 'Shakshuka', { weight: 600, who: '3', bg: t.surface2 })] },
+      { name: 'Woensdag 25', sub: 'Sam laat thuis', color: t.ink, slots: [empty('Lunch'), meal('Avondeten', 'Tarka dal', { draft: true, style: 'italic', who: '2' })] },
+      { name: 'Donderdag 26', sub: '', color: t.ink, slots: [empty('Lunch'), meal('Avondeten', 'Chicken and potato traybake', { draft: true, style: 'italic', who: '3' })] },
+      { name: 'Vrijdag 27', sub: 'Voetbal 18:30', color: t.ink, slots: [empty('Lunch'), meal('Avondeten', 'Chickpea and spinach curry', { draft: true, style: 'italic', who: '3' })] },
+      { name: 'Zaterdag 28', sub: '', color: t.ink, slots: [meal('Lunch', 'Banana oat pancakes', { who: '3' }), meal('Avondeten', 'Lasagne alla bolognese', { who: '5' })] }
+    ];
+    const daysPhone = days.slice(1, 5);
+    const pill = (name, on) => ({ name, pressed: on ? 'true' : 'false', bg: on ? g.wash : 'transparent', fg: on ? g.text : t.ink, edge: on ? g.text : t.edge });
+    const eaters = [pill('Sam', true), pill('Nora', true), pill('Test User', true), pill('Gast', false)];
+    const moveDays = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'].map((l, i) => ({ label: l, pressed: i === 1 ? 'true' : 'false', bg: i === 1 ? g.fill : t.ground, fg: i === 1 ? g.on : t.ink }));
+
+    const C = dark ? { gezin: '#F2C060', werk: '#8FB4F5', school: '#E59AC0' } : { gezin: '#F2B233', werk: '#2F6BD8', school: '#B4487F' };
+    const soft = (c) => c + (dark ? '40' : '33');
+    const calChips = [{ label: 'Gezin', color: C.gezin }, { label: 'Werk Sam', color: C.werk }, { label: 'School (iCal)', color: C.school }];
+    const views = ['Maand', 'Week', 'Agenda'].map((l, i) => ({ label: l, pressed: i === 0 ? 'true' : 'false', bg: i === 0 ? t.surface : 'transparent' }));
+    const viewsPhone = ['Maand', 'Week', 'Agenda'].map((l, i) => ({ label: l, pressed: i === 2 ? 'true' : 'false', bg: i === 2 ? g.fill : 'transparent', fg: i === 2 ? g.on : t.ink }));
+    const wd = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+    const evs = { 3: [['Tandarts Nora', C.gezin]], 6: [['Etentje', C.gezin]], 11: [['Sint-Maarten', C.school]], 14: [['Verjaardag oma', C.gezin]], 18: [['Sprint review', C.werk]], 20: [['Studiedag', C.school]], 24: [['Huisarts', C.gezin], ['Overleg', C.werk], ['Ouderavond', C.school]], 25: [['Sam laat', C.werk]], 27: [['Voetbal', C.gezin]], 28: [['Sinterklaas markt', C.gezin]] };
+    const cells = [];
+    for (let i = 0; i < 35; i++) {
+      const day = i - 5;
+      const inMonth = day >= 1 && day <= 30;
+      const num = inMonth ? day : (day < 1 ? 31 + day : day - 30);
+      const isToday = day === 24;
+      const ev = (inMonth && evs[day]) ? evs[day].slice(0, 2).map((e) => ({ t: e[0], bg: soft(e[1]) })) : [];
+      if (inMonth && evs[day] && evs[day].length > 2) ev.push({ t: '+' + (evs[day].length - 2) + ' meer', bg: 'transparent' });
+      cells.push({ n: String(num), ev, bg: isToday ? g.wash : 'transparent', color: inMonth ? t.ink : t.muted, numBg: isToday ? g.fill : 'transparent', numFg: isToday ? g.on : (inMonth ? t.ink : t.muted) });
+    }
+    const dayEvents = [
+      ['08:30', 'Huisarts', 'Nora · Gezin', C.gezin], ['11:00', 'Overleg', 'Werk Sam', C.werk], ['19:30', 'Ouderavond', 'School (iCal) · alleen-lezen', C.school]
+    ].map((e, i) => ({ time: e[0], title: e[1], sub: e[2], color: e[3], border: i ? line : 'none' }));
+    const agendaPhone = [
+      { name: 'Vandaag · dinsdag 24 nov', color: g.text, ev: dayEvents },
+      { name: 'Woensdag 25 nov', color: t.muted, ev: [{ time: 'hele dag', title: 'Sam laat thuis', sub: 'Werk Sam', color: C.werk, border: 'none' }] },
+      { name: 'Vrijdag 27 nov', color: t.muted, ev: [{ time: '18:30', title: 'Voetbal', sub: 'Gezin', color: C.gezin, border: 'none' }] }
+    ];
+
+    const note = (title, when, first, i, sel) => ({ title, when, first, border: i ? line : 'none', bg: sel ? t.surface2 : 'transparent' });
+    const noteGroups = [
+      { name: 'Vastgezet', rows: [note('Wifi en de router', '2 uur', 'Netwerk: WillowStreet-5G', 0, true), note('Wat mee op vakantie', 'gisteren', 'Paspoorten, opladers, de oranje tas', 1), note('Monteur cv-ketel', '12 nov', 'Bel 020 123 45 67, vraag naar Ruud', 2)] },
+      { name: 'Recent', rows: [note('Cadeau-ideeën oma', 'ma', 'Fotoboek, theeservies', 0), note('Klusjes zolder', 'vr', 'Isolatie, licht boven de trap', 1), note('Afspraken oppas', '18 nov', 'Bedtijd 19:30, geen schermen na het eten', 2)] }
+    ];
+
+    const pay = (coin, who, what, amount, i) => ({ coin, who, what, amount, border: i ? line : 'none' });
+    const payments = [pay('SO', 'Sam', 'Appartement', '€ 780,00', 0), pay('NV', 'Nora', 'Skipassen', '€ 360,00', 1), pay('TU', 'Test User', 'Boodschappen', '€ 120,00', 2)];
+    const splitWho = [pill('Sam', true), pill('Nora', true), pill('Test User', true)];
+
+    const tabs = [['start', 'Start', I.home], ['add', 'Toevoegen', I.plus], ['inst', 'Instellingen', I.gear], ['alles', 'Alles', I.grid]]
+      .map((x) => ({ label: x[1], d: x[2], bg: x[0] === 'alles' ? t.tabSel : 'transparent', current: x[0] === 'alles' ? 'page' : 'false' }));
+
+    return {
+      w: isDesk ? 1280 : 390, h: isDesk ? 860 : 844, isDesk, isPhone: !isDesk,
+      t, g, I, line, head, nav, tabs,
+      sTaken: screen === 'taken', sWeek: screen === 'weekmenu', sCal: screen === 'agenda', sNotes: screen === 'notities', sCost: screen === 'kosten',
+      sections, fields, subs, days, daysPhone, eaters, moveDays,
+      calChips, views, viewsPhone, wd, cells, dayEvents, agendaPhone, noteGroups, payments, splitWho
+    };
+  }
+}
+</script>
+</body>
+</html>
