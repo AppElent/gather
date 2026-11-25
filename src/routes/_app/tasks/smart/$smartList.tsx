@@ -8,12 +8,13 @@ export const Route = createFileRoute('/_app/tasks/smart/$smartList')({
   errorComponent: TasksError,
   component: function SmartListRoute() {
     const { smartList } = Route.useParams()
-    const { task } = Route.useSearch()
+    const { task, list } = Route.useSearch()
     return (
       <SmartListPage
         key={smartList}
         smartList={smartList}
         selectedTaskId={task}
+        selectedListId={list}
       />
     )
   },

@@ -4,6 +4,7 @@ import {
   placeLink,
   type TaskPlace,
   taskLink,
+  validateTaskPageSearch,
   validateTaskSearch,
 } from './selection'
 
@@ -43,6 +44,23 @@ describe('the open task in the address', () => {
     const page = { to: '/tasks/task/$taskId', params: { taskId: 't1' } }
     expect(taskLink(LIST, TASK, false)).toMatchObject(page)
     expect(taskLink({ kind: 'task' }, TASK, true)).toMatchObject(page)
+  })
+
+  test('a linked task keeps the list it was opened from', () => {
+    const linked = { ...TASK, linked: true }
+    expect(taskLink(LIST, linked, false).search).toEqual({ list: 'l1' })
+    expect(
+      taskLink({ kind: 'smart', smartList: 'today' }, linked, true).search,
+    ).toEqual({ task: 't1', list: 'l1' })
+    // A list's own page already says which list.
+    expect(taskLink(LIST, linked, true).search).toEqual({ task: 't1' })
+    expect(validateTaskSearch({ task: 't1', list: 'l1' })).toEqual({
+      task: 't1',
+      list: 'l1',
+    })
+    expect(validateTaskPageSearch({ list: 'l1', task: 't1' })).toEqual({
+      list: 'l1',
+    })
   })
 
   test('a grocery item and a grocery list open in Groceries', () => {

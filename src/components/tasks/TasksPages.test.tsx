@@ -16,6 +16,7 @@ const state = vi.hoisted(() => ({
   fail: new Set<string>(),
   navigated: [] as { to: string; search?: Record<string, string> }[],
   linked: { status: 'unavailable' } as unknown,
+  written: undefined as unknown,
   desktop: true,
   slow: undefined as undefined | (() => Promise<never>),
 }))
@@ -33,6 +34,7 @@ vi.mock('convex/react', () => {
       if (name === 'tasks:update' && state.slow) return state.slow()
       if (state.fail.has(name)) throw new Error('nope')
       if (name === 'taskLists:getTasks') return state.linked
+      if (name === 'taskLists:writeTask') return state.written
       return name === 'tasks:toggleDone' ? null : 'new-id'
     }
     return Object.assign(run, { withOptimisticUpdate: () => run })
@@ -601,6 +603,116 @@ describe('what a review found (APP-308)', () => {
     expect(titleField().value).not.toBe('OLD')
     last.unmount()
     expect(calls('tasks:update')).toHaveLength(2)
+  })
+
+  const fails = () => {
+    let refuse = (_: Error) => {}
+    state.slow = () => new Promise((_, reject) => (refuse = reject))
+    return (error: Error) => refuse(error)
+  }
+
+  // #581 (APP-799), in the web's field.
+  test('a late refusal of an older title says nothing about a newer one', async () => {
+    const refuseOld = fails()
+    const { unmount } = renderTasks(page)
+    fireEvent.change(titleField(), { target: { value: 'OLD' } })
+    fireEvent.blur(titleField())
+    const refuseNew = fails()
+    fireEvent.change(titleField(), { target: { value: 'NEWER' } })
+    fireEvent.blur(titleField())
+    refuseOld(new Error('nope'))
+    await new Promise((done) => setTimeout(done))
+    expect(titleField().value).toBe('NEWER')
+    expect(within(panel()).queryByText('Not saved. Try again.')).toBeNull()
+    refuseNew(new Error('nope'))
+    expect(await within(panel()).findByText('Not saved. Try again.')).toBeTruthy()
+    expect(titleField().value).toBe('NEWER')
+    unmount()
+  })
+
+  test('a refused title is sent again by a blur, never by leaving', async () => {
+    state.fail.add('tasks:update')
+    const first = renderTasks(page)
+    fireEvent.change(titleField(), { target: { value: 'REFUSED' } })
+    fireEvent.blur(titleField())
+    await within(panel()).findByText('Not saved. Try again.')
+    state.fail.clear()
+    first.unmount()
+    expect(calls('tasks:update')).toHaveLength(1)
+    const again = renderTasks(page)
+    expect(titleField().value).toBe('REFUSED')
+    fireEvent.blur(titleField())
+    await waitFor(() => expect(calls('tasks:update')).toHaveLength(2))
+    again.unmount()
+  })
+
+  test('a project linked to two lists: a task stays with the one it was opened from', async () => {
+    const linked = { provider: 'todoist', capabilities: { write: true } }
+    state.queries['taskLists:list'] = [
+      list('one', 'One', linked),
+      list('two', 'Two', linked),
+    ]
+    state.queries['tasks:listOf'] = null
+    state.linked = {
+      status: 'ok',
+      tasks: [{ externalId: 'x1', title: 'Shared', done: false, labels: [] }],
+    }
+    const both = renderTasks(<TaskListPage listId="one" />)
+    await screen.findByText('Shared')
+    both.unmount()
+    const second = renderTasks(
+      <TaskListPage listId="two" selectedTaskId="x1" />,
+    )
+    await waitFor(() => expect(panel().textContent).toContain('Two'))
+    second.unmount()
+    const own = renderTasks(<TaskPage taskId="x1" listId="two" />)
+    await waitFor(() => expect(screen.queryAllByText('Two').length).toBeGreaterThan(0))
+    expect(screen.queryByText('One')).toBeNull()
+    own.unmount()
+  })
+
+  test('Complete all on a linked list keeps its key until it was taken', async () => {
+    state.queries['taskLists:list'] = [
+      list('keys', 'Todoist', {
+        provider: 'todoist',
+        capabilities: { write: true },
+      }),
+    ]
+    const rows = [
+      { externalId: 'p', title: 'Pack', done: false, labels: [] },
+      {
+        externalId: 'c',
+        title: 'Socks',
+        done: false,
+        labels: [],
+        parentExternalId: 'p',
+      },
+    ]
+    state.linked = { status: 'ok', tasks: rows }
+    renderTasks(<TaskListPage listId="keys" />)
+    await screen.findByText('Pack')
+    const completeAll = async (times: number) => {
+      const ring = () => screen.getByRole('checkbox', { name: 'Complete Pack' })
+      await waitFor(() => expect(ring()).not.toBeDisabled())
+      fireEvent.click(ring())
+      fireEvent.click(screen.getByRole('button', { name: /^Complete all/ }))
+      await waitFor(() =>
+        expect(calls('taskLists:writeTask')).toHaveLength(times),
+      )
+      await new Promise((done) => setTimeout(done))
+    }
+    state.fail.add('taskLists:writeTask')
+    await completeAll(1)
+    state.fail.clear()
+    state.written = { status: 'ok', tasks: [rows[0]], refresh: false }
+    await completeAll(2)
+    await completeAll(3)
+    const keys = calls('taskLists:writeTask').map(
+      (sent) => (sent.write as { requestKey?: string }).requestKey,
+    )
+    expect(keys[0]).toMatch(/^[\w-]{1,64}$/)
+    expect(keys[1]).toBe(keys[0])
+    expect(keys[2]).not.toBe(keys[0])
   })
 
   test('duplicating from a smart list brings every subtask', async () => {

@@ -17,6 +17,8 @@ import {
   groceryAddFields,
 } from '@gather/core/groceries'
 import {
+  completeKey,
+  connectionOf,
   type ExternalEntry,
   ensureExternalLists,
   externalSnapshot,
@@ -59,6 +61,7 @@ import {
 import { api, type Doc, type Id } from '../../convex/api'
 import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
+import { newSaveKey } from '../../ui/composer-drafts'
 import { type ComposedTask, parsedTask } from './composerDraft'
 import type { ComposedGrocery } from './groceryDraft'
 import type { ListDisplay, ListSync, Priority, Task, TaskList } from './types'
@@ -314,13 +317,18 @@ export function useTaskList(listId: string) {
  * neither knows (a linked one nobody has fetched yet, say from Recents) asks
  * the Group's linked lists, as opening them would. `task` stays the last row
  * seen while the server still places it, so moving it to another list does
- * not blank the screen while that list's rows arrive.
+ * not blank the screen while that list's rows arrive. One project can be linked
+ * to two lists, so a linked task stays with `openedFrom`, the list it was
+ * opened from (APP-799).
  */
-export function useTaskOf(taskId: string) {
+export function useTaskOf(taskId: string, openedFrom?: string) {
   const { group } = useGroup()
   const lists = useTaskLists()
   const linked = useSyncExternalStore(subscribeExternal, externalSnapshot)
-  const linkedHome = linkedHomeOf(lists, linked, taskId)
+  const opened = lists?.find(
+    (list) => list._id === openedFrom && list.provider !== 'local',
+  )?._id
+  const linkedHome = opened ?? linkedHomeOf(lists, linked, taskId)
   const localHome = useQuery(
     api.tasks.listOf,
     linkedHome ? 'skip' : { groupSlug: group.slug, taskId },
@@ -337,7 +345,10 @@ export function useTaskOf(taskId: string) {
   const found = state.tasks.find((task) => task.id === taskId)
   const last = useRef<Task | undefined>(undefined)
   if (found) last.current = found
-  else if (!home) last.current = undefined
+  else if (!home || (opened && linked.get(opened)?.sync === 'synced')) {
+    // Nothing holds it any more.
+    last.current = undefined
+  }
   return {
     today: todayIn(group.timeZone),
     lists: state.lists,
@@ -530,7 +541,7 @@ export function useTaskActions() {
           write: sent,
         }),
       (id) => getTasks({ listId: id as Id<'taskLists'>, groupSlug }),
-      () => convex.connectionState().isWebSocketConnected,
+      connectionOf(convex),
     )
 
   /** A linked task's fields in its provider, or a local one's in Convex. */
@@ -714,7 +725,9 @@ export function useTaskActions() {
           kind: 'setDone',
           taskId: task.id,
           done: !row?.done,
-          ...(options.withSubtasks ? { withSubtasks: true } : {}),
+          ...(options.withSubtasks
+            ? { withSubtasks: true, requestKey: completeKey(linkedId, task.id, newSaveKey) }
+            : {}),
         })
         return null
       }

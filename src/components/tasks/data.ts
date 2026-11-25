@@ -150,13 +150,23 @@ export type TaskState =
 /**
  * One task wherever it is now. A linked one is found in its list's last
  * answer, any other is placed by `tasks.listOf`. Only a task neither knows
- * asks the Group's linked lists, as opening them would.
+ * asks the Group's linked lists, as opening them would. One project can be
+ * linked to two lists, so a linked task stays with `openedFrom`, the list it
+ * was opened from (APP-799).
  */
-export function useTaskOf(taskId: string | undefined): TaskState {
+export function useTaskOf(
+  taskId: string | undefined,
+  openedFrom?: string,
+): TaskState {
   const { slug: groupSlug } = useRequiredCurrentGroup()
   const lists = useTaskLists()
   const external = useExternal()
-  const linkedHome = taskId ? linkedHomeOf(lists, external, taskId) : undefined
+  const opened = lists?.find(
+    (list) => list._id === openedFrom && list.provider !== 'local',
+  )?._id
+  const linkedHome = taskId
+    ? (opened ?? linkedHomeOf(lists, external, taskId))
+    : undefined
   const localHome = useQuery(
     api.tasks.listOf,
     !taskId || linkedHome ? 'skip' : { groupSlug, taskId },

@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the share sheet, a Drop, its destinations, host rules, or expo-share-intent.
-version: 1.7.0
+version: 1.8.0
 status: current
 ---
 
@@ -53,11 +53,21 @@ that already means making Group content visible to a second Group.
 - **One arrival waits, and the newest wins** (APP-774), so a link's screen never
   covers the chooser and the chooser never covers a link's screen. A share's own
   link ends the wait of a link even when Gather cannot place the share, but not
-  the wait of an earlier share. A share that loses to a link opens no chooser;
-  its Drop stays pending, and `gather-dev://drop` still shows it, until a newer
-  share replaces it. A tapped notification that comes while the chooser is open
-  leaves it the same way: it goes back to the tabs, so the chooser closes and its
-  Drop stays pending.
+  the wait of an earlier share. A share that loses to a link, notification or
+  quick action opens no chooser at that moment, and its Drop stays pending.
+- **A Drop that lost comes back** (APP-817), with no new control. When the
+  newer arrival (the link, notification or quick action) has opened, `DropGate`
+  waits `REOFFER_SETTLE_MS` for what that arrival presents, and pushes the same
+  chooser for the Drop still pending, so Back from it returns to the newer
+  screen. The arrival opening starts it, never the person's next move: a
+  navigation afterwards brings nothing back. It waits while the notification's
+  hand-off route or `/quick` is still up (at most `REOFFER_WINDOW_MS`), and gives
+  up when a sheet or prompt is in front, when something else waits, when the Drop
+  was cleared or replaced meanwhile, or when the chooser is already the screen in
+  front. A link to the screen already in front still brings it back. A chooser
+  that was already open and is left by a notification or link is not brought
+  back: the person went elsewhere, as they do when they swipe it away, and the
+  Drop stays pending until a newer share replaces it.
 - **There is one chooser.** The chooser route is singular
   (`app/(app)/drop/_layout.tsx`): a second share, or `gather-dev://drop`, while
   one is open brings it back to the top and does not stack another. It shows

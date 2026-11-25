@@ -7,18 +7,24 @@ import { listLink, taskLink } from './selection'
 import { TaskPanel } from './TaskPanel'
 import { TasksWorkspace } from './TasksWorkspace'
 
+interface TaskPageProps {
+  taskId: string
+  /** The list a linked task was opened from. */
+  listId?: string
+}
+
 /** A task on a page of its own: where a row goes below `lg`, and linkable. */
-export function TaskPage({ taskId }: { taskId: string }) {
+export function TaskPage(props: TaskPageProps) {
   return (
     <TasksWorkspace>
-      <TaskPageBody taskId={taskId} />
+      <TaskPageBody {...props} />
     </TasksWorkspace>
   )
 }
 
-function TaskPageBody({ taskId }: { taskId: string }) {
+function TaskPageBody({ taskId, listId }: TaskPageProps) {
   const { messages: t } = useI18n()
-  const state = useTaskOf(taskId)
+  const state = useTaskOf(taskId, listId)
   const ready = state.status === 'ready' ? state : null
   if (ready?.list.grocery) {
     return (
@@ -39,7 +45,7 @@ function TaskPageBody({ taskId }: { taskId: string }) {
     { label: t.tasks.web.parent, link: linkTo('tasks') },
     ...(ready ? [{ label: ready.list.name, link: listLink(ready.list) }] : []),
     ...(parent
-      ? [{ label: parent.title, link: linkTo('task', { taskId: parent.id }) }]
+      ? [{ label: parent.title, link: taskLink({ kind: 'task' }, parent, false) }]
       : []),
     { label: ready?.task.title ?? t.tasks.web.taskTitle },
   ]

@@ -22,14 +22,16 @@ import { dayHeading } from './words'
 interface SmartListPageProps {
   smartList: string
   selectedTaskId?: string
+  /** The list a linked task was opened from. */
+  selectedListId?: string
 }
 
 /** Today, My tasks, Upcoming or Unassigned: rows from every list (APP-301). */
-export function SmartListPage({ smartList, selectedTaskId }: SmartListPageProps) {
+export function SmartListPage({ smartList, ...selected }: SmartListPageProps) {
   if (!isSmartListId(smartList)) return <Navigate {...linkTo('tasks')} replace />
   return (
     <TasksWorkspace>
-      <SmartListBody id={smartList} selectedTaskId={selectedTaskId} />
+      <SmartListBody id={smartList} {...selected} />
     </TasksWorkspace>
   )
 }
@@ -37,9 +39,11 @@ export function SmartListPage({ smartList, selectedTaskId }: SmartListPageProps)
 function SmartListBody({
   id,
   selectedTaskId,
+  selectedListId,
 }: {
   id: SmartListId
   selectedTaskId?: string
+  selectedListId?: string
 }) {
   const { locale, messages: t } = useI18n()
   const smart = useSmartLists()
@@ -48,7 +52,7 @@ function SmartListBody({
   const navigate = useNavigate()
   const desktop = useIsDesktop()
   const field = useRef<HTMLInputElement>(null)
-  const state = useTaskOf(selectedTaskId)
+  const state = useTaskOf(selectedTaskId, selectedListId)
   const place: TaskPlace = { kind: 'smart', smartList: id }
   const close = () => void navigate(placeLink(place))
   useCloseOnEscape(Boolean(selectedTaskId), close)
@@ -64,15 +68,18 @@ function SmartListBody({
   const rows = (some: typeof tasks, shown: SmartDate) =>
     some.map((task) => {
       const list = smart.lists.find((each) => each.id === task.listId)
+      const selected =
+        task.id === selectedTaskId &&
+        (!task.linked || !selectedListId || task.listId === selectedListId)
       return (
         <TaskListRow
-          key={task.id}
+          key={`${task.listId}:${task.id}`}
           task={task}
           list={list}
           today={smart.today}
           smart={shown}
           people={byId}
-          selected={task.id === selectedTaskId}
+          selected={selected}
           link={taskLink(
             place,
             { ...task, grocery: list?.grocery },
@@ -83,7 +90,7 @@ function SmartListBody({
               ? menu({
                   task,
                   list,
-                  onDeleted: task.id === selectedTaskId ? close : undefined,
+                  onDeleted: selected ? close : undefined,
                 })
               : []
           }

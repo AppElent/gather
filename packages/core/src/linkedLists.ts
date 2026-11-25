@@ -59,7 +59,13 @@ export type LinkedTaskWrite =
       priority?: Priority | null
       labels?: string[]
     }
-  | { kind: 'setDone'; taskId: string; done: boolean; withSubtasks?: boolean }
+  | {
+      kind: 'setDone'
+      taskId: string
+      done: boolean
+      withSubtasks?: boolean
+      requestKey?: string
+    }
   | { kind: 'move'; taskId: string; parentId: string | null }
 
 type WriteResult =
@@ -110,6 +116,59 @@ const onTheirWay = new Map<string, Map<string, number>>()
  * are not the provider's until it is answered.
  */
 const unanswered = new Map<string, number>()
+
+/** Lists a write was refused on offline, to be read once back online. */
+const awaitingConnection = new Set<string>()
+
+/** The key of each "Complete all" until it was taken, by list and task. */
+const completeKeys = new Map<string, string>()
+
+/** A "Complete all"'s key: the same one again until the provider took it. */
+export function completeKey(
+  listId: string,
+  taskId: string,
+  newKey: () => string,
+): string {
+  const place = `${listId}:${taskId}`
+  const key = completeKeys.get(place) ?? newKey()
+  completeKeys.set(place, key)
+  return key
+}
+
+/** The connection as a write needs it. */
+export interface Connection {
+  isOnline: () => boolean
+  /** Runs once, the next time the connection is back. */
+  whenOnline: (run: () => void) => void
+}
+
+const ALWAYS_ONLINE: Connection = {
+  isOnline: () => true,
+  whenOnline: () => {},
+}
+
+interface ConnectionState {
+  isWebSocketConnected: boolean
+}
+
+/** A Convex client's connection. */
+export function connectionOf(convex: {
+  connectionState: () => ConnectionState
+  subscribeToConnectionState: (
+    listen: (state: ConnectionState) => void,
+  ) => () => void
+}): Connection {
+  return {
+    isOnline: () => convex.connectionState().isWebSocketConnected,
+    whenOnline: (run) => {
+      const stop = convex.subscribeToConnectionState((state) => {
+        if (!state.isWebSocketConnected) return
+        stop()
+        run()
+      })
+    },
+  }
+}
 
 /**
  * How long a write or fetch may take, waiting its turn included. Convex holds
@@ -242,14 +301,15 @@ export async function writeLinkedTask(
   write: LinkedTaskWrite,
   send: SendWrite,
   fetchTasks: FetchTasks,
-  isOnline: () => boolean = () => true,
+  connection: Connection = ALWAYS_ONLINE,
 ): Promise<{ taskId?: string }> {
   const taskId = 'taskId' in write ? write.taskId : undefined
   // Convex would keep an unsent action and send it once back online.
   const refuseOffline = () => {
-    if (isOnline()) return
+    if (connection.isOnline()) return
     const entry = external.get(listId)
     if (entry) put(listId, { sync: 'failed', tasks: entry.tasks })
+    syncWhenOnline(listId, fetchTasks, connection)
     throw new LinkedWriteError('offline', listId)
   }
   if (!external.get(listId)?.fresh) throw new LinkedWriteError('stale', listId)
@@ -274,6 +334,15 @@ export async function writeLinkedTask(
         settled = true
       }
       sent.then(settle, settle)
+      sent.then(
+        (answer) => {
+          // Also when the answer came too late for the write to wait for it.
+          if (answer.status === 'ok' && write.kind === 'setDone') {
+            completeKeys.delete(`${listId}:${write.taskId}`)
+          }
+        },
+        () => {},
+      )
       try {
         result = await within(sent)
       } catch {
@@ -314,6 +383,28 @@ export async function writeLinkedTask(
     markPending(listId, taskId, false)
     if (refresh) void syncExternalList(listId, fetchTasks)
   }
+}
+
+/**
+ * Reads a list again once the connection is back, so that an offline refusal
+ * does not leave it read-only (APP-799). One read per refusal, not a sync.
+ */
+function syncWhenOnline(
+  listId: string,
+  fetchTasks: FetchTasks,
+  connection: Connection,
+) {
+  if (awaitingConnection.has(listId)) return
+  awaitingConnection.add(listId)
+  connection.whenOnline(async () => {
+    awaitingConnection.delete(listId)
+    if (external.get(listId)?.fresh) return
+    const sync = await syncExternalList(listId, fetchTasks)
+    // It dropped again before the answer.
+    if (sync === 'failed' && !connection.isOnline()) {
+      syncWhenOnline(listId, fetchTasks, connection)
+    }
+  })
 }
 
 /** Asks the provider for one list now; a second ask while one runs joins it. */

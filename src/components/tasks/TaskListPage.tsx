@@ -43,7 +43,7 @@ function TaskListBody({ listId, selectedTaskId }: TaskListPageProps) {
   const { locale, messages: t } = useI18n()
   const words = t.tasks.web
   const { status, today, list, tasks, refresh } = useTaskList(listId)
-  const state = useTaskOf(selectedTaskId)
+  const state = useTaskOf(selectedTaskId, listId)
   const navigate = useNavigate()
   const [dialog, setDialog] = useState<ListDialogKind | null>(null)
   const listMenu = useListMenu(list, refresh, setDialog)

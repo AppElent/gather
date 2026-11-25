@@ -42,6 +42,12 @@ export function useAutosave({
   const [untouched, setUntouched] = useState(restored !== undefined)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const sending = useRef<string | null>(null)
+  /** Counts sends: an older one's refusal says nothing about a newer text. */
+  const attempts = useRef(0)
+  /** What a refused save left in the field: leaving does not send it again. */
+  const refused = useRef<{ draft: string; stored: string } | undefined>(
+    undefined,
+  )
   const mounted = useRef(false)
   const outdated = untouched && restored?.stored !== stored
   const latest = useRef({ draft, stored, save, required, untouched, outdated })
@@ -81,6 +87,9 @@ export function useAutosave({
     const value = needed ? text.trim() : text
     if (sending.current === value) return
     sending.current = value
+    refused.current = undefined
+    const attempt = ++attempts.current
+    const before = now
     setFailed(false)
     send(value).then(
       () => {
@@ -93,8 +102,11 @@ export function useAutosave({
         }
       },
       (error) => {
-        if (sending.current === value) sending.current = null
+        if (attempt !== attempts.current) return
+        sending.current = null
         if (mounted.current) {
+          if (latest.current.draft === text)
+            refused.current = { draft: text, stored: before }
           setFailed(true)
         } else if (latest.current.draft === text) {
           kept.set(id, { draft: text, stored: latest.current.stored })
@@ -110,7 +122,9 @@ export function useAutosave({
     mounted.current = true
     return () => {
       mounted.current = false
-      if (!latest.current.untouched) flushRef.current()
+      const left = refused.current
+      if (left && left.draft === latest.current.draft) kept.set(id, left)
+      else if (!latest.current.untouched) flushRef.current()
     }
   }, [])
 
@@ -118,6 +132,7 @@ export function useAutosave({
     value: outdated ? stored : (draft ?? stored),
     failed: failed && !outdated,
     change: (next: string) => {
+      refused.current = undefined
       latest.current.untouched = false
       latest.current.outdated = false
       setUntouched(false)

@@ -1,5 +1,7 @@
 import { todayIn } from '@gather/core/civil-date'
 import {
+  completeKey,
+  connectionOf,
   externalSnapshot,
   type LinkedTaskWrite,
   writeLinkedTask,
@@ -102,7 +104,7 @@ export function useTaskActions() {
       (id, sent) =>
         sendWrite({ listId: id as Id<'taskLists'>, groupSlug, write: sent }),
       (id) => getTasks({ listId: id as Id<'taskLists'>, groupSlug }),
-      () => convex.connectionState().isWebSocketConnected,
+      connectionOf(convex),
     )
 
   const patch = (
@@ -239,7 +241,14 @@ export function useTaskActions() {
           kind: 'setDone',
           taskId: task.id,
           done: !row?.done,
-          ...withSubtasks,
+          ...(options.withSubtasks
+            ? {
+                withSubtasks: true,
+                requestKey: completeKey(linkedId, task.id, () =>
+                  crypto.randomUUID(),
+                ),
+              }
+            : {}),
         })
         return null
       }

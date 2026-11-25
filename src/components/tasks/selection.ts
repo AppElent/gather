@@ -8,12 +8,24 @@ import { type AppLink, linkTo } from '../../lib/links'
 
 export interface TaskSearch {
   task?: string
+  /** A linked task's list: two can show the same task (APP-799). */
+  list?: string
 }
 
 export function validateTaskSearch(search: Record<string, unknown>): TaskSearch {
-  return typeof search.task === 'string' && search.task
-    ? { task: search.task }
-    : {}
+  const { task, list } = search
+  return {
+    ...(typeof task === 'string' && task ? { task } : {}),
+    ...(typeof list === 'string' && list ? { list } : {}),
+  }
+}
+
+/** A task's own page: which task is in the path. */
+export function validateTaskPageSearch(
+  search: Record<string, unknown>,
+): Pick<TaskSearch, 'list'> {
+  const { list } = validateTaskSearch(search)
+  return list ? { list } : {}
 }
 
 /** The page a task is opened from. */
@@ -29,6 +41,7 @@ interface TaskTarget {
   listId: string
   /** On a grocery list: its items open in Groceries. */
   grocery?: boolean
+  linked?: boolean
 }
 
 /** The page itself, with nothing open. */
@@ -57,15 +70,21 @@ export function taskLink(
         }
       : linkTo('groceriesItem', { itemId: task.id })
   }
+  const from = task.linked ? { list: task.listId } : {}
   if (!desktop || place.kind === 'task') {
-    return linkTo('task', { taskId: task.id })
+    const page = linkTo('task', { taskId: task.id })
+    return task.linked ? { ...page, search: from } : page
   }
   // The index has no panel: its rows open on their own list.
   const page =
     place.kind === 'index'
       ? linkTo('taskList', { listId: task.listId })
       : placeLink(place)
-  return { ...page, search: { task: task.id } }
+  // A list's own page already says which list.
+  return {
+    ...page,
+    search: { task: task.id, ...(place.kind === 'smart' ? from : {}) },
+  }
 }
 
 /** A grocery list's page is Groceries, not Tasks. */
