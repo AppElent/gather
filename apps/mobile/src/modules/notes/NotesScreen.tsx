@@ -29,6 +29,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
+import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'
 import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Button } from '../../ui/button'
@@ -43,6 +44,7 @@ import { type Note, useNoteActions, useNotesList } from './store'
 export function Notes() {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
+  const { group } = useGroup()
   const { t, locale } = useI18n()
   const router = useRouter()
   const { loading, pinned, rest, hasMore, loadingMore, loadMore } =
@@ -136,7 +138,7 @@ export function Notes() {
             </Text>
           </View>
           <Text style={[styles.when, { color: tokens.muted }]}>
-            {noteWhen(note.updatedAt, locale, t.notes.today)}
+            {noteWhen(note.updatedAt, locale, t.notes.today, group.timeZone)}
           </Text>
         </Pressable>
       </NativeContextMenu>

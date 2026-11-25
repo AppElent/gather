@@ -1,5 +1,5 @@
 import { summarizeBabyEvent } from '@gather/core/baby-events'
-import { localIsoDate } from '@gather/core/civil-date'
+import { dayIn } from '@gather/core/civil-date'
 import { useMutation } from 'convex/react'
 import { ChevronRight, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -16,6 +16,8 @@ interface TimelineProps {
   babyId: Id<'babies'>
   /** The Group the log is being read in — editing and deleting go through it. */
   groupSlug: string
+  /** The Group's IANA time zone when set; absent uses this device's calendar. */
+  timeZone?: string
   /**
    * As `babyEvents.listByBaby` returns them: the row, plus the photo's URL
    * resolved server-side. A `_storage` id is not something a browser can turn
@@ -24,7 +26,12 @@ interface TimelineProps {
   events: (Doc<'babyEvents'> & { photoUrl?: string | null })[]
 }
 
-export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
+export function Timeline({
+  babyId,
+  groupSlug,
+  timeZone,
+  events,
+}: TimelineProps) {
   const remove = useMutation(api.babyEvents.remove)
   const { confirm, dialog } = useConfirmAction()
   const [editingId, setEditingId] = useState<Id<'babyEvents'> | null>(null)
@@ -43,9 +50,10 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
     )
   }
 
+  const dayAt = dayIn(timeZone)
   const groups = new Map<string, TimelineProps['events']>()
   for (const event of events) {
-    const key = localIsoDate(event.timestamp)
+    const key = dayAt(event.timestamp)
     const list = groups.get(key) ?? []
     list.push(event)
     groups.set(key, list)
@@ -56,7 +64,7 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
       {Array.from(groups.entries()).map(([key, dayEvents]) => (
         <div key={key}>
           <p className="m-0 mb-2 text-xs font-semibold uppercase text-[var(--muted)]">
-            {formatEventDateHeading(dayEvents[0].timestamp, locale)}
+            {formatEventDateHeading(dayEvents[0].timestamp, locale, timeZone)}
           </p>
           <SurfaceCard>
             <ul className="m-0 list-none divide-y divide-[var(--hair)] p-0">
@@ -88,7 +96,11 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
                             {eventTypes[event.type]}
                           </span>
                           <span className="text-xs text-[var(--muted)]">
-                            {formatEventTimestamp(event.timestamp, locale)}
+                            {formatEventTimestamp(
+                              event.timestamp,
+                              locale,
+                              timeZone,
+                            )}
                           </span>
                         </div>
                         <p className="m-0 mt-0.5">
@@ -123,7 +135,7 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
                       onClick={() =>
                         confirm({
                           title: log.timeline.deleteTitle,
-                          body: `${eventTypes[event.type]} — ${formatEventTimestamp(event.timestamp, locale)}`,
+                          body: `${eventTypes[event.type]} — ${formatEventTimestamp(event.timestamp, locale, timeZone)}`,
                           confirmLabel: log.timeline.deleteConfirm,
                           errorFallback: log.timeline.deleteFailed,
                           run: () => remove({ eventId: event._id, groupSlug }),

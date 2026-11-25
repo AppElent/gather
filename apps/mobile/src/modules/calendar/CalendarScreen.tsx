@@ -115,11 +115,25 @@ export function CalendarScreen({
    * jump to another.
    */
   const [expandedDates, setExpandedDates] = useState<readonly string[]>([])
+  /** The whole months the agenda has loaded; scrolling grows it at either end. */
+  const [range, setRange] = useState(() => agendaRangeAround(today))
+
+  // When the Group's zone changes (so `today` moves), a calendar sitting on
+  // the previous today follows it; a date the person chose stays put.
+  const [lastToday, setLastToday] = useState(today)
+  if (lastToday !== today) {
+    setLastToday(today)
+    if (shownDate === lastToday) {
+      setScrolledDate(null)
+      setJumpId((id) => id + 1)
+      setRange((current) => agendaRangeForJump(current, today))
+      setNavigation((current) => selectCalendarDate(current, today))
+    }
+  }
+
   useEffect(() => {
     onActiveDate(shownDate)
   }, [shownDate, onActiveDate])
-  /** The whole months the agenda has loaded; scrolling grows it at either end. */
-  const [range, setRange] = useState(() => agendaRangeAround(today))
 
   const jumpToDate = useCallback((date: string) => {
     setScrolledDate(null)

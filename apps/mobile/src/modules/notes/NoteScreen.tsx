@@ -264,10 +264,20 @@ export function Note({ noteId }: { noteId: string }) {
             <Text style={[styles.metaText, { color: tokens.muted }]}>
               {note.updatedByMe || note.updatedByName === null
                 ? fmt(note.updatedByMe ? t.notes.editedByYou : t.notes.edited, {
-                    when: noteWhen(note.updatedAt, locale, t.notes.today),
+                    when: noteWhen(
+                      note.updatedAt,
+                      locale,
+                      t.notes.today,
+                      group.timeZone,
+                    ),
                   })
                 : fmt(t.notes.editedBy, {
-                    when: noteWhen(note.updatedAt, locale, t.notes.today),
+                    when: noteWhen(
+                      note.updatedAt,
+                      locale,
+                      t.notes.today,
+                      group.timeZone,
+                    ),
                     name: note.updatedByName,
                   })}
             </Text>

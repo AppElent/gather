@@ -119,6 +119,22 @@ describe('applyFilters', () => {
     expect(narrowed(initialFilters('tasks'))).toBe(false)
     expect(narrowed({ ...initialFilters(), when: 'today' })).toBe(true)
   })
+
+  it("reads creationTime in the Group's zone for When filters", () => {
+    // 22:00Z on 24 Nov is 24 Nov in Amsterdam, 25 Nov in Tokyo.
+    const lateNote: FilterableRecord & { id: string } = {
+      id: 'late-note',
+      type: 'note',
+      creationTime: Date.parse('2026-11-24T22:00:00Z'),
+    }
+    const todayOnly = { ...initialFilters(), when: 'today' as const }
+    expect(ids(applyFilters([lateNote], todayOnly, '2026-11-25', 'Asia/Tokyo'))).toEqual([
+      'late-note',
+    ])
+    expect(
+      ids(applyFilters([lateNote], todayOnly, '2026-11-25', 'Europe/Amsterdam')),
+    ).toEqual([])
+  })
 })
 
 describe('serverFilters', () => {

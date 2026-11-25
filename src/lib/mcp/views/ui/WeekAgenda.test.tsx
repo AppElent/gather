@@ -53,3 +53,9 @@ it("highlights today in the Group's zone, not the viewer's", () => {
 it("highlights the viewer's day when the Group has no zone", () => {
   expect(highlighted()).toBe(Number(localIsoDate().slice(-2)) - 16)
 })
+
+it('uses UTC when show_week_agenda hands down its UTC fallback', () => {
+  // 23:30Z on the 17th: still the 17th in UTC, already the 18th in UTC+1.
+  vi.setSystemTime(new Date('2026-11-17T23:30:00Z'))
+  expect(highlighted('UTC')).toBe(1)
+})

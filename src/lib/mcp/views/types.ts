@@ -33,7 +33,7 @@ export type WeekAgendaResult = {
   /** The week holding today in the Group's zone (UTC when it has none). */
   isCurrentWeek: boolean
   today: string
-  /** The Group's zone; absent: the view highlights the viewer's own day. */
+  /** The zone this agenda's week and Today badge are read in (`UTC` when the Group has none). */
   timeZone?: string
   days: { date: string; events: AgendaEvent[] }[]
   /** More events than the view shows; list_events reads them all. */

@@ -1,4 +1,5 @@
 import { dayIn, todayIn } from '@gather/core/civil-date'
+import { runtimeTimeZone } from '@gather/core/time-zones'
 
 /**
  * When a note was last touched, as the phone says it (`noteWhen` in
@@ -13,6 +14,9 @@ export function noteWhen(
 ): string {
   const when = new Date(updatedAt)
   const today = dayIn(timeZone)(updatedAt) === todayIn(timeZone)
+  const resolved = timeZone
+    ? (runtimeTimeZone(timeZone) ?? undefined)
+    : undefined
   const format = (zone: string | undefined) =>
     today
       ? `${todayWord} ${when.toLocaleTimeString(locale, {
@@ -26,7 +30,7 @@ export function noteWhen(
           timeZone: zone,
         })
   try {
-    return format(timeZone)
+    return format(resolved)
   } catch {
     // A zone this browser does not know: its own calendar, as `dayIn` does.
     return format(undefined)

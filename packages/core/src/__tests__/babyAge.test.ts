@@ -68,4 +68,15 @@ describe('formatAge', () => {
       ),
     ).toBe('2 years old')
   })
+
+  test("counts age on the Group's day when a zone is given", () => {
+    // 22:00Z on 5 Jan is still 5 Jan in Amsterdam (4 days), 6 Jan in Tokyo (5 days).
+    const instant = Date.parse('2026-01-05T22:00:00Z')
+    expect(formatAge('2026-01-01', AGE, 'en', instant, 'Europe/Amsterdam')).toBe(
+      '4 days old',
+    )
+    expect(formatAge('2026-01-01', AGE, 'en', instant, 'Asia/Tokyo')).toBe(
+      '5 days old',
+    )
+  })
 })

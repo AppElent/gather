@@ -238,6 +238,25 @@ describe('Gather MCP endpoint', () => {
     expect(out.content[0].text).not.toContain('secret-invite')
   })
 
+  it("exposes a Group's timeZone in list_groups when set", async () => {
+    const backend = fakeBackend({
+      'groups:myGroups': () => [
+        { ...GROUPS[0], timeZone: 'Europe/Amsterdam' },
+      ],
+    })
+    const out = await callTool(backend, 'list_groups', {})
+    expect(out.structuredContent).toEqual({
+      groups: [
+        {
+          id: 'group_home',
+          name: 'Home',
+          role: 'admin',
+          timeZone: 'Europe/Amsterdam',
+        },
+      ],
+    })
+  })
+
   it('calls Convex by the Group slug and strips private fields', async () => {
     const backend = fakeBackend({
       'notes:listPage': () => ({
@@ -1037,7 +1056,27 @@ describe('Gather MCP endpoint', () => {
     const out = await callTool(backend, 'show_week_agenda', {
       groupId: 'group_home',
     })
-    expect(out.structuredContent).toMatchObject({ today: '2026-11-18' })
+    expect(out.structuredContent).toMatchObject({
+      today: '2026-11-18',
+      timeZone: 'Pacific/Kiritimati',
+    })
+  })
+
+  it('show_week_agenda hands its UTC fallback zone to the view when the Group has none', async () => {
+    const backend = fakeBackend({
+      'calendar:listCalendars': () => ({
+        page: [],
+        isDone: true,
+        continueCursor: '',
+      }),
+    })
+    const out = await callTool(backend, 'show_week_agenda', {
+      groupId: 'group_home',
+    })
+    expect(out.structuredContent).toMatchObject({
+      today: '2026-11-17',
+      timeZone: 'UTC',
+    })
   })
 
   it("gives the task list view the Group's zone", async () => {

@@ -119,11 +119,11 @@ export function GroupHome() {
         <StartHeading id="start-today">{words.heading}</StartHeading>
         <TodayRail
           now={day.railNow}
-          nowLabel={fmt(words.now, { time: clockTime(day.now) })}
+          nowLabel={fmt(words.now, { time: clockTime(day.now, timeZone) })}
           items={day.rail.map((entry) => ({
             id: entry.id,
             timestamp: entry.timestamp,
-            time: clockTime(entry.timestamp),
+            time: clockTime(entry.timestamp, timeZone),
             group: BABY.group,
             icon: EVENT_TYPE_ICONS[entry.type] ?? BABY.icon,
             title: entry.line,

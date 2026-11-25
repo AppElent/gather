@@ -131,6 +131,14 @@ describe('clockTime', () => {
     expect(clockTime(new Date(2026, 10, 16, 8, 5).getTime())).toBe('08:05')
     expect(clockTime(new Date(2026, 10, 16, 18, 30).getTime())).toBe('18:30')
   })
+
+  it("reads in the Group's zone when given, midnight as 00:xx", () => {
+    // 15:05Z is 00:05 in Tokyo (UTC+9) and 16:05 in Amsterdam (UTC+1).
+    const at = Date.parse('2026-11-16T15:05:00Z')
+    expect(clockTime(at, 'Asia/Tokyo')).toBe('00:05')
+    expect(clockTime(at, 'Europe/Amsterdam')).toBe('16:05')
+    expect(clockTime(at, 'Mars/Olympus')).toBe(clockTime(at))
+  })
 })
 
 describe('spelledDate', () => {

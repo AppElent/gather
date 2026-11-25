@@ -178,10 +178,15 @@ describe("the Group's today", () => {
     expect(new Set(asked)).toEqual(new Set(['2026-11-20']))
   })
 
-  test("a typed time is on this device's day", async () => {
+  test("a typed bare time is not overdue at once, while its reminder keeps this device's day", async () => {
     renderTasks(<TaskListPage listId="l1" />, far)
     await add('Mop floor 23:45')
-    expect(calls('tasks:add')[0].dueDate).toBe(localIsoDate())
+    expect(calls('tasks:add')[0].dueDate).toBe('2026-11-20')
+    await waitFor(() => expect(calls('tasks:setReminder')).toHaveLength(1))
+    expect(calls('tasks:setReminder')[0].reminder).toMatchObject({
+      date: localIsoDate(),
+      time: '23:45',
+    })
   })
 
   test("a reminder's day is this device's", () => {
