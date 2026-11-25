@@ -22,6 +22,7 @@ import {
   fitsPreferences,
   recipeClashes,
 } from '@gather/core/meal-preferences'
+import { weekdayName } from '@gather/core/week-menu'
 import { useMutation } from 'convex/react'
 import { useMemo, useState } from 'react'
 import {
@@ -32,7 +33,6 @@ import {
   TextInput,
   View,
 } from 'react-native'
-
 import { NativeSheet } from '../../../components/NativeSheet'
 import { SearchField } from '../../../components/SearchField'
 import { api, type Id } from '../../../convex/api'
@@ -47,7 +47,7 @@ import { InsetAddRow, InsetList, InsetRow } from '../../../ui/inset-list'
 import { useKeyboardDoneBar } from '../../../ui/keyboard-done-bar'
 import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { Chip, MealThumb } from './parts'
-import { type WeekData, weekdayName } from './week'
+import type { WeekData } from './week'
 
 export function PickSheet({
   date,

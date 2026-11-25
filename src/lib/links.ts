@@ -64,6 +64,10 @@ export const ROUTES = {
   groceriesInStock: '/groceries/in-stock',
   groceriesItem: '/groceries/item/$itemId',
 
+  mealPlannerSettings: '/meal-planner/settings',
+  plannedMeal: '/meal-planner/meal/$mealId',
+  mealProposal: '/meal-planner/proposal/$draftId',
+
   calendarDay: '/calendar/day/$date',
   calendarEvent: '/calendar/event/$eventId',
 

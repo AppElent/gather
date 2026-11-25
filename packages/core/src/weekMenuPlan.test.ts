@@ -1,9 +1,7 @@
-import { resolveMealPreferences } from '@gather/core/meal-preferences'
 import { describe, expect, test } from 'vitest'
-
-import { en } from '../../../i18n/messages/en'
-import { nl } from '../../../i18n/messages/nl'
-import type { PlannedMeal, WeekData } from './week'
+import { resolveMealPreferences } from './mealPreferences'
+import { en, nl } from './messages'
+import type { PlannedMeal, WeekData } from './weekMenu'
 import {
   type Draft,
   defaultPlanSlots,
@@ -15,7 +13,7 @@ import {
   slotChipLabel,
   storedWishes,
   swapReason,
-} from './week-plan'
+} from './weekMenuPlan'
 
 const members = [
   { userId: 'daan', name: 'Daan' },

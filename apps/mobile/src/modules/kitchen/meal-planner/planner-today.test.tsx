@@ -122,8 +122,8 @@ vi.mock('./proposal-bar', () => ({
 }))
 vi.mock('./swap-sheet', () => ({ SwapSheet: nothing }))
 vi.mock('./week-groceries-sheet', () => ({ WeekGroceriesSheet: nothing }))
-vi.mock('./week-plan', async (load) => ({
-  ...(await load<typeof import('./week-plan')>()),
+vi.mock('@gather/core/week-menu-plan', async (load) => ({
+  ...(await load<typeof import('@gather/core/week-menu-plan')>()),
   planSlotChoices: () => [],
   defaultPlanSlots: () => [],
   planUses: () => [],

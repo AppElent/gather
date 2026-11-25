@@ -5,13 +5,10 @@
  * decides what is actually empty again when it plans; this is what the sheet
  * shows before asking.
  */
-import { addDays } from '@gather/core/civil-date'
-import { fmt, type Locale, plural } from '@gather/core/i18n'
-import { MEAL_SLOTS, type MealSlot, weekdayIndex } from '@gather/core/meal-planner'
-import type { FunctionReturnType } from 'convex/server'
-
-import type { api } from '../../../convex/api'
-import type { Messages } from '../../../i18n'
+import { addDays } from './civilDate'
+import { fmt, type Locale, plural } from './i18n'
+import { MEAL_SLOTS, type MealSlot, weekdayIndex } from './mealPlanner'
+import type { Messages } from './messages'
 import {
   awayAt,
   busyEvent,
@@ -21,9 +18,19 @@ import {
   mealIn,
   type WeekData,
   weekdayName,
-} from './week'
+} from './weekMenu'
+import type { WeekPlanWish } from './weekPlan'
 
-export type Draft = FunctionReturnType<typeof api.mealPlanDrafts.list>[number]
+/** A proposed meal, as `mealPlanDrafts.list` returns it (the fields read here). */
+export interface Draft {
+  date: string
+  slot: MealSlot
+  reason?: string
+  prepMinutes?: number
+  wishes?: WeekPlanWish[]
+  wish?: string
+}
+
 type Words = Messages['mealPlanner']
 type PrefWords = Messages['mealPreferences']
 
@@ -266,7 +273,7 @@ export function swapReason(
 }
 
 /** The draft for one slot, if the open proposal has one. */
-export function draftIn(drafts: readonly Draft[], date: string, slot: MealSlot) {
+export function draftIn<T extends Pick<Draft, 'date' | 'slot'>>(drafts: readonly T[], date: string, slot: MealSlot) {
   return drafts.find((draft) => draft.date === date && draft.slot === slot)
 }
 
@@ -276,7 +283,7 @@ export function draftIn(drafts: readonly Draft[], date: string, slot: MealSlot) 
  * Ander voorstel may have changed its own, so the newest-looking one is not
  * special: the first draft that has any is read. `undefined` when none do.
  */
-export function storedWishes(drafts: readonly Draft[]) {
+export function storedWishes(drafts: readonly Pick<Draft, 'wishes' | 'wish'>[]) {
   const draft = drafts.find((d) => (d.wishes?.length ?? 0) > 0 || d.wish)
   return draft ? { wishes: draft.wishes ?? [], wish: draft.wish ?? '' } : undefined
 }
