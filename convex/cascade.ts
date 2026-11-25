@@ -24,12 +24,10 @@ import { deleteStoredFile } from './lib/storedFiles'
 /**
  * How many blobs one step releases.
  *
- * `deleteStoredFile` asks whether any row in any photo-holding table still
- * points at the blob before it goes, so each of these scans all of those tables.
- * Twenty stays comfortably inside a transaction, and a household with hundreds
- * of photos simply takes more steps rather than failing.
+ * Releasing one reads at most one row still pointing at it. A row is at most
+ * 1 MiB, so ten stay inside a transaction's 16 MiB whatever those rows hold.
  */
-const FILES_PER_STEP = 20
+const FILES_PER_STEP = 10
 
 export const releaseFiles = internalMutation({
   args: { storageIds: v.array(v.id('_storage')) },
