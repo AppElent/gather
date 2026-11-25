@@ -29,10 +29,13 @@
  * whole thing survive a Group larger than one transaction.
  */
 
+import { getDocumentSize } from 'convex/values'
 import { internal } from '../_generated/api'
 import type { Doc, Id, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
+import { writePauseMs } from './energyWritePace'
 import type { GroupScopedTable } from './groupAccess'
+import { takeNotes } from './noteSearch'
 import { cancelGroupSends } from './notifications'
 import { dropRecipeShares, setSharedGroups } from './recipeShares'
 import { storedFileIdsOf } from './storedFiles'
@@ -152,6 +155,47 @@ export async function purgeEventsOfBaby(
   )
 }
 
+/** Notes one transaction deletes, when they are short. */
+const NOTES_PER_PAGE = 500
+
+/** The bytes of notes one transaction deletes, and at most one note more. */
+const NOTE_BYTES_PER_PAGE = 2 * 1024 * 1024
+
+/**
+ * Delete a page of a Group's notes, and schedule the next while any are left:
+ * some 27 of the longest are more than one transaction reads (APP-826). The
+ * first page goes with the Group itself. Nothing reaches the rest meanwhile,
+ * because every way to a note resolves its Group first. A note holds no stored
+ * file, so none come back.
+ *
+ * The pause keeps to 1 MiB a second, and to the rows `writePauseMs` allows
+ * (why: `energyWritePace.ts`).
+ */
+export async function purgeNotesPage(
+  ctx: MutationCtx,
+  groupId: Id<'groups'>,
+): Promise<void> {
+  const notes = () =>
+    ctx.db
+      .query('notes')
+      .withIndex('by_group', (q) => q.eq('groupId', groupId))
+  const page = await takeNotes(notes(), {
+    count: NOTES_PER_PAGE,
+    bytes: NOTE_BYTES_PER_PAGE,
+  })
+  await purge(ctx, 'notes', page)
+  if ((await notes().first()) === null) return
+  const bytes = page.reduce((sum, note) => sum + getDocumentSize(note), 0)
+  await ctx.scheduler.runAfter(
+    Math.max(
+      writePauseMs(page.length),
+      Math.ceil((bytes / (1024 * 1024)) * 1000),
+    ),
+    internal.cascade.purgeNotes,
+    { groupId },
+  )
+}
+
 /**
  * How each group-scoped table's rows are reached and removed.
  *
@@ -262,15 +306,10 @@ const GROUP_CONTENT: {
         .collect(),
     ),
 
-  notes: async (ctx, groupId) =>
-    purge(
-      ctx,
-      'notes',
-      await ctx.db
-        .query('notes')
-        .withIndex('by_group', (q) => q.eq('groupId', groupId))
-        .collect(),
-    ),
+  notes: async (ctx, groupId) => {
+    await purgeNotesPage(ctx, groupId)
+    return []
+  },
 
   mealEntries: async (ctx, groupId) =>
     purge(

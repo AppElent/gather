@@ -1,13 +1,14 @@
 /**
- * A note's most characters, and reads of whole notes that stay inside a
- * query's 16 MiB (APP-805). The backend here refuses what Convex would.
+ * A note's most characters, reads of whole notes that stay inside a query's
+ * 16 MiB (APP-805), and deleting a Group full of them (APP-826). The backend here refuses what Convex would.
  */
 import { NOTE_MAX_CHARS } from '@gather/core/notes'
 import type { PaginationResult } from 'convex/server'
 import { ConvexError, getDocumentSize } from 'convex/values'
-import { describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   alice,
+  bob,
   seedGroup,
   seedMember,
   testConvexWithLimits,
@@ -239,6 +240,120 @@ test('search reads notes of 1 MiB, from before the limit', async () => {
   expect(
     (await me.query(api.notes.listPinned, { groupSlug })).length,
   ).toBe(0)
+})
+
+describe('deleting a Group full of notes (APP-826)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  /** The seeded Group is Alice's alone; she shares another with Bob. */
+  async function households() {
+    const seeded = await seed()
+    const sharedId = await seeded.t.run(async (ctx) => {
+      const bobId = await ctx.db.insert('users', {
+        clerkId: bob.subject,
+        name: bob.name,
+        email: bob.email,
+      })
+      const groupId = await seedGroup(ctx, { name: 'Club', slug: 'club' })
+      await seedMember(ctx, groupId, seeded.userId, 'member')
+      await seedMember(ctx, groupId, bobId, 'admin')
+      for (const author of [seeded.userId, bobId])
+        await ctx.db.insert('notes', {
+          groupId,
+          title: 'Kept',
+          body: 'x',
+          createdBy: author,
+          updatedAt: 1,
+        })
+      return groupId
+    })
+    return { ...seeded, sharedId }
+  }
+
+  async function settle(t: ReturnType<typeof testConvexWithLimits>) {
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    const steps = await t.run((ctx) =>
+      ctx.db.system.query('_scheduled_functions').collect(),
+    )
+    expect(steps.every((step) => step.state.kind === 'success')).toBe(true)
+    return steps.filter((step) => step.name.includes('purgeNotes')).length
+  }
+
+  type Households = Awaited<ReturnType<typeof households>>
+  const filled = { filled: true }
+  const longest = async ({ add }: Households) => {
+    for (let index = 0; index < 60; index += 1)
+      await add({ title: 'Kaart', body: WIDE.repeat(NOTE_MAX_CHARS - 5) }, filled)
+  }
+  const older = async ({ add }: Households) => {
+    for (let index = 0; index < 30; index += 1)
+      await add({ title: 'Kaart', body: 'a'.repeat(1_040_000) })
+  }
+  const short = async ({ add }: Households) => {
+    for (let index = 0; index < 1_200; index += 1)
+      await add({ title: 'Kaart', body: 'x' }, filled)
+  }
+  const deleteGroup = ({ me, groupId }: Households) =>
+    me.mutation(api.groups.deleteGroup, { groupId })
+  const deleteAccount = ({ me }: Households) =>
+    me.mutation(api.accounts.deleteAccount, {})
+
+  test.each([
+    ['the Group', 'the longest notes', longest, deleteGroup, 10],
+    ['the Group', 'notes of 1 MiB, from before the limit', older, deleteGroup, 9],
+    ['the Group', 'many short notes', short, deleteGroup, 2],
+    ['the account', 'the longest notes', longest, deleteAccount, 10],
+  ])('%s, with %s', async (_, __, fill, remove, atLeast) => {
+    const home = await households()
+    const { t, groupId, sharedId } = home
+    await fill(home)
+    await remove(home)
+    expect(await settle(t)).toBeGreaterThanOrEqual(atLeast)
+
+    expect(await t.run((ctx) => ctx.db.get(groupId))).toBe(null)
+    const left = await t.run((ctx) => ctx.db.query('notes').collect())
+    expect(left.map((note) => [note.groupId, note.title])).toEqual([
+      [sharedId, 'Kept'],
+      [sharedId, 'Kept'],
+    ])
+    const user = await t.run((ctx) => ctx.db.get(home.userId))
+    expect(user === null).toBe(remove === deleteAccount)
+  }, 60_000)
+
+  test('notes that fit one page go with the Group itself', async () => {
+    const home = await households()
+    const noteId = await home.add({ title: 'Wifi', body: 'hunter2' }, filled)
+    await deleteGroup(home)
+    expect(await home.stored(noteId)).toBe(null)
+    expect(await settle(home.t)).toBe(0)
+  })
+
+  test('a note waiting for its step is out of reach', async () => {
+    const home = await households()
+    await longest(home)
+    const noteId = await home.add({ title: 'Wifi', body: 'hunter2' }, filled)
+    await deleteGroup(home)
+    expect(await home.stored(noteId)).not.toBe(null)
+    await expect(
+      home.me.query(api.notes.get, { groupSlug, noteId }),
+    ).rejects.toThrow()
+    await expect(
+      home.me.mutation(api.notes.update, { groupSlug, noteId, title: 'x' }),
+    ).rejects.toThrow()
+    // Through a Group she is still in, too.
+    expect(
+      await home.me
+        .query(api.notes.get, { groupSlug: 'club', noteId })
+        .catch(() => null),
+    ).toBe(null)
+    await settle(home.t)
+    expect(await home.stored(noteId)).toBe(null)
+  })
 })
 
 describe('migrations:backfillNoteSearchText', () => {
