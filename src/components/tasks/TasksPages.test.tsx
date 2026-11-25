@@ -268,6 +268,89 @@ describe('a list', () => {
     )
   })
 
+  // The choice when completing a task with open subtasks (APP-820).
+  const choice = (name: string) =>
+    within(screen.getByRole('alertdialog')).queryByRole('button', { name })
+  const tickWindows = () =>
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Complete Wash windows' }),
+    )
+
+  test('"Only this" completes the task and leaves its subtasks', async () => {
+    renderTasks(<TaskListPage listId="l1" />)
+    tickWindows()
+    fireEvent.click(choice('Only this') as HTMLElement)
+    await waitFor(() => expect(calls('tasks:toggleDone')).toHaveLength(1))
+    expect(calls('tasks:toggleDone')[0]).toMatchObject({ taskId: 't1' })
+    expect(calls('tasks:toggleDone')[0]).not.toHaveProperty('withSubtasks')
+  })
+
+  test('Cancel completes nothing', () => {
+    renderTasks(<TaskListPage listId="l1" />)
+    tickWindows()
+    fireEvent.click(choice('Cancel') as HTMLElement)
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    expect(calls('tasks:toggleDone')).toEqual([])
+  })
+
+  // As on the phone: the next occurrence reopens the subtasks either way.
+  test('a repeating Gather task does not ask', async () => {
+    state.queries['tasks:listByList'] = [
+      { ...WINDOWS, repeat: { every: 1, unit: 'week', from: 'schedule' } },
+      SOAP,
+    ]
+    renderTasks(<TaskListPage listId="l1" />)
+    tickWindows()
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    await waitFor(() => expect(calls('tasks:toggleDone')).toHaveLength(1))
+  })
+
+  const tickLinkedParent = async (listId: string, more: object) => {
+    state.queries['taskLists:list'] = [
+      list(listId, 'Todoist', {
+        provider: 'todoist',
+        capabilities: { write: true },
+      }),
+    ]
+    const parent = {
+      externalId: 'p',
+      title: 'Pack',
+      done: false,
+      labels: [],
+      ...more,
+    }
+    const child = {
+      externalId: 'c',
+      title: 'Socks',
+      done: false,
+      labels: [],
+      parentExternalId: 'p',
+    }
+    state.linked = { status: 'ok', tasks: [parent, child] }
+    state.written = { status: 'ok', tasks: [parent], refresh: false }
+    renderTasks(<TaskListPage listId={listId} />)
+    await screen.findByText('Pack')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Complete Pack' }))
+  }
+
+  test.each([
+    ['Only this', { kind: 'setDone', taskId: 'p', done: true }],
+    ['Complete all', { kind: 'setDone', withSubtasks: true }],
+  ])('a repeating linked task offers %s', async (name, write) => {
+    await tickLinkedParent(`repeats ${name}`, { repeatText: 'every week' })
+    fireEvent.click(choice(name) as HTMLElement)
+    await waitFor(() => expect(calls('taskLists:writeTask')).toHaveLength(1))
+    const sent = calls('taskLists:writeTask')[0]?.write
+    expect(sent).toMatchObject(write)
+    if (name === 'Only this') expect(sent).not.toHaveProperty('withSubtasks')
+  })
+
+  test('a one-off linked task has no "Only this"', async () => {
+    await tickLinkedParent('one-off', {})
+    expect(choice('Complete all')).toBeVisible()
+    expect(choice('Only this')).toBeNull()
+  })
+
   test('moving down keeps subtasks behind their parent', async () => {
     renderTasks(<TaskListPage listId="l1" />)
     fireEvent.click(
