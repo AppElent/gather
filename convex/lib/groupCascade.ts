@@ -168,7 +168,7 @@ const NOTE_BYTES_PER_PAGE = 2 * 1024 * 1024
  * because every way to a note resolves its Group first. A note holds no stored
  * file, so none come back.
  *
- * The pause keeps to 1 MiB a second, and to the rows `writePauseMs` allows
+ * The pause keeps one Group's notes to 1 MiB of rows a second, and to the rows `writePauseMs` allows
  * (why: `energyWritePace.ts`).
  */
 export async function purgeNotesPage(

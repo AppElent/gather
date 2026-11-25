@@ -348,9 +348,7 @@ describe('deleting a Group full of notes (APP-826)', () => {
     ).rejects.toThrow()
     // Through a Group she is still in, too.
     expect(
-      await home.me
-        .query(api.notes.get, { groupSlug: 'club', noteId })
-        .catch(() => null),
+      await home.me.query(api.notes.get, { groupSlug: 'club', noteId }),
     ).toBe(null)
     await settle(home.t)
     expect(await home.stored(noteId)).toBe(null)

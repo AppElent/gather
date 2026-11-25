@@ -36,7 +36,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
 - **Notes** (APP-826): a Group's notes can total more than one transaction
   reads, so they go about 2 MiB at a time: the first page with the Group, any
   rest right after (`cascade.purgeNotes`). Nothing reaches those meanwhile,
-  because every read and write of a note resolves its Group first.
+  because every read and write of a note resolves its Group first. The last
+  pages may go just after the account's `users` row.
 - A repeating task's completion history (`taskCompletions`, APP-303) carries
   its `groupId`, so it goes with the Group, and with its task or list when
   either is deleted. A Member who leaves a shared Group stays named on the
