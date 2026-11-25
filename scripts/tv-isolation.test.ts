@@ -21,6 +21,62 @@ function importer(name: string): string {
   return rest.split(/\n {2}\S/)[0]
 }
 
+/** One top-level lockfile section, as entry key to the [name, version] pairs it depends on. */
+function entries(lock: string, section: string) {
+  const body = lock.split(`\n${section}:\n`)[1]?.split(/\n(?=\S)/)[0]
+  if (body === undefined) throw new Error(`no ${section} section`)
+  const unquote = (text: string) => text.replace(/^'(.*)'$/, '$1')
+  const found = new Map<string, [name: string, version: string][]>()
+  let dependencies: [string, string][] = []
+  let inDependencies = false
+  let name = ''
+  for (const line of body.split('\n')) {
+    const [, indent, key, value] = /^( +)('[^']+'|\S+?):(?: (.+))?$/.exec(line) ?? []
+    if (key === undefined) continue
+    if (indent.length === 2) {
+      dependencies = []
+      found.set(unquote(key), dependencies)
+    } else if (indent.length === 4) {
+      inDependencies = /^(dev|optional)?dependencies$/i.test(key)
+    } else if (inDependencies && indent.length === 6) {
+      name = unquote(key)
+      if (value) dependencies.push([name, unquote(value)])
+    } else if (inDependencies && key === 'version') {
+      dependencies.push([name, unquote(value)])
+    }
+  }
+  return found
+}
+
+/** What `importerName` reaches, workspace links included, each with the path to it. */
+function closure(lock: string, importerName: string): Map<string, string[]> {
+  const importers = entries(lock, 'importers')
+  const snapshots = entries(lock, 'snapshots')
+  const reached = new Map<string, string[]>([[importerName, [importerName]]])
+  // A Map iterates entries added during the loop, so this visits the whole closure.
+  for (const [id, trail] of reached) {
+    const dependencies = importers.get(id) ?? snapshots.get(id)
+    // Failing on an edge the walk cannot follow keeps it from passing unseen.
+    if (!dependencies) throw new Error(`cannot resolve ${trail.join(' > ')}`)
+    for (const [name, version] of dependencies) {
+      const target = version.startsWith('link:')
+        ? path.posix.join(importers.has(id) ? id : '.', version.slice('link:'.length))
+        : snapshots.has(version) // an alias spells out the package it resolves
+          ? version
+          : `${name}@${version}`
+      if (!reached.has(target)) reached.set(target, [...trail, target])
+    }
+  }
+  return reached
+}
+
+/** The dependency paths by which one workspace package reaches the tvOS fork. */
+function forkPaths(lock: string, importerName: string) {
+  return [...closure(lock, importerName)]
+    .filter(([id]) => /^@?react-native-tvos[@/]/.test(id))
+    .map(([, trail]) => trail.join(' > '))
+}
+
 function reactNative(name: string) {
   return /\n {6}react-native:\n {8}specifier: (.+)\n {8}version: ([^(\n]+)/
     .exec(importer(name))
@@ -32,7 +88,63 @@ test('the phone resolves stock react-native', () => {
   expect(importer('apps/mobile')).not.toContain('react-native-tvos')
 })
 
+test('nothing the phone depends on, directly or transitively, resolves the tvOS fork', () => {
+  expect(forkPaths(lockfile, 'apps/mobile')).toEqual([])
+})
+
+test('a fork that only a transitive phone dependency resolves is found', () => {
+  const leaked = `lockfileVersion: '9.0'
+
+importers:
+
+  apps/mobile:
+    dependencies:
+      '@gather/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      direct:
+        specifier: 1.0.0
+        version: 1.0.0(0123abc)
+
+  packages/core:
+    devDependencies:
+      from-core:
+        specifier: 1.0.0
+        version: 1.0.0
+
+packages:
+
+snapshots:
+
+  '@scope/nested@1.0.0':
+    optionalDependencies:
+      react-native: react-native-tvos@0.88.1-0(react@19.3.0)
+
+  direct@1.0.0(0123abc):
+    dependencies:
+      '@scope/nested': 1.0.0
+    transitivePeerDependencies:
+      - supports-color
+
+  from-core@1.0.0:
+    dependencies:
+      '@react-native-tvos/virtualized-lists': 0.88.1-0
+
+  '@react-native-tvos/virtualized-lists@0.88.1-0': {}
+
+  react-native-tvos@0.88.1-0(react@19.3.0): {}
+`
+  expect(forkPaths(leaked, 'apps/mobile')).toEqual([
+    'apps/mobile > packages/core > from-core@1.0.0 > @react-native-tvos/virtualized-lists@0.88.1-0',
+    'apps/mobile > direct@1.0.0(0123abc) > @scope/nested@1.0.0 > react-native-tvos@0.88.1-0(react@19.3.0)',
+  ])
+  expect(() =>
+    forkPaths(leaked.replace('direct@1.0.0(0123abc):', 'direct@2.0.0:'), 'apps/mobile'),
+  ).toThrow('cannot resolve apps/mobile > direct@1.0.0(0123abc)')
+})
+
 test('the TV app resolves the tvOS fork', () => {
+  expect(forkPaths(lockfile, 'apps/tv')).not.toEqual([])
   expect(reactNative('apps/tv')).toEqual([
     'npm:react-native-tvos@0.88.1-0',
     'react-native-tvos@0.88.1-0',
