@@ -19,6 +19,7 @@ Before the task, read the matching project doc:
 | Storing, replacing, or deleting a photo or file | [Stored files](docs/contracts/stored-files.md) |
 | Deleting a Group, an account, or rows a Group owns | [Account deletion](docs/contracts/account-deletion.md) |
 | Adding a Convex table, or changing what "Export your data" contains | [Data export](docs/contracts/data-export.md) |
+| Changing what a paired Apple Watch may call, its key, or the `/watch/v1` routes | [Watch API](docs/contracts/watch-api.md) |
 | Touching the share sheet, a Drop, or `expo-share-intent` | [Drop](docs/contracts/drop.md) |
 | Writing user-visible text, in either app | [Localization binding](CODING_STANDARDS.md#localization) |
 | Adding web navigation, breadcrumbs, or back links | [Navigation](docs/contracts/navigation.md) |

@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when adding or changing an environment variable, an Infisical value, a Convex deployment variable, or a generated env file.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Environment
@@ -89,7 +89,10 @@ the manifest and `.env.example`, not here.
   ([ADR-0050](../adr/0050-deleting-gather-data-keeps-the-appelent-login.md)),
   and to `user.created` and `user.updated`, which mirror the login's Apple
   links for web Apple revocation (APP-388,
-  [account deletion](../contracts/account-deletion.md#web-apple-revocation)).
+  [account deletion](../contracts/account-deletion.md#web-apple-revocation)),
+  and to `session.ended`, `session.removed` and `session.revoked`, which end the
+  keys of watches paired under that session (APP-653,
+  [watch API](../contracts/watch-api.md)).
   Each Clerk instance has its own endpoint and secret: the development one for
   `local`, the production one for `production`, which waits for Eric's go
   (APP-392). Per-PR preview backends get none. Optional: without it the route refuses every request

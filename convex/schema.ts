@@ -679,6 +679,37 @@ export default defineSchema({
     .index('by_token', ['token']),
 
   /**
+   * An Apple Watch paired with a Group: one key, which reads and changes that
+   * Group as the Member who made it (APP-653, `watch.ts`,
+   * `docs/contracts/watch-api.md`).
+   *
+   * `keyHash` is the SHA-256 of the key; the key itself is returned once and
+   * never stored. `installId` is the watch app's own id, so pairing the same
+   * watch again replaces its row. `sessionId` is the Clerk session of the phone
+   * that paired it, and the row goes when that session ends. Without
+   * `groceryListId` the watch opens the Group's own grocery list.
+   * `lastSeenAt` is written at most hourly.
+   *
+   * There is no `revokedAt`: revoking deletes the row. Deleting the Group,
+   * leaving it and deleting the account do too. The export leaves it out as
+   * bookkeeping.
+   */
+  watchDevices: defineTable({
+    userId: v.id('users'),
+    groupId: v.id('groups'),
+    keyHash: v.string(),
+    installId: v.string(),
+    sessionId: v.optional(v.string()),
+    groceryListId: v.optional(v.id('taskLists')),
+    createdAt: v.number(),
+    lastSeenAt: v.optional(v.number()),
+  })
+    .index('by_key_hash', ['keyHash'])
+    .index('by_user', ['userId'])
+    .index('by_user_and_install', ['userId', 'installId'])
+    .index('by_group', ['groupId']),
+
+  /**
    * A push notification waiting for its time, keyed by the caller's
    * `dedupeKey` (APP-298, `lib/notifications.ts`). One row per (person, key):
    * scheduling the key again replaces the job, and `generation` makes a job

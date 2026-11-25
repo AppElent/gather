@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a Convex table, changing what "Export your data" contains, or changing who may see a row or column.
-version: 2.1.3
+version: 2.2.0
 status: current
 ---
 
@@ -78,7 +78,9 @@ everything user-owned belongs to a Group or to a person
   (`bookkeeping`: a phone's push token is a way to reach that phone, not
   something the person wrote), and `appleSignInLinks` (`bookkeeping`: Clerk's
   record of the login's Apple user ids, mirrored for web Apple revocation, an
-  identifier like the Clerk id the file never writes). Tasks in a Notion- or
+  identifier like the Clerk id the file never writes), and `watchDevices`
+  (`bookkeeping`: a paired watch's key hash and session, a way in rather than
+  something the person wrote). Tasks in a Notion- or
   Todoist-backed list live in that service and are not in the file.
 - **Bounded reads, assembled on the client.** `dataExport.manifest` names the
   tables and Groups; `dataExport.page` returns at most `PAGE_SIZE` rows of one
