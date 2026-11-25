@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./account-deletion": "./src/accountDeletion.ts",
+    "./account-portal": "./src/accountPortal.ts",
     "./ai-limit": "./src/aiLimit.ts",
     "./appearance": "./src/appearance.ts",
     "./apple-sign-in": "./src/appleSignIn.ts",
