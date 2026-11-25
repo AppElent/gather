@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Web: lijst maken of koppelen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.85}
+button{font:inherit;cursor:pointer}
+input{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 820px; background: {{c.ground}}; color: {{c.ink}}; font-family: Inter, -apple-system, system-ui, 'Helvetica Neue', Arial, sans-serif; box-sizing: border-box; position: relative">
+
+  <sc-if value="{{s.after}}" hint-placeholder-val="{{ false }}">
+    <div style="background: {{c.wash}}; padding: 28px 24px 22px 24px">
+      <div style="max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px">
+        <a href="#" style="font-size: 14px; color: {{c.homeText}}; text-decoration: none">Taken</a>
+        <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap">
+          <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 12px; background: #E0873A; display: flex; align-items: center; justify-content: center">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2B1606" stroke-width="2" stroke-linecap="round"><path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6"></path></svg>
+          </span>
+          <h1 style="margin: 0; font-size: 30px; line-height: 38px; font-weight: 700; flex: 1 1 auto">Verbouwing</h1>
+          <button style="min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid {{c.hair}}; background: {{c.surface}}; color: {{c.ink}}">Vernieuwen</button>
+          <button style="min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid {{c.hair}}; background: {{c.surface}}; color: {{c.ink}}">Openen in Todoist</button>
+        </div>
+        <span style="font-size: 14px; color: {{c.muted}}">Todoist · account Eric · 4 open · zojuist geladen</span>
+      </div>
+    </div>
+    <div style="max-width: 880px; margin: 0 auto; padding: 20px 24px 40px 24px; display: flex; flex-direction: column; gap: 12px">
+      <sc-if value="{{showBanner}}" hint-placeholder-val="{{ true }}">
+        <div role="status" style="background: {{c.surface}}; border: 1px solid {{c.hair}}; border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap">
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{c.ok}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+          <div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 2px">
+            <strong style="font-size: 15px">Gekoppeld aan Todoist</strong>
+            <span style="font-size: 14px; line-height: 20px; color: {{c.muted}}">Wat je hier toevoegt, wijzigt of afvinkt, staat meteen in Todoist. Wat in Todoist verandert, zie je na Vernieuwen.</span>
+          </div>
+          <button onClick="{{hideBanner}}" style="min-height: 40px; padding: 0 14px; border-radius: 10px; border: 0; background: {{c.fill}}; color: {{c.on}}; font-weight: 600">Begrepen</button>
+        </div>
+      </sc-if>
+      <div style="background: {{c.surface}}; border-radius: 16px; border: 1px solid {{c.hair}}; overflow: hidden">
+        <div style="min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 16px; color: {{c.muted}}">
+          <span aria-hidden="true" style="font-size: 20px; width: 20px; text-align: center">+</span>
+          <span style="font-size: 15px">Taak toevoegen aan Verbouwing</span>
+        </div>
+        <sc-for list="{{tasks}}" as="t" hint-placeholder-count="4">
+          <div style="min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-top: 1px solid {{c.hair}}">
+            <span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 999px; border: 2px solid {{c.muted}}; box-sizing: border-box"></span>
+            <span style="font-size: 15px; flex: 1 1 auto">{{t.title}}</span>
+            <span style="font-size: 13px; color: {{c.muted}}">{{t.meta}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{s.dialog}}" hint-placeholder-val="{{ true }}">
+    <div style="max-width: 880px; margin: 0 auto; padding: 28px 24px; opacity: .45" aria-hidden="true">
+      <div style="font-size: 30px; font-weight: 700">Taken</div>
+      <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="height: 88px; border-radius: 16px; background: {{c.surface}}"></div>
+        <div style="height: 88px; border-radius: 16px; background: {{c.surface}}"></div>
+        <div style="height: 88px; border-radius: 16px; background: {{c.surface}}"></div>
+      </div>
+    </div>
+    <div style="position: absolute; inset: 0; background: {{c.scrim}}; display: flex; align-items: flex-start; justify-content: center; padding: 48px 16px; box-sizing: border-box">
+      <div role="dialog" aria-label="{{title}}" style="width: 100%; max-width: 560px; background: {{c.surface}}; border-radius: 20px; box-shadow: 0 12px 40px rgba(0,0,0,.18); padding: 22px 22px 18px 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <sc-if value="{{showBack}}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{back}}" aria-label="Terug" style="width: 40px; height: 40px; border-radius: 999px; border: 0; background: {{c.chip}}; color: {{c.ink}}; display: flex; align-items: center; justify-content: center">
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"></path></svg>
+            </button>
+          </sc-if>
+          <h2 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 700; flex: 1 1 auto">{{title}}</h2>
+          <button aria-label="Sluiten" style="width: 40px; height: 40px; border-radius: 999px; border: 0; background: {{c.chip}}; color: {{c.ink}}; display: flex; align-items: center; justify-content: center">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+
+        <sc-if value="{{s.choose}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <sc-for list="{{choices}}" as="ch" hint-placeholder-count="3">
+              <button onClick="{{ch.go}}" style="min-height: 72px; text-align: left; border: 1px solid {{c.hair}}; background: {{c.surface}}; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; color: {{c.ink}}">
+                <span style="font-size: 16px; font-weight: 600">{{ch.label}}</span>
+                <span style="font-size: 14px; line-height: 19px; color: {{c.muted}}">{{ch.sub}}</span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{s.form}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; font-weight: 600; color: {{c.muted}}">Waar staat de lijst?</span>
+            <div role="radiogroup" aria-label="Waar staat de lijst?" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; background: {{c.chip}}; border-radius: 12px; padding: 4px">
+              <sc-for list="{{sources}}" as="so" hint-placeholder-count="3">
+                <button role="radio" aria-checked="{{so.on}}" onClick="{{so.go}}" style="{{so.style}}">
+                  <span style="display: block; font-size: 15px; font-weight: 600">{{so.label}}</span>
+                  <span style="display: block; font-size: 12px; color: {{c.muted}}">{{so.sub}}</span>
+                </button>
+              </sc-for>
+            </div>
+            <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}; white-space: pre-line">{{sourceNote}}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 12px; background: {{tileColor}}; flex: 0 0 auto"></span>
+            <label style="flex: 1 1 auto; display: flex">
+              <span style="position: absolute; left: -9999px">Naam van de lijst</span>
+              <input value="{{formName}}" placeholder="Lijst" style="width: 100%; min-height: 44px; border: 1px solid {{c.hair}}; border-radius: 10px; padding: 0 12px; background: {{c.surface}}; font-size: 16px; box-sizing: border-box">
+            </label>
+          </div>
+          <sc-if value="{{showKinds}}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 13px; font-weight: 600; color: {{c.muted}}">Soort lijst</span>
+              <div style="border-radius: 14px; background: {{c.ground}}; overflow: hidden">
+                <sc-for list="{{kinds}}" as="k" hint-placeholder-count="5">
+                  <div style="min-height: 46px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-top: {{k.border}}">
+                    <span style="flex: 1 1 auto; font-size: 15px">{{k.label}}</span>
+                    <span style="font-size: 13px; color: {{c.muted}}">{{k.sub}}</span>
+                    <sc-if value="{{k.on}}" hint-placeholder-val="{{ false }}">
+                      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.homeText}}" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; font-weight: 600; color: {{c.muted}}">Kleur en icoon</span>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap">
+              <sc-for list="{{swatches}}" as="sw" hint-placeholder-count="4">
+                <button onClick="{{sw.go}}" aria-label="{{sw.label}}" style="width: 36px; height: 36px; border-radius: 999px; background: {{sw.hex}}; border: {{sw.ring}}; box-sizing: border-box"></button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-top: 1px solid {{c.hair}}; padding-top: 14px">
+            <sc-if value="{{showLinkEntry}}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{toPick}}" style="min-height: 40px; padding: 0 4px; border: 0; background: transparent; color: {{c.homeText}}; font-weight: 600; flex: 1 1 auto; text-align: left">Bestaande lijst koppelen…</button>
+            </sc-if>
+            <sc-if value="{{noLinkEntry}}" hint-placeholder-val="{{ false }}">
+              <span style="flex: 1 1 auto"></span>
+            </sc-if>
+            <button style="min-height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid {{c.hair}}; background: transparent; color: {{c.ink}}">Annuleren</button>
+            <button onClick="{{create}}" style="min-height: 40px; padding: 0 16px; border-radius: 10px; border: 0; background: {{c.fill}}; color: {{c.on}}; font-weight: 600">{{createLabel}}</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{s.pick}}" hint-placeholder-val="{{ false }}">
+          <div role="tablist" aria-label="Bron" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; background: {{c.chip}}; border-radius: 12px; padding: 4px">
+            <sc-for list="{{tabs}}" as="tb" hint-placeholder-count="2">
+              <button role="tab" aria-selected="{{tb.on}}" onClick="{{tb.go}}" style="{{tb.style}}">
+                <span style="display: block; font-size: 15px; font-weight: 600">{{tb.label}}</span>
+                <span style="display: block; font-size: 12px; color: {{c.muted}}">{{tb.sub}}</span>
+              </button>
+            </sc-for>
+          </div>
+          <sc-if value="{{connected}}" hint-placeholder-val="{{ true }}">
+            <label style="display: flex">
+              <span style="position: absolute; left: -9999px">Zoek een project</span>
+              <input placeholder="{{searchHint}}" style="width: 100%; min-height: 44px; border: 1px solid {{c.hair}}; border-radius: 10px; padding: 0 12px; background: {{c.surface}}; font-size: 15px; box-sizing: border-box">
+            </label>
+            <div style="border: 1px solid {{c.hair}}; border-radius: 14px; overflow: hidden">
+              <sc-for list="{{projects}}" as="p" hint-placeholder-count="5">
+                <button onClick="{{p.go}}" disabled="{{p.taken}}" style="width: 100%; min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border: 0; border-top: {{p.border}}; background: transparent; color: {{p.color}}; text-align: left">
+                  <span style="flex: 1 1 auto; font-size: 15px">{{p.name}}</span>
+                  <span style="font-size: 13px; color: {{c.muted}}">{{p.meta}}</span>
+                </button>
+              </sc-for>
+            </div>
+            <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{pickNote}}</span>
+          </sc-if>
+          <sc-if value="{{notConnected}}" hint-placeholder-val="{{ false }}">
+            <div style="border: 1px solid {{c.hair}}; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start">
+              <strong style="font-size: 16px">Notion is nog niet verbonden</strong>
+              <span style="font-size: 14px; line-height: 20px; color: {{c.muted}}">Verbind Notion voor deze Groep en kies welke databases Gather mag lezen. Daarna kom je hier terug, met je databases in de lijst.</span>
+              <button onClick="{{connectNotion}}" style="min-height: 40px; padding: 0 16px; border-radius: 10px; border: 0; background: {{c.fill}}; color: {{c.on}}; font-weight: 600">Notion verbinden</button>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{s.look}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: {{c.muted}}">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg>
+            <span>{{lookSource}}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 12px; background: {{tileColor}}; flex: 0 0 auto"></span>
+            <label style="flex: 1 1 auto; display: flex">
+              <span style="position: absolute; left: -9999px">Naam in Gather</span>
+              <input value="{{lookName}}" style="width: 100%; min-height: 44px; border: 1px solid {{c.hair}}; border-radius: 10px; padding: 0 12px; background: {{c.surface}}; font-size: 16px; box-sizing: border-box">
+            </label>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap">
+            <sc-for list="{{swatches}}" as="sw" hint-placeholder-count="4">
+              <button onClick="{{sw.go}}" aria-label="{{sw.label}}" style="width: 36px; height: 36px; border-radius: 999px; background: {{sw.hex}}; border: {{sw.ring}}; box-sizing: border-box"></button>
+            </sc-for>
+          </div>
+          <sc-if value="{{isNotion}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 13px; font-weight: 600; color: {{c.muted}}">Velden (zelf herkend)</span>
+              <div style="border-radius: 14px; background: {{c.ground}}; overflow: hidden">
+                <sc-for list="{{fields}}" as="f" hint-placeholder-count="5">
+                  <div style="min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-top: {{f.border}}">
+                    <span style="flex: 1 1 auto; font-size: 15px">{{f.label}}</span>
+                    <span style="font-size: 14px; color: {{f.color}}">{{f.value}}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <button style="align-self: flex-start; min-height: 40px; padding: 0 4px; border: 0; background: transparent; color: {{c.homeText}}; font-weight: 600">Velden aanpassen…</button>
+            </div>
+          </sc-if>
+          <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{lookNote}}</span>
+          <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; border-top: 1px solid {{c.hair}}; padding-top: 14px">
+            <button onClick="{{back}}" style="min-height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid {{c.hair}}; background: transparent; color: {{c.ink}}">Terug</button>
+            <button onClick="{{link}}" style="min-height: 40px; padding: 0 16px; border-radius: 10px; border: 0; background: {{c.fill}}; color: {{c.on}}; font-weight: 600">Koppelen en openen</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["new","newTodoist","pick","connect","look","lookNotion","after","choose"],"default":"new"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1280,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = (this.props.theme || 'light') === 'dark';
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#3A403D', chip: '#2A2E2C',
+      fill: '#D99B2B', on: '#2B1F06', homeText: '#F2C060', wash: '#2E2611', scrim: 'rgba(0,0,0,.55)', ok: '#7CC48F', off: '#6E7672'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', ink: '#1A1F1D', muted: '#5E6764', hair: '#D5D9D4', chip: '#ECEEEA',
+      fill: '#F2B233', on: '#2B1F06', homeText: '#8A5C08', wash: '#FBEBC6', scrim: 'rgba(20,24,22,.38)', ok: '#2E7D4A', off: '#8C9490'
+    };
+    const st = this.state || {};
+    const screen = st.screen || this.props.screen || 'new';
+    const src = st.src || (screen === 'newTodoist' ? 'todoist' : 'gather');
+    const tab = st.tab || (screen === 'connect' || screen === 'lookNotion' ? 'notion' : 'todoist');
+    const notionConnected = !!st.notionConnected;
+    const go = (patch) => () => this.setState(patch);
+    const form = screen === 'new' || screen === 'newTodoist';
+    const pick = screen === 'pick' || screen === 'connect';
+    const look = screen === 'look' || screen === 'lookNotion';
+    const isNotion = screen === 'lookNotion' || (look && tab === 'notion');
+    const s = { form, pick, look, choose: screen === 'choose', after: screen === 'after', dialog: screen !== 'after' };
+    const hex = ['#F2B233', '#E0873A', '#4F9D69', '#5B8DEF'];
+    const names = ['Amber', 'Oranje', 'Groen', 'Blauw'];
+    const color = st.color ?? (look ? 1 : 0);
+    const swatches = hex.map((h, i) => ({ hex: h, label: names[i], ring: i === color ? '3px solid ' + c.ink : '3px solid transparent', go: go({ color: i }) }));
+    const segStyle = (on, disabled) => 'min-height: 52px; border: 0; border-radius: 9px; padding: 6px 8px; text-align: center; background: ' + (on ? c.surface : 'transparent') + '; color: ' + (disabled ? c.off : c.ink) + '; box-shadow: ' + (on ? '0 1px 3px rgba(0,0,0,.12)' : 'none');
+    const sources = [
+      { id: 'gather', label: 'Gather', sub: 'alleen hier' },
+      { id: 'todoist', label: 'Todoist', sub: 'account Eric' },
+      { id: 'notion', label: 'Notion', sub: 'alleen koppelen' }
+    ].map((x) => ({ ...x, on: x.id === src ? 'true' : 'false', style: segStyle(x.id === src, x.id === 'notion'), go: x.id === 'notion' ? go({ screen: 'connect', tab: 'notion' }) : go({ src: x.id }) }));
+    const sourceNote = src === 'todoist'
+      ? 'Gather maakt een nieuw Todoist-project met deze naam. Je bewerkt het hier en in Todoist.\nPaklijst, Boodschappen en Verlanglijst werken alleen in Gather; in Todoist wordt het een gewone lijst.'
+      : 'Alleen in Gather, voor iedereen in de Groep.';
+    const kindsAll = [
+      { label: 'Lijst', sub: 'leeg' }, { label: 'Klusjes', sub: 'per ruimte' }, { label: 'Paklijst', sub: 'blijft staan' },
+      { label: 'Boodschappen', sub: 'per afdeling' }, { label: 'Verlanglijst', sub: 'link en prijs' }
+    ];
+    const kinds = kindsAll.map((k, i) => ({ ...k, on: i === 1, border: i ? '1px solid ' + c.hair : '0' }));
+    const tabs = [
+      { id: 'todoist', label: 'Todoist', sub: 'verbonden · Eric' },
+      { id: 'notion', label: 'Notion', sub: notionConnected ? 'verbonden · Huis' : 'nog niet verbonden' }
+    ].map((x) => ({ ...x, on: x.id === tab ? 'true' : 'false', style: segStyle(x.id === tab, false), go: go({ tab: x.id, screen: 'pick' }) }));
+    const todoistProjects = [
+      { name: 'Inbox', meta: '12 open' },
+      { name: 'Huishouden', meta: 'al gekoppeld', taken: true },
+      { name: 'Verbouwing', meta: '4 open' },
+      { name: 'Werk', meta: '9 open' },
+      { name: 'Vakantie Texel', meta: '7 open' }
+    ];
+    const notionDbs = [
+      { name: 'Klussen huis', meta: 'database · 18' },
+      { name: 'Leesvoer', meta: 'database · 31' },
+      { name: 'Projecten', meta: 'al gekoppeld', taken: true }
+    ];
+    const list = tab === 'notion' ? notionDbs : todoistProjects;
+    const projects = list.map((p, i) => ({
+      ...p, taken: !!p.taken, color: p.taken ? c.off : c.ink, border: i ? '1px solid ' + c.hair : '0',
+      go: go({ screen: tab === 'notion' ? 'lookNotion' : 'look', picked: p.name, color: null })
+    }));
+    const picked = st.picked || (isNotion ? 'Klussen huis' : 'Verbouwing');
+    const fields = [
+      { label: 'Titel', value: 'Naam', ok: true }, { label: 'Gedaan', value: 'Status (Klaar telt als gedaan)', ok: true },
+      { label: 'Datum', value: 'Deadline', ok: true }, { label: 'Prioriteit', value: 'niet gevonden', ok: false },
+      { label: 'Labels', value: 'Ruimte', ok: true }
+    ].map((f, i) => ({ ...f, color: f.ok ? c.ink : c.muted, border: i ? '1px solid ' + c.hair : '0' }));
+    const titles = { form: 'Nieuwe lijst', pick: 'Bestaande lijst koppelen', look: 'Zo staat hij in Gather', choose: 'Lijst toevoegen' };
+    const title = form ? titles.form : pick ? titles.pick : look ? titles.look : titles.choose;
+    const choices = [
+      { label: 'Nieuwe lijst in Gather', sub: 'Klusjes, paklijst, boodschappen of een gewone lijst.', go: go({ screen: 'new', src: 'gather' }) },
+      { label: 'Nieuwe lijst in Todoist', sub: 'Gather maakt het project aan; bewerken kan hier en daar.', go: go({ screen: 'new', src: 'todoist' }) },
+      { label: 'Bestaande lijst koppelen', sub: 'Een Todoist-project of Notion-database die je al hebt.', go: go({ screen: 'pick', tab: 'todoist' }) }
+    ];
+    const fromChoose = !!st.fromChoose || this.props.screen === 'choose';
+    return {
+      c, s, title, sources, sourceNote, kinds, swatches, tabs, projects, fields, choices,
+      showKinds: src === 'gather',
+      tileColor: hex[color],
+      formName: src === 'todoist' ? 'Klusjes' : '',
+      createLabel: src === 'todoist' ? 'Maak in Todoist' : 'Maak',
+      showLinkEntry: !fromChoose, noLinkEntry: fromChoose,
+      showBack: pick || look,
+      connected: tab === 'todoist' || notionConnected,
+      notConnected: tab === 'notion' && !notionConnected,
+      searchHint: tab === 'notion' ? 'Zoek een database' : 'Zoek een project',
+      pickNote: tab === 'notion'
+        ? 'Notion-lijsten zijn in Gather alleen te lezen. Zie je een database niet? Geef Gather er toegang toe in Notion.'
+        : 'Een project dat al gekoppeld is, staat grijs. Je kiest er daarna een naam, kleur en icoon voor.',
+      isNotion,
+      lookSource: isNotion ? 'Notion · Huis › ' + picked : 'Todoist · Eric › ' + picked,
+      lookName: picked,
+      lookNote: isNotion
+        ? 'Alleen lezen: afvinken en wijzigen doe je in Notion. Naam, kleur en icoon gelden alleen in Gather.'
+        : 'Taken die je hier toevoegt, wijzigt of afvinkt, staan meteen in Todoist. Naam, kleur en icoon gelden alleen in Gather.',
+      showBanner: !st.bannerGone,
+      tasks: [
+        { title: 'Tegels badkamer uitzoeken', meta: 'za 28 nov' },
+        { title: 'Offerte loodgieter', meta: 'P1' },
+        { title: 'Verf ophalen', meta: '' },
+        { title: 'Plinten zagen', meta: 'Daan' }
+      ],
+      hideBanner: go({ bannerGone: true }),
+      toPick: go({ screen: 'pick', tab: 'todoist' }),
+      connectNotion: go({ notionConnected: true }),
+      back: go(look ? { screen: 'pick' } : { screen: fromChoose ? 'choose' : 'new' }),
+      create: src === 'todoist' ? go({ screen: 'after', bannerGone: false }) : go({}),
+      link: go({ screen: 'after', bannerGone: false })
+    };
+  }
+}
+</script>
+</body>
+</html>
