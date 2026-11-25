@@ -573,11 +573,12 @@ describe('notes whose title has the words come first (APP-806)', () => {
     expect(await notes('kaart')).toEqual(['Wijnkaart', 'Cellar', 'Shed'])
   })
 
-  test('stops reading at the character budget: a title hit past it is not found', async () => {
-    // 110 notes of about 10 000 characters pass 1 000 000 at the 100th, so
-    // the index's 111th, the oldest, is never read. It is also outside the
-    // newest 100 notes, which are read apart.
-    const body = `boiler ${'x'.repeat(10_000)}`
+  test('stops reading at the byte budget: a title hit past it is not found', async () => {
+    // 110 notes of 50 000 characters, about 100 000 bytes as stored with
+    // `searchText`, pass the 4 MiB `search_text` read at about the 42nd, so the
+    // index's 111th, the oldest, is never read. The newest notes are read apart
+    // and stop at 3 MiB, well short of it.
+    const body = `boiler ${'x'.repeat(50_000)}`
     const { notes } = await crowded([
       ...bodyHits(110, body),
       { title: 'Boiler', body: '', updatedAt: 1 },
@@ -587,7 +588,7 @@ describe('notes whose title has the words come first (APP-806)', () => {
     expect(found).not.toContain('Boiler')
   })
 
-  test('short notes of the same count stay within the character budget, so the title hit is found', async () => {
+  test('short notes of the same count stay within the byte budget, so the title hit is found', async () => {
     const { notes } = await crowded([
       ...bodyHits(110, 'boiler x'),
       { title: 'Boiler', body: '', updatedAt: 1 },

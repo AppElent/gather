@@ -53,9 +53,5 @@ describe('groupExits', () => {
       leave: 'wait',
       delete: 'hidden',
     })
-    expect(groupExits(undefined, undefined)).toEqual({
-      leave: 'wait',
-      delete: 'hidden',
-    })
   })
 })

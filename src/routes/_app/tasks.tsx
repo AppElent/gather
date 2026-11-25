@@ -1,17 +1,15 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { TasksPage } from '../../components/tasks/TasksPage'
-import { validateNewSearch } from '../../lib/createActions'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
+import { TasksError } from '../../components/tasks/TasksError'
+import { TasksNotices } from '../../components/tasks/TasksNotices'
 
+/** What every Tasks page shares, kept while going from one to another. */
 export const Route = createFileRoute('/_app/tasks')({
-  validateSearch: validateNewSearch,
-  component: function TasksIndex() {
-    const search = Route.useSearch()
-    const navigate = Route.useNavigate()
+  errorComponent: TasksError,
+  component: function TasksLayout() {
     return (
-      <TasksPage
-        startCreating={search.new}
-        onCreateStarted={() => navigate({ search: {}, replace: true })}
-      />
+      <TasksNotices>
+        <Outlet />
+      </TasksNotices>
     )
   },
 })

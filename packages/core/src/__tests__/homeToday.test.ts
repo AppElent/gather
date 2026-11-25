@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { dayStartIn } from '../civilDate'
 
 import {
   clockTime,
@@ -8,7 +9,6 @@ import {
   overdueTasks,
   railEntries,
   spelledDate,
-  startOfDay,
 } from '../homeToday'
 import { en, nl } from '../messages'
 
@@ -62,7 +62,7 @@ describe('overdueListId', () => {
 
 describe('railEntries', () => {
   const noon = new Date(2026, 10, 16, 12, 0).getTime()
-  const dayStart = startOfDay(noon)
+  const dayStart = dayStartIn(undefined, noon)
   const at = (h: number, m: number) => new Date(2026, 10, 16, h, m).getTime()
   const children = [
     { _id: 'sanne', name: 'Sanne' },
@@ -134,7 +134,7 @@ describe('clockTime', () => {
 })
 
 describe('spelledDate', () => {
-  const monday = new Date(2026, 10, 16, 9, 0).getTime()
+  const monday = '2026-11-16'
 
   it('spells the date out in English', () => {
     expect(spelledDate(monday, 'en', en.shell.today.date)).toBe(

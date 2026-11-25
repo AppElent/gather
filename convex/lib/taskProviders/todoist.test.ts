@@ -409,7 +409,7 @@ describe('Todoist writes (APP-448)', () => {
     const run = async (withSubtasks: boolean) => {
       const todoist = fakeTodoist({
         'GET /tasks/t1': recurring,
-        'GET /tasks': { results: [apiTask({ id: 'c1' })], next_cursor: null },
+        'GET /tasks': { results: [apiTask({ id: 'c1', parent_id: 't1' })], next_cursor: null },
         'POST /sync': syncOk,
       })
       const outcome = await writer.closeTask(
@@ -438,7 +438,10 @@ describe('Todoist writes (APP-448)', () => {
         due: { date: '2026-11-24', is_recurring: true, string: 'every day' },
       }),
       'GET /tasks': {
-        results: [apiTask({ id: 'c1' }), apiTask({ id: 'c2' })],
+        results: [
+          apiTask({ id: 'c1', parent_id: 't1' }),
+          apiTask({ id: 'c2', parent_id: 't1' }),
+        ],
         next_cursor: null,
       },
       'POST /sync': (call: Call) => {
@@ -461,6 +464,118 @@ describe('Todoist writes (APP-448)', () => {
       ),
     ).rejects.toThrow(/refused/)
     expect(todoist.writes()).toHaveLength(1)
+  })
+
+  const daily = { date: '2026-11-24', is_recurring: true, string: 'every day' }
+
+  /** A Todoist that runs a command's UUID once and refuses some tasks. */
+  function recurringTodoist(below: ReturnType<typeof apiTask>[]) {
+    const ran = new Set<string>()
+    const closed: string[] = []
+    const refused = new Set<string>()
+    const gone = new Set<string>()
+    const todoist = fakeTodoist({
+      'GET /tasks/t1': apiTask({ due: daily }),
+      'GET /tasks': () => ({
+        results: [
+          apiTask({ due: daily }),
+          ...below.filter((each) => !gone.has(each.id)),
+        ],
+        next_cursor: null,
+      }),
+      'POST /sync': (call: Call) => ({
+        sync_status: Object.fromEntries(
+          syncCommands(call).map(({ uuid, args }) => {
+            const id = String(args.id)
+            if (refused.has(id)) return [uuid, { http_code: 500 }]
+            if (!ran.has(uuid)) {
+              ran.add(uuid)
+              closed.push(id)
+              const row: Record<string, unknown> | undefined = below.find(
+                (each) => each.id === id,
+              )
+              if (row && !row.due) gone.add(id)
+            }
+            return [uuid, 'ok']
+          }),
+        ),
+      }),
+    })
+    const completeAll = (requestKey?: string) =>
+      writer.closeTask(
+        'tok',
+        config,
+        't1',
+        { withSubtasks: true, requestKey },
+        todoist.fetchImpl,
+      )
+    return { closed, refused, completeAll, todoist }
+  }
+
+  test('retrying Complete all after a refusal moves each recurring subtask on once', async () => {
+    const { closed, refused, completeAll } = recurringTodoist([
+      apiTask({ id: 'daily', parent_id: 't1', due: daily }),
+      apiTask({ id: 'once', parent_id: 't1' }),
+      apiTask({ id: 'stuck', parent_id: 't1', due: daily }),
+    ])
+    refused.add('stuck')
+    await expect(completeAll('key')).rejects.toThrow(/refused/)
+    expect(closed).toEqual(['daily', 'once'])
+    refused.clear()
+    await completeAll('key')
+    expect(closed).toEqual(['daily', 'once', 'stuck', 't1'])
+    // Another Complete all is another completion.
+    await completeAll('next')
+    expect(closed.slice(4)).toEqual(['daily', 'stuck', 't1'])
+  })
+
+  test('the same key on a later occurrence completes again', async () => {
+    const run = async (date: string) => {
+      const todoist = fakeTodoist({
+        'GET /tasks/t1': apiTask({ due: { ...daily, date } }),
+        'GET /tasks': {
+          results: [apiTask({ id: 'c', parent_id: 't1', due: daily })],
+          next_cursor: null,
+        },
+        'POST /sync': syncOk,
+      })
+      await writer.closeTask(
+        'tok',
+        config,
+        't1',
+        { withSubtasks: true, requestKey: 'key' },
+        todoist.fetchImpl,
+      )
+      return syncCommands(todoist.writes()[0])[0].uuid
+    }
+    const first = await run('2026-11-24T09:00:00')
+    expect(await run('2026-11-24T09:00:00')).toBe(first)
+    expect(await run('2026-11-24T11:00:00')).not.toBe(first)
+  })
+
+  test('Complete all closes subtasks of subtasks, the deepest first', async () => {
+    const { closed, completeAll, todoist } = recurringTodoist([
+      apiTask({ id: 'other' }),
+      apiTask({ id: 'child', parent_id: 't1', due: daily }),
+      apiTask({ id: 'grandchild', parent_id: 'child' }),
+      apiTask({ id: 'deepest', parent_id: 'grandchild' }),
+    ])
+    await completeAll('key')
+    expect(closed).toEqual(['deepest', 'grandchild', 'child', 't1'])
+    expect(todoist.writes()).toHaveLength(2)
+  })
+
+  test('Complete all sends at most 100 commands at a time', async () => {
+    const { closed, completeAll, todoist } = recurringTodoist(
+      Array.from({ length: 101 }, (_, at) =>
+        apiTask({ id: `c${at}`, parent_id: 't1' }),
+      ),
+    )
+    await completeAll('key')
+    expect(todoist.writes().map((call) => syncCommands(call).length)).toEqual([
+      100, 1, 1,
+    ])
+    expect(closed.at(-1)).toBe('t1')
   })
 
   test('reopens a completed task of the project', async () => {

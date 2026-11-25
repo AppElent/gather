@@ -18,17 +18,22 @@
  * - Removing a recognised chip leaves its words in the title: that is the
  *   parser's `dismissed`, which the line keeps.
  */
-import { addDays, mondayStart } from '@gather/core/civil-date'
-import {
-  parseQuickAdd,
-  type QuickAdd,
-  type QuickAddContext,
-  type QuickAddKind,
-  type QuickAddPart,
+import type {
+  QuickAdd,
+  QuickAddKind,
+  QuickAddPart,
 } from '@gather/core/task-quick-add'
-import { normalizeRepeat, type TaskRepeat } from '@gather/core/task-repeat'
+import { readRepeat } from '@gather/core/task-quick-add-line'
+import type { TaskRepeat } from '@gather/core/task-repeat'
 import { newSaveKey } from '../../ui/composer-drafts'
 import type { Priority } from './types'
+
+export {
+  dateShortcuts,
+  LINKED_KINDS,
+  parseOnly,
+  QUICK_REPEATS,
+} from '@gather/core/task-quick-add-line'
 
 /** A reminder's wall clock on this phone; the zone is added when it saves. */
 export interface ReminderPick {
@@ -72,26 +77,6 @@ export interface TaskDraft {
    * often it is sent, across a close and a reopen. A new draft has a new one.
    */
   saveKey: string
-}
-
-/** What a line can read for a linked list's task (APP-448). */
-export const LINKED_KINDS: readonly QuickAddKind[] = ['date', 'label']
-
-/** A line read for only these details: the rest of it stays the title. */
-export function parseOnly(
-  line: string,
-  context: QuickAddContext,
-  kinds: readonly QuickAddKind[] | undefined,
-): QuickAdd {
-  let dismissed = context.dismissed ?? []
-  for (;;) {
-    const parsed = parseQuickAdd(line, { ...context, dismissed })
-    const left = kinds
-      ? parsed.parts.filter((part) => !kinds.includes(part.kind))
-      : []
-    if (left.length === 0) return parsed
-    dismissed = [...dismissed, ...left.map((part) => part.key)]
-  }
 }
 
 /** The composed task as a linked list's provider can hold it. */
@@ -220,17 +205,6 @@ export function composedTask(draft: TaskDraft, parsed: QuickAdd): ComposedTask {
   }
 }
 
-/**
- * The repeat the line read, anchored on the task's own due date: a date
- * picked on the chip moves "every week" to that weekday and "every month" to
- * that day. What was typed stays as typed ("every Tuesday" is Tuesday).
- */
-function readRepeat(parsed: QuickAdd, dueDate: string | undefined) {
-  const typed = parsed.parts.find((part) => part.kind === 'repeat')
-  if (typed?.kind !== 'repeat' || !dueDate) return parsed.repeat
-  return normalizeRepeat(typed.repeat, dueDate) ?? parsed.repeat
-}
-
 /** A quick-add line on its own, as the Add tab and a list's row save it. */
 export function parsedTask(parsed: QuickAdd): ComposedTask {
   return composedTask(emptyDraft({}), parsed)
@@ -293,20 +267,3 @@ export function afterLineChange(
 ): TaskChoices {
   return line === loadedLine ? choices : afterTyping(choices, before, parts)
 }
-
-/** The date menu's shortcuts: today, tomorrow, the weekend, next Monday. */
-export function dateShortcuts(today: string, weekend: string) {
-  return {
-    today,
-    tomorrow: addDays(today, 1),
-    weekend,
-    nextWeek: mondayStart(addDays(today, 7)),
-  }
-}
-
-/** The short repeats the Repeat menu offers before Custom…. */
-export const QUICK_REPEATS = {
-  day: { mode: 'fixed', unit: 'day', every: 1 },
-  week: { mode: 'fixed', unit: 'week', every: 1 },
-  month: { mode: 'fixed', unit: 'month', every: 1 },
-} as const satisfies Record<string, TaskRepeat>

@@ -589,6 +589,20 @@ describe('Gather MCP endpoint', () => {
     expect(texts.size).toBe(1)
   })
 
+  it('says a note is too long, and how long one may be', async () => {
+    const out = await callTool(
+      fakeBackend({
+        'notes:update': () => {
+          throw new ConvexError({ kind: 'notes:too-long' })
+        },
+      }),
+      'update_note',
+      { groupId: 'group_home', noteId: 'note_1', title: 'New' },
+    )
+    expect(out.isError).toBe(true)
+    expect(out.content[0].text).toContain('100,000')
+  })
+
   it('updates an event from its current revision, keeping what was not passed', async () => {
     const backend = fakeBackend({
       'calendar:getCalendarEvent': () => ({
@@ -1024,6 +1038,21 @@ describe('Gather MCP endpoint', () => {
       groupId: 'group_home',
     })
     expect(out.structuredContent).toMatchObject({ today: '2026-11-18' })
+  })
+
+  it("gives the task list view the Group's zone", async () => {
+    const backend = fakeBackend({
+      'groups:myGroups': () => [{ ...GROUPS[0], timeZone: 'Pacific/Kiritimati' }],
+      'taskLists:list': () => [
+        { _id: 'list_1', name: 'Groceries', provider: 'local', writable: true },
+      ],
+      'tasks:listByList': () => [],
+    })
+    const shown = await callTool(backend, 'show_task_list', {
+      groupId: 'group_home',
+      listId: 'list_1',
+    })
+    expect(shown.structuredContent).toMatchObject({ timeZone: 'Pacific/Kiritimati' })
   })
 
   it('shows a task list as writable only with the write scope', async () => {

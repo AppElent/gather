@@ -56,8 +56,13 @@ export interface QuickAddMember {
 }
 
 export interface QuickAddContext {
-  /** The phone's day, `YYYY-MM-DD`. */
+  /** The day words are read from ("tomorrow"): the Group's, `YYYY-MM-DD`. */
   today: string
+  /**
+   * The phone's own day, where it can differ: a time sets a reminder on the
+   * phone's clock. Left out, it is `today`.
+   */
+  clockDay?: string
   /** The phone's clock, `HH:MM`: decides whether a bare time is today. */
   now: string
   /** The Members a `@name` can be. */
@@ -612,7 +617,8 @@ export function parseQuickAdd(text: string, ctx: QuickAddContext): QuickAdd {
   // tomorrow once a typed time has passed, and for a repeat the first of its
   // days from then on, as the server would pick (`firstDueDate`). "Elke
   // dinsdag om 19:30" on a Saturday is due Tuesday, not today.
-  const first = time && time.time <= ctx.now ? addDays(ctx.today, 1) : ctx.today
+  const start = time ? (ctx.clockDay ?? ctx.today) : ctx.today
+  const first = time && time.time <= ctx.now ? addDays(start, 1) : start
   const dueDate =
     date?.date ??
     (repeat

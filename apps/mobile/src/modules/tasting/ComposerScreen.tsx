@@ -30,7 +30,7 @@
  * is entirely `mode`.
  */
 
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import { readRefusal, TASTING_REFUSALS } from '@gather/core/refusals'
 import type { TastingAttributeValue, TastingKind } from '@gather/core/tastings'
 import { tastingFields } from '@gather/core/tastings'
@@ -115,7 +115,7 @@ export function ComposerScreen({
   const [name, setName] = useState(chosenName ?? '')
   const [facts, setFacts] = useState<Attributes>({})
   const [rating, setRating] = useState<number | null>(null)
-  const [tastedAt, setTastedAt] = useState(() => localIsoDate())
+  const [tastedAt, setTastedAt] = useState(() => todayIn(group.timeZone))
   const [impressions, setImpressions] = useState<Attributes>({})
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)

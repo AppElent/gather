@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Web: lijst van een Todoist-taak kiezen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.85}
+button{font:inherit;cursor:pointer}
+select,input{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 820px; background: {{c.ground}}; color: {{c.ink}}; font-family: Inter, -apple-system, system-ui, 'Helvetica Neue', Arial, sans-serif; box-sizing: border-box">
+  <div style="background: {{c.homeWash}}; padding: 28px 24px 22px 24px">
+    <div style="max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px">
+      <a href="#" style="font-size: 14px; color: {{c.homeText}}; text-decoration: none">Taken</a>
+      <h1 style="margin: 0; font-size: 30px; line-height: 38px; font-weight: 700">Huishouden</h1>
+      <span style="font-size: 14px; color: {{c.muted}}">Gekoppeld aan Todoist · 6 open</span>
+    </div>
+  </div>
+  <div style="max-width: 880px; margin: 0 auto; padding: 20px 24px 40px 24px; display: flex; flex-direction: column; gap: 12px">
+    <div style="background: {{c.surface}}; border-radius: 16px; border: 1px solid {{c.hair}}; overflow: hidden">
+      <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px; background: {{c.editBg}}">
+        <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: {{c.muted}}">Titel
+          <input value="Dakgoot schoonmaken" style="min-height: 40px; border: 1px solid {{c.hair}}; border-radius: 10px; padding: 0 12px; background: {{c.surface}}; font-size: 15px">
+        </label>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: {{c.muted}}">Datum
+            <input value="2026-11-29" type="date" style="min-height: 40px; border: 1px solid {{c.hair}}; border-radius: 10px; padding: 0 12px; background: {{c.surface}}; font-size: 15px">
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: {{c.muted}}">Onder een taak
+            <select style="min-height: 40px; border: 1px solid {{c.hair}}; border-radius: 10px; padding: 0 8px; background: {{c.surface}}; font-size: 15px">
+              <option>Niet onder een taak</option>
+              <option>Rookmelders testen</option>
+            </select>
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: {{c.ink}}">Lijst (nieuw)
+            <select style="min-height: 40px; border: 2px solid {{c.homeFill}}; border-radius: 10px; padding: 0 8px; background: {{c.surface}}; font-size: 15px; font-weight: 400">
+              <optgroup label="Todoist · Eric">
+                <option>Inbox</option>
+                <option selected>Huishouden</option>
+                <option>Werk</option>
+                <option>Verbouwing</option>
+              </optgroup>
+              <optgroup label="Andere bron (kan niet)">
+                <option disabled>Klusjes · Gather</option>
+                <option disabled>Boodschappen · Gather</option>
+                <option disabled>Projecten · Notion</option>
+              </optgroup>
+            </select>
+          </label>
+        </div>
+        <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Verplaatsen kan binnen hetzelfde Todoist-account; subtaken, opmerkingen en herhaling gaan mee, de sectie niet. Een taak blijft in de bron waar hij staat.</span>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap">
+          <button style="min-height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid {{c.hair}}; background: transparent; color: {{c.ink}}">Annuleren</button>
+          <button style="min-height: 40px; padding: 0 16px; border-radius: 10px; border: 0; background: {{c.homeFill}}; color: {{c.homeOn}}; font-weight: 600">Bewaar</button>
+        </div>
+      </div>
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+        <div style="min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 16px 0 {{r.indent}}px; border-top: 1px solid {{c.hair}}">
+          <span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 999px; border: 2px solid {{c.muted}}; box-sizing: border-box"></span>
+          <span style="font-size: 15px">{{r.title}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1280,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = (this.props.theme || 'light') === 'dark';
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#3A403D',
+      homeFill: '#D99B2B', homeOn: '#2B1F06', homeText: '#F2C060', homeWash: '#2E2611', editBg: '#202422'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', ink: '#1A1F1D', muted: '#5E6764', hair: '#D5D9D4',
+      homeFill: '#F2B233', homeOn: '#2B1F06', homeText: '#8A5C08', homeWash: '#FBEBC6', editBg: '#FFFCF4'
+    };
+    const rows = [
+      { title: 'Ladder lenen bij buren', indent: 48 },
+      { title: 'Afvoer doorspuiten', indent: 48 },
+      { title: 'Rookmelders testen', indent: 16 },
+      { title: 'Winterbanden ophalen', indent: 16 }
+    ];
+    return { c, rows };
+  }
+}
+</script>
+</body>
+</html>

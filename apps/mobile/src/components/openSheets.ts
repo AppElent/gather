@@ -128,6 +128,14 @@ export function hasOpenSheets() {
 }
 
 /**
+ * Whether sheets are being asked to close right now. A request handed to a
+ * sheet in that time goes down with it (APP-817).
+ */
+export function isClosingSheets() {
+  return waiters.size > 0
+}
+
+/**
  * Asks every open sheet to close, once each, and resolves once all have
  * reported closed, or after `timeoutMs` if one never does, so a caller is never
  * stuck behind a sheet. Resolves at once when none is open.
