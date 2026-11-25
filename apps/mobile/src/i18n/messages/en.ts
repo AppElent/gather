@@ -609,7 +609,8 @@ export const en = {
       description: 'The addresses you can sign in with.',
       primary: 'Primary',
       unverified: 'Not verified',
-      addOnWeb: 'Adding or removing an address is done in Gather on the web.',
+      addOnWeb:
+        'Adding or removing an address is done at account.appelent.nl — choose “Manage your AppElent account” under Account.',
     },
 
     /**
@@ -853,6 +854,7 @@ export const en = {
     noSecondFactor: coreEn.auth.errors.noSecondFactor,
     required: 'This cannot be empty.',
     tooManyRequests: 'Too many attempts. Wait a moment and try again.',
+    openPageFailed: 'This page could not be opened. Try again.',
   },
 
   /**

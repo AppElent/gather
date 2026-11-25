@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import {
   addDays,
@@ -50,6 +50,8 @@ describe('a zone’s own day and hour', () => {
   })
 })
 
+afterEach(() => vi.restoreAllMocks())
+
 describe('todayIn', () => {
   const now = new Date('2026-11-24T22:30:00Z')
 
@@ -61,6 +63,20 @@ describe('todayIn', () => {
   test('is this device’s day without a zone, or with one it does not know', () => {
     expect(todayIn(undefined, now)).toBe(localIsoDate(now))
     expect(todayIn('Mars/Olympus', now)).toBe(localIsoDate(now))
+  })
+
+  test('uses the legacy ICU alias when the runtime predates a rename', () => {
+    const real = Intl.DateTimeFormat
+    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(function (
+      locale,
+      options,
+    ) {
+      if (options?.timeZone === 'Europe/Kyiv') throw new RangeError('unknown')
+      return new real(locale, options)
+    } as typeof Intl.DateTimeFormat)
+    // 22:30Z is already 00:30 on 25 Nov in Kyiv (UTC+2 in winter).
+    expect(todayIn('Europe/Kyiv', now)).toBe('2026-11-25')
+    expect(hourIn('Europe/Kyiv', now)).toBe(0)
   })
 })
 

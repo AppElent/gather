@@ -190,3 +190,39 @@ test('a share that opens, or no longer wants to, is not told it was replaced', a
   await link
   expect(lost).not.toHaveBeenCalled()
 })
+
+test('a link arriving during the prompt settle window waits and closes what the answer opened (APP-840)', async () => {
+  const answered = openPrompt()
+  answered()
+  await vi.advanceTimersByTimeAsync(50)
+  const done = vi.fn()
+  const going = Promise.resolve(opened(LINK)).then((path) => {
+    done(path)
+    return path
+  })
+  // The prompt's answer opens a sheet before the settle window finishes.
+  const dismiss = vi.fn(() => sheet.closed())
+  const sheet = openSheet(dismiss)
+  await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS - 51)
+  expect(done).not.toHaveBeenCalled()
+  await vi.advanceTimersByTimeAsync(1)
+  expect(await going).toBe(LINK)
+  expect(dismiss).toHaveBeenCalledOnce()
+})
+
+test('a link arriving during the prompt settle window while a share waits still holds for the sheet (APP-840)', async () => {
+  const answered = openPrompt()
+  const chooser = vi.fn()
+  const lost = vi.fn()
+  openAfterSheets(chooser, { share: true, onSuperseded: lost })
+  answered()
+  await vi.advanceTimersByTimeAsync(50)
+  const link = opened('gather-dev://all/tasks')
+  const dismiss = vi.fn(() => sheet.closed())
+  const sheet = openSheet(dismiss)
+  await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS - 50)
+  expect(await link).toBe('gather-dev://all/tasks')
+  expect(dismiss).toHaveBeenCalledOnce()
+  expect(chooser).not.toHaveBeenCalled()
+  expect(lost).toHaveBeenCalledOnce()
+})

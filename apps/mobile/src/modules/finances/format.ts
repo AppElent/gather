@@ -12,8 +12,9 @@
  * somewhere, and it happens once, here.
  */
 
-import { addMonths, localIsoDate, monthsUntil } from '@gather/core/civil-date'
+import { addMonths, dayIn, localIsoDate, monthsUntil } from '@gather/core/civil-date'
 import { formatMoney } from '@gather/core/finance'
+import { runtimeTimeZone } from '@gather/core/time-zones'
 
 export interface Formatters {
   money: (cents: number, options?: { decimals?: boolean }) => string
@@ -28,9 +29,15 @@ export interface Formatters {
   signedMoney: (cents: number) => string
 }
 
-export function formatters(locale: string, currency: string): Formatters {
+export function formatters(
+  locale: string,
+  currency: string,
+  timeZone?: string,
+): Formatters {
   const money = (cents: number, options: { decimals?: boolean } = {}) =>
     formatMoney(cents, currency, locale, options)
+  const dayAt = dayIn(timeZone)
+  const zone = timeZone ? (runtimeTimeZone(timeZone) ?? undefined) : undefined
 
   return {
     money,
@@ -47,14 +54,19 @@ export function formatters(locale: string, currency: string): Formatters {
       }),
     time: (epochMs) => {
       const when = new Date(epochMs)
-      const sameDay = new Date().toDateString() === when.toDateString()
+      const sameDay = dayAt(Date.now()) === dayAt(epochMs)
       const clock = when.toLocaleTimeString(locale, {
         hour: '2-digit',
         minute: '2-digit',
+        ...(zone ? { timeZone: zone } : {}),
       })
       return sameDay
         ? clock
-        : `${when.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} ${clock}`
+        : `${when.toLocaleDateString(locale, {
+            day: 'numeric',
+            month: 'short',
+            ...(zone ? { timeZone: zone } : {}),
+          })} ${clock}`
     },
     percent: (value, digits = 2) =>
       `${new Intl.NumberFormat(locale, {

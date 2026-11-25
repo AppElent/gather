@@ -28,6 +28,7 @@ interface MultiEventFormProps {
   babyId: Id<'babies'>
   /** The Group the entries belong to — every write is authorised by it. */
   groupSlug: string
+  timeZone?: string
   onDone: () => void
   onCancel: () => void
   /** What this Child's log refuses (ADR-0022). Absent means nothing. */
@@ -69,6 +70,7 @@ function initialSelection(offered: readonly BabyEventType[]): BabyEventType[] {
 export function MultiEventForm({
   babyId,
   groupSlug,
+  timeZone,
   onDone,
   onCancel,
   untrackedTypes,
@@ -191,6 +193,7 @@ export function MultiEventForm({
         <DateTimeFields
           label={multi.when}
           valueMs={timestampMs}
+          timeZone={timeZone}
           onChange={(ms) => ms !== undefined && setTimestampMs(ms)}
           required
         />
@@ -226,6 +229,7 @@ export function MultiEventForm({
             type={type}
             values={valuesOf(type)}
             timestampMs={timestampMs}
+            timeZone={timeZone}
             onChange={(patch) =>
               setValuesByType((prev) => ({
                 ...prev,

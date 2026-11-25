@@ -30,6 +30,7 @@ import {
   type BabyEventType,
 } from '@gather/core/domain'
 import { moduleById, moduleText } from '@gather/core/modules'
+import { runtimeTimeZone } from '@gather/core/time-zones'
 import { useMutation } from 'convex/react'
 import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
@@ -93,10 +94,19 @@ export function ChildScreen() {
   // invent a second word for a Module the rest of the app already names.
   const babyModule = moduleById('baby-log')
   const moduleLabel = babyModule ? moduleText(babyModule, t).label : ''
-  const age = formatAge(child.birthDate, t.baby.log.child.age, locale, now)
+  const age = formatAge(
+    child.birthDate,
+    t.baby.log.child.age,
+    locale,
+    now,
+    log.timeZone,
+  )
   const tint = tokens.tintOf('home')
   const tile = moduleTile('baby-log')
-  const dayStart = startOfDay(now)
+  const dayStart = startOfDay(now, log.timeZone)
+  const zone = log.timeZone
+    ? (runtimeTimeZone(log.timeZone) ?? undefined)
+    : undefined
   const loggedToday = events.filter(
     (event) => event.timestamp >= dayStart,
   ).length
@@ -114,6 +124,7 @@ export function ChildScreen() {
       new Date(timestamp).toLocaleTimeString(locale, {
         hour: '2-digit',
         minute: '2-digit',
+        ...(zone ? { timeZone: zone } : {}),
       }),
   }
 
@@ -231,7 +242,13 @@ export function ChildScreen() {
 
           <View style={styles.tiles}>
             {tiles.map((type) => {
-              const status = tileStatus(type, events, now, statusMessages)
+              const status = tileStatus(
+                type,
+                events,
+                now,
+                statusMessages,
+                log.timeZone,
+              )
               const Icon = EVENT_ICONS[type]
               return (
                 <Pressable
@@ -390,6 +407,7 @@ export function ChildScreen() {
           babyId={child._id as Id<'babies'>}
           childName={child.name}
           groupSlug={log.groupSlug}
+          timeZone={log.timeZone}
           type={logging}
           tracked={log.tracked}
           previous={events}

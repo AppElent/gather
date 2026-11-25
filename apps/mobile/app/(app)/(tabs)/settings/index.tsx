@@ -23,14 +23,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { SearchField } from '../../../../src/components/SearchField'
+import { openWebPage } from '../../../../src/feedback/openWebPage'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
 import { moduleShown } from '../../../../src/modules/buildModules'
 import { openProblemReport } from '../../../../src/observability/init'
-import {
-  openBrowserAsync,
-  showAlert,
-} from '../../../../src/observability/native-presentation'
+import { showAlert } from '../../../../src/observability/native-presentation'
 import { environmentFromChannel } from '../../../../src/observability/options'
 import { openAccountPortal } from '../../../../src/settings/account-portal'
 import { buildInfoLine } from '../../../../src/settings/build-info'
@@ -308,7 +306,7 @@ function Row({
       onPress={() => {
         if (entry.href) router.push(entry.href)
         else if (entry.id === 'account-portal') void openAccountPortal(t)
-        else if (entry.url) openBrowserAsync(entry.url).catch(() => {})
+        else if (entry.url) void openWebPage(entry.url, t.errors.openPageFailed)
         // Report a problem (APP-439): Sentry's form, or a word on why not.
         else if (!openProblemReport())
           showAlert(t.feedback.report, t.feedback.unavailable)

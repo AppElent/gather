@@ -107,6 +107,67 @@ describe('labels', () => {
     expect(timeZoneName('Asia/Tokyo', 'en')).toBe('Japan Standard Time')
   })
 
+  test('do not pin a summer-time name on runtimes without longGeneric', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(Date.UTC(2026, 6, 15, 12, 0))
+    const real = Intl.DateTimeFormat
+    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(function (
+      locale,
+      options,
+    ) {
+      if (options?.timeZoneName === 'longGeneric') throw new RangeError('no')
+      return new real(locale, options)
+    } as typeof Intl.DateTimeFormat)
+    try {
+      // Use a fresh locale tag so the module cache does not mask the fallback.
+      expect(timeZoneName('Europe/Amsterdam', 'en-AU')).toBe(
+        'Central European Standard Time',
+      )
+      expect(timeZoneName('Australia/Sydney', 'en-AU')).toBe(
+        'Australian Eastern Standard Time',
+      )
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  test('resolve renamed zones through their legacy ICU name when needed', () => {
+    const real = Intl.DateTimeFormat
+    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(function (
+      locale,
+      options,
+    ) {
+      if (options?.timeZone === 'Europe/Kyiv') throw new RangeError('unknown')
+      return new real(locale, options)
+    } as typeof Intl.DateTimeFormat)
+    expect(canonicalTimeZone('Europe/Kyiv')).toBe('Europe/Kyiv')
+    expect(timeZoneName('Europe/Kyiv', 'en-CA')).not.toBeNull()
+  })
+
+  test('reassemble zone names split across literal parts (Hermes on iOS)', () => {
+    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(function () {
+      return {
+        formatToParts: () => [
+          { type: 'day', value: '1' },
+          { type: 'literal', value: '-' },
+          { type: 'month', value: '1' },
+          { type: 'literal', value: '-' },
+          { type: 'year', value: '2026' },
+          { type: 'literal', value: ',' },
+          { type: 'literal', value: ' ' },
+          { type: 'timeZoneName', value: 'Midden' },
+          { type: 'literal', value: '-' },
+          { type: 'literal', value: 'Europese' },
+          { type: 'literal', value: ' ' },
+          { type: 'timeZoneName', value: 'tijd' },
+        ],
+      } as unknown as Intl.DateTimeFormat
+    } as typeof Intl.DateTimeFormat)
+    expect(timeZoneName('Europe/Amsterdam', 'nl-BE')).toBe(
+      'Midden-Europese tijd',
+    )
+  })
+
   test('are sorted by place', () => {
     expect(
       sortTimeZones(['America/Toronto', 'Europe/Vienna', 'Asia/Aden'], 'nl', places),

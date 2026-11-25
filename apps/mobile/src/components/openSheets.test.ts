@@ -6,6 +6,7 @@ import {
   hasOpenPrompts,
   hasOpenSheets,
   isClosingSheets,
+  isPromptSettling,
   LATE_SHEET_DELAY_MS,
   type OpenSheet,
   onSheetsClosing,
@@ -353,5 +354,24 @@ describe('prompts', () => {
 
   it('resolves at once when none is open', async () => {
     await expect(promptsAnswered()).resolves.toBeUndefined()
+  })
+
+  it('reports settling only during the settle window after the last prompt closes (APP-840)', async () => {
+    vi.useFakeTimers()
+    expect(isPromptSettling()).toBe(false)
+    const close = openPrompt()
+    expect(isPromptSettling()).toBe(false)
+    close()
+    expect(hasOpenPrompts()).toBe(false)
+    expect(isPromptSettling()).toBe(true)
+    await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS - 1)
+    expect(isPromptSettling()).toBe(true)
+    // A second prompt opened during the window clears settling until it closes too.
+    const next = openPrompt()
+    expect(isPromptSettling()).toBe(false)
+    next()
+    expect(isPromptSettling()).toBe(true)
+    await vi.advanceTimersByTimeAsync(PROMPT_SETTLE_MS)
+    expect(isPromptSettling()).toBe(false)
   })
 })

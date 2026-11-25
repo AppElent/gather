@@ -1,17 +1,23 @@
+import { runtimeTimeZone } from '@gather/core/time-zones'
 import { useEffect, useRef, useState } from 'react'
-import { fmt, useMessages } from '../../lib/i18n'
+import { fmt, useI18n } from '../../lib/i18n'
 
 interface TrendChartProps {
   points: { x: number; y: number }[]
   unit: string
+  timeZone?: string
 }
 
 const HEIGHT = 160
 
 /** Minimal hand-rolled SVG line chart — no charting dependency, just enough
  * for temperature/growth trend lines over time. */
-export function TrendChart({ points, unit }: TrendChartProps) {
-  const { child } = useMessages().baby.log
+export function TrendChart({ points, unit, timeZone }: TrendChartProps) {
+  const { locale, messages } = useI18n()
+  const { child } = messages.baby.log
+  const zone = timeZone ? (runtimeTimeZone(timeZone) ?? undefined) : undefined
+  const formatDay = (ms: number) =>
+    new Date(ms).toLocaleDateString(locale, zone ? { timeZone: zone } : undefined)
 
   const containerRef = useRef<HTMLDivElement>(null)
   // The viewBox width must track the *actual* rendered pixel width, not a
@@ -112,7 +118,7 @@ export function TrendChart({ points, unit }: TrendChartProps) {
           textAnchor="end"
           fill="var(--muted)"
         >
-          {new Date(maxX).toLocaleDateString()}
+          {formatDay(maxX)}
         </text>
         <text
           x={padding.left}
@@ -120,7 +126,7 @@ export function TrendChart({ points, unit }: TrendChartProps) {
           fontSize="10"
           fill="var(--muted)"
         >
-          {new Date(minX).toLocaleDateString()}
+          {formatDay(minX)}
         </text>
       </svg>
     </div>

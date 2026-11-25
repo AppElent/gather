@@ -38,7 +38,7 @@ import { moduleById } from '@gather/core/modules'
 import { noteRefusalSentence } from '@gather/core/refusals'
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -97,15 +97,30 @@ export function DropChooserScreen() {
   const drop = pending?.drop ?? null
 
   // A chooser with nothing to choose for is not a screen — unless the address
-  // carried a payload, which is the harness above. Reached otherwise by
-  // dismissing the Drop, or by returning here after it was answered.
+  // carried a payload, which is the harness above. A newer harness link also
+  // replaces a Drop that is already pending (APP-840), without re-offering the
+  // same seed after it was cleared or double-offering in Strict Mode.
+  const seeded = useRef<{ key: string; delivered: boolean } | null>(null)
   useEffect(() => {
-    if (drop) return
-    const seeded = dropFromLink({ url: seedUrl, text: seedText })
-    if (seeded) offer(seeded)
-    // Back to the tabs underneath: replacing this screen would stack a second
-    // tabs layout over them, which `<scheme>://quick` then opens behind (APP-775).
-    else router.dismissTo('/home')
+    const next = dropFromLink({ url: seedUrl, text: seedText })
+    if (!next) {
+      seeded.current = null
+      // Back to the tabs underneath: replacing this screen would stack a second
+      // tabs layout over them, which `<scheme>://quick` then opens behind (APP-775).
+      if (!drop) router.dismissTo('/home')
+      return
+    }
+    const key = `${seedUrl ?? ''}\0${seedText ?? ''}`
+    if (seeded.current?.key !== key) {
+      seeded.current = { key, delivered: false }
+      offer(next)
+      return
+    }
+    if (drop) {
+      seeded.current.delivered = true
+      return
+    }
+    if (seeded.current.delivered) router.dismissTo('/home')
     // Destructured rather than depending on the params object, which
     // `useLocalSearchParams` rebuilds every render.
   }, [drop, offer, router, seedUrl, seedText])

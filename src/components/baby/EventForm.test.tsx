@@ -55,11 +55,16 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function renderForm(type: BabyEventType, event?: typeof memory) {
+function renderForm(
+  type: BabyEventType,
+  event?: typeof memory,
+  timeZone?: string,
+) {
   return renderWithI18n(
     <EventForm
       babyId={memory.babyId}
       groupSlug="jansen-household"
+      timeZone={timeZone}
       type={type}
       event={event}
       onDone={vi.fn()}
@@ -137,4 +142,37 @@ test('an edit removes the photo', async () => {
 
   await waitFor(() => expect(update).toHaveBeenCalled())
   expect(update.mock.calls[0][0].photoId).toBeNull()
+})
+
+test("reads and saves start and end times in the Group's time zone", async () => {
+  const sleep = {
+    ...memory,
+    type: 'sleep' as const,
+    // 00:00Z -> 09:00 in Asia/Tokyo; 01:30Z -> 10:30 in Asia/Tokyo.
+    timestamp: Date.UTC(2026, 0, 15, 0, 0),
+    endTimestamp: Date.UTC(2026, 0, 15, 1, 30),
+    data: {},
+    photoId: undefined,
+    photoUrl: null,
+  } as unknown as typeof memory
+  const { container } = renderForm('sleep', sleep, 'Asia/Tokyo')
+
+  const dates = container.querySelectorAll<HTMLInputElement>('input[type="date"]')
+  const times = container.querySelectorAll<HTMLInputElement>('input[type="time"]')
+  expect(dates).toHaveLength(2)
+  expect(times).toHaveLength(2)
+  expect(dates[0].value).toBe('2026-01-15')
+  expect(times[0].value).toBe('09:00')
+  expect(dates[1].value).toBe('2026-01-15')
+  expect(times[1].value).toBe('10:30')
+
+  fireEvent.change(times[0], { target: { value: '09:15' } })
+  fireEvent.change(times[1], { target: { value: '11:00' } })
+  fireEvent.click(saveButton())
+
+  await waitFor(() => expect(update).toHaveBeenCalled())
+  expect(update.mock.calls[0][0]).toMatchObject({
+    timestamp: Date.UTC(2026, 0, 15, 0, 15),
+    endTimestamp: Date.UTC(2026, 0, 15, 2, 0),
+  })
 })

@@ -6,7 +6,7 @@ export const accountTools = [
     name: 'get_current_user',
     title: 'Get current user',
     description:
-      "Return who this connection acts for (name and email), the access it was granted, and the server's current time. Call it to resolve 'today' before date-based tools.",
+      "Return who this connection acts for (name and email), the access it was granted, and the server's current time. Call it with list_groups (which gives each Group's timeZone when set) to resolve 'today' before date-based tools.",
     access: 'read',
     input: {},
     async run(_, { access, backend, userInfo, now }) {
@@ -28,7 +28,7 @@ export const accountTools = [
     name: 'list_groups',
     title: 'List groups',
     description:
-      "List the Groups (households and other shared spaces) the user is a Member of, with each Group's id and the user's role. Every other tool takes one of these Group ids.",
+      "List the Groups (households and other shared spaces) the user is a Member of, with each Group's id, the user's role, and its IANA time zone when one is set. Every other tool takes one of these Group ids.",
     access: 'read',
     input: {},
     async run(_, context) {
@@ -39,6 +39,7 @@ export const accountTools = [
             _id: group._id,
             name: group.name,
             role: group.role,
+            ...(group.timeZone ? { timeZone: group.timeZone } : {}),
           }),
         ),
       }

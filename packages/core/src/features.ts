@@ -48,8 +48,6 @@ export const defineFeatures = <const T extends readonly Feature[]>(
 
 const ADR =
   'docs/adr/0042-the-phone-leads-and-the-web-is-where-a-household-is-managed.md'
-const WEB_PORTS_ADR =
-  'docs/adr/0047-six-modules-ship-on-the-web-and-the-phone-still-leads.md'
 const ACCOUNT = '(app)/(tabs)/settings/account'
 
 export const FEATURES = defineFeatures([
@@ -463,10 +461,12 @@ export const FEATURES = defineFeatures([
   {
     id: 'shared-costs',
     kind: 'product',
-    status: 'pending-port',
-    platforms: ['mobile'],
-    reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-329.`,
-    routes: { mobile: ['(app)/(tabs)/all/shared-costs/**'] },
+    status: 'parity',
+    platforms: ['web', 'mobile'],
+    routes: {
+      web: ['_app/shared-costs'],
+      mobile: ['(app)/(tabs)/all/shared-costs/**'],
+    },
   },
   {
     id: 'savings-goals',
@@ -482,11 +482,10 @@ export const FEATURES = defineFeatures([
     kind: 'product',
     status: 'exclusive',
     platforms: ['web'],
-    reason: `Placeholders for phone Modules. Shared costs is replaced by its web port (${WEB_PORTS_ADR}); recurring costs and savings goals wait for a decision per Module (APP-83, ${ADR}).`,
+    reason: `Placeholders for phone Modules. Recurring costs and savings goals wait for a decision per Module (APP-83, ${ADR}).`,
     routes: {
       web: [
         '_app/recurring-costs',
-        '_app/shared-costs',
         '_app/savings-goals',
       ],
     },

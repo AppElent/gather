@@ -11,6 +11,8 @@
  * (their fallback) touch the local calendar.
  */
 
+import { resolveRuntimeZone } from './zoneAliases'
+
 export interface CivilDateParts {
   year: number
   /** 1-12. */
@@ -74,7 +76,7 @@ export function localIsoDate(at: Date | number = new Date()): string {
  */
 export function isoDateIn(timeZone: string): (at: number) => string {
   const format = new Intl.DateTimeFormat('en-US', {
-    timeZone,
+    timeZone: resolveRuntimeZone(timeZone) ?? timeZone,
     year: 'numeric',
     month: 'numeric',
     day: 'numeric',
@@ -136,20 +138,24 @@ export function hourIn(
   at: Date = new Date(),
 ): number {
   if (timeZone !== undefined) {
-    try {
-      const hour = Number(
-        new Intl.DateTimeFormat('en-GB', {
-          timeZone,
-          hourCycle: 'h23',
-          hour: '2-digit',
-        })
-          .formatToParts(at)
-          .find((part) => part.type === 'hour')?.value,
-      )
-      // `en-GB` is 24-hour by itself, where a runtime ignores `hourCycle`.
-      if (Number.isInteger(hour) && hour >= 0 && hour < 24) return hour
-    } catch {
-      // Not a zone here: the device's own hour, below.
+    const runtime = resolveRuntimeZone(timeZone)
+    if (runtime !== null) {
+      try {
+        const raw = Number(
+          new Intl.DateTimeFormat('en-GB', {
+            timeZone: runtime,
+            hourCycle: 'h23',
+            hour: '2-digit',
+          })
+            .formatToParts(at)
+            .find((part) => part.type === 'hour')?.value,
+        )
+        const hour = raw === 24 ? 0 : raw
+        // `en-GB` is 24-hour by itself, where a runtime ignores `hourCycle`.
+        if (Number.isInteger(hour) && hour >= 0 && hour < 24) return hour
+      } catch {
+        // Not a zone here: the device's own hour, below.
+      }
     }
   }
   return at.getHours()

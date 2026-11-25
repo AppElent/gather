@@ -17,6 +17,7 @@ interface EventTypeFieldsProps {
   values: EventValues
   /** The entry's start time — end date/time inputs default their missing half to it. */
   timestampMs: number
+  timeZone?: string
   onChange: (patch: EventValues) => void
 }
 
@@ -26,6 +27,7 @@ export function EventTypeFields({
   type,
   values,
   timestampMs,
+  timeZone,
   onChange,
 }: EventTypeFieldsProps) {
   const { fields, options: labels } = useMessages().baby.log
@@ -39,6 +41,7 @@ export function EventTypeFields({
       label={fields.end}
       valueMs={endMs}
       fallbackMs={timestampMs}
+      timeZone={timeZone}
       onChange={(ms) =>
         onChange({ endTimestamp: ms === undefined ? '' : String(ms) })
       }

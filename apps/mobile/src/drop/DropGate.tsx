@@ -37,7 +37,11 @@
 import { usePathname, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef } from 'react'
 
-import { hasOpenPrompts, hasOpenSheets } from '../components/openSheets'
+import {
+  hasOpenPrompts,
+  hasOpenSheets,
+  isPromptSettling,
+} from '../components/openSheets'
 import { isWaitingForSheets, openAfterSheets } from '../shell/linkAfterSheets'
 import { useDrop } from './DropProvider'
 import { dropHref } from './paths'
@@ -59,6 +63,15 @@ const HANDOFF_PATH = '/open-notification'
 
 /** The route the home-screen quick actions open the quick sheet on. */
 const QUICK_PATH = '/quick'
+
+/** Whether `pathname` is the Drop chooser or one of its nested routes. */
+function isDropPath(pathname: string) {
+  const root = dropHref()
+  return (
+    typeof root === 'string' &&
+    (pathname === root || pathname.startsWith(`${root}/`))
+  )
+}
 
 export function DropGate() {
   const { pending } = useDrop()
@@ -84,6 +97,15 @@ export function DropGate() {
     }
   }, [])
 
+  // Once the chooser itself is reached, any waiting re-offer is done: moving
+  // on from it (to `/drop/pick` or a `keepsDrop` screen) inside
+  // `REOFFER_SETTLE_MS` must not bring the chooser back over the next screen.
+  useEffect(() => {
+    if (!isDropPath(pathname)) return
+    reoffer.current++
+    clearTimeout(timer.current)
+  }, [pathname])
+
   // The newer arrival opened: give it a moment to present what it opens, then
   // bring the chooser back unless something is in front of it. It is the
   // arrival opening that starts this, not the person's next move, so a
@@ -105,9 +127,10 @@ export function DropGate() {
           return
         }
         if (
-          here.current === dropHref() ||
+          isDropPath(here.current) ||
           hasOpenSheets() ||
           hasOpenPrompts() ||
+          isPromptSettling() ||
           isWaitingForSheets()
         )
           return
