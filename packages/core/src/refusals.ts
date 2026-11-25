@@ -241,6 +241,31 @@ export function readTaskRefusal(error: unknown): TaskRefusalCode | null {
 }
 
 /**
+ * Why a note write was refused (APP-805): its title and body together are over
+ * `NOTE_MAX_CHARS` (`@gather/core/notes`).
+ */
+export const NOTE_REFUSAL_CODES = ['too-long'] as const
+export type NoteRefusalCode = (typeof NOTE_REFUSAL_CODES)[number]
+
+/** Namespaced on the wire, like the calendar's, so kinds cannot collide. */
+export function noteRefusal(code: NoteRefusalCode): { kind: string } {
+  return { kind: `notes:${code}` }
+}
+
+/**
+ * A refused note in the reader's own words: the sentence `sentences` holds for
+ * its kind (`messages.notes.refusals`), or null when the thrown value is not one.
+ */
+export function noteRefusalSentence(
+  error: unknown,
+  sentences: Readonly<Record<`notes:${NoteRefusalCode}`, string>>,
+): string | null {
+  const kind = refusalKind(error)
+  const code = NOTE_REFUSAL_CODES.find((each) => `notes:${each}` === kind)
+  return code === undefined ? null : sentences[`notes:${code}`]
+}
+
+/**
  * Why a Group's time zone was not changed (APP-475): the caller is not an
  * admin, or no such IANA zone.
  */

@@ -10,8 +10,16 @@
  * gets rich text at all is a question about the schema — a `body` column holds
  * a string, and Markdown, HTML and a block model are three different products.
  */
+import { useAuth } from '@clerk/expo'
 import { MenuView } from '@expo/ui/community/menu'
+import {
+  isNoteTooLong,
+  NOTE_MAX_CHARS,
+  noteLength,
+} from '@gather/core/notes'
+import { noteRefusalSentence } from '@gather/core/refusals'
 import { Stack, useRouter } from 'expo-router'
+import { useEffect, useRef, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
@@ -25,14 +33,25 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { haptics } from '../../feedback/haptics'
+import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { draftKey, keepDraft, keptDraft } from '../../ui/composer-drafts'
 import { useDebouncedText } from '../../ui/use-debounced-text'
 import { confirmDeleteNote } from './notesActions'
-import { noteWhen, preview } from './noteText'
+import { type NoteText, noteWhen, preview, unsavedText } from './noteText'
 import { useNote, useNoteActions } from './store'
+
+/** From here on the note says how full it is. */
+const COUNT_FROM = NOTE_MAX_CHARS * 0.95
+
+/** Refused text kept for a reopen, and the note it was written over. */
+interface HeldDraft {
+  text: Partial<NoteText>
+  over: NoteText
+}
 
 /** Drawn, not wired. The letters are the affordance, not an icon set. */
 const FORMATS = ['B', 'I', 'H', '•', '1.', '☑'] as const
@@ -58,14 +77,108 @@ export function Note({ noteId }: { noteId: string }) {
 
   // A note is the longest thing anybody types in this app, so it is the one
   // that would cost the most in per-keystroke writes — see `useDebouncedText`.
-  const title = useDebouncedText(note?.title ?? '', (next) => {
-    if (note) actions.editNote(note.id, { title: next })
-  })
-  const body = useDebouncedText(note?.body ?? '', (next) => {
-    if (note) actions.editNote(note.id, { body: next })
-  })
+  const title = useDebouncedText(note?.title ?? '', (next) =>
+    save('title', next),
+  )
+  const body = useDebouncedText(note?.body ?? '', (next) => save('body', next))
+
+  // Text the note has no room for (APP-805): on screen, not saved. It goes with
+  // the next edit that makes it fit, and is kept for when the note is reopened.
+  const held = useRef<Partial<NoteText>>({})
+  /** What the held text was written over. */
+  const heldOver = useRef<NoteText | null>(null)
+  /** Sent, and not yet in `note`: the next save is compared with it too. */
+  const sent = useRef<Partial<NoteText>>({})
+  const seen = useRef(note)
+  if (seen.current !== note) {
+    if (
+      seen.current?.title !== note?.title ||
+      seen.current?.body !== note?.body
+    )
+      sent.current = {}
+    seen.current = note
+  }
+  const mounted = useRef(false)
+  const [refused, setRefused] = useState<string | null>(null)
+
+  const { userId } = useAuth()
+  const { group } = useGroup()
+  const key = draftKey(userId, group._id, `notes:${noteId}`)
+
+  function holdText(patch: Partial<NoteText>, over: NoteText) {
+    if (Object.keys(held.current).length === 0) heldOver.current = over
+    held.current = patch
+  }
+  function keepHeld() {
+    keepDraft<HeldDraft>(
+      key,
+      Object.keys(held.current).length > 0 && heldOver.current
+        ? { text: held.current, over: heldOver.current }
+        : undefined,
+    )
+  }
+
+  function save(field: keyof NoteText, next: string) {
+    if (!note) return
+    const saved = { title: note.title, body: note.body, ...sent.current }
+    const patch = unsavedText(saved, { ...held.current, [field]: next })
+    if (Object.keys(patch).length > 0 && isNoteTooLong({ ...saved, ...patch })) {
+      holdText(patch, saved)
+      return false
+    }
+    held.current = {}
+    if (Object.keys(patch).length === 0) return
+    sent.current = { ...sent.current, ...patch }
+    // The held text of the other field went along: it is no longer unsaved.
+    if (patch.title !== undefined) title.settle(patch.title)
+    if (patch.body !== undefined) body.settle(patch.body)
+    actions.editNote(note.id, patch).catch((error: unknown) => {
+      sent.current = {}
+      const sentence = noteRefusalSentence(error, t.notes.refusals)
+      if (sentence === null) throw error
+      holdText(patch, saved)
+      if (!mounted.current) return keepHeld()
+      if (patch.title !== undefined) title.hold(patch.title)
+      if (patch.body !== undefined) body.hold(patch.body)
+      setRefused(sentence)
+    })
+  }
+
+  const keep = useRef(keepHeld)
+  keep.current = keepHeld
+  // Declared after the two fields, so their last save has run when it cleans up.
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      keep.current()
+    }
+  }, [])
+  const loaded = note != null
+  const latestNote = useRef(note)
+  latestNote.current = note
+  const { change: changeTitle } = title
+  const { change: changeBody } = body
+  useEffect(() => {
+    const now = latestNote.current
+    if (!loaded || !now) return
+    const kept = keptDraft<HeldDraft>(key)
+    if (!kept) return
+    // A field someone else has changed since stays theirs.
+    const { text, over } = kept
+    if (text.title !== undefined && now.title === over.title)
+      changeTitle(text.title)
+    if (text.body !== undefined && now.body === over.body) changeBody(text.body)
+  }, [loaded, key, changeTitle, changeBody])
 
   if (!note) return <View style={{ flex: 1, backgroundColor: tokens.ground }} />
+
+  const text = { title: title.draft, body: body.draft }
+  const length = noteLength(text)
+  const problem =
+    isNoteTooLong(text) && Object.keys(unsavedText(note, text)).length > 0
+      ? t.notes.refusals['notes:too-long']
+      : refused
 
   return (
     <>
@@ -126,7 +239,10 @@ export function Note({ noteId }: { noteId: string }) {
           <TextInput
             testID="note-title"
             value={title.draft}
-            onChangeText={title.change}
+            onChangeText={(next) => {
+              setRefused(null)
+              title.change(next)
+            }}
             onBlur={title.flush}
             placeholder={t.notes.titlePlaceholder}
             placeholderTextColor={tokens.muted}
@@ -160,7 +276,10 @@ export function Note({ noteId }: { noteId: string }) {
           <TextInput
             testID="note-body"
             value={body.draft}
-            onChangeText={body.change}
+            onChangeText={(next) => {
+              setRefused(null)
+              body.change(next)
+            }}
             onBlur={body.flush}
             placeholder={t.notes.bodyPlaceholder}
             placeholderTextColor={tokens.muted}
@@ -173,6 +292,38 @@ export function Note({ noteId }: { noteId: string }) {
             {t.notes.formatting}
           </Text>
         </ScrollView>
+
+        {problem || length >= COUNT_FROM ? (
+          <View
+            style={[
+              styles.room,
+              { backgroundColor: tokens.surface, borderTopColor: tokens.hair },
+            ]}
+          >
+            {problem ? (
+              <Text
+                testID="note-problem"
+                accessibilityLiveRegion="polite"
+                style={[styles.roomText, { color: tokens.danger }]}
+              >
+                {problem}
+              </Text>
+            ) : null}
+            <Text
+              testID="note-length"
+              style={[
+                styles.roomText,
+                TABULAR,
+                { color: problem ? tokens.danger : tokens.muted },
+              ]}
+            >
+              {fmt(t.notes.length, {
+                count: length.toLocaleString(locale),
+                max: NOTE_MAX_CHARS.toLocaleString(locale),
+              })}
+            </Text>
+          </View>
+        ) : null}
 
         <View
           style={[
@@ -227,6 +378,13 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   footnote: { ...TYPE.footnote },
+  room: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 2,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  roomText: { ...TYPE.footnote },
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',

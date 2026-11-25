@@ -39,6 +39,7 @@
     "./module-arrangement": "./src/moduleArrangement.ts",
     "./module-tints": "./src/moduleTints.ts",
     "./modules": "./src/modules.ts",
+    "./notes": "./src/notes.ts",
     "./notifications": "./src/notifications.ts",
     "./photo-presets": "./src/photoPresets.ts",
     "./pins": "./src/pins.ts",

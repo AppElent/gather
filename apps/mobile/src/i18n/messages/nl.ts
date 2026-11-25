@@ -1062,6 +1062,8 @@ export const nl = {
   },
 
   notes: {
+    length: coreNl.notes.length,
+    refusals: coreNl.notes.refusals,
     title: 'Notities',
     pinned: 'Vastgezet',
     recent: 'Recent',
