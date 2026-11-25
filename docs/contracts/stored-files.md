@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when uploading, preparing, replacing, or deleting a photo or any Convex stored file.
-version: 1.2.1
+version: 2.0.0
 status: current
 ---
 

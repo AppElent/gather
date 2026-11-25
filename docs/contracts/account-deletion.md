@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.10.0
+version: 3.0.0
 status: current
 ---
 
@@ -38,8 +38,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
 - **Energy** (ADR-0051): every Energy table but `energyPrices` carries a
   `groupId` and is read by `by_group`. A Group's price feeds take the account
   prices fetched through them (`energyPrices` by `feedId`); market prices have
-  no feed and no Group and stay. The feed and its key go with the Group's own
-  transaction; its account prices, some 35,000 a year, go right after, 1,000 at
+  no feed and no Group and stay. The feed and its key are among the first rows to
+  go; its account prices, some 35,000 a year, go right after, 1,000 at
   a time (`cascade.purgeAccountPrices`, APP-493). Deleting a House only clears
   an Address's link to it. Deleting a Group does not hold the
   hourly intervals and readings in its own transaction: a year of seven hourly
