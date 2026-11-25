@@ -9,7 +9,8 @@ export function ChoiceList<T extends string | number | null>({
 }: {
   label: string
   options: readonly { id: T; label: ReactNode }[]
-  current: T
+  /** Absent when none of the options is. */
+  current: T | undefined
   onChoose: (id: T) => void
 }) {
   return (

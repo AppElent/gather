@@ -4,8 +4,8 @@ import { aisleOrder, isDefaultAisleOrder } from '@gather/core/groceries'
 import { taskRefusal } from '@gather/core/refusals'
 import { ConvexError, type Infer, v } from 'convex/values'
 import { internal } from './_generated/api'
-import type { Id } from './_generated/dataModel'
-import type { MutationCtx } from './_generated/server'
+import type { Doc, Id } from './_generated/dataModel'
+import type { ActionCtx, MutationCtx } from './_generated/server'
 import { action, internalQuery, mutation, query } from './_generated/server'
 import { getGatedIdentity, isConnectedApp } from './lib/connectedApps'
 import {
@@ -28,12 +28,18 @@ import {
   taskListKindValidator,
   taskProviderValidator,
 } from './lib/taskFields'
+import {
+  type MatchedPeople,
+  membersOfPeople,
+  withAssignee,
+} from './lib/taskPeople'
 import { getAdapter } from './lib/taskProviders'
 import {
   ProviderAuthError,
   ProviderTaskNotFoundError,
   type SourceConfig,
   type TaskProviderWriter,
+  type TaskUpdate,
   type UnifiedTask,
   type WriteOutcome,
 } from './lib/taskProviders/types'
@@ -540,8 +546,58 @@ export const getList = internalQuery({
   },
 })
 
+/** The live Members of a list's Group, for matching; carries addresses. */
+export const matchableMembers = internalQuery({
+  args: { listId: v.id('taskLists'), groupSlug: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.listId,
+      'List not found',
+    )
+    const memberships = await ctx.db
+      .query('memberships')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const users = await Promise.all(
+      memberships.map((each) => ctx.db.get(each.userId)),
+    )
+    return users.flatMap((user) =>
+      user && !user.deletedAt ? [{ _id: user._id, email: user.email }] : [],
+    )
+  },
+})
+
+/** A linked list's people, and which Members they are. */
+async function peopleOf(
+  ctx: ActionCtx,
+  args: { listId: Id<'taskLists'>; groupSlug: string },
+  conn: Doc<'integrationConnections'>,
+  config: SourceConfig,
+): Promise<MatchedPeople | null> {
+  const source = await getAdapter(conn.provider).fetchPeople?.(
+    conn.accessToken,
+    config,
+  )
+  if (!source) return null
+  const members = await ctx.runQuery(internal.taskLists.matchableMembers, {
+    listId: args.listId,
+    groupSlug: args.groupSlug,
+  })
+  return { source, matched: membersOfPeople(source, members, conn.connectedBy) }
+}
+
 export type GetTasksResult =
-  | { status: 'ok'; tasks: UnifiedTask[] }
+  | {
+      status: 'ok'
+      tasks: UnifiedTask[]
+      /**
+       * Whom a linked list's tasks can be given to (APP-405); absent when its
+       * provider has nobody, or could not be asked.
+       */
+      assignable?: { shared: boolean; memberIds: Id<'users'>[] }
+    }
   | { status: 'reconnect'; provider: ExternalProviderId }
   | { status: 'error'; message: string }
 
@@ -588,11 +644,23 @@ export const getTasks = action({
     })
     if (!conn) return { status: 'reconnect', provider: list.provider }
     try {
-      const tasks = await getAdapter(list.provider).fetchTasks(
-        conn.accessToken,
-        config,
-      )
-      return { status: 'ok', tasks }
+      const [tasks, people] = await Promise.all([
+        getAdapter(list.provider).fetchTasks(conn.accessToken, config),
+        // Not knowing who is in it does not keep the list from loading.
+        peopleOf(ctx, args, conn, config).catch(() => null),
+      ])
+      return {
+        status: 'ok',
+        tasks: tasks.map((task) => withAssignee(task, people)),
+        ...(people
+          ? {
+              assignable: {
+                shared: people.source.shared,
+                memberIds: [...new Set(people.matched.values())],
+              },
+            }
+          : {}),
+      }
     } catch (error) {
       if (error instanceof ProviderAuthError) {
         return { status: 'reconnect', provider: list.provider }
@@ -610,7 +678,7 @@ export type LinkedTaskWrite = Infer<typeof linkedTaskWriteValidator>
 export type WriteTaskResult =
   | ({ status: 'ok' } & WriteOutcome)
   | { status: 'reconnect'; provider: ExternalProviderId }
-  | { status: 'error'; reason: 'not-found' | 'failed' }
+  | { status: 'error'; reason: 'not-found' | 'not-assignable' | 'failed' }
 
 const MAX_TITLE = 500
 const REQUEST_KEY = /^[\w-]{1,64}$/
@@ -640,6 +708,7 @@ function runWrite(
   accessToken: string,
   config: SourceConfig,
   write: LinkedTaskWrite,
+  responsibleId: TaskUpdate['responsibleId'],
 ): Promise<WriteOutcome> {
   switch (write.kind) {
     case 'create': {
@@ -650,8 +719,11 @@ function runWrite(
       })
     }
     case 'update': {
-      const { kind: _, taskId, ...changes } = write
-      return writer.updateTask(accessToken, config, taskId, changes)
+      const { kind: _, taskId, assigneeId: __, ...changes } = write
+      return writer.updateTask(accessToken, config, taskId, {
+        ...changes,
+        ...(responsibleId === undefined ? {} : { responsibleId }),
+      })
     }
     case 'setDone':
       return write.done
@@ -706,8 +778,40 @@ export const writeTask = action({
     })
     if (!conn) return { status: 'reconnect', provider: list.provider }
     try {
-      const outcome = await runWrite(writer, conn.accessToken, config, write)
-      return { status: 'ok', ...outcome }
+      let people: Awaited<ReturnType<typeof peopleOf>> | undefined
+      let responsibleId: string | null | undefined
+      if (write.kind === 'update' && write.assigneeId !== undefined) {
+        responsibleId = null
+        if (write.assigneeId !== null) {
+          people = await peopleOf(ctx, args, conn, config)
+          responsibleId = [...(people?.matched ?? [])].find(
+            ([, memberId]) => memberId === write.assigneeId,
+          )?.[0]
+          if (!responsibleId) {
+            return { status: 'error', reason: 'not-assignable' }
+          }
+        }
+      }
+      const outcome = await runWrite(
+        writer,
+        conn.accessToken,
+        config,
+        write,
+        responsibleId,
+      )
+      if (outcome.tasks.some((task) => task.responsibleId) && !people) {
+        try {
+          people = await peopleOf(ctx, args, conn, config)
+        } catch {
+          // The write landed, so what fails from here only asks for a refresh.
+          return { status: 'ok', tasks: [], refresh: true }
+        }
+      }
+      return {
+        status: 'ok',
+        refresh: outcome.refresh,
+        tasks: outcome.tasks.map((task) => withAssignee(task, people)),
+      }
     } catch (error) {
       if (error instanceof ProviderAuthError) {
         return { status: 'reconnect', provider: list.provider }

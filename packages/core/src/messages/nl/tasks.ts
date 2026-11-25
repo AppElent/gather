@@ -233,6 +233,8 @@ export const tasks = {
         'Gather mag deze lijst niet wijzigen. Verbind {provider} opnieuw in de Groepsinstellingen op het web en ververs daarna de lijst. Er is niets gewijzigd.',
       'not-found':
         'Deze taak staat niet meer in de {provider}-lijst. De lijst wordt opnieuw geladen.',
+      'not-assignable':
+        'Deze persoon zit niet in dit {provider}-project, of gebruikt daar een ander e-mailadres. Er is niets gewijzigd.',
       stale:
         'Deze lijst loopt niet gelijk met {provider}. Ververs hem en probeer het opnieuw.',
       failed:
@@ -603,9 +605,11 @@ export const tasks = {
     someone: 'Iemand',
     unavailable: {
       readOnly:
-        'Wijs deze taak toe in {provider}. Dat kan Gather nog niet.',
+        'Wijs deze taak toe in {provider}. Dat kan Gather nu niet.',
       notShared:
         'Alleen een gedeeld {provider}-project heeft mensen om een taak aan te geven.',
+      noMembers:
+        'Niemand uit deze Groep is herkend in dit {provider}-project. Gather herkent mensen aan hun e-mailadres.',
       unsupported: 'Lijsten uit {provider} hebben geen veld voor wie een taak doet.',
     },
     notice: {

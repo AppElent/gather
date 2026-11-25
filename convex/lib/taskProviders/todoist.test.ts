@@ -739,3 +739,66 @@ describe('Todoist writes (APP-448)', () => {
     ).rejects.toThrow(/refused/)
   })
 })
+
+describe('whose a Todoist task is (APP-405)', () => {
+  const people = (todoist: ReturnType<typeof fakeTodoist>) =>
+    todoistAdapter.fetchPeople?.('tok', config, todoist.fetchImpl)
+
+  test('reads responsible_uid', () => {
+    const base = { id: '8', content: 'Sweep', priority: 1 as const }
+    expect(
+      mapTodoistTask({ ...base, responsible_uid: '55' }).responsibleId,
+    ).toBe('55')
+    expect(
+      mapTodoistTask({ ...base, responsible_uid: null }).responsibleId,
+    ).toBeUndefined()
+  })
+
+  test('a shared project has its collaborators, every page of them', async () => {
+    const todoist = fakeTodoist({
+      'GET /projects/proj': { is_shared: true },
+      'GET /projects/proj/collaborators': (call: Call) =>
+        call.query.get('cursor')
+          ? {
+              results: [{ id: '2', name: 'Bob', email: 'b@x.nl' }],
+              next_cursor: null,
+            }
+          : {
+              results: [{ id: '1', name: 'Ann', email: 'a@x.nl' }],
+              next_cursor: 'more',
+            },
+      'GET /user': { id: '1' },
+    })
+    expect(await people(todoist)).toEqual({
+      shared: true,
+      people: [
+        { id: '1', name: 'Ann', email: 'a@x.nl', self: true },
+        { id: '2', name: 'Bob', email: 'b@x.nl', self: false },
+      ],
+    })
+  })
+
+  test('a project nobody else is in has no one to give a task to', async () => {
+    const todoist = fakeTodoist({ 'GET /projects/proj': { is_shared: false } })
+    expect(await people(todoist)).toEqual({ shared: false, people: [] })
+    expect(todoist.calls).toHaveLength(1)
+  })
+
+  test.each(['55', null])('writes responsible_uid %s', async (responsibleId) => {
+    const todoist = fakeTodoist({
+      'GET /tasks/t1': apiTask(),
+      'POST /sync': syncOk,
+    })
+    await writer.updateTask(
+      'tok',
+      config,
+      't1',
+      { responsibleId },
+      todoist.fetchImpl,
+    )
+    expect(syncCommands(todoist.writes()[0])[0].args).toEqual({
+      id: 't1',
+      responsible_uid: responsibleId,
+    })
+  })
+})

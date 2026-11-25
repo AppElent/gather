@@ -61,7 +61,7 @@ async function seed() {
       provider: 'local',
       order: 0,
     })
-    return { todoist, notion, local }
+    return { aliceId, carlaId, home, todoist, notion, local }
   })
   return { t, ...ids }
 }
@@ -330,4 +330,139 @@ test('finishing a Todoist connection repeats the redirect URI it set out with', 
   })
   vi.unstubAllGlobals()
   vi.unstubAllEnvs()
+})
+
+describe('who a linked task is given to (APP-405)', () => {
+  const SECRET = 'bob@elsewhere.example'
+  /** A shared project with Alice (the connection's account), Carla and Bob. */
+  function sharedProject(
+    given: { uid: string | null; peopleStatus?: () => number },
+  ) {
+    const sent: Record<string, unknown>[] = []
+    todoistAnswers((method, path, body) => {
+      if (method === 'POST') {
+        const [command] = JSON.parse(
+          new URLSearchParams(body).get('commands') ?? '[]',
+        )
+        sent.push(command.args)
+        if ('responsible_uid' in command.args) {
+          given.uid = command.args.responsible_uid
+        }
+        return json({ sync_status: { [command.uuid]: 'ok' } })
+      }
+      const task = {
+        id: 't1',
+        content: 'Call plumber',
+        priority: 1,
+        project_id: 'proj',
+        responsible_uid: given.uid,
+      }
+      switch (path) {
+        case '/tasks':
+          return json({ results: [task], next_cursor: null })
+        case '/tasks/t1':
+          return json(task)
+        case '/projects/proj':
+          return json({ is_shared: true }, given.peopleStatus?.() ?? 200)
+        case '/projects/proj/collaborators':
+          return json({
+            results: [
+              { id: 'A', name: 'Alice T', email: 'work@alice.example' },
+              { id: 'C', name: 'Carla T', email: carla.email.toUpperCase() },
+              { id: 'B', name: 'Bob', email: SECRET },
+            ],
+            next_cursor: null,
+          })
+        case '/user':
+          return json({ id: 'A' })
+        default:
+          return json({}, 404)
+      }
+    })
+    return sent
+  }
+  const read = ({ t, todoist }: Awaited<ReturnType<typeof seed>>) =>
+    t.withIdentity(alice).action(api.taskLists.getTasks, {
+      listId: todoist.listId,
+      groupSlug: HOME,
+    })
+  const give = (
+    { t, todoist }: Awaited<ReturnType<typeof seed>>,
+    assigneeId: Awaited<ReturnType<typeof seed>>['aliceId'] | null,
+  ) =>
+    t.withIdentity(alice).action(api.taskLists.writeTask, {
+      listId: todoist.listId,
+      groupSlug: HOME,
+      write: { kind: 'update', taskId: 't1', assigneeId },
+    })
+
+  test('a read says which Members it can be, and no address or Todoist id', async () => {
+    const seeded = await seed()
+    sharedProject({ uid: 'A' })
+    const result = await read(seeded)
+    expect(result).toMatchObject({
+      status: 'ok',
+      tasks: [{ externalId: 't1', assigneeId: seeded.aliceId }],
+      // Carla is in the project, but no Member of this Group.
+      assignable: { shared: true, memberIds: [seeded.aliceId] },
+    })
+    expect(JSON.stringify(result)).not.toMatch(/example|@|responsibleId/)
+  })
+
+  test('someone who is no Member is shown by name', async () => {
+    const seeded = await seed()
+    sharedProject({ uid: 'B' })
+    expect(await read(seeded)).toMatchObject({
+      tasks: [{ assigneeName: 'Bob' }],
+    })
+  })
+
+  test.each([401, 403, 503])('a %i for the people still loads the list', async (status) => {
+    const seeded = await seed()
+    sharedProject({ uid: 'A', peopleStatus: () => status })
+    const result = await read(seeded)
+    expect(result).toMatchObject({ status: 'ok', tasks: [{ assigneeName: '' }] })
+    expect(result).not.toHaveProperty('assignable')
+  })
+
+  test('gives a task to a Member by address, and takes it back', async () => {
+    const seeded = await seed()
+    await seeded.t.run((ctx) =>
+      seedMember(ctx, seeded.home, seeded.carlaId, 'member'),
+    )
+    const sent = sharedProject({ uid: null })
+    expect(await give(seeded, seeded.carlaId)).toMatchObject({
+      status: 'ok',
+      tasks: [{ assigneeId: seeded.carlaId }],
+    })
+    const cleared = await give(seeded, null)
+    expect(cleared).toMatchObject({ status: 'ok', tasks: [{ externalId: 't1' }] })
+    expect(JSON.stringify(cleared)).not.toContain('assignee')
+    expect(sent).toEqual([
+      { id: 't1', responsible_uid: 'C' },
+      { id: 't1', responsible_uid: null },
+    ])
+  })
+
+  test('a project person who is no Member here cannot be given it', async () => {
+    const seeded = await seed()
+    const sent = sharedProject({ uid: null })
+    expect(await give(seeded, seeded.carlaId)).toEqual({
+      status: 'error',
+      reason: 'not-assignable',
+    })
+    expect(sent).toEqual([])
+  })
+
+  test('a write that landed while its people could not be read asks for a refresh', async () => {
+    const seeded = await seed()
+    sharedProject({ uid: 'A', peopleStatus: () => 503 })
+    expect(
+      await seeded.t.withIdentity(alice).action(api.taskLists.writeTask, {
+        listId: seeded.todoist.listId,
+        groupSlug: HOME,
+        write: { kind: 'update', taskId: 't1', title: 'Plumber' },
+      }),
+    ).toMatchObject({ status: 'ok', refresh: true, tasks: [] })
+  })
 })

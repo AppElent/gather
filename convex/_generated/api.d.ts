@@ -95,6 +95,7 @@ import type * as lib_svix from "../lib/svix.js";
 import type * as lib_taskAssignee from "../lib/taskAssignee.js";
 import type * as lib_taskFields from "../lib/taskFields.js";
 import type * as lib_taskLists from "../lib/taskLists.js";
+import type * as lib_taskPeople from "../lib/taskPeople.js";
 import type * as lib_taskProviders_index from "../lib/taskProviders/index.js";
 import type * as lib_taskProviders_notion from "../lib/taskProviders/notion.js";
 import type * as lib_taskProviders_todoist from "../lib/taskProviders/todoist.js";
@@ -233,6 +234,7 @@ declare const fullApi: ApiFromModules<{
   "lib/taskAssignee": typeof lib_taskAssignee;
   "lib/taskFields": typeof lib_taskFields;
   "lib/taskLists": typeof lib_taskLists;
+  "lib/taskPeople": typeof lib_taskPeople;
   "lib/taskProviders/index": typeof lib_taskProviders_index;
   "lib/taskProviders/notion": typeof lib_taskProviders_notion;
   "lib/taskProviders/todoist": typeof lib_taskProviders_todoist;

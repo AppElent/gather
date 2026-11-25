@@ -8,11 +8,14 @@
  * Shared by the phone and the web (APP-308); the caller sends and fetches.
  */
 import { applyLinkedWrite } from './linkedTasks'
+import type { Assignable } from './taskLists'
 import type { ListSync, Priority, Task } from './taskModel'
 
 export interface ExternalEntry {
   sync: Exclude<ListSync, 'live'>
   tasks: Task[]
+  /** Whom its tasks can be given to (APP-405); absent while not known. */
+  assignable?: Assignable
   /**
    * Whether the rows are what the provider last answered, so they may be
    * written to: kept while they load again, lost when that fails.
@@ -31,11 +34,13 @@ export interface ProviderTask {
   url?: string
   repeatText?: string
   parentExternalId?: string
+  assigneeId?: string
+  assigneeName?: string
 }
 
 /** What `taskLists.getTasks` answers, as much of it as is read here. */
 export type FetchResult =
-  | { status: 'ok'; tasks: ProviderTask[] }
+  | { status: 'ok'; tasks: ProviderTask[]; assignable?: Assignable }
   | { status: 'reconnect' }
   | { status: 'error' }
 export type FetchTasks = (listId: string) => Promise<FetchResult>
@@ -58,6 +63,7 @@ export type LinkedTaskWrite =
       dueDate?: string | null
       priority?: Priority | null
       labels?: string[]
+      assigneeId?: string | null
     }
   | {
       kind: 'setDone'
@@ -71,7 +77,7 @@ export type LinkedTaskWrite =
 type WriteResult =
   | { status: 'ok'; tasks: ProviderTask[]; refresh: boolean }
   | { status: 'reconnect' }
-  | { status: 'error'; reason: 'not-found' | 'failed' }
+  | { status: 'error'; reason: 'not-found' | 'not-assignable' | 'failed' }
 export type SendWrite = (
   listId: string,
   write: LinkedTaskWrite,
@@ -82,6 +88,8 @@ export type LinkedWriteFailure =
   | 'reconnect'
   /** The task is not in the provider's list (any more). */
   | 'not-found'
+  /** That Member is not in the provider's project (any more). */
+  | 'not-assignable'
   /** The rows on screen are not the provider's; they have to load first. */
   | 'stale'
   /** There is no connection, so nothing was sent. */
@@ -236,6 +244,7 @@ export function externalEntry(
   return {
     sync: 'synced',
     fresh: true,
+    ...(result.assignable ? { assignable: result.assignable } : {}),
     tasks: result.tasks.map((task, order) => linkedTask(listId, task, order)),
   }
 }
@@ -254,6 +263,10 @@ function linkedTask(listId: string, task: ProviderTask, order: number): Task {
     // Left out of the phone's rows before: only the web links out to it.
     ...(task.url ? { sourceUrl: task.url } : {}),
     order,
+    ...(task.assigneeId ? { assigneeId: task.assigneeId } : {}),
+    ...(task.assigneeName === undefined
+      ? {}
+      : { assigneeName: task.assigneeName }),
     // Todoist's and Notion's subtasks (APP-304).
     ...(task.parentExternalId ? { parentTaskId: task.parentExternalId } : {}),
   }

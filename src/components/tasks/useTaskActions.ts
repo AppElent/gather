@@ -102,7 +102,11 @@ export function useTaskActions() {
       listId,
       change,
       (id, sent) =>
-        sendWrite({ listId: id as Id<'taskLists'>, groupSlug, write: sent }),
+        sendWrite({
+          listId: id as Id<'taskLists'>,
+          groupSlug,
+          write: sent as Parameters<typeof sendWrite>[0]['write'],
+        }),
       (id) => getTasks({ listId: id as Id<'taskLists'>, groupSlug }),
       connectionOf(convex),
     )
@@ -274,8 +278,13 @@ export function useTaskActions() {
     setUrl: (id: string, url: string | null) => patch(id, { url }),
     setPrice: (id: string, priceCents: number | null) =>
       patch(id, { priceCents }),
-    setAssignee: (id: string, userId: string | null) =>
-      patch(id, { assigneeId: userId as Id<'users'> | null }),
+    setAssignee: (task: TaskRef, userId: string | null): Promise<unknown> => {
+      const assigneeId = userId as Id<'users'> | null
+      const listId = linkedListOf(task)
+      return listId
+        ? write(listId, { kind: 'update', taskId: task.id, assigneeId })
+        : patch(task.id, { assigneeId })
+    },
     /** A reminder for the caller at this wall clock, or none (APP-305). */
     setReminder: (id: string, clock: ReminderClock | null) =>
       setReminder({ taskId: id as Id<'tasks'>, groupSlug, reminder: clock }),

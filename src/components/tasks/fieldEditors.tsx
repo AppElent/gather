@@ -1,6 +1,7 @@
 /** What each row of a task's Details opens: the phone's own choices. */
 import { addDays, localIsoDate } from '@gather/core/civil-date'
 import { weekendFrom } from '@gather/core/task-dates'
+import { assignablePeople, chosenAssignee } from '@gather/core/task-lists'
 import type { Task, TaskList } from '@gather/core/task-model'
 import {
   availablePresets,
@@ -103,17 +104,22 @@ export function WhenEditor({ task, onClose }: EditorProps) {
   )
 }
 
-export function WhoEditor({ task, onClose }: EditorProps) {
+export function WhoEditor({
+  task,
+  list,
+  onClose,
+}: EditorProps & { list: TaskList }) {
   const { messages: t } = useI18n()
   const { actions, fail } = useWorkspace()
   const { people } = useTaskPeople()
+  const current = chosenAssignee(task)
   return (
     <ChoiceList<string | null>
       label={t.tasks.assignee.who}
-      current={task.assigneeId ?? null}
+      current={current}
       options={[
         { id: null, label: t.tasks.assignee.nobody },
-        ...people.map((person) => ({
+        ...assignablePeople(list, people).map((person) => ({
           id: person.id,
           label: (
             <>
@@ -125,8 +131,7 @@ export function WhoEditor({ task, onClose }: EditorProps) {
       ]}
       onChoose={(id) => {
         onClose()
-        if (id !== (task.assigneeId ?? null))
-          actions.setAssignee(task.id, id).catch(fail)
+        if (id !== current) actions.setAssignee(task, id).catch(fail)
       }}
     />
   )

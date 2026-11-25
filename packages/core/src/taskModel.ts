@@ -18,6 +18,7 @@ import {
   topLevelTasks,
 } from './subtasks'
 import {
+  type Assignable,
   asTaskListKind,
   type TaskListColor,
   type TaskListIcon,
@@ -87,6 +88,8 @@ export interface TaskList {
    * linked list, and from a server older than sections.
    */
   sections: TaskSection[]
+  /** Whom a linked list's tasks can be given to; absent while not known. */
+  assignable?: Assignable
 }
 
 export interface Task {
@@ -115,6 +118,11 @@ export interface Task {
   doneAt?: number
   /** The Member responsible (APP-302); absent is nobody. */
   assigneeId?: string
+  /**
+   * A linked task's person when they are no Member Gather knows (APP-405), so
+   * without an `assigneeId`; empty when their name is not known either.
+   */
+  assigneeName?: string
   /** Set while the assignee has not opened a task someone else gave them. */
   assignmentNotice?: { by: string; at: number }
   /**
@@ -260,6 +268,7 @@ export function listView(
     aisleOrder: list.aisleOrder ?? null,
     suggestionsOff: list.suggestionsOff ?? false,
     sections: list.sections ?? [],
+    ...(entry?.assignable ? { assignable: entry.assignable } : {}),
     ...listFace(list),
   }
 }

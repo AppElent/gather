@@ -89,6 +89,8 @@ export const linkedTaskWriteValidator = v.union(
     dueDate: v.optional(v.union(v.string(), v.null())),
     priority: v.optional(v.union(taskPriorityValidator, v.null())),
     labels: v.optional(v.array(v.string())),
+    /** A Member who is in the provider's project, or nobody (APP-405). */
+    assigneeId: v.optional(v.union(v.id('users'), v.null())),
   }),
   v.object({
     kind: v.literal('setDone'),

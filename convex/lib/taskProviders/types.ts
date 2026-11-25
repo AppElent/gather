@@ -1,4 +1,5 @@
 import type { ExternalProviderId } from '@gather/core/domain'
+import type { Id } from '../../_generated/dataModel'
 
 export interface UnifiedTask {
   externalId: string
@@ -18,6 +19,30 @@ export interface UnifiedTask {
    * `parent_id`, Notion's sub-item relation. Absent on a top-level item.
    */
   parentExternalId?: string
+  /** The provider's id of the person responsible; never sent to a client. */
+  responsibleId?: string
+  /** The Member of the list's Group that person is (APP-405). */
+  assigneeId?: Id<'users'>
+  /**
+   * The person responsible when no Member of the Group is known to be them;
+   * empty when their name is not known either.
+   */
+  assigneeName?: string
+}
+
+/** Someone a source's tasks can be given to, as the provider knows them. */
+export interface ProviderPerson {
+  id: string
+  name: string
+  email: string
+  /** Whether it is the account the connection belongs to. */
+  self: boolean
+}
+
+/** Who a source's tasks can be given to; nobody unless it is shared. */
+export interface SourcePeople {
+  shared: boolean
+  people: ProviderPerson[]
 }
 
 export interface ProviderSource {
@@ -73,6 +98,11 @@ export interface TaskFieldChanges {
   labels?: string[]
 }
 
+/** A change to a task that is there: also whose it is, or nobody's with null. */
+export interface TaskUpdate extends TaskFieldChanges {
+  responsibleId?: string | null
+}
+
 export interface NewProviderTask extends TaskFieldChanges {
   title: string
   parentId?: string
@@ -107,7 +137,7 @@ export interface TaskProviderWriter {
     accessToken: string,
     config: SourceConfig,
     taskId: string,
-    changes: TaskFieldChanges,
+    changes: TaskUpdate,
     fetchImpl?: typeof fetch,
   ): Promise<WriteOutcome>
   /**
@@ -156,4 +186,10 @@ export interface TaskProviderAdapter {
     config: SourceConfig,
     fetchImpl?: typeof fetch,
   ): Promise<UnifiedTask[]>
+  /** Absent when the provider has nobody to give a task to (Notion). */
+  fetchPeople?(
+    accessToken: string,
+    config: SourceConfig,
+    fetchImpl?: typeof fetch,
+  ): Promise<SourcePeople>
 }
