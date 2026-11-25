@@ -63,13 +63,17 @@ const TASKS = moduleById('tasks')
 const BABY = moduleById('baby-log')
 
 export function GroupHome() {
-  const { slug: groupSlug, name: groupName } = useRequiredCurrentGroup()
+  const {
+    slug: groupSlug,
+    name: groupName,
+    timeZone,
+  } = useRequiredCurrentGroup()
   const { locale, messages } = useI18n()
   const words = messages.shell.today
-  const day = useStartDay(groupSlug)
+  const day = useStartDay(groupSlug, timeZone)
 
   const byline = [
-    spelledDate(day.now, locale, words.date),
+    spelledDate(day.today, locale, words.date),
     day.memberCount === undefined
       ? null
       : plural(locale, day.memberCount, words.members),

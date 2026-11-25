@@ -1,7 +1,7 @@
 import { missingRequiredField } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
 import type { Messages } from '@gather/core/messages'
-import type { Doc } from '../../../convex/_generated/dataModel'
+import type { Doc, Id } from '../../../convex/_generated/dataModel'
 import { DEFAULT_TEMPERATURE_CELSIUS } from './babyEventFields'
 import { readLastUsed, writeLastUsed } from './lastUsed'
 
@@ -18,6 +18,25 @@ export type EventValidationError = keyof Messages['baby']['log']['validation']
  * (rather than a `useState` per field) so a single form can hold several
  * types at once — see MultiEventForm. */
 export type EventValues = Record<string, string | boolean>
+
+/**
+ * The photo half of an entry form: an id once one is uploaded, `null` once it
+ * is removed, `undefined` while untouched, as `babyEvents.update` reads it.
+ */
+export type EntryPhoto = Id<'_storage'> | null | undefined
+
+/** The stored photo to show under the form's choice; removing hides it. */
+export function entryPhotoUrl(
+  photo: EntryPhoto,
+  storedUrl: string | null | undefined,
+): string | null {
+  return photo === null ? null : (storedUrl ?? null)
+}
+
+/** The `photoId` of a new entry, which has no photo to remove. */
+export function newEntryPhotoId(photo: EntryPhoto): Id<'_storage'> | undefined {
+  return photo ?? undefined
+}
 
 export interface EventInput {
   /** Typed in, so not yet a valid payload: the mutation decides that. */

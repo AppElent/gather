@@ -1,4 +1,4 @@
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import {
   TASTING_RATING,
   type TastingAttributes,
@@ -37,6 +37,8 @@ interface TastingDialogProps {
   kind: TastingKind
   groupSlug: string
   groupName: string
+  /** The Group's zone: a new tasting is today there. */
+  timeZone: string | undefined
   subject?: SubjectChoice
   tasting?: EditableTasting
   onClose: () => void
@@ -48,6 +50,7 @@ export function TastingDialog({
   kind,
   groupSlug,
   groupName,
+  timeZone,
   subject: initialSubject,
   tasting,
   onClose,
@@ -78,7 +81,7 @@ export function TastingDialog({
     initialSubject?.attributes ?? {},
   )
   const [rating, setRating] = useState(tasting?.rating ?? 3)
-  const [tastedAt, setTastedAt] = useState(tasting?.tastedAt ?? localIsoDate())
+  const [tastedAt, setTastedAt] = useState(tasting?.tastedAt ?? todayIn(timeZone))
   const [attributes, setAttributes] = useState<Attributes>(
     (tasting?.attributes as Attributes) ?? {},
   )

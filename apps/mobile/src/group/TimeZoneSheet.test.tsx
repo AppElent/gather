@@ -53,7 +53,7 @@ vi.mock('../components/SearchField', () => ({
 vi.mock('../i18n', async () => {
   const { en } = await import('../i18n/messages/en')
   const { fmt } = await import('@gather/core/i18n')
-  return { useI18n: () => ({ t: en }), fmt }
+  return { useI18n: () => ({ t: en, locale: 'en' }), fmt }
 })
 vi.mock('../theme/icons', () => ({ UI_ICONS: { Check: () => null } }))
 vi.mock('../theme/tokens', () => ({
@@ -91,6 +91,16 @@ test('finds any zone by typing, and hands it back', () => {
   expect(document.querySelectorAll('button')).toHaveLength(1)
   row('America/New_York')?.click()
   expect(onChoose).toHaveBeenCalledWith('America/New_York')
+})
+
+test('rows read as a place and a zone, and either finds it', () => {
+  mount(createElement(TimeZoneSheet, { selected: undefined, onChoose, onClose: () => {} }))
+  expect(row('Asia/Kolkata')?.textContent).toContain('Kolkata')
+  expect(row('Asia/Kolkata')?.textContent).toContain('India Standard Time')
+  expect(document.body.textContent).not.toContain('Asia/Kolkata')
+  act(() => search.type('india standard'))
+  expect(row('Asia/Kolkata')).not.toBeNull()
+  expect(row('Asia/Tokyo')).toBeNull()
 })
 
 test('says when nothing matches', () => {

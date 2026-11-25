@@ -217,6 +217,11 @@ describe('an ordinary Group', () => {
     expect(await zone()).toBe('Europe/Amsterdam')
     await set('asia/TOKYO')
     expect(await zone()).toBe('Asia/Tokyo')
+    // ICU's older name is stored as IANA's.
+    await set('Asia/Calcutta')
+    expect(await zone()).toBe('Asia/Kolkata')
+    await t.run((ctx) => ctx.db.patch(groupId, { timeZone: 'Asia/Calcutta' }))
+    expect(await zone()).toBe('Asia/Kolkata')
     await set(null)
     expect(await zone()).toBeUndefined()
   })

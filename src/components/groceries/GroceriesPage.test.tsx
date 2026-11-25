@@ -306,6 +306,7 @@ test('Recent puts an item back and marks what is already open', async () => {
   renderInGroup(
     <RecentPanel
       groupSlug="jansen-household"
+      timeZone={undefined}
       listId={'l1' as never}
       openTitles={['Melk']}
     />,

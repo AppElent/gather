@@ -1,5 +1,5 @@
 import { groupTimeZoneRefusal } from '@gather/core/refusals'
-import { canonicalTimeZone } from '@gather/core/time-zones'
+import { canonicalTimeZone, currentZoneName } from '@gather/core/time-zones'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
@@ -100,7 +100,9 @@ export const myGroups = query({
           isPersonal: group.isPersonal,
           icon: group.icon,
           imageId: group.imageId,
-          timeZone: group.timeZone,
+          // Saved before APP-814, it can be a name IANA has since replaced, and
+          // installed phones compare it with their own by name.
+          timeZone: group.timeZone && currentZoneName(group.timeZone),
           groceryListId: group.groceryListId,
           imageUrl: group.imageId
             ? await ctx.storage.getUrl(group.imageId)

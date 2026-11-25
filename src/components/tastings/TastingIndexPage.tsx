@@ -19,7 +19,11 @@ export function TastingIndexPage({
   kind,
   ...start
 }: { kind: TastingKind } & StartCreatingProps) {
-  const { slug: groupSlug, name: groupName } = useRequiredCurrentGroup()
+  const {
+    slug: groupSlug,
+    name: groupName,
+    timeZone,
+  } = useRequiredCurrentGroup()
   const nav = TASTING_LINKS[kind]
   const messages = useMessages()
   const { locale } = useI18n()
@@ -191,6 +195,7 @@ export function TastingIndexPage({
         kind={kind}
         groupSlug={groupSlug}
         groupName={groupName}
+        timeZone={timeZone}
         onClose={() => setDialogOpen(false)}
         onSaved={(subjectId) => navigate(nav.subject(subjectId))}
       />

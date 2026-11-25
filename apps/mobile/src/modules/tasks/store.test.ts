@@ -5,12 +5,14 @@ import { describe, expect, test, vi } from 'vitest'
 
 import type { Doc, Id } from '../../convex/api'
 
+/** The Group's zone; none by default. */
+const zone: { timeZone?: string } = {}
 const sent: { name: string; args: unknown }[] = []
 /** What a mutation answers, by name; nothing by default. */
 const answers: Record<string, unknown> = {}
 
 vi.mock('../../group/GroupProvider', () => ({
-  useGroup: () => ({ group: { slug: 'our-household' } }),
+  useGroup: () => ({ group: { slug: 'our-household', ...zone } }),
 }))
 vi.mock('convex/react', () => ({
   useAction: vi.fn(),
@@ -370,7 +372,7 @@ describe('repeating tasks (APP-303)', () => {
     expect(entry.tasks[0].repeatText).toBe('every week')
   })
 
-  test('completing sends the phone’s day and tells the screen what came of it', async () => {
+  test('completing sends today and tells the screen what came of it', async () => {
     sent.length = 0
     const heard: CompletedOccurrence[] = []
     const stop = onOccurrenceCompleted((done) => heard.push(done))
@@ -412,6 +414,20 @@ describe('repeating tasks (APP-303)', () => {
     await useTaskActions().toggleTask({ id: 'milk', title: 'Milk' })
     stop()
     expect(heard).toEqual([])
+  })
+
+  test("in a Group with a zone, completing sends that zone's day", async () => {
+    sent.length = 0
+    vi.useFakeTimers({ now: new Date('2026-11-29T10:30:00Z') })
+    zone.timeZone = 'Pacific/Kiritimati'
+    const actions = useTaskActions()
+    try {
+      await actions.toggleTask({ id: 'bins', title: 'Bins' })
+    } finally {
+      vi.useRealTimers()
+      delete zone.timeZone
+    }
+    expect(sent[0].args).toMatchObject({ today: '2026-11-30' })
   })
 
   test('setting and clearing a repeat, and undoing a completion', async () => {

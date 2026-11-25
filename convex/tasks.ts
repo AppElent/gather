@@ -434,7 +434,7 @@ export const add = mutation({
     const title = onGroceryList
       ? args.title
       : groceryLineText(args.title, quantity, args.unit)
-    const today = completionDay(args.today)
+    const today = completionDay(args.today, group.timeZone)
     const repeat = args.repeat
       ? checkedRepeat(args.repeat, args.dueDate ?? today)
       : undefined
@@ -520,7 +520,7 @@ export const toggleDone = mutation({
         task,
         groupId: group._id,
         userId: user._id,
-        today: completionDay(args.today),
+        today: completionDay(args.today, group.timeZone),
       })
     }
     await ctx.db.patch(args.taskId, doneFields(!task.done))
@@ -825,7 +825,7 @@ export const update = mutation({
       await completeSubtasks(ctx, taskId, group._id)
     await notifyAssignee(ctx, group._id, taskId, assignee)
 
-    const today = completionDay(args.today)
+    const today = completionDay(args.today, group.timeZone)
     const repeatPatch = repeatChange(task, args.repeat, dueDate, today)
     if (repeatPatch) await ctx.db.patch(taskId, repeatPatch)
 

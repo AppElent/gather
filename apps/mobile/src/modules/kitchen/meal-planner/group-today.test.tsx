@@ -157,3 +157,22 @@ test.each([
   )
   expect(state.queries.at(-1)).toMatchObject({ groupSlug: 'home', from })
 })
+
+test('an open source sheet follows the zone to its week', () => {
+  state.timeZone = 'Europe/Amsterdam'
+  const sheet = () =>
+    createElement(GroceriesSourceSheet, {
+      listId: 'list',
+      onRecipes: () => {},
+      onClose: () => {},
+    })
+  const { container, rerender } = mount(sheet())
+  act(() =>
+    container
+      .querySelector<HTMLElement>('[data-testid="groceries-source-week"]')
+      ?.click(),
+  )
+  state.timeZone = 'Pacific/Kiritimati'
+  rerender(sheet())
+  expect(state.queries.at(-1)).toMatchObject({ from: '2026-11-30' })
+})

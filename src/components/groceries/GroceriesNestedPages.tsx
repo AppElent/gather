@@ -23,7 +23,7 @@ import { useGroceryItem } from './useGroceryItem'
  * carries `<Breadcrumbs>` back to Groceries per `docs/contracts/navigation.md`.
  */
 export function GroceriesRecentPage({ listId }: { listId?: string }) {
-  const { slug: groupSlug } = useRequiredCurrentGroup()
+  const { slug: groupSlug, timeZone } = useRequiredCurrentGroup()
   const { locale, messages } = useI18n()
   const g = messages.tasks.grocery
   const allLists = useQuery(api.taskLists.list, { groupSlug })
@@ -82,6 +82,7 @@ export function GroceriesRecentPage({ listId }: { listId?: string }) {
       />
       <RecentPanel
         groupSlug={groupSlug}
+        timeZone={timeZone}
         listId={activeList?.writable ? activeList._id : undefined}
         openTitles={openTitles}
         mode="page"
