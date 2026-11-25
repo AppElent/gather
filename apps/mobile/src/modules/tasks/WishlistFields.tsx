@@ -14,6 +14,7 @@ import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-nat
 
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import { TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
@@ -129,7 +130,11 @@ export function WishlistFields({
               accessibilityRole="link"
               accessibilityLabel={t.tasks.wishlist.openLink}
               hitSlop={12}
-              onPress={() => Linking.openURL(openable)}
+              onPress={() => {
+                Linking.openURL(openable).catch(() =>
+                  showAlert(t.errors.openPageFailed),
+                )
+              }}
             >
               <UI_ICONS.ExternalLink
                 size={18}
