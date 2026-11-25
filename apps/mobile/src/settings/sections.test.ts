@@ -84,8 +84,30 @@ describe('the Settings list', () => {
       'account-email',
       'account-devices',
       'account-export',
+      'account-portal',
       'account-delete',
     ])
+  })
+
+  test('the AppElent account portal is a web page, found by its words in both languages', () => {
+    const portal = searchSettings(sections, 'appelent')
+    expect(portal.map(({ entry }) => entry)).toEqual([
+      {
+        id: 'account-portal',
+        label: 'Manage your AppElent account',
+        url: 'https://account.appelent.nl',
+      },
+    ])
+    const dutch = settingsSections(nl, {
+      appearance: 'dark',
+      locale: 'nl',
+      groupName: 'Huize Jansen',
+      accountName: 'Eric Jansen',
+      accountEmail: 'eric@example.com',
+    })
+    expect(
+      searchSettings(dutch, 'appelent').map(({ entry }) => entry.label),
+    ).toEqual(['Beheer je AppElent-account'])
   })
 
   test("a Module's row names the Group it edits, since nothing else on the screen does", () => {

@@ -17,6 +17,9 @@ const state = vi.hoisted(() => ({
   } | null,
   // `undefined` is Clerk switching sessions; `null` is nobody signed in.
   sessionId: 'sess_1' as string | null | undefined,
+  // The client's `signedInSessions`, which can hold one Clerk has not
+  // activated yet.
+  signedInSessions: [] as string[],
   purge: (): Promise<void> => Promise.resolve(),
   apple: (): Promise<'continue' | 'cancelled' | 'changed'> =>
     Promise.resolve('continue'),
@@ -39,6 +42,9 @@ const clerk = vi.hoisted(() => ({
   },
   get session() {
     return state.sessionId ? { id: state.sessionId } : state.sessionId
+  },
+  get client() {
+    return { signedInSessions: state.signedInSessions.map((id) => ({ id })) }
   },
 }))
 
@@ -138,6 +144,7 @@ beforeEach(() => {
   state.signedOut = 0
   state.told = 0
   state.sessionId = 'sess_1'
+  state.signedInSessions = ['sess_1']
   state.purge = () => Promise.resolve()
   state.apple = () => Promise.resolve('continue')
   state.appleOptions = null
@@ -483,6 +490,34 @@ describe('a session that changes after the confirmation (APP-396)', () => {
     ],
   ]
 
+  // Nobody is signed in at this moment, and somebody is about to be.
+  const arrivals: [string, () => void][] = [
+    [
+      'Clerk switching sessions',
+      () => {
+        state.user = null
+        state.sessionId = undefined
+        state.signedInSessions = ['sess_2']
+      },
+    ],
+    [
+      'Clerk switching sessions, with none in the client',
+      () => {
+        state.user = null
+        state.sessionId = undefined
+        state.signedInSessions = []
+      },
+    ],
+    [
+      'a second session Clerk has not activated yet',
+      () => {
+        state.user = null
+        state.sessionId = null
+        state.signedInSessions = ['sess_1', 'sess_2']
+      },
+    ],
+  ]
+
   test.each(changes)(
     '%s during the purge: no login is deleted, and the stranded state says so',
     async (_, change) => {
@@ -610,16 +645,7 @@ describe('a session that changes after the confirmation (APP-396)', () => {
     expect(state.order).toEqual([])
   })
 
-  test.each([
-    ...changes.slice(0, 2),
-    [
-      'Clerk switching sessions',
-      () => {
-        state.user = null
-        state.sessionId = undefined
-      },
-    ] as [string, () => void],
-  ])(
+  test.each([...changes.slice(0, 2), ...arrivals])(
     '%s during the gatherData purge: nobody is signed out or told, and the app is given back (APP-746)',
     async (_, change) => {
       const purge = deferred()
@@ -636,9 +662,13 @@ describe('a session that changes after the confirmation (APP-396)', () => {
     },
   )
 
-  test.each([false, true])(
-    'nobody signed in after the gatherData purge: this phone forgets the account, and nobody is signed out or told (provider unmounted: %s) (APP-771)',
-    async (unmounted) => {
+  test.each([
+    { unmounted: false, listed: [] },
+    { unmounted: true, listed: [] },
+    { unmounted: false, listed: ['sess_1'] },
+  ])(
+    'nobody signed in after the gatherData purge: this phone forgets the account, and nobody is signed out or told (%o) (APP-771)',
+    async ({ unmounted, listed }) => {
       const purge = deferred()
       state.purge = () => purge.promise
       view = render()
@@ -647,6 +677,7 @@ describe('a session that changes after the confirmation (APP-396)', () => {
 
       state.user = null
       state.sessionId = null
+      state.signedInSessions = listed
       if (unmounted) {
         view.unmount()
         view = undefined
@@ -659,7 +690,7 @@ describe('a session that changes after the confirmation (APP-396)', () => {
     },
   )
 
-  test.each(changes.slice(0, 2))(
+  test.each([...changes.slice(0, 2), ...arrivals])(
     '%s while Clerk deletes the login: the new session is not signed out (APP-746)',
     async (_, change) => {
       const clerkDelete = deferred()
@@ -677,7 +708,10 @@ describe('a session that changes after the confirmation (APP-396)', () => {
     },
   )
 
-  test('Clerk ending the session with the login still clears this phone (APP-746)', async () => {
+  test.each([
+    { listed: [] },
+    { listed: ['sess_1'] },
+  ])('Clerk ending the session with the login still clears this phone (%o) (APP-746)', async ({ listed }) => {
     const clerkDelete = deferred()
     state.user = { ...person('user_alex'), delete: () => clerkDelete.promise }
     view = render()
@@ -686,6 +720,7 @@ describe('a session that changes after the confirmation (APP-396)', () => {
 
     state.user = null
     state.sessionId = null
+    state.signedInSessions = listed
     clerkDelete.resolve()
     await settle()
     expect(state.signedOut).toBe(1)

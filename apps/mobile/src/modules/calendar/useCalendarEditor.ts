@@ -29,6 +29,18 @@ type CalendarSavePayload = ReturnType<typeof draftPayload> & {
   calendarId: string
 }
 
+/** Whether the draft is worth keeping on disk as it stands. */
+function isKept(draft: CalendarDraft | null): draft is CalendarDraft {
+  if (
+    !draft ||
+    !['editing', 'saving', 'conflict', 'error', 'dismissed'].includes(
+      draft.status,
+    )
+  )
+    return false
+  return draft.status !== 'editing' || isDraftDirty(draft)
+}
+
 const initialState: CalendarDraftState = {
   draft: null,
   presentation: 'card',
@@ -92,39 +104,53 @@ export function useCalendarEditor() {
   const [state, dispatch] = useReducer(reduceCalendarDraft, initialState)
   const mounted = useRef(true)
   const submitting = useRef(false)
+  const latest = useRef<CalendarDraft | null>(null)
+  latest.current = state.draft
+  // A change the timer below has not written yet. Only that is written when the
+  // screen goes: a draft already on disk, one restored from it, or one saved or
+  // discarded since must not be written again over what is there now.
+  const unwritten = useRef(false)
+  // The draft this screen read back from disk, which is on disk already.
+  const restoredDraft = useRef<CalendarDraft | null>(null)
   useEffect(
     () => () => {
       mounted.current = false
+      // The screen is going: what the timer below would write goes now, or
+      // the last 250 ms of typing is lost (APP-817).
+      try {
+        if (unwritten.current && isKept(latest.current))
+          writeCalendarDraft(latest.current)
+      } catch {
+        // Nothing left to tell.
+      }
     },
     [],
   )
   useEffect(() => {
     try {
       const restored = readCalendarDraft(userId, groupId)
-      if (restored)
-        dispatch({
-          type: 'open',
-          // Stored mid-save: no save of this screen's will end it, so it must
-          // not come back locked.
-          draft:
-            restored.status === 'saving'
-              ? { ...restored, status: 'editing' }
-              : restored,
-        })
+      if (restored) {
+        // Stored mid-save: no save of this screen's will end it, so it must
+        // not come back locked.
+        const draft: CalendarDraft =
+          restored.status === 'saving'
+            ? { ...restored, status: 'editing' }
+            : restored
+        restoredDraft.current = draft
+        dispatch({ type: 'open', draft })
+      }
     } catch {
       // A stored draft that cannot be read is no draft.
     }
   }, [groupId, userId])
   useEffect(() => {
-    if (
-      !state.draft ||
-      !['editing', 'saving', 'conflict', 'error', 'dismissed'].includes(
-        state.draft.status,
-      )
-    )
+    if (!isKept(state.draft) || state.draft === restoredDraft.current) {
+      unwritten.current = false
       return
-    if (state.draft.status === 'editing' && !isDraftDirty(state.draft)) return
+    }
+    unwritten.current = true
     const timer = setTimeout(() => {
+      unwritten.current = false
       try {
         writeCalendarDraft(state.draft!)
       } catch {

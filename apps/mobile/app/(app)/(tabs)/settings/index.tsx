@@ -32,6 +32,7 @@ import {
   showAlert,
 } from '../../../../src/observability/native-presentation'
 import { environmentFromChannel } from '../../../../src/observability/options'
+import { openAccountPortal } from '../../../../src/settings/account-portal'
 import { buildInfoLine } from '../../../../src/settings/build-info'
 import { identityInitial } from '../../../../src/settings/identity'
 import {
@@ -306,6 +307,7 @@ function Row({
         .join(', ')}
       onPress={() => {
         if (entry.href) router.push(entry.href)
+        else if (entry.id === 'account-portal') void openAccountPortal(t)
         else if (entry.url) openBrowserAsync(entry.url).catch(() => {})
         // Report a problem (APP-439): Sentry's form, or a word on why not.
         else if (!openProblemReport())

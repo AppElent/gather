@@ -32,3 +32,23 @@ export function preview(body: string): string {
       ?.trim() ?? ''
   )
 }
+
+export interface NoteText {
+  title: string
+  body: string
+}
+
+/** The fields of a draft that say something else than the saved note. */
+export function unsavedText(
+  saved: NoteText,
+  draft: Partial<NoteText>,
+): Partial<NoteText> {
+  return {
+    ...(draft.title !== undefined && draft.title !== saved.title
+      ? { title: draft.title }
+      : {}),
+    ...(draft.body !== undefined && draft.body !== saved.body
+      ? { body: draft.body }
+      : {}),
+  }
+}

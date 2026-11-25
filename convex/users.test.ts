@@ -307,4 +307,22 @@ describe('my name sent by the app (APP-676)', () => {
     const me = await t.withIdentity(identity).query(api.users.me, {})
     expect(me?.name).toBe('Eric Jansen')
   })
+
+  test('stores the sent name on a brand-new account (APP-678)', async () => {
+    const t = testConvex()
+    const identity = { subject: 'clerk_new' }
+    await t.withIdentity(identity).mutation(api.users.ensureUser, { name: 'Noor de Vries' })
+    const me = await t.withIdentity(identity).query(api.users.me, {})
+    expect(me?.name).toBe('Noor de Vries')
+  })
+
+  test('a later call with no name or a blank one keeps the real name (APP-678)', async () => {
+    const t = testConvex()
+    const identity = { subject: 'clerk_eric' }
+    await t.withIdentity(identity).mutation(api.users.ensureUser, { name: 'Eric Jansen' })
+    await t.withIdentity(identity).mutation(api.users.ensureUser, {})
+    await t.withIdentity(identity).mutation(api.users.ensureUser, { name: '   ' })
+    const me = await t.withIdentity(identity).query(api.users.me, {})
+    expect(me?.name).toBe('Eric Jansen')
+  })
 })

@@ -342,7 +342,7 @@ export const FEATURES = defineFeatures([
     status: 'parity',
     platforms: ['web', 'mobile'],
     routes: {
-      web: ['_app/tasks'],
+      web: ['_app/tasks', '_app/tasks/**'],
       mobile: [
         '(app)/(tabs)/all/tasks/**',
         '(app)/(tabs)/search/tasks/**',
@@ -405,10 +405,10 @@ export const FEATURES = defineFeatures([
   {
     id: 'calendar',
     kind: 'product',
-    status: 'pending-port',
-    platforms: ['mobile'],
-    reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-344.`,
+    status: 'parity',
+    platforms: ['web', 'mobile'],
     routes: {
+      web: ['_app/calendar/**'],
       mobile: [
         '(app)/(tabs)/all/calendar/**',
         '(app)/(tabs)/search/calendar/**',
@@ -418,10 +418,10 @@ export const FEATURES = defineFeatures([
   {
     id: 'notes',
     kind: 'product',
-    status: 'pending-port',
-    platforms: ['mobile'],
-    reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-351.`,
+    status: 'parity',
+    platforms: ['web', 'mobile'],
     routes: {
+      web: ['_app/notes/**'],
       mobile: ['(app)/(tabs)/all/notes/**', '(app)/(tabs)/search/notes/**'],
     },
   },
@@ -442,10 +442,10 @@ export const FEATURES = defineFeatures([
   {
     id: 'meal-planner',
     kind: 'product',
-    status: 'pending-port',
-    platforms: ['mobile'],
-    reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-322.`,
+    status: 'parity',
+    platforms: ['web', 'mobile'],
     routes: {
+      web: ['_app/meal-planner', '_app/meal-planner/**'],
       mobile: [
         '(app)/(tabs)/all/meal-planner/**',
         '(app)/(tabs)/settings/meal-planner',
@@ -482,12 +482,9 @@ export const FEATURES = defineFeatures([
     kind: 'product',
     status: 'exclusive',
     platforms: ['web'],
-    reason: `Placeholders for phone Modules. Calendar, notes, meal planner and shared costs are replaced by their web ports (${WEB_PORTS_ADR}); recurring costs and savings goals wait for a decision per Module (APP-83, ${ADR}).`,
+    reason: `Placeholders for phone Modules. Shared costs is replaced by its web port (${WEB_PORTS_ADR}); recurring costs and savings goals wait for a decision per Module (APP-83, ${ADR}).`,
     routes: {
       web: [
-        '_app/calendar',
-        '_app/notes',
-        '_app/meal-planner',
         '_app/recurring-costs',
         '_app/shared-costs',
         '_app/savings-goals',

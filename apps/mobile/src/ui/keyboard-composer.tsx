@@ -413,7 +413,7 @@ function ComposerCard({
           <GestureDetector gesture={cardPan}>
           <Animated.View
             testID={testID}
-            layout={keyboard.moving ? undefined : CARD_TRANSITION}
+            layout={cardLayout(keyboard.moving)}
             onLayout={(event) => {
               heights.current[expanded ? 'expanded' : 'small'] =
                 event.nativeEvent.layout.height
@@ -645,6 +645,11 @@ export const ADD_BUTTON_CLEARANCE = 60 + SPACE[4] + SPACE[2]
 
 /** How the card moves when its own content changes its size. */
 const CARD_TRANSITION = LinearTransition.duration(220)
+
+/** The card's `layout`: none while the keyboard moves, see `useKeyboard`. */
+function cardLayout(moving: boolean) {
+  return moving ? undefined : CARD_TRANSITION
+}
 
 /** Past the keyboard's own duration, so its animation is over when this ends. */
 const KEYBOARD_MOVED_MS = 100

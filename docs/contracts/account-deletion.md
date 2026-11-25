@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.7.1
+version: 2.7.2
 status: current
 ---
 
@@ -134,7 +134,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   during the purge unmounts the provider, so a next person never sees it.
   Signing out and the "data deleted" alert after the purge never reach
   another session (APP-746). With no session left, the phone's local cleanup
-  still runs, without the alert (APP-771).
+  still runs, without the alert (APP-771). A session Clerk is switching to, or
+  holds without having activated it, counts as another session (APP-797).
 - **On the web, the same run and the same order**, from the Account page's
   Danger zone (`src/components/account/`). `AccountDeleteProvider` sits in
   `routes/_app.tsx` above the signed-in gate, so `ensureUser` is unmounted

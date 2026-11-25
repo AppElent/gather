@@ -39,8 +39,6 @@ export interface ConfirmRequest {
   confirmPhrase?: { phrase: string; label: string }
   /** The work itself. Awaited; if it rejects, the dialog says why. */
   run: () => Promise<unknown> | unknown
-  /** A second way to say yes, where the question has two (never a Cancel). */
-  alternative?: { label: string; run: () => Promise<unknown> | unknown }
 }
 
 interface ConfirmDialogProps {
@@ -48,7 +46,6 @@ interface ConfirmDialogProps {
   busy: boolean
   error: string | null
   onConfirm: () => void
-  onAlternative: () => void
   onCancel: () => void
 }
 
@@ -57,7 +54,6 @@ function ConfirmDialog({
   busy,
   error,
   onConfirm,
-  onAlternative,
   onCancel,
 }: ConfirmDialogProps) {
   const confirmRef = useRef<HTMLButtonElement>(null)
@@ -85,16 +81,6 @@ function ConfirmDialog({
           >
             {actions.cancel}
           </button>
-          {request.alternative ? (
-            <button
-              type="button"
-              disabled={busy || !phraseMatches}
-              onClick={onAlternative}
-              className={buttonClass.secondary}
-            >
-              {request.alternative.label}
-            </button>
-          ) : null}
           <button
             ref={confirmRef}
             type="button"
@@ -174,12 +160,12 @@ export function useConfirmAction() {
     setError(null)
   }
 
-  async function accept(run: ConfirmRequest['run'] | undefined) {
-    if (!request || !run || busy) return
+  async function accept() {
+    if (!request || busy) return
     setBusy(true)
     setError(null)
     try {
-      await run()
+      await request.run()
       setRequest(null)
     } catch (e) {
       setError(errorText(e, request.errorFallback ?? didNotWork))
@@ -193,8 +179,7 @@ export function useConfirmAction() {
       request={request}
       busy={busy}
       error={error}
-      onConfirm={() => void accept(request.run)}
-      onAlternative={() => void accept(request.alternative?.run)}
+      onConfirm={() => void accept()}
       onCancel={cancel}
     />
   ) : null

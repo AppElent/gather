@@ -7,6 +7,8 @@
  */
 import { todayIn } from '@gather/core/civil-date'
 import type { MealSlot } from '@gather/core/meal-planner'
+import { weekRange } from '@gather/core/week-menu'
+import { defaultPlanSlots, emptyTargets, type PlanUse, planDays, planSlotChoices, planUses, slotChipLabel } from '@gather/core/week-menu-plan'
 import { WEEK_PLAN_WISHES, type WeekPlanWish, WISH_MAX } from '@gather/core/week-plan'
 import { useAction, useConvexConnectionState } from 'convex/react'
 import { useMemo, useState } from 'react'
@@ -19,7 +21,6 @@ import {
   TextInput,
   View,
 } from 'react-native'
-
 import { NativeSheet } from '../../../components/NativeSheet'
 import { api } from '../../../convex/api'
 import { useQuery } from '../../../convex/queries'
@@ -31,16 +32,7 @@ import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { InsetList, InsetRow } from '../../../ui/inset-list'
 import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { Chip } from './parts'
-import { type WeekData, weekRange } from './week'
-import {
-  defaultPlanSlots,
-  emptyTargets,
-  type PlanUse,
-  planDays,
-  planSlotChoices,
-  planUses,
-  slotChipLabel,
-} from './week-plan'
+import type { WeekData } from './week'
 
 export type PlanOutcome =
   | {

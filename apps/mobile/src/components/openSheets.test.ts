@@ -5,6 +5,7 @@ import {
   closeOpenSheets,
   hasOpenPrompts,
   hasOpenSheets,
+  isClosingSheets,
   LATE_SHEET_DELAY_MS,
   type OpenSheet,
   onSheetsClosing,
@@ -34,6 +35,16 @@ afterEach(() => {
 })
 
 describe('openSheets', () => {
+  it('is closing from the ask until the sheet reports closed (APP-817)', async () => {
+    const a = sheet()
+    expect(isClosingSheets()).toBe(false)
+    const closing = closeOpenSheets()
+    expect(isClosingSheets()).toBe(true)
+    a.later()
+    await closing
+    expect(isClosingSheets()).toBe(false)
+  })
+
   it('resolves at once when no sheet is open', async () => {
     expect(hasOpenSheets()).toBe(false)
     await expect(closeOpenSheets()).resolves.toBeUndefined()

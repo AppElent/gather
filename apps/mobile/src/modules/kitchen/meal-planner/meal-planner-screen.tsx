@@ -12,6 +12,8 @@
 import { MenuView } from '@expo/ui/community/menu'
 import { addDays } from '@gather/core/civil-date'
 import type { MealSlot } from '@gather/core/meal-planner'
+import { busyEvent, clock, daySlots, dinnersPlanned, eatersOf, eatingLabel, mealIn, mealMeta, shareText, shortDate, weekdayName, weekRange } from '@gather/core/week-menu'
+import { draftIn, storedWishes } from '@gather/core/week-menu-plan'
 import { useAction, useMutation } from 'convex/react'
 import { router, Stack } from 'expo-router'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -32,7 +34,6 @@ import {
   LegacyScrollView as ScrollView,
 } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
 import { api, type Id } from '../../../convex/api'
 import { useQuery } from '../../../convex/queries'
 import { haptics } from '../../../feedback/haptics'
@@ -65,24 +66,8 @@ import { DraftCard, ProposalBar, ProposalCard } from './proposal'
 import { slotKey, useProposalBar } from './proposal-bar'
 import { SwapSheet } from './swap-sheet'
 import { useGroupWeek } from './use-group-week'
-import {
-  busyEvent,
-  clock,
-  daySlots,
-  dinnersPlanned,
-  eatersOf,
-  eatingLabel,
-  mealIn,
-  mealMeta,
-  type PlannedMeal,
-  shareText,
-  shortDate,
-  type WeekData,
-  weekdayName,
-  weekRange,
-} from './week'
+import type { Draft, PlannedMeal, WeekData } from './week'
 import { WeekGroceriesSheet } from './week-groceries-sheet'
-import { type Draft, draftIn, storedWishes } from './week-plan'
 
 /** Eetvoorkeuren, from the bar menu and the button beside Boodschappen. */
 const PREFERENCES_PATH: ModulePath = '/all/meal-planner/settings'

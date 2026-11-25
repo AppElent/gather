@@ -19,7 +19,8 @@ const IDLE = 600
 
 export function useDebouncedText(
   value: string,
-  commit: (next: string) => void,
+  /** `false` when it was not taken: the text then stays unsaved. */
+  commit: (next: string) => unknown,
   /** Saves on blur and on leaving only, where a save is a slow round trip. */
   { onBlurOnly = false }: { onBlurOnly?: boolean } = {},
 ) {
@@ -43,7 +44,7 @@ export function useDebouncedText(
     pending.current = null
     if (next === null) return
     sent.current = next
-    latest.current(next)
+    if (latest.current(next) === false) pending.current = next
   }, [])
 
   // Adopt a change that came from somewhere else — another screen, another
@@ -94,5 +95,18 @@ export function useDebouncedText(
     if (pending.current === null) setDraft(saved.current)
   }, [])
 
-  return { draft, change, flush, blur, keep, reset }
+  /** `text` was saved another way: nothing to write, unless typed in since. */
+  const settle = useCallback((text: string) => {
+    if (pending.current !== text) return
+    pending.current = null
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = null
+  }, [])
+
+  /** A save of `text` was refused: unsaved again, unless typed in since. */
+  const hold = useCallback((text: string) => {
+    if (pending.current === null) pending.current = text
+  }, [])
+
+  return { draft, change, flush, blur, keep, reset, settle, hold }
 }

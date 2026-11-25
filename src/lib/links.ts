@@ -64,6 +64,19 @@ export const ROUTES = {
   groceriesInStock: '/groceries/in-stock',
   groceriesItem: '/groceries/item/$itemId',
 
+  note: '/notes/$noteId',
+
+  mealPlannerSettings: '/meal-planner/settings',
+  plannedMeal: '/meal-planner/meal/$mealId',
+  mealProposal: '/meal-planner/proposal/$draftId',
+
+  calendarDay: '/calendar/day/$date',
+  calendarEvent: '/calendar/event/$eventId',
+
+  taskList: '/tasks/$listId',
+  smartTaskList: '/tasks/smart/$smartList',
+  task: '/tasks/task/$taskId',
+
   newChild: '/baby/new',
   child: '/baby/$babyId',
   editChild: '/baby/$babyId/edit',
