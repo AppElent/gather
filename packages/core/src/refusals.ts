@@ -348,6 +348,37 @@ export function groupRefusalSentence(
   return code === null ? null : sentences[code]
 }
 
+/**
+ * Why a paired watch's call, or pairing one, was refused (APP-653), for a
+ * reason of its own. A call refused at the key or the Group answers with the
+ * Group refusal above.
+ *
+ * - `bad-request`: the request or the change is not one this API knows.
+ * - `rate-limited`: too many calls; try again after `Retry-After`.
+ * - `not-found`: no such item, task or list in the watch's Group.
+ * - `read-only`: it is on a list Gather cannot write to.
+ * - `key-reused`: the change's key was already used for another one.
+ * - `failed`: the server could not apply the change; it may be sent again.
+ */
+export const WATCH_REFUSAL_CODES = [
+  'bad-request',
+  'rate-limited',
+  'not-found',
+  'read-only',
+  'key-reused',
+  'failed',
+] as const
+export type WatchRefusalCode = (typeof WATCH_REFUSAL_CODES)[number]
+
+export function watchRefusal(code: WatchRefusalCode): { kind: string } {
+  return { kind: `watch:${code}` }
+}
+
+export function readWatchRefusal(error: unknown): WatchRefusalCode | null {
+  const kind = refusalKind(error)
+  return WATCH_REFUSAL_CODES.find((code) => `watch:${code}` === kind) ?? null
+}
+
 /** The `kind` a thrown value carries, whichever vocabulary it comes from. */
 export function refusalKind(error: unknown): string | null {
   const data = errorData(error)

@@ -42,6 +42,7 @@ import { storedFileIdsOf } from './storedFiles'
 import { unassignFromGroup } from './taskAssignee'
 import { cancelSend, dropMemberReminders } from './taskReminders'
 import { purgeCompletionsOfTask } from './taskRepeat'
+import { deleteWatchDevices } from './watchDevices'
 
 /** Delete these rows, handing back the stored files they were holding. */
 async function purge<T extends TableNames>(
@@ -107,6 +108,14 @@ export async function deleteTaskList(
       .sort((a, b) => a.order - b.order)[0]
     await ctx.db.patch(group._id, { groceryListId: next?._id })
   }
+  // A watch on this list goes back to the Group's own grocery list.
+  const watches = await ctx.db
+    .query('watchDevices')
+    .withIndex('by_group', (q) => q.eq('groupId', list.groupId))
+    .collect()
+  for (const watch of watches)
+    if (watch.groceryListId === listId)
+      await ctx.db.patch(watch._id, { groceryListId: undefined })
   const babies = await ctx.db
     .query('babies')
     .withIndex('by_group', (q) => q.eq('groupId', list.groupId))
@@ -211,6 +220,17 @@ const GROUP_CONTENT: {
     groupId: Id<'groups'>,
   ) => Promise<Id<'_storage'>[]>
 } = {
+  // First: it is a credential, and stops working with the Group.
+  watchDevices: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'watchDevices',
+      await ctx.db
+        .query('watchDevices')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
   integrationConnections: async (ctx, groupId) =>
     purge(
       ctx,
@@ -715,6 +735,11 @@ export async function detachFromGroup(
   groupId: Id<'groups'>,
 ) {
   await dropMemberReminders(ctx, userId, groupId)
+  await deleteWatchDevices(
+    ctx,
+    userId,
+    (device) => device.groupId === groupId,
+  )
 
   const costs = await ctx.db
     .query('recurringCosts')

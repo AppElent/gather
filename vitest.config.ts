@@ -35,7 +35,7 @@ export default defineConfig({
           globals: true,
           include: ['convex/**/*.test.ts'],
           exclude,
-          server: { deps: { inline: ['convex-test'] } },
+          server: { deps: { inline: ['convex-test', /@convex-dev\//] } },
         },
       },
       {

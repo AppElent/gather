@@ -87,7 +87,7 @@ async function checkedEaters(
  * A stored meal with a live Recipe's title and time over its snapshot, while
  * the Recipe is still visible in the Group (ADR-0027).
  */
-async function withLiveRecipe(
+export async function withLiveRecipe(
   ctx: QueryCtx,
   groupId: Id<'groups'>,
   meal: PlannedMeal,

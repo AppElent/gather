@@ -20,7 +20,7 @@ import {
 } from '@gather/core/task-lists'
 import { clockMoment } from '@gather/core/task-reminders'
 import { reanchorRepeat, type TaskRepeat } from '@gather/core/task-repeat'
-import { ConvexError, v } from 'convex/values'
+import { ConvexError, type Infer, type ObjectType, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalQuery, mutation, query } from './_generated/server'
@@ -382,108 +382,133 @@ async function endOfList(ctx: MutationCtx, listId: Id<'taskLists'>) {
 }
 
 
+/** Who writes on which local list, once authorised. */
+interface TaskListWriter {
+  user: Doc<'users'>
+  group: Doc<'groups'>
+  list: Doc<'taskLists'>
+}
+
+const addArgs = {
+  listId: v.id('taskLists'),
+  groupSlug: v.string(),
+  title: v.string(),
+  dueDate: v.optional(v.string()),
+  priority: v.optional(taskPriorityValidator),
+  labels: v.optional(v.array(v.string())),
+  // A grocery item's amount (APP-309), already taken off the title by the
+  // client ("2 pakken melk" arrives as "melk", 2, `pak`). A client that
+  // sends none — an installed app from before amounts — keeps its line as
+  // the title, exactly as before.
+  quantity: v.optional(v.number()),
+  unit: v.optional(groceryUnitValidator),
+  // How it repeats (APP-303). A fixed schedule without a due date starts on
+  // its first day from `today`.
+  repeat: v.optional(taskRepeatValidator),
+  today: todayArg,
+  // The Member responsible (APP-302); a current Member of the list's Group.
+  assigneeId: v.optional(v.id('users')),
+  // The section it is added to (APP-357). One the list does not have, and
+  // none at all from an app older than sections, is "No section".
+  sectionId: v.optional(v.string()),
+  // The task it is a step of (APP-304): one on the same list that is not a
+  // subtask itself. A subtask does not repeat and sits in its parent's
+  // section.
+  parentTaskId: v.optional(v.id('tasks')),
+  idempotencyKey: idempotencyKeyValidator,
+}
+
+type AddArgs = Omit<ObjectType<typeof addArgs>, 'groupSlug' | 'idempotencyKey'>
+
+/**
+ * Check a new task and answer the write that makes it. The caller has already
+ * authorised `user` on a local `list` of `group`: the app's own session does
+ * it in `add`, a watch's key in `watchChanges.ts`.
+ */
+export async function prepareTask(
+  ctx: MutationCtx,
+  { user, group, list }: TaskListWriter,
+  args: AddArgs,
+): Promise<() => Promise<Id<'tasks'>>> {
+  const parent = args.parentTaskId
+    ? await requireParentFor(ctx, list, args.parentTaskId)
+    : null
+  if (parent && args.repeat) {
+    throw new ConvexError(taskRefusal('subtask-repeat'))
+  }
+  const quantity =
+    args.quantity === undefined ? undefined : checkedQuantity(args.quantity)
+  const onGroceryList = isGroceryList(group, list)
+  const sectionId = parent
+    ? parent.sectionId
+    : knownSectionId(list, args.sectionId)
+  // A list without amounts keeps an amount it was sent in the title, so
+  // nothing a connected app wrote is dropped.
+  const title = onGroceryList
+    ? args.title
+    : groceryLineText(args.title, quantity, args.unit)
+  const today = completionDay(args.today, group.timeZone)
+  const repeat = args.repeat
+    ? checkedRepeat(args.repeat, args.dueDate ?? today)
+    : undefined
+  const dueDate = repeat
+    ? firstDueDate(repeat, args.dueDate, today)
+    : args.dueDate
+  return async () => {
+    // An item on a grocery list gets its aisle here, so every client —
+    // installed apps that know nothing of aisles too — has it. It is
+    // recognised as the whole line: "2 blik tomaten" is in tins, not with
+    // the fresh tomatoes.
+    const grocery = onGroceryList
+      ? await recogniseGroceryTitle(
+          ctx,
+          group._id,
+          groceryLineText(title, quantity, args.unit),
+          await recentListItems(ctx, args.listId),
+        )
+      : null
+    const assignee =
+      args.assigneeId === undefined
+        ? null
+        : await assigneeChange(ctx, {
+            groupId: group._id,
+            actorId: user._id,
+            current: undefined,
+            next: args.assigneeId,
+          })
+    const taskId = await ctx.db.insert('tasks', {
+      listId: args.listId,
+      title,
+      done: false,
+      dueDate,
+      priority: args.priority,
+      labels: args.labels,
+      createdBy: user._id,
+      order: await endOfList(ctx, args.listId),
+      ...(grocery ? { category: grocery.aisle } : {}),
+      ...(onGroceryList && quantity !== undefined ? { quantity } : {}),
+      ...(onGroceryList && args.unit !== undefined ? { unit: args.unit } : {}),
+      ...(repeat ? { repeat } : {}),
+      ...(assignee ?? {}),
+      ...(sectionId ? { sectionId } : {}),
+      ...(parent ? { parentTaskId: parent._id } : {}),
+    })
+    if (grocery) await askAiOnce(ctx, group._id, grocery, taskId)
+    await notifyAssignee(ctx, group._id, taskId, assignee)
+    return taskId
+  }
+}
+
 export const add = mutation({
-  args: {
-    listId: v.id('taskLists'),
-    groupSlug: v.string(),
-    title: v.string(),
-    dueDate: v.optional(v.string()),
-    priority: v.optional(taskPriorityValidator),
-    labels: v.optional(v.array(v.string())),
-    // A grocery item's amount (APP-309), already taken off the title by the
-    // client ("2 pakken melk" arrives as "melk", 2, `pak`). A client that
-    // sends none — an installed app from before amounts — keeps its line as
-    // the title, exactly as before.
-    quantity: v.optional(v.number()),
-    unit: v.optional(groceryUnitValidator),
-    // How it repeats (APP-303). A fixed schedule without a due date starts on
-    // its first day from `today`.
-    repeat: v.optional(taskRepeatValidator),
-    today: todayArg,
-    // The Member responsible (APP-302); a current Member of the list's Group.
-    assigneeId: v.optional(v.id('users')),
-    // The section it is added to (APP-357). One the list does not have, and
-    // none at all from an app older than sections, is "No section".
-    sectionId: v.optional(v.string()),
-    // The task it is a step of (APP-304): one on the same list that is not a
-    // subtask itself. A subtask does not repeat and sits in its parent's
-    // section.
-    parentTaskId: v.optional(v.id('tasks')),
-    idempotencyKey: idempotencyKeyValidator,
-  },
+  args: addArgs,
   handler: async (ctx, args) => {
     const { user, group, doc: list } = await requireLocalList(
       ctx,
       args.groupSlug,
       args.listId,
     )
-    const parent = args.parentTaskId
-      ? await requireParentFor(ctx, list, args.parentTaskId)
-      : null
-    if (parent && args.repeat) {
-      throw new ConvexError(taskRefusal('subtask-repeat'))
-    }
-    const quantity =
-      args.quantity === undefined ? undefined : checkedQuantity(args.quantity)
-    const onGroceryList = isGroceryList(group, list)
-    const sectionId = parent
-      ? parent.sectionId
-      : knownSectionId(list, args.sectionId)
-    // A list without amounts keeps an amount it was sent in the title, so
-    // nothing a connected app wrote is dropped.
-    const title = onGroceryList
-      ? args.title
-      : groceryLineText(args.title, quantity, args.unit)
-    const today = completionDay(args.today, group.timeZone)
-    const repeat = args.repeat
-      ? checkedRepeat(args.repeat, args.dueDate ?? today)
-      : undefined
-    const dueDate = repeat
-      ? firstDueDate(repeat, args.dueDate, today)
-      : args.dueDate
-    return await createOnce(ctx, user._id, 'tasks', args.idempotencyKey, async () => {
-      // An item on a grocery list gets its aisle here, so every client —
-      // installed apps that know nothing of aisles too — has it. It is
-      // recognised as the whole line: "2 blik tomaten" is in tins, not with
-      // the fresh tomatoes.
-      const grocery = onGroceryList
-        ? await recogniseGroceryTitle(
-            ctx,
-            group._id,
-            groceryLineText(title, quantity, args.unit),
-            await recentListItems(ctx, args.listId),
-          )
-        : null
-      const assignee =
-        args.assigneeId === undefined
-          ? null
-          : await assigneeChange(ctx, {
-              groupId: group._id,
-              actorId: user._id,
-              current: undefined,
-              next: args.assigneeId,
-            })
-      const taskId = await ctx.db.insert('tasks', {
-        listId: args.listId,
-        title,
-        done: false,
-        dueDate,
-        priority: args.priority,
-        labels: args.labels,
-        createdBy: user._id,
-        order: await endOfList(ctx, args.listId),
-        ...(grocery ? { category: grocery.aisle } : {}),
-        ...(onGroceryList && quantity !== undefined ? { quantity } : {}),
-        ...(onGroceryList && args.unit !== undefined ? { unit: args.unit } : {}),
-        ...(repeat ? { repeat } : {}),
-        ...(assignee ?? {}),
-        ...(sectionId ? { sectionId } : {}),
-        ...(parent ? { parentTaskId: parent._id } : {}),
-      })
-      if (grocery) await askAiOnce(ctx, group._id, grocery, taskId)
-      await notifyAssignee(ctx, group._id, taskId, assignee)
-      return taskId
-    })
+    const insert = await prepareTask(ctx, { user, group, list }, args)
+    return await createOnce(ctx, user._id, 'tasks', args.idempotencyKey, insert)
   },
 })
 
@@ -662,187 +687,204 @@ export const completions = query({
 /** How much history the task screen shows; older rows are kept, not shown. */
 const COMPLETIONS_SHOWN = 20
 
+const updateArgs = {
+  taskId: v.id('tasks'),
+  groupSlug: v.string(),
+  title: v.optional(v.string()),
+  // null clears the field (same pattern as recipes.update)
+  dueDate: v.optional(v.union(v.string(), v.null())),
+  priority: v.optional(v.union(taskPriorityValidator, v.null())),
+  labels: v.optional(v.union(v.array(v.string()), v.null())),
+  notes: v.optional(v.union(v.string(), v.null())),
+  // Set, rather than toggled: a connected app retrying must land in one state.
+  done: v.optional(v.boolean()),
+  // A wishlist item's link and price (APP-306); null clears either.
+  url: v.optional(v.union(v.string(), v.null())),
+  priceCents: v.optional(v.union(v.number(), v.null())),
+  // The aisle a Member moved a grocery item to; it becomes the Group's own
+  // choice for the item's name (APP-353).
+  category: v.optional(groceryAisleValidator),
+  // A grocery item's amount and unit (APP-309); null clears either.
+  quantity: v.optional(v.union(v.number(), v.null())),
+  unit: v.optional(v.union(groceryUnitValidator, v.null())),
+  // The amount this write replaces (APP-671): refused when another Member
+  // changed it since. Absent, as installed apps send it, writes regardless.
+  expectedAmount: v.optional(groceryAmountValidator),
+  // How it repeats (APP-303); null stops it. A moved due date carries a
+  // monthly, yearly or one-weekday rule along with it.
+  repeat: v.optional(v.union(taskRepeatValidator, v.null())),
+  today: todayArg,
+  // With done true on a repeating task: the due date the caller saw, so a
+  // retry after the task moved on completes nothing twice.
+  occurrence: v.optional(v.union(v.string(), v.null())),
+  // The Member responsible (APP-302); null is nobody. Absent leaves it as
+  // it is, which is what every client from before assignees sends.
+  assigneeId: v.optional(v.union(v.id('users'), v.null())),
+  // The task it is a step of (APP-304); null makes it a task of its own.
+  // The same rules as `add`: same list, one level deep, no repeat.
+  parentTaskId: v.optional(v.union(v.id('tasks'), v.null())),
+  // With done true: check its open subtasks too ("Complete all").
+  withSubtasks: v.optional(v.boolean()),
+}
+
+type UpdateArgs = Omit<ObjectType<typeof updateArgs>, 'groupSlug'>
+
+/**
+ * Change a task. The caller has already authorised `user` on `task` and its
+ * local `list` in `group`: the app's own session does it in `update`, a
+ * watch's key in `watchChanges.ts`.
+ */
+export async function changeTask(
+  ctx: MutationCtx,
+  { user, group, list, task }: TaskListWriter & { task: Doc<'tasks'> },
+  args: UpdateArgs,
+): Promise<Infer<typeof completionResult>> {
+  const { taskId, title, dueDate, priority, labels, notes, done } = args
+  const { expectedAmount } = args
+  if (
+    expectedAmount &&
+    ((task.quantity ?? null) !== expectedAmount.quantity ||
+      (task.unit ?? null) !== expectedAmount.unit)
+  )
+    throw new ConvexError(taskRefusal('amount-changed'))
+  const parent = await parentChange(ctx, task, list, args.parentTaskId)
+  const isSubtask =
+    args.parentTaskId === undefined
+      ? task.parentTaskId !== undefined
+      : args.parentTaskId !== null
+  if (isSubtask && (args.repeat || (args.repeat === undefined && task.repeat)))
+    throw new ConvexError(taskRefusal('subtask-repeat'))
+  const url = args.url === undefined ? undefined : checkedUrl(args.url)
+  const priceCents =
+    args.priceCents === undefined ? undefined : checkedPrice(args.priceCents)
+  const onGroceryList = isGroceryList(group, list)
+  // An aisle and an amount mean something only on a grocery list.
+  let category = onGroceryList ? args.category : undefined
+  const quantity =
+    !onGroceryList || args.quantity === undefined
+      ? undefined
+      : args.quantity === null
+        ? null
+        : checkedQuantity(args.quantity)
+  const unit = onGroceryList ? args.unit : undefined
+  const assignee =
+    args.assigneeId === undefined
+      ? null
+      : await assigneeChange(ctx, {
+          groupId: group._id,
+          actorId: user._id,
+          current: task.assigneeId,
+          next: args.assigneeId,
+        })
+  // Moving the due date moves the reminder by the same days (APP-305).
+  const reminder =
+    dueDate === undefined
+      ? task.reminder
+      : shiftedReminder(task.reminder, task.dueDate, dueDate ?? undefined)
+  // Done on an open repeating task keeps it open; its reminder moves with
+  // the occurrence below.
+  const completes = done === true && !task.done && willRepeat(task, args.repeat)
+  let askAi: Awaited<ReturnType<typeof recogniseGroceryTitle>> | null = null
+  if (onGroceryList && category !== undefined) {
+    await recordGroceryCorrection(
+      ctx,
+      group._id,
+      user._id,
+      title ?? task.title,
+      category,
+    )
+  } else if (onGroceryList && title !== undefined && title !== task.title) {
+    // A renamed item is a different item: find its aisle again.
+    askAi = await recogniseGroceryTitle(
+      ctx,
+      group._id,
+      groceryLineText(
+        title,
+        (quantity === undefined ? task.quantity : quantity) ?? undefined,
+        (unit === undefined ? task.unit : unit) ?? undefined,
+      ),
+      await recentListItems(ctx, task.listId),
+      task._id,
+    )
+    category = askAi.aisle
+  }
+  await ctx.db.patch(taskId, {
+    ...(category !== undefined ? { category } : {}),
+    ...(quantity !== undefined ? { quantity: quantity ?? undefined } : {}),
+    ...(unit !== undefined ? { unit: unit ?? undefined } : {}),
+    ...(url !== undefined ? { url: url ?? undefined } : {}),
+    ...(priceCents !== undefined
+      ? { priceCents: priceCents ?? undefined }
+      : {}),
+    ...(title !== undefined ? { title } : {}),
+    // Done on an open repeating task completes its occurrence, below.
+    ...(done !== undefined && !completes && done !== task.done
+      ? doneFields(done)
+      : {}),
+    ...(dueDate !== undefined ? { dueDate: dueDate ?? undefined } : {}),
+    ...(priority !== undefined ? { priority: priority ?? undefined } : {}),
+    ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
+    ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
+    ...(assignee ?? {}),
+    ...(reminder !== task.reminder ? { reminder } : {}),
+    ...(parent ?? {}),
+  })
+  if (task.reminder && (reminder !== task.reminder || done !== undefined))
+    await syncSend(
+      ctx,
+      { ...task, reminder, done: completes ? task.done : (done ?? task.done) },
+      group._id,
+      task.reminder,
+    )
+  // A repeating parent's dated subtasks move the same days as its due date,
+  // as they do when it completes (APP-468); a one-off parent's stay put.
+  if (dueDate !== undefined && willRepeat(task, args.repeat))
+    await shiftSubtaskDates(
+      ctx,
+      taskId,
+      group._id,
+      movedDays(task.dueDate, dueDate ?? undefined),
+    )
+  if (askAi) await askAiOnce(ctx, group._id, askAi, taskId)
+  if (done === true && !task.done)
+    await restockCheckedStaples(ctx, group, list, [
+      { title: title ?? task.title },
+    ])
+  if (done === true && !task.done && args.withSubtasks && !completes)
+    await completeSubtasks(ctx, taskId, group._id)
+  await notifyAssignee(ctx, group._id, taskId, assignee)
+
+  const today = completionDay(args.today, group.timeZone)
+  const repeatPatch = repeatChange(task, args.repeat, dueDate, today)
+  if (repeatPatch) await ctx.db.patch(taskId, repeatPatch)
+
+  // Completing a repeating task moves it on rather than closing it.
+  if (done === true && !task.done) {
+    const current = await ctx.db.get(taskId)
+    if (current && isRepeating(current)) {
+      return await completeOccurrence(ctx, {
+        task: current,
+        groupId: group._id,
+        userId: user._id,
+        today,
+        occurrence: args.occurrence,
+      })
+    }
+  }
+  return null
+}
+
 export const update = mutation({
-  args: {
-    taskId: v.id('tasks'),
-    groupSlug: v.string(),
-    title: v.optional(v.string()),
-    // null clears the field (same pattern as recipes.update)
-    dueDate: v.optional(v.union(v.string(), v.null())),
-    priority: v.optional(v.union(taskPriorityValidator, v.null())),
-    labels: v.optional(v.union(v.array(v.string()), v.null())),
-    notes: v.optional(v.union(v.string(), v.null())),
-    // Set, rather than toggled: a connected app retrying must land in one state.
-    done: v.optional(v.boolean()),
-    // A wishlist item's link and price (APP-306); null clears either.
-    url: v.optional(v.union(v.string(), v.null())),
-    priceCents: v.optional(v.union(v.number(), v.null())),
-    // The aisle a Member moved a grocery item to; it becomes the Group's own
-    // choice for the item's name (APP-353).
-    category: v.optional(groceryAisleValidator),
-    // A grocery item's amount and unit (APP-309); null clears either.
-    quantity: v.optional(v.union(v.number(), v.null())),
-    unit: v.optional(v.union(groceryUnitValidator, v.null())),
-    // The amount this write replaces (APP-671): refused when another Member
-    // changed it since. Absent, as installed apps send it, writes regardless.
-    expectedAmount: v.optional(groceryAmountValidator),
-    // How it repeats (APP-303); null stops it. A moved due date carries a
-    // monthly, yearly or one-weekday rule along with it.
-    repeat: v.optional(v.union(taskRepeatValidator, v.null())),
-    today: todayArg,
-    // With done true on a repeating task: the due date the caller saw, so a
-    // retry after the task moved on completes nothing twice.
-    occurrence: v.optional(v.union(v.string(), v.null())),
-    // The Member responsible (APP-302); null is nobody. Absent leaves it as
-    // it is, which is what every client from before assignees sends.
-    assigneeId: v.optional(v.union(v.id('users'), v.null())),
-    // The task it is a step of (APP-304); null makes it a task of its own.
-    // The same rules as `add`: same list, one level deep, no repeat.
-    parentTaskId: v.optional(v.union(v.id('tasks'), v.null())),
-    // With done true: check its open subtasks too ("Complete all").
-    withSubtasks: v.optional(v.boolean()),
-  },
+  args: updateArgs,
   returns: completionResult,
-  handler: async (ctx, args) => {
+  handler: async (ctx, { groupSlug, ...args }) => {
     const {
       task,
       group,
       user,
       doc: list,
-    } = await requireEditableTaskInGroup(ctx, args.groupSlug, args.taskId)
-    const { taskId, title, dueDate, priority, labels, notes, done } = args
-    const { expectedAmount } = args
-    if (
-      expectedAmount &&
-      ((task.quantity ?? null) !== expectedAmount.quantity ||
-        (task.unit ?? null) !== expectedAmount.unit)
-    )
-      throw new ConvexError(taskRefusal('amount-changed'))
-    const parent = await parentChange(ctx, task, list, args.parentTaskId)
-    const isSubtask =
-      args.parentTaskId === undefined
-        ? task.parentTaskId !== undefined
-        : args.parentTaskId !== null
-    if (isSubtask && (args.repeat || (args.repeat === undefined && task.repeat)))
-      throw new ConvexError(taskRefusal('subtask-repeat'))
-    const url = args.url === undefined ? undefined : checkedUrl(args.url)
-    const priceCents =
-      args.priceCents === undefined ? undefined : checkedPrice(args.priceCents)
-    const onGroceryList = isGroceryList(group, list)
-    // An aisle and an amount mean something only on a grocery list.
-    let category = onGroceryList ? args.category : undefined
-    const quantity =
-      !onGroceryList || args.quantity === undefined
-        ? undefined
-        : args.quantity === null
-          ? null
-          : checkedQuantity(args.quantity)
-    const unit = onGroceryList ? args.unit : undefined
-    const assignee =
-      args.assigneeId === undefined
-        ? null
-        : await assigneeChange(ctx, {
-            groupId: group._id,
-            actorId: user._id,
-            current: task.assigneeId,
-            next: args.assigneeId,
-          })
-    // Moving the due date moves the reminder by the same days (APP-305).
-    const reminder =
-      dueDate === undefined
-        ? task.reminder
-        : shiftedReminder(task.reminder, task.dueDate, dueDate ?? undefined)
-    // Done on an open repeating task keeps it open; its reminder moves with
-    // the occurrence below.
-    const completes = done === true && !task.done && willRepeat(task, args.repeat)
-    let askAi: Awaited<ReturnType<typeof recogniseGroceryTitle>> | null = null
-    if (onGroceryList && category !== undefined) {
-      await recordGroceryCorrection(
-        ctx,
-        group._id,
-        user._id,
-        title ?? task.title,
-        category,
-      )
-    } else if (onGroceryList && title !== undefined && title !== task.title) {
-      // A renamed item is a different item: find its aisle again.
-      askAi = await recogniseGroceryTitle(
-        ctx,
-        group._id,
-        groceryLineText(
-          title,
-          (quantity === undefined ? task.quantity : quantity) ?? undefined,
-          (unit === undefined ? task.unit : unit) ?? undefined,
-        ),
-        await recentListItems(ctx, task.listId),
-        task._id,
-      )
-      category = askAi.aisle
-    }
-    await ctx.db.patch(taskId, {
-      ...(category !== undefined ? { category } : {}),
-      ...(quantity !== undefined ? { quantity: quantity ?? undefined } : {}),
-      ...(unit !== undefined ? { unit: unit ?? undefined } : {}),
-      ...(url !== undefined ? { url: url ?? undefined } : {}),
-      ...(priceCents !== undefined
-        ? { priceCents: priceCents ?? undefined }
-        : {}),
-      ...(title !== undefined ? { title } : {}),
-      // Done on an open repeating task completes its occurrence, below.
-      ...(done !== undefined && !completes && done !== task.done
-        ? doneFields(done)
-        : {}),
-      ...(dueDate !== undefined ? { dueDate: dueDate ?? undefined } : {}),
-      ...(priority !== undefined ? { priority: priority ?? undefined } : {}),
-      ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
-      ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
-      ...(assignee ?? {}),
-      ...(reminder !== task.reminder ? { reminder } : {}),
-      ...(parent ?? {}),
-    })
-    if (task.reminder && (reminder !== task.reminder || done !== undefined))
-      await syncSend(
-        ctx,
-        { ...task, reminder, done: completes ? task.done : (done ?? task.done) },
-        group._id,
-        task.reminder,
-      )
-    // A repeating parent's dated subtasks move the same days as its due date,
-    // as they do when it completes (APP-468); a one-off parent's stay put.
-    if (dueDate !== undefined && willRepeat(task, args.repeat))
-      await shiftSubtaskDates(
-        ctx,
-        taskId,
-        group._id,
-        movedDays(task.dueDate, dueDate ?? undefined),
-      )
-    if (askAi) await askAiOnce(ctx, group._id, askAi, taskId)
-    if (done === true && !task.done)
-      await restockCheckedStaples(ctx, group, list, [
-        { title: title ?? task.title },
-      ])
-    if (done === true && !task.done && args.withSubtasks && !completes)
-      await completeSubtasks(ctx, taskId, group._id)
-    await notifyAssignee(ctx, group._id, taskId, assignee)
-
-    const today = completionDay(args.today, group.timeZone)
-    const repeatPatch = repeatChange(task, args.repeat, dueDate, today)
-    if (repeatPatch) await ctx.db.patch(taskId, repeatPatch)
-
-    // Completing a repeating task moves it on rather than closing it.
-    if (done === true && !task.done) {
-      const current = await ctx.db.get(taskId)
-      if (current && isRepeating(current)) {
-        return await completeOccurrence(ctx, {
-          task: current,
-          groupId: group._id,
-          userId: user._id,
-          today,
-          occurrence: args.occurrence,
-        })
-      }
-    }
-    return null
+    } = await requireEditableTaskInGroup(ctx, groupSlug, args.taskId)
+    return await changeTask(ctx, { user, group, list, task }, args)
   },
 })
 

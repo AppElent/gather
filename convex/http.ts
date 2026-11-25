@@ -14,12 +14,19 @@
  * `CLERK_WEBHOOK_SECRET`. Without the secret the route refuses everything, so
  * a deployment that has not been given one cannot be told to delete anybody.
  * Other event types answer 200 so Clerk does not retry them.
+ *
+ * The same route's `session.ended`, `session.removed` and `session.revoked`
+ * (APP-653) delete the watches paired under that session.
+ *
+ * `/watch/v1/*` (APP-653) is what a paired Apple Watch calls with its key
+ * (`lib/watchHttp.ts`, `docs/contracts/watch-api.md`).
  */
 import { httpRouter } from 'convex/server'
 import { internal } from './_generated/api'
 import { httpAction } from './_generated/server'
 import { verifiedAppleUserIds } from './lib/clerkUsers'
 import { svixHeaders, verifySvix } from './lib/svix'
+import { changes, read } from './lib/watchHttp'
 
 /** Far above any Clerk event; a bigger body is not one, and is not hashed. */
 const MAX_BODY_BYTES = 256 * 1024
@@ -45,6 +52,7 @@ const clerkWebhook = httpAction(async (ctx, request) => {
     type?: unknown
     data?: {
       id?: unknown
+      user_id?: unknown
       updated_at?: unknown
       external_accounts?: unknown
     } | null
@@ -84,6 +92,20 @@ const clerkWebhook = httpAction(async (ctx, request) => {
       clerkUpdatedAt: updatedAt,
     })
   }
+  if (
+    event.type === 'session.ended' ||
+    event.type === 'session.removed' ||
+    event.type === 'session.revoked'
+  ) {
+    const sessionId = event.data?.id
+    const clerkId = event.data?.user_id
+    if (typeof sessionId !== 'string' || typeof clerkId !== 'string')
+      return new Response('Missing session or user id', { status: 400 })
+    await ctx.runMutation(internal.watch.forgetSessionOf, {
+      clerkId,
+      sessionId,
+    })
+  }
   return new Response(null, { status: 200 })
 })
 
@@ -94,5 +116,19 @@ http.route({
   method: 'POST',
   handler: clerkWebhook,
 })
+
+http.route({
+  path: '/watch/v1/modules',
+  method: 'GET',
+  handler: read('modules'),
+})
+http.route({
+  path: '/watch/v1/groceries',
+  method: 'GET',
+  handler: read('groceries'),
+})
+http.route({ path: '/watch/v1/today', method: 'GET', handler: read('today') })
+http.route({ path: '/watch/v1/cards', method: 'GET', handler: read('cards') })
+http.route({ path: '/watch/v1/changes', method: 'POST', handler: changes })
 
 export default http

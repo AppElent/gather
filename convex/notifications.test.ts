@@ -8,9 +8,9 @@ import {
 } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
+import { INVALID_SESSION_ID } from './lib/sessions'
 import {
   INVALID_PUSH_TOKEN,
-  INVALID_SESSION_ID,
   MAX_DEVICES,
   SESSION_GRACE_MS,
 } from './notifications'

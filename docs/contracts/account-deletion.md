@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.7.3
+version: 2.8.0
 status: current
 ---
 
@@ -49,6 +49,11 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   there by hand. Queued push notifications have their scheduled jobs
   cancelled with them (`deletePushData` in `convex/lib/notifications.ts`). [Data export](data-export.md)
   reads the same tables, and its registry fails `pnpm typecheck` for a new one.
+- **A paired watch goes with its person, its Group or its Membership**
+  (`watchDevices`, APP-653): `finishAccount` and `destroyGroup` delete the rows
+  and `detachFromGroup` deletes that Member's. Deleting a grocery list clears
+  the rows that name it, an account merge repoints them, and an account being
+  deleted is refused before its rows are gone ([watch API](watch-api.md)).
 - **A queued send that names a Group goes with the Group.** `destroyGroup`
   cancels every `scheduledNotifications` row whose payload names the Group
   (`cancelGroupSends`, by the `by_group` index) before deleting it, and
@@ -116,7 +121,9 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   stale one 401. A verified `user.deleted` purges `data.id` and drops its
   Apple link; a verified `user.created` or `user.updated` mirrors the login's
   verified Sign in with Apple users into `appleSignInLinks` (APP-388), keeping
-  the newest by the Clerk user's `updated_at`. Any other event, a second
+  the newest by the Clerk user's `updated_at`. A verified `session.ended`,
+  `session.removed` or `session.revoked` deletes the watches paired under that
+  session ([watch API](watch-api.md)). Any other event, a second
   delivery or a subject Gather never had answers 200 and does nothing.
 - **`deleteSelfEnabled` is checked before the whole account is deleted.** Purging a
   household for an account Clerk then refuses to delete is the worst outcome

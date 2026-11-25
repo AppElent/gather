@@ -19,6 +19,7 @@ import { writePauseMs } from './lib/energyWritePace'
 import { destroyGroup, detachFromGroup, purgeNotesPage } from './lib/groupCascade'
 import { deletePushData } from './lib/notifications'
 import { deleteStoredFile } from './lib/storedFiles'
+import { deleteWatchDevices } from './lib/watchDevices'
 
 /**
  * How many blobs one step releases.
@@ -163,6 +164,8 @@ async function finishAccount(
   for (const row of receipts) await ctx.db.delete(row._id)
   // Their phones and queued push notifications (APP-298).
   await deletePushData(ctx, userId)
+  // Their watches' keys (APP-653).
+  await deleteWatchDevices(ctx, userId)
 
   // Whatever memberships are left are the shared Groups — the solo ones went
   // with their Group.

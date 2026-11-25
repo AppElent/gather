@@ -85,6 +85,7 @@ import type * as lib_seed_apply from "../lib/seed/apply.js";
 import type * as lib_seed_retailerCatalog from "../lib/seed/retailerCatalog.js";
 import type * as lib_seed_sampleHousehold from "../lib/seed/sampleHousehold.js";
 import type * as lib_seed_tastingCatalog from "../lib/seed/tastingCatalog.js";
+import type * as lib_sessions from "../lib/sessions.js";
 import type * as lib_sharing from "../lib/sharing.js";
 import type * as lib_slugs from "../lib/slugs.js";
 import type * as lib_stableDigest from "../lib/stableDigest.js";
@@ -103,6 +104,12 @@ import type * as lib_taskRepeat from "../lib/taskRepeat.js";
 import type * as lib_taskSections from "../lib/taskSections.js";
 import type * as lib_tastings from "../lib/tastings.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as lib_watchAccess from "../lib/watchAccess.js";
+import type * as lib_watchBarcodes from "../lib/watchBarcodes.js";
+import type * as lib_watchDevices from "../lib/watchDevices.js";
+import type * as lib_watchHttp from "../lib/watchHttp.js";
+import type * as lib_watchKeys from "../lib/watchKeys.js";
+import type * as lib_watchRateLimits from "../lib/watchRateLimits.js";
 import type * as lib_weekPlanAi from "../lib/weekPlanAi.js";
 import type * as loyaltyCards from "../loyaltyCards.js";
 import type * as maintenance from "../maintenance.js";
@@ -128,6 +135,9 @@ import type * as taskSections from "../taskSections.js";
 import type * as tasks from "../tasks.js";
 import type * as tastings from "../tastings.js";
 import type * as users from "../users.js";
+import type * as watch from "../watch.js";
+import type * as watchChanges from "../watchChanges.js";
+import type * as watchReads from "../watchReads.js";
 
 import type {
   ApiFromModules,
@@ -213,6 +223,7 @@ declare const fullApi: ApiFromModules<{
   "lib/seed/retailerCatalog": typeof lib_seed_retailerCatalog;
   "lib/seed/sampleHousehold": typeof lib_seed_sampleHousehold;
   "lib/seed/tastingCatalog": typeof lib_seed_tastingCatalog;
+  "lib/sessions": typeof lib_sessions;
   "lib/sharing": typeof lib_sharing;
   "lib/slugs": typeof lib_slugs;
   "lib/stableDigest": typeof lib_stableDigest;
@@ -231,6 +242,12 @@ declare const fullApi: ApiFromModules<{
   "lib/taskSections": typeof lib_taskSections;
   "lib/tastings": typeof lib_tastings;
   "lib/validators": typeof lib_validators;
+  "lib/watchAccess": typeof lib_watchAccess;
+  "lib/watchBarcodes": typeof lib_watchBarcodes;
+  "lib/watchDevices": typeof lib_watchDevices;
+  "lib/watchHttp": typeof lib_watchHttp;
+  "lib/watchKeys": typeof lib_watchKeys;
+  "lib/watchRateLimits": typeof lib_watchRateLimits;
   "lib/weekPlanAi": typeof lib_weekPlanAi;
   loyaltyCards: typeof loyaltyCards;
   maintenance: typeof maintenance;
@@ -256,6 +273,9 @@ declare const fullApi: ApiFromModules<{
   tasks: typeof tasks;
   tastings: typeof tastings;
   users: typeof users;
+  watch: typeof watch;
+  watchChanges: typeof watchChanges;
+  watchReads: typeof watchReads;
 }>;
 
 /**
@@ -284,4 +304,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+};

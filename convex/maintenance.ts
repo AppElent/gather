@@ -780,6 +780,8 @@ const USER_REFERENCES: {
   idempotencyKeys: { userId: 'repoint' },
   // A token is one install, so two accounts never hold the same one.
   pushDevices: { userId: 'repoint' },
+  // Two rows for one watch fold into one when it is paired again.
+  watchDevices: { userId: 'repoint' },
   // Two rows for one key fold back into one at the next schedule or send
   // (`lib/notifications.ts`), so the merge only repoints them.
   scheduledNotifications: { userId: 'repoint' },
