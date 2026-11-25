@@ -22,7 +22,6 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
 import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AppAllRouteImport } from './routes/_app/all'
-import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppGroupSettingsRouteImport } from './routes/_app/group-settings'
 import { Route as AppGroupsRouteImport } from './routes/_app/groups'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
@@ -37,6 +36,7 @@ import { Route as AppTasksRouteImport } from './routes/_app/tasks'
 import { Route as AppBabyIndexRouteImport } from './routes/_app/baby/index'
 import { Route as AppBabyNewRouteImport } from './routes/_app/baby/new'
 import { Route as AppBeersIndexRouteImport } from './routes/_app/beers/index'
+import { Route as AppCalendarIndexRouteImport } from './routes/_app/calendar/index'
 import { Route as AppCheesesIndexRouteImport } from './routes/_app/cheeses/index'
 import { Route as AppEnergyIndexRouteImport } from './routes/_app/energy/index'
 import { Route as AppEnergyConnectRouteImport } from './routes/_app/energy/connect'
@@ -64,6 +64,8 @@ import { Route as AppBabyBabyIdIndexRouteImport } from './routes/_app/baby/$baby
 import { Route as AppBabyBabyIdEditRouteImport } from './routes/_app/baby/$babyId.edit'
 import { Route as AppBeersSubjectIdIndexRouteImport } from './routes/_app/beers/$subjectId.index'
 import { Route as AppBeersSubjectIdEditRouteImport } from './routes/_app/beers/$subjectId.edit'
+import { Route as AppCalendarDayDateRouteImport } from './routes/_app/calendar/day/$date'
+import { Route as AppCalendarEventEventIdRouteImport } from './routes/_app/calendar/event/$eventId'
 import { Route as AppCheesesSubjectIdIndexRouteImport } from './routes/_app/cheeses/$subjectId.index'
 import { Route as AppCheesesSubjectIdEditRouteImport } from './routes/_app/cheeses/$subjectId.edit'
 import { Route as AppGroceriesItemItemIdRouteImport } from './routes/_app/groceries/item.$itemId'
@@ -142,11 +144,6 @@ const AppAllRoute = AppAllRouteImport.update({
   path: '/all',
   getParentRoute: () => AppRoute,
 } as any)
-const AppCalendarRoute = AppCalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppGroupSettingsRoute = AppGroupSettingsRouteImport.update({
   id: '/group-settings',
   path: '/group-settings',
@@ -215,6 +212,11 @@ const AppBabyNewRoute = AppBabyNewRouteImport.update({
 const AppBeersIndexRoute = AppBeersIndexRouteImport.update({
   id: '/beers/',
   path: '/beers/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarIndexRoute = AppCalendarIndexRouteImport.update({
+  id: '/calendar/',
+  path: '/calendar/',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCheesesIndexRoute = AppCheesesIndexRouteImport.update({
@@ -352,6 +354,16 @@ const AppBeersSubjectIdEditRoute = AppBeersSubjectIdEditRouteImport.update({
   path: '/beers/$subjectId/edit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCalendarDayDateRoute = AppCalendarDayDateRouteImport.update({
+  id: '/calendar/day/$date',
+  path: '/calendar/day/$date',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarEventEventIdRoute = AppCalendarEventEventIdRouteImport.update({
+  id: '/calendar/event/$eventId',
+  path: '/calendar/event/$eventId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCheesesSubjectIdIndexRoute =
   AppCheesesSubjectIdIndexRouteImport.update({
     id: '/cheeses/$subjectId/',
@@ -436,7 +448,6 @@ export interface FileRoutesByFullPath {
   '/$': typeof AppSplatRoute
   '/account': typeof AppAccountRoute
   '/all': typeof AppAllRoute
-  '/calendar': typeof AppCalendarRoute
   '/group-settings': typeof AppGroupSettingsRoute
   '/groups': typeof AppGroupsRoute
   '/home': typeof AppHomeRoute
@@ -466,6 +477,7 @@ export interface FileRoutesByFullPath {
   '/tasks/$listId': typeof AppTasksListIdRoute
   '/baby/': typeof AppBabyIndexRoute
   '/beers/': typeof AppBeersIndexRoute
+  '/calendar/': typeof AppCalendarIndexRoute
   '/cheeses/': typeof AppCheesesIndexRoute
   '/energy/': typeof AppEnergyIndexRoute
   '/groceries/': typeof AppGroceriesIndexRoute
@@ -476,6 +488,8 @@ export interface FileRoutesByFullPath {
   '/wines/': typeof AppWinesIndexRoute
   '/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
   '/beers/$subjectId/edit': typeof AppBeersSubjectIdEditRoute
+  '/calendar/day/$date': typeof AppCalendarDayDateRoute
+  '/calendar/event/$eventId': typeof AppCalendarEventEventIdRoute
   '/cheeses/$subjectId/edit': typeof AppCheesesSubjectIdEditRoute
   '/groceries/item/$itemId': typeof AppGroceriesItemItemIdRoute
   '/loyalty-cards/$cardId/edit': typeof AppLoyaltyCardsCardIdEditRoute
@@ -504,7 +518,6 @@ export interface FileRoutesByTo {
   '/$': typeof AppSplatRoute
   '/account': typeof AppAccountRoute
   '/all': typeof AppAllRoute
-  '/calendar': typeof AppCalendarRoute
   '/group-settings': typeof AppGroupSettingsRoute
   '/groups': typeof AppGroupsRoute
   '/home': typeof AppHomeRoute
@@ -533,6 +546,7 @@ export interface FileRoutesByTo {
   '/tasks/$listId': typeof AppTasksListIdRoute
   '/baby': typeof AppBabyIndexRoute
   '/beers': typeof AppBeersIndexRoute
+  '/calendar': typeof AppCalendarIndexRoute
   '/cheeses': typeof AppCheesesIndexRoute
   '/energy': typeof AppEnergyIndexRoute
   '/groceries': typeof AppGroceriesIndexRoute
@@ -543,6 +557,8 @@ export interface FileRoutesByTo {
   '/wines': typeof AppWinesIndexRoute
   '/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
   '/beers/$subjectId/edit': typeof AppBeersSubjectIdEditRoute
+  '/calendar/day/$date': typeof AppCalendarDayDateRoute
+  '/calendar/event/$eventId': typeof AppCalendarEventEventIdRoute
   '/cheeses/$subjectId/edit': typeof AppCheesesSubjectIdEditRoute
   '/groceries/item/$itemId': typeof AppGroceriesItemItemIdRoute
   '/loyalty-cards/$cardId/edit': typeof AppLoyaltyCardsCardIdEditRoute
@@ -573,7 +589,6 @@ export interface FileRoutesById {
   '/_app/$': typeof AppSplatRoute
   '/_app/account': typeof AppAccountRoute
   '/_app/all': typeof AppAllRoute
-  '/_app/calendar': typeof AppCalendarRoute
   '/_app/group-settings': typeof AppGroupSettingsRoute
   '/_app/groups': typeof AppGroupsRoute
   '/_app/home': typeof AppHomeRoute
@@ -604,6 +619,7 @@ export interface FileRoutesById {
   '/_app/tasks/$listId': typeof AppTasksListIdRoute
   '/_app/baby/': typeof AppBabyIndexRoute
   '/_app/beers/': typeof AppBeersIndexRoute
+  '/_app/calendar/': typeof AppCalendarIndexRoute
   '/_app/cheeses/': typeof AppCheesesIndexRoute
   '/_app/energy/': typeof AppEnergyIndexRoute
   '/_app/groceries/': typeof AppGroceriesIndexRoute
@@ -614,6 +630,8 @@ export interface FileRoutesById {
   '/_app/wines/': typeof AppWinesIndexRoute
   '/_app/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
   '/_app/beers/$subjectId/edit': typeof AppBeersSubjectIdEditRoute
+  '/_app/calendar/day/$date': typeof AppCalendarDayDateRoute
+  '/_app/calendar/event/$eventId': typeof AppCalendarEventEventIdRoute
   '/_app/cheeses/$subjectId/edit': typeof AppCheesesSubjectIdEditRoute
   '/_app/groceries/item/$itemId': typeof AppGroceriesItemItemIdRoute
   '/_app/loyalty-cards/$cardId/edit': typeof AppLoyaltyCardsCardIdEditRoute
@@ -645,7 +663,6 @@ export interface FileRouteTypes {
     | '/$'
     | '/account'
     | '/all'
-    | '/calendar'
     | '/group-settings'
     | '/groups'
     | '/home'
@@ -675,6 +692,7 @@ export interface FileRouteTypes {
     | '/tasks/$listId'
     | '/baby/'
     | '/beers/'
+    | '/calendar/'
     | '/cheeses/'
     | '/energy/'
     | '/groceries/'
@@ -685,6 +703,8 @@ export interface FileRouteTypes {
     | '/wines/'
     | '/baby/$babyId/edit'
     | '/beers/$subjectId/edit'
+    | '/calendar/day/$date'
+    | '/calendar/event/$eventId'
     | '/cheeses/$subjectId/edit'
     | '/groceries/item/$itemId'
     | '/loyalty-cards/$cardId/edit'
@@ -713,7 +733,6 @@ export interface FileRouteTypes {
     | '/$'
     | '/account'
     | '/all'
-    | '/calendar'
     | '/group-settings'
     | '/groups'
     | '/home'
@@ -742,6 +761,7 @@ export interface FileRouteTypes {
     | '/tasks/$listId'
     | '/baby'
     | '/beers'
+    | '/calendar'
     | '/cheeses'
     | '/energy'
     | '/groceries'
@@ -752,6 +772,8 @@ export interface FileRouteTypes {
     | '/wines'
     | '/baby/$babyId/edit'
     | '/beers/$subjectId/edit'
+    | '/calendar/day/$date'
+    | '/calendar/event/$eventId'
     | '/cheeses/$subjectId/edit'
     | '/groceries/item/$itemId'
     | '/loyalty-cards/$cardId/edit'
@@ -781,7 +803,6 @@ export interface FileRouteTypes {
     | '/_app/$'
     | '/_app/account'
     | '/_app/all'
-    | '/_app/calendar'
     | '/_app/group-settings'
     | '/_app/groups'
     | '/_app/home'
@@ -812,6 +833,7 @@ export interface FileRouteTypes {
     | '/_app/tasks/$listId'
     | '/_app/baby/'
     | '/_app/beers/'
+    | '/_app/calendar/'
     | '/_app/cheeses/'
     | '/_app/energy/'
     | '/_app/groceries/'
@@ -822,6 +844,8 @@ export interface FileRouteTypes {
     | '/_app/wines/'
     | '/_app/baby/$babyId/edit'
     | '/_app/beers/$subjectId/edit'
+    | '/_app/calendar/day/$date'
+    | '/_app/calendar/event/$eventId'
     | '/_app/cheeses/$subjectId/edit'
     | '/_app/groceries/item/$itemId'
     | '/_app/loyalty-cards/$cardId/edit'
@@ -944,13 +968,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAllRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/calendar': {
-      id: '/_app/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof AppCalendarRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/group-settings': {
       id: '/_app/group-settings'
       path: '/group-settings'
@@ -1047,6 +1064,13 @@ declare module '@tanstack/react-router' {
       path: '/beers'
       fullPath: '/beers/'
       preLoaderRoute: typeof AppBeersIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar/': {
+      id: '/_app/calendar/'
+      path: '/calendar'
+      fullPath: '/calendar/'
+      preLoaderRoute: typeof AppCalendarIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/cheeses/': {
@@ -1238,6 +1262,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBeersSubjectIdEditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/calendar/day/$date': {
+      id: '/_app/calendar/day/$date'
+      path: '/calendar/day/$date'
+      fullPath: '/calendar/day/$date'
+      preLoaderRoute: typeof AppCalendarDayDateRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar/event/$eventId': {
+      id: '/_app/calendar/event/$eventId'
+      path: '/calendar/event/$eventId'
+      fullPath: '/calendar/event/$eventId'
+      preLoaderRoute: typeof AppCalendarEventEventIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/cheeses/$subjectId/': {
       id: '/_app/cheeses/$subjectId/'
       path: '/cheeses/$subjectId'
@@ -1372,7 +1410,6 @@ interface AppRouteChildren {
   AppSplatRoute: typeof AppSplatRoute
   AppAccountRoute: typeof AppAccountRoute
   AppAllRoute: typeof AppAllRoute
-  AppCalendarRoute: typeof AppCalendarRoute
   AppGroupSettingsRoute: typeof AppGroupSettingsRoute
   AppGroupsRoute: typeof AppGroupsRoute
   AppHomeRoute: typeof AppHomeRoute
@@ -1401,6 +1438,7 @@ interface AppRouteChildren {
   AppRecipesNewRoute: typeof AppRecipesNewRoute
   AppBabyIndexRoute: typeof AppBabyIndexRoute
   AppBeersIndexRoute: typeof AppBeersIndexRoute
+  AppCalendarIndexRoute: typeof AppCalendarIndexRoute
   AppCheesesIndexRoute: typeof AppCheesesIndexRoute
   AppEnergyIndexRoute: typeof AppEnergyIndexRoute
   AppGroceriesIndexRoute: typeof AppGroceriesIndexRoute
@@ -1409,6 +1447,8 @@ interface AppRouteChildren {
   AppWinesIndexRoute: typeof AppWinesIndexRoute
   AppBabyBabyIdEditRoute: typeof AppBabyBabyIdEditRoute
   AppBeersSubjectIdEditRoute: typeof AppBeersSubjectIdEditRoute
+  AppCalendarDayDateRoute: typeof AppCalendarDayDateRoute
+  AppCalendarEventEventIdRoute: typeof AppCalendarEventEventIdRoute
   AppCheesesSubjectIdEditRoute: typeof AppCheesesSubjectIdEditRoute
   AppGroceriesItemItemIdRoute: typeof AppGroceriesItemItemIdRoute
   AppLoyaltyCardsCardIdEditRoute: typeof AppLoyaltyCardsCardIdEditRoute
@@ -1426,7 +1466,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppSplatRoute: AppSplatRoute,
   AppAccountRoute: AppAccountRoute,
   AppAllRoute: AppAllRoute,
-  AppCalendarRoute: AppCalendarRoute,
   AppGroupSettingsRoute: AppGroupSettingsRoute,
   AppGroupsRoute: AppGroupsRoute,
   AppHomeRoute: AppHomeRoute,
@@ -1455,6 +1494,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRecipesNewRoute: AppRecipesNewRoute,
   AppBabyIndexRoute: AppBabyIndexRoute,
   AppBeersIndexRoute: AppBeersIndexRoute,
+  AppCalendarIndexRoute: AppCalendarIndexRoute,
   AppCheesesIndexRoute: AppCheesesIndexRoute,
   AppEnergyIndexRoute: AppEnergyIndexRoute,
   AppGroceriesIndexRoute: AppGroceriesIndexRoute,
@@ -1463,6 +1503,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppWinesIndexRoute: AppWinesIndexRoute,
   AppBabyBabyIdEditRoute: AppBabyBabyIdEditRoute,
   AppBeersSubjectIdEditRoute: AppBeersSubjectIdEditRoute,
+  AppCalendarDayDateRoute: AppCalendarDayDateRoute,
+  AppCalendarEventEventIdRoute: AppCalendarEventEventIdRoute,
   AppCheesesSubjectIdEditRoute: AppCheesesSubjectIdEditRoute,
   AppGroceriesItemItemIdRoute: AppGroceriesItemItemIdRoute,
   AppLoyaltyCardsCardIdEditRoute: AppLoyaltyCardsCardIdEditRoute,

@@ -100,7 +100,7 @@ export const MODULES = [
     id: 'calendar',
     icon: 'Calendar',
     group: 'home',
-    status: 'placeholder',
+    status: 'live',
     mobileStatus: 'live',
   },
   {

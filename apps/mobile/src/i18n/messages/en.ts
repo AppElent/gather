@@ -577,6 +577,9 @@ export const en = {
     /** The row and the screen that writes the person's data to a file. */
     dataExport: coreEn.settings.dataExport,
 
+    /** The row that opens the AppElent account portal in the in-app browser. */
+    portal: coreEn.settings.accountPortal,
+
     /** Changing the name Clerk holds. Both halves, because Clerk stores both. */
     editName: {
       title: 'Name',
