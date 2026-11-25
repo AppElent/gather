@@ -272,8 +272,10 @@ export const energy = {
     legendRunning: 'Running month',
     hourLabel:
       'Usage per hour on {date}. Usage highest at {hour}, {kwh} kWh.',
+    hourLabelFlat: 'Usage per hour on {date}.',
     hourLabelSolar: ' Solar highest at {hour}, {kwh} kWh.',
     dayLabel: 'Usage per day in {month}. Most usage on {day}, {kwh} kWh.',
+    dayLabelFlat: 'Usage per day in {month}.',
     dayLabelSolar: ' Most solar on {day}, {kwh} kWh.',
     chartEmpty: 'No usage in this period yet.',
     yearLabelKwh:
@@ -521,7 +523,7 @@ export const energy = {
       'Gather cannot reach an address inside your home network. Use the address from outside.',
     tokenNeeded: 'Paste the token. A new address always needs it again.',
     channelTwice: 'One sensor is picked twice.',
-    tooManyChannels: 'Too many sensors, counting earlier ones that still have data. Leave some out.',
+    tooManyChannels: 'Too many sensors, counting earlier ones with data from the same period. Leave some out.',
     channelsMixed:
       'Pick either the total or the off-peak and normal sensors of a channel, not both.',
     statisticNotFound: 'A picked sensor no longer exists in Home Assistant. Test again.',

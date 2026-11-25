@@ -14,7 +14,7 @@ import { amsterdamIsoDate } from '@gather/core/civil-date'
 import {
   addEnergyMonths,
   energyCostDays,
-  energyMonthDays,
+  energyCostPeriod,
   energyMonthOf,
   forecastMonthCents,
   netMeteringPossibleIn,
@@ -103,14 +103,20 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
     const fixedDays = energyCostDays(data.days)
     const cost = pick(totals.cost, totals.costWithoutNet)
     const status = totals.costStatus
-    // The days the figure covers: to the last day a reading reaches, as on
-    // the web, not to today.
-    const lastDay =
-      totals.lastDay ??
-      (month === thisMonth ? today : energyMonthDays(month).at(-1))
+    // The days the figure covers: fixed costs run per elapsed day, so to
+    // today (or the month's end), not only to the last reading.
+    const covered = energyCostPeriod(data.days)
     const caption = fmt(words.costs.range, {
-      from: formatEnergyDate(totals.firstDay ?? `${month}-01`, locale, 'dayMonth'),
-      to: formatEnergyDate(lastDay ?? `${month}-01`, locale, 'dayMonth'),
+      from: formatEnergyDate(
+        covered?.from ?? totals.firstDay ?? `${month}-01`,
+        locale,
+        'dayMonth',
+      ),
+      to: formatEnergyDate(
+        covered?.to ?? totals.lastDay ?? `${month}-01`,
+        locale,
+        'dayMonth',
+      ),
     })
 
     const notes: string[] = []

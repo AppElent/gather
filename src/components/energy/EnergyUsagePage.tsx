@@ -52,8 +52,10 @@ export type EnergyUsageRange = 'day' | 'month' | 'year'
  */
 export function EnergyUsagePage({
   initialRange = 'day',
+  initialYear,
 }: {
   initialRange?: EnergyUsageRange
+  initialYear?: number
 }) {
   const group = useRequiredCurrentGroup()
   const { messages, locale } = useI18n()
@@ -63,7 +65,9 @@ export function EnergyUsagePage({
   const [range, setRange] = useState<EnergyUsageRange>(initialRange)
   const [day, setDay] = useState(today)
   const [month, setMonth] = useState(thisMonth)
-  const [year, setYear] = useState(thisYear)
+  const [year, setYear] = useState(
+    initialYear !== undefined && initialYear <= thisYear ? initialYear : thisYear,
+  )
 
   const stepper =
     range === 'day' ? (
@@ -98,7 +102,7 @@ export function EnergyUsagePage({
   return (
     <div className="mx-auto grid max-w-3xl gap-4">
       <Breadcrumbs trail={energyTrail(messages, copy.title)} className="mb-0" />
-      <h2 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h2>
+      <h1 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h1>
       <Segmented
         label={copy.rangeLabel}
         value={range}

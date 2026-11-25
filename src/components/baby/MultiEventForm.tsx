@@ -11,13 +11,15 @@ import type { Id } from '../../../convex/_generated/dataModel'
 import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, plural, useI18n } from '../../lib/i18n'
 import { BABY_INPUT_CLASS as inputClass } from './babyEventFields'
-import type { EventValues } from './babyEventFormValues'
+import type { EntryPhoto, EventValues } from './babyEventFormValues'
 import {
   buildEventInput,
   initialEventValues,
+  newEntryPhotoId,
   rememberEventChoices,
 } from './babyEventFormValues'
 import { DateTimeFields } from './DateTimeFields'
+import { EntryPhotoField } from './EntryPhotoField'
 import { EventIcon } from './EventIcon'
 import { EventTypeFields } from './EventTypeFields'
 import { readLastUsed, writeLastUsed } from './lastUsed'
@@ -85,6 +87,11 @@ export function MultiEventForm({
   const [notesByType, setNotesByType] = useState<
     Partial<Record<BabyEventType, string>>
   >({})
+  const [photoByType, setPhotoByType] = useState<
+    Partial<Record<BabyEventType, EntryPhoto>>
+  >({})
+  const [uploadingTypes, setUploadingTypes] = useState<BabyEventType[]>([])
+  const uploading = uploadingTypes.length > 0
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<BabyEventType, string>>
   >({})
@@ -99,6 +106,9 @@ export function MultiEventForm({
     setSelected((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     )
+    // The photo's preview goes with its block, so the choice goes too: ticking
+    // the type again must not save a photo nobody sees.
+    setPhotoByType((prev) => ({ ...prev, [type]: undefined }))
     setValuesByType((prev) =>
       prev[type] ? prev : { ...prev, [type]: initialEventValues(type) },
     )
@@ -113,6 +123,7 @@ export function MultiEventForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (uploading) return
     setError(null)
 
     const inputs: {
@@ -142,6 +153,7 @@ export function MultiEventForm({
           timestamp: timestampMs,
           endTimestamp: built.endTimestamp,
           notes: notesByType[type]?.trim() || undefined,
+          photoId: newEntryPhotoId(photoByType[type]),
           data: built.data,
         })
         rememberEventChoices(type, values)
@@ -153,6 +165,10 @@ export function MultiEventForm({
       // Keep only what still needs saving on screen, so a retry doesn't
       // duplicate the entries that already went through.
       setSelected((prev) => prev.filter((t) => !saved.includes(t)))
+      setPhotoByType((prev) => ({
+        ...prev,
+        ...Object.fromEntries(saved.map((t) => [t, undefined])),
+      }))
       const detail = errorText(err, messages.baby.log.entry.saveFailed)
       setError(
         saved.length > 0
@@ -188,6 +204,7 @@ export function MultiEventForm({
               <input
                 type="checkbox"
                 checked={selected.includes(type)}
+                disabled={submitting || uploadingTypes.includes(type)}
                 onChange={() => toggleType(type)}
               />
               {eventTypes[type]}
@@ -231,6 +248,20 @@ export function MultiEventForm({
               }
             />
           </label>
+          <EntryPhotoField
+            type={type}
+            value={photoByType[type]}
+            onChange={(photo) =>
+              setPhotoByType((prev) => ({ ...prev, [type]: photo }))
+            }
+            onUploadingChange={(busy) =>
+              setUploadingTypes((prev) => [
+                ...prev.filter((t) => t !== type),
+                ...(busy ? [type] : []),
+              ])
+            }
+            disabled={submitting}
+          />
           {fieldErrors[type] && (
             <p className="m-0 text-sm text-[var(--danger)]">{fieldErrors[type]}</p>
           )}
@@ -246,7 +277,7 @@ export function MultiEventForm({
       <div className="flex gap-2">
         <button
           type="submit"
-          disabled={submitting || activeTypes.length === 0}
+          disabled={submitting || uploading || activeTypes.length === 0}
           className="min-h-9 rounded-[var(--radius-control)] border border-[var(--accent)] bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--on-accent)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting

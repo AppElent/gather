@@ -1,15 +1,27 @@
+import { groupTimeZoneRefusalSentence } from '@gather/core/refusals'
+import {
+  currentZoneName,
+  deviceTimeZone,
+  listTimeZones,
+  sameTimeZone,
+  sortTimeZones,
+  timeZoneLabel,
+  timeZonePlace,
+} from '@gather/core/time-zones'
 import { useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useErrorMessage } from '../../lib/errorMessage'
-import { fmt, useMessages } from '../../lib/i18n'
+import { fmt, useI18n, useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import type { ShellGroup } from '../app/useCurrentGroup'
 import { ImageUploadField } from '../photo/ImageUploadField'
+
+const GROUP_ICONS = ['Users', 'House', 'Heart', 'Utensils', 'Wine'] as const
 
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold'
@@ -92,7 +104,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
         imageId: imageId ?? null,
       })
     } catch (err) {
-      setError(errorText(err, group_.renameFailed))
+      setError(errorText(err, group_.appearanceFailed))
     } finally {
       setSaving(false)
     }
@@ -138,7 +150,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
         {isAdmin ? (
           <div className="grid gap-2">
             <label htmlFor="group-icon" className="text-sm font-semibold">
-              Icon
+              {group_.icon}
             </label>
             <select
               id="group-icon"
@@ -146,18 +158,18 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
               onChange={(event) => setIcon(event.target.value)}
               className={inputClass}
             >
-              <option value="Users">People</option>
-              <option value="House">Home</option>
-              <option value="Heart">Heart</option>
-              <option value="Utensils">Food</option>
-              <option value="Wine">Wine</option>
+              {GROUP_ICONS.map((value) => (
+                <option key={value} value={value}>
+                  {group_.iconOptions[value]}
+                </option>
+              ))}
             </select>
             <ImageUploadField
               imageUrl={group.imageUrl ?? null}
               onChange={setImageId}
               generateUploadUrl={generateImageUploadUrl}
               preset="groupPhoto"
-              label="Group picture"
+              label={group_.picture}
               fieldId="group-image"
             />
             <div>
@@ -167,11 +179,13 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
                 onClick={() => void saveAppearance()}
                 className={buttonClass}
               >
-                {saving ? actions.saving : 'Save appearance'}
+                {saving ? actions.saving : group_.saveAppearance}
               </button>
             </div>
           </div>
         ) : null}
+
+        <TimeZone key={group._id} group={group} />
 
         <InviteCode slug={group.slug} />
 
@@ -246,6 +260,112 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
 
       {dialog}
     </SurfaceCard>
+  )
+}
+
+/**
+ * The zone of the Group's "today" (APP-475). An admin's to set, as the name
+ * is; everyone else reads it.
+ */
+function TimeZone({ group }: { group: ShellGroup }) {
+  const setTimeZone = useMutation(api.groups.setTimeZone)
+  const errorText = useErrorMessage()
+  const { locale, messages } = useI18n()
+  const group_ = messages.settings.group
+  const places = group_.timeZonePlaces
+  const saved = group.timeZone ? currentZoneName(group.timeZone) : ''
+  // Picked but not saved: a closed select moves on every arrow key, so it
+  // must not save, and disable itself, on each one.
+  const [picked, setPicked] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const isAdmin = group.role === 'admin'
+  const device = deviceTimeZone()
+  const value = picked ?? saved
+  const zones = useMemo(
+    () =>
+      sortTimeZones(listTimeZones(device, group.timeZone), locale, places).map(
+        (zone) => ({ zone, label: timeZoneLabel(zone, locale, places) }),
+      ),
+    [device, group.timeZone, locale, places],
+  )
+
+  async function save(timeZone: string) {
+    if (saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      await setTimeZone({ groupId: group._id, timeZone: timeZone || null })
+      setPicked(null)
+    } catch (err) {
+      const refused = groupTimeZoneRefusalSentence(err, group_.timeZoneRefusals)
+      setError(
+        (refused &&
+          fmt(refused, { zone: timeZonePlace(timeZone || device, places) })) ??
+          errorText(err, group_.timeZoneFailed),
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form
+      className="grid gap-2"
+      onSubmit={(event) => {
+        event.preventDefault()
+        void save(value)
+      }}
+    >
+      <label htmlFor="group-time-zone" className="text-sm font-semibold">
+        {group_.timeZone}
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          id="group-time-zone"
+          value={value}
+          disabled={!isAdmin}
+          aria-describedby="group-time-zone-note"
+          onChange={(event) => setPicked(event.target.value)}
+          className={`${inputClass} sm:max-w-xs`}
+        >
+          <option value="">{group_.timeZoneEachDevice}</option>
+          {zones.map(({ zone, label }) => (
+            <option key={zone} value={zone}>
+              {label}
+            </option>
+          ))}
+        </select>
+        {isAdmin ? (
+          <button
+            type="submit"
+            disabled={saving || value === saved}
+            className={`${buttonClass} disabled:opacity-60`}
+          >
+            {saving ? messages.common.actions.saving : group_.timeZoneSave}
+          </button>
+        ) : null}
+        {isAdmin && !sameTimeZone(group.timeZone, device) ? (
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => void save(device)}
+            className={`${buttonClass} disabled:opacity-60`}
+          >
+            {group_.timeZoneUseDevice}
+          </button>
+        ) : null}
+      </div>
+      {error ? (
+        <p role="alert" className="m-0 text-sm text-[var(--danger)]">
+          {error}
+        </p>
+      ) : null}
+      <p id="group-time-zone-note" className="m-0 text-xs text-[var(--muted)]">
+        {group_.timeZoneNote} {fmt(group_.timeZoneDevice, { zone: timeZoneLabel(currentZoneName(device), locale, places) })}
+        {isAdmin ? null : ` ${group_.timeZoneAdminOnly}`}
+      </p>
+    </form>
   )
 }
 

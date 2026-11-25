@@ -10,7 +10,6 @@
 
 import { MenuView } from '@expo/ui/community/menu'
 import { initialsForPeople } from '@gather/core/calendar'
-import type { TaskProviderId } from '@gather/core/domain'
 import { readTaskRefusal } from '@gather/core/refusals'
 import { assigneeUnavailable } from '@gather/core/task-lists'
 import { useMemo } from 'react'
@@ -24,6 +23,7 @@ import { fmt, useI18n } from '../../i18n'
 import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import { SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
+import { providerName } from './providerName'
 import { useTaskActions } from './store'
 import type { Task, TaskList } from './types'
 
@@ -74,13 +74,6 @@ export function AssigneeCoin({ initial }: { initial: string }) {
   )
 }
 
-/** A brand name, as the provider writes it. Not translated. */
-const PROVIDER_NAMES: Record<TaskProviderId, string> = {
-  local: 'Gather',
-  notion: 'Notion',
-  todoist: 'Todoist',
-}
-
 /**
  * The task screen's Who row: a native menu of the Group's current Members
  * and Nobody, showing the chosen Member's coin and name. On a list whose
@@ -92,7 +85,13 @@ export function AssigneeRow({ task, list }: { task: Task; list?: TaskList }) {
   const words = t.tasks.assignee
   const actions = useTaskActions()
   const { people, byId } = useTaskPeople()
-  const unavailable = list ? assigneeUnavailable(list) : 'readOnly'
+  // Gather writes a linked task's other fields, not yet who does it (APP-405).
+  const unavailable = list
+    ? assigneeUnavailable({
+        provider: list.provider,
+        writable: list.writable && list.provider === 'local',
+      })
+    : 'readOnly'
   const assignee = task.assigneeId ? byId.get(task.assigneeId) : undefined
   const value = assignee?.name ?? words.nobody
   const NOBODY = '__nobody__'
@@ -145,7 +144,7 @@ export function AssigneeRow({ task, list }: { task: Task; list?: TaskList }) {
         {row}
         <Text style={[styles.reason, { color: tokens.muted }]}>
           {fmt(words.unavailable[unavailable], {
-            provider: PROVIDER_NAMES[list?.provider ?? 'local'],
+            provider: providerName(list?.provider ?? 'local'),
           })}
         </Text>
       </View>

@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when building, running, or verifying the phone app on a device or emulator, including a Release build on the simulator, store screenshots, a Drop and the quick-actions entry points.
-version: 1.4.0
+version: 1.4.1
 ---
 
 # Mobile verification
@@ -135,7 +135,7 @@ sign-out: [mobile query retention](../records/2026-10-18-mobile-query-retention.
 
 ## Verifying a Drop
 
-For link and text Drops when nothing is open, the `gather-dev://drop` deep link
+For link and text Drops, the `gather-dev://drop` deep link
 is the fast path — it lands on the chooser over the same `DropProvider`, with
 the same ranking (ADR-0028):
 
@@ -146,8 +146,9 @@ agent-device open "gather-dev://drop?text=Buy%20stroopwafels" --platform ios
 
 On the iOS simulator, Safari's share sheet can also be driven with
 `agent-device` when you need a real share — for example, to verify that a Drop
-closes an open sheet or waits for a prompt (the deep-link harness pushes the
-chooser directly and does not exercise the share extension):
+closes an open sheet or waits for a prompt (the deep-link harness closes sheets
+before it navigates, APP-747, and does not exercise `DropGate`'s own wait or the
+share extension):
 
 1. Open Safari (`agent-device open com.apple.mobilesafari`) and load a URL.
 2. Tap Safari's Share button, then tap Gather's row in the OS share sheet using

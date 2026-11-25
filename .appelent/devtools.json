@@ -3,8 +3,8 @@
   "repository": "AppElent/developer-home",
   "scope": "project",
   "ref": "main",
-  "commit": "f6901099c6618bda64516d75277bb7e25362d80f",
-  "manifestHash": "45a0774988c57023d7570a06e056dd27e596632165886680ef06512ac1cde06e",
+  "commit": "34ec7d4cfe1da6aadce20b56e3ffb9b04f434beb",
+  "manifestHash": "7308c1fd69845e8eaf518bf78392aadda17a3ee1ef8044f44d00f8e1d83a81e3",
   "files": {
     "docs/adr/.template.md": {
       "sha256": "f28b286102fb1a00512455a06896e5da3c47d67a14b0ee6c08fa84258af24adf",
@@ -306,8 +306,8 @@
       "version": "1.2.1"
     },
     "docs/standards/workspaces.md": {
-      "sha256": "25ecc12a604606debb5991158ccf7b0f920b37ac4ac340141ba30f74eb732a43",
-      "version": "3.5.0"
+      "sha256": "2ec2199e3e645bd67e127d1d147fe769a524195529129df2138d1b3a9082c93e",
+      "version": "3.5.1"
     },
     "docs/standards/workspaces/examples/appelent.json": {
       "sha256": "59a478066a2c9e011cae362d6d917c177eb046912813c3c5e2b471e1a558cb1e"
@@ -397,7 +397,7 @@
       "sha256": "87746377e3e418618d80f672b178dadcbfcf869f56fda43b78a7808bf1a1009d"
     },
     "scripts/lib/workspace/provider.mjs": {
-      "sha256": "c33cc213a87668c011ea7fa78441d1b19ad0103fd9bad408eae193d7342123d1"
+      "sha256": "58a8b9a40e82570a028369f19faf1d096252b437e2c5a4b1b7a3f6c66e7013df"
     },
     "scripts/lib/workspace/types.ts": {
       "sha256": "8af0bf92f6aecb9568e0f89cdfa9087a49714f37bb849f16b74ed964a46b3ce8"
@@ -504,11 +504,11 @@
       "sha256": "3676673615c25e7ceb75fa7534b68dcdbe99856c715fb79a11c4bafab99e4ea6"
     },
     "docs/standards/mobile-run.md": {
-      "sha256": "6fae6158b32935c5d87e2a2e843b708b69bfb638d71b5c25402fc72ef4d0ce0c",
-      "version": "2.2.0"
+      "sha256": "2abf8051fa73a10da42a41953330fc25f7e6d144539ea61b7bd7a0017ceebcfb",
+      "version": "2.4.0"
     },
     "scripts/run-mobile.mjs": {
-      "sha256": "1dcfee9f2bfaf7b9ddfe487b1ba2a2adcd02e99d39d7eb56d82228ba49717959"
+      "sha256": "c80432686c9f25ae4ca7fa667206145ff08c95ce715a21427c55ff3521da7fdb"
     },
     "docs/standards/auth/examples/web/UsernameHint.tsx": {
       "sha256": "b1e45b0b2dda4d6559ed4c4902e4056764a377cb61400464ed9681bf4001cdb5"

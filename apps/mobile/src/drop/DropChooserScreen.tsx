@@ -35,6 +35,7 @@
  * navigates, and a failure never leaves this screen at all.
  */
 import { moduleById } from '@gather/core/modules'
+import { noteRefusalSentence } from '@gather/core/refusals'
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -68,7 +69,7 @@ import {
   targetsForDrop,
 } from './dropTargets'
 import { dropPickHref } from './paths'
-import { type DropProblem, useDropCommit } from './useDropCommit'
+import { useDropCommit } from './useDropCommit'
 
 export function DropChooserScreen() {
   const tokens = useTokens()
@@ -91,7 +92,7 @@ export function DropChooserScreen() {
   const [saveGroup, setSaveGroup] = useState(group._id)
   const [naming, setNaming] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [problem, setProblem] = useState<DropProblem | 'failed' | null>(null)
+  const [problem, setProblem] = useState<string | null>(null)
 
   const drop = pending?.drop ?? null
 
@@ -102,7 +103,9 @@ export function DropChooserScreen() {
     if (drop) return
     const seeded = dropFromLink({ url: seedUrl, text: seedText })
     if (seeded) offer(seeded)
-    else router.replace('/home')
+    // Back to the tabs underneath: replacing this screen would stack a second
+    // tabs layout over them, which `<scheme>://quick` then opens behind (APP-775).
+    else router.dismissTo('/home')
     // Destructured rather than depending on the params object, which
     // `useLocalSearchParams` rebuilds every render.
   }, [drop, offer, router, seedUrl, seedText])
@@ -144,7 +147,7 @@ export function DropChooserScreen() {
       }
       if (!result.ok) {
         haptics.actionFailed()
-        setProblem(result.problem)
+        setProblem(text.problems[result.problem])
         return
       }
 
@@ -163,9 +166,11 @@ export function DropChooserScreen() {
         router.dismissTo('/home')
         router.push(href)
       })
-    } catch {
+    } catch (error) {
       haptics.actionFailed()
-      setProblem('failed')
+      setProblem(
+        noteRefusalSentence(error, t.notes.refusals) ?? text.failed,
+      )
     } finally {
       setSaving(false)
     }
@@ -225,7 +230,7 @@ export function DropChooserScreen() {
 
             {problem ? (
               <Text style={[styles.problem, { color: tokens.danger }]}>
-                {problem === 'failed' ? text.failed : text.problems[problem]}
+                {problem}
               </Text>
             ) : null}
 

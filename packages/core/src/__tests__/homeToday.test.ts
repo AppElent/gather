@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest'
+import { dayStartIn } from '../civilDate'
 
 import {
   clockTime,
   dueTodayTasks,
-  homeBabyLogMessages,
   overdueListCount,
   overdueListId,
   overdueTasks,
   railEntries,
   spelledDate,
-  startOfDay,
 } from '../homeToday'
 import { en, nl } from '../messages'
 
@@ -63,7 +62,7 @@ describe('overdueListId', () => {
 
 describe('railEntries', () => {
   const noon = new Date(2026, 10, 16, 12, 0).getTime()
-  const dayStart = startOfDay(noon)
+  const dayStart = dayStartIn(undefined, noon)
   const at = (h: number, m: number) => new Date(2026, 10, 16, h, m).getTime()
   const children = [
     { _id: 'sanne', name: 'Sanne' },
@@ -127,24 +126,6 @@ describe('railEntries', () => {
   })
 })
 
-describe('homeBabyLogMessages', () => {
-  it('writes durations with spaces in both languages', () => {
-    expect(
-      homeBabyLogMessages(en.baby.log, en.shell.today).status.duration
-        .hoursMinutes,
-    ).toBe('{hours} h {minutes} min')
-    expect(
-      homeBabyLogMessages(nl.baby.log, nl.shell.today).summary
-        .sideMinutes,
-    ).toBe('{side} {minutes} min')
-  })
-
-  it('leaves the shared baby log words alone', () => {
-    homeBabyLogMessages(en.baby.log, en.shell.today)
-    expect(en.baby.log.status.duration.hoursMinutes).toBe('{hours}h {minutes}m')
-  })
-})
-
 describe('clockTime', () => {
   it('is the 24-hour clock with leading zeros', () => {
     expect(clockTime(new Date(2026, 10, 16, 8, 5).getTime())).toBe('08:05')
@@ -153,7 +134,7 @@ describe('clockTime', () => {
 })
 
 describe('spelledDate', () => {
-  const monday = new Date(2026, 10, 16, 9, 0).getTime()
+  const monday = '2026-11-16'
 
   it('spells the date out in English', () => {
     expect(spelledDate(monday, 'en', en.shell.today.date)).toBe(

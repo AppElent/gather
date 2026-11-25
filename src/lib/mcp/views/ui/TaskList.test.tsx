@@ -42,6 +42,21 @@ function show(app: App, props: Partial<TaskListResult> = {}) {
 afterEach(cleanup)
 
 describe('TaskList view', () => {
+  it("marks a task overdue by the Group's day, not the viewer's", () => {
+    // Sunday the 29th in UTC, Monday the 30th in Kiritimati.
+    vi.useFakeTimers({ now: new Date('2026-11-29T10:30:00Z'), toFake: ['Date'] })
+    const tasks = [{ id: 'task_1', title: 'Melk', done: false, dueDate: '2026-11-29' }]
+    try {
+      show(stubApp(vi.fn()), { tasks, timeZone: 'Pacific/Pago_Pago' })
+      expect(screen.queryByText(/overdue/i)).toBeNull()
+      cleanup()
+      show(stubApp(vi.fn()), { tasks, timeZone: 'Pacific/Kiritimati' })
+      expect(screen.queryByText(/overdue/i)).not.toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('checks a task off through update_task and reloads', async () => {
     const call = vi.fn().mockResolvedValue({ content: [] })
     const app = stubApp(call)

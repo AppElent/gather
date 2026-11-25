@@ -14,6 +14,7 @@
  * Delete is at the bottom, in red, and asks first — deleting in Gather is
  * permanent today (`apps/mobile/DESIGN_SYSTEM.md`).
  */
+import { localIsoDate } from '@gather/core/civil-date'
 import { hasLinkAndPrice } from '@gather/core/task-lists'
 import { describeRepeat } from '@gather/core/task-repeat'
 import { Stack, useRouter } from 'expo-router'
@@ -45,21 +46,31 @@ import { Checkbox, Chip, priorityColor } from './components'
 import { detailWords } from './detailWords'
 import { GroceryFields } from './GroceryFields'
 import { TASK_ICONS } from './icons'
+import { providerName } from './providerName'
 import { reminderLabel } from './reminder'
 import { SubtaskSection } from './SubtaskSection'
 import { useTaskActions, useTaskOf } from './store'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
 import { WishlistFields } from './WishlistFields'
+import { useWriteFailed } from './writeFailed'
 
-export function TaskDetail({ taskId }: { taskId: string }) {
+export function TaskDetail({
+  taskId,
+  listId,
+}: {
+  taskId: string
+  /** The list it was opened from: two can show the same linked task. */
+  listId?: string
+}) {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
   const router = useRouter()
   // The task's own list only, never every list in the Group (APP-565).
-  const state = useTaskOf(taskId)
+  const state = useTaskOf(taskId, listId)
   const actions = useTaskActions()
+  const writeFailed = useWriteFailed()
   const taskSheets = useTaskSheets({
     tasks: state.tasks,
     // Deleting one of its subtasks from here leaves the parent's screen open.
@@ -84,10 +95,29 @@ export function TaskDetail({ taskId }: { taskId: string }) {
       : null,
   )
 
-  // Both fields write on a pause, not on a keystroke — see `useDebouncedText`.
-  const title = useDebouncedText(task?.title ?? '', (next) => {
-    if (task) actions.renameTask(task.id, next)
-  })
+  // Local fields write on a pause, not on a keystroke — see `useDebouncedText`.
+  // A linked task's title saves on blur: each save is its provider's to take,
+  // and a refused one stays in the field, to be sent again (APP-799).
+  const title = useDebouncedText(
+    task?.title ?? '',
+    (next) => {
+      if (!task) return
+      if (!task.linked) {
+        actions.renameTask(task, next)
+        return
+      }
+      if (!next.trim()) {
+        title.reset()
+        return
+      }
+      if (next.trim() === task.title) return
+      actions.renameTask(task, next).catch((error: unknown) => {
+        title.keep(next)
+        writeFailed(error)
+      })
+    },
+    { onBlurOnly: Boolean(task?.linked) },
+  )
   const notes = useDebouncedText(task?.notes ?? '', (next) => {
     if (task) actions.setNotes(task.id, next)
   })
@@ -108,8 +138,10 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const open = (action: string) => taskSheets.onAction(task, action)
   const repeatWords = t.tasks.repeat
   const words = detailWords(t, Boolean(list?.grocery))
-  // A linked list is read-only in Gather, so its repeat is its provider's to
-  // set: shown in the provider's words, with the row switched off (APP-303).
+  // A linked list's repeat is its provider's to set: shown in the provider's
+  // words, with the row switched off (APP-303).
+  // While the list loads, its task is the last one seen: a local one.
+  const writable = list ? list.writable : !task.linked
   const canRepeat = Boolean(list?.writable && list.provider === 'local')
   // A subtask repeats with its parent, never on its own (APP-304).
   const subtask = Boolean(task.parentTaskId)
@@ -145,8 +177,9 @@ export function TaskDetail({ taskId }: { taskId: string }) {
           <Pressable
             testID="detail-toggle"
             accessibilityRole="checkbox"
-            accessibilityState={{ checked: task.done }}
+            accessibilityState={{ checked: task.done, disabled: !writable }}
             accessibilityLabel={task.title}
+            disabled={!writable}
             hitSlop={12}
             onPress={() => open('complete')}
             style={styles.headBox}
@@ -155,9 +188,12 @@ export function TaskDetail({ taskId }: { taskId: string }) {
           </Pressable>
           <TextInput
             testID="detail-title"
+            // Return saves a linked title; a line break has no place in one.
+            submitBehavior={task.linked ? 'blurAndSubmit' : undefined}
+            editable={writable}
             value={title.draft}
             onChangeText={title.change}
-            onBlur={title.flush}
+            onBlur={title.blur}
             placeholder={words.titlePlaceholder}
             placeholderTextColor={tokens.muted}
             multiline
@@ -200,6 +236,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 : t.tasks.task.unset
             }
             danger={overdue}
+            disabled={!writable}
             onPress={() => open('due')}
           />
           {list?.provider === 'local' ? (
@@ -215,7 +252,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
               label={t.tasks.task.reminder}
               value={
                 task.reminder
-                  ? reminderLabel(task.reminder, state.today, locale, {
+                  ? reminderLabel(task.reminder, localIsoDate(), locale, {
                       today: t.tasks.task.today,
                       tomorrow: t.tasks.task.tomorrow,
                       reminderAt: t.tasks.task.reminderAt,
@@ -254,6 +291,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 ? t.tasks.task.priorities[task.priority]
                 : t.tasks.task.unset
             }
+            disabled={!writable}
             onPress={() => open('priority')}
           />
           <PropertyRow
@@ -277,6 +315,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 </View>
               ) : undefined
             }
+            disabled={!writable}
             onPress={() => open('labels')}
           />
           <PropertyRow
@@ -298,16 +337,34 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             }
             label={t.tasks.task.list}
             value={list?.name ?? ''}
+            disabled={Boolean(task.linked)}
             onPress={() => open('move')}
-            last
+            last={!task.linked}
           />
+          {task.linked && list ? (
+            <PropertyRow
+              testID="detail-under"
+              icon={
+                <TASK_ICONS.CornerDownRight
+                  size={18}
+                  color={tokens.muted}
+                  strokeWidth={2}
+                />
+              }
+              label={t.tasks.linkedWrite.parentTask}
+              value={
+                state.tasks.find((each) => each.id === task.parentTaskId)?.title
+              }
+              disabled={!writable || task.done}
+              onPress={() => open('under')}
+              last
+            />
+          ) : null}
         </Card>
         {list && !canRepeat ? (
           <Text style={[styles.hint, { color: tokens.muted }]}>
             {fmt(repeatWords.linked, {
-              // Provider ids are lower case: 'todoist' reads as Todoist.
-              provider:
-                list.provider.charAt(0).toUpperCase() + list.provider.slice(1),
+              provider: providerName(list.provider),
             })}
           </Text>
         ) : null}
@@ -326,6 +383,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
         {list?.provider === 'local' ? <CompletionHistory taskId={task.id} /> : null}
 
+        {/* Notes are Gather's own; a linked task has nowhere to keep them. */}
+        {task.linked ? null : (
         <Card>
           <TextInput
             testID="detail-notes"
@@ -339,33 +398,41 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             style={[styles.notes, { color: tokens.ink }]}
           />
         </Card>
+        )}
 
-        <Text style={[styles.hint, { color: tokens.muted }]}>
-          {t.tasks.task.autosaved}
-        </Text>
-
-        <Pressable
-          testID="detail-delete"
-          accessibilityRole="button"
-          accessibilityLabel={words.delete}
-          onPress={() => open('delete')}
-          style={({ pressed }) => [
-            styles.delete,
-            { borderColor: tokens.hair, backgroundColor: tokens.surface },
-            pressed && { backgroundColor: tokens.surface2 },
-          ]}
-        >
-          <TASK_ICONS.Trash2
-            size={17}
-            color={tokens.danger}
-            strokeWidth={2}
-            accessibilityElementsHidden
-            importantForAccessibility="no"
-          />
-          <Text style={[styles.deleteText, { color: tokens.danger }]}>
-            {words.delete}
+        {writable ? (
+          <Text style={[styles.hint, { color: tokens.muted }]}>
+            {t.tasks.task.autosaved}
           </Text>
-        </Pressable>
+        ) : null}
+
+        {task.linked ? null : (
+          <Pressable
+            testID="detail-delete"
+            accessibilityRole="button"
+            accessibilityLabel={words.delete}
+            accessibilityState={{ disabled: !writable }}
+            disabled={!writable}
+            onPress={() => open('delete')}
+            style={({ pressed }) => [
+              styles.delete,
+              { borderColor: tokens.hair, backgroundColor: tokens.surface },
+              pressed && { backgroundColor: tokens.surface2 },
+              !writable && styles.off,
+            ]}
+          >
+            <TASK_ICONS.Trash2
+              size={17}
+              color={tokens.danger}
+              strokeWidth={2}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+            <Text style={[styles.deleteText, { color: tokens.danger }]}>
+              {words.delete}
+            </Text>
+          </Pressable>
+        )}
       </ScrollView>
 
       {taskSheets.sheets}
@@ -555,5 +622,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.pill,
   },
+  off: { opacity: 0.5 },
   deleteText: { ...TYPE.bodyStrong },
 })

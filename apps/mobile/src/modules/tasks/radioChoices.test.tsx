@@ -113,6 +113,7 @@ vi.mock('../../feedback/confirmDestructive', () => ({
 vi.mock('../../feedback/haptics', () => ({
   haptics: new Proxy({}, { get: () => () => {} }),
 }))
+vi.mock('../../group/GroupProvider', () => ({ useGroup: () => ({ group: {} }) }))
 vi.mock('../../i18n', async () => {
   const { en: messages } = await import('../../i18n/messages/en')
   const { fmt, plural } = await import('@gather/core/i18n')
@@ -159,11 +160,12 @@ vi.mock('./icons', () => ({
   TASK_ICONS: new Proxy({}, { get: () => () => null }),
   TASK_LIST_GLYPHS: new Proxy({}, { get: () => () => null }),
 }))
+vi.mock('./writeFailed', () => ({ useWriteFailed: () => () => {} }))
 vi.mock('./store', () => ({
   useGroupLabels: () => [],
   useTaskActions: () => ({
     createList: async () => 'new-id',
-    setPriority: () => {},
+    setPriority: async () => {},
     moveTask: async () => {},
     setTaskSection: async () => {},
     setListAppearance: async () => {},

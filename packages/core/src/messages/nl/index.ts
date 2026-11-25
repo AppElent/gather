@@ -7,6 +7,7 @@ import { energy } from './energy'
 import { finances } from './finances'
 import { loyaltyCards } from './loyaltyCards'
 import { mcpViews } from './mcpViews'
+import { mealPlanner } from './mealPlanner'
 import { mealPreferences } from './mealPreferences'
 import { modules } from './modules'
 import { notes } from './notes'
@@ -34,6 +35,7 @@ export const nl = {
   tastings,
   loyaltyCards,
   energy,
+  mealPlanner,
   mealPreferences,
   settings,
   auth,

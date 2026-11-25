@@ -15,15 +15,43 @@ const state = vi.hoisted(() => ({
     deleteSelfEnabled?: boolean
     delete: () => Promise<void>
   } | null,
+  // `undefined` is Clerk switching sessions; `null` is nobody signed in.
+  sessionId: 'sess_1' as string | null | undefined,
+  // The client's `signedInSessions`, which can hold one Clerk has not
+  // activated yet.
+  signedInSessions: [] as string[],
   purge: (): Promise<void> => Promise.resolve(),
-  apple: (): Promise<'continue' | 'cancelled'> => Promise.resolve('continue'),
+  apple: (): Promise<'continue' | 'cancelled' | 'changed'> =>
+    Promise.resolve('continue'),
+  // What the provider handed the Apple step, to ask it as that step does.
+  appleOptions: null as null | {
+    expectedSubject: string
+    stillConfirmed: () => boolean
+  },
   order: [] as string[],
   purgeArgs: [] as unknown[],
   signedOut: 0,
   told: 0,
 }))
 
-vi.mock('@clerk/expo', () => ({ useUser: () => ({ user: state.user }) }))
+// One object, read live, as Clerk's is: a test changes the session without a
+// render.
+const clerk = vi.hoisted(() => ({
+  get user() {
+    return state.user
+  },
+  get session() {
+    return state.sessionId ? { id: state.sessionId } : state.sessionId
+  },
+  get client() {
+    return { signedInSessions: state.signedInSessions.map((id) => ({ id })) }
+  },
+}))
+
+vi.mock('@clerk/expo', () => ({
+  useUser: () => ({ user: state.user }),
+  useClerk: () => clerk,
+}))
 vi.mock('convex/react', () => ({
   useMutation: () => (args: unknown) => {
     state.order.push('purge')
@@ -41,12 +69,20 @@ vi.mock('../../../convex/api', () => ({
   },
 }))
 vi.mock('./apple-revocation', () => ({
-  revokeAppleSignIn: () => {
+  revokeAppleSignIn: (
+    _user: unknown,
+    _revoke: unknown,
+    options: typeof state.appleOptions,
+  ) => {
+    state.appleOptions = options
     state.order.push('apple')
     return state.apple()
   },
 }))
 vi.mock('../../../auth/useSignOut', () => ({
+  useForgetAccount: () => () => {
+    state.order.push('forget')
+  },
   useSignOut: () => () => {
     state.signedOut += 1
     state.order.push('signOut')
@@ -107,8 +143,11 @@ let view: ReturnType<typeof mount> | undefined
 beforeEach(() => {
   state.signedOut = 0
   state.told = 0
+  state.sessionId = 'sess_1'
+  state.signedInSessions = ['sess_1']
   state.purge = () => Promise.resolve()
   state.apple = () => Promise.resolve('continue')
+  state.appleOptions = null
   state.order = []
   state.purgeArgs = []
   state.user = { deleteSelfEnabled: true, delete: () => Promise.resolve() }
@@ -409,5 +448,281 @@ describe('deleting Gather data only (APP-397)', () => {
     await settle()
     expect(purges).toBe(1)
     expect(state.order).not.toContain('apple')
+  })
+})
+
+describe('a session that changes after the confirmation (APP-396)', () => {
+  let deleted: string[]
+  const person = (id: string) => ({
+    id,
+    deleteSelfEnabled: true,
+    delete: () => {
+      deleted.push(id)
+      return Promise.resolve()
+    },
+  })
+
+  beforeEach(() => {
+    deleted = []
+    state.user = person('user_alex')
+  })
+
+  const changes: [string, () => void][] = [
+    [
+      'another account signed in',
+      () => {
+        state.user = person('user_sam')
+        state.sessionId = 'sess_2'
+      },
+    ],
+    [
+      'the same account signed in again',
+      () => {
+        state.sessionId = 'sess_2'
+      },
+    ],
+    [
+      'nobody signed in',
+      () => {
+        state.user = null
+        state.sessionId = null
+      },
+    ],
+  ]
+
+  // Nobody is signed in at this moment, and somebody is about to be.
+  const arrivals: [string, () => void][] = [
+    [
+      'Clerk switching sessions',
+      () => {
+        state.user = null
+        state.sessionId = undefined
+        state.signedInSessions = ['sess_2']
+      },
+    ],
+    [
+      'Clerk switching sessions, with none in the client',
+      () => {
+        state.user = null
+        state.sessionId = undefined
+        state.signedInSessions = []
+      },
+    ],
+    [
+      'a second session Clerk has not activated yet',
+      () => {
+        state.user = null
+        state.sessionId = null
+        state.signedInSessions = ['sess_1', 'sess_2']
+      },
+    ],
+  ]
+
+  test.each(changes)(
+    '%s during the purge: no login is deleted, and the stranded state says so',
+    async (_, change) => {
+      const purge = deferred()
+      state.purge = () => purge.promise
+      view = render()
+      act(() => deletion.start('wholeAccount'))
+      await settle()
+
+      change()
+      purge.resolve()
+      await settle()
+      expect(view.container.textContent).toBe('underway: stranded')
+      expect(deleted).toEqual([])
+      expect(state.signedOut).toBe(0)
+
+      act(() => deletion.retryLogin())
+      await settle()
+      expect(view.container.textContent).toBe('underway: stranded')
+      expect(deleted).toEqual([])
+      expect(state.signedOut).toBe(0)
+    },
+  )
+
+  test('signing out and another sign-in unmount the run: the new login is not deleted or signed out', async () => {
+    const purge = deferred()
+    state.purge = () => purge.promise
+    view = render()
+    act(() => deletion.start('wholeAccount'))
+    await settle()
+
+    view.unmount()
+    view = undefined
+    state.user = person('user_sam')
+    state.sessionId = 'sess_2'
+    purge.resolve()
+    await settle()
+    expect(deleted).toEqual([])
+    expect(state.signedOut).toBe(0)
+  })
+
+  test.each(changes)(
+    '%s while the Apple sheet is up: nothing is deleted',
+    async (_, change) => {
+      const apple = deferred()
+      state.apple = () => apple.promise.then(() => 'continue' as const)
+      view = render()
+      act(() => deletion.start('wholeAccount'))
+      await settle()
+
+      change()
+      apple.resolve()
+      await settle()
+      expect(view.container.textContent).toBe('delete screen: refused')
+      expect(state.purgeArgs).toEqual([])
+      expect(deleted).toEqual([])
+    },
+  )
+
+  test.each(changes)(
+    '%s while the Apple sheet is up: the Apple step is told before the code is sent (APP-745)',
+    async (_, change) => {
+      const apple = deferred()
+      state.apple = () => apple.promise.then(() => 'changed' as const)
+      view = render()
+      act(() => deletion.start('wholeAccount'))
+      await settle()
+      expect(state.appleOptions?.expectedSubject).toBe('user_alex')
+      expect(state.appleOptions?.stillConfirmed()).toBe(true)
+
+      change()
+      expect(state.appleOptions?.stillConfirmed()).toBe(false)
+      apple.resolve()
+      await settle()
+      expect(view.container.textContent).toBe('delete screen: refused')
+      expect(state.purgeArgs).toEqual([])
+      expect(deleted).toEqual([])
+    },
+  )
+
+  test('a confirmation alert that outlives its session: the Apple step is told at once, and nothing is deleted (APP-745)', async () => {
+    view = render()
+    const { start } = deletion
+    state.user = person('user_sam')
+    state.sessionId = 'sess_2'
+    let confirmedAtTheStart: boolean | undefined
+    state.apple = () => {
+      confirmedAtTheStart = state.appleOptions?.stillConfirmed()
+      return Promise.resolve('changed')
+    }
+
+    act(() => start('wholeAccount'))
+    await settle()
+    expect(confirmedAtTheStart).toBe(false)
+    expect(view.container.textContent).toBe('delete screen: refused')
+    expect(state.purgeArgs).toEqual([])
+  })
+
+  test.each(['gatherData', 'wholeAccount'] as const)(
+    'a confirmation alert that outlives the provider starts nothing: %s (APP-745)',
+    async (choice) => {
+      view = render()
+      const { start } = deletion
+      view.unmount()
+      view = undefined
+
+      start(choice)
+      await settle()
+      expect(state.order).toEqual([])
+    },
+  )
+
+  test('another account signed in before the gatherData purge: nothing is deleted (APP-745)', async () => {
+    view = render()
+    const { start } = deletion
+    state.user = person('user_sam')
+    state.sessionId = 'sess_2'
+
+    act(() => start('gatherData'))
+    await settle()
+    expect(deletion.state).toMatchObject({
+      step: 'refused',
+      choice: 'gatherData',
+    })
+    expect(state.order).toEqual([])
+  })
+
+  test.each([...changes.slice(0, 2), ...arrivals])(
+    '%s during the gatherData purge: nobody is signed out or told, and the app is given back (APP-746)',
+    async (_, change) => {
+      const purge = deferred()
+      state.purge = () => purge.promise
+      view = render()
+      act(() => deletion.start('gatherData'))
+      await settle()
+
+      change()
+      purge.resolve()
+      await settle()
+      expect(state.order).toEqual(['purge'])
+      expect(view.container.textContent).toBe('delete screen: idle')
+    },
+  )
+
+  test.each([
+    { unmounted: false, listed: [] },
+    { unmounted: true, listed: [] },
+    { unmounted: false, listed: ['sess_1'] },
+  ])(
+    'nobody signed in after the gatherData purge: this phone forgets the account, and nobody is signed out or told (%o) (APP-771)',
+    async ({ unmounted, listed }) => {
+      const purge = deferred()
+      state.purge = () => purge.promise
+      view = render()
+      act(() => deletion.start('gatherData'))
+      await settle()
+
+      state.user = null
+      state.sessionId = null
+      state.signedInSessions = listed
+      if (unmounted) {
+        view.unmount()
+        view = undefined
+      }
+      purge.resolve()
+      await settle()
+      expect(state.order).toEqual(['purge', 'forget'])
+      if (view)
+        expect(view.container.textContent).toBe('delete screen: idle')
+    },
+  )
+
+  test.each([...changes.slice(0, 2), ...arrivals])(
+    '%s while Clerk deletes the login: the new session is not signed out (APP-746)',
+    async (_, change) => {
+      const clerkDelete = deferred()
+      state.user = { ...person('user_alex'), delete: () => clerkDelete.promise }
+      view = render()
+      act(() => deletion.start('wholeAccount'))
+      await settle()
+      expect(view.container.textContent).toBe('underway: deletingLogin')
+
+      change()
+      clerkDelete.resolve()
+      await settle()
+      expect(state.signedOut).toBe(0)
+      expect(view.container.textContent).toBe('delete screen: idle')
+    },
+  )
+
+  test.each([
+    { listed: [] },
+    { listed: ['sess_1'] },
+  ])('Clerk ending the session with the login still clears this phone (%o) (APP-746)', async ({ listed }) => {
+    const clerkDelete = deferred()
+    state.user = { ...person('user_alex'), delete: () => clerkDelete.promise }
+    view = render()
+    act(() => deletion.start('wholeAccount'))
+    await settle()
+
+    state.user = null
+    state.sessionId = null
+    state.signedInSessions = listed
+    clerkDelete.resolve()
+    await settle()
+    expect(state.signedOut).toBe(1)
   })
 })

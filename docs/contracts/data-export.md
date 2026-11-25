@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a Convex table, changing what "Export your data" contains, or changing who may see a row or column.
-version: 2.1.1
+version: 2.1.3
 status: current
 ---
 
@@ -36,6 +36,7 @@ everything user-owned belongs to a Group or to a person
   Group (a task's `assigneeId` and its `assignmentNotice.by`, and a staple's `keptBy`,
   included). No email, Clerk id or user id of anyone leaves; the person's own email
   is in their `users` row.
+- **A Group's time zone goes out with it** (`groups.timeZone`, APP-475).
 - **Groups by slug.** A Group id becomes the Group's slug when it is one of the
   person's Groups and is dropped otherwise, so the file names no Group they
   cannot see.
@@ -60,6 +61,8 @@ everything user-owned belongs to a Group or to a person
   (`energySources.baseUrl`, APP-696) are omitted columns, listed in the file's
   `omittedFields`. An `energySources` row still goes out with its non-secret
   metadata so the file records that the connection exists.
+- **A note's search text stays out** (APP-701): `notes.searchText` repeats its
+  title and body for the search index, so it is an omitted column.
 - **Energy goes out with its Group, prices stay in** (ADR-0051). Addresses,
   contracts, sources, channels, assets, readings and hourly intervals are
   Group content. `energyPrices` is excluded as reference data: a market price

@@ -32,12 +32,27 @@ export function groceryAislePrompt(name: string): string {
   return [
     'Sort an item from a Dutch household shopping list into the aisle of a Dutch supermarket (Albert Heijn, Jumbo) where a shopper finds it.',
     'The item may be Dutch or English, a brand name, or misspelled. Choose "other" only for things a supermarket does not sell.',
+    'A brand goes where the thing it sells goes: cleaning and laundry brands to household. Fresh juice and smoothies go with drinks, unless clearly chilled dairy.',
     '',
     'Aisles:',
     AISLE_LIST,
     '',
     `Item: ${JSON.stringify(name)}`,
   ].join('\n')
+}
+
+/**
+ * Everything that decides what the model answers: its id, the tool it must
+ * call and the prompt (with a placeholder for the name). The eval snapshot
+ * records a hash of this (APP-751), so a changed prompt, tool or model fails
+ * the eval until `scripts/groceries/ask-ai.ts` has been run again on dev.
+ */
+export function groceryAiFingerprint(): string {
+  return JSON.stringify({
+    model: SMALL_MODEL,
+    tool: AISLE_TOOL,
+    prompt: groceryAislePrompt('{name}'),
+  })
 }
 
 /**

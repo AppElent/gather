@@ -65,27 +65,27 @@ export function RecipeSharingPanel({
   }
 
   return (
-    <section className="mb-4 rounded-md border px-3 py-3 text-sm">
-      <h2 className="mb-2 font-medium">{sharing.title}</h2>
+    <section className="rounded-[var(--radius-card)] bg-[var(--surface)] p-4 text-subhead">
+      <h2 className="mt-0 mb-2 text-subhead font-semibold">{sharing.title}</h2>
 
-      <p className="mb-1 opacity-80">
+      <p className="mt-0 mb-1">
         {sharing.livesIn}{' '}
         <strong>{homeGroupName ?? sharing.unknownGroup}</strong>
       </p>
 
       {sharedGroups.length === 0 ? (
-        <p className="mb-3 opacity-60">{sharing.notShared}</p>
+        <p className="mt-0 mb-3 text-[var(--muted)]">{sharing.notShared}</p>
       ) : (
         <ul className="mb-3 list-none space-y-1 p-0">
           {sharedGroups.map((group) => (
             <li key={group._id} className="flex items-center gap-2">
-              <span className="opacity-80">
+              <span>
                 {fmt(sharing.sharedWith, { group: group.name })}
               </span>
               <button
                 type="button"
                 disabled={busy}
-                className="rounded border px-2 py-0.5 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-9 shrink-0 items-center rounded-[var(--radius-pill)] bg-[var(--surface-2)] px-3.5 text-footnote font-semibold text-[var(--ink)] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() =>
                   run(() =>
                     unshare({ id: recipeId, withGroupSlug: group.slug }),
@@ -100,22 +100,22 @@ export function RecipeSharingPanel({
       )}
 
       {error && (
-        <p className="mb-3 rounded-md border border-[var(--danger)] bg-[var(--surface)] px-3 py-2 text-[var(--danger)]">
+        <p className="mt-0 mb-3 rounded-[var(--radius-control)] bg-[var(--surface-2)] px-3 py-2 font-semibold text-[var(--danger)]">
           {error}
         </p>
       )}
 
       {others.length === 0 ? (
-        <p className="opacity-60">{sharing.onlyOneGroup}</p>
+        <p className="m-0 text-[var(--muted)]">{sharing.onlyOneGroup}</p>
       ) : (
         <div className="grid gap-2">
-          <div className="flex items-center gap-2">
-            <label className="opacity-80" htmlFor="recipe-move-to">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-[var(--muted)]" htmlFor="recipe-move-to">
               {sharing.moveTo}
             </label>
             <select
               id="recipe-move-to"
-              className="rounded border px-2 py-1"
+              className="min-h-9 rounded-[var(--radius-control)] border border-[var(--control-edge)] bg-[var(--surface)] px-2.5 text-[var(--ink)]"
               value={moveTo}
               onChange={(e) => setMoveTo(e.target.value)}
             >
@@ -129,7 +129,7 @@ export function RecipeSharingPanel({
             <button
               type="button"
               disabled={busy || moveTo === ''}
-              className="rounded border px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-9 shrink-0 items-center rounded-[var(--radius-pill)] bg-[var(--surface-2)] px-3.5 text-footnote font-semibold text-[var(--ink)] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
               onClick={() =>
                 run(async () => {
                   await move({ id: recipeId, toGroupSlug: moveTo })
@@ -146,13 +146,13 @@ export function RecipeSharingPanel({
           </div>
 
           {shareOptions.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="opacity-80" htmlFor="recipe-share-with">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-[var(--muted)]" htmlFor="recipe-share-with">
                 {sharing.shareWith}
               </label>
               <select
                 id="recipe-share-with"
-                className="rounded border px-2 py-1"
+                className="min-h-9 rounded-[var(--radius-control)] border border-[var(--control-edge)] bg-[var(--surface)] px-2.5 text-[var(--ink)]"
                 value={shareWith}
                 onChange={(e) => setShareWith(e.target.value)}
               >
@@ -166,7 +166,7 @@ export function RecipeSharingPanel({
               <button
                 type="button"
                 disabled={busy || shareWith === ''}
-                className="rounded border px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-9 shrink-0 items-center rounded-[var(--radius-pill)] bg-[var(--surface-2)] px-3.5 text-footnote font-semibold text-[var(--ink)] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() =>
                   run(async () => {
                     await share({ id: recipeId, withGroupSlug: shareWith })

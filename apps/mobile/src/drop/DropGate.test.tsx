@@ -4,24 +4,30 @@ import { act, createElement } from 'react'
 import { beforeEach, expect, test, vi } from 'vitest'
 
 import {
-  LATE_SHEET_DELAY_MS,
   openPrompt,
   openSheet,
+  PROMPT_SETTLE_MS,
 } from '../components/openSheets'
+import { linkAfterSheets } from '../shell/linkAfterSheets'
 import { mount } from '../testing/dom'
-import { DropGate } from './DropGate'
+import { DropGate, REOFFER_SETTLE_MS, REOFFER_WINDOW_MS } from './DropGate'
 
 const state = vi.hoisted(() => ({
   push: vi.fn(),
   pending: null as null | { sequence: number },
+  pathname: '/all/tasks',
 }))
-vi.mock('expo-router', () => ({ useRouter: () => ({ push: state.push }) }))
+vi.mock('expo-router', () => ({
+  useRouter: () => ({ push: state.push }),
+  usePathname: () => state.pathname,
+}))
 vi.mock('./DropProvider', () => ({ useDrop: () => ({ pending: state.pending }) }))
 vi.mock('./paths', () => ({ dropHref: () => '/drop' }))
 
 beforeEach(() => {
   state.push.mockClear()
   state.pending = null
+  state.pathname = '/all/tasks'
   vi.useFakeTimers()
 })
 
@@ -49,7 +55,7 @@ test('an open prompt is answered first, then its form closes, then the chooser',
   expect(order).toEqual([])
   order.push('answered')
   answered()
-  await pass(LATE_SHEET_DELAY_MS)
+  await pass(PROMPT_SETTLE_MS)
   expect(order).toEqual(['answered', 'closed', 'chooser'])
   view.unmount()
 })
@@ -60,7 +66,7 @@ test('what an answer opens is closed before the chooser', async () => {
   answered()
   const dismiss = vi.fn(() => sheet.closed())
   const sheet = openSheet(dismiss)
-  await pass(LATE_SHEET_DELAY_MS)
+  await pass(PROMPT_SETTLE_MS)
   expect(dismiss).toHaveBeenCalledOnce()
   expect(state.push).toHaveBeenCalledOnce()
   view.unmount()
@@ -72,7 +78,7 @@ test('a Drop replaced while a prompt is up opens the chooser once', async () => 
   state.pending = { sequence: 2 }
   view.rerender(createElement(DropGate))
   answered()
-  await pass(LATE_SHEET_DELAY_MS)
+  await pass(PROMPT_SETTLE_MS)
   expect(state.push).toHaveBeenCalledOnce()
   view.unmount()
 })
@@ -93,4 +99,119 @@ test('a form opened after the Drop was cleared or left is not closed', async () 
     sheet.closed()
     if (leave === 'cleared') view.unmount()
   }
+})
+
+test('a link that follows a waiting share opens instead of the chooser (APP-774)', async () => {
+  const answered = openPrompt()
+  const view = share(1)
+  const link = linkAfterSheets('gather-dev://all/tasks')
+  answered()
+  await pass(PROMPT_SETTLE_MS)
+  expect(await link).toBe('gather-dev://all/tasks')
+  expect(state.push).not.toHaveBeenCalled()
+  view.unmount()
+})
+
+/** A share waits on a prompt, a link replaces it, and the prompt is answered. */
+async function lostToLink() {
+  const answered = openPrompt()
+  const view = share(1)
+  const link = linkAfterSheets('gather-dev://all/notes')
+  answered()
+  await pass(PROMPT_SETTLE_MS)
+  expect(await link).toBe('gather-dev://all/notes')
+  expect(state.push).not.toHaveBeenCalled()
+  return view
+}
+
+test('a share that lost to a link gets its chooser back once that screen is up (APP-817)', async () => {
+  const view = await lostToLink()
+  state.pathname = '/all/notes'
+  view.rerender(createElement(DropGate))
+  await pass(REOFFER_SETTLE_MS)
+  expect(state.push).toHaveBeenCalledExactlyOnceWith('/drop')
+  view.unmount()
+})
+
+test('it waits out the notification handoff route', async () => {
+  const view = await lostToLink()
+  state.pathname = '/open-notification'
+  view.rerender(createElement(DropGate))
+  await pass(REOFFER_SETTLE_MS)
+  expect(state.push).not.toHaveBeenCalled()
+  state.pathname = '/all/calendar/e1'
+  view.rerender(createElement(DropGate))
+  await pass(REOFFER_SETTLE_MS)
+  expect(state.push).toHaveBeenCalledOnce()
+  view.unmount()
+})
+
+test('a sheet the newer screen opened keeps the chooser away, and later moves do not bring it back', async () => {
+  const view = await lostToLink()
+  // A quick action: through the quick route, back to Home, its sheet open.
+  state.pathname = '/quick'
+  view.rerender(createElement(DropGate))
+  await pass(100)
+  state.pathname = '/home'
+  view.rerender(createElement(DropGate))
+  const sheet = openSheet(() => {})
+  await pass(REOFFER_SETTLE_MS)
+  expect(state.push).not.toHaveBeenCalled()
+  // The person closes it and goes elsewhere, inside the window.
+  sheet.closed()
+  await pass(1000)
+  state.pathname = '/all/tasks'
+  view.rerender(createElement(DropGate))
+  await pass(REOFFER_WINDOW_MS)
+  expect(state.push).not.toHaveBeenCalled()
+  view.unmount()
+})
+
+test('a link to the screen already in front still brings the chooser back, once', async () => {
+  const view = await lostToLink()
+  await pass(REOFFER_SETTLE_MS)
+  expect(state.push).toHaveBeenCalledExactlyOnceWith('/drop')
+  state.pathname = '/all/tasks'
+  view.rerender(createElement(DropGate))
+  await pass(REOFFER_WINDOW_MS)
+  expect(state.push).toHaveBeenCalledOnce()
+  view.unmount()
+})
+
+test('moving on before the newer screen settles still waits for the sheet check', async () => {
+  const view = await lostToLink()
+  const sheet = openSheet(() => {})
+  state.pathname = '/all/notes'
+  view.rerender(createElement(DropGate))
+  await pass(REOFFER_SETTLE_MS)
+  sheet.closed()
+  state.pathname = '/all/tasks'
+  view.rerender(createElement(DropGate))
+  await pass(REOFFER_WINDOW_MS)
+  expect(state.push).not.toHaveBeenCalled()
+  view.unmount()
+})
+
+test('a Drop that was cleared or replaced meanwhile is not brought back', async () => {
+  const view = await lostToLink()
+  state.pending = null
+  view.rerender(createElement(DropGate))
+  state.pathname = '/all/notes'
+  view.rerender(createElement(DropGate))
+  await pass(REOFFER_SETTLE_MS)
+  expect(state.push).not.toHaveBeenCalled()
+  view.unmount()
+})
+
+test('a share that never waited, or that no one replaced, is not offered twice', async () => {
+  const view = share(1)
+  expect(state.push).toHaveBeenCalledOnce()
+  state.pathname = '/drop'
+  view.rerender(createElement(DropGate))
+  await pass(REOFFER_WINDOW_MS)
+  state.pathname = '/all/notes'
+  view.rerender(createElement(DropGate))
+  await pass(REOFFER_SETTLE_MS)
+  expect(state.push).toHaveBeenCalledOnce()
+  view.unmount()
 })

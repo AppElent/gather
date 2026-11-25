@@ -55,6 +55,16 @@ overrides:
   # 58.0.22 asks for, which moves the phone's runtime fingerprint. 58.0.14 only
   # drops an unused Android dependency. Remove when the phone's expo is >=58.0.22.
   "@expo/log-box": "58.0.13"
+  # APP-740: @tailwindcss/typography pins 6.0.10 exactly (Dependabot alert 163).
+  # Remove once it depends on >=6.1.5.
+  "postcss-selector-parser@<6.1.5": "^6.1.5"
+  # APP-740: eas-cli pins diff 7.0.0 (alert 5) and calls only diffLines, which is
+  # the same in 8. Remove once eas-cli depends on >=8.0.3.
+  "diff@>=6 <8.0.3": "^8.0.3"
+  # APP-740: xcode, @bacons/xcode, @expo/bunyan and @expo/rudder-sdk-node ask for
+  # uuid 7 or 8 (alert 26) and call at most v1() and v4(), the same in 11. Remove
+  # once none of them resolves below 11.1.1.
+  "uuid@<11.1.1": "^11.1.1"
 
 # @clerk/expo's config plugin imports @expo/config-plugins at runtime but only
 # declares it as a devDependency. EAS loads the plugin without pnpm's NODE_PATH

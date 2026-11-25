@@ -241,6 +241,63 @@ export function readTaskRefusal(error: unknown): TaskRefusalCode | null {
 }
 
 /**
+ * Why a note write was refused (APP-805): its title and body together are over
+ * `NOTE_MAX_CHARS` (`@gather/core/notes`).
+ */
+export const NOTE_REFUSAL_CODES = ['too-long'] as const
+export type NoteRefusalCode = (typeof NOTE_REFUSAL_CODES)[number]
+
+/** Namespaced on the wire, like the calendar's, so kinds cannot collide. */
+export function noteRefusal(code: NoteRefusalCode): { kind: string } {
+  return { kind: `notes:${code}` }
+}
+
+/**
+ * A refused note in the reader's own words: the sentence `sentences` holds for
+ * its kind (`messages.notes.refusals`), or null when the thrown value is not one.
+ */
+export function noteRefusalSentence(
+  error: unknown,
+  sentences: Readonly<Record<`notes:${NoteRefusalCode}`, string>>,
+): string | null {
+  const kind = refusalKind(error)
+  const code = NOTE_REFUSAL_CODES.find((each) => `notes:${each}` === kind)
+  return code === undefined ? null : sentences[`notes:${code}`]
+}
+
+/**
+ * Why a Group's time zone was not changed (APP-475): the caller is not an
+ * admin, or no such IANA zone.
+ */
+export const GROUP_TIME_ZONE_REFUSAL_CODES = [
+  'admin-only',
+  'unknown-zone',
+] as const
+export type GroupTimeZoneRefusalCode =
+  (typeof GROUP_TIME_ZONE_REFUSAL_CODES)[number]
+
+export function groupTimeZoneRefusal(code: GroupTimeZoneRefusalCode): {
+  kind: string
+} {
+  return { kind: `groupTimeZone:${code}` }
+}
+
+/**
+ * A refused time zone in the reader's own words: the sentence `sentences`
+ * holds for its code, or null when the thrown value is not one.
+ */
+export function groupTimeZoneRefusalSentence(
+  error: unknown,
+  sentences: Readonly<Record<GroupTimeZoneRefusalCode, string>>,
+): string | null {
+  const kind = refusalKind(error)
+  const code = GROUP_TIME_ZONE_REFUSAL_CODES.find(
+    (each) => `groupTimeZone:${each}` === kind,
+  )
+  return code === undefined ? null : sentences[code]
+}
+
+/**
  * Why a Group-scoped call was refused at the Group itself (APP-429), before
  * any row was read. `convex/lib/groupAccess.ts` builds them.
  *

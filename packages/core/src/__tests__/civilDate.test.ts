@@ -4,7 +4,9 @@ import {
   addDays,
   addMonths,
   compareIsoDates,
+  dayStartIn,
   daysBetween,
+  hourIn,
   isIsoDate,
   localIsoDate,
   localMidnight,
@@ -13,8 +15,54 @@ import {
   monthStart,
   monthsUntil,
   parseIsoDate,
+  todayIn,
   weekOf,
 } from '../civilDate'
+
+describe('a zone’s own day and hour', () => {
+  const now = new Date('2026-11-24T22:30:00Z')
+
+  test('dayStartIn is its midnight, also where the clocks skip it', () => {
+    expect(dayStartIn('Asia/Tokyo', Number(now))).toBe(
+      Date.parse('2026-11-24T15:00:00Z'),
+    )
+    expect(dayStartIn('Europe/Amsterdam', Number(now))).toBe(
+      Date.parse('2026-11-23T23:00:00Z'),
+    )
+    // Lebanon's clocks go from 00:00 to 01:00 on 29 March 2026.
+    expect(
+      dayStartIn('Asia/Beirut', Date.parse('2026-03-29T12:00:00Z')),
+    ).toBe(Date.parse('2026-03-28T22:00:00Z'))
+  })
+
+  test('without a zone, or with an unknown one, they are this device’s', () => {
+    const midnight = new Date(now)
+    midnight.setHours(0, 0, 0, 0)
+    for (const zone of [undefined, 'Mars/Olympus']) {
+      expect(dayStartIn(zone, Number(now))).toBe(Number(midnight))
+      expect(hourIn(zone, now)).toBe(now.getHours())
+    }
+  })
+
+  test('hourIn reads its clock, midnight as 0', () => {
+    expect(hourIn('Asia/Tokyo', now)).toBe(7)
+    expect(hourIn('Asia/Tokyo', new Date('2026-11-24T15:10:00Z'))).toBe(0)
+  })
+})
+
+describe('todayIn', () => {
+  const now = new Date('2026-11-24T22:30:00Z')
+
+  test('is the day in the zone named', () => {
+    expect(todayIn('Europe/Amsterdam', now)).toBe('2026-11-24')
+    expect(todayIn('Asia/Tokyo', now)).toBe('2026-11-25')
+  })
+
+  test('is this device’s day without a zone, or with one it does not know', () => {
+    expect(todayIn(undefined, now)).toBe(localIsoDate(now))
+    expect(todayIn('Mars/Olympus', now)).toBe(localIsoDate(now))
+  })
+})
 
 describe('parsing', () => {
   test('refuses something that is not a date', () => {

@@ -365,6 +365,33 @@ describe('Gather MCP endpoint', () => {
     }
   })
 
+  it('refuses a one-character query instead of answering with no notes', async () => {
+    const backend = fakeBackend()
+    for (const query of ['a', ' a ']) {
+      const out = await callTool(backend, 'list_notes', {
+        groupId: 'group_home',
+        query,
+      })
+      expect(out.isError).toBe(true)
+      expect(out.content[0].text).toMatch(/at least 2 characters/)
+    }
+    expect(backend.calls.map((c) => c.name)).not.toContain('notes:searchNotes')
+  })
+
+  it('does not read another failure that mentions InvalidCursor as a stale cursor', async () => {
+    const out = await callTool(
+      fakeBackend({
+        'notes:listPage': () => {
+          throw new Error('Could not load notes: ignored InvalidCursor flag')
+        },
+      }),
+      'list_notes',
+      { groupId: 'group_home', cursor: 'fresh' },
+    )
+    expect(out.isError).toBe(true)
+    expect(out.content[0].text).toBe('The Gather tool failed.')
+  })
+
   it('refuses a Group the caller is not in like a missing one, before any data call', async () => {
     const backend = fakeBackend()
     const out = await callTool(backend, 'list_notes', { groupId: 'group_other' })
@@ -560,6 +587,20 @@ describe('Gather MCP endpoint', () => {
       texts.add(out.content[0].text)
     }
     expect(texts.size).toBe(1)
+  })
+
+  it('says a note is too long, and how long one may be', async () => {
+    const out = await callTool(
+      fakeBackend({
+        'notes:update': () => {
+          throw new ConvexError({ kind: 'notes:too-long' })
+        },
+      }),
+      'update_note',
+      { groupId: 'group_home', noteId: 'note_1', title: 'New' },
+    )
+    expect(out.isError).toBe(true)
+    expect(out.content[0].text).toContain('100,000')
   })
 
   it('updates an event from its current revision, keeping what was not passed', async () => {
@@ -979,6 +1020,39 @@ describe('Gather MCP endpoint', () => {
       from: '2026-11-16',
       toExclusive: '2026-11-23',
     })
+  })
+
+  it("show_week_agenda's today is in the Group's zone (APP-475)", async () => {
+    const backend = fakeBackend({
+      // 12:00Z is already the next day at UTC+14.
+      'groups:myGroups': () => [
+        { ...GROUPS[0], timeZone: 'Pacific/Kiritimati' },
+      ],
+      'calendar:listCalendars': () => ({
+        page: [],
+        isDone: true,
+        continueCursor: '',
+      }),
+    })
+    const out = await callTool(backend, 'show_week_agenda', {
+      groupId: 'group_home',
+    })
+    expect(out.structuredContent).toMatchObject({ today: '2026-11-18' })
+  })
+
+  it("gives the task list view the Group's zone", async () => {
+    const backend = fakeBackend({
+      'groups:myGroups': () => [{ ...GROUPS[0], timeZone: 'Pacific/Kiritimati' }],
+      'taskLists:list': () => [
+        { _id: 'list_1', name: 'Groceries', provider: 'local', writable: true },
+      ],
+      'tasks:listByList': () => [],
+    })
+    const shown = await callTool(backend, 'show_task_list', {
+      groupId: 'group_home',
+      listId: 'list_1',
+    })
+    expect(shown.structuredContent).toMatchObject({ timeZone: 'Pacific/Kiritimati' })
   })
 
   it('shows a task list as writable only with the write scope', async () => {

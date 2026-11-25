@@ -5,6 +5,7 @@ import {
   energyHomeHasProblem,
   energyHomeSources,
   highestCostDay,
+  highestUsageSlot,
   signedDifference,
 } from './energyPresent'
 
@@ -71,5 +72,18 @@ describe('distinctPeakOf', () => {
     expect(peak([0, 0])).toBeNull()
     expect(peak([null])).toBeNull()
     expect(peak([])).toBeNull()
+  })
+})
+
+describe('highestUsageSlot', () => {
+  const peak = (values: (number | null)[]) =>
+    highestUsageSlot(values, (value) => value)?.value ?? null
+  test('names the highest slot when one stands out', () => {
+    expect(peak([10, 10, 18, 10])).toBe(18)
+  })
+  test('names none when every slot uses the same, or differs by noise', () => {
+    expect(peak([10, 10, 10])).toBeNull()
+    expect(peak([10, 10.001, 9.999])).toBeNull()
+    expect(peak([10])).toBeNull()
   })
 })

@@ -5,18 +5,19 @@
  * One screen serves the Search tab (the Module you tapped it from, else All;
  * APP-660) and every Module's search button (that Module preset). The Module filter decides what the server is
  * asked for (`typesFor`), because `search.group` keeps 30 rows and a Module
- * asked for by itself should get all 30. Who, When and Status narrow the
- * answer here, on fields the server sends with every row.
+ * asked for by itself should get all 30. Who, When and Status go to the server
+ * too (`serverFilters`, APP-633), and narrow the answer here again: that is
+ * what filters an older server's rows, and the rows held meanwhile.
  *
  * Pure: the screen holds the state and passes `today` in.
  */
-import {
-  compareIsoDates,
-  localIsoDate,
-  mondayStart,
-  monthStart,
-} from '@gather/core/civil-date'
+import { localIsoDate } from '@gather/core/civil-date'
 import type { ModuleId } from '@gather/core/modules'
+import {
+  matchesRowFilters,
+  type StatusFilter,
+  type WhenFilter,
+} from '@gather/core/search-filters'
 import { isTastingKind, type TastingKind } from '@gather/core/tastings'
 
 import type { SearchRecordType } from './recentRecords'
@@ -123,12 +124,6 @@ export function typesFor(
   return [...new Set(modules.map((each) => TYPE_OF_MODULE[each]))]
 }
 
-export const WHEN_VALUES = ['today', 'week', 'month', 'earlier'] as const
-export type WhenFilter = (typeof WHEN_VALUES)[number]
-
-export const STATUS_VALUES = ['open', 'done'] as const
-export type StatusFilter = (typeof STATUS_VALUES)[number]
-
 export type SearchFilters = {
   module: SearchModuleId | null
   /** A Member's user id. */
@@ -164,35 +159,6 @@ export function withModule(
   }
 }
 
-/**
- * The day a record is "when": an event's date, a task's due date, and for
- * everything else (and an undated task) the day it was added.
- */
-export function dayOf(record: FilterableRecord): string | null {
-  if (record.type === 'calendarEvent' && record.date) return record.date
-  if (record.type === 'task' && record.dueDate) return record.dueDate
-  return record.creationTime === undefined
-    ? null
-    : localIsoDate(record.creationTime)
-}
-
-/**
- * Whether a day falls in a When bucket. Today, this week (from Monday) and
- * this month nest; Earlier is everything before this month.
- */
-export function inWhen(day: string, when: WhenFilter, today: string): boolean {
-  switch (when) {
-    case 'today':
-      return day === today
-    case 'week':
-      return mondayStart(day) === mondayStart(today)
-    case 'month':
-      return monthStart(day) === monthStart(today)
-    case 'earlier':
-      return compareIsoDates(day, monthStart(today)) < 0
-  }
-}
-
 /** Whether one record passes every filter. */
 export function matchesFilters(
   record: FilterableRecord,
@@ -200,18 +166,7 @@ export function matchesFilters(
   today: string,
 ): boolean {
   if (filters.module && moduleOf(record) !== filters.module) return false
-  if (filters.who && record.createdBy !== filters.who) return false
-  if (filters.when) {
-    const day = dayOf(record)
-    if (!day || !inWhen(day, filters.when, today)) return false
-  }
-  if (filters.status && record.type === 'task') {
-    // A server from before APP-613 sends no `done`: it reads as open, which
-    // is what an unchecked task is.
-    const done = record.done === true
-    if ((filters.status === 'done') !== done) return false
-  }
-  return true
+  return matchesRowFilters(record, filters, { today, dayAt: localIsoDate })
 }
 
 export function applyFilters<T extends FilterableRecord>(
@@ -225,6 +180,24 @@ export function applyFilters<T extends FilterableRecord>(
 /** Whether anything beyond the Module narrows the results. */
 export function narrowed(filters: SearchFilters): boolean {
   return Boolean(filters.who || filters.when || filters.status)
+}
+
+/**
+ * Who, When and Status as `search.group` takes them; null when none is set.
+ * `today` and the zone go along only with When, the one that reads them, so
+ * the other filters' query does not change at midnight.
+ */
+export function serverFilters(
+  filters: SearchFilters,
+  today: string,
+  timeZone: string,
+) {
+  if (!narrowed(filters)) return null
+  return {
+    ...(filters.who ? { createdBy: filters.who } : {}),
+    ...(filters.when ? { when: filters.when, today, timeZone } : {}),
+    ...(filters.status ? { status: filters.status } : {}),
+  }
 }
 
 /**

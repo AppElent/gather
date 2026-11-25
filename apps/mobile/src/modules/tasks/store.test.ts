@@ -1,18 +1,24 @@
 import type { OptimisticLocalStore } from 'convex/browser'
+import { useAction } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { describe, expect, test, vi } from 'vitest'
 
 import type { Doc, Id } from '../../convex/api'
 
+/** The Group's zone; none by default. */
+const zone: { timeZone?: string } = {}
 const sent: { name: string; args: unknown }[] = []
 /** What a mutation answers, by name; nothing by default. */
 const answers: Record<string, unknown> = {}
 
 vi.mock('../../group/GroupProvider', () => ({
-  useGroup: () => ({ group: { slug: 'our-household' } }),
+  useGroup: () => ({ group: { slug: 'our-household', ...zone } }),
 }))
 vi.mock('convex/react', () => ({
   useAction: vi.fn(),
+  useConvex: () => ({
+    connectionState: () => ({ isWebSocketConnected: true }),
+  }),
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
     const run = (args: unknown) => {
       const name = getFunctionName(reference)
@@ -31,16 +37,18 @@ import {
   externalEntry,
   externalSnapshot,
   indexModel,
+  LinkedWriteError,
   listFace,
   localTaskQueries,
   mergeTasks,
   onOccurrenceCompleted,
+  PROVIDER_WAIT_MS,
   settledDetails,
   smartModel,
   syncExternalList,
   taskSections,
   toggleInPlace,
-  useTaskActions,
+  useTaskActions,writeLinkedTask 
 } from './store'
 import type { TaskList } from './types'
 
@@ -61,6 +69,7 @@ function listRow(id: string, provider: 'local' | 'notion' | 'todoist') {
     aisleOrder: null,
     suggestionsOff: false,
     writable: provider === 'local',
+    capabilities: { write: provider !== 'notion' },
     sections: [] as { id: string; name: string }[],
   }
 }
@@ -185,10 +194,13 @@ describe('a linked list asks its provider once, then on request', () => {
     expect(fetchTasks).toHaveBeenCalledTimes(1)
     expect(externalSnapshot().get('once')).toEqual({
       sync: 'synced',
+      fresh: true,
       tasks: [
         {
           id: 'Water the plants',
           listId: 'once',
+          linked: true,
+          repeatText: undefined,
           title: 'Water the plants',
           done: false,
           dueDate: undefined,
@@ -221,6 +233,7 @@ describe('a linked list asks its provider once, then on request', () => {
 
     const retry = vi.fn(provided(['Call the plumber']))
     ensureExternalLists(['stale'], retry)
+    await vi.waitFor(() => expect(retry).toHaveBeenCalled())
     expect(retry).toHaveBeenCalledTimes(1)
   })
 })
@@ -359,7 +372,7 @@ describe('repeating tasks (APP-303)', () => {
     expect(entry.tasks[0].repeatText).toBe('every week')
   })
 
-  test('completing sends the phone’s day and tells the screen what came of it', async () => {
+  test('completing sends today and tells the screen what came of it', async () => {
     sent.length = 0
     const heard: CompletedOccurrence[] = []
     const stop = onOccurrenceCompleted((done) => heard.push(done))
@@ -401,6 +414,20 @@ describe('repeating tasks (APP-303)', () => {
     await useTaskActions().toggleTask({ id: 'milk', title: 'Milk' })
     stop()
     expect(heard).toEqual([])
+  })
+
+  test("in a Group with a zone, completing sends that zone's day", async () => {
+    sent.length = 0
+    vi.useFakeTimers({ now: new Date('2026-11-29T10:30:00Z') })
+    zone.timeZone = 'Pacific/Kiritimati'
+    const actions = useTaskActions()
+    try {
+      await actions.toggleTask({ id: 'bins', title: 'Bins' })
+    } finally {
+      vi.useRealTimers()
+      delete zone.timeZone
+    }
+    expect(sent[0].args).toMatchObject({ today: '2026-11-30' })
   })
 
   test('setting and clearing a repeat, and undoing a completion', async () => {
@@ -908,5 +935,321 @@ describe('what a composed task’s note and reminder came to', () => {
     const failed = settledDetails({ reminder }, ok, no)
     expect(failed).toMatchObject({ reminderSet: false, reminderFailed: true })
     expect(failed.failed.reminder).toEqual(reminder)
+  })
+})
+
+describe('a linked list is written to in its provider first (APP-448)', () => {
+  const row = (externalId: string, rest: object = {}) => ({
+    externalId,
+    title: externalId,
+    done: false,
+    ...rest,
+  })
+  const answering = (...tasks: ReturnType<typeof row>[]) =>
+    vi.fn(() => Promise.resolve({ status: 'ok' as const, tasks }))
+  const taken = (tasks: ReturnType<typeof row>[] = [], refresh = false) =>
+    vi.fn(() => Promise.resolve({ status: 'ok' as const, tasks, refresh }))
+  const rows = (listId: string) =>
+    externalSnapshot().get(listId)?.tasks.map((task) => task.title)
+  const writable = (listId: string, provider: 'notion' | 'todoist' = 'todoist') =>
+    mergeTasks([listRow(listId, provider)], {}, externalSnapshot()).lists[0]
+      .writable
+
+  test('nothing changes here until the provider took the write', async () => {
+    const fetchTasks = answering(row('a'))
+    await syncExternalList('first', fetchTasks)
+    let take = (_: Awaited<ReturnType<ReturnType<typeof taken>>>) => {}
+    const request = writeLinkedTask(
+      'first',
+      { kind: 'update', taskId: 'a', title: 'b' },
+      () => new Promise((resolve) => (take = resolve)),
+      fetchTasks,
+    )
+    await Promise.resolve()
+    expect(externalSnapshot().get('first')?.tasks[0]).toMatchObject({
+      title: 'a',
+      pending: true,
+    })
+    take({ status: 'ok', tasks: [row('a', { title: 'b' })], refresh: false })
+    await request
+    expect(externalSnapshot().get('first')?.tasks[0]).toMatchObject({
+      title: 'b',
+    })
+    expect(externalSnapshot().get('first')?.tasks[0].pending).toBeUndefined()
+    expect(fetchTasks).toHaveBeenCalledTimes(1)
+  })
+
+  test('a subtask lands under its parent', async () => {
+    await syncExternalList('sub', answering(row('a')))
+    await writeLinkedTask(
+      'sub',
+      { kind: 'create', title: 'step', parentId: 'a' },
+      taken([row('step', { parentExternalId: 'a' })]),
+      answering(),
+    )
+    expect(externalSnapshot().get('sub')?.tasks[1]).toMatchObject({
+      title: 'step',
+      parentTaskId: 'a',
+      linked: true,
+    })
+  })
+
+  test('a read-only connection asks to reconnect and changes nothing', async () => {
+    const fetchTasks = answering(row('a'))
+    await syncExternalList('old-scope', fetchTasks)
+    expect(writable('old-scope')).toBe(true)
+    const request = writeLinkedTask(
+      'old-scope',
+      { kind: 'setDone', taskId: 'a', done: true },
+      () =>
+        Promise.resolve({ status: 'reconnect' as const, provider: 'todoist' }),
+      fetchTasks,
+    )
+    await expect(request).rejects.toMatchObject({ reason: 'reconnect' })
+    expect(externalSnapshot().get('old-scope')?.sync).toBe('reconnect')
+    expect(rows('old-scope')).toEqual(['a'])
+    expect(writable('old-scope')).toBe(false)
+    expect(fetchTasks).toHaveBeenCalledTimes(1)
+
+    // Reads keep working.
+    await syncExternalList('old-scope', fetchTasks)
+    expect(externalSnapshot().get('old-scope')?.sync).toBe('synced')
+  })
+
+  test.each([
+    ['a refusal', () => Promise.resolve({ status: 'error' as const, reason: 'failed' as const })],
+    ['no network', () => Promise.reject(new Error('offline'))],
+  ])('%s rejects and shows what the provider has', async (name, send) => {
+    const fetchTasks = answering(row('a'))
+    await syncExternalList(name, fetchTasks)
+    await expect(
+      writeLinkedTask(name, { kind: 'setDone', taskId: 'a', done: true }, send, fetchTasks),
+    ).rejects.toBeInstanceOf(LinkedWriteError)
+    await vi.waitFor(() => expect(fetchTasks).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() =>
+      expect(externalSnapshot().get(name)?.sync).toBe('synced'),
+    )
+    expect(rows(name)).toEqual(['a'])
+    expect(externalSnapshot().get(name)?.tasks[0].pending).toBeUndefined()
+    expect(writable(name)).toBe(true)
+  })
+
+  test('an outage leaves the list stale and read-only, and refuses writes', async () => {
+    await syncExternalList('outage', answering(row('a')))
+    const down = () => Promise.reject(new Error('offline'))
+    await expect(
+      writeLinkedTask('outage', { kind: 'setDone', taskId: 'a', done: true }, down, down),
+    ).rejects.toMatchObject({ reason: 'failed' })
+    await syncExternalList('outage', down)
+    expect(rows('outage')).toEqual(['a'])
+    expect(writable('outage')).toBe(false)
+
+    const send = taken()
+    await expect(
+      writeLinkedTask('outage', { kind: 'setDone', taskId: 'a', done: true }, send, down),
+    ).rejects.toMatchObject({ reason: 'stale' })
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  test('writes to one list run in order, and a refresh waits for them', async () => {
+    await syncExternalList('queue', answering(row('a')))
+    const order: string[] = []
+    const slow = async () => {
+      await Promise.resolve()
+      order.push('write')
+      return { status: 'ok' as const, tasks: [row('a')], refresh: false }
+    }
+    const change = { kind: 'update', taskId: 'a', title: 'a' } as const
+    const fetchTasks = () => {
+      order.push('fetch')
+      return answering(row('a'))()
+    }
+    await Promise.all([
+      writeLinkedTask('queue', change, slow, fetchTasks),
+      writeLinkedTask('queue', change, slow, fetchTasks),
+      syncExternalList('queue', fetchTasks),
+    ])
+    expect(order).toEqual(['write', 'write', 'fetch'])
+  })
+
+  test('offline nothing is sent, now or later', async () => {
+    const fetchTasks = answering(row('a'))
+    await syncExternalList('offline', fetchTasks)
+    const send = taken()
+    await expect(
+      writeLinkedTask(
+        'offline',
+        { kind: 'setDone', taskId: 'a', done: true },
+        send,
+        fetchTasks,
+        { isOnline: () => false, whenOnline: () => {} },
+      ),
+    ).rejects.toMatchObject({ reason: 'offline' })
+    expect(send).not.toHaveBeenCalled()
+    expect(rows('offline')).toEqual(['a'])
+    expect(writable('offline')).toBe(false)
+    expect(externalSnapshot().get('offline')?.tasks[0].pending).toBeUndefined()
+  })
+
+  test('an offline refusal reads the list once the connection is back', async () => {
+    const down = () => Promise.reject(new Error('offline'))
+    const fetchTasks = vi.fn(answering(row('a')))
+    await syncExternalList('back', fetchTasks)
+    let online = false
+    const waiting: (() => unknown)[] = []
+    const connection = {
+      isOnline: () => online,
+      whenOnline: (run: () => void) => waiting.push(run),
+    }
+    const write = () =>
+      writeLinkedTask(
+        'back',
+        { kind: 'setDone', taskId: 'a', done: true },
+        taken(),
+        fetchTasks,
+        connection,
+      )
+    await expect(write()).rejects.toMatchObject({ reason: 'offline' })
+    await expect(write()).rejects.toMatchObject({ reason: 'stale' })
+    expect(waiting).toHaveLength(1)
+    expect(writable('back')).toBe(false)
+    // Back for a moment only: it waits again, and reads nothing meanwhile.
+    fetchTasks.mockImplementationOnce(down)
+    await waiting[0]()
+    expect(writable('back')).toBe(false)
+    expect(waiting).toHaveLength(2)
+    online = true
+    await waiting[1]()
+    expect(writable('back')).toBe(true)
+    expect(waiting).toHaveLength(2)
+    expect(fetchTasks).toHaveBeenCalledTimes(3)
+    await write()
+  })
+
+  test('Complete all keeps its key until Todoist took it', async () => {
+    const send = vi.fn()
+    vi.mocked(useAction).mockReturnValue(send as never)
+    send.mockResolvedValue({ status: 'error', reason: 'failed' })
+    await syncExternalList('keys', answering(row('a')))
+    const complete = () =>
+      useTaskActions().toggleTask(
+        { id: 'a', listId: 'keys', linked: true, title: 'a' },
+        { withSubtasks: true },
+      )
+    await expect(complete()).rejects.toMatchObject({ reason: 'failed' })
+    await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(2))
+    await syncExternalList('keys', answering(row('a')))
+    send.mockResolvedValue({ status: 'ok', tasks: [row('a')], refresh: false })
+    await complete()
+    await complete()
+    const keys = send.mock.calls
+      .map(([call]) => call.write?.requestKey)
+      .filter(Boolean)
+    expect(keys).toHaveLength(3)
+    expect(keys[1]).toBe(keys[0])
+    expect(keys[2]).not.toBe(keys[0])
+    for (const key of keys) expect(key).toMatch(/^[\w-]{1,64}$/)
+  })
+
+  test('a write that never answers fails, and what waited is not sent', async () => {
+    await syncExternalList('hung', answering(row('a')))
+    vi.useFakeTimers()
+    try {
+      const hung = () => new Promise<never>(() => {})
+      const second = taken()
+      const change = { kind: 'update', taskId: 'a', title: 'b' } as const
+      const outcomes = Promise.allSettled([
+        writeLinkedTask('hung', change, hung, hung),
+        writeLinkedTask('hung', change, second, hung),
+      ])
+      await vi.advanceTimersByTimeAsync(PROVIDER_WAIT_MS)
+      expect(await outcomes).toMatchObject([
+        { reason: { reason: 'failed' } },
+        { reason: { reason: 'stale' } },
+      ])
+      expect(second).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(PROVIDER_WAIT_MS)
+    } finally {
+      vi.useRealTimers()
+    }
+    expect(externalSnapshot().get('hung')).toMatchObject({ sync: 'failed' })
+    expect(rows('hung')).toEqual(['a'])
+  })
+
+  test('a write answered too late keeps the list read-only until it is', async () => {
+    const fetchTasks = answering(row('a'))
+    await syncExternalList('late', fetchTasks)
+    let answer = () => {}
+    vi.useFakeTimers()
+    try {
+      const request = writeLinkedTask(
+        'late',
+        { kind: 'setDone', taskId: 'a', done: true },
+        () =>
+          new Promise((resolve) => {
+            answer = () =>
+              resolve({ status: 'ok', tasks: [], refresh: true })
+          }),
+        fetchTasks,
+      ).catch((error) => error)
+      await vi.advanceTimersByTimeAsync(PROVIDER_WAIT_MS)
+      expect(await request).toMatchObject({ reason: 'failed' })
+    } finally {
+      vi.useRealTimers()
+    }
+    expect(writable('late')).toBe(false)
+    // A refresh that overtakes the write does not make it writable either.
+    await syncExternalList('late', fetchTasks)
+    expect(writable('late')).toBe(false)
+
+    answer()
+    await vi.waitFor(() => expect(writable('late')).toBe(true))
+    expect(fetchTasks).toHaveBeenCalledTimes(3)
+  })
+
+  test('a refresh already running keeps a task pending', async () => {
+    await syncExternalList('refreshing', answering(row('a')))
+    let answer = (_: Awaited<ReturnType<ReturnType<typeof answering>>>) => {}
+    const refresh = syncExternalList(
+      'refreshing',
+      () => new Promise((resolve) => (answer = resolve)),
+    )
+    await Promise.resolve()
+    let take = (_: Awaited<ReturnType<ReturnType<typeof taken>>>) => {}
+    const request = writeLinkedTask(
+      'refreshing',
+      { kind: 'setDone', taskId: 'a', done: true },
+      () => new Promise((resolve) => (take = resolve)),
+      answering(row('a')),
+    )
+    await vi.waitFor(async () => {
+      answer(await answering(row('a'))())
+      await refresh
+    })
+    expect(externalSnapshot().get('refreshing')?.tasks[0].pending).toBe(true)
+    await vi.waitFor(() => {
+      take({ status: 'ok', tasks: [], refresh: false })
+      expect(externalSnapshot().get('refreshing')?.tasks[0].pending).toBeUndefined()
+    })
+    await request
+  })
+
+  test('a task in two lists is written through the list it was opened on', async () => {
+    const send = vi.fn(taken([row('a')]))
+    vi.mocked(useAction).mockReturnValue(send as never)
+    await syncExternalList('one', answering(row('a')))
+    await syncExternalList('two', answering(row('a')))
+    await useTaskActions().setDue(
+      { id: 'a', listId: 'two', linked: true },
+      undefined,
+    )
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ listId: 'two' }),
+    )
+  })
+
+  test('Notion stays read-only', async () => {
+    await syncExternalList('notion-list', answering(row('a')))
+    expect(writable('notion-list', 'notion')).toBe(false)
   })
 })

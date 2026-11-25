@@ -22,6 +22,7 @@ import {
   fitsPreferences,
   recipeClashes,
 } from '@gather/core/meal-preferences'
+import { weekdayName } from '@gather/core/week-menu'
 import { useMutation } from 'convex/react'
 import { useMemo, useState } from 'react'
 import {
@@ -32,7 +33,6 @@ import {
   TextInput,
   View,
 } from 'react-native'
-
 import { NativeSheet } from '../../../components/NativeSheet'
 import { SearchField } from '../../../components/SearchField'
 import { api, type Id } from '../../../convex/api'
@@ -44,9 +44,10 @@ import { fmt, plural, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { InsetAddRow, InsetList, InsetRow } from '../../../ui/inset-list'
+import { useKeyboardDoneBar } from '../../../ui/keyboard-done-bar'
 import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { Chip, MealThumb } from './parts'
-import { type WeekData, weekdayName } from './week'
+import type { WeekData } from './week'
 
 export function PickSheet({
   date,
@@ -361,6 +362,9 @@ function QuickComposer({
   const { t } = useI18n()
   const pickWords = t.mealPlanner.pick
   const tokens = useTokens('kitchen')
+  const { inputAccessoryViewID, accessory } = useKeyboardDoneBar({
+    keyboardType: 'number-pad',
+  })
   return (
     <View style={styles.composer}>
       <TextInput
@@ -375,6 +379,7 @@ function QuickComposer({
         style={[styles.input, { color: tokens.ink, borderBottomColor: tokens.hair }]}
       />
       <View style={styles.composerRow}>
+        {accessory}
         <TextInput
           testID="pick-quick-minutes"
           value={value.minutes}
@@ -383,6 +388,7 @@ function QuickComposer({
           placeholderTextColor={tokens.muted}
           accessibilityLabel={pickWords.quickMinutes}
           keyboardType="number-pad"
+          inputAccessoryViewID={inputAccessoryViewID}
           style={[styles.input, styles.minutes, { color: tokens.ink }]}
         />
         <Pressable

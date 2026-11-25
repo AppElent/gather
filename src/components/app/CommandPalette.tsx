@@ -6,8 +6,8 @@ import { useCurrentGroup } from './useCurrentGroup'
 import { useModalFocus } from './useModalFocus'
 
 /**
- * Jumping to a page by name. The shell owns whether it is open, so ⌘K and the
- * topbar's search button open the same thing.
+ * Jumping to a page by name. The shell owns whether it is open, so ⌘K, the
+ * sidebar's search field and the tab bar's Search open the same thing.
  */
 export function CommandPalette({
   open,

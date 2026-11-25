@@ -24,6 +24,20 @@ export const settings = {
   },
 
   /**
+   * The way to the AppElent account portal, on the web's Account page and the
+   * phone's Account screen. `title`, `description` and `newTab` are the web's.
+   */
+  accountPortal: {
+    title: 'AppElent account',
+    description:
+      'Your login works in every AppElent app. Manage your email addresses, sign-in methods, devices and two-step verification there.',
+    action: 'Manage your AppElent account',
+    /** Read by a screen reader after the action. */
+    newTab: '(opens in a new tab)',
+    failed: 'Your AppElent account could not be opened. Try again.',
+  },
+
+  /**
    * "Signed-in devices" on the web's Account page. The phone's Devices screen
    * says the same (`apps/mobile/src/i18n/messages/en.ts`, `account.sessions`).
    * The session you are holding is not revocable from itself: that is Sign out.
@@ -184,6 +198,73 @@ export const settings = {
     name: 'Name',
     rename: 'Rename',
     renameFailed: 'Could not rename this group.',
+    timeZone: 'Time zone',
+    timeZoneNote:
+      'The day it is for everyone in this group, for example when you shop for the week. Without one, each device uses its own.',
+    timeZoneUnset: 'Each device’s own ({zone} here)',
+    timeZoneUseDevice: 'Use this device’s zone',
+    timeZoneClear: 'Use each device’s own zone',
+    timeZoneFailed: 'Could not change the time zone.',
+    timeZoneAdminOnly: 'Only an admin can change it.',
+    timeZoneSave: 'Save time zone',
+    timeZoneEachDevice: 'Each device’s own',
+    timeZoneDevice: 'This device is in {zone}.',
+    timeZoneChoose: 'Choose a time zone',
+    timeZoneSearch: 'Search time zones',
+    timeZoneNoMatches: 'No time zone matches “{query}”.',
+    // Places that read differently from their IANA name in either language.
+    timeZonePlaces: {
+      'Africa/Cairo': 'Cairo',
+      'America/Curacao': 'Curaçao',
+      'America/Mexico_City': 'Mexico City',
+      'America/Sao_Paulo': 'São Paulo',
+      'Asia/Baghdad': 'Baghdad',
+      'Asia/Beirut': 'Beirut',
+      'Asia/Hong_Kong': 'Hong Kong',
+      'Asia/Jerusalem': 'Jerusalem',
+      'Asia/Riyadh': 'Riyadh',
+      'Asia/Tehran': 'Tehran',
+      'Asia/Tokyo': 'Tokyo',
+      'Asia/Yerevan': 'Yerevan',
+      'Atlantic/Azores': 'Azores',
+      'Atlantic/Canary': 'Canary Islands',
+      'Atlantic/Cape_Verde': 'Cape Verde',
+      'Atlantic/Faroe': 'Faroe Islands',
+      'Atlantic/Reykjavik': 'Reykjavík',
+      'Europe/Athens': 'Athens',
+      'Europe/Belgrade': 'Belgrade',
+      'Europe/Berlin': 'Berlin',
+      'Europe/Brussels': 'Brussels',
+      'Europe/Bucharest': 'Bucharest',
+      'Europe/Budapest': 'Budapest',
+      'Europe/Copenhagen': 'Copenhagen',
+      'Europe/Istanbul': 'Istanbul',
+      'Europe/Lisbon': 'Lisbon',
+      'Europe/London': 'London',
+      'Europe/Luxembourg': 'Luxembourg',
+      'Europe/Moscow': 'Moscow',
+      'Europe/Paris': 'Paris',
+      'Europe/Prague': 'Prague',
+      'Europe/Vatican': 'Vatican City',
+      'Europe/Vienna': 'Vienna',
+      'Europe/Warsaw': 'Warsaw',
+      'Europe/Zurich': 'Zürich',
+    },
+    timeZoneRefusals: {
+      'admin-only': 'Only an admin of this group can change its time zone.',
+      'unknown-zone': 'Gather does not know the time zone of {zone} yet. Choose a place nearby with the same time.',
+    },
+    icon: 'Icon',
+    iconOptions: {
+      Users: 'People',
+      House: 'Home',
+      Heart: 'Heart',
+      Utensils: 'Food',
+      Wine: 'Wine',
+    },
+    picture: 'Group picture',
+    saveAppearance: 'Save appearance',
+    appearanceFailed: 'Could not save the icon and picture.',
     inviteCode: 'Invite code',
     inviteCodeNote:
       'Anyone holding this code can join from Groups — share it only with people you want in this group.',

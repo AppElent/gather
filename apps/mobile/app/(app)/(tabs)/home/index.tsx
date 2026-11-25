@@ -70,7 +70,7 @@ export default function Home() {
   const tasksTile = moduleTile('tasks')
 
   const byline = [
-    spelledDate(today.now, locale, words.date),
+    spelledDate(today.today, locale, words.date),
     today.memberCount === undefined
       ? null
       : plural(locale, today.memberCount, words.members),
@@ -208,7 +208,7 @@ export default function Home() {
                       router.push(
                         {
                           pathname: '/all/tasks/task/[taskId]',
-                          params: { taskId: task.id },
+                          params: { taskId: task.id, listId: task.listId },
                         },
                         { withAnchor: true },
                       )

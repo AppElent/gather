@@ -12,7 +12,7 @@ import * as QuickActions from 'expo-quick-actions'
 import { router } from 'expo-router'
 import { useEffect } from 'react'
 import { Platform, Settings } from 'react-native'
-
+import { isClosingSheets } from '../components/openSheets'
 import { confirmedAccount } from '../convex/lastKnown'
 import {
   isCardOnScreen,
@@ -35,6 +35,11 @@ import {
   homeScreenActionRequest,
 } from './homeScreenActions'
 import {
+  dropHeldLink,
+  isWaitingForSheets,
+  openAfterSheets,
+} from './linkAfterSheets'
+import {
   type QuickSheetRequest,
   quickSheetHref,
   requestQuickSheetInPlace,
@@ -55,11 +60,23 @@ let launchItemFollowed = false
  */
 const loadedAt = Date.now()
 
-/** Opens the sheet in place when it is up, else through its route. */
+/**
+ * Opens the sheet in place when it is up, else through its route once every
+ * other sheet has closed (APP-774). In place only while it stays up: something
+ * that waits for the sheets is closing it, and so is something that stopped
+ * waiting while the sheets were still closing (APP-817).
+ */
 function openQuickSheet(request: QuickSheetRequest) {
-  if (requestQuickSheetInPlace(request)) return
+  if (
+    !isWaitingForSheets() &&
+    !isClosingSheets() &&
+    requestQuickSheetInPlace(request)
+  )
+    return
   // A tick later, so a cold start's router has mounted its first screen.
-  setTimeout(() => router.navigate(quickSheetHref(request)))
+  openAfterSheets(() =>
+    setTimeout(() => router.navigate(quickSheetHref(request))),
+  )
 }
 
 /**
@@ -78,7 +95,11 @@ function followControl() {
       : undefined,
     isOnScreen: isCardOnScreen,
   })
-  if (target.kind === 'stay') return
+  if (target.kind === 'stay') {
+    // The newest arrival wins: an older link still waiting would open over it.
+    dropHeldLink()
+    return
+  }
   if (target.kind === 'sheet') {
     openQuickSheet({})
     return
@@ -88,7 +109,9 @@ function followControl() {
     via: 'control',
   })
   // With the All index beneath the card, so it has a back button (APP-454).
-  setTimeout(() => router.navigate(href, { withAnchor: true }))
+  openAfterSheets(() =>
+    setTimeout(() => router.navigate(href, { withAnchor: true })),
+  )
 }
 
 export function HomeScreenActionLinks() {

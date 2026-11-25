@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the share sheet, a Drop, its destinations, host rules, or expo-share-intent.
-version: 1.4.0
+version: 1.8.0
 status: current
 ---
 
@@ -40,8 +40,38 @@ that already means making Group content visible to a second Group.
   being typed. Outside iOS a prompt does nothing and holds nothing. A
   share also waits, at most five minutes (`ALERT_HOLD_MS`), for an alert whose
   answer opens a sheet (`showAlert` with `holdsShare`: the calendar's
-  unsaved-changes questions). Any other alert stays in front of the chooser and
-  loses nothing.
+  unsaved-changes questions). After the answer it waits a moment
+  more (`PROMPT_SETTLE_MS`), for what the answer opened to present. Any other alert stays in
+  front of the chooser and loses nothing.
+- **A link waits the same way** (`src/shell/linkAfterSheets.ts`, APP-747). Any
+  link that reaches a running app, `gather-dev://drop` included, closes the open
+  sheets and waits for a prompt before the router navigates: on iOS a sheet
+  whose screen has been covered no longer closes. A tapped notification, a
+  home-screen action and the Control Center control take the same path
+  (APP-774); only the quick sheet, when it is already up and nothing is closing
+  it, takes a new request in place. A link that launches the app is never held.
+- **One arrival waits, and the newest wins** (APP-774), so a link's screen never
+  covers the chooser and the chooser never covers a link's screen. A share's own
+  link ends the wait of a link even when Gather cannot place the share, but not
+  the wait of an earlier share. A share that loses to a link, notification or
+  quick action opens no chooser at that moment, and its Drop stays pending.
+- **A Drop that lost comes back** (APP-817), with no new control. When the
+  newer arrival (the link, notification or quick action) has opened, `DropGate`
+  waits `REOFFER_SETTLE_MS` for what that arrival presents, and pushes the same
+  chooser for the Drop still pending, so Back from it returns to the newer
+  screen. The arrival opening starts it, never the person's next move: a
+  navigation afterwards brings nothing back. It waits while the notification's
+  hand-off route or `/quick` is still up (at most `REOFFER_WINDOW_MS`), and gives
+  up when a sheet or prompt is in front, when something else waits, when the Drop
+  was cleared or replaced meanwhile, or when the chooser is already the screen in
+  front. A link to the screen already in front still brings it back. A chooser
+  that was already open and is left by a notification or link is not brought
+  back: the person went elsewhere, as they do when they swipe it away, and the
+  Drop stays pending until a newer share replaces it.
+- **There is one chooser.** The chooser route is singular
+  (`app/(app)/drop/_layout.tsx`): a second share, or `gather-dev://drop`, while
+  one is open brings it back to the top and does not stack another. It shows
+  the Drop pending now, so a replacing share replaces what it showed.
 - Arrivals are counted for the whole session, so a share after a finished or
   abandoned one opens the chooser again.
 - **A share keeps what was typed.** The person did not ask for that close,
@@ -72,6 +102,13 @@ that already means making Group content visible to a second Group.
     fields, Duplicate calculation, Add payment and Save scenario, New
     house, Add asset or liability.
 
+  A photo a form uploaded belongs to its draft: a reopened form takes up the
+  upload its closed row started, and the upload is forgotten with the draft, so
+  a new or discarded draft never takes up an earlier one (`photo/uploads.ts`,
+  APP-734). Add to groceries keeps its ticks, retyped lines and open editor
+  under the ingredient's own text, not its position, so a reordered recipe
+  leaves each on its own row (`ingredientKeys`).
+
   Not forms, so nothing to keep: pickers and menus whose taps apply at once.
   Custom allocation edits the Split screen's own state, which lives as long as
   that screen. The keyboard composer (task, note, event, grocery item) keeps its
@@ -92,9 +129,10 @@ that already means making Group content visible to a second Group.
 
 ## Acceptance
 
-- The share sheet cannot be driven by `agent-device`: link and text Drops are
-  verified through the `gather://drop` harness, image Drops by sharing a photo
-  by hand ([mobile verification](../runbooks/mobile-verification.md#verifying-a-drop)).
-  On the iOS simulator, Safari's share sheet can be reached with coordinate
-  taps (its refs report stale frames), which is how a Drop over an open sheet
-  was checked.
+- Link and text Drops are verified through the `gather-dev://drop` harness. A
+  real share is driven on the iOS simulator with `agent-device`: open Safari,
+  tap its Share button, then tap Gather's row with coordinate taps, because the
+  share sheet's accessibility refs report stale frames. That is how a Drop over
+  an open sheet or prompt is checked. Image Drops are verified by sharing a photo
+  from the Photos app by hand
+  ([mobile verification](../runbooks/mobile-verification.md#verifying-a-drop)).

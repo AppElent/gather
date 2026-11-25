@@ -20,7 +20,7 @@ pnpm verify
 
 `pnpm verify` runs, in order and stopping at the first failure:
 
-1. `pnpm check`: `biome check` plus `scripts/check-mobile-structure.mjs`.
+1. `pnpm check`: `biome check`, `scripts/check-mobile-structure.mjs`, and `scripts/check-convex-api.mjs` (fails when `convex/_generated/api.d.ts` misses a module or lists a removed one; regenerate with `convex dev --once` and commit it).
 2. `pnpm typecheck`: the root `tsc` run (web, Convex, core).
 3. `pnpm --filter @gather/mobile typecheck`: the phone app's own `tsconfig`,
    which the root run does not use.

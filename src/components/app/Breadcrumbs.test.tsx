@@ -156,6 +156,15 @@ describe('the words around it', () => {
   })
 })
 
+test('leaves the back link to a header that draws its own', () => {
+  renderWithI18n(<Breadcrumbs trail={editTrail} backInHeader />)
+  expect(screen.queryByRole('link', { name: 'Back to Stamppot' })).toBeNull()
+  expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toHaveClass(
+    'hidden',
+    'md:block',
+  )
+})
+
 describe('parentCrumb', () => {
   test('is the last step that is somewhere to go', () => {
     expect(parentCrumb(editTrail)?.label).toBe('Stamppot')

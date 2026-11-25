@@ -19,11 +19,18 @@ const IDLE = 600
 
 export function useDebouncedText(
   value: string,
-  commit: (next: string) => void,
+  /** `false` when it was not taken: the text then stays unsaved. */
+  commit: (next: string) => unknown,
+  /** Saves on blur and on leaving only, where a save is a slow round trip. */
+  { onBlurOnly = false }: { onBlurOnly?: boolean } = {},
 ) {
   const [draft, setDraft] = useState(value)
   /** The keystroke not yet written, or `null` when everything is saved. */
   const pending = useRef<string | null>(null)
+  /** What a refused save left in the field, until a blur sends it again. */
+  const refused = useRef<string | null>(null)
+  /** The text last sent, so a refusal of an older one is not kept over it. */
+  const sent = useRef<string | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const latest = useRef(commit)
   latest.current = commit
@@ -35,14 +42,19 @@ export function useDebouncedText(
     }
     const next = pending.current
     pending.current = null
-    if (next !== null) latest.current(next)
+    if (next === null) return
+    sent.current = next
+    if (latest.current(next) === false) pending.current = next
   }, [])
 
   // Adopt a change that came from somewhere else — another screen, another
   // phone — but never on top of a keystroke that has not been written yet, or
   // the field would fight the person typing in it.
   useEffect(() => {
-    if (pending.current === null) setDraft(value)
+    if (pending.current !== null) return
+    if (refused.current !== null && refused.current.trim() !== value) return
+    refused.current = null
+    setDraft(value)
   }, [value])
 
   // Leaving mid-sentence keeps the sentence.
@@ -52,11 +64,49 @@ export function useDebouncedText(
     (next: string) => {
       setDraft(next)
       pending.current = next
+      refused.current = null
       if (timer.current) clearTimeout(timer.current)
-      timer.current = setTimeout(flush, IDLE)
+      if (!onBlurOnly) timer.current = setTimeout(flush, IDLE)
     },
-    [flush],
+    [flush, onBlurOnly],
   )
 
-  return { draft, change, flush }
+  /** Blur: what was typed, or what was refused before, is saved. */
+  const blur = useCallback(() => {
+    if (pending.current === null) pending.current = refused.current
+    refused.current = null
+    flush()
+  }, [flush])
+
+  /**
+   * Keeps a refused text in the field to try again, unless typed in or
+   * sent again since. Leaving does not send it: only a blur does.
+   */
+  const keep = useCallback((text: string) => {
+    if (pending.current !== null || sent.current !== text) return
+    refused.current = text
+    setDraft(text)
+  }, [])
+
+  /** Back to the saved text, unless typed in since. */
+  const saved = useRef(value)
+  saved.current = value
+  const reset = useCallback(() => {
+    if (pending.current === null) setDraft(saved.current)
+  }, [])
+
+  /** `text` was saved another way: nothing to write, unless typed in since. */
+  const settle = useCallback((text: string) => {
+    if (pending.current !== text) return
+    pending.current = null
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = null
+  }, [])
+
+  /** A save of `text` was refused: unsaved again, unless typed in since. */
+  const hold = useCallback((text: string) => {
+    if (pending.current === null) pending.current = text
+  }, [])
+
+  return { draft, change, flush, blur, keep, reset, settle, hold }
 }

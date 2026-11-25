@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { createGroceryDictionary, editDistance } from './dictionary'
-import { recogniseGroceryLine } from './index'
+import { groceryDictionary, recogniseGroceryLine } from './index'
 import { cleanGroceryName, groceryKey } from './normalise'
 import { parseGroceryLine } from './parse'
 import { resolveGroceryLine } from './resolve'
@@ -168,5 +168,21 @@ describe('the bundled dictionary', () => {
     ['tomaten', 'produce'],
   ])('%s → %s', (line, aisle) => {
     expect(recogniseGroceryLine(line).aisle).toBe(aisle)
+  })
+})
+
+// APP-750: Dutch brands the AI fallback put in the wrong aisle (Croma in
+// dairy, Sorbo in Diepvries). The dictionary answers them before the model.
+describe('Dutch brand names the AI fallback misread', () => {
+  test.each([
+    ['Sorbo', 'household'],
+    ['sorbo', 'household'],
+    ['Croma', 'tins_sauces'],
+    ['2 flessen Croma', 'tins_sauces'],
+  ])('%s is in %s without the AI', (line, aisle) => {
+    expect(resolveGroceryLine(line, groceryDictionary())).toMatchObject({
+      aisle,
+      source: 'dictionary',
+    })
   })
 })

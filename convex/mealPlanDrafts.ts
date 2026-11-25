@@ -17,7 +17,7 @@
  * empty; a filled slot is never overwritten. The calls are the phone's own:
  * connected apps are refused (ADR-0046).
  */
-import { addDays, isIsoDate, localIsoDate, mondayStart } from '@gather/core/civil-date'
+import { addDays, isIsoDate, mondayStart, todayIn } from '@gather/core/civil-date'
 import {
   awayFromEvents,
   defaultEaters,
@@ -34,10 +34,10 @@ import {
   plannableQuickMeals,
   plannableRecipes,
   rulesPlan,
-  WEEK_PLAN_WISHES,
   type WeekPlanInput,
   type WeekPlanPick,
   type WeekPlanTarget,
+  type WeekPlanWish,
   WISH_MAX,
 } from '@gather/core/week-plan'
 import { ConvexError, type Infer, v } from 'convex/values'
@@ -61,7 +61,7 @@ import {
   requireGroupBySlug,
   requireInGroup,
 } from './lib/groupAccess'
-import { mealSlotValidator } from './lib/kitchen'
+import { mealSlotValidator, weekPlanWishValidator } from './lib/kitchen'
 import { mealAt, mealPreferencesOf } from './lib/mealPlan'
 import { recipesVisibleIn } from './lib/recipeShares'
 import { requireIdentity } from './lib/sharing'
@@ -81,14 +81,23 @@ const SWEEP_BATCH = 500
 const LEFTOVERS: Record<'nl' | 'en', string> = { nl: 'Restjes', en: 'Leftovers' }
 
 const localeValidator = v.union(v.literal('nl'), v.literal('en'))
-const wishValidator = v.union(
-  ...WEEK_PLAN_WISHES.map((wish) => v.literal(wish)),
-)
 const sourceValidator = v.union(
   v.literal('ai'),
   v.literal('rules'),
   v.literal('fallback'),
 )
+
+/** A typed wish as the model sees it and a draft keeps it. */
+export function cleanWish(wish: string | undefined) {
+  return wish?.replace(/\s+/g, ' ').trim().slice(0, WISH_MAX) || undefined
+}
+
+/** The start sheet's wishes cleaned; `undefined` when nothing was asked. */
+function cleanWishes(asked: { wishes?: WeekPlanWish[]; wish?: string }) {
+  const wishes = [...new Set(asked.wishes ?? [])]
+  const wish = cleanWish(asked.wish)
+  return wishes.length > 0 || wish ? { wishes, wish } : undefined
+}
 
 function requireWeekStart(weekStart: string) {
   if (!isIsoDate(weekStart) || mondayStart(weekStart) !== weekStart)
@@ -196,6 +205,9 @@ export const list = query({
             imageUrl: recipe?.imageId ? await ctx.storage.getUrl(recipe.imageId) : null,
             reason: draft.reason,
             source: draft.source,
+            // What the start sheet asked for (APP-679); it opens on them again (APP-778).
+            wishes: draft.wishes,
+            wish: draft.wish,
             expiresAt: draft.expiresAt,
             check,
           }
@@ -234,7 +246,7 @@ export async function planContext(
   },
 ) {
   const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-  const today = localIsoDate()
+  const today = todayIn(group.timeZone)
   const from = args.weekStart
   const to = addDays(from, 6)
   const week = await weekOf(ctx, group._id, from, to)
@@ -355,7 +367,7 @@ export async function planContext(
     wishes: args.wishes,
     leftoversName: LEFTOVERS[args.locale],
     locale: args.locale,
-    wish: args.wish?.replace(/\s+/g, ' ').trim().slice(0, WISH_MAX) || undefined,
+    wish: cleanWish(args.wish),
     diets: prefs.diets,
     allergens: prefs.allergens,
     dislikes: prefs.dislikes,
@@ -371,7 +383,7 @@ const planArgs = {
   dates: v.array(v.string()),
   slots: v.array(mealSlotValidator),
   locale: localeValidator,
-  wishes: v.array(wishValidator),
+  wishes: v.array(weekPlanWishValidator),
   wish: v.optional(v.string()),
   avoidRecipeIds: v.optional(v.array(v.string())),
   avoidMealEntryId: v.optional(v.string()),
@@ -409,6 +421,9 @@ export const write = internalMutation({
     groupSlug: v.string(),
     weekStart: v.string(),
     picks: v.array(pickValidator),
+    /** The cleaned wishes the picks were made with, kept on every row. */
+    wishes: v.optional(v.array(weekPlanWishValidator)),
+    wish: v.optional(v.string()),
     replace: v.union(
       v.object({ kind: v.literal('week') }),
       v.object({ kind: v.literal('draft'), id: v.id('mealPlanDrafts') }),
@@ -450,6 +465,8 @@ export const write = internalMutation({
         ...fields,
         reason: pick.reason?.slice(0, 200),
         source: pick.source,
+        wishes: args.wishes,
+        wish: args.wish,
         createdBy: user._id,
         expiresAt,
       })
@@ -551,6 +568,8 @@ async function runPlan(
       reason: pick.reason,
       source: pick.source,
     })),
+    wishes: args.wishes.length > 0 ? args.wishes : undefined,
+    wish: args.wish,
     replace,
   })
   return {
@@ -574,7 +593,7 @@ export const propose = action({
     dates: v.array(v.string()),
     slots: v.array(mealSlotValidator),
     locale: localeValidator,
-    wishes: v.optional(v.array(wishValidator)),
+    wishes: v.optional(v.array(weekPlanWishValidator)),
     wish: v.optional(v.string()),
   },
   returns: proposeResult,
@@ -589,8 +608,8 @@ export const propose = action({
         dates: args.dates,
         slots: args.slots,
         locale: args.locale,
-        wishes: args.wishes ?? [],
-        wish: args.wish,
+        wishes: [],
+        ...cleanWishes(args),
       },
       { kind: 'week' },
     )
@@ -609,6 +628,8 @@ export const draftFor = internalQuery({
       date: doc.date,
       slot: doc.slot,
       mealEntryId: doc.mealEntryId as string | undefined,
+      wishes: doc.wishes,
+      wish: doc.wish,
       recipeIds: others.flatMap((draft) =>
         draft.recipeId ? [draft.recipeId as string] : [],
       ),
@@ -620,17 +641,21 @@ export const draftFor = internalQuery({
 
 /**
  * Ander voorstel voor {weekday}: a new draft for one slot, never the recipe
- * it replaces nor one already proposed for another day, with the wishes the
- * proposal was made with. One AI call; with nothing else to propose the
- * draft stays as it was.
+ * it replaces nor one already proposed for another day, with the wishes it is
+ * sent, else those the draft keeps; the new draft keeps the same. One AI
+ * call; with nothing else to propose the draft stays as it was.
  */
 export const regenerate = action({
   args: {
     groupSlug: v.string(),
     id: v.id('mealPlanDrafts'),
     locale: localeValidator,
-    /** The start sheet's wishes for this proposal; a phone from before sends none. */
-    wishes: v.optional(v.array(wishValidator)),
+    /**
+     * Wishes to ask with instead of the draft's own. Sent by phones that keep
+     * the start sheet's wishes in memory (APP-460); since APP-679 the draft
+     * has them, and the phone sends none.
+     */
+    wishes: v.optional(v.array(weekPlanWishValidator)),
     wish: v.optional(v.string()),
   },
   returns: v.union(proposeResult, v.object({ status: v.literal('none') })),
@@ -641,6 +666,8 @@ export const regenerate = action({
       date: string
       slot: MealSlot
       mealEntryId?: string
+      wishes?: WeekPlanWish[]
+      wish?: string
       recipeIds: string[]
       quickMeals: string[]
     } = await ctx.runQuery(internal.mealPlanDrafts.draftFor, {
@@ -655,8 +682,7 @@ export const regenerate = action({
         dates: [draft.date],
         slots: [draft.slot],
         locale: args.locale,
-        wishes: args.wishes ?? [],
-        wish: args.wish,
+        ...(cleanWishes(args) ?? { wishes: draft.wishes ?? [], wish: draft.wish }),
         avoidRecipeIds: draft.recipeIds,
         avoidMealEntryId: draft.mealEntryId,
         avoidQuickMeals: draft.quickMeals,

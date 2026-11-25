@@ -7,16 +7,12 @@
  * Recipe tagged AI and, with Bewaar en zet op, plans it in the slot. Over the
  * day's cap both show the Limit card, whose Zelf kiezen opens Pick.
  */
-import {
-  formatGroceryAmount,
-  GROCERY_UNITS,
-  type GroceryUnit,
-  groceryLineText,
-  scaleGroceryQuantity,
-} from '@gather/core/groceries'
 import { SWAP_CHIPS, type SwapChip } from '@gather/core/meal-ideas'
 import type { MealSlot } from '@gather/core/meal-planner'
-import { stockUsed, WISH_MAX } from '@gather/core/week-plan'
+import { busyEvent, clock, eatersOf, mealIn, sentenceCase, servingsOf, weekdayInText } from '@gather/core/week-menu'
+import { IDEA_SERVINGS, ideaRows } from '@gather/core/week-menu-idea'
+import { swapReason } from '@gather/core/week-menu-plan'
+import { WISH_MAX } from '@gather/core/week-plan'
 import { useAction, useConvexConnectionState, useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
 import { useEffect, useRef, useState } from 'react'
@@ -29,7 +25,6 @@ import {
   TextInput,
   View,
 } from 'react-native'
-
 import { NativeSheet } from '../../../components/NativeSheet'
 import { api, type Id } from '../../../convex/api'
 import { useQuery } from '../../../convex/queries'
@@ -41,17 +36,7 @@ import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { Chip, MealThumb } from './parts'
 import { LimitCard, PrimaryButton } from './plan-sheet'
-import {
-  busyEvent,
-  clock,
-  eatersOf,
-  mealIn,
-  sentenceCase,
-  servingsOf,
-  type WeekData,
-  weekdayInText,
-} from './week'
-import { swapReason } from './week-plan'
+import type { WeekData } from './week'
 
 type SwapAnswer = FunctionReturnType<typeof api.mealIdeas.swap>
 type Alternative = Extract<SwapAnswer, { alternatives: unknown }>['alternatives'][number]
@@ -96,10 +81,6 @@ type IdeaState =
 
 const altKey = (alt: Pick<Alternative, 'recipeId' | 'mealEntryId' | 'title'>) =>
   alt.recipeId ?? alt.mealEntryId ?? alt.title
-
-const UNITS = new Set<string>(GROCERY_UNITS)
-const asUnit = (unit: string | undefined) =>
-  unit && UNITS.has(unit) ? (unit as GroceryUnit) : undefined
 
 export function SwapSheet({
   date,
@@ -351,31 +332,12 @@ export function SwapSheet({
   }
 
   const scaled = (shown: Idea) =>
-    shown.ingredients.map((ingredient) => {
-      const unit = asUnit(ingredient.unit)
-      const quantity =
-        ingredient.quantity === undefined
-          ? undefined
-          : scaleGroceryQuantity(ingredient.quantity, unit, servings / shown.servings)
-      const amount =
-        quantity === undefined
-          ? null
-          : unit || !ingredient.unit
-            ? (formatGroceryAmount(quantity, unit, locale, t.tasks.grocery.units) ??
-              String(quantity))
-            : `${quantity} ${ingredient.unit}`
-      const line =
-        quantity === undefined
-          ? ingredient.name
-          : unit || !ingredient.unit
-            ? groceryLineText(ingredient.name, quantity, unit)
-            : `${quantity} ${ingredient.unit} ${ingredient.name}`
-      return {
-        name: ingredient.name,
-        amount,
-        line,
-        inStock: stockUsed({ ingredients: [ingredient.name] }, stockNames).length > 0,
-      }
+    ideaRows({
+      idea: shown,
+      servings,
+      stockNames,
+      locale,
+      units: t.tasks.grocery.units,
     })
 
   const onSave = (shown: Idea, plan: boolean) => {
@@ -792,15 +754,15 @@ function IdeaDraft({
           <Stepper
             label={words.fewer}
             testID="idea-fewer"
-            disabled={servings <= 1}
-            onPress={() => onServings(Math.max(1, servings - 1))}
+            disabled={servings <= IDEA_SERVINGS.min}
+            onPress={() => onServings(Math.max(IDEA_SERVINGS.min, servings - 1))}
             Icon={UI_ICONS.Minus}
           />
           <Stepper
             label={words.more}
             testID="idea-more"
-            disabled={servings >= 20}
-            onPress={() => onServings(Math.min(20, servings + 1))}
+            disabled={servings >= IDEA_SERVINGS.max}
+            onPress={() => onServings(Math.min(IDEA_SERVINGS.max, servings + 1))}
             Icon={UI_ICONS.Plus}
           />
         </View>

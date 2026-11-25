@@ -30,9 +30,11 @@ export type WeekAgendaResult = {
   weekStart: string
   previousWeekStart: string
   nextWeekStart: string
-  /** The week holding the server's today (UTC). */
+  /** The week holding today in the Group's zone (UTC when it has none). */
   isCurrentWeek: boolean
   today: string
+  /** The Group's zone; absent: the view highlights the viewer's own day. */
+  timeZone?: string
   days: { date: string; events: AgendaEvent[] }[]
   /** More events than the view shows; list_events reads them all. */
   truncated: boolean
@@ -53,6 +55,8 @@ export type TaskListResult = {
   groupName: string
   listId: string
   listName: string
+  /** The Group's zone; absent: overdue goes by the viewer's own day. */
+  timeZone?: string
   /** The token has gather:write and the list is kept in Gather. */
   canWrite: boolean
   /** Why the view cannot write, when it cannot. */

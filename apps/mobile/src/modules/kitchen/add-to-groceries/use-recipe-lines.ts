@@ -12,6 +12,8 @@
  * added as plain text; once over the cap, later runs do not ask again.
  */
 import { readIngredientLine } from '@gather/core/groceries'
+import { type AiCount, readInBatches } from '@gather/core/grocery-ai-batches'
+import { ingredientKeys, ingredientsDigest, type LineRead, type SourceLine } from '@gather/core/grocery-pick'
 import { useAction } from 'convex/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../../../convex/api'
@@ -21,8 +23,6 @@ import {
   cacheLines,
   readCachedLines,
 } from './line-cache'
-import { ingredientsDigest, type LineRead, type SourceLine } from './pick'
-import { type AiCount, readInBatches } from './read-batches'
 
 export interface IngredientSource {
   id: string
@@ -200,6 +200,7 @@ export function useIngredientLines(recipes: readonly IngredientSource[]): {
 
   const lines = new Map<string, SourceLine[]>()
   for (const { recipe, reads } of local) {
+    const keys = ingredientKeys(recipe.ingredients)
     const own = recipe.ingredients.map((text, index): SourceLine => {
       const mine = reads[index]
       let read: LineRead
@@ -215,7 +216,7 @@ export function useIngredientLines(recipes: readonly IngredientSource[]): {
         else read = { kind: 'reading' }
       }
       return {
-        key: String(index),
+        key: keys[index],
         text,
         read,
         ...(recipe.servings ? { servings: recipe.servings } : {}),
