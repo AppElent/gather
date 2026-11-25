@@ -4,7 +4,7 @@
 version: 2
 updates:
   - package-ecosystem: npm # pnpm workspace
-    directories: ["/", "/apps/mobile", "/packages/core"]
+    directories: ["/", "/apps/mobile", "/apps/tv", "/packages/core"]
     schedule: { interval: weekly, day: monday }
     # Must stay >= minimumReleaseAge in pnpm-workspace.yaml (4320 minutes, 3
     # days), or the proposed lockfile fails `pnpm install --frozen-lockfile`.
