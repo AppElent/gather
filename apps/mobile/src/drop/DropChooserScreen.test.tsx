@@ -16,6 +16,8 @@ import { DropGroupSheet } from './DropGroupSheet'
 const state = vi.hoisted(() => ({
   os: 'ios' as 'ios' | 'android',
   hasDrop: true,
+  params: {} as { url?: string; text?: string },
+  offered: [] as unknown[],
   dismissedTo: [] as unknown[],
   commit: async (): Promise<unknown> => ({ ok: true, href: '/home' }),
 }))
@@ -86,7 +88,7 @@ vi.mock('react-native', async () => {
 vi.mock('expo-image', () => ({ Image: () => null }))
 vi.mock('expo-router', () => ({
   Stack: Object.assign(() => null, { Screen: () => null }),
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => state.params,
   useRouter: () => ({
     push: () => {},
     dismissTo: (href: unknown) => state.dismissedTo.push(href),
@@ -146,7 +148,7 @@ vi.mock('./DropProvider', () => ({
           },
         }
       : null,
-    offer: () => {},
+    offer: (drop: unknown) => state.offered.push(drop),
     clear: () => {},
   }),
 }))
@@ -157,11 +159,17 @@ vi.mock('./useDropCommit', () => ({
 beforeEach(() => {
   state.os = 'ios'
   state.hasDrop = true
+  state.params = {}
+  state.offered = []
+  state.dismissedTo = []
 })
 
 afterEach(() => {
   state.os = 'ios'
   state.hasDrop = true
+  state.params = {}
+  state.offered = []
+  state.dismissedTo = []
 })
 
 test('without a Drop it goes back to the tabs, and stacks no second one (APP-775)', () => {
@@ -169,6 +177,44 @@ test('without a Drop it goes back to the tabs, and stacks no second one (APP-775
   state.dismissedTo = []
   mount(createElement(DropChooserScreen)).unmount()
   expect(state.dismissedTo).toEqual(['/home'])
+})
+
+test('a harness drop link replaces an already pending Drop, and a second one replaces it too (APP-840)', () => {
+  state.hasDrop = true
+  state.params = { text: 'Buy stroopwafels' }
+  const view = mount(createElement(DropChooserScreen))
+  expect(state.offered).toEqual([{ kind: 'text', text: 'Buy stroopwafels' }])
+  expect(state.dismissedTo).toEqual([])
+
+  state.params = { text: 'Buy milk' }
+  view.rerender(createElement(DropChooserScreen))
+  expect(state.offered).toEqual([
+    { kind: 'text', text: 'Buy stroopwafels' },
+    { kind: 'text', text: 'Buy milk' },
+  ])
+  view.unmount()
+})
+
+test('a harness drop link dismisses once cleared without re-offering the same seed (APP-840)', () => {
+  state.hasDrop = false
+  state.params = { text: 'Buy stroopwafels' }
+  const view = mount(createElement(DropChooserScreen))
+  expect(state.offered).toEqual([{ kind: 'text', text: 'Buy stroopwafels' }])
+  expect(state.dismissedTo).toEqual([])
+
+  // Re-render while still waiting for offer() to commit does not dismiss.
+  view.rerender(createElement(DropChooserScreen))
+  expect(state.offered).toHaveLength(1)
+  expect(state.dismissedTo).toEqual([])
+
+  // Once delivered and later cleared, the chooser dismisses without re-offering.
+  state.hasDrop = true
+  view.rerender(createElement(DropChooserScreen))
+  state.hasDrop = false
+  view.rerender(createElement(DropChooserScreen))
+  expect(state.offered).toHaveLength(1)
+  expect(state.dismissedTo).toEqual(['/home'])
+  view.unmount()
 })
 
 test('DropChooserScreen keeps an automatically inset ScrollView both with and without a drop', () => {
