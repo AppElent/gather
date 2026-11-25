@@ -729,5 +729,6 @@ describe('a session that changes after the confirmation (APP-396)', () => {
     clerkDelete.resolve()
     await settle()
     expect(state.signedOut).toBe(1)
+    expect(state.endedSessions).toEqual(['sess_1'])
   })
 })

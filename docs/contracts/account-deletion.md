@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.8.1
+version: 2.9.0
 status: current
 ---
 

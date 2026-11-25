@@ -49,7 +49,8 @@ export function useForgetAccount(): () => void {
   }, [release])
 }
 
-/** Leaves the account and ends the named session, and no other. */
+/** Leaves the account and ends the named session, and no other. Callers check
+ * first: Clerk ignores the id and ends the session left when there is one. */
 export function useEndSession(): (sessionId: string) => void {
   const clerk = useClerk()
   const forgetAccount = useForgetAccount()
