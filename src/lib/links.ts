@@ -65,6 +65,9 @@ export const ROUTES = {
   groceriesItem: '/groceries/item/$itemId',
 
   note: '/notes/$noteId',
+  taskList: '/tasks/$listId',
+  smartTaskList: '/tasks/smart/$smartList',
+  task: '/tasks/task/$taskId',
 
   newChild: '/baby/new',
   child: '/baby/$babyId',

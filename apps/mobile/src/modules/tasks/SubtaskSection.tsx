@@ -112,7 +112,7 @@ export function SubtaskSection({
               onOpen={() =>
                 router.push({
                   pathname: '/all/tasks/task/[taskId]',
-                  params: { taskId: subtask.id },
+                  params: { taskId: subtask.id, listId: list.id },
                 })
               }
               menu={{

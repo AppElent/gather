@@ -42,4 +42,9 @@ export const notes = {
     loadErrorBody: 'Controleer je verbinding en probeer het opnieuw.',
     createFailed: 'De notitie kon niet worden gemaakt. Probeer het opnieuw.',
   },
+  length: '{count} van {max} tekens',
+  refusals: {
+    'notes:too-long':
+      'Een notitie kan 100.000 tekens bevatten, inclusief de titel. Kort de notitie in om te bewaren.',
+  },
 } satisfies typeof enNotes

@@ -16,28 +16,40 @@ import {
   type GroceryUnit,
   groceryAddFields,
 } from '@gather/core/groceries'
-import { applyLinkedWrite } from '@gather/core/linked-tasks'
 import {
-  bySmartOrder,
-  inSmartList,
-  SMART_LISTS,
-  type SmartListId,
-} from '@gather/core/smart-lists'
-import { subtaskProgress, topLevelTasks } from '@gather/core/subtasks'
-import {
-  asTaskListKind,
-  type TaskListColor,
-  type TaskListIcon,
-  type TaskListKind,
-  taskListFace,
+  completeKey,
+  connectionOf,
+  type ExternalEntry,
+  ensureExternalLists,
+  externalSnapshot,
+  type LinkedTaskWrite,
+  subscribeExternal,
+  syncExternalList,
+  writeLinkedTask,
+} from '@gather/core/linked-lists'
+import type {
+  TaskListColor,
+  TaskListIcon,
+  TaskListKind,
 } from '@gather/core/task-lists'
+import {
+  indexModel,
+  linkedHomeOf,
+  listView,
+  type SmartLists,
+  smartModel,
+  taskFromRow,
+  toggled,
+  toggledRows,
+  withProgress,
+} from '@gather/core/task-model'
 import type { QuickAdd } from '@gather/core/task-quick-add'
 import type { ReminderClock } from '@gather/core/task-reminders'
-import { nextDueDate, type TaskRepeat } from '@gather/core/task-repeat'
+import type { TaskRepeat } from '@gather/core/task-repeat'
 import { deviceTimeZone } from '@gather/core/time-zones'
 import type { OptimisticLocalStore } from 'convex/browser'
 import { useAction, useConvex, useMutation } from 'convex/react'
-import type { FunctionArgs, FunctionReturnType } from 'convex/server'
+import type { FunctionReturnType } from 'convex/server'
 import {
   useCallback,
   useEffect,
@@ -49,318 +61,32 @@ import {
 import { api, type Doc, type Id } from '../../convex/api'
 import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
+import { newSaveKey } from '../../ui/composer-drafts'
 import { type ComposedTask, parsedTask } from './composerDraft'
 import type { ComposedGrocery } from './groceryDraft'
 import type { ListDisplay, ListSync, Priority, Task, TaskList } from './types'
 
+export {
+  ensureExternalLists,
+  externalEntry,
+  externalSnapshot,
+  LinkedWriteError,
+  PROVIDER_WAIT_MS,
+  syncExternalList,
+  writeLinkedTask,
+} from '@gather/core/linked-lists'
+export {
+  indexModel,
+  type ListCount,
+  linkedHomeOf,
+  listFace,
+  type SmartLists,
+  smartModel,
+  taskFromRow,
+  withProgress,
+} from '@gather/core/task-model'
+
 type ListRow = FunctionReturnType<typeof api.taskLists.list>[number]
-type FetchResult = FunctionReturnType<typeof api.taskLists.getTasks>
-type FetchTasks = (listId: string) => Promise<FetchResult>
-
-interface ExternalEntry {
-  sync: Exclude<ListSync, 'live'>
-  tasks: Task[]
-  /**
-   * Whether the rows are what the provider last answered, so they may be
-   * written to: kept while they load again, lost when that fails.
-   */
-  fresh?: boolean
-}
-
-type LinkedTaskWrite = FunctionArgs<typeof api.taskLists.writeTask>['write']
-type WriteResult = FunctionReturnType<typeof api.taskLists.writeTask>
-type SendWrite = (
-  listId: string,
-  write: LinkedTaskWrite,
-) => Promise<WriteResult>
-
-export type LinkedWriteFailure =
-  /** The connection may not write (any more): nothing was changed. */
-  | 'reconnect'
-  /** The task is not in the provider's list (any more). */
-  | 'not-found'
-  /** The rows on screen are not the provider's; they have to load first. */
-  | 'stale'
-  /** There is no connection, so nothing was sent. */
-  | 'offline'
-  /** The provider or the network did not answer, or refused. */
-  | 'failed'
-
-/** A write to a linked list that its provider did not take. */
-export class LinkedWriteError extends Error {
-  constructor(
-    readonly reason: LinkedWriteFailure,
-    readonly listId: string,
-  ) {
-    super(`A linked list's write was not taken: ${reason}`)
-    this.name = 'LinkedWriteError'
-  }
-}
-
-let external: ReadonlyMap<string, ExternalEntry> = new Map()
-const inFlight = new Map<string, Promise<ListSync>>()
-const listeners = new Set<() => void>()
-/** Each linked list's fetches and writes run one after another. */
-const queues = new Map<string, Promise<unknown>>()
-/**
- * How many writes are on their way to each task, per list: kept beside the
- * rows, because a refresh replaces those.
- */
-const onTheirWay = new Map<string, Map<string, number>>()
-
-/**
- * Lists with a write that outlasted its wait. It may still land, so their rows
- * are not the provider's until it is answered.
- */
-const unanswered = new Map<string, number>()
-
-/**
- * How long a write or fetch may take, waiting its turn included. Convex holds
- * an action that lost its connection until it is back, and an answer by then
- * is no use: the list would wait for it, and a write would land unasked.
- */
-export const PROVIDER_WAIT_MS = 30_000
-
-function within<T>(promise: Promise<T>, ms = PROVIDER_WAIT_MS): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('No answer in time')), ms)
-    promise.then(resolve, reject).finally(() => clearTimeout(timer))
-  })
-}
-
-function enqueue<T>(listId: string, job: () => Promise<T>): Promise<T> {
-  const run = (queues.get(listId) ?? Promise.resolve()).then(job)
-  queues.set(
-    listId,
-    run.catch(() => {}),
-  )
-  return run
-}
-
-function put(listId: string, entry: ExternalEntry) {
-  const busy = onTheirWay.get(listId)
-  const tasks = entry.tasks.map((task) => {
-    if (Boolean(task.pending) === Boolean(busy?.has(task.id))) return task
-    const { pending: _, ...rest } = task
-    return busy?.has(task.id) ? { ...rest, pending: true as const } : rest
-  })
-  external = new Map(external).set(listId, { ...entry, tasks })
-  for (const listener of listeners) listener()
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener)
-  return () => {
-    listeners.delete(listener)
-  }
-}
-
-/** Every linked list's last answer, as one immutable value per change. */
-export function externalSnapshot(): ReadonlyMap<string, ExternalEntry> {
-  return external
-}
-
-/** A provider's answer as rows, or the previous rows marked stale. */
-export function externalEntry(
-  listId: string,
-  result: FetchResult,
-  previous: readonly Task[],
-): ExternalEntry {
-  if (result.status !== 'ok') {
-    return {
-      sync: result.status === 'reconnect' ? 'reconnect' : 'failed',
-      tasks: [...previous],
-    }
-  }
-  return {
-    sync: 'synced',
-    fresh: true,
-    tasks: result.tasks.map((task, order) => linkedTask(listId, task, order)),
-  }
-}
-
-type ProviderTask = Extract<FetchResult, { status: 'ok' }>['tasks'][number]
-
-function linkedTask(listId: string, task: ProviderTask, order: number): Task {
-  return {
-    id: task.externalId,
-    listId,
-    linked: true,
-    title: task.title,
-    done: task.done,
-    dueDate: task.dueDate,
-    priority: task.priority,
-    labels: task.labels ?? [],
-    repeatText: task.repeatText,
-    order,
-    // Todoist's and Notion's subtasks (APP-304).
-    ...(task.parentExternalId ? { parentTaskId: task.parentExternalId } : {}),
-  }
-}
-
-/** The held rows after the provider took `write` and answered `answered`. */
-export function afterLinkedWrite(
-  listId: string,
-  tasks: readonly Task[],
-  write: LinkedTaskWrite,
-  answered: readonly ProviderTask[],
-): Task[] {
-  const orders = new Map(tasks.map((task) => [task.id, task.order]))
-  let next = tasks.reduce((most, task) => Math.max(most, task.order + 1), 0)
-  const row = (task: Task) => ({
-    externalId: task.id,
-    done: task.done,
-    parentExternalId: task.parentTaskId,
-    task,
-  })
-  return applyLinkedWrite(
-    tasks.map(row),
-    write,
-    answered.map((task) =>
-      row(linkedTask(listId, task, orders.get(task.externalId) ?? next++)),
-    ),
-  ).map(({ task, done }) => (task.done === done ? task : { ...task, done }))
-}
-
-/** Marks or unmarks one row as having a write on its way. */
-function markPending(listId: string, taskId: string | undefined, on: boolean) {
-  if (!taskId) return
-  const busy = onTheirWay.get(listId) ?? new Map<string, number>()
-  const count = (busy.get(taskId) ?? 0) + (on ? 1 : -1)
-  if (count > 0) busy.set(taskId, count)
-  else busy.delete(taskId)
-  onTheirWay.set(listId, busy)
-  const entry = external.get(listId)
-  if (entry) put(listId, entry)
-}
-
-/**
- * A write to a linked list, made in its provider first (ADR-0020). Nothing
- * changes here until the provider took it; a refusal leaves the rows as they
- * are and rejects. After an unclear failure the list is fetched again, so it
- * shows what the provider has, or goes stale and read-only if that fails too.
- */
-export async function writeLinkedTask(
-  listId: string,
-  write: LinkedTaskWrite,
-  send: SendWrite,
-  fetchTasks: FetchTasks,
-  isOnline: () => boolean = () => true,
-): Promise<{ taskId?: string }> {
-  const taskId = 'taskId' in write ? write.taskId : undefined
-  // Convex would keep an unsent action and send it once back online.
-  const refuseOffline = () => {
-    if (isOnline()) return
-    const entry = external.get(listId)
-    if (entry) put(listId, { sync: 'failed', tasks: entry.tasks })
-    throw new LinkedWriteError('offline', listId)
-  }
-  if (!external.get(listId)?.fresh) throw new LinkedWriteError('stale', listId)
-  refuseOffline()
-  const asked = Date.now()
-  markPending(listId, taskId, true)
-  let refresh = false
-  try {
-    return await enqueue(listId, async () => {
-      if (!external.get(listId)?.fresh) {
-        throw new LinkedWriteError('stale', listId)
-      }
-      refuseOffline()
-      // Waited behind something that hung: too late to act on unasked.
-      if (Date.now() - asked >= PROVIDER_WAIT_MS) {
-        throw new LinkedWriteError('stale', listId)
-      }
-      let result: WriteResult
-      const sent = send(listId, write)
-      let settled = false
-      const settle = () => {
-        settled = true
-      }
-      sent.then(settle, settle)
-      try {
-        result = await within(sent)
-      } catch {
-        refresh = settled
-        if (!settled) {
-          const entry = external.get(listId)
-          if (entry) put(listId, { sync: 'failed', tasks: entry.tasks })
-          unanswered.set(listId, (unanswered.get(listId) ?? 0) + 1)
-          const answered = async () => {
-            const left = (unanswered.get(listId) ?? 1) - 1
-            if (left > 0) unanswered.set(listId, left)
-            else unanswered.delete(listId)
-            // A fetch begun before this one's answer may not hold it.
-            await inFlight.get(listId)
-            void syncExternalList(listId, fetchTasks)
-          }
-          void sent.then(answered, answered)
-        }
-        throw new LinkedWriteError('failed', listId)
-      }
-      const entry = external.get(listId) ?? { sync: 'synced', tasks: [] }
-      if (result.status === 'reconnect') {
-        put(listId, { sync: 'reconnect', tasks: entry.tasks })
-        throw new LinkedWriteError('reconnect', listId)
-      }
-      if (result.status === 'error') {
-        refresh = true
-        throw new LinkedWriteError(result.reason, listId)
-      }
-      refresh = result.refresh
-      put(listId, {
-        ...entry,
-        tasks: afterLinkedWrite(listId, entry.tasks, write, result.tasks),
-      })
-      return { taskId: result.tasks[0]?.externalId }
-    })
-  } finally {
-    markPending(listId, taskId, false)
-    if (refresh) void syncExternalList(listId, fetchTasks)
-  }
-}
-
-/** Asks the provider for one list now; a second ask while one runs joins it. */
-export function syncExternalList(
-  listId: string,
-  fetchTasks: FetchTasks,
-): Promise<ListSync> {
-  const running = inFlight.get(listId)
-  if (running) return running
-  put(listId, {
-    tasks: [],
-    ...external.get(listId),
-    sync: 'loading',
-  })
-  // A write on its way finishes first, so the answer already holds it.
-  const run = enqueue(listId, async () => {
-    const result = await within(fetchTasks(listId)).catch(() => null)
-    const previous = external.get(listId)?.tasks ?? []
-    const entry: ExternalEntry = result
-      ? externalEntry(listId, result, previous)
-      : { sync: 'failed', tasks: previous }
-    // An unanswered write may still change what was just read.
-    put(listId, unanswered.has(listId) ? { ...entry, fresh: false } : entry)
-    return entry.sync
-  }).finally(() => inFlight.delete(listId))
-  inFlight.set(listId, run)
-  return run
-}
-
-/**
- * Fetches the linked lists nobody has an answer for yet. A list that failed
- * is asked again on the next open, since reconnecting happens elsewhere.
- */
-export function ensureExternalLists(
-  listIds: readonly string[],
-  fetchTasks: FetchTasks,
-) {
-  for (const listId of listIds) {
-    const sync = external.get(listId)?.sync
-    if (sync !== 'loading' && sync !== 'synced') {
-      void syncExternalList(listId, fetchTasks)
-    }
-  }
-}
 
 /**
  * The dynamic local-list subscriptions for one Group.
@@ -383,76 +109,6 @@ export function localTaskQueries(
         },
       ]),
   )
-}
-
-/** A Convex task row as the screens draw it. */
-export function taskFromRow(row: Doc<'tasks'>): Task {
-  return {
-    id: row._id,
-    listId: row.listId,
-    title: row.title,
-    done: row.done,
-    dueDate: row.dueDate,
-    priority: row.priority,
-    labels: row.labels ?? [],
-    notes: row.notes,
-    url: row.url,
-    priceCents: row.priceCents,
-    quantity: row.quantity,
-    unit: row.unit,
-    category: row.category,
-    repeat: row.repeat,
-    doneAt: row.doneAt,
-    assigneeId: row.assigneeId,
-    assignmentNotice: row.assignmentNotice,
-    reminder: row.reminder,
-    sectionId: row.sectionId,
-    order: row.order,
-    parentTaskId: row.parentTaskId,
-  }
-}
-
-/**
- * Every task with its subtasks' progress (APP-304), worked out from the rows
- * themselves: a list holds a parent's subtasks with it.
- */
-export function withProgress(tasks: readonly Task[]): Task[] {
-  const progress = subtaskProgress(tasks)
-  if (progress.size === 0) return [...tasks]
-  return tasks.map((task) => {
-    const own = progress.get(task.id)
-    return own ? { ...task, subtasks: own } : task
-  })
-}
-
-/**
- * A list row as the screens draw it, with where its tasks stand. A linked one
- * can be written when its provider can (a server before APP-448 does not say)
- * and its rows are the provider's own; grocery items are Gather's alone.
- */
-function listView(
-  list: ListRow,
-  sync: ListSync,
-  entry?: ExternalEntry,
-): TaskList {
-  const linkedWritable = Boolean(
-    list.capabilities?.write && entry?.fresh && !list.grocery,
-  )
-  return {
-    id: list._id,
-    name: list.name,
-    provider: list.provider,
-    writable: list.provider === 'local' ? list.writable : linkedWritable,
-    display: list.display,
-    order: list.order,
-    sync,
-    grocery: list.grocery ?? false,
-    checkedClearedAt: list.checkedClearedAt ?? null,
-    aisleOrder: list.aisleOrder ?? null,
-    suggestionsOff: list.suggestionsOff ?? false,
-    sections: list.sections ?? [],
-    ...listFace(list),
-  }
 }
 
 /** Local rows and linked rows as one model: the only place the two meet. */
@@ -486,19 +142,6 @@ export function mergeTasks(
   return { lists: views, tasks: withProgress(tasks) }
 }
 
-/**
- * A list row's kind and tile. A server older than APP-306 sends none of the
- * three, and a newer one may send a kind this build does not know: both read
- * as a plain list in the kind's face.
- */
-export function listFace(list: {
-  kind?: string | null
-  icon?: string | null
-  color?: string | null
-}): { kind: TaskListKind; icon: TaskListIcon; color: TaskListColor } {
-  return { kind: asTaskListKind(list.kind), ...taskListFace(list) }
-}
-
 export function taskSections<T extends { done: boolean }>(tasks: readonly T[]) {
   return {
     active: tasks.filter((task) => !task.done),
@@ -522,20 +165,10 @@ export function toggleInPlace(
   for (const { args, value } of store.getAllQueries(api.tasks.listByList)) {
     const target = value?.find((task) => task._id === taskId)
     if (!value || !target) continue
-    // "Complete all" (APP-304) checks the open subtasks with it; a repeating
-    // parent's next occurrence opens them all again.
-    const repeats = Boolean(target.repeat && !target.done && today)
-    const closing = !target.done && !repeats
     store.setQuery(
       api.tasks.listByList,
       args,
-      value.map((task) => {
-        if (task._id === taskId) return toggled(task, today)
-        if (task.parentTaskId !== taskId) return task
-        if (repeats && task.done) return { ...task, done: false, doneAt: undefined }
-        if (closing && withSubtasks && !task.done) return toggled(task, today)
-        return task
-      }),
+      toggledRows(value, taskId, today, withSubtasks),
     )
   }
   // A smart list holds open tasks only: a checked one leaves it at once, and
@@ -554,23 +187,6 @@ export function toggleInPlace(
         return next.done ? [] : [next]
       }),
     })
-  }
-}
-
-/** A task as the server will leave it after a tick. */
-function toggled(task: Doc<'tasks'>, today: string | undefined): Doc<'tasks'> {
-  if (task.repeat && !task.done && today) {
-    return {
-      ...task,
-      dueDate: nextDueDate(task.repeat, { dueDate: task.dueDate, today }),
-    }
-  }
-  return {
-    ...task,
-    done: !task.done,
-    // As the server stamps it, so a fresh check is not taken for one from
-    // before the last "Clear checked" (APP-310).
-    doneAt: task.done ? undefined : Date.now(),
   }
 }
 
@@ -609,7 +225,7 @@ const NO_LISTS: readonly ListRow[] = []
  */
 function useLinkedLists(lists: readonly ListRow[]) {
   const { group } = useGroup()
-  const linked = useSyncExternalStore(subscribe, externalSnapshot)
+  const linked = useSyncExternalStore(subscribeExternal, externalSnapshot)
   const getTasks = useAction(api.taskLists.getTasks)
   const fetchTasks = useCallback(
     (listId: string) =>
@@ -694,19 +310,6 @@ export function useTaskList(listId: string) {
   }
 }
 
-/** The linked list among `lists` whose last answer holds the task, if any. */
-export function linkedHomeOf(
-  lists: readonly ListRow[] | undefined,
-  linked: ReadonlyMap<string, ExternalEntry>,
-  taskId: string,
-): string | undefined {
-  return (lists ?? NO_LISTS).find(
-    (list) =>
-      list.provider !== 'local' &&
-      linked.get(list._id)?.tasks.some((task) => task.id === taskId),
-  )?._id
-}
-
 /**
  * One task's list and its tasks (APP-565: the task's detail screen), without
  * subscribing to the rest of the Group's lists. A linked task is found in its
@@ -714,13 +317,18 @@ export function linkedHomeOf(
  * neither knows (a linked one nobody has fetched yet, say from Recents) asks
  * the Group's linked lists, as opening them would. `task` stays the last row
  * seen while the server still places it, so moving it to another list does
- * not blank the screen while that list's rows arrive.
+ * not blank the screen while that list's rows arrive. One project can be linked
+ * to two lists, so a linked task stays with `openedFrom`, the list it was
+ * opened from (APP-799).
  */
-export function useTaskOf(taskId: string) {
+export function useTaskOf(taskId: string, openedFrom?: string) {
   const { group } = useGroup()
   const lists = useTaskLists()
-  const linked = useSyncExternalStore(subscribe, externalSnapshot)
-  const linkedHome = linkedHomeOf(lists, linked, taskId)
+  const linked = useSyncExternalStore(subscribeExternal, externalSnapshot)
+  const opened = lists?.find(
+    (list) => list._id === openedFrom && list.provider !== 'local',
+  )?._id
+  const linkedHome = opened ?? linkedHomeOf(lists, linked, taskId)
   const localHome = useQuery(
     api.tasks.listOf,
     linkedHome ? 'skip' : { groupSlug: group.slug, taskId },
@@ -737,7 +345,10 @@ export function useTaskOf(taskId: string) {
   const found = state.tasks.find((task) => task.id === taskId)
   const last = useRef<Task | undefined>(undefined)
   if (found) last.current = found
-  else if (!home) last.current = undefined
+  else if (!home || (opened && linked.get(opened)?.sync === 'synced')) {
+    // Nothing holds it any more.
+    last.current = undefined
+  }
   return {
     today: todayIn(group.timeZone),
     lists: state.lists,
@@ -755,7 +366,7 @@ export function useGroupLabels(): readonly string[] {
   const { group } = useGroup()
   const lists = useTaskLists()
   const local = useQuery(api.tasks.labels, { groupSlug: group.slug })
-  const linked = useSyncExternalStore(subscribe, externalSnapshot)
+  const linked = useSyncExternalStore(subscribeExternal, externalSnapshot)
   return useMemo(() => {
     const found = new Set(local ?? [])
     for (const list of lists ?? NO_LISTS) {
@@ -776,64 +387,6 @@ export function useTasksOf(lists: readonly ListRow[]) {
   return useListsOf(lists)
 }
 
-type OpenCountsRow = FunctionReturnType<typeof api.tasks.openCounts>[number]
-
-/** How a list's tasks stand, top-level tasks only (APP-304). */
-export interface ListCount {
-  open: number
-  /** Only a list that keeps checked items in place (packing) reports these. */
-  done?: number
-  total?: number
-}
-
-/**
- * The Tasks index's lists and how many tasks each holds, from Convex's counts
- * for local lists and the provider's last rows for linked ones (APP-430). A
- * list whose count is not known yet has none.
- */
-export function indexModel(
-  lists: readonly ListRow[] | undefined,
-  answer: readonly OpenCountsRow[] | undefined,
-  linked: ReadonlyMap<string, ExternalEntry>,
-): {
-  lists: TaskList[]
-  counts: ReadonlyMap<string, ListCount>
-  openTotal: number
-} {
-  const local = answer && new Map(answer.map((row) => [row.listId, row]))
-  const counts = new Map<string, ListCount>()
-  const views = (lists ?? NO_LISTS).map((list) => {
-    if (list.provider === 'local') {
-      // Counts for the whole Group arrive together; a list they do not name
-      // yet (just made) has nothing in it.
-      if (local) {
-        const row = local.get(list._id)
-        counts.set(
-          list._id,
-          row
-            ? { open: row.open, done: row.done, total: row.total }
-            : { open: 0 },
-        )
-      }
-      return listView(list, local ? 'live' : 'loading')
-    }
-    const entry = linked.get(list._id)
-    if (entry && !(entry.sync === 'loading' && entry.tasks.length === 0)) {
-      const rows = topLevelTasks(entry.tasks)
-      const done = rows.filter((task) => task.done).length
-      counts.set(list._id, {
-        open: rows.length - done,
-        done,
-        total: rows.length,
-      })
-    }
-    return listView(list, entry?.sync ?? 'loading', entry)
-  })
-  let openTotal = 0
-  for (const count of counts.values()) openTotal += count.open
-  return { lists: views, counts, openTotal }
-}
-
 /**
  * The Tasks index's lists and counts: one Convex subscription for every local
  * list's counts, never a subscription to a list's rows. A linked list is
@@ -850,102 +403,6 @@ export function useTaskIndex() {
   )
 }
 
-type SmartAnswerRow = FunctionReturnType<typeof api.tasks.smartLists>
-/** The answer; `subtasks` and `parents` are absent from a server before APP-304. */
-type SmartAnswer = Omit<SmartAnswerRow, 'subtasks' | 'parents'> &
-  Partial<Pick<SmartAnswerRow, 'subtasks' | 'parents'>>
-
-/** The four smart lists (APP-301), and what their rows need to be drawn. */
-export interface SmartLists {
-  /** Whether Convex has answered for the lists and the smart rows. */
-  loaded: boolean
-  today: string
-  /** The caller, as Convex knows them; null until it answers. */
-  me: string | null
-  lists: TaskList[]
-  /** Every row any smart list shows, for the hold menu's sheets. */
-  tasks: Task[]
-  byList: Record<SmartListId, Task[]>
-}
-
-/**
- * Convex's smart rows and each linked list's last fetched rows (ADR-0021: a
- * smart list never fetches one), sorted into the four smart lists by the
- * rules in `@gather/core/smart-lists`.
- */
-export function smartModel(
-  lists: readonly ListRow[] | undefined,
-  answer: SmartAnswer | undefined,
-  linked: ReadonlyMap<string, ExternalEntry>,
-  today: string,
-): SmartLists {
-  const views = (lists ?? NO_LISTS).map((list) =>
-    listView(
-      list,
-      list.provider === 'local'
-        ? answer
-          ? 'live'
-          : 'loading'
-        : (linked.get(list._id)?.sync ?? 'loading'),
-      linked.get(list._id),
-    ),
-  )
-  const byId = new Map(views.map((view) => [view.id, view]))
-  // A smart list draws a subtask as a row of its own, naming its parent, and
-  // a parent with how far along its subtasks are (APP-304). Convex sends both
-  // for local rows; a linked list's last rows hold their own subtasks.
-  const progress = new Map(
-    (answer?.subtasks ?? []).map(({ taskId, done, total }) => [
-      taskId as string,
-      { done, total },
-    ]),
-  )
-  const titles = new Map(
-    (answer?.parents ?? []).map(({ taskId, title }) => [taskId as string, title]),
-  )
-  const linkedRows = withProgress(
-    views
-      .filter((view) => view.provider !== 'local')
-      .flatMap((view) => linked.get(view.id)?.tasks ?? []),
-  )
-  for (const task of linkedRows) titles.set(task.id, task.title)
-  const tasks = [
-    ...(answer?.tasks ?? []).map((row) => {
-      const task = taskFromRow(row)
-      const own = progress.get(task.id)
-      return own ? { ...task, subtasks: own } : task
-    }),
-    ...linkedRows,
-  ]
-    .filter((task) => byId.has(task.listId))
-    .map((task) => {
-      const parentTitle = task.parentTaskId
-        ? titles.get(task.parentTaskId)
-        : undefined
-      return parentTitle ? { ...task, parentTitle } : task
-    })
-  const scope = { today, me: answer?.me ?? null }
-  const byList = Object.fromEntries(
-    SMART_LISTS.map((id) => [
-      id,
-      tasks
-        .filter((task) => {
-          const list = byId.get(task.listId)
-          return list ? inSmartList(id, task, list, scope) : false
-        })
-        .sort(bySmartOrder),
-    ]),
-  ) as Record<SmartListId, Task[]>
-  return {
-    loaded: lists !== undefined && answer !== undefined,
-    today,
-    me: scope.me,
-    lists: views,
-    tasks,
-    byList,
-  }
-}
-
 /**
  * The Current Group's smart lists: one Convex subscription for every local
  * list's open rows, plus whatever the linked lists last answered.
@@ -958,7 +415,7 @@ export function useSmartLists(): SmartLists {
     groupSlug: group.slug,
     today,
   })
-  const linked = useSyncExternalStore(subscribe, externalSnapshot)
+  const linked = useSyncExternalStore(subscribeExternal, externalSnapshot)
   return useMemo(
     () => smartModel(lists, answer, linked, today),
     [lists, answer, linked, today],
@@ -1084,7 +541,7 @@ export function useTaskActions() {
           write: sent,
         }),
       (id) => getTasks({ listId: id as Id<'taskLists'>, groupSlug }),
-      () => convex.connectionState().isWebSocketConnected,
+      connectionOf(convex),
     )
 
   /** A linked task's fields in its provider, or a local one's in Convex. */
@@ -1139,7 +596,7 @@ export function useTaskActions() {
     saveKey: string | undefined,
     sectionId?: string,
   ): Promise<{ taskId: string } & ComposedDetails> => {
-    if (external.has(listId)) {
+    if (externalSnapshot().has(listId)) {
       // The composer offers only what the provider can hold (APP-448).
       const { taskId } = await write(listId, {
         kind: 'create',
@@ -1261,14 +718,16 @@ export function useTaskActions() {
     ) => {
       const linkedId = linkedListOf(task)
       if (linkedId) {
-        const row = external
+        const row = externalSnapshot()
           .get(linkedId)
           ?.tasks.find((each) => each.id === task.id)
         await write(linkedId, {
           kind: 'setDone',
           taskId: task.id,
           done: !row?.done,
-          ...(options.withSubtasks ? { withSubtasks: true } : {}),
+          ...(options.withSubtasks
+            ? { withSubtasks: true, requestKey: completeKey(linkedId, task.id, newSaveKey) }
+            : {}),
         })
         return null
       }
@@ -1524,7 +983,7 @@ export function useTaskActions() {
       parent: Pick<Task, 'id' | 'listId'>,
       title: string,
     ): Promise<unknown> =>
-      external.has(parent.listId)
+      externalSnapshot().has(parent.listId)
         ? write(parent.listId, { kind: 'create', title, parentId: parent.id })
         : add({
             listId: parent.listId as Id<'taskLists'>,

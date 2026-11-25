@@ -96,6 +96,11 @@ export const linkedTaskWriteValidator = v.union(
     done: v.boolean(),
     /** Completes a recurring task's open subtasks with it. */
     withSubtasks: v.optional(v.boolean()),
+    /**
+     * With subtasks: sent again after a failure, it moves each recurring
+     * subtask on once.
+     */
+    requestKey: v.optional(v.string()),
   }),
   v.object({
     kind: v.literal('move'),

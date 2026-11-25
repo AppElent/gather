@@ -302,7 +302,7 @@ export function TaskList({
   const openTask = (task: Task) =>
     router.push({
       pathname: '/all/tasks/task/[taskId]',
-      params: { taskId: task.id },
+      params: { taskId: task.id, listId: task.listId },
     })
 
   // A local list under Tasks wears its own tile; a list another Module owns

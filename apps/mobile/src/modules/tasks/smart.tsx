@@ -58,7 +58,7 @@ export function SmartTaskRow({
       onOpen={() =>
         router.push({
           pathname: '/all/tasks/task/[taskId]',
-          params: { taskId: task.id },
+          params: { taskId: task.id, listId: task.listId },
         })
       }
       menu={{ reorder: false, onAction: (action) => onAction(task, action) }}
