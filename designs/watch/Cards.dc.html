@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Klantenkaarten op de watch</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.w{width:198px;height:242px;border-radius:44px;background:#000;color:#F1F3F1;overflow:hidden;position:relative;box-sizing:border-box;padding:12px 10px 8px;display:flex;flex-direction:column;gap:6px;font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;font-size:15px;box-shadow:0 0 0 7px #2A2D2C}
+.w.white{background:#fff;color:#000;align-items:center;justify-content:center;gap:8px}
+.bar{display:flex;justify-content:space-between;align-items:center;padding:0 12px;font-size:14px;font-weight:600}
+.row{background:#1B1E1D;border-radius:14px;min-height:44px;padding:6px 10px;display:flex;gap:8px;align-items:center;box-sizing:border-box}
+.t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{display:block;color:#A0A8A4;font-size:12px}
+.num{font-family:'SF Pro Rounded',ui-rounded,Nunito,system-ui,sans-serif;font-weight:700;font-variant-numeric:tabular-nums}
+.logo{width:28px;height:28px;border-radius:9px;flex:none}
+.digits{font-family:ui-monospace,'SF Mono',monospace;font-size:13px;letter-spacing:.1em;font-variant-numeric:tabular-nums}
+.msg{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:0 8px}
+.msg p{margin:0;font-size:14px;line-height:19px}
+.msg small{color:#A0A8A4;font-size:12px;line-height:16px}
+.cap{font-family:-apple-system,system-ui,sans-serif;font-size:13px;color:#5E6764;width:214px;line-height:18px}
+.cap b{display:block;color:#1A1F1D;font-weight:600}
+</style>
+</helmet>
+<div style="width:1240px;height:440px;box-sizing:border-box;padding:40px;display:flex;gap:28px;background:#F2F3F1;font-family:-apple-system,system-ui,sans-serif">
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w">
+      <div class="bar"><span style="color:#6FD6CD">‹ Kaarten</span><span class="num">17:50</span></div>
+      <div class="row"><span class="logo" style="background:#00A0E2"></span><span class="t">Albert Heijn<span class="sub">Bonuskaart</span></span></div>
+      <div class="row"><span class="logo" style="background:#F28C00"></span><span class="t">GAMMA</span></div>
+      <div class="row"><span class="logo" style="background:#1F4FA0"></span><span class="t">Air Miles</span></div>
+    </div>
+    <figcaption class="cap"><b>Kaarten</b>Volgorde van de groep (APP-440), het logo uit de catalogus. Geen foto's op de watch.</figcaption>
+  </figure>
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w white">
+      <div style="font-weight:600;font-size:13px">Albert Heijn</div>
+      <svg role="img" aria-label="Barcode van de Bonuskaart" width="172" height="78" viewBox="0 0 95 40"><g fill="#000"><rect x="0" width="1" height="40"/><rect x="2" width="1" height="40"/><rect x="5" width="2" height="36"/><rect x="9" width="1" height="36"/><rect x="12" width="3" height="36"/><rect x="17" width="1" height="36"/><rect x="20" width="2" height="36"/><rect x="24" width="1" height="36"/><rect x="27" width="2" height="36"/><rect x="31" width="3" height="36"/><rect x="36" width="1" height="36"/><rect x="39" width="1" height="36"/><rect x="46" width="1" height="40"/><rect x="48" width="1" height="40"/><rect x="51" width="2" height="36"/><rect x="55" width="1" height="36"/><rect x="58" width="3" height="36"/><rect x="63" width="1" height="36"/><rect x="66" width="2" height="36"/><rect x="70" width="1" height="36"/><rect x="73" width="3" height="36"/><rect x="78" width="2" height="36"/><rect x="82" width="1" height="36"/><rect x="85" width="2" height="36"/><rect x="92" width="1" height="40"/><rect x="94" width="1" height="40"/></g></svg>
+      <div class="digits">2620 1234 5678 9</div>
+    </div>
+    <figcaption class="cap"><b>Streepjescode</b>Wit vlak, balken op hele pixels, stille zone eromheen. Voorbeeldnummer.</figcaption>
+  </figure>
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w white">
+      <div style="font-weight:600;font-size:13px">GAMMA</div>
+      <svg role="img" aria-label="QR-code van de GAMMA-kaart" width="120" height="120" viewBox="0 0 21 21"><g fill="#000"><rect x="0" y="0" width="7" height="7"/><rect x="14" y="0" width="7" height="7"/><rect x="0" y="14" width="7" height="7"/></g><g fill="#fff"><rect x="1" y="1" width="5" height="5"/><rect x="15" y="1" width="5" height="5"/><rect x="1" y="15" width="5" height="5"/></g><g fill="#000"><rect x="2" y="2" width="3" height="3"/><rect x="16" y="2" width="3" height="3"/><rect x="2" y="16" width="3" height="3"/><rect x="8" y="1" width="1" height="1"/><rect x="10" y="2" width="2" height="1"/><rect x="9" y="4" width="1" height="2"/><rect x="11" y="5" width="1" height="1"/><rect x="8" y="8" width="2" height="1"/><rect x="12" y="8" width="1" height="2"/><rect x="1" y="9" width="2" height="1"/><rect x="4" y="10" width="1" height="2"/><rect x="15" y="9" width="2" height="1"/><rect x="18" y="10" width="1" height="2"/><rect x="9" y="11" width="1" height="1"/><rect x="10" y="12" width="2" height="2"/><rect x="14" y="13" width="1" height="1"/><rect x="16" y="15" width="2" height="1"/><rect x="9" y="15" width="1" height="2"/><rect x="12" y="17" width="2" height="1"/><rect x="17" y="18" width="2" height="2"/><rect x="11" y="19" width="1" height="1"/><rect x="14" y="16" width="1" height="2"/><rect x="6" y="9" width="1" height="1"/></g></svg>
+      <div class="digits">GAMMA-0042</div>
+    </div>
+    <figcaption class="cap"><b>QR</b>Zelfde scherm voor elk raster-formaat (QR, Aztec, Data Matrix, PDF417). Altijd-aan dimt niet zolang de kaart open is.</figcaption>
+  </figure>
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w white">
+      <div style="font-weight:600;font-size:13px">Kruidvat</div>
+      <div class="digits" style="font-size:20px;letter-spacing:.06em;text-align:center;line-height:28px">8710 4412<br>9087 31</div>
+      <div style="font-size:11px;color:#5E6764;text-align:center;padding:0 12px">Laat dit nummer intypen aan de kassa.</div>
+    </div>
+    <figcaption class="cap"><b>Alleen nummer</b>Als de server de code niet kan maken, of het formaat volgens de proef aan de kassa niet scant.</figcaption>
+  </figure>
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w">
+      <div class="bar"><span style="color:#6FD6CD">‹ Kaarten</span><span class="num">17:50</span></div>
+      <div class="msg">
+        <p>Nog geen kaarten</p>
+        <small>Voeg ze toe in Gather op je iPhone.</small>
+      </div>
+    </div>
+    <figcaption class="cap"><b>Leeg</b>Toevoegen en wijzigen gebeurt op de telefoon.</figcaption>
+  </figure>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":440}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

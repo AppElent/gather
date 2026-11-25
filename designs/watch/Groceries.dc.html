@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Boodschappen op de watch</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.w{width:198px;height:242px;border-radius:44px;background:#000;color:#F1F3F1;overflow:hidden;position:relative;box-sizing:border-box;padding:12px 10px 8px;display:flex;flex-direction:column;gap:6px;font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;font-size:15px;box-shadow:0 0 0 7px #2A2D2C}
+.scroll{overflow-y:auto;display:flex;flex-direction:column;gap:6px;flex:1;scrollbar-width:none}
+.bar{display:flex;justify-content:space-between;align-items:center;padding:0 12px;font-size:14px;font-weight:600}
+.row{background:#1B1E1D;border-radius:14px;min-height:44px;padding:6px 10px;display:flex;gap:8px;align-items:center;box-sizing:border-box;border:0;color:#F1F3F1;font:15px -apple-system,'SF Pro Text',system-ui,sans-serif;text-align:left;width:100%;cursor:pointer;flex:none}
+.row:focus-visible{outline:2px solid #6FD6CD}
+.t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.done .t{color:#A0A8A4;text-decoration:line-through}
+.num{font-family:'SF Pro Rounded',ui-rounded,Nunito,system-ui,sans-serif;font-weight:700;font-variant-numeric:tabular-nums}
+.q{color:#A0A8A4;font-size:13px}
+.ring{width:20px;height:20px;border-radius:50%;border:2px solid #6FD6CD;box-sizing:border-box;flex:none;display:grid;place-items:center}
+.ring.on{background:#6FD6CD}
+.aisle{font-size:11px;font-weight:600;letter-spacing:.04em;color:#A0A8A4;padding:4px 10px 0;flex:none}
+.add{background:#0B7C75;color:#fff;border:0;border-radius:999px;min-height:44px;font:600 15px -apple-system,system-ui,sans-serif;display:flex;gap:6px;align-items:center;justify-content:center;flex:none}
+.msg{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:0 8px}
+.msg p{margin:0;font-size:14px;line-height:19px}
+.msg small{color:#A0A8A4;font-size:12px;line-height:16px}
+.note{font-size:11px;color:#A0A8A4;text-align:center}
+.cap{font-family:-apple-system,system-ui,sans-serif;font-size:13px;color:#5E6764;width:214px;line-height:18px}
+.cap b{display:block;color:#1A1F1D;font-weight:600}
+</style>
+</helmet>
+<div style="width:1480px;height:440px;box-sizing:border-box;padding:40px;display:flex;gap:28px;background:#F2F3F1;font-family:-apple-system,system-ui,sans-serif">
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w">
+      <div class="bar"><span style="color:#6FD6CD">‹ Boodschappen</span><span class="num">{{openCount}}</span></div>
+      <div class="scroll">
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+          <div class="aisle">{{g.aisle}}</div>
+          <sc-for list="{{g.items}}" as="item" hint-placeholder-count="2">
+            <button class="row" type="button" onClick="{{item.toggle}}" aria-label="{{item.label}}"><i class="ring"></i><span class="t">{{item.title}}</span><span class="num q">{{item.qty}}</span></button>
+          </sc-for>
+        </sc-for>
+        <sc-if value="{{hasDone}}" hint-placeholder-val="{{ true }}">
+          <div class="aisle">In je mandje · {{doneCount}}</div>
+          <sc-for list="{{done}}" as="item" hint-placeholder-count="1">
+            <button class="row done" type="button" onClick="{{item.toggle}}" aria-label="{{item.label}}"><i class="ring on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round" aria-hidden="true"><path d="M4 12l5 5L20 6"/></svg></i><span class="t">{{item.title}}</span></button>
+          </sc-for>
+        </sc-if>
+        <button class="add" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Toevoegen</button>
+      </div>
+    </div>
+    <figcaption class="cap"><b>Lijst (speelbaar)</b>Tik vinkt af met een tik op de pols; het item gaat naar In je mandje. Tik daar zet het terug. Getal rechtsboven = nog open.</figcaption>
+  </figure>
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w">
+      <div class="bar"><span style="color:#6FD6CD">Toevoegen</span><span class="num">17:45</span></div>
+      <div class="msg">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6FD6CD" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <p>"Twee pakken melk en eieren"</p>
+        <small>Dicteren van watchOS. Meerdere dingen mag, met "en".</small>
+      </div>
+    </div>
+    <figcaption class="cap"><b>Dicteren</b>Systeem-invoer (dicteren, Scribble of toetsenbord); Gather tekent hier niets zelf.</figcaption>
+  </figure>
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w">
+      <div class="bar"><span style="color:#6FD6CD">Toegevoegd</span><span class="num">17:45</span></div>
+      <div class="aisle">Zuivel</div>
+      <div class="row"><i class="ring"></i><span class="t">Melk</span><span class="num q">2 pak</span></div>
+      <div class="aisle">Ontbijt</div>
+      <div class="row"><i class="ring"></i><span class="t">Eieren</span></div>
+      <div class="note" style="margin-top:auto">Verdwijnt na 2 s</div>
+    </div>
+    <figcaption class="cap"><b>Herkend</b>Dezelfde herkenning als de telefoon (hoeveelheid, eenheid, gangpad). Geen bevestigknop; terug naar de lijst.</figcaption>
+  </figure>
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w">
+      <div class="bar"><span style="color:#6FD6CD">‹ Boodschappen</span><span class="num">2</span></div>
+      <div class="row"><i class="ring"></i><span class="t">Eieren</span></div>
+      <div class="row"><i class="ring"></i><span class="t">Kaas</span><span class="num q">1 stuk</span></div>
+      <div class="aisle">In je mandje · 5</div>
+      <div class="note" style="margin-top:auto">Offline · 3 wijzigingen wachten</div>
+    </div>
+    <figcaption class="cap"><b>Offline in de winkel</b>Afvinken werkt door. Gaat mee zodra watch of iPhone weer bereik heeft.</figcaption>
+  </figure>
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w">
+      <div class="bar"><span style="color:#6FD6CD">‹ Boodschappen</span><span class="num">0</span></div>
+      <div class="msg">
+        <p>Alles in je mandje</p>
+        <small>Niets meer op de lijst van Albert Heijn.</small>
+      </div>
+      <button class="add" type="button">Toevoegen</button>
+    </div>
+    <figcaption class="cap"><b>Leeg</b>Lijst af of nog leeg. De lijstnaam komt uit de keuze op de iPhone.</figcaption>
+  </figure>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1480,"height":440}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { done: {} };
+  }
+  renderVals() {
+    const items = [
+      { id: 'b', title: 'Bananen', qty: '6', aisle: 'Groente en fruit' },
+      { id: 's', title: 'Spinazie', qty: '1 zak', aisle: 'Groente en fruit' },
+      { id: 'm', title: 'Melk', qty: '2 pak', aisle: 'Zuivel' },
+      { id: 'y', title: 'Yoghurt', qty: '1', aisle: 'Zuivel' },
+      { id: 'k', title: 'Kaas', qty: '1 stuk', aisle: 'Zuivel' },
+      { id: 'e', title: 'Eieren', qty: '', aisle: 'Ontbijt' }
+    ];
+    const done = this.state.done;
+    const toggle = (id) => () => this.setState({ done: { ...done, [id]: !done[id] } });
+    const open = items.filter((i) => !done[i.id]);
+    const checked = items.filter((i) => done[i.id]);
+    const groups = [];
+    open.forEach((i) => {
+      let g = groups.find((x) => x.aisle === i.aisle);
+      if (!g) { g = { aisle: i.aisle, items: [] }; groups.push(g); }
+      g.items.push({ ...i, toggle: toggle(i.id), label: i.title + ', afvinken' });
+    });
+    return {
+      groups,
+      done: checked.map((i) => ({ ...i, toggle: toggle(i.id), label: i.title + ', terugzetten' })),
+      hasDone: checked.length > 0,
+      doneCount: checked.length,
+      openCount: open.length
+    };
+  }
+}
+</script>
+</body>
+</html>

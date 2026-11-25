@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Vandaag op de watch</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.w{width:198px;height:242px;border-radius:44px;background:#000;color:#F1F3F1;overflow:hidden;position:relative;box-sizing:border-box;padding:12px 10px 8px;display:flex;flex-direction:column;gap:6px;font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;font-size:15px;box-shadow:0 0 0 7px #2A2D2C}
+.bar{display:flex;justify-content:space-between;align-items:center;padding:0 12px;font-size:14px;font-weight:600}
+.row{background:#1B1E1D;border-radius:14px;min-height:44px;padding:6px 10px;display:flex;gap:8px;align-items:center;box-sizing:border-box}
+.t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{display:block;color:#A0A8A4;font-size:12px}
+.num{font-family:'SF Pro Rounded',ui-rounded,Nunito,system-ui,sans-serif;font-weight:700;font-variant-numeric:tabular-nums}
+.ring{width:20px;height:20px;border-radius:50%;border:2px solid #F2C060;box-sizing:border-box;flex:none}
+.time{width:38px;flex:none;font-size:13px;color:#F1F3F1}
+.danger{color:#F0917F}
+.big{font-family:'SF Pro Rounded',ui-rounded,Nunito,system-ui,sans-serif;font-size:20px;font-weight:700;line-height:24px;padding:0 8px}
+.done{background:#D99B2B;color:#2B1F06;border:0;border-radius:999px;min-height:44px;font:600 15px -apple-system,system-ui,sans-serif;margin-top:auto}
+.msg{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:0 8px}
+.msg p{margin:0;font-size:14px;line-height:19px}
+.msg small{color:#A0A8A4;font-size:12px;line-height:16px}
+.cap{font-family:-apple-system,system-ui,sans-serif;font-size:13px;color:#5E6764;width:214px;line-height:18px}
+.cap b{display:block;color:#1A1F1D;font-weight:600}
+</style>
+</helmet>
+<div style="width:1000px;height:440px;box-sizing:border-box;padding:40px;display:flex;gap:28px;background:#F2F3F1;font-family:-apple-system,system-ui,sans-serif">
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w">
+      <div class="bar"><span style="color:#F2C060">‹ Vandaag</span><span class="num">08:10</span></div>
+      <div class="row"><span class="num time">10:30</span><span class="t">Tandarts Sem<span class="sub">Agenda gezin</span></span></div>
+      <div class="row"><i class="ring"></i><span class="t">Groene bak buiten<span class="sub danger">Gisteren</span></span></div>
+      <div class="row"><i class="ring"></i><span class="t">Paspoort verlengen</span></div>
+      <div class="row"><span class="t">Diner<span class="sub">Pasta pesto · Daan kookt</span></span></div>
+    </div>
+    <figcaption class="cap"><b>Vandaag</b>Afspraken op tijd, dan taken (te laat als woord), dan de maaltijden van vandaag. Scrollt met de Digital Crown.</figcaption>
+  </figure>
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w">
+      <div class="bar"><span style="color:#F2C060">‹ Vandaag</span><span class="num">08:11</span></div>
+      <div class="big">Groene bak buiten</div>
+      <div style="padding:0 8px;font-size:12px;color:#A0A8A4;line-height:16px"><span class="danger">Gisteren</span> · elke 2 weken · voor Eric</div>
+      <button class="done" type="button">Klaar</button>
+    </div>
+    <figcaption class="cap"><b>Taak</b>Eén grote knop. Een herhalende taak schuift door volgens de regels van de telefoon; de watch keert terug naar Vandaag.</figcaption>
+  </figure>
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="w">
+      <div class="bar"><span style="color:#F2C060">‹ Vandaag</span><span class="num">21:40</span></div>
+      <div class="msg">
+        <p>Niets meer voor vandaag</p>
+        <small>Morgen: Zwemles Mila om 09:00</small>
+      </div>
+    </div>
+    <figcaption class="cap"><b>Leeg</b>Laat de eerste afspraak van morgen zien, zodat het scherm nooit leeg is.</figcaption>
+  </figure>
+  <figure style="margin:0;display:flex;flex-direction:column;gap:14px">
+    <div class="cap" style="padding-top:8px"><b>Niet op de watch</b>Afspraken maken of wijzigen, taken toevoegen, het menu plannen. Tik op een afspraak toont alleen tijd, plek en agenda.</div>
+  </figure>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1000,"height":440}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

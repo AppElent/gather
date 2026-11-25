@@ -1,0 +1,139 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-24T12:10:00Z"
+  },
+  "title": "Gather — Apple Watch",
+  "launch": {
+    "view": "canvas",
+    "page": "brief"
+  },
+  "pages": [
+    {
+      "id": "brief",
+      "name": "Brief en richting"
+    },
+    {
+      "id": "app-654",
+      "name": "APP-654 Basis en staten"
+    },
+    {
+      "id": "app-655",
+      "name": "APP-655 Boodschappen"
+    },
+    {
+      "id": "app-656",
+      "name": "APP-656 Vandaag"
+    },
+    {
+      "id": "app-657",
+      "name": "APP-657 Klantenkaarten"
+    },
+    {
+      "id": "app-658",
+      "name": "APP-658 Instellingen op de iPhone"
+    },
+    {
+      "id": "history",
+      "name": "History"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1560,
+      "h": 520,
+      "title": "Richting: A modulelijst of B verticale pagina's",
+      "page": "brief"
+    },
+    "Shell.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1480,
+      "h": 440,
+      "title": "APP-654 Basis en staten",
+      "page": "app-654"
+    },
+    "Groceries.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1480,
+      "h": 440,
+      "title": "APP-655 Boodschappen",
+      "page": "app-655",
+      "is_interactive": true
+    },
+    "Today.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1000,
+      "h": 440,
+      "title": "APP-656 Vandaag",
+      "page": "app-656"
+    },
+    "Cards.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1240,
+      "h": 440,
+      "title": "APP-657 Klantenkaarten",
+      "page": "app-657"
+    },
+    "Phone.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1330,
+      "h": 980,
+      "title": "APP-658 Instellingen > Apple Watch",
+      "page": "app-658"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Shell.dc.html",
+    "Groceries.dc.html",
+    "Today.dc.html",
+    "Cards.dc.html",
+    "Phone.dc.html"
+  ],
+  "notes": {
+    "brief": {
+      "x": 0,
+      "y": -420,
+      "w": 760,
+      "page": "brief",
+      "fill": "teal",
+      "size": "m",
+      "text": "Brief (APP-646). Wie: een Member van een Groep, onderweg, handen vol. Uitkomst: in een paar seconden afvinken, kijken wat er vandaag is, of een klantenkaart laten scannen, ook zonder bereik. Platform: Apple Watch (watchOS 11), companion van de iPhone-app; beheren blijft op telefoon en web. MVP-modules: Boodschappen, Vandaag, Klantenkaarten; later meer modules op dezelfde basis. Look: Gather Design System, donker op zwart zoals watchOS; kleur alleen op tegels en vinkringen, getallen in ink."
+    },
+    "flows": {
+      "x": 820,
+      "y": -420,
+      "w": 740,
+      "page": "brief",
+      "fill": "gray",
+      "size": "m",
+      "text": "Journeys. 1) Eerste keer: watch-app openen → telefoon koppelt vanzelf → eerste module. Niet gekoppeld → 'Open Gather op je iPhone'. 2) Winkel: openen → Boodschappen → tik = afvinken → In je mandje; zonder bereik gaat het door en synct later. 3) Kassa: Kaarten → kaart → barcode op wit. 4) Ochtend: Vandaag → taak → Klaar. Terugkeer: de watch opent op de laatst gebruikte module."
+    },
+    "pick": {
+      "x": 0,
+      "y": 580,
+      "w": 760,
+      "page": "brief",
+      "fill": "green",
+      "size": "m",
+      "text": "Eric koos A (modulelijst) op 24 nov. Alle modulescherm-titels hebben nu een terugknop naar de lijst; de lijst staat op de pagina APP-654."
+    }
+  },
+  "designSystems": [
+    {
+      "title": "Gather Design System",
+      "namespace": "gather",
+      "artifact": "https://claude.ai/artifact/Rwyfbq38b6YcreQMScCZgy",
+      "version": "1794833497-610a",
+      "copiedAt": "2026-11-24T12:10:00Z"
+    }
+  ]
+}
