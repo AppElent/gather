@@ -10,7 +10,7 @@ import {
   type WatchRefusalCode,
   watchRefusal,
 } from '@gather/core/refusals'
-import type { Infer } from 'convex/values'
+import { ConvexError, type Infer } from 'convex/values'
 import { internal } from '../_generated/api'
 import { type ActionCtx, httpAction } from '../_generated/server'
 import type { watchChangeValidator } from '../watchChanges'
@@ -132,6 +132,11 @@ export const changes = httpAction(async (ctx, request) => {
       else if ('refused' in answer) return groupRefused(answer.refused)
       else results.push({ key, ok: false, ...watchRefusal(answer.code) })
     } catch (error) {
+      // A refusal is permanent: sending the change again would not help.
+      if (error instanceof ConvexError) {
+        results.push({ key, ok: false, ...watchRefusal('bad-request') })
+        continue
+      }
       // One bad change must not hold up the rest of the outbox.
       console.error(`watch: ${change.kind} failed`, error)
       results.push({ key, ok: false, ...watchRefusal('failed') })

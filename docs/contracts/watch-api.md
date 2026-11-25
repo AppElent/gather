@@ -20,7 +20,8 @@ for one Member in one Group (APP-653).
 - **What ends a key.** `watch.revoke`; the end of the Clerk session that paired
   it (`watch.forgetSession` on sign-out, Clerk's `session.ended`,
   `session.removed` and `session.revoked` events, and
-  `notifications.forgetEndedSessions`); leaving or being removed from the
+  `notifications.forgetEndedSessions`); a session that expires counts as ended;
+  leaving or being removed from the
   Group; deleting the Group or the account ([account deletion](account-deletion.md)).
 - **Every call checks again.** The key, the person, the Group and the
   Membership are resolved in the transaction that reads or writes
@@ -45,8 +46,10 @@ and carry `version`.
 
 `barcode` is linear `{ sbs, bhs, bbs, quietLeft, quietRight }`, a matrix
 `{ size, pixs, quiet }` (`size` is the width in modules), or `null` when the
-number does not encode, and then the watch shows the number. EAN and UPC guard
-bars are flat. PDF417 rows are repeated so every module is square.
+number does not encode, and then the watch shows the number. `sbs` starts
+with a bar and may end with a space (Code 39, Codabar, ITF); `bhs` is
+relative, all bars being equally tall, so the watch chooses the height. EAN and
+UPC guard bars are flat. PDF417 rows are repeated so every module is square.
 
 A change is one of these, with the watch's own `key` (8 to 64 characters):
 
@@ -58,10 +61,13 @@ A change is one of these, with the watch's own `key` (8 to 64 characters):
 
 - **Each change is its own transaction**, so a refused one never holds up the
   rest. A result is `{ key, ok: true, taskId }` or
-  `{ key, ok: false, kind: 'watch:…' }`.
+  `{ key, ok: false, kind: 'watch:…' }`. Only `watch:failed` is worth sending
+  again; every other kind is final.
 - **A key counts once** per person and kind, whichever watch or pairing sends
   it. A repeat answers what the first did and changes nothing, even when the
-  row has been changed or deleted since. A refused change leaves no receipt.
+  row has been changed or deleted since, so the watch makes a fresh UUID for
+  every change: a `grocery.add` with a used key and other text adds nothing.
+  A refused change leaves no receipt.
 
 ## Refusals
 

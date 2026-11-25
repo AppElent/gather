@@ -948,6 +948,21 @@ describe('changes', () => {
     expect(results.at(-1)).toMatchObject({ ok: true })
   })
 
+  test('a change the app itself refuses is final', async () => {
+    const { t, chores } = await setup()
+    const parent = await task(t, chores, 'poetsen')
+    const id = await task(t, chores, 'ramen', {
+      parentTaskId: parent,
+      dueDate: '2026-01-05',
+      repeat: { mode: 'fixed', unit: 'week', every: 1 },
+    })
+    const { key } = await pair(t)
+    const done = { key: 'change-1', kind: 'task.done', taskId: id }
+    expect(await send(t, key, done)).toMatchObject([
+      { ok: false, kind: 'watch:bad-request' },
+    ])
+  })
+
   test('refuses a body that is not an outbox', async () => {
     const { t } = await setup()
     const { key } = await pair(t)

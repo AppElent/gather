@@ -53,7 +53,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   (`watchDevices`, APP-653): `finishAccount` and `destroyGroup` delete the rows
   and `detachFromGroup` deletes that Member's. Deleting a grocery list clears
   the rows that name it, an account merge repoints them, and an account being
-  deleted is refused before its rows are gone ([watch API](watch-api.md)).
+  deleted is refused before its rows are gone ([watch API](watch-api.md)). The
+  rate limiter's counters keep the bare row ids, which then point at nothing.
 - **A queued send that names a Group goes with the Group.** `destroyGroup`
   cancels every `scheduledNotifications` row whose payload names the Group
   (`cancelGroupSends`, by the `by_group` index) before deleting it, and
