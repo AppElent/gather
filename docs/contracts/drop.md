@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the share sheet, a Drop, its destinations, host rules, or expo-share-intent.
-version: 1.8.0
+version: 1.8.1
 status: current
 ---
 
@@ -41,7 +41,8 @@ that already means making Group content visible to a second Group.
   share also waits, at most five minutes (`ALERT_HOLD_MS`), for an alert whose
   answer opens a sheet (`showAlert` with `holdsShare`: the calendar's
   unsaved-changes questions). After the answer it waits a moment
-  more (`PROMPT_SETTLE_MS`), for what the answer opened to present. Any other alert stays in
+  more (`PROMPT_SETTLE_MS`), for what the answer opened to present — and any
+  share or link arriving during that settle window waits too. Any other alert stays in
   front of the chooser and loses nothing.
 - **A link waits the same way** (`src/shell/linkAfterSheets.ts`, APP-747). Any
   link that reaches a running app, `gather-dev://drop` included, closes the open
@@ -62,9 +63,8 @@ that already means making Group content visible to a second Group.
   screen. The arrival opening starts it, never the person's next move: a
   navigation afterwards brings nothing back. It waits while the notification's
   hand-off route or `/quick` is still up (at most `REOFFER_WINDOW_MS`), and gives
-  up when a sheet or prompt is in front, when something else waits, when the Drop
-  was cleared or replaced meanwhile, or when the chooser is already the screen in
-  front. A link to the screen already in front still brings it back. A chooser
+  up when a sheet or prompt is in front (or still settling), when something else waits, when the Drop
+  was cleared or replaced meanwhile, or once the chooser (or its pick screen) has been reached. A link to the screen already in front still brings it back. A chooser
   that was already open and is left by a notification or link is not brought
   back: the person went elsewhere, as they do when they swipe it away, and the
   Drop stays pending until a newer share replaces it.
