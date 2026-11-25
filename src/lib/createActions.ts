@@ -28,6 +28,7 @@ export type CreateMessages = Pick<
   | 'recipes'
   | 'baby'
   | 'loyaltyCards'
+  | 'notes'
   | 'tasks'
   | 'tastings'
   | 'calendar'
@@ -51,7 +52,7 @@ type CreateDef = (messages: CreateMessages) => {
 
 /** Opens a Module's index with its create dialog already open. */
 const onIndex = (
-  to: '/tasks' | '/cheeses' | '/wines' | '/beers' | '/calendar',
+  to: '/tasks' | '/notes' | '/cheeses' | '/wines' | '/beers' | '/calendar',
 ): AppLink => ({
   to,
   search: { new: true },
@@ -71,6 +72,7 @@ const CREATE: Record<ModuleId, CreateDef | null> = {
   cheeses: (m) => ({ label: m.tastings.index.add, link: onIndex('/cheeses') }),
   wines: (m) => ({ label: m.tastings.index.add, link: onIndex('/wines') }),
   beers: (m) => ({ label: m.tastings.index.add, link: onIndex('/beers') }),
+  notes: (m) => ({ label: m.notes.newNote, link: onIndex('/notes') }),
   calendar: (m) => ({ label: m.calendar.newEvent, link: onIndex('/calendar') }),
   // Readings arrive from the meter, not from a form.
   energy: null,
@@ -81,7 +83,6 @@ const CREATE: Record<ModuleId, CreateDef | null> = {
   'recurring-costs': null,
   'shared-costs': null,
   'savings-goals': null,
-  notes: null,
 }
 
 function actionFor(
