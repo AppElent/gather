@@ -1,4 +1,3 @@
-import { SMART_LISTS } from '@gather/core/smart-lists'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { fmt, plural, useI18n } from '../../lib/i18n'
@@ -16,6 +15,7 @@ import { useIsDesktop } from '../app/useMediaQuery'
 import { type StartCreatingProps, useStartCreating } from '../app/useStartCreating'
 import { WashHeader } from '../app/WashHeader'
 import { useSmartLists, useTaskIndex, useTaskPeople } from './data'
+import { SMART_LIST_ROWS, useHiddenSmartLists } from './hiddenSmartLists'
 import { Coin, ListTile } from './ListTile'
 import { NewListDialog } from './NewListDialog'
 import { listLink, type TaskPlace, taskLink } from './selection'
@@ -39,6 +39,8 @@ function TasksIndex(props: StartCreatingProps) {
   const { locale, messages: t } = useI18n()
   const index = useTaskIndex()
   const smart = useSmartLists()
+  const { hidden } = useHiddenSmartLists()
+  const smartRows = SMART_LIST_ROWS.filter((id) => !hidden.includes(id))
   const { byId } = useTaskPeople()
   const { menu } = useWorkspace()
   const navigate = useNavigate()
@@ -79,6 +81,7 @@ function TasksIndex(props: StartCreatingProps) {
               }
             : undefined
         }
+        settings={linkTo('tasksSettings')}
         primary={{ label: t.tasks.page.addList, onClick: create }}
       />
 
@@ -175,28 +178,30 @@ function TasksIndex(props: StartCreatingProps) {
               )}
             </section>
 
-            <section>
-              <SectionLabel>{t.tasks.smart.section}</SectionLabel>
-              <InsetList>
-                {SMART_LISTS.filter((id) => id !== 'today').map((id) => {
-                  const words = t.tasks.smart.lists[id]
-                  return (
-                    <InsetRow
-                      key={id}
-                      title={words.title}
-                      footnote={words.subtitle}
-                      leading={
-                        <ModuleTile group="home" icon={SMART_GLYPHS[id]} />
-                      }
-                      trailing={
-                        smart.loaded ? smart.byList[id].length : undefined
-                      }
-                      link={linkTo('smartTaskList', { smartList: id })}
-                    />
-                  )
-                })}
-              </InsetList>
-            </section>
+            {smartRows.length > 0 ? (
+              <section>
+                <SectionLabel>{t.tasks.smart.section}</SectionLabel>
+                <InsetList>
+                  {smartRows.map((id) => {
+                    const words = t.tasks.smart.lists[id]
+                    return (
+                      <InsetRow
+                        key={id}
+                        title={words.title}
+                        footnote={words.subtitle}
+                        leading={
+                          <ModuleTile group="home" icon={SMART_GLYPHS[id]} />
+                        }
+                        trailing={
+                          smart.loaded ? smart.byList[id].length : undefined
+                        }
+                        link={linkTo('smartTaskList', { smartList: id })}
+                      />
+                    )
+                  })}
+                </InsetList>
+              </section>
+            ) : null}
           </div>
 
           <section>

@@ -19,6 +19,7 @@ import {
   closeAllSheets,
   hasOpenPrompts,
   hasOpenSheets,
+  isPromptSettling,
 } from '../components/openSheets'
 
 /** What waits for the sheets, or `null` when nothing does. */
@@ -55,7 +56,7 @@ function wayClear(
   onSuperseded?: (newerOpened: Promise<boolean>) => void,
 ): true | Promise<boolean> {
   held = null
-  if (!hasOpenSheets() && !hasOpenPrompts()) {
+  if (!hasOpenSheets() && !hasOpenPrompts() && !isPromptSettling()) {
     newest = Promise.resolve(wanted())
     return true
   }

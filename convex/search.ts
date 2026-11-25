@@ -482,8 +482,15 @@ export const group = query({
       }),
     ]
 
-    const dayAt =
-      args.when && args.timeZone ? isoDateIn(args.timeZone) : amsterdamIsoDate
+    const zone = args.timeZone ?? group.timeZone
+    let dayAt: (at: number) => string = amsterdamIsoDate
+    if (args.when && zone !== undefined) {
+      try {
+        dayAt = isoDateIn(zone)
+      } catch {
+        // A stored Group zone this runtime cannot parse: keep the Dutch day.
+      }
+    }
     // The clock is read only when needed: it would make the result uncacheable.
     const today = args.today ?? (args.when ? dayAt(Date.now()) : '')
     const calendar = { today, dayAt }

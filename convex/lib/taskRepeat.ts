@@ -13,7 +13,7 @@ import {
   compareIsoDates,
   daysBetween,
   isIsoDate,
-  todayIn,
+  isoDateIn,
 } from '@gather/core/civil-date'
 import {
   firstScheduledDate,
@@ -47,7 +47,15 @@ export function completionDay(
       return sent
     }
   }
-  return timeZone === undefined ? amsterdamIsoDate(now) : todayIn(timeZone, now)
+  if (timeZone !== undefined) {
+    try {
+      return isoDateIn(timeZone)(now)
+    } catch {
+      // A stored zone this runtime cannot parse falls back to the Dutch day,
+      // not the server's own UTC calendar.
+    }
+  }
+  return amsterdamIsoDate(now)
 }
 
 /** A rule as stored, anchored on `anchor`, or a refusal. */

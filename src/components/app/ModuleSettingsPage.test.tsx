@@ -104,13 +104,17 @@ test('Tasks settings switch a smart list, kept under the phone’s key', () => {
   )
   const toggle = (name: string) => screen.getByRole('switch', { name })
   expect(toggle('My tasks')).toHaveAttribute('aria-checked', 'false')
-  expect(toggle('Today')).toHaveAttribute('aria-checked', 'true')
+  // Today is always on the index, so it has no switch.
+  expect(screen.queryByRole('switch', { name: 'Today' })).toBeNull()
+  expect(screen.getByTestId('wash-summary')).toHaveTextContent(
+    '2 smart lists shown',
+  )
 
   fireEvent.click(toggle('My tasks'))
-  fireEvent.click(toggle('Today'))
+  fireEvent.click(toggle('Unassigned'))
   expect(toggle('My tasks')).toHaveAttribute('aria-checked', 'true')
-  expect(screen.getByTestId('hidden')).toHaveTextContent('today')
-  expect(window.localStorage.getItem(key)).toBe('["today"]')
+  expect(screen.getByTestId('hidden')).toHaveTextContent('unassigned')
+  expect(window.localStorage.getItem(key)).toBe('["unassigned"]')
 
   // Another tab's choice.
   window.localStorage.setItem(key, '["upcoming"]')

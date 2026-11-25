@@ -1,5 +1,6 @@
 import {
   parseHiddenSmartLists,
+  SMART_LISTS,
   type SmartListId,
   toggledSmartLists,
 } from '@gather/core/smart-lists'
@@ -12,6 +13,12 @@ import { useSyncExternalStore } from 'react'
  * every Group.
  */
 const KEY = 'gather:tasks:hidden-smart-lists'
+/**
+ * The smart lists the index shows as rows, which are the ones it can hide.
+ * Today is its own section there and always shown.
+ */
+export const SMART_LIST_ROWS = SMART_LISTS.filter((id) => id !== 'today')
+
 const NONE: readonly SmartListId[] = []
 
 // One copy for the page and the index, so both agree without a reload.

@@ -11,7 +11,7 @@
  *
  * Pure: the screen holds the state and passes `today` in.
  */
-import { localIsoDate } from '@gather/core/civil-date'
+import { dayIn } from '@gather/core/civil-date'
 import type { ModuleId } from '@gather/core/modules'
 import {
   matchesRowFilters,
@@ -164,17 +164,24 @@ export function matchesFilters(
   record: FilterableRecord,
   filters: SearchFilters,
   today: string,
+  timeZone?: string,
 ): boolean {
   if (filters.module && moduleOf(record) !== filters.module) return false
-  return matchesRowFilters(record, filters, { today, dayAt: localIsoDate })
+  return matchesRowFilters(record, filters, { today, dayAt: dayIn(timeZone) })
 }
 
 export function applyFilters<T extends FilterableRecord>(
   records: readonly T[],
   filters: SearchFilters,
   today: string,
+  timeZone?: string,
 ): T[] {
-  return records.filter((record) => matchesFilters(record, filters, today))
+  const dayAt = dayIn(timeZone)
+  return records.filter(
+    (record) =>
+      (!filters.module || moduleOf(record) === filters.module) &&
+      matchesRowFilters(record, filters, { today, dayAt }),
+  )
 }
 
 /** Whether anything beyond the Module narrows the results. */

@@ -205,6 +205,14 @@ export function hasOpenPrompts() {
 }
 
 /**
+ * Whether an answered prompt is still in its settle window (`PROMPT_SETTLE_MS`),
+ * so what its answer changed or opened may still be presenting.
+ */
+export function isPromptSettling() {
+  return settling !== undefined
+}
+
+/**
  * Resolves once no dialog is up, and what its answer changed or opened has had
  * time to render and present.
  */

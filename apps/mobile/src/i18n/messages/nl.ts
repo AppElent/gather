@@ -418,7 +418,7 @@ export const nl = {
       primary: 'Primair',
       unverified: 'Niet geverifieerd',
       addOnWeb:
-        'Een adres toevoegen of verwijderen doe je in Gather op het web.',
+        'Een adres toevoegen of verwijderen doe je op account.appelent.nl — kies “Beheer je AppElent-account” onder Account.',
     },
 
     sessions: {
@@ -607,6 +607,7 @@ export const nl = {
     noSecondFactor: coreNl.auth.errors.noSecondFactor,
     required: 'Dit mag niet leeg zijn.',
     tooManyRequests: 'Te veel pogingen. Wacht even en probeer het opnieuw.',
+    openPageFailed: 'Deze pagina kon niet worden geopend. Probeer het opnieuw.',
   },
 
   /** Zie `en.ts` voor waarom elke tekst hier staat. */

@@ -81,7 +81,10 @@ export const viewTools = [
     },
     async run({ groupId, weekStart }, context): Promise<WeekAgendaResult> {
       const group = await groupOf(context, groupId)
-      const today = todayIn(group.timeZone ?? 'UTC', context.now())
+      // A Group without a zone falls back to UTC on the server; pass that same
+      // zone to the view so its week and Today badge never disagree.
+      const timeZone = group.timeZone ?? 'UTC'
+      const today = todayIn(timeZone, context.now())
       const monday = mondayOf(weekStart ?? today)
       const sunday = shiftDay(monday, 7)
       const events: Event[] = []
@@ -115,7 +118,7 @@ export const viewTools = [
         nextWeekStart: sunday,
         isCurrentWeek: mondayOf(today) === monday,
         today,
-        timeZone: group.timeZone,
+        timeZone,
         days,
         truncated: events.length >= WEEK_EVENTS,
       }

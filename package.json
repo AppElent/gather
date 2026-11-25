@@ -14,7 +14,7 @@
     "build": "vite build && node scripts/generate-sw.mjs",
     "build:development": "vite build --mode development && node scripts/generate-sw.mjs",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p convex/tsconfig.json",
     "test": "vitest run",
     "format": "biome format",
     "lint": "biome lint",

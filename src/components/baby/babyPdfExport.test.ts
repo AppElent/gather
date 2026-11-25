@@ -1,7 +1,24 @@
 import type { BabyEventType } from '@gather/core/domain'
-import { describe, expect, test } from 'vitest'
+import { en } from '@gather/core/messages'
+import { describe, expect, test, vi } from 'vitest'
 import type { Doc } from '../../../convex/_generated/dataModel'
-import { groupEventsByMinute } from './babyPdfExport'
+
+const saved = vi.hoisted(() => ({ files: [] as string[] }))
+
+vi.mock('jspdf', () => ({
+  jsPDF: class {
+    setFontSize() {}
+    setTextColor() {}
+    text() {}
+    addPage() {}
+    save(name: string) {
+      saved.files.push(name)
+    }
+  },
+}))
+vi.mock('jspdf-autotable', () => ({ default: vi.fn() }))
+
+import { exportBabyLogPdf, groupEventsByMinute } from './babyPdfExport'
 
 const START = new Date('2026-07-25T09:00:00').getTime()
 
@@ -63,5 +80,28 @@ describe('groupEventsByMinute', () => {
     expect(groupEventsByMinute([event('a', 'note', START)], ['sleep'])).toEqual(
       [],
     )
+  })
+})
+
+describe('exportBabyLogPdf', () => {
+  test("stamps the filename with the Group's day when a zone is given", () => {
+    saved.files.length = 0
+    // 22:30Z on 24 Nov: 25 Nov in Tokyo, 24 Nov in Amsterdam.
+    const to = Date.parse('2026-11-24T22:30:00Z')
+    const base = {
+      baby: { name: 'Sanne', birthDate: '2026-01-01' },
+      messages: en.baby.log,
+      eventTypes: en.baby.eventTypes,
+      locale: 'en',
+      events: [],
+      from: Date.parse('2026-01-01T00:00:00Z'),
+      to,
+    }
+    exportBabyLogPdf({ ...base, timeZone: 'Asia/Tokyo' })
+    exportBabyLogPdf({ ...base, timeZone: 'Europe/Amsterdam' })
+    expect(saved.files).toEqual([
+      'sanne-log-2026-11-25.pdf',
+      'sanne-log-2026-11-24.pdf',
+    ])
   })
 })

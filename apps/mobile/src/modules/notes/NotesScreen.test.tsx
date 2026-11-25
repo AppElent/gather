@@ -69,6 +69,9 @@ vi.mock('expo-router', () => ({
   Stack: { Screen: () => null },
   useRouter: () => ({ push: () => {} }),
 }))
+vi.mock('../../group/GroupProvider', () => ({
+  useGroup: () => ({ group: { _id: 'g1', slug: 'home' } }),
+}))
 vi.mock('../../i18n', async () => {
   const { en } = await import('../../i18n/messages/en')
   return { useI18n: () => ({ t: en, locale: 'en' }) }

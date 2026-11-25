@@ -14,7 +14,7 @@ import { WashHeader } from '../app/WashHeader'
  */
 export function BabyListPage() {
   const group = useRequiredCurrentGroup()
-  const groupSlug = group.slug
+  const { slug: groupSlug, timeZone } = group
   const babies = useQuery(api.babies.list, { groupSlug })
   const { locale, messages } = useI18n()
   const { child, list } = messages.baby.log
@@ -86,7 +86,7 @@ export function BabyListPage() {
                       {b.name}
                     </h3>
                     <p className="m-0 text-sm text-[var(--muted)]">
-                      {formatAge(b.birthDate, child.age, locale)}
+                      {formatAge(b.birthDate, child.age, locale, undefined, timeZone)}
                     </p>
                   </div>
                 </div>

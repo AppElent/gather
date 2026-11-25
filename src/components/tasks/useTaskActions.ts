@@ -168,7 +168,7 @@ export function useTaskActions() {
           taskId,
           groupSlug,
           reminder: {
-            date: parsed.dueDate,
+            date: parsed.reminderDate ?? parsed.dueDate,
             time: parsed.time,
             timeZone: deviceTimeZone(),
           },

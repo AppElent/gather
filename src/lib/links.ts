@@ -76,7 +76,6 @@ export const ROUTES = {
   taskList: '/tasks/$listId',
   smartTaskList: '/tasks/smart/$smartList',
   task: '/tasks/task/$taskId',
-  // Not linked yet: the Tasks index has no gear.
   tasksSettings: '/tasks/settings',
 
   babySettings: '/baby/settings',

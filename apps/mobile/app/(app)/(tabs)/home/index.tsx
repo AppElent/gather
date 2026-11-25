@@ -175,12 +175,14 @@ export default function Home() {
               testID="home-rail"
               items={today.rail.map((entry) => ({
                 id: entry.id,
-                time: clockTime(entry.timestamp),
+                time: clockTime(entry.timestamp, group.timeZone),
                 group: 'home',
                 glyph: EVENT_ICONS[entry.type],
                 title: entry.line,
               }))}
-              now={fmt(words.now, { time: clockTime(today.now) })}
+              now={fmt(words.now, {
+                time: clockTime(today.now, group.timeZone),
+              })}
             />
           </View>
         ) : null}

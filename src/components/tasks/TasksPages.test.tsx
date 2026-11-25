@@ -62,8 +62,18 @@ vi.mock('@tanstack/react-router', () => ({
     state.navigated.push(to)
   },
   Navigate: ({ to }: { to: string }) => <p>{`navigated to ${to}`}</p>,
-  Link: ({ children, to }: { children: ReactNode; to: string }) => (
-    <a href={to}>{children}</a>
+  Link: ({
+    children,
+    to,
+    'aria-label': label,
+  }: {
+    children: ReactNode
+    to: string
+    'aria-label'?: string
+  }) => (
+    <a href={to} aria-label={label}>
+      {children}
+    </a>
   ),
 }))
 
@@ -178,10 +188,15 @@ describe("the Group's today", () => {
     expect(new Set(asked)).toEqual(new Set(['2026-11-20']))
   })
 
-  test("a typed time is on this device's day", async () => {
+  test("a typed bare time is not overdue at once, while its reminder keeps this device's day", async () => {
     renderTasks(<TaskListPage listId="l1" />, far)
     await add('Mop floor 23:45')
-    expect(calls('tasks:add')[0].dueDate).toBe(localIsoDate())
+    expect(calls('tasks:add')[0].dueDate).toBe('2026-11-20')
+    await waitFor(() => expect(calls('tasks:setReminder')).toHaveLength(1))
+    expect(calls('tasks:setReminder')[0].reminder).toMatchObject({
+      date: localIsoDate(),
+      time: '23:45',
+    })
   })
 
   test("a reminder's day is this device's", () => {
@@ -266,6 +281,89 @@ describe('a list', () => {
         withSubtasks: true,
       }),
     )
+  })
+
+  // The choice when completing a task with open subtasks (APP-820).
+  const choice = (name: string) =>
+    within(screen.getByRole('alertdialog')).queryByRole('button', { name })
+  const tickWindows = () =>
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Complete Wash windows' }),
+    )
+
+  test('"Only this" completes the task and leaves its subtasks', async () => {
+    renderTasks(<TaskListPage listId="l1" />)
+    tickWindows()
+    fireEvent.click(choice('Only this') as HTMLElement)
+    await waitFor(() => expect(calls('tasks:toggleDone')).toHaveLength(1))
+    expect(calls('tasks:toggleDone')[0]).toMatchObject({ taskId: 't1' })
+    expect(calls('tasks:toggleDone')[0]).not.toHaveProperty('withSubtasks')
+  })
+
+  test('Cancel completes nothing', () => {
+    renderTasks(<TaskListPage listId="l1" />)
+    tickWindows()
+    fireEvent.click(choice('Cancel') as HTMLElement)
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    expect(calls('tasks:toggleDone')).toEqual([])
+  })
+
+  // As on the phone: the next occurrence reopens the subtasks either way.
+  test('a repeating Gather task does not ask', async () => {
+    state.queries['tasks:listByList'] = [
+      { ...WINDOWS, repeat: { every: 1, unit: 'week', from: 'schedule' } },
+      SOAP,
+    ]
+    renderTasks(<TaskListPage listId="l1" />)
+    tickWindows()
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    await waitFor(() => expect(calls('tasks:toggleDone')).toHaveLength(1))
+  })
+
+  const tickLinkedParent = async (listId: string, more: object) => {
+    state.queries['taskLists:list'] = [
+      list(listId, 'Todoist', {
+        provider: 'todoist',
+        capabilities: { write: true },
+      }),
+    ]
+    const parent = {
+      externalId: 'p',
+      title: 'Pack',
+      done: false,
+      labels: [],
+      ...more,
+    }
+    const child = {
+      externalId: 'c',
+      title: 'Socks',
+      done: false,
+      labels: [],
+      parentExternalId: 'p',
+    }
+    state.linked = { status: 'ok', tasks: [parent, child] }
+    state.written = { status: 'ok', tasks: [parent], refresh: false }
+    renderTasks(<TaskListPage listId={listId} />)
+    await screen.findByText('Pack')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Complete Pack' }))
+  }
+
+  test.each([
+    ['Only this', { kind: 'setDone', taskId: 'p', done: true }],
+    ['Complete all', { kind: 'setDone', withSubtasks: true }],
+  ])('a repeating linked task offers %s', async (name, write) => {
+    await tickLinkedParent(`repeats ${name}`, { repeatText: 'every week' })
+    fireEvent.click(choice(name) as HTMLElement)
+    await waitFor(() => expect(calls('taskLists:writeTask')).toHaveLength(1))
+    const sent = calls('taskLists:writeTask')[0]?.write
+    expect(sent).toMatchObject(write)
+    if (name === 'Only this') expect(sent).not.toHaveProperty('withSubtasks')
+  })
+
+  test('a one-off linked task has no "Only this"', async () => {
+    await tickLinkedParent('one-off', {})
+    expect(choice('Complete all')).toBeVisible()
+    expect(choice('Only this')).toBeNull()
   })
 
   test('moving down keeps subtasks behind their parent', async () => {
@@ -752,6 +850,31 @@ describe('the other pages', () => {
     expect(screen.getByText('My tasks')).toBeTruthy()
     expect(screen.getByText('Household')).toBeTruthy()
     expect(screen.getByText('2 open', { selector: 'span' })).toBeTruthy()
+  })
+
+  test('the gear opens Tasks settings', () => {
+    renderTasks(<TasksIndexPage />)
+    expect(
+      screen.getByRole('link', { name: 'Settings for Tasks' }),
+    ).toHaveAttribute('href', '/tasks/settings')
+  })
+
+  test('the index leaves out what this browser hides, but never Today', () => {
+    const key = 'gather:tasks:hidden-smart-lists'
+    const store = (ids: string[]) =>
+      window.localStorage.setItem(key, JSON.stringify(ids))
+    store(['today', 'mine'])
+    const { unmount } = renderTasks(<TasksIndexPage />)
+    expect(screen.getByText('Nothing due today.')).toBeTruthy()
+    expect(screen.queryByText('My tasks')).toBeNull()
+    expect(screen.getByText('Upcoming')).toBeTruthy()
+    unmount()
+
+    store(['mine', 'upcoming', 'unassigned'])
+    renderTasks(<TasksIndexPage />)
+    expect(screen.queryByText('Smart lists')).toBeNull()
+    expect(screen.getByText('Nothing due today.')).toBeTruthy()
+    window.localStorage.removeItem(key)
   })
 
   test('a new packing list arrives with its sections', async () => {
