@@ -24,11 +24,12 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function renderForm(onDone = vi.fn()) {
+function renderForm(onDone = vi.fn(), timeZone?: string) {
   return renderWithI18n(
     <MultiEventForm
       babyId={babyId}
       groupSlug="jansen-household"
+      timeZone={timeZone}
       onDone={onDone}
       onCancel={vi.fn()}
     />,
@@ -58,6 +59,23 @@ test('saves one entry per checked type, all at the same timestamp', async () => 
   // that Group rather than against every Group the caller is in.
   expect(calls.every((c) => c.groupSlug === 'jansen-household')).toBe(true)
   await waitFor(() => expect(onDone).toHaveBeenCalled())
+})
+
+test("displays and saves the shared time in the Group's time zone", async () => {
+  const now = Date.UTC(2026, 0, 15, 0, 0) // 09:00 in Asia/Tokyo
+  vi.spyOn(Date, 'now').mockReturnValue(now)
+  const { container } = renderForm(vi.fn(), 'Asia/Tokyo')
+
+  const date = container.querySelector<HTMLInputElement>('input[type="date"]')
+  const time = container.querySelector<HTMLInputElement>('input[type="time"]')
+  expect(date?.value).toBe('2026-01-15')
+  expect(time?.value).toBe('09:00')
+
+  fireEvent.change(time as HTMLInputElement, { target: { value: '10:30' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save 3 entries' }))
+
+  await waitFor(() => expect(add).toHaveBeenCalledTimes(3))
+  expect(add.mock.calls[0][0].timestamp).toBe(Date.UTC(2026, 0, 15, 1, 30))
 })
 
 test('unchecking a type drops its block and its entry', async () => {

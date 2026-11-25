@@ -649,10 +649,10 @@ export function parseQuickAdd(text: string, ctx: QuickAddContext): QuickAdd {
   const reminderDate =
     time &&
     !date &&
+    !repeat &&
     reminderDay &&
     dueDate &&
-    compareIsoDates(reminderDay, dueDate) < 0 &&
-    (!repeat || dueDate === ctx.today)
+    compareIsoDates(reminderDay, dueDate) < 0
       ? reminderDay
       : undefined
   return {

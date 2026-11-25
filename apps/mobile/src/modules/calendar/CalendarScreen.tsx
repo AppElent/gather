@@ -118,8 +118,8 @@ export function CalendarScreen({
   /** The whole months the agenda has loaded; scrolling grows it at either end. */
   const [range, setRange] = useState(() => agendaRangeAround(today))
 
-  // When the Group's zone changes (so `today` moves), a calendar sitting on
-  // the previous today follows it; a date the person chose stays put.
+  // When `today` moves (a Group zone change or midnight rollover), a calendar
+  // sitting on the previous today follows it; a date the person chose stays put.
   const [lastToday, setLastToday] = useState(today)
   if (lastToday !== today) {
     setLastToday(today)

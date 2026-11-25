@@ -74,6 +74,7 @@ export function Timeline({
                     <EventForm
                       babyId={babyId}
                       groupSlug={groupSlug}
+                      timeZone={timeZone}
                       type={event.type}
                       event={event}
                       onDone={() => setEditingId(null)}

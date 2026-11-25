@@ -198,6 +198,10 @@ describe('parseQuickAdd', () => {
       time: '09:00',
     })
     expect(parse('Pills at 9:00', ahead).reminderDate).toBeUndefined()
+    // A repeat does not lock a travel offset into reminderDate for every future occurrence.
+    const repeating = parse('Pills at 22:00 every day', ahead)
+    expect(repeating).toMatchObject({ dueDate: '2026-11-19', time: '22:00' })
+    expect(repeating.reminderDate).toBeUndefined()
     expect(parse('Pills tomorrow', ahead).dueDate).toBe('2026-11-20')
   })
 

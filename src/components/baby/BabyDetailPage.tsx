@@ -165,6 +165,7 @@ export function BabyDetailPage({ babyId }: BabyDetailPageProps) {
       <QuickLogButtons
         babyId={id}
         groupSlug={groupSlug}
+        timeZone={timeZone}
         untrackedTypes={baby.untrackedTypes}
         barOrder={baby.barOrder}
       />
