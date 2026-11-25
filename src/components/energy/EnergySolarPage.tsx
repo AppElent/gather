@@ -419,7 +419,7 @@ function Assets({
     day: day.day,
     solarEur: day.solarEur,
     batteryEur: day.batteryEur,
-    solarMeasured: day.producedKwh !== null,
+    solarMeasured: day.selfUsedKwh !== null,
     batteryMeasured: day.battery !== null,
   }))
   return (

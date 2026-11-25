@@ -742,11 +742,23 @@ export async function computeEnergyRange(
     }),
   )
 
+  const solarSince = options.solar
+    ? await firstHourOf(
+        ctx,
+        channels.filter((each) => each.channel.kind === 'solar' && !each.manual),
+      )
+    : null
   const solarDays = options.solar
     ? days.map((day) =>
         energySolarDay(
           day,
-          solarHours(day, hourBuckets, energyContractOn(contracts, day), prices),
+          solarHours(
+            day,
+            hourBuckets,
+            energyContractOn(contracts, day),
+            prices,
+            solarSince,
+          ),
         ),
       )
     : []
@@ -754,17 +766,43 @@ export async function computeEnergyRange(
   return { days: result, hours, contracts, solarDays }
 }
 
-/** A day's hours as `energySolarDay` reads them, each with its price. */
+/** The first hour any of `channels` has a figure for. */
+export async function firstHourOf(
+  ctx: QueryCtx,
+  channels: readonly ChannelWithSource[],
+): Promise<number | null> {
+  const first = await Promise.all(
+    channels.map(({ channel }) =>
+      ctx.db
+        .query('energyIntervals')
+        .withIndex('by_channel_hour', (q) => q.eq('channelId', channel._id))
+        .first(),
+    ),
+  )
+  const starts = first.flatMap((each) => (each ? [each.hourStart] : []))
+  return starts.length ? Math.min(...starts) : null
+}
+
+/**
+ * A day's hours as `energySolarDay` reads them, each with its price. An
+ * inverter that is off at night reports no figure then: on a day it reported
+ * at all, such an hour made nothing. Hours before `solarSince`, when solar
+ * was not measured yet, stay unknown.
+ */
 function solarHours(
   day: string,
   buckets: ReadonlyMap<number, Bucket>,
   contract: Doc<'energyContracts'> | undefined,
   prices: SitePrices,
+  solarSince: number | null,
 ): EnergySolarHour[] {
   const hours = amsterdamDayHours(day).flatMap((at) => {
     const bucket = buckets.get(at)
     return bucket ? [{ at, bucket }] : []
   })
+  const reported = hours.some(({ bucket }) => bucket.solar !== null)
+  const off = (at: number) =>
+    reported && solarSince !== null && at >= solarSince ? 0 : null
   // A split meter counts an hour on the tariff that applied; an hour it
   // counted nothing in has the tariff of the hour before it.
   const tariffs = hours.map(({ bucket }) => hourTariff(bucket))
@@ -774,7 +812,7 @@ function solarHours(
     return {
       importKwh: bucket.importMeasured ? sum(bucket.importKwh) : null,
       exportKwh: bucket.exportMeasured ? sum(bucket.exportKwh) : null,
-      solarKwh: bucket.solar,
+      solarKwh: bucket.solar ?? off(at),
       chargeKwh: bucket.charge,
       dischargeKwh: bucket.discharge,
       importPrice: energyHourImportPrice(

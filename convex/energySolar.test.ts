@@ -103,6 +103,17 @@ describe('a month', () => {
     expect(month?.days).toHaveLength(20)
   })
 
+  test('an hour the inverter was off made nothing; one before it was connected is unknown', async () => {
+    const { t } = await seedHours({ ...FULL, solar: { 12: 3 } })
+    const month = await t.withIdentity(bob).query(api.energySolar.month, MONTH)
+    // Not 03:00 (before solar was measured); 18:00 counts, with its import.
+    expect(month?.days.find((each) => each.day === DAY)).toMatchObject({
+      producedKwh: 3,
+      consumptionKwh: 5,
+      ownKwh: 4,
+    })
+  })
+
   test('a dynamic contract without prices has a battery without a value', async () => {
     const { t } = await seedHours(FULL, DYNAMIC_TERMS)
     const month = await t.withIdentity(bob).query(api.energySolar.month, MONTH)

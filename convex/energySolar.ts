@@ -23,6 +23,7 @@ import { energyAssetTermsValidator } from './lib/energy'
 import {
   computeEnergyRange,
   type EnergyDay,
+  firstHourOf,
   primarySiteOf,
   siteAssets,
   siteChannels,
@@ -116,19 +117,12 @@ export const month = query({
     }
     if (status !== 'ok') return { ...base, firstDay: null, days: [] }
 
-    const first = await Promise.all(
-      measured
-        .filter(({ channel }) =>
-          ['solar', 'batteryCharge', 'batteryDischarge'].includes(channel.kind),
-        )
-        .map(({ channel }) =>
-          ctx.db
-            .query('energyIntervals')
-            .withIndex('by_channel_hour', (q) => q.eq('channelId', channel._id))
-            .first(),
-        ),
+    const first = await firstHourOf(
+      ctx,
+      measured.filter(({ channel }) =>
+        ['solar', 'batteryCharge', 'batteryDischarge'].includes(channel.kind),
+      ),
     )
-    const starts = first.flatMap((each) => (each ? [each.hourStart] : []))
     const range = await computeEnergyRange(
       ctx,
       site,
@@ -138,7 +132,7 @@ export const month = query({
     )
     return {
       ...base,
-      firstDay: starts.length ? amsterdamDayOf(Math.min(...starts)) : null,
+      firstDay: first === null ? null : amsterdamDayOf(first),
       days: range.solarDays.map((day, index) => {
         const { battery: each } = day
         return {
