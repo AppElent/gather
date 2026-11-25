@@ -24,6 +24,20 @@ export const settings = {
   },
 
   /**
+   * The way to the AppElent account portal, on the web's Account page and the
+   * phone's Account screen. `title`, `description` and `newTab` are the web's.
+   */
+  accountPortal: {
+    title: 'AppElent account',
+    description:
+      'Your login works in every AppElent app. Manage your email addresses, sign-in methods, devices and two-step verification there.',
+    action: 'Manage your AppElent account',
+    /** Read by a screen reader after the action. */
+    newTab: '(opens in a new tab)',
+    failed: 'Your AppElent account could not be opened. Try again.',
+  },
+
+  /**
    * "Signed-in devices" on the web's Account page. The phone's Devices screen
    * says the same (`apps/mobile/src/i18n/messages/en.ts`, `account.sessions`).
    * The session you are holding is not revocable from itself: that is Sign out.

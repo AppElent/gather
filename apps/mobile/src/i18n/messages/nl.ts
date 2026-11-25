@@ -392,6 +392,8 @@ export const nl = {
 
     dataExport: coreNl.settings.dataExport,
 
+    portal: coreNl.settings.accountPortal,
+
     editName: {
       title: 'Naam',
       description: 'Wat andere leden van je Groepen zien.',

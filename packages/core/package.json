@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./account-deletion": "./src/accountDeletion.ts",
+    "./account-portal": "./src/accountPortal.ts",
     "./ai-limit": "./src/aiLimit.ts",
     "./appearance": "./src/appearance.ts",
     "./apple-sign-in": "./src/appleSignIn.ts",
@@ -12,6 +13,7 @@
     "./baby-events": "./src/babyEvents.ts",
     "./barcodes": "./src/barcodes.ts",
     "./calendar": "./src/calendar.ts",
+    "./calendar-sources": "./src/calendarSources.ts",
     "./civil-date": "./src/civilDate.ts",
     "./data-export": "./src/dataExport.ts",
     "./decimal": "./src/decimal.ts",

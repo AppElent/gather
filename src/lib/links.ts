@@ -65,6 +65,10 @@ export const ROUTES = {
   groceriesItem: '/groceries/item/$itemId',
 
   note: '/notes/$noteId',
+
+  calendarDay: '/calendar/day/$date',
+  calendarEvent: '/calendar/event/$eventId',
+
   taskList: '/tasks/$listId',
   smartTaskList: '/tasks/smart/$smartList',
   task: '/tasks/task/$taskId',

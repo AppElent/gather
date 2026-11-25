@@ -24,7 +24,14 @@ import { type AppLink, linkTo } from './links'
 
 export type CreateMessages = Pick<
   Messages,
-  'modules' | 'recipes' | 'baby' | 'loyaltyCards' | 'notes' | 'tasks' | 'tastings'
+  | 'modules'
+  | 'recipes'
+  | 'baby'
+  | 'loyaltyCards'
+  | 'notes'
+  | 'tasks'
+  | 'tastings'
+  | 'calendar'
 >
 
 export interface CreateAction {
@@ -44,7 +51,9 @@ type CreateDef = (messages: CreateMessages) => {
 }
 
 /** Opens a Module's index with its create dialog already open. */
-const onIndex = (to: '/tasks' | '/notes' | '/cheeses' | '/wines' | '/beers'): AppLink => ({
+const onIndex = (
+  to: '/tasks' | '/notes' | '/cheeses' | '/wines' | '/beers' | '/calendar',
+): AppLink => ({
   to,
   search: { new: true },
 })
@@ -64,6 +73,7 @@ const CREATE: Record<ModuleId, CreateDef | null> = {
   wines: (m) => ({ label: m.tastings.index.add, link: onIndex('/wines') }),
   beers: (m) => ({ label: m.tastings.index.add, link: onIndex('/beers') }),
   notes: (m) => ({ label: m.notes.newNote, link: onIndex('/notes') }),
+  calendar: (m) => ({ label: m.calendar.newEvent, link: onIndex('/calendar') }),
   // Readings arrive from the meter, not from a form.
   energy: null,
   // Not built on the web yet (`status: 'placeholder'`).
@@ -72,7 +82,6 @@ const CREATE: Record<ModuleId, CreateDef | null> = {
   'recurring-costs': null,
   'shared-costs': null,
   'savings-goals': null,
-  calendar: null,
 }
 
 function actionFor(
