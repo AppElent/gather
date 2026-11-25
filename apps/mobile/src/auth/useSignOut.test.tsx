@@ -212,10 +212,23 @@ test.each([null, undefined])(
 )
 
 test('a sign-out Clerk refuses still leaves the account (APP-824)', async () => {
-  state.signOut = () => Promise.reject(new Error('offline'))
+  state.signOut = () => {
+    state.sessionId = undefined
+    return Promise.reject(new Error('refused'))
+  }
   leave('useSignOut')
   await settle()
   expect(state.activated).toEqual([{ session: null }])
+})
+
+test('a refused sign-out leaves a session that became current meanwhile alone (APP-824)', async () => {
+  state.signOut = () => {
+    state.sessionId = 'sess_2'
+    return Promise.reject(new Error('refused'))
+  }
+  leave('useSignOut')
+  await settle()
+  expect(state.activated).toEqual([])
 })
 
 test('useForgetAccount leaves the Clerk session alone', async () => {

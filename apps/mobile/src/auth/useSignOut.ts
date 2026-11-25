@@ -57,11 +57,15 @@ export function useEndSession(): (sessionId: string) => void {
   return useCallback(
     (sessionId: string) => {
       forgetAccount()
-      // A failed request rejects with Clerk still between sessions, which the
-      // app shows as loading for good. The person has left either way.
+      // A failed request can leave Clerk between sessions, which the app shows
+      // as loading for good. The person has left either way; a session that
+      // became current meanwhile is not theirs to end.
       clerk
         .signOut({ sessionId })
-        .catch(() => clerk.setActive({ session: null }))
+        .catch(() => {
+          if (clerk.session === undefined)
+            return clerk.setActive({ session: null })
+        })
         .catch(() => {})
     },
     [clerk, forgetAccount],
