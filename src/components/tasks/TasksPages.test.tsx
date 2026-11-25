@@ -988,7 +988,7 @@ describe('the other pages', () => {
   test('the gear opens Tasks settings', () => {
     renderTasks(<TasksIndexPage />)
     expect(
-      screen.getByRole('link', { name: 'Settings for Tasks' }),
+      screen.getByRole('link', { name: 'Tasks settings' }),
     ).toHaveAttribute('href', '/tasks/settings')
   })
 

@@ -1,9 +1,10 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { renderInGroup } from '../app/testing'
+import { renderInGroup, TEST_GROUP } from '../app/testing'
 import { GroceriesItemPage } from './GroceriesNestedPages'
 import { GroceriesPage } from './GroceriesPage'
+import { GroceriesSettingsPage } from './GroceriesSettingsPage'
 import { RecentPanel } from './RecentPanel'
 
 const state = vi.hoisted(() => ({
@@ -45,8 +46,19 @@ vi.mock('@tanstack/react-router', () => ({
       ? { status: 'blocked', proceed: () => {}, reset: () => {} }
       : { status: 'idle' }
   },
-  Link: ({ children, to }: { children: ReactNode; to: string }) => (
-    <a href={to}>{children}</a>
+  Link: ({
+    children,
+    to,
+    search,
+    ...rest
+  }: {
+    children: ReactNode
+    to: string
+    search?: Record<string, string>
+  }) => (
+    <a href={search ? `${to}?${new URLSearchParams(search)}` : to} {...rest}>
+      {children}
+    </a>
   ),
 }))
 
@@ -319,4 +331,95 @@ test('Recent puts an item back and marks what is already open', async () => {
     }),
   )
   expect(screen.queryByRole('button', { name: /melk/ })).toBeNull()
+})
+
+describe('settings', () => {
+  const suggestions = () => screen.getByRole('switch', { name: 'Maybe needed' })
+  const saved = () => callsOf('taskLists:setSuggestions')
+
+  test('the gear opens the settings of the list on screen', () => {
+    renderInGroup(<GroceriesPage selectedListId="l2" />, { locale: 'nl' })
+    expect(
+      screen.getByRole('link', { name: 'Instellingen van Boodschappen' }),
+    ).toHaveAttribute('href', '/groceries/settings?list=l2')
+  })
+
+  test('without a grocery list there is nothing to set, so no gear', () => {
+    state.queries['taskLists:list'] = []
+    renderInGroup(<GroceriesPage />)
+    expect(screen.queryByRole('link', { name: 'Groceries settings' })).toBeNull()
+  })
+
+  test('the page is of the list the gear was pressed on', () => {
+    renderInGroup(<GroceriesSettingsPage listId="l2" />)
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Groceries settings' }),
+    ).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 2, name: 'Markt' })).toBeTruthy()
+    expect(
+      screen.getByText('For Markt, shared with everyone in Jansen household.'),
+    ).toBeTruthy()
+  })
+
+  test('the address without a list opens the list last used', () => {
+    window.localStorage.setItem(`gather:last-grocery-list:${TEST_GROUP.slug}`, 'l2')
+    renderInGroup(<GroceriesSettingsPage />)
+    expect(screen.getByRole('heading', { level: 2, name: 'Markt' })).toBeTruthy()
+  })
+
+  test('suggestions switch at once, for the list, one write at a time', async () => {
+    renderInGroup(<GroceriesSettingsPage listId="l2" />)
+    expect(suggestions()).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(suggestions())
+    expect(suggestions()).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(suggestions())
+    expect(saved()).toEqual([
+      { listId: 'l2', groupSlug: TEST_GROUP.slug, on: false },
+    ])
+    // Settled: it reads the list again, which this test leaves as it was.
+    await waitFor(() =>
+      expect(suggestions()).toHaveAttribute('aria-checked', 'true'),
+    )
+  })
+
+  test('a refused switch goes back and says so', async () => {
+    state.fail.add('taskLists:setSuggestions')
+    renderInGroup(<GroceriesSettingsPage listId="l2" />)
+    fireEvent.click(suggestions())
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(suggestions()).toHaveAttribute('aria-checked', 'true')
+  })
+
+  test('the aisle order opens its dialog and saves for the list', async () => {
+    renderInGroup(<GroceriesSettingsPage listId="l2" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Aisle order' }))
+    const dialog = screen.getByRole('dialog', { name: 'Aisle order' })
+    fireEvent.click(
+      within(dialog).getAllByRole('button', { name: /^Move .* down$/ })[0],
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(callsOf('taskLists:setAisleOrder')).toMatchObject([
+      { listId: 'l2', groupSlug: TEST_GROUP.slug },
+    ])
+  })
+
+  test('a linked list that cannot be written has no aisle order and a switch that stays put', () => {
+    state.queries['taskLists:list'] = [
+      { ...list('l3', 'Google', 1), provider: 'google', writable: false },
+    ]
+    renderInGroup(<GroceriesSettingsPage />)
+    expect(screen.queryByRole('button', { name: 'Aisle order' })).toBeNull()
+    expect(suggestions()).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(suggestions())
+    expect(saved()).toEqual([])
+  })
+
+  test('without a list it leads back to make one', () => {
+    state.queries['taskLists:list'] = []
+    renderInGroup(<GroceriesSettingsPage />)
+    expect(
+      screen.getByRole('link', { name: 'New grocery list' }),
+    ).toHaveAttribute('href', '/groceries')
+  })
 })

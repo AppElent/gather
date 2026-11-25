@@ -1,10 +1,14 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { BabyListPage } from '../baby/BabyListPage'
 import { BabySettingsPage } from '../baby/BabySettingsPage'
-import { useHiddenSmartLists } from '../tasks/hiddenSmartLists'
+import {
+  resetHiddenSmartListsForTests,
+  useHiddenSmartLists,
+} from '../tasks/hiddenSmartLists'
 import { TasksSettingsPage } from '../tasks/TasksSettingsPage'
+import { InsetRow } from './InsetList'
 import { renderInGroup } from './testing'
 
 const state = vi.hoisted(() => ({ babies: undefined as unknown }))
@@ -40,7 +44,11 @@ const MILA = {
 
 beforeEach(() => {
   state.babies = [MILA]
+  window.localStorage.clear()
+  resetHiddenSmartListsForTests()
 })
+
+afterEach(() => vi.restoreAllMocks())
 
 describe('Baby log', () => {
   test('the gear opens the settings page', () => {
@@ -121,4 +129,52 @@ test('Tasks settings switch a smart list, kept under the phone’s key', () => {
   fireEvent(window, new StorageEvent('storage', { key }))
   expect(toggle('Upcoming')).toHaveAttribute('aria-checked', 'false')
   expect(screen.getByTestId('hidden')).toHaveTextContent('upcoming')
+})
+
+test('Tasks settings show every list when the browser refuses its storage', () => {
+  vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+    throw new Error('blocked')
+  })
+  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    throw new Error('blocked')
+  })
+  renderInGroup(<TasksSettingsPage />)
+  const mine = screen.getByRole('switch', { name: 'My tasks' })
+  expect(mine).toHaveAttribute('aria-checked', 'true')
+
+  // The choice still holds until the page closes.
+  fireEvent.click(mine)
+  expect(mine).toHaveAttribute('aria-checked', 'false')
+})
+
+describe('InsetRow as a switch', () => {
+  test('says whether it is on and passes the press on', () => {
+    const onClick = vi.fn()
+    renderInGroup(
+      <InsetRow title="Reminders" switchedOn={false} onClick={onClick} />,
+    )
+    const row = screen.getByRole('switch', { name: 'Reminders' })
+    expect(row).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(row)
+    expect(onClick).toHaveBeenCalledOnce()
+  })
+
+  test('disabled, it ignores the press', () => {
+    const onClick = vi.fn()
+    renderInGroup(
+      <InsetRow title="Reminders" switchedOn disabled onClick={onClick} />,
+    )
+    const row = screen.getByRole('switch', { name: 'Reminders' })
+    expect(row).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(row)
+    expect(onClick).not.toHaveBeenCalled()
+  })
+
+  test('without switchedOn a pressable row is a plain button', () => {
+    renderInGroup(<InsetRow title="Aisle order" onClick={() => {}} />)
+    expect(screen.queryByRole('switch')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Aisle order' })).not.toHaveAttribute(
+      'aria-checked',
+    )
+  })
 })

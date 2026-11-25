@@ -15,13 +15,11 @@ import {
 import { X } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { fmt, plural, useI18n } from '../../lib/i18n'
-import { linkTo } from '../../lib/links'
-import { Breadcrumbs } from '../app/Breadcrumbs'
 import { buttonClass } from '../app/buttons'
 import { SectionFooter, SectionLabel } from '../app/InsetList'
 import { ListLoadingState } from '../app/ListDetailLayout'
+import { ModuleSettingsPage } from '../app/ModuleSettingsPage'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
-import { WashHeader } from '../app/WashHeader'
 import { inputClass } from '../recipes/fields'
 import { Chip, DayCell, Stepper } from './parts'
 import { useMealPreferences } from './useMealPreferences'
@@ -29,31 +27,17 @@ import { useMealPreferences } from './useMealPreferences'
 const LIMITS = MEAL_PREFERENCE_LIMITS
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const
 
-/** The household's standing meal preferences; every control saves at once. */
+/**
+ * Meal planner settings: the household's standing meal preferences, as on the
+ * phone. Every control saves at once.
+ */
 export function MealPreferencesPage() {
   const group = useRequiredCurrentGroup()
-  const { messages: t } = useI18n()
-  const m = t.mealPreferences
-  const parent = {
-    label: t.modules.byId['meal-planner'].label,
-    link: linkTo('meal-planner'),
-  }
   return (
-    <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-4">
-      <Breadcrumbs
-        trail={[parent, { label: m.title }]}
-        backInHeader
-        className="-mb-1"
-      />
-      <WashHeader
-        group="kitchen"
-        icon="CalendarHeart"
-        title={m.title}
-        back={parent}
-      />
+    <ModuleSettingsPage moduleId="meal-planner">
       {/* Keyed by Group: a half-typed value must not be saved into another. */}
       <Preferences key={group.slug} />
-    </div>
+    </ModuleSettingsPage>
   )
 }
 

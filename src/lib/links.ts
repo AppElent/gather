@@ -60,6 +60,7 @@ export const ROUTES = {
   recipe: '/recipes/$recipeId',
   editRecipe: '/recipes/$recipeId/edit',
 
+  groceriesSettings: '/groceries/settings',
   groceriesRecent: '/groceries/recent',
   groceriesInStock: '/groceries/in-stock',
   groceriesItem: '/groceries/item/$itemId',

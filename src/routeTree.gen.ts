@@ -50,6 +50,7 @@ import { Route as AppEnergyUsageRouteImport } from './routes/_app/energy/usage'
 import { Route as AppGroceriesIndexRouteImport } from './routes/_app/groceries/index'
 import { Route as AppGroceriesInStockRouteImport } from './routes/_app/groceries/in-stock'
 import { Route as AppGroceriesRecentRouteImport } from './routes/_app/groceries/recent'
+import { Route as AppGroceriesSettingsRouteImport } from './routes/_app/groceries/settings'
 import { Route as AppIntegrationsCallbackRouteImport } from './routes/_app/integrations.callback'
 import { Route as AppLoyaltyCardsIndexRouteImport } from './routes/_app/loyalty-cards/index'
 import { Route as AppLoyaltyCardsNewRouteImport } from './routes/_app/loyalty-cards/new'
@@ -287,6 +288,11 @@ const AppGroceriesRecentRoute = AppGroceriesRecentRouteImport.update({
   path: '/groceries/recent',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGroceriesSettingsRoute = AppGroceriesSettingsRouteImport.update({
+  id: '/groceries/settings',
+  path: '/groceries/settings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppIntegrationsCallbackRoute = AppIntegrationsCallbackRouteImport.update({
   id: '/integrations/callback',
   path: '/integrations/callback',
@@ -488,6 +494,7 @@ export interface FileRoutesByFullPath {
   '/energy/usage': typeof AppEnergyUsageRoute
   '/groceries/in-stock': typeof AppGroceriesInStockRoute
   '/groceries/recent': typeof AppGroceriesRecentRoute
+  '/groceries/settings': typeof AppGroceriesSettingsRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
   '/meal-planner/settings': typeof AppMealPlannerSettingsRoute
@@ -560,6 +567,7 @@ export interface FileRoutesByTo {
   '/energy/usage': typeof AppEnergyUsageRoute
   '/groceries/in-stock': typeof AppGroceriesInStockRoute
   '/groceries/recent': typeof AppGroceriesRecentRoute
+  '/groceries/settings': typeof AppGroceriesSettingsRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
   '/meal-planner/settings': typeof AppMealPlannerSettingsRoute
@@ -636,6 +644,7 @@ export interface FileRoutesById {
   '/_app/energy/usage': typeof AppEnergyUsageRoute
   '/_app/groceries/in-stock': typeof AppGroceriesInStockRoute
   '/_app/groceries/recent': typeof AppGroceriesRecentRoute
+  '/_app/groceries/settings': typeof AppGroceriesSettingsRoute
   '/_app/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/_app/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
   '/_app/meal-planner/settings': typeof AppMealPlannerSettingsRoute
@@ -712,6 +721,7 @@ export interface FileRouteTypes {
     | '/energy/usage'
     | '/groceries/in-stock'
     | '/groceries/recent'
+    | '/groceries/settings'
     | '/integrations/callback'
     | '/loyalty-cards/new'
     | '/meal-planner/settings'
@@ -784,6 +794,7 @@ export interface FileRouteTypes {
     | '/energy/usage'
     | '/groceries/in-stock'
     | '/groceries/recent'
+    | '/groceries/settings'
     | '/integrations/callback'
     | '/loyalty-cards/new'
     | '/meal-planner/settings'
@@ -859,6 +870,7 @@ export interface FileRouteTypes {
     | '/_app/energy/usage'
     | '/_app/groceries/in-stock'
     | '/_app/groceries/recent'
+    | '/_app/groceries/settings'
     | '/_app/integrations/callback'
     | '/_app/loyalty-cards/new'
     | '/_app/meal-planner/settings'
@@ -1200,6 +1212,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGroceriesRecentRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/groceries/settings': {
+      id: '/_app/groceries/settings'
+      path: '/groceries/settings'
+      fullPath: '/groceries/settings'
+      preLoaderRoute: typeof AppGroceriesSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/integrations/callback': {
       id: '/_app/integrations/callback'
       path: '/integrations/callback'
@@ -1492,6 +1511,7 @@ interface AppRouteChildren {
   AppEnergyUsageRoute: typeof AppEnergyUsageRoute
   AppGroceriesInStockRoute: typeof AppGroceriesInStockRoute
   AppGroceriesRecentRoute: typeof AppGroceriesRecentRoute
+  AppGroceriesSettingsRoute: typeof AppGroceriesSettingsRoute
   AppIntegrationsCallbackRoute: typeof AppIntegrationsCallbackRoute
   AppLoyaltyCardsNewRoute: typeof AppLoyaltyCardsNewRoute
   AppNotesNoteIdRoute: typeof AppNotesNoteIdRoute
@@ -1550,6 +1570,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEnergyUsageRoute: AppEnergyUsageRoute,
   AppGroceriesInStockRoute: AppGroceriesInStockRoute,
   AppGroceriesRecentRoute: AppGroceriesRecentRoute,
+  AppGroceriesSettingsRoute: AppGroceriesSettingsRoute,
   AppIntegrationsCallbackRoute: AppIntegrationsCallbackRoute,
   AppLoyaltyCardsNewRoute: AppLoyaltyCardsNewRoute,
   AppNotesNoteIdRoute: AppNotesNoteIdRoute,
