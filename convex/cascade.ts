@@ -17,9 +17,9 @@ import type { MutationCtx } from './_generated/server'
 import { internalMutation } from './_generated/server'
 import { writePauseMs } from './lib/energyWritePace'
 import { destroyGroup, detachFromGroup, purgeGroupPage } from './lib/groupCascade'
-import { deletePushData } from './lib/notifications'
+import { cancelJob } from './lib/notifications'
+import { drain, newPurgePage, pauseMs } from './lib/purgePage'
 import { deleteStoredFile } from './lib/storedFiles'
-import { deleteWatchDevices } from './lib/watchDevices'
 
 /**
  * How many blobs one step releases.
@@ -120,7 +120,9 @@ export const purgeAccountPrices = internalMutation({
 })
 
 /**
- * Delete a person's account, one Group per step, then the person.
+ * Delete a person's account, one Group per step, then the person
+ * (`finishAccount`). A step that failed is run again with its own arguments:
+ * without its `groupIds`, the solo Groups in them are left, not destroyed.
  *
  * The order is the whole design. Their Groups go first — one per invocation,
  * so no single household can be too large — and the `users` row goes *last*,
@@ -153,10 +155,14 @@ export const purgeAccount = internalMutation({
 })
 
 /**
- * Everything of theirs that is not a Group's, and then the row itself.
+ * Everything of theirs that is not a Group's, and then the row itself, in
+ * steps: a page of their own rows each (`purgePage.ts`), then one shared Group
+ * each (APP-843). Every step looks from the start and only one that leaves
+ * nothing deletes the `users` row, so after a failed step the next run goes on
+ * from there.
  *
- * The AI usage counter, retry receipts, push phones and queued push
- * notifications belong to the person rather than to a Group and are reached
+ * Watches, push phones, queued push notifications, the AI usage counter and
+ * retry receipts belong to the person rather than to a Group and are reached
  * by index. What is left in the Groups they shared is deliberately
  * *not* deleted: `createdBy` and its siblings are attribution and never conferred
  * access, so a dangling one costs nothing and the household keeps what it was
@@ -168,30 +174,76 @@ async function finishAccount(
   ctx: MutationCtx,
   userId: Id<'users'>,
 ) {
-  const usage = await ctx.db
-    .query('aiUsage')
-    .withIndex('by_user_and_day', (q) => q.eq('userId', userId))
-    .collect()
-  for (const row of usage) await ctx.db.delete(row._id)
-  const receipts = await ctx.db
-    .query('idempotencyKeys')
-    .withIndex('by_user_and_key', (q) => q.eq('userId', userId))
-    .collect()
-  for (const row of receipts) await ctx.db.delete(row._id)
-  // Their phones and queued push notifications (APP-298).
-  await deletePushData(ctx, userId)
-  // Their watches' keys (APP-653).
-  await deleteWatchDevices(ctx, userId)
+  const page = newPurgePage()
+  // Their watches' keys first (APP-653): they are credentials.
+  const empty =
+    (await drain(
+      ctx,
+      page,
+      'watchDevices',
+      ctx.db
+        .query('watchDevices')
+        .withIndex('by_user', (q) => q.eq('userId', userId)),
+    )) &&
+    (await drain(
+      ctx,
+      page,
+      'pushDevices',
+      ctx.db
+        .query('pushDevices')
+        .withIndex('by_user', (q) => q.eq('userId', userId)),
+    )) &&
+    (await drain(
+      ctx,
+      page,
+      'scheduledNotifications',
+      ctx.db
+        .query('scheduledNotifications')
+        .withIndex('by_user_and_key', (q) => q.eq('userId', userId)),
+      async (send) => {
+        await cancelJob(ctx, send.jobId)
+        return true
+      },
+    )) &&
+    (await drain(
+      ctx,
+      page,
+      'aiUsage',
+      ctx.db
+        .query('aiUsage')
+        .withIndex('by_user_and_day', (q) => q.eq('userId', userId)),
+    )) &&
+    (await drain(
+      ctx,
+      page,
+      'idempotencyKeys',
+      ctx.db
+        .query('idempotencyKeys')
+        .withIndex('by_user_and_key', (q) => q.eq('userId', userId)),
+    ))
+  if (!empty) {
+    await ctx.scheduler.runAfter(
+      pauseMs(page),
+      internal.cascade.purgeAccount,
+      { userId, groupIds: [] },
+    )
+    return
+  }
 
   // Whatever memberships are left are the shared Groups — the solo ones went
   // with their Group.
-  const memberships = await ctx.db
+  const membership = await ctx.db
     .query('memberships')
     .withIndex('by_user', (q) => q.eq('userId', userId))
-    .collect()
-  for (const membership of memberships) {
+    .first()
+  if (membership) {
     await detachFromGroup(ctx, userId, membership.groupId)
     await ctx.db.delete(membership._id)
+    await ctx.scheduler.runAfter(0, internal.cascade.purgeAccount, {
+      userId,
+      groupIds: [],
+    })
+    return
   }
 
   await ctx.db.delete(userId)

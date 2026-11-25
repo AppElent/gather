@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 3.0.0
+version: 3.1.0
 status: current
 ---
 
@@ -54,9 +54,16 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
 - A table of a person's own rows (`userId`, no `groupId`: `aiUsage`,
   `idempotencyKeys`, `pushDevices`, `scheduledNotifications`) is not in the
   cascade; `cascade.finishAccount` deletes it by index, so a new one is added
-  there by hand. Queued push notifications have their scheduled jobs
-  cancelled with them (`deletePushData` in `convex/lib/notifications.ts`). [Data export](data-export.md)
-  reads the same tables, and its registry fails `pnpm typecheck` for a new one.
+  there by hand. Those rows go a page per step
+  (`convex/lib/purgePage.ts`), then one shared Group per step, and the `users`
+  row goes in the step that leaves nothing (APP-843). A `cascade.purgeAccount`
+  step that failed is run again by hand with its own arguments and goes on from
+  there, unless one shared Group alone is over the limit; without its
+  `groupIds`, the solo Groups in them would be left, not destroyed. Queued push
+  notifications have their scheduled jobs cancelled with them (`cancelJob` in
+  `convex/lib/notifications.ts`).
+  [Data export](data-export.md) reads the same tables, and its registry fails
+  `pnpm typecheck` for a new one.
 - **A paired watch goes with its person, its Group or its Membership**
   (`watchDevices`, APP-653): `finishAccount` and `destroyGroup` delete the rows
   and `detachFromGroup` deletes that Member's. Deleting a grocery list clears
