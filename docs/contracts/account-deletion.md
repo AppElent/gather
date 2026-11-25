@@ -32,7 +32,7 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   writes: an action or scheduled run may finish after the deletion.
   `storeConnection` and `takeBudget` refuse a Group that is gone (APP-877).
 - The files of the deleted rows travel along and are released after the last
-  page, because a release scans every photo-holding table. A step that failed
+  page, ten per step, when no row of the Group can keep one. A step that failed
   for good is run again by hand with its own arguments, which hold their ids.
 - A Member's default Group is cleared with their membership. Somebody who left
   before may keep a `defaultGroupId` that points at nothing; nothing opens it.

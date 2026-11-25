@@ -30,10 +30,9 @@
  *
  * ## Blobs come back rather than going here
  *
- * `deleteStoredFile` asks whether any row in any photo-holding table still
- * points at a blob, so it costs a scan of each of them per photo. So the
- * storage ids travel along with the steps and are released by scheduled work
- * after the last one, when that scan no longer reads this Group's rows.
+ * `deleteStoredFile` keeps a blob some row still points at. So the storage ids
+ * travel along with the steps and are released by scheduled work after the last
+ * one, when none of this Group's rows can be what keeps it.
  */
 
 import { internal } from '../_generated/api'
