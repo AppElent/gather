@@ -19,9 +19,9 @@ export function RecordPage(props: RecordPageProps) {
   )
 }
 
-function RecordPageBody({ kind, id, week }: RecordPageProps) {
+function RecordPageBody({ kind, id }: RecordPageProps) {
   const { messages: t } = useI18n()
-  const { data, drafts } = useWorkspace()
+  const { week, data, drafts } = useWorkspace()
   const title =
     (kind === 'meal' ? data?.meals : drafts)?.find((each) => each._id === id)
       ?.title ?? t.mealPlanner.web.panel

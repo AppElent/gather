@@ -49,8 +49,8 @@ test('a row opens the panel on a desktop and its own page below', () => {
   expect(
     recordLink({ kind: 'meal', id: 'm1' }, '2026-11-23', true),
   ).toMatchObject({ search: { week: '2026-11-23', meal: 'm1' } })
-  expect(recordLink({ kind: 'draft', id: 'd1' }, undefined, false)).toMatchObject(
-    { params: { draftId: 'd1' }, search: {} },
+  expect(recordLink({ kind: 'draft', id: 'd1' }, '2026-11-23', false)).toMatchObject(
+    { params: { draftId: 'd1' }, search: { week: '2026-11-23' } },
   )
   expect(weekLink(undefined).search).toEqual({})
 })

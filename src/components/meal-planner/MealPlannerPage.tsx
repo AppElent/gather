@@ -39,7 +39,8 @@ function WeekBody({ search }: { search: WeekSearch }) {
     : search.draft
       ? ({ kind: 'draft', id: search.draft } as const)
       : undefined
-  const close = () => void navigate(weekLink(week))
+  const close = () =>
+    void navigate({ ...weekLink(week), resetScroll: false })
   useCloseOnEscape(Boolean(selection), close)
   const summary = data ? weekSummary(data, from) : undefined
 

@@ -92,7 +92,8 @@ export function SwapDialog({
   data: WeekData
   onClose: () => void
   /** From the Limit card: Pick for this slot. */
-  onChooseYourself: () => void
+  /** With what is planned in the slot now, if anything. */
+  onChooseYourself: (replacing?: Id<'plannedDinners'>) => void
 }) {
   const group = useRequiredCurrentGroup()
   const { locale, messages: t } = useI18n()
@@ -328,7 +329,8 @@ export function SwapDialog({
       </p>
     ) : null
   const limitCard = (
-    <LimitCard used={limit} limit={limit} onChooseYourself={onChooseYourself} />
+    <LimitCard used={limit} limit={limit} onChooseYourself={() => onChooseYourself(chosen?.id ?? replacing)}
+    />
   )
   const offline = online ? null : (
     <p role="status" className="m-0 text-subhead text-[var(--muted)]">
@@ -348,7 +350,9 @@ export function SwapDialog({
 
   if (view === 'idea') {
     return (
+      // Keyed: another view moves focus in again.
       <Dialog
+        key="idea"
         title={ideaWords.title}
         onClose={onClose}
         actions={
@@ -445,7 +449,11 @@ export function SwapDialog({
   }
 
   return (
-    <Dialog title={fmt(swapWords.title, { weekday })} onClose={onClose}>
+    <Dialog
+      key="swap"
+      title={fmt(swapWords.title, { weekday })}
+      onClose={onClose}
+    >
       <p className="m-0 text-subhead text-[var(--muted)]">{subhead}</p>
       {swap.kind === 'limit' ? (
         limitCard
@@ -549,7 +557,10 @@ export function SwapDialog({
                       })}
                       aria-pressed={isChosen}
                       aria-busy={choosing === key}
-                      disabled={choosing !== null || !online}
+                      // Never the one being chosen: disabling it would drop focus.
+                      disabled={
+                        (choosing !== null && choosing !== key) || !online
+                      }
                       onClick={() => onChoose(alt)}
                       className={`min-h-[var(--size-control-min)] shrink-0 rounded-[var(--radius-pill)] px-4 text-subhead font-semibold disabled:opacity-60 ${
                         isChosen

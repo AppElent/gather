@@ -10,7 +10,7 @@ import {
 } from '@gather/core/week-menu'
 import { draftIn } from '@gather/core/week-menu-plan'
 import { Link } from '@tanstack/react-router'
-import { type DragEvent, useState } from 'react'
+import { useState } from 'react'
 import { fmt, plural, useI18n } from '../../lib/i18n'
 import { useIsDesktop } from '../app/useMediaQuery'
 import {
@@ -94,15 +94,9 @@ function DayCard({
       : null,
   ].filter(Boolean)
 
-  /** The slot a drop here would fill: a row's own, else the meal's slot. */
-  const target = (event: DragEvent): MealSlot | null => {
-    if (!dragging) return null
-    const row = (event.target as HTMLElement).closest<HTMLElement>(
-      '[data-slot]',
-    )
-    const slot = (row?.dataset.slot as MealSlot | undefined) ?? dragging.slot
-    return canMoveTo(data, dragging, date, slot) ? slot : null
-  }
+  /** The slot a drop here would fill: the meal keeps its own, as on a phone. */
+  const target = (): MealSlot | null =>
+    dragging && canMoveTo(data, dragging, date) ? dragging.slot : null
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: dropping is the pointer's shortcut; a meal's "Move to" buttons are the accessible path
@@ -110,7 +104,7 @@ function DayCard({
       aria-labelledby={`day-${date}`}
       data-testid={`day-${date}`}
       onDragOver={(event) => {
-        const slot = target(event)
+        const slot = target()
         setOver(slot)
         if (!slot) return
         event.preventDefault()
@@ -121,7 +115,7 @@ function DayCard({
           setOver(null)
       }}
       onDrop={(event) => {
-        const slot = target(event)
+        const slot = target()
         setOver(null)
         if (!slot) return
         event.preventDefault()
@@ -205,7 +199,7 @@ function SlotRow({
 }) {
   const { locale, messages: t } = useI18n()
   const words = t.mealPlanner
-  const { week, drafts = [], open } = useWorkspace()
+  const { from, drafts = [], open } = useWorkspace()
   const desktop = useIsDesktop()
   const meal = mealIn(data.meals, date, slot)
   const draft = meal ? undefined : draftIn(drafts, date, slot)
@@ -247,7 +241,7 @@ function SlotRow({
         <Link
           {...recordLink(
             { kind: meal ? 'meal' : 'draft', id: record._id },
-            week,
+            from,
             desktop,
           )}
           draggable={false}

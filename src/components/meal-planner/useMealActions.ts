@@ -139,6 +139,7 @@ export function useMealActions(weekStart: string) {
     },
 
     accept(draft: Draft) {
+      setAccepting(true)
       acceptDraft({ groupSlug, id: draft._id })
         .then((result) => {
           if (result !== 'planned')
@@ -147,6 +148,7 @@ export function useMealActions(weekStart: string) {
             )
         })
         .catch(() => fail())
+        .finally(() => setAccepting(false))
     },
 
     acceptAll() {

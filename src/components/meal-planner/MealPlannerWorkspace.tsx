@@ -28,7 +28,7 @@ type OpenDialog =
   | { kind: 'meal-groceries'; recipeId: Id<'recipes'>; servings: number }
 
 interface Workspace {
-  /** `?week` as it is in the address. */
+  /** The week for a link to the week page: absent for the current one. */
   week: string | undefined
   from: string
   to: string
@@ -39,6 +39,8 @@ interface Workspace {
   drafts: Draft[] | undefined
   actions: ReturnType<typeof useMealActions>
   open: (dialog: OpenDialog) => void
+  /** A dialog covers the page. */
+  covered: boolean
 }
 
 const WorkspaceContext = createContext<Workspace | null>(null)
@@ -58,16 +60,16 @@ export function MealPlannerWorkspace({
   children: ReactNode
 }) {
   const group = useRequiredCurrentGroup()
-  // A Group switch or another week starts with no dialog open.
+  // A Group switch starts over.
   return (
-    <WorkspaceOf key={`${group.slug}:${week ?? ''}`} week={week}>
+    <WorkspaceOf key={group.slug} week={week}>
       {children}
     </WorkspaceOf>
   )
 }
 
 function WorkspaceOf({
-  week,
+  week: asked,
   children,
 }: {
   week: string | undefined
@@ -76,7 +78,8 @@ function WorkspaceOf({
   const group = useRequiredCurrentGroup()
   const words = useMessages().mealPlanner
   const { show } = useMealPlannerNotices()
-  const { today, current, from, to } = weekShown(week, group.timeZone)
+  const { today, current, from, to } = weekShown(asked, group.timeZone)
+  const week = from === current ? undefined : from
   const data = useQuery(api.mealPlan.week, { groupSlug: group.slug, from, to })
   const list = useQuery(api.mealPlanDrafts.list, {
     groupSlug: group.slug,
@@ -87,12 +90,18 @@ function WorkspaceOf({
     [data, list],
   )
   const actions = useMealActions(from)
-  const [dialog, open] = useState<OpenDialog | null>(null)
-  const close = () => open(null)
+  // A dialog belongs to its week: another week has none open.
+  const [opened, setOpened] = useState<{
+    from: string
+    dialog: OpenDialog
+  } | null>(null)
+  const dialog = opened?.from === from ? opened.dialog : null
+  const open = (next: OpenDialog) => setOpened({ from, dialog: next })
+  const close = () => setOpened(null)
 
   return (
     <WorkspaceContext
-      value={{ week, from, to, today, current, data, drafts, actions, open }}
+      value={{ week, from, to, today, current, data, drafts, actions, open, covered: dialog !== null }}
     >
       {children}
       {data && dialog?.kind === 'pick' ? (
@@ -104,11 +113,11 @@ function WorkspaceOf({
           onClose={close}
         />
       ) : null}
-      {data && dialog?.kind === 'plan' ? (
+      {data && list && dialog?.kind === 'plan' ? (
         <PlanDialog
           weekStart={from}
           data={data}
-          stored={storedWishes(list ?? [])}
+          stored={storedWishes(list)}
           onClose={close}
           onPlanned={(outcome) => {
             close()
@@ -125,12 +134,12 @@ function WorkspaceOf({
           {...dialog}
           data={data}
           onClose={close}
-          onChooseYourself={() =>
+          onChooseYourself={(replacing) =>
             open({
               kind: 'pick',
               date: dialog.date,
               slot: dialog.slot,
-              replacing: dialog.replacing,
+              replacing,
             })
           }
         />

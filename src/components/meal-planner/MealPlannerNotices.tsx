@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react'
 import { useMessages } from '../../lib/i18n'
+import { useCurrentGroup } from '../app/useCurrentGroup'
 
 interface Notice {
   message: string
@@ -35,6 +36,12 @@ const NOTICE_MS = 8000
  * planner's pages (the layout route), so it survives a meal's page closing.
  */
 export function MealPlannerNotices({ children }: { children: ReactNode }) {
+  // A Group switch takes the notice, and its Undo, with it.
+  const slug = useCurrentGroup().current?.slug
+  return <NoticesOf key={slug}>{children}</NoticesOf>
+}
+
+function NoticesOf({ children }: { children: ReactNode }) {
   const words = useMessages().mealPlanner
   const [notice, setNotice] = useState<Notice | null>(null)
 

@@ -46,7 +46,8 @@ type Selection = { kind: 'meal' | 'draft'; id: string }
 /**
  * The open meal or proposal, or why there is none. When the record it named
  * is replaced (another proposal, an accepted one, Something else), the panel
- * follows its slot to what is there now.
+ * follows its slot to what is there now, once no dialog covers it: following
+ * would close that dialog or take its focus.
  */
 export function RecordPanel({
   selection,
@@ -60,7 +61,7 @@ export function RecordPanel({
 }) {
   const { messages: t } = useI18n()
   const words = t.mealPlanner.web
-  const { week, data, drafts } = useWorkspace()
+  const { week, from, data, drafts, covered } = useWorkspace()
   const navigate = useNavigate()
   const { kind, id } = selection
   const meal =
@@ -82,12 +83,12 @@ export function RecordPanel({
   const next = followMeal ?? followDraft
   const nextKind = followMeal ? 'meal' : 'draft'
   useEffect(() => {
-    if (!next || leaving.current === id) return
+    if (!next || covered || leaving.current === id) return
     void navigate({
-      ...recordLink({ kind: nextKind, id: next._id }, week, !page),
+      ...recordLink({ kind: nextKind, id: next._id }, from, !page),
       replace: true,
     })
-  }, [next, nextKind, id, week, page, navigate])
+  }, [next, nextKind, covered, id, from, page, navigate])
 
   if (!data || !drafts)
     return (
@@ -105,7 +106,7 @@ export function RecordPanel({
         onClose={onClose}
         onRemoved={() => {
           leaving.current = id
-          void navigate(weekLink(week))
+          void navigate({ ...weekLink(week), resetScroll: false })
         }}
       />
     )
@@ -517,6 +518,7 @@ function DraftPanel({
           title: draft.title,
           day,
         })}
+        disabled={actions.accepting}
         onClick={() => actions.accept(draft)}
         className={`${buttonClass.primary} w-full`}
       >

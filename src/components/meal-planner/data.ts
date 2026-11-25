@@ -67,15 +67,23 @@ export function weekLink(week: string | undefined) {
 
 type Selected = { kind: 'meal' | 'draft'; id: string }
 
-/** Where a row goes: the panel from `lg`, a page of its own below it. */
+/**
+ * Where a row goes: the panel from `lg`, a page of its own below it. It names
+ * its week, so a kept link still finds the meal when that week has passed.
+ */
 export function recordLink(
   { kind, id }: Selected,
-  week: string | undefined,
+  week: string,
   desktop: boolean,
 ) {
-  const search: WeekSearch = week ? { week } : {}
+  const search: WeekSearch = { week }
   if (desktop)
-    return { ...linkTo('meal-planner'), search: { ...search, [kind]: id } }
+    return {
+      ...linkTo('meal-planner'),
+      search: { ...search, [kind]: id },
+      // The week stays where it is scrolled.
+      resetScroll: false,
+    }
   return kind === 'meal'
     ? { ...linkTo('plannedMeal', { mealId: id }), search }
     : { ...linkTo('mealProposal', { draftId: id }), search }

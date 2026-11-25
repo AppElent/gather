@@ -53,12 +53,14 @@ vi.mock('@tanstack/react-router', () => {
       to,
       search,
       params: _params,
+      resetScroll: _resetScroll,
       ...rest
     }: {
       children: ReactNode
       to: string
       search?: Record<string, string>
       params?: unknown
+      resetScroll?: boolean
     }) => (
       <a {...rest} href={`${to}?${new URLSearchParams(search)}`}>
         {children}
@@ -242,6 +244,65 @@ describe('the proposal', () => {
       }),
     )
   })
+})
+
+describe('Something else on a proposal', () => {
+  // A new element each time, or React would not render it again.
+  const follow = async (page: () => ReactNode) => {
+    state.queries['mealPlanDrafts:list'] = [draft('d1', day(1), 'Curry')]
+    state.answers['mealIdeas:swap'] = {
+      status: 'ai',
+      left: 29,
+      alternatives: [{ recipeId: 'r1', title: 'Soup', reason: 'Quick' }],
+    }
+    state.answers['mealIdeas:choose'] = { id: 'm9', previous: null }
+    const { rerender } = show(page())
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Choose something else for/ }),
+    )
+    const choose = await screen.findByRole('button', { name: /^Choose Soup/ })
+    choose.focus()
+    fireEvent.click(choose)
+    await screen.findByRole('button', { name: 'Undo' })
+    // The meal arrives in the week while the dialog is open.
+    state.queries['mealPlan:week'] = week([meal('m9', day(1), 'Soup')])
+    rerender(<MealPlannerNotices>{page()}</MealPlannerNotices>)
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy()
+    expect(
+      screen.getByRole('dialog').contains(document.activeElement),
+    ).toBe(true)
+    expect(state.navigated).toEqual([])
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(state.navigated).toHaveLength(1))
+    return state.navigated[0]
+  }
+
+  test('the panel follows to the meal only once the dialog closes', async () => {
+    expect(
+      await follow(() => <MealPlannerPage search={{ draft: 'd1' }} />),
+    ).toMatchObject({ search: { meal: 'm9' } })
+  })
+
+  test('so does the page below the breakpoint, keeping Undo', async () => {
+    expect(
+      await follow(() => <RecordPage kind="draft" id="d1" week={undefined} />),
+    ).toMatchObject({ params: { mealId: 'm9' } })
+  })
+})
+
+test('another week keeps the page and closes its dialog', () => {
+  const { rerender } = show(<MealPlannerPage search={{}} />)
+  const next = screen.getByRole('link', { name: 'Next week' })
+  next.focus()
+  fireEvent.click(screen.getByRole('button', { name: 'Plan my week' }))
+  next.focus()
+  rerender(
+    <MealPlannerNotices>
+      <MealPlannerPage search={{ week: addDays(MONDAY, 7) }} />
+    </MealPlannerNotices>,
+  )
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(screen.getByRole('link', { name: 'Next week' })).toBe(next)
 })
 
 describe('the meal panel', () => {
