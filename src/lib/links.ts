@@ -64,6 +64,8 @@ export const ROUTES = {
   groceriesInStock: '/groceries/in-stock',
   groceriesItem: '/groceries/item/$itemId',
 
+  note: '/notes/$noteId',
+
   mealPlannerSettings: '/meal-planner/settings',
   plannedMeal: '/meal-planner/meal/$mealId',
   mealProposal: '/meal-planner/proposal/$draftId',

@@ -1,12 +1,11 @@
 /**
  * The scheduled half of destroying things.
  *
- * Two jobs that cannot run inside the mutation that starts them, for the same
- * reason in both cases: a Convex mutation is one bounded transaction, and
- * neither of these has a bound a person's household is guaranteed to fit
- * inside.
+ * Jobs that cannot run inside the mutation that starts them, all for the same
+ * reason: a Convex mutation is one bounded transaction, and none of these has
+ * a bound a person's household is guaranteed to fit inside.
  *
- * Neither is callable from a client. Every entry point into them has already
+ * None is callable from a client. Every entry point into them has already
  * resolved who is asking and refused whoever may not — nothing here re-checks,
  * because nothing here has anyone to check against by the time it runs.
  */
@@ -17,7 +16,7 @@ import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation } from './_generated/server'
 import { writePauseMs } from './lib/energyWritePace'
-import { destroyGroup, detachFromGroup } from './lib/groupCascade'
+import { destroyGroup, detachFromGroup, purgeNotesPage } from './lib/groupCascade'
 import { deletePushData } from './lib/notifications'
 import { deleteStoredFile } from './lib/storedFiles'
 
@@ -71,6 +70,16 @@ export const purgeEnergyRows = internalMutation({
         args,
       )
     }
+  },
+})
+
+/** Delete the rest of a destroyed Group's notes, a page per step (APP-826). */
+export const purgeNotes = internalMutation({
+  args: { groupId: v.id('groups') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await purgeNotesPage(ctx, args.groupId)
+    return null
   },
 })
 
