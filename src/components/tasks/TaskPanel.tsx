@@ -54,6 +54,7 @@ import {
   WhenEditor,
   WhoEditor,
 } from './fieldEditors'
+import { LinkedListChoice } from './LinkedListChoice'
 import { RepeatEditor } from './RepeatEditor'
 import { placeLink, type TaskPlace, taskLink } from './selection'
 import { useWorkspace } from './TasksWorkspace'
@@ -166,6 +167,10 @@ function TaskEditor({
     if (noticed !== undefined) markSeen.current(task.id).catch(() => {})
   }, [noticed, task.id])
 
+  const onGone =
+    onClose ??
+    (() => void navigate(placeLink({ kind: 'list', listId: list.id })))
+
   const addedWhen = doc
     ? new Date(doc._creationTime).toLocaleDateString(locale, {
         weekday: 'short',
@@ -206,17 +211,19 @@ function TaskEditor({
             actions={menu({
               task,
               list,
-              onDeleted:
-                onClose ?? (() => void navigate(placeLink(
-                  { kind: 'list', listId: list.id },
-                ))),
+              onGone,
             })}
           />
           {onClose ? <CloseButton onClose={onClose} /> : null}
         </div>
       </div>
 
-      <Fields task={task} list={list} editable={editable} />
+      <Fields
+        task={task}
+        list={list}
+        editable={editable}
+        onGone={onGone}
+      />
       {hasLinkAndPrice(list.kind) ? (
         <WishlistFields task={task} list={list} editable={editable} />
       ) : null}
@@ -326,10 +333,12 @@ function Fields({
   task,
   list,
   editable,
+  onGone,
 }: {
   task: Task
   list: TaskList
   editable: boolean
+  onGone: () => void
 }) {
   const { locale, messages: t } = useI18n()
   const words = t.tasks.web.panel
@@ -354,11 +363,24 @@ function Fields({
         icon={List}
         label={words.list}
         value={section ? `${list.name} · ${section.name}` : list.name}
-        // A subtask stays with its parent (APP-304).
+        // A local subtask stays with its parent (APP-304).
         editor={
-          local && editable && !task.parentTaskId
-            ? (close) => <ListEditor task={task} list={list} onClose={close} />
-            : undefined
+          local
+            ? editable && !task.parentTaskId
+              ? (close) => (
+                  <ListEditor task={task} list={list} onClose={close} />
+                )
+              : undefined
+            : editable && !task.done
+              ? (close) => (
+                  <LinkedListChoice
+                    task={task}
+                    list={list}
+                    onClose={close}
+                    onGone={onGone}
+                  />
+                )
+              : undefined
         }
       />
       {shown(Boolean(task.dueDate)) ? (

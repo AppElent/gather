@@ -244,6 +244,68 @@ describe('taskLists.writeTask', () => {
     expect(await run()).toEqual({ status: 'error', reason: 'not-found' })
   })
 
+  test('a task moves to another list of its own connection only (APP-821)', async () => {
+    const { t, todoist, notion, local } = await seed()
+    const { garden, otherAccount, away } = await t.run(async (ctx) => {
+      const list = await ctx.db.get(todoist.listId)
+      if (!list) throw new Error('no list')
+      const { _id, _creationTime, ...fields } = list
+      const otherGroup = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', AWAY))
+        .unique()
+      if (!otherGroup) throw new Error('no group')
+      const connection = await ctx.db.get(todoist.connectionId)
+      if (!connection) throw new Error('no connection')
+      const other = await ctx.db.insert('integrationConnections', {
+        groupId: connection.groupId,
+        provider: 'todoist',
+        accessToken: 'other',
+        accountLabel: 'other',
+        connectedBy: connection.connectedBy,
+      })
+      const config = { connectionId: todoist.connectionId, sourceId: 'garden' }
+      const insert = (more: object) =>
+        ctx.db.insert('taskLists', { ...fields, providerConfig: config, ...more })
+      return {
+        garden: await insert({}),
+        otherAccount: await insert({
+          providerConfig: { connectionId: other, sourceId: 'garden' },
+        }),
+        away: await insert({ groupId: otherGroup._id }),
+      }
+    })
+    const move = (listId: typeof garden, from = todoist.listId) =>
+      t.withIdentity(alice).action(api.taskLists.writeTask, {
+        listId: from,
+        groupSlug: HOME,
+        write: { kind: 'moveToList', taskId: 't1', listId },
+      })
+    const task = { id: 't1', content: 'x', priority: 1, project_id: 'proj' }
+    const fetchMock = todoistAnswers((method) =>
+      json(
+        method === 'GET'
+          ? task
+          : { ...task, project_id: 'garden', responsible_uid: 'C' },
+      ),
+    )
+    for (const refused of [otherAccount, notion.listId, local]) {
+      await expect(move(refused)).rejects.toThrow(/read-only/)
+    }
+    // Alice is in that Group too, but it is not the one she is in here.
+    await expect(move(away)).rejects.toThrow(/List not found/)
+    for (const from of [local, notion.listId]) {
+      await expect(move(garden, from)).rejects.toThrow(/read-only/)
+    }
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    expect(await move(garden)).toMatchObject({ status: 'ok', refresh: true })
+    // The move is the last request: nobody reads whom the moved row is for.
+    const last = fetchMock.mock.calls.at(-1)
+    expect(last?.[0]).toMatch(/\/tasks\/t1\/move$/)
+    expect(JSON.parse(String(last?.[1]?.body))).toEqual({ project_id: 'garden' })
+  })
+
   test('a delete is refused and never reaches Todoist', async () => {
     const { t, todoist } = await seed()
     const fetchImpl = vi.fn()

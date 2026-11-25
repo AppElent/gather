@@ -19,6 +19,7 @@ export type LinkedWriteShape =
   | { kind: 'update'; taskId: string }
   | { kind: 'setDone'; taskId: string; done: boolean }
   | { kind: 'move'; taskId: string }
+  | { kind: 'moveToList'; taskId: string }
 
 /** Whether a row is the task itself or anywhere under it. */
 function isWithin(
@@ -46,6 +47,10 @@ export function applyLinkedWrite<T extends LinkedRow>(
   answered: readonly T[],
 ): T[] {
   const byId = new Map<string, LinkedRow>(rows.map((row) => [row.externalId, row]))
+  if (write.kind === 'moveToList') {
+    // Gone to another list, its subtasks with it.
+    return rows.filter((row) => !isWithin(row, write.taskId, byId))
+  }
   const answers = new Map(answered.map((row) => [row.externalId, row]))
   let next = rows.map((row) => answers.get(row.externalId) ?? row)
   if (write.kind === 'setDone' && write.done && !answers.has(write.taskId)) {
@@ -90,4 +95,41 @@ export function possibleParents<T extends LinkedRow>(
       !row.parentExternalId &&
       row.externalId !== taskId,
   )
+}
+
+interface MoveTargetList {
+  _id: string
+  provider: string
+  order: number
+  writable: boolean
+  grocery?: boolean
+  capabilities?: { write: boolean }
+  connectionId?: string | null
+}
+
+/**
+ * Where a task on `from` can go (APP-821): a local task to local lists, a
+ * linked one to the lists of its own connection that can be written to. The
+ * server holds the connection to the same rule. Every other list is `other`,
+ * for the reason that a task stays in its source.
+ */
+export function moveTargets<T extends MoveTargetList>(
+  from: MoveTargetList,
+  lists: readonly T[],
+): { own: T[]; other: T[] } {
+  const own: T[] = []
+  const other: T[] = []
+  for (const list of [...lists].sort((a, b) => a.order - b.order)) {
+    const reachable =
+      from.provider === 'local'
+        ? list.provider === 'local' && list.writable
+        : list.provider === from.provider &&
+          Boolean(from.connectionId) &&
+          list.connectionId === from.connectionId &&
+          Boolean(list.capabilities?.write) &&
+          !list.grocery
+    if (reachable || list._id === from._id) own.push(list)
+    else other.push(list)
+  }
+  return { own, other }
 }

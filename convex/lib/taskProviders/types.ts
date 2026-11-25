@@ -165,6 +165,17 @@ export interface TaskProviderWriter {
     parentId: string | null,
     fetchImpl?: typeof fetch,
   ): Promise<WriteOutcome>
+  /**
+   * Into another source of the same connection, with its subtasks, at the top
+   * of it: out of its parent and its section (APP-821).
+   */
+  moveToSource(
+    accessToken: string,
+    config: SourceConfig,
+    taskId: string,
+    target: SourceConfig,
+    fetchImpl?: typeof fetch,
+  ): Promise<WriteOutcome>
 }
 
 export interface TaskProviderAdapter {

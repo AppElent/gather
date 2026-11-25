@@ -73,10 +73,8 @@ export function TaskDetail({
   const writeFailed = useWriteFailed()
   const taskSheets = useTaskSheets({
     tasks: state.tasks,
-    // Deleting one of its subtasks from here leaves the parent's screen open.
-    onDeleted: (gone) => {
-      if (gone.id === taskId) router.back()
-    },
+    aboutTaskId: taskId,
+    onGone: () => router.back(),
   })
   const scrollRef = useRef<ScrollView>(null)
   const [dragging, setDragging] = useState(false)
@@ -337,7 +335,7 @@ export function TaskDetail({
             }
             label={t.tasks.task.list}
             value={list?.name ?? ''}
-            disabled={Boolean(task.linked)}
+            disabled={Boolean(task.linked) && (!writable || task.done)}
             onPress={() => open('move')}
             last={!task.linked}
           />

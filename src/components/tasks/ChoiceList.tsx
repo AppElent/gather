@@ -8,7 +8,7 @@ export function ChoiceList<T extends string | number | null>({
   onChoose,
 }: {
   label: string
-  options: readonly { id: T; label: ReactNode }[]
+  options: readonly { id: T; label: ReactNode; disabled?: boolean }[]
   /** Absent when none of the options is. */
   current: T | undefined
   onChoose: (id: T) => void
@@ -26,8 +26,9 @@ export function ChoiceList<T extends string | number | null>({
           <button
             type="button"
             aria-pressed={option.id === current}
+            disabled={option.disabled}
             onClick={() => onChoose(option.id)}
-            className={`flex min-h-[var(--size-control-min)] w-full cursor-pointer items-center gap-2 border-0 px-3.5 py-2 text-left font-[inherit] text-body text-[var(--ink)] hover:bg-[var(--surface-2)] ${
+            className={`flex min-h-[var(--size-control-min)] w-full cursor-pointer items-center gap-2 border-0 px-3.5 py-2 text-left font-[inherit] text-body text-[var(--ink)] enabled:hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-45 ${
               option.id === current
                 ? 'bg-[var(--surface-2)] font-semibold'
                 : 'bg-transparent'

@@ -642,12 +642,43 @@ describe('Todoist writes (APP-448)', () => {
     })
   })
 
+  test('a subtask to another project: out of its parent and its section', async () => {
+    const todoist = fakeTodoist({
+      'GET /tasks/t1': apiTask({ parent_id: 'p1', section_id: 'sec' }),
+      'POST /tasks/t1/move': apiTask({ project_id: 'other' }),
+    })
+    const outcome = await writer.moveToSource(
+      'tok',
+      config,
+      't1',
+      { sourceId: 'other' },
+      todoist.fetchImpl,
+    )
+    expect(todoist.writes().map((c) => JSON.parse(c.body ?? ''))).toEqual([
+      { project_id: 'other' },
+    ])
+    expect(outcome).toMatchObject({
+      refresh: true,
+      tasks: [{ externalId: 't1' }],
+    })
+    expect(outcome.tasks[0].parentExternalId).toBeUndefined()
+  })
+
+  test('to a list of the same project moves nothing', async () => {
+    const todoist = fakeTodoist({ 'GET /tasks/t1': apiTask() })
+    expect(
+      await writer.moveToSource('tok', config, 't1', config, todoist.fetchImpl),
+    ).toEqual({ tasks: [], refresh: true })
+    expect(todoist.writes()).toEqual([])
+  })
+
   const everyWrite: [string, (f: typeof fetch) => Promise<unknown>][] = [
     ['create', (f) => writer.createTask('tok', config, { title: 'x', parentId: 't1' }, f)],
     ['update', (f) => writer.updateTask('tok', config, 't1', { title: 'x' }, f)],
     ['close', (f) => writer.closeTask('tok', config, 't1', { withSubtasks: false }, f)],
     ['reopen', (f) => writer.reopenTask('tok', config, 't1', f)],
     ['move', (f) => writer.moveTask('tok', config, 't1', null, f)],
+    ['move to list', (f) => writer.moveToSource('tok', config, 't1', { sourceId: 'other' }, f)],
   ]
 
   test.each(everyWrite)('%s refuses a task of another project', async (_, run) => {

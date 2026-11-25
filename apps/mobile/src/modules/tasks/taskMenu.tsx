@@ -30,7 +30,7 @@ import {
   PrioritySheet,
   RenameSheet,
 } from './sheets'
-import { onOccurrenceCompleted, useTaskActions } from './store'
+import { onMoved, onOccurrenceCompleted, takeMove, useTaskActions } from './store'
 import { dueLabel } from './taskDates'
 import type { Task } from './types'
 import { useWriteFailed } from './writeFailed'
@@ -87,17 +87,21 @@ export function taskMenuActions(
       attributes: { disabled: !writable },
     },
     {
-      id: 'move',
-      title: t.tasks.list.moveToList,
-      image: 'tray',
-      attributes: { hidden: Boolean(task.linked) },
-    },
-    {
       id: 'under',
       title: t.tasks.linkedWrite.moveUnder,
       image: 'arrow.turn.down.right',
-      // A linked task moves within its list only (APP-448).
+      // Within its list (APP-448).
       attributes: { disabled: !writable || task.done, hidden: !task.linked },
+    },
+    {
+      id: 'move',
+      title: t.tasks.list.moveToList,
+      image: 'tray',
+      // A linked task to a list of its own connection (APP-821). Todoist has
+      // no completed task to move.
+      attributes: {
+        disabled: Boolean(task.linked) && (!writable || task.done),
+      },
     },
     {
       id: 'section',
@@ -161,7 +165,8 @@ type TaskSheet =
 export function useTaskSheets({
   tasks,
   onReorder,
-  onDeleted,
+  onGone,
+  aboutTaskId,
 }: {
   /**
    * The tasks the screen is showing, as it reads them: an open sheet draws
@@ -170,11 +175,12 @@ export function useTaskSheets({
   tasks: readonly Task[]
   onReorder?: () => void
   /**
-   * For a screen that is about a task, and so has to leave with it. It hears
-   * which task went: the detail screen's subtask rows are deleted from here
-   * too, and the screen leaves only when its own task goes.
+   * For a screen that is about a task, and so has to leave with it when it is
+   * deleted or moves to another linked list. Its subtasks go from here too,
+   * and the screen stays for those.
    */
-  onDeleted?: (task: Task) => void
+  onGone?: () => void
+  aboutTaskId?: string
 }) {
   const { t } = useI18n()
   const actions = useTaskActions()
@@ -203,7 +209,7 @@ export function useTaskSheets({
       cancel: t.common.actions.cancel,
       onConfirm: () => {
         actions.deleteTask(task.id)
-        onDeleted?.(task)
+        if (task.id === aboutTaskId) onGone?.()
       },
     })
 
@@ -236,7 +242,7 @@ export function useTaskSheets({
     }
   }
 
-  const undoToast = useCompletionUndo()
+  const undoToast = useTaskUndo({ aboutTaskId, onGone })
 
   const sheets = !open || !task ? (
     undoToast
@@ -283,17 +289,27 @@ export function useTaskSheets({
 }
 
 /**
- * "Done. Next: Sat 28 Nov · Undo" after a repeating task is completed. Only
+ * "Done. Next: Sat 28 Nov · Undo" after a repeating task is completed, and
+ * "Moved to Garden · Undo" after a linked task changed lists (APP-821). Only
  * the screen in front shows it: a tab behind it also holds task sheets, and
  * one completion is one toast.
  */
-function useCompletionUndo() {
+function useTaskUndo({
+  aboutTaskId,
+  onGone,
+}: {
+  aboutTaskId?: string
+  onGone?: () => void
+}) {
   const { group } = useGroup()
   const { t, locale } = useI18n()
   const actions = useTaskActions()
   const focused = useIsFocused()
   const { show, toast } = useUndoToast()
   const words = t.tasks.repeat
+  const writeFailed = useWriteFailed()
+  const gone = useRef(onGone)
+  gone.current = onGone
   // The actions are new on every render; read the latest from a ref so the
   // listener is not dropped and re-added each time, missing a completion in
   // between.
@@ -322,6 +338,29 @@ function useCompletionUndo() {
       })
     })
   }, [focused, show, words, locale, t, group.timeZone])
+
+  useEffect(() => {
+    if (!focused) return
+    const tell = () => {
+      const move = takeMove(aboutTaskId)
+      if (!move) return
+      if (move === 'leave') {
+        gone.current?.()
+        return
+      }
+      show({
+        message: fmt(t.tasks.linkedWrite.moveTo.moved, { list: move.listName }),
+        undo: {
+          label: words.undo,
+          onPress: () => {
+            move.undo().catch(writeFailed)
+          },
+        },
+      })
+    }
+    tell()
+    return onMoved(tell)
+  }, [focused, show, words, t, aboutTaskId, writeFailed])
 
   return toast
 }

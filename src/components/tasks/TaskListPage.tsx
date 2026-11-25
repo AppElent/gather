@@ -344,7 +344,7 @@ function ListRows({
                       : undefined,
                 }
               : undefined,
-          onDeleted: task.id === selectedTaskId ? onClose : undefined,
+          onGone: task.id === selectedTaskId ? onClose : undefined,
         })}
       />
     )

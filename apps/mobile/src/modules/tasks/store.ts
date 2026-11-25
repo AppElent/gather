@@ -22,7 +22,10 @@ import {
   type ExternalEntry,
   ensureExternalLists,
   externalSnapshot,
+  type FetchTasks,
   type LinkedTaskWrite,
+  moveLinkedToList,
+  type SendWrite,
   subscribeExternal,
   syncExternalList,
   writeLinkedTask,
@@ -187,6 +190,47 @@ export function toggleInPlace(
         return next.done ? [] : [next]
       }),
     })
+  }
+}
+
+/**
+ * A linked task that just moved to another list (APP-821), for the screen in
+ * front. Kept for a moment: the moved task's own screen leaves first, and the
+ * one under it says it.
+ */
+export interface MovedTask {
+  taskId: string
+  listName: string
+  undo: () => Promise<void>
+}
+
+const MOVED_KEPT_MS = 3000
+let moved: { news: MovedTask; at: number; left: boolean } | null = null
+const movedListeners = new Set<() => void>()
+
+export function announceMove(news: MovedTask) {
+  moved = { news, at: Date.now(), left: false }
+  for (const listener of movedListeners) listener()
+}
+
+/** The move still to be told, unless the asking screen is that task's own. */
+export function takeMove(aboutTaskId?: string): MovedTask | 'leave' | null {
+  if (!moved || Date.now() - moved.at > MOVED_KEPT_MS) return null
+  if (moved.news.taskId === aboutTaskId) {
+    // Once: a screen that asks again must not leave the one under it too.
+    if (moved.left) return null
+    moved.left = true
+    return 'leave'
+  }
+  const { news } = moved
+  moved = null
+  return news
+}
+
+export function onMoved(listener: () => void) {
+  movedListeners.add(listener)
+  return () => {
+    movedListeners.delete(listener)
   }
 }
 
@@ -530,19 +574,16 @@ export function useTaskActions() {
   const sendWrite = useAction(api.taskLists.writeTask)
   const convex = useConvex()
 
+  const send: SendWrite = (id, sent) =>
+    sendWrite({
+      listId: id as Id<'taskLists'>,
+      groupSlug,
+      write: sent as Parameters<typeof sendWrite>[0]['write'],
+    })
+  const fetchTasks: FetchTasks = (id) =>
+    getTasks({ listId: id as Id<'taskLists'>, groupSlug })
   const write = (listId: string, change: LinkedTaskWrite) =>
-    writeLinkedTask(
-      listId,
-      change,
-      (id, sent) =>
-        sendWrite({
-          listId: id as Id<'taskLists'>,
-          groupSlug,
-          write: sent as Parameters<typeof sendWrite>[0]['write'],
-        }),
-      (id) => getTasks({ listId: id as Id<'taskLists'>, groupSlug }),
-      connectionOf(convex),
-    )
+    writeLinkedTask(listId, change, send, fetchTasks, connectionOf(convex))
 
   /** A linked task's fields in its provider, or a local one's in Convex. */
   const edit = (
@@ -761,6 +802,12 @@ export function useTaskActions() {
     /** A linked task under another on its list, or out of it with null. */
     moveUnder: (task: Pick<Task, 'id' | 'listId'>, parentId: string | null) =>
       write(task.listId, { kind: 'move', taskId: task.id, parentId }),
+    /** A linked task to a list of its own connection; answers the way back. */
+    moveToLinkedList: (
+      task: Pick<Task, 'id' | 'listId' | 'parentTaskId'>,
+      listId: string,
+    ) =>
+      moveLinkedToList(task, listId, send, fetchTasks, connectionOf(convex)),
     moveTask: (id: string, listId: string) =>
       moveToList({
         taskId: id as Id<'tasks'>,

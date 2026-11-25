@@ -3,7 +3,10 @@ import {
   completeKey,
   connectionOf,
   externalSnapshot,
+  type FetchTasks,
   type LinkedTaskWrite,
+  moveLinkedToList,
+  type SendWrite,
   writeLinkedTask,
 } from '@gather/core/linked-lists'
 import { subtasksOf } from '@gather/core/subtasks'
@@ -97,19 +100,16 @@ export function useTaskActions() {
   const sendWrite = useAction(api.taskLists.writeTask)
   const convex = useConvex()
 
+  const send: SendWrite = (id, sent) =>
+    sendWrite({
+      listId: id as Id<'taskLists'>,
+      groupSlug,
+      write: sent as Parameters<typeof sendWrite>[0]['write'],
+    })
+  const fetchTasks: FetchTasks = (id) =>
+    getTasks({ listId: id as Id<'taskLists'>, groupSlug })
   const write = (listId: string, change: LinkedTaskWrite) =>
-    writeLinkedTask(
-      listId,
-      change,
-      (id, sent) =>
-        sendWrite({
-          listId: id as Id<'taskLists'>,
-          groupSlug,
-          write: sent as Parameters<typeof sendWrite>[0]['write'],
-        }),
-      (id) => getTasks({ listId: id as Id<'taskLists'>, groupSlug }),
-      connectionOf(convex),
-    )
+    writeLinkedTask(listId, change, send, fetchTasks, connectionOf(convex))
 
   const patch = (
     id: string,
@@ -300,6 +300,12 @@ export function useTaskActions() {
     /** A linked task under another on its list, or out of it with null. */
     moveUnder: (task: Pick<Task, 'id' | 'listId'>, parentId: string | null) =>
       write(task.listId, { kind: 'move', taskId: task.id, parentId }),
+    /** A linked task to a list of its own connection; answers the way back. */
+    moveToLinkedList: (
+      task: Pick<Task, 'id' | 'listId' | 'parentTaskId'>,
+      listId: string,
+    ) =>
+      moveLinkedToList(task, listId, send, fetchTasks, connectionOf(convex)),
     setTaskSection: (id: string, sectionId: string | null) =>
       setSection({ taskId: id as Id<'tasks'>, groupSlug, sectionId }),
     reorder: (listId: string, ids: string[], sectionIds?: (string | null)[]) =>

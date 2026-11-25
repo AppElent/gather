@@ -92,6 +92,8 @@ export const list = query({
         // checklist cards, for one — need this before the person picks, not
         // after they try.
         writable: l.provider === 'local',
+        // APP-821: a linked task moves only between lists of one connection.
+        connectionId: l.providerConfig?.connectionId ?? null,
         // APP-448: whether `taskLists.writeTask` can write to it (ADR-0021).
         capabilities: {
           write:
@@ -709,6 +711,7 @@ function runWrite(
   config: SourceConfig,
   write: LinkedTaskWrite,
   responsibleId: TaskUpdate['responsibleId'],
+  target: SourceConfig | undefined,
 ): Promise<WriteOutcome> {
   switch (write.kind) {
     case 'create': {
@@ -736,6 +739,9 @@ function runWrite(
         : writer.reopenTask(accessToken, config, write.taskId)
     case 'move':
       return writer.moveTask(accessToken, config, write.taskId, write.parentId)
+    case 'moveToList':
+      if (!target) throw new ConvexError(taskRefusal('read-only'))
+      return writer.moveToSource(accessToken, config, write.taskId, target)
   }
 }
 
@@ -773,6 +779,21 @@ export const writeTask = action({
     }
     const config = list.providerConfig
     if (!config) return { status: 'error', reason: 'failed' }
+    let target: SourceConfig | undefined
+    if (write.kind === 'moveToList') {
+      // In this Group, and of this very connection: a task stays in its source.
+      const to = await ctx.runQuery(internal.taskLists.getList, {
+        listId: write.listId,
+        groupSlug: args.groupSlug,
+      })
+      if (
+        to.provider !== list.provider ||
+        to.providerConfig?.connectionId !== config.connectionId
+      ) {
+        throw new ConvexError(taskRefusal('read-only'))
+      }
+      target = to.providerConfig
+    }
     const conn = await ctx.runQuery(internal.integrations.getConnection, {
       connectionId: config.connectionId,
     })
@@ -798,8 +819,14 @@ export const writeTask = action({
         config,
         write,
         responsibleId,
+        target,
       )
-      if (outcome.tasks.some((task) => task.responsibleId) && !people) {
+      // A moved row is not held by the list it left, so nobody reads its people.
+      if (
+        write.kind !== 'moveToList' &&
+        outcome.tasks.some((task) => task.responsibleId) &&
+        !people
+      ) {
         try {
           people = await peopleOf(ctx, args, conn, config)
         } catch {
