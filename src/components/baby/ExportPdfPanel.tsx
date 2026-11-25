@@ -14,6 +14,7 @@ interface ExportPdfPanelProps {
   babyId: Id<'babies'>
   /** The Group the log is being read in — the export reads through it. */
   groupSlug: string
+  timeZone?: string
   babyName: string
   babyBirthDate: string
   onClose: () => void
@@ -22,6 +23,7 @@ interface ExportPdfPanelProps {
 export function ExportPdfPanel({
   babyId,
   groupSlug,
+  timeZone,
   babyName,
   babyBirthDate,
   onClose,
@@ -31,7 +33,7 @@ export function ExportPdfPanel({
   // to right now (not midnight) so the default range never silently
   // excludes everything logged today.
   const [fromMs, setFromMs] = useState(() =>
-    combineDateTime(babyBirthDate, '00:00'),
+    combineDateTime(babyBirthDate, '00:00', timeZone),
   )
   const [toMs, setToMs] = useState(() => Date.now())
   const [types, setTypes] = useState<BabyEventType[]>([...BABY_EVENT_TYPES])
@@ -65,6 +67,7 @@ export function ExportPdfPanel({
         messages: messages.baby.log,
         eventTypes: messages.baby.eventTypes,
         locale,
+        timeZone,
         events,
         from: fromMs,
         to: toMs,
@@ -86,11 +89,13 @@ export function ExportPdfPanel({
         <DateTimeFields
           label={exportText.from}
           valueMs={fromMs}
+          timeZone={timeZone}
           onChange={(ms) => ms !== undefined && setFromMs(ms)}
         />
         <DateTimeFields
           label={exportText.to}
           valueMs={toMs}
+          timeZone={timeZone}
           onChange={(ms) => ms !== undefined && setToMs(ms)}
         />
       </div>

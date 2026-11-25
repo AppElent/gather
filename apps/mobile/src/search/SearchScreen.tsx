@@ -7,7 +7,7 @@
  * the keyboard dance and Dynamic Type are not.
  */
 
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import { STATUS_VALUES, WHEN_VALUES } from '@gather/core/search-filters'
 import { deviceTimeZone } from '@gather/core/time-zones'
 import {
@@ -177,7 +177,7 @@ export function SearchScreen({
   const trimmed = text.trim()
   const ready = trimmed.length >= MINIMUM_QUERY
   const settled = debounced.trim() === trimmed
-  const today = localIsoDate()
+  const today = todayIn(group.timeZone)
   const results = useGroupSearch(
     ready && settled
       ? {
@@ -188,7 +188,7 @@ export function SearchScreen({
           kind: searchKindOf(filters.module) ?? undefined,
         }
       : null,
-    serverFilters(filters, today, deviceTimeZone()),
+    serverFilters(filters, today, group.timeZone ?? deviceTimeZone()),
   )
   const members = useQuery(api.groups.members, { slug: group.slug })
   const me = useQuery(api.users.me, {})
@@ -359,7 +359,9 @@ export function SearchScreen({
       )
     })
 
-  const filtered = shown ? applyFilters(shown, filters, today) : null
+  const filtered = shown
+    ? applyFilters(shown, filters, today, group.timeZone)
+    : null
   const found = filtered?.map((result) => ({
     result,
     record: toRecent(result, t),

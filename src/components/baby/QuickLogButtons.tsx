@@ -13,6 +13,7 @@ interface QuickLogButtonsProps {
   babyId: Id<'babies'>
   /** The Group the entry is being logged in — every write is authorised by it. */
   groupSlug: string
+  timeZone?: string
   /**
    * What this Child's log *refuses* (ADR-0022). Absent means nothing has been
    * turned off, so everything in the catalogue is offered.
@@ -25,6 +26,7 @@ interface QuickLogButtonsProps {
 export function QuickLogButtons({
   babyId,
   groupSlug,
+  timeZone,
   untrackedTypes,
   barOrder,
 }: QuickLogButtonsProps) {
@@ -52,6 +54,7 @@ export function QuickLogButtons({
         <MultiEventForm
           babyId={babyId}
           groupSlug={groupSlug}
+          timeZone={timeZone}
           untrackedTypes={untrackedTypes}
           barOrder={barOrder}
           onDone={() => setActive(null)}
@@ -61,6 +64,7 @@ export function QuickLogButtons({
         <EventForm
           babyId={babyId}
           groupSlug={groupSlug}
+          timeZone={timeZone}
           type={active}
           onDone={() => setActive(null)}
           onCancel={() => setActive(null)}

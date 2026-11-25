@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { formatters } from './format'
 import { termWords, toLoanPart, toLoanParts } from './loanParts'
 import { netWorthRows } from './netWorthRows'
 import { portfolioTotalsFor } from './portfolioTotals'
@@ -162,5 +163,22 @@ describe('a stored holding becomes one the seam can value', () => {
     const totals = portfolioTotalsFor([{ ...holding, currency: 'USD' }], now)
     expect(totals.stale).toBe(true)
     expect(totals.totalValueCents).toBe(12 * 65_100)
+  })
+})
+
+describe('formatters in a Group time zone', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('uses the Group day and clock when formatting a quote timestamp', () => {
+    vi.useFakeTimers()
+    // 22:30Z on 24 Nov: 25 Nov 07:30 in Tokyo, 24 Nov 23:30 in Amsterdam.
+    vi.setSystemTime(Date.parse('2026-11-24T22:30:00Z'))
+    // 14:00Z on 24 Nov: 24 Nov 23:00 in Tokyo (yesterday), 24 Nov 15:00 in Amsterdam (today).
+    const quote = Date.parse('2026-11-24T14:00:00Z')
+    const amsterdam = formatters('en-GB', 'EUR', 'Europe/Amsterdam')
+    const tokyo = formatters('en-GB', 'EUR', 'Asia/Tokyo')
+    expect(amsterdam.time(quote)).toBe('15:00')
+    expect(tokyo.time(quote)).toContain('24 Nov')
+    expect(tokyo.time(quote)).toContain('23:00')
   })
 })

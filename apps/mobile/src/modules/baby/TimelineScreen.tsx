@@ -13,7 +13,9 @@
  */
 
 import { asBabyEvent, summarizeBabyEvent } from '@gather/core/baby-events'
+import { dayIn, localMidnight } from '@gather/core/civil-date'
 import type { Messages } from '@gather/core/messages'
+import { runtimeTimeZone } from '@gather/core/time-zones'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { SectionList, StyleSheet, Text, View } from 'react-native'
@@ -71,7 +73,11 @@ export function TimelineScreen() {
     })
   }
 
+  const zone = log.timeZone
+    ? (runtimeTimeZone(log.timeZone) ?? undefined)
+    : undefined
   const sections = (() => {
+    const dayAt = dayIn(log.timeZone)
     const byDay = new Map<
       string,
       typeof log.events extends undefined
@@ -79,15 +85,15 @@ export function TimelineScreen() {
         : NonNullable<typeof log.events>
     >()
     for (const event of events ?? []) {
-      const key = new Date(event.timestamp).toDateString()
+      const key = dayAt(event.timestamp)
       const bucket = byDay.get(key)
       if (bucket) bucket.push(event)
       else byDay.set(key, [event])
     }
     return [...byDay.entries()]
-      .sort((a, b) => Date.parse(b[0]) - Date.parse(a[0]))
+      .sort((a, b) => b[0].localeCompare(a[0]))
       .map(([day, data]) => ({
-        title: new Date(day).toLocaleDateString(locale, {
+        title: localMidnight(day).toLocaleDateString(locale, {
           weekday: 'long',
           day: 'numeric',
           month: 'long',
@@ -174,6 +180,7 @@ export function TimelineScreen() {
                     {new Date(item.timestamp).toLocaleTimeString(locale, {
                       hour: '2-digit',
                       minute: '2-digit',
+                      ...(zone ? { timeZone: zone } : {}),
                     })}
                   </Text>
                 }

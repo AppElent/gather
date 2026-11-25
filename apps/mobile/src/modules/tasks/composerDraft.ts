@@ -179,10 +179,18 @@ export function composedTask(draft: TaskDraft, parsed: QuickAdd): ComposedTask {
   const pick = <T>(choice: T | null | undefined, read: T | undefined) =>
     choice === null ? undefined : (choice ?? read)
   const dueDate = pick(choices.dueDate, parsed.dueDate)
-  // A typed time is a reminder on the task's day; a time alone is on the
-  // day the parser gave it.
+  // A typed time is a reminder on the task's day; a time alone uses its phone
+  // clock day (`parsed.reminderDate`) when the Group is a day ahead so the
+  // reminder still fires on the upcoming phone clock while the due date stays
+  // on the Group's today.
   const typedReminder = parsed.time
-    ? { date: dueDate ?? parsed.dueDate ?? '', time: parsed.time }
+    ? {
+        date:
+          choices.dueDate !== undefined
+            ? (dueDate ?? '')
+            : (parsed.reminderDate ?? dueDate ?? ''),
+        time: parsed.time,
+      }
     : undefined
   const reminder = pick(
     choices.reminder,

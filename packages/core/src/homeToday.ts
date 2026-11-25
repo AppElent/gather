@@ -15,6 +15,7 @@ import { localMidnight } from './civilDate'
 import type { BabyEventType } from './domain'
 import { fmt } from './i18n'
 import type { Messages } from './messages'
+import { resolveRuntimeZone } from './zoneAliases'
 
 type BabyLogMessages = Parameters<typeof summarizeBabyEvent>[1]
 type TodayWords = Messages['shell']['today']
@@ -118,10 +119,42 @@ export function railEntries(
   return entries.sort((a, b) => a.timestamp - b.timestamp)
 }
 
-/** `HH:MM` on the 24-hour clock, in local time. */
-export function clockTime(ms: number): string {
-  const date = new Date(ms)
+/** `HH:MM` on the 24-hour clock, in `timeZone` or local time when absent. */
+export function clockTime(ms: number, timeZone?: string): string {
   const pad = (n: number) => String(n).padStart(2, '0')
+  if (timeZone !== undefined) {
+    const runtime = resolveRuntimeZone(timeZone)
+    if (runtime !== null) {
+      try {
+        const parts = new Intl.DateTimeFormat('en-GB', {
+          timeZone: runtime,
+          hourCycle: 'h23',
+          hour: '2-digit',
+          minute: '2-digit',
+        }).formatToParts(ms)
+        const rawHour = Number(
+          parts.find((part) => part.type === 'hour')?.value,
+        )
+        const hour = rawHour === 24 ? 0 : rawHour
+        const minute = Number(
+          parts.find((part) => part.type === 'minute')?.value,
+        )
+        if (
+          Number.isInteger(hour) &&
+          hour >= 0 &&
+          hour < 24 &&
+          Number.isInteger(minute) &&
+          minute >= 0 &&
+          minute < 60
+        ) {
+          return `${pad(hour)}:${pad(minute)}`
+        }
+      } catch {
+        // Not a zone here: this device's clock, below.
+      }
+    }
+  }
+  const date = new Date(ms)
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 

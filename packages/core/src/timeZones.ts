@@ -3,6 +3,9 @@
  * listing the ones somebody can choose.
  */
 import { isTimeZone } from './taskReminders'
+import { currentZoneName, resolveRuntimeZone } from './zoneAliases'
+
+export { currentZoneName, resolveRuntimeZone as runtimeTimeZone }
 
 /** This device's IANA zone; UTC when the runtime cannot say. */
 export function deviceTimeZone(): string {
@@ -20,23 +23,16 @@ export function deviceTimeZone(): string {
  * Unicode minus (`+01:00`, U+2212), which is not a name.
  */
 export function canonicalTimeZone(value: string): string | null {
-  if (!/^[A-Za-z]/.test(value) || !isTimeZone(value)) return null
+  if (!/^[A-Za-z]/.test(value)) return null
   const listed = LISTED.get(value.toLowerCase())
+  const runtime = resolveRuntimeZone(listed ?? value)
+  if (runtime === null || !isTimeZone(runtime)) return null
   if (listed) return listed
   return currentZoneName(
     new Intl.DateTimeFormat('en-US', {
-      timeZone: value,
+      timeZone: runtime,
     }).resolvedOptions().timeZone,
   )
-}
-
-/**
- * A stored name as IANA spells it today. Runtimes on ICU still resolve to the
- * names in `RENAMED`, and so did Groups saved before APP-814. Unlike
- * `canonicalTimeZone` it keeps a name this runtime does not know.
- */
-export function currentZoneName(zone: string): string {
-  return RENAMED.get(zone) ?? zone
 }
 
 /** Whether two names are one zone, e.g. `Asia/Calcutta` and `Asia/Kolkata`. */
@@ -94,6 +90,77 @@ export function timeZonePlace(zone: string, places: TimeZonePlaces): string {
 
 const zoneNames = new Map<string, string | null>()
 
+/** Two instants half a year apart, so one of them is in standard time. */
+const WINTER_NORTH = Date.UTC(2026, 0, 1, 12, 0)
+const WINTER_SOUTH = Date.UTC(2026, 6, 1, 12, 0)
+
+/** Offset of `zone` from UTC at `at`, in minutes, for choosing standard time. */
+function offsetMinutes(at: number, zone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: zone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    hourCycle: 'h23',
+  }).formatToParts(at)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value)
+  const hour = get('hour')
+  const wall = Date.UTC(
+    get('year'),
+    get('month') - 1,
+    get('day'),
+    hour === 24 ? 0 : hour,
+    get('minute'),
+  )
+  return Math.round((wall - at) / 60_000)
+}
+
+/**
+ * An instant in `zone`'s standard time (the smaller UTC offset of January and
+ * July), so a runtime that lacks `longGeneric` does not format or cache a
+ * summer-time name ("Central European Summer Time") for the session.
+ */
+function standardInstant(zone: string): number {
+  try {
+    return offsetMinutes(WINTER_NORTH, zone) <=
+      offsetMinutes(WINTER_SOUTH, zone)
+      ? WINTER_NORTH
+      : WINTER_SOUTH
+  } catch {
+    return WINTER_NORTH
+  }
+}
+
+/**
+ * Reads the full time zone name from `formatToParts`. Standard ICU emits one
+ * `timeZoneName` part; Hermes on iOS splits multi-word names across a leading
+ * `timeZoneName` part and trailing `literal` / `timeZoneName` parts (e.g.
+ * `"Midden"`, `"-"`, `"Europese"`, `" "`, `"tijd"`).
+ */
+function extractTimeZoneName(
+  parts: readonly Intl.DateTimeFormatPart[],
+): string | undefined {
+  const first = parts.findIndex((part) => part.type === 'timeZoneName')
+  if (first === -1) return undefined
+  let end = first + 1
+  while (
+    end < parts.length &&
+    (parts[end].type === 'timeZoneName' || parts[end].type === 'literal')
+  ) {
+    end += 1
+  }
+  const value = parts
+    .slice(first, end)
+    .map((part) => part.value)
+    .join('')
+    .replace(/[\s,]+$/, '')
+    .trim()
+  return value || undefined
+}
+
 /**
  * What a zone is called in a language ("Central European Time"), from the
  * runtime; null where it has no words for it.
@@ -104,24 +171,32 @@ export function timeZoneName(zone: string, locale: string): string | null {
   if (name === undefined) {
     // UTC has no generic name. Elsewhere the generic one ignores summer time
     // where the zone has it around the date asked, so not at the epoch. A
-    // runtime without generic names may throw.
+    // runtime without generic names falls back to `long` at standard time so
+    // the cache never pins a summer-time name for the whole session.
+    const runtime = resolveRuntimeZone(zone)
     const styles =
       zone === 'UTC' ? (['long'] as const) : (['longGeneric', 'long'] as const)
     name = null
-    for (const timeZoneName of styles) {
-      try {
-        const found = new Intl.DateTimeFormat(locale, {
-          timeZone: zone,
-          timeZoneName,
-        })
-          .formatToParts(Date.now())
-          .find((part) => part.type === 'timeZoneName')?.value
-        if (found) {
-          name = found.charAt(0).toLocaleUpperCase(locale) + found.slice(1)
-          break
+    if (runtime !== null) {
+      for (const style of styles) {
+        try {
+          const at =
+            style === 'long' && zone !== 'UTC'
+              ? standardInstant(runtime)
+              : Date.now()
+          const found = extractTimeZoneName(
+            new Intl.DateTimeFormat(locale, {
+              timeZone: runtime,
+              timeZoneName: style,
+            }).formatToParts(at),
+          )
+          if (found) {
+            name = found.charAt(0).toLocaleUpperCase(locale) + found.slice(1)
+            break
+          }
+        } catch {
+          // Not this style here, or not this zone: the next, or the place alone.
         }
-      } catch {
-        // Not this style here, or not this zone: the next, or the place alone.
       }
     }
     zoneNames.set(key, name)
@@ -178,29 +253,6 @@ function plain(text: string): string {
     .replace(/[_/\s]+/g, ' ')
     .trim()
 }
-
-/** The names ICU keeps for zones IANA has renamed. */
-const RENAMED = new Map([
-  ['Africa/Asmera', 'Africa/Asmara'],
-  ['America/Buenos_Aires', 'America/Argentina/Buenos_Aires'],
-  ['America/Catamarca', 'America/Argentina/Catamarca'],
-  ['America/Coral_Harbour', 'America/Atikokan'],
-  ['America/Cordoba', 'America/Argentina/Cordoba'],
-  ['America/Godthab', 'America/Nuuk'],
-  ['America/Indianapolis', 'America/Indiana/Indianapolis'],
-  ['America/Jujuy', 'America/Argentina/Jujuy'],
-  ['America/Louisville', 'America/Kentucky/Louisville'],
-  ['America/Mendoza', 'America/Argentina/Mendoza'],
-  ['Asia/Calcutta', 'Asia/Kolkata'],
-  ['Asia/Katmandu', 'Asia/Kathmandu'],
-  ['Asia/Rangoon', 'Asia/Yangon'],
-  ['Asia/Saigon', 'Asia/Ho_Chi_Minh'],
-  ['Atlantic/Faeroe', 'Atlantic/Faroe'],
-  ['Europe/Kiev', 'Europe/Kyiv'],
-  ['Pacific/Enderbury', 'Pacific/Kanton'],
-  ['Pacific/Ponape', 'Pacific/Pohnpei'],
-  ['Pacific/Truk', 'Pacific/Chuuk'],
-])
 
 /** The zones in the IANA database's `zone.tab`, and UTC. */
 const IANA_ZONES = `

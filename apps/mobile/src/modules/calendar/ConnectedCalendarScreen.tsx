@@ -29,6 +29,11 @@ export function ConnectedCalendarScreen() {
   const { t } = useI18n()
   const today = todayIn(group.timeZone)
   const [activeDate, setActiveDate] = useState(today)
+  const [lastToday, setLastToday] = useState(today)
+  if (lastToday !== today) {
+    setLastToday(today)
+    if (activeDate === lastToday) setActiveDate(today)
+  }
   const [filterSheet, setFilterSheet] = useState<'people' | null>(null)
   const [management, setManagement] = useState(false)
   const data = useCalendarData(group.slug, activeDate)

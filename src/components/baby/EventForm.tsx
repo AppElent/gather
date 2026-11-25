@@ -23,6 +23,7 @@ interface EventFormProps {
   babyId: Id<'babies'>
   /** The Group the entry belongs to — every write is authorised by it. */
   groupSlug: string
+  timeZone?: string
   type: BabyEventType
   event?: BabyEventDoc
   onDone: () => void
@@ -32,6 +33,7 @@ interface EventFormProps {
 export function EventForm({
   babyId,
   groupSlug,
+  timeZone,
   type,
   event,
   onDone,
@@ -109,6 +111,7 @@ export function EventForm({
         <DateTimeFields
           label={type === 'sleep' ? entry.start : entry.when}
           valueMs={timestampMs}
+          timeZone={timeZone}
           onChange={(ms) => ms !== undefined && setTimestampMs(ms)}
           required
         />
@@ -118,6 +121,7 @@ export function EventForm({
         type={type}
         values={values}
         timestampMs={timestampMs}
+        timeZone={timeZone}
         onChange={(patch) => setValues((prev) => ({ ...prev, ...patch }))}
       />
 

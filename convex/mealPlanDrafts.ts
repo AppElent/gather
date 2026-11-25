@@ -17,7 +17,13 @@
  * empty; a filled slot is never overwritten. The calls are the phone's own:
  * connected apps are refused (ADR-0046).
  */
-import { addDays, isIsoDate, mondayStart, todayIn } from '@gather/core/civil-date'
+import {
+  addDays,
+  amsterdamIsoDate,
+  isIsoDate,
+  isoDateIn,
+  mondayStart,
+} from '@gather/core/civil-date'
 import {
   awayFromEvents,
   defaultEaters,
@@ -246,7 +252,14 @@ export async function planContext(
   },
 ) {
   const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-  const today = todayIn(group.timeZone)
+  let today = amsterdamIsoDate()
+  if (group.timeZone !== undefined) {
+    try {
+      today = isoDateIn(group.timeZone)(Date.now())
+    } catch {
+      // A stored Group zone this runtime cannot parse: keep the Dutch day.
+    }
+  }
   const from = args.weekStart
   const to = addDays(from, 6)
   const week = await weekOf(ctx, group._id, from, to)
