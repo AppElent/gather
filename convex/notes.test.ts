@@ -530,7 +530,7 @@ describe('notes whose title has the words come first (APP-806)', () => {
   })
 
   test.each([100, 150, 250])(
-    'the newest note and an unfilled note are still answered behind %i title hits',
+    'the newest note and an unfilled note are still answered behind %i title hits (short notes)',
     async (titleHits) => {
       const { notes, search } = await crowded([
         { title: 'Cellar', body: 'the week', updatedAt: 1, unfilled: true },
@@ -552,6 +552,38 @@ describe('notes whose title has the words come first (APP-806)', () => {
         expect(found).toContain('Fresh')
         expect(await search('week', 'bob')).toEqual(['Fresh'])
       }
+    },
+  )
+
+  const weeks = (count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      title: `Week ${index}`,
+      body: '',
+      updatedAt: 10 + index,
+    }))
+
+  test.each([
+    // The newest note is outside every candidate read, and found by substring.
+    ['by substring only', bodyHits(150, 'this week'), { body: 'midweek' }],
+    // Unfilled, and past the 50 notes each old index reads.
+    ['unfilled', bodyHits(150, 'this week'), { body: 'a week', unfilled: true }],
+    // Past the 4 MiB `search_text` read, at about the 105th: 130 notes of about
+    // 40 000 bytes stored, so 100+ of them are index matches.
+    [
+      'past the byte bound',
+      bodyHits(130, `this week ${'x'.repeat(20_000)}`),
+      { body: 'a week' },
+    ],
+  ] as const)(
+    'the newest note is still answered behind 110 title hits: %s',
+    async (_name, fillers, fresh) => {
+      const { notes, search } = await crowded([
+        ...weeks(110),
+        ...fillers,
+        { title: 'Fresh', updatedAt: 9999, by: 'bob', ...fresh },
+      ])
+      expect(await notes('week')).toContain('Fresh')
+      expect(await search('week', 'bob')).toEqual(['Fresh'])
     },
   )
 
