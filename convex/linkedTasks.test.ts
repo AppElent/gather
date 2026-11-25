@@ -287,7 +287,7 @@ test('lists say who can be written, and installed phones still see linked ones r
   })
 })
 
-test('a new Todoist connection asks to read and write', async () => {
+test('a new Todoist connection asks to read and write, and names where to return', async () => {
   const { t } = await seed()
   vi.stubEnv('TODOIST_CLIENT_ID', 'client')
   const url = await t.withIdentity(alice).action(api.integrations.getAuthorizeUrl, {
@@ -295,6 +295,39 @@ test('a new Todoist connection asks to read and write', async () => {
     redirectUri: 'https://gather.example/integrations/callback',
     state: 's',
   })
-  expect(new URL(url).searchParams.get('scope')).toBe('data:read_write')
+  expect(Object.fromEntries(new URL(url).searchParams)).toEqual({
+    client_id: 'client',
+    scope: 'data:read_write',
+    redirect_uri: 'https://gather.example/integrations/callback',
+    state: 's',
+  })
+  vi.unstubAllEnvs()
+})
+
+test('finishing a Todoist connection repeats the redirect URI it set out with', async () => {
+  const { t } = await seed()
+  vi.stubEnv('TODOIST_CLIENT_ID', 'client')
+  vi.stubEnv('TODOIST_CLIENT_SECRET', 'secret')
+  const fetchMock = vi.fn(async (_url: string, _init: RequestInit) =>
+    Response.json({ access_token: 'token' }),
+  )
+  vi.stubGlobal('fetch', fetchMock)
+  await t.withIdentity(alice).action(api.integrations.completeOAuth, {
+    provider: 'todoist',
+    groupSlug: HOME,
+    code: 'code',
+    redirectUri: 'https://gather.example/integrations/callback',
+  })
+  expect(
+    Object.fromEntries(
+      new URLSearchParams(String(fetchMock.mock.calls[0][1].body)),
+    ),
+  ).toEqual({
+    client_id: 'client',
+    client_secret: 'secret',
+    code: 'code',
+    redirect_uri: 'https://gather.example/integrations/callback',
+  })
+  vi.unstubAllGlobals()
   vi.unstubAllEnvs()
 })

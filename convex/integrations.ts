@@ -204,6 +204,8 @@ export const getAuthorizeUrl = action({
     const url = new URL('https://todoist.com/oauth/authorize')
     url.searchParams.set('client_id', requireEnv('TODOIST_CLIENT_ID'))
     url.searchParams.set('scope', 'data:read_write')
+    // Todoist requires it once its console lists more than one redirect URI.
+    url.searchParams.set('redirect_uri', args.redirectUri)
     url.searchParams.set('state', args.state)
     return url.toString()
   },
@@ -262,6 +264,7 @@ export const completeOAuth = action({
         client_id: requireEnv('TODOIST_CLIENT_ID'),
         client_secret: requireEnv('TODOIST_CLIENT_SECRET'),
         code: args.code,
+        redirect_uri: args.redirectUri,
       })
       const res = await fetch('https://todoist.com/oauth/access_token', {
         method: 'POST',
