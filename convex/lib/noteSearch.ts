@@ -6,11 +6,13 @@ import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { indexSearch, normalized } from './searchText'
 
-/** A search stops at this many index matches, the most it answered before. */
+/** Of the notes `search_text` matches without the title, a search answers this many. */
 const MAX_MATCHES = 100
+/** In all, with the title hits, the unfilled notes and the substring matches. */
+const MAX_ANSWER = 2 * MAX_MATCHES
 /**
- * How far one search looks for them in `search_text`: Convex refuses to read
- * past 1024 search results.
+ * How far one search reads in `search_text`, whatever it finds on the way:
+ * Convex refuses to read past 1024 search results.
  */
 const MAX_CANDIDATES = 1000
 /**
@@ -93,19 +95,19 @@ export async function patchNote(
 }
 
 /**
- * `search_text`'s notes for a search, best first, until `MAX_MATCHES` of them
- * have every word. The index ranks notes with *any* word and does not promise
- * that one with all of them comes first, so the rest are read past, not cut
- * off at a page.
+ * `search_text`'s notes for a search, best first, until the candidate or
+ * byte budget is spent. The index ranks notes with *any* word and does not
+ * promise that one with all of them, or one with them in its title, comes
+ * first, so it is read on past the first matches, not cut off at a page or at
+ * `MAX_MATCHES` of them (APP-806).
  */
 async function textCandidates(
   ctx: QueryCtx,
   groupId: Id<'groups'>,
-  { search, matches }: ReturnType<typeof indexSearch>,
+  { search }: ReturnType<typeof indexSearch>,
 ): Promise<Doc<'notes'>[]> {
   const candidates: Doc<'notes'>[] = []
   if (search === '') return candidates
-  let found = 0
   let bytes = 0
   for await (const note of ctx.db
     .query('notes')
@@ -113,13 +115,8 @@ async function textCandidates(
       q.search('searchText', search).eq('groupId', groupId),
     )) {
     candidates.push(note)
-    if (matches(noteSearchText(note))) found += 1
     bytes += getDocumentSize(note)
-    if (
-      found >= MAX_MATCHES ||
-      candidates.length >= MAX_CANDIDATES ||
-      bytes >= CANDIDATE_BYTES
-    )
+    if (candidates.length >= MAX_CANDIDATES || bytes >= CANDIDATE_BYTES)
       break
   }
   return candidates
@@ -158,7 +155,13 @@ async function unfilledCandidates(
 
 /**
  * The notes of one Group that contain every word of `text`, in the title, the
- * body, or across the two. The caller has already authorised the Group.
+ * body, or across the two. The caller has already authorised the Group. Notes
+ * whose title has every word come first, then the rest, each in the order
+ * found, then the answer is cut at `MAX_ANSWER`, so a title hit is cut only
+ * when that many have one. Behind the title hits the cut falls last on what
+ * only the old indexes and the newest notes find (unfilled notes, and index
+ * matches among the newest notes), then on the other `search_text` matches
+ * (`MAX_MATCHES` of them stay), then on the substring matches (APP-806).
  *
  * Two passes, merged, the first first:
  *
@@ -196,16 +199,87 @@ export async function findNotes(
       { count: RECENT_NOTES, bytes: RECENT_BYTES },
     ),
   ])
-  const candidates = [...byText, ...unfilled]
-  const byIndex = candidates.filter((note) => matches(noteSearchText(note)))
-  const found = new Map(byIndex.map((note) => [note._id, note] as const))
-  for (const note of [...candidates, ...recent]) {
-    if (found.has(note._id)) continue
-    const haystack = normalized(noteSearchText(note))
-    if (needles.every((needle) => haystack.includes(needle)))
-      found.set(note._id, note)
+  // One unfilled note can come from both of the old indexes.
+  const candidates = [
+    ...new Map(
+      [...byText, ...unfilled].map((note) => [note._id, note] as const),
+    ).values(),
+  ]
+  const titled = new Map<Id<'notes'>, boolean>()
+  const inTitle = (note: Doc<'notes'>) => {
+    let known = titled.get(note._id)
+    if (known === undefined) {
+      const title = normalized(note.title)
+      known =
+        matches(note.title) || needles.every((needle) => title.includes(needle))
+      titled.set(note._id, known)
+    }
+    return known
   }
-  return [...found.values()]
+  const contains = (note: Doc<'notes'>) => {
+    const haystack = normalized(noteSearchText(note))
+    return needles.every((needle) => haystack.includes(needle))
+  }
+  // Every answer is placed twice: `cut`, what survives the cap, and `show`, the
+  // order it is listed in. Both are tiers, and within a tier notes keep the
+  // order they were found in.
+  //
+  //   tier  cut                     show
+  //   0     title hits              title hits
+  //   1     unfilled index matches  unfilled index matches
+  //   2     the newest notes, newest  the newest notes the index matched
+  //         first, however they were
+  //         found
+  //   3     `search_text` matches   `search_text` matches (`MAX_MATCHES`)
+  //   4     substring matches       substring matches, the newest included
+  //
+  // The newest notes are cut late because `search.group` filters on Who and When
+  // after this, so one cut here cannot be found with them; the index ranks
+  // above a substring match when listed, as it always did.
+  const recentRank = new Map(recent.map((note, index) => [note._id, index]))
+  const placed = new Map<
+    Id<'notes'>,
+    { note: Doc<'notes'>; cut: number; show: number; seq: number }
+  >()
+  const place = (note: Doc<'notes'>, cut: number, show: number) => {
+    if (!placed.has(note._id))
+      placed.set(note._id, { note, cut, show, seq: placed.size })
+  }
+  const byIndex = candidates.filter((note) => matches(noteSearchText(note)))
+  const indexed = new Set(byIndex.map((note) => note._id))
+  for (const note of byIndex) if (inTitle(note)) place(note, 0, 0)
+  const bodyHits = byIndex.filter((note) => !inTitle(note))
+  for (const note of bodyHits)
+    if (note.searchText === undefined) place(note, 1, 1)
+  for (const note of bodyHits
+    .filter((note) => note.searchText !== undefined)
+    .slice(0, MAX_MATCHES))
+    place(note, recentRank.has(note._id) ? 2 : 3, 3)
+  // The substring pass: the newest notes, then the candidates the index did not
+  // match. An index match cut above is not read back in, but a recent one is.
+  for (const note of recent) {
+    if (placed.has(note._id)) continue
+    const index = indexed.has(note._id) || matches(noteSearchText(note))
+    if (!index && !contains(note)) continue
+    if (inTitle(note)) place(note, 0, 0)
+    else place(note, 2, index ? 2 : 4)
+  }
+  for (const note of candidates) {
+    if (indexed.has(note._id) || !contains(note)) continue
+    if (inTitle(note)) place(note, 0, 0)
+    else place(note, 4, 4)
+  }
+  const rank = (id: Id<'notes'>) => recentRank.get(id) ?? 0
+  const kept = [...placed.values()]
+    .sort(
+      (a, b) =>
+        a.cut - b.cut ||
+        (a.cut === 2 ? rank(a.note._id) - rank(b.note._id) : a.seq - b.seq),
+    )
+    .slice(0, MAX_ANSWER)
+  return kept
+    .sort((a, b) => a.show - b.show || a.seq - b.seq)
+    .map(({ note }) => note)
 }
 
 /** The first line with anything on it: what a result row shows under the title. */
