@@ -328,6 +328,26 @@ export const finances = {
       'Een bewaarde verdeling houdt de getallen waarmee hij is gemaakt. Dupliceer hem om iets te wijzigen.',
     notice:
       'Gather bewaart dit niet. Verrekenen doen jullie onderling — geen saldo, geen historie.',
+    web: {
+      newSplit: 'Nieuwe verdeling',
+      summary: 'Rekenhulp',
+      summaryScope: 'niets wordt bewaard tenzij jij dat kiest',
+      barSubOne: '{total} over 1 persoon',
+      payer: 'Wie heeft betaald',
+      amountOf: 'Bedrag voor {name}',
+      removePayment: '{amount} van {name} verwijderen',
+      eachPays: 'Ieders deel',
+      loading: 'Kosten delen laden',
+      loadErrorTitle: 'Kosten delen kon niet worden geladen',
+      loadErrorBody: 'Controleer je verbinding en probeer het opnieuw.',
+      saveError: 'De verdeling is niet bewaard. Probeer het opnieuw.',
+      missingTitle: 'Niet gevonden',
+      missingBody: 'Deze verdeling staat niet in deze groep.',
+      toCalculator: 'Terug naar Kosten delen',
+      replaceTitle: 'Vervangen wat je hebt ingevuld?',
+      replaceBody: 'De berekening op deze pagina is niet bewaard.',
+      replace: 'Vervangen',
+    },
   },
 
   portfolio: {
