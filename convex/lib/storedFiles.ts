@@ -29,16 +29,15 @@
  * still pointing at this blob? That also gives Copy a safe answer in advance —
  * two rows on one blob keep the picture until both are gone.
  *
- * Reading every row of every photo-bearing table to answer it is affordable
- * because it happens only on the paths that orphan a file, never on a read
- * path, and `recipes.list` already scans that table on every page load.
+ * Each photo column has its own index, so answering reads at most one row
+ * however many rows there are (APP-876).
  *
  * Out of scope, and both filed: blobs orphaned *before* any row references them
  * (abandoned forms and imports, #41), and any sweep or backfill over the
  * orphans already in storage (#38 states why that half is the hazardous one).
  */
 
-import type { Doc, Id, TableNames } from '../_generated/dataModel'
+import type { DataModel, Doc, Id, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { requireCurrentUser } from './sharing'
 
@@ -92,23 +91,46 @@ type EveryFileFieldListed = [UnlistedFileField] extends [never] ? true : never
 const everyFileFieldListed: EveryFileFieldListed = true
 void everyFileFieldListed
 
+/** A listed column needs an index on it, named `by_<column>`. */
+type UnindexedFileField = {
+  [T in FileHolder]: {
+    [F in StoredFileField<T> & string]: DataModel[T]['indexes'] extends Record<
+      `by_${F}`,
+      [F, ...string[]]
+    >
+      ? never
+      : F
+  }[StoredFileField<T> & string]
+}[FileHolder]
+type EveryFileFieldIndexed = [UnindexedFileField] extends [never] ? true : never
+const everyFileFieldIndexed: EveryFileFieldIndexed = true
+void everyFileFieldIndexed
+
 function fileFieldsOf(table: TableNames): readonly string[] {
   return (FILE_HOLDERS as Record<string, readonly string[] | undefined>)[
     table
   ] ?? []
 }
 
+/**
+ * A photo-holding table read by one of its columns, both chosen at runtime.
+ * `everyFileFieldIndexed` is what says the index is there.
+ */
+interface FileHolderQuery {
+  withIndex(
+    index: string,
+    range: (q: { eq(field: string, value: unknown): unknown }) => unknown,
+  ): { first(): Promise<unknown> }
+}
+
 /** Is any row — in any table — still pointing at this file? */
 async function isStillReferenced(ctx: MutationCtx, id: Id<'_storage'>) {
   for (const table of Object.keys(FILE_HOLDERS) as FileHolder[]) {
-    const fields = fileFieldsOf(table)
-    const rows = await ctx.db.query(table as TableNames).collect()
-    if (
-      rows.some((row) =>
-        fields.some((field) => (row as Record<string, unknown>)[field] === id),
-      )
-    ) {
-      return true
+    for (const field of fileFieldsOf(table)) {
+      const holder = await (ctx.db.query(table) as unknown as FileHolderQuery)
+        .withIndex(`by_${field}`, (q) => q.eq(field, id))
+        .first()
+      if (holder) return true
     }
   }
   return false

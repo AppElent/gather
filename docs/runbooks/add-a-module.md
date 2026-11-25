@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when adding a Module, a nested web route, a Convex table with a groupId, a _storage column, a photo preset, or a schema-keyed message.
-version: 2.2.0
+version: 2.2.1
 ---
 
 # Add a Module
@@ -30,7 +30,7 @@ the same change as the Module.
 | `apps/mobile/src/drop/dropTargets.ts` `DROP_TARGETS` | Every Module; an empty list if it accepts no Drop | `pnpm typecheck` (`Record<ModuleId, …>`) | [Drop](../contracts/drop.md) |
 | `convex/lib/groupCascade.ts` `GROUP_CONTENT` | Every table with a `groupId` | `pnpm typecheck` (derived from the schema) | [Account deletion](../contracts/account-deletion.md) |
 | `convex/lib/dataExport.ts` `EXPORT_TABLES` | Every Convex table | `pnpm typecheck` (keyed by every schema table) | [Data export](../contracts/data-export.md) |
-| `convex/lib/storedFiles.ts` `FILE_HOLDERS` | Every `_storage` column, as a list per table | `pnpm typecheck` (typed off the schema; a missing column on a listed table fails too) | [Stored files](../contracts/stored-files.md) |
+| `convex/lib/storedFiles.ts` `FILE_HOLDERS` | Every `_storage` column, as a list per table, and its `by_<column>` index in the schema | `pnpm typecheck` (typed off the schema; a missing column on a listed table or a missing index fails too) | [Stored files](../contracts/stored-files.md) |
 | `convex/maintenance.ts` `USER_REFERENCES` | Every column holding a `v.id('users')` | `pnpm typecheck` (derived from the schema) | [Migrations](../migrations/README.md) |
 | Message tables keyed by `NutrientKey`, `BabyEventType` | A new nutrient or baby event type | `pnpm typecheck` | [Localization](../../CODING_STANDARDS.md#localization) |
 | `packages/core/src/babyEvents.ts` (`BabyEventDataByType`, `summarizeBabyEvent`), and the matching payload validator in `convex/lib/babyEvents.ts` (`DataValidatorByType`, `babyEventDataValidator`) | A new baby event type | `pnpm typecheck` (the payload validator and `BabyEventDataByType` must agree field for field) | [Localization](../../CODING_STANDARDS.md#localization) |
