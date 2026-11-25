@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.8.0
+version: 2.8.1
 status: current
 ---
 
@@ -149,6 +149,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   another session (APP-746). With no session left, the phone's local cleanup
   still runs, without the alert (APP-771). A session Clerk is switching to, or
   holds without having activated it, counts as another session (APP-797).
+  Signing out, here and anywhere in the phone app, ends only that session: a
+  second session on the phone stays (APP-824).
 - **On the web, the same run and the same order**, from the Account page's
   Danger zone (`src/components/account/`). `AccountDeleteProvider` sits in
   `routes/_app.tsx` above the signed-in gate, so `ensureUser` is unmounted

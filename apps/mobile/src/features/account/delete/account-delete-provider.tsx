@@ -60,7 +60,7 @@ import {
   useState,
 } from 'react'
 
-import { useForgetAccount, useSignOut } from '../../../auth/useSignOut'
+import { useEndSession, useForgetAccount } from '../../../auth/useSignOut'
 import { api } from '../../../convex/api'
 import { revokeAppleSignIn } from './apple-revocation'
 
@@ -143,7 +143,7 @@ export function AccountDeleteProvider({
   const clerk = useClerk()
   const deleteAccount = useMutation(api.accounts.deleteAccount)
   const revokeApple = useAction(api.accounts.revokeAppleSignIn)
-  const signOut = useSignOut()
+  const endSession = useEndSession()
   const forgetAccount = useForgetAccount()
   const [state, setState] = useState<AccountDeleteState>({ step: 'idle' })
   // Refs as well as the state, so a second tap in the same frame cannot start
@@ -211,8 +211,8 @@ export function AccountDeleteProvider({
     // Deleting the login may already have ended its session, and what this
     // phone kept of it still has to go; only another session is left alone.
     if (!sameAccount(account) && !nobodySignedIn(account)) return standDown()
-    signOut()
-  }, [clerk, sameAccount, nobodySignedIn, signOut, standDown])
+    endSession(account.sessionId)
+  }, [clerk, sameAccount, nobodySignedIn, endSession, standDown])
 
   const start = useCallback(
     (choice: DeleteChoice) => {
@@ -263,7 +263,7 @@ export function AccountDeleteProvider({
           return standDown()
         }
         setState({ step: 'signingOut' })
-        signOut()
+        endSession(account.sessionId)
         onGatherDataDeleted()
       })()
     },
@@ -275,7 +275,7 @@ export function AccountDeleteProvider({
       deleteAccount,
       revokeApple,
       deleteLogin,
-      signOut,
+      endSession,
       forgetAccount,
       standDown,
       onGatherDataDeleted,

@@ -31,6 +31,7 @@ const state = vi.hoisted(() => ({
   order: [] as string[],
   purgeArgs: [] as unknown[],
   signedOut: 0,
+  endedSessions: [] as string[],
   told: 0,
 }))
 
@@ -83,8 +84,9 @@ vi.mock('../../../auth/useSignOut', () => ({
   useForgetAccount: () => () => {
     state.order.push('forget')
   },
-  useSignOut: () => () => {
+  useEndSession: () => (sessionId: string) => {
     state.signedOut += 1
+    state.endedSessions.push(sessionId)
     state.order.push('signOut')
   },
 }))
@@ -142,6 +144,7 @@ let view: ReturnType<typeof mount> | undefined
 
 beforeEach(() => {
   state.signedOut = 0
+  state.endedSessions = []
   state.told = 0
   state.sessionId = 'sess_1'
   state.signedInSessions = ['sess_1']
@@ -308,6 +311,7 @@ describe('an account that signs in with Apple (APP-213)', () => {
     act(() => deletion.start('wholeAccount'))
     await settle()
     expect(state.order).toEqual(['apple', 'purge', 'signOut'])
+    expect(state.endedSessions).toEqual(['sess_1'])
     expect(state.signedOut).toBe(1)
   })
 
@@ -400,6 +404,7 @@ describe('deleting Gather data only (APP-397)', () => {
     await settle()
 
     expect(state.order).toEqual(['purge', 'signOut', 'told'])
+    expect(state.endedSessions).toEqual(['sess_1'])
     expect(state.purgeArgs).toEqual([
       { expectedSubject: 'user_alex', keepLogin: true },
     ])
