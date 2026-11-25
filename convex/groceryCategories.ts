@@ -124,6 +124,8 @@ export const release = internalMutation({
         if (!task || task.category !== 'other') continue
         const list = await ctx.db.get(task.listId)
         if (!list || list.groupId === args.handOff.refusedGroupId) continue
+        // A deleted Group's tasks wait for their step of the cascade.
+        if (!(await ctx.db.get(list.groupId))) continue
         // Only a Group with questions left: two spent Groups must not hand
         // the question back and forth until midnight.
         const usage = await groupUsage(ctx, list.groupId, utcDay(Date.now()))

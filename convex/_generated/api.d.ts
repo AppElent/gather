@@ -75,6 +75,7 @@ import type * as lib_notifications from "../lib/notifications.js";
 import type * as lib_nutrition from "../lib/nutrition.js";
 import type * as lib_nutritionAiEstimate from "../lib/nutritionAiEstimate.js";
 import type * as lib_order from "../lib/order.js";
+import type * as lib_purgePage from "../lib/purgePage.js";
 import type * as lib_recipeAiExtract from "../lib/recipeAiExtract.js";
 import type * as lib_recipeFields from "../lib/recipeFields.js";
 import type * as lib_recipeParsing from "../lib/recipeParsing.js";
@@ -214,6 +215,7 @@ declare const fullApi: ApiFromModules<{
   "lib/nutrition": typeof lib_nutrition;
   "lib/nutritionAiEstimate": typeof lib_nutritionAiEstimate;
   "lib/order": typeof lib_order;
+  "lib/purgePage": typeof lib_purgePage;
   "lib/recipeAiExtract": typeof lib_recipeAiExtract;
   "lib/recipeFields": typeof lib_recipeFields;
   "lib/recipeParsing": typeof lib_recipeParsing;

@@ -632,7 +632,7 @@ describe('deleting a Group from the app', () => {
         inviteCode: 'ghi789',
       })
       await seedMember(ctx, groupId, alice, 'admin')
-      await ctx.db.insert('recipes', {
+      const recipeId = await ctx.db.insert('recipes', {
         groupId,
         sharedGroupIds: [home],
         createdByUserId: alice,
@@ -641,6 +641,7 @@ describe('deleting a Group from the app', () => {
         steps: [],
         tags: [],
       })
+      await ctx.db.insert('recipeShares', { recipeId, groupId: home })
       return groupId
     })
 

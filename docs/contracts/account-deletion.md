@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.9.0
+version: 3.0.0
 status: current
 ---
 
@@ -16,28 +16,36 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
 - **`convex/lib/groupCascade.ts` cannot be forgotten.** `GROUP_CONTENT` is keyed
   by every schema table with a `groupId`, derived from the data model, so a new
   table fails `pnpm typecheck` until somebody says how its rows are reached.
-- **One function destroys a Group.** `destroyGroup` runs the registry, deletes
-  the Group with its own image and schedules the release of the files. Deleting
-  a Group, deleting an account and resetting the Sample household all go through
-  it.
+- **One function destroys a Group.** `destroyGroup` deletes the Group and runs
+  the registry. Deleting a Group, deleting an account and resetting the Sample
+  household all go through it.
+- **A page per transaction** (APP-842): at most 500 rows or about 2 MiB, over
+  all tables together (`convex/lib/purgePage.ts`). The first page goes with the
+  Group, any rest right after (`cascade.purgeGroup`), a page per step, paced to
+  1 MiB a second. The order is credentials (watches, connections, energy
+  sources and price feeds), memberships, queued sends, then content, with a
+  parent's children before the parent. Nothing reaches what waits for its step,
+  because every read and write resolves its Group or a membership first. A
+  recipe Shared into another Group stays readable there until its page goes.
+  The last pages may go just after the account's `users` row.
+- The files of the deleted rows travel along and are released after the last
+  page, because a release scans every photo-holding table. A step that failed
+  for good is run again by hand with its own arguments, which hold their ids.
+- A Member's default Group is cleared with their membership. Somebody who left
+  before may keep a `defaultGroupId` that points at nothing; nothing opens it.
 - `tasks`, `calendarEvents` and `babyEvents` hang off a parent rather than a
   Group, so each is deleted inside its parent's entry.
 - **Energy** (ADR-0051): every Energy table but `energyPrices` carries a
   `groupId` and is read by `by_group`. A Group's price feeds take the account
   prices fetched through them (`energyPrices` by `feedId`); market prices have
-  no feed and no Group and stay. The feed and its key go with the Group's own
-  transaction; its account prices, some 35,000 a year, go right after, 1,000 at
+  no feed and no Group and stay. The feed and its key are among the first rows to
+  go; its account prices, some 35,000 a year, go right after, 1,000 at
   a time (`cascade.purgeAccountPrices`, APP-493). Deleting a House only clears
   an Address's link to it. Deleting a Group does not hold the
   hourly intervals and readings in its own transaction: a year of seven hourly
   channels is some 61,000 rows. `cascade.purgeEnergyRows` deletes them 1,000
   at a time right after. Nothing can read them meanwhile, because the Group is
   gone, and no sync adds to them, because its source is (APP-495).
-- **Notes** (APP-826): a Group's notes can total more than one transaction
-  reads, so they go about 2 MiB at a time: the first page with the Group, any
-  rest right after (`cascade.purgeNotes`). Nothing reaches those meanwhile,
-  because every read and write of a note resolves its Group first. The last
-  pages may go just after the account's `users` row.
 - A repeating task's completion history (`taskCompletions`, APP-303) carries
   its `groupId`, so it goes with the Group, and with its task or list when
   either is deleted. A Member who leaves a shared Group stays named on the
@@ -56,8 +64,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   deleted is refused before its rows are gone ([watch API](watch-api.md)). The
   rate limiter's counters keep the bare row ids, which then point at nothing.
 - **A queued send that names a Group goes with the Group.** `destroyGroup`
-  cancels every `scheduledNotifications` row whose payload names the Group
-  (`cancelGroupSends`, by the `by_group` index) before deleting it, and
+  and its steps cancel every `scheduledNotifications` row whose payload names
+  the Group, by the `by_group` index, and
   deleting a task or a list withdraws the task's reminder send with it.
 - **A task reminder belongs to the Member it goes to** (`tasks.reminder.userId`).
   `detachFromGroup` clears that Member's reminders in the Group and cancels
@@ -82,8 +90,6 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   Group's aisle corrections (`groceryCategoryOverrides`) are in the cascade
   with its other content, and so are its Staples (`groceryStaples`, APP-314)
   and the Pantry rows they were copied from (`pantryEntries`).
-- Storage ids are collected by the cascade and deleted by scheduled work, so a
-  large Group survives the one-transaction limit ([stored files](stored-files.md)).
 - **Account deletion is Convex first, Clerk second**, in scheduled steps, one
   Group per step (`convex/accounts.ts`, `convex/cascade.ts`).
 - **A solo Group dies with the person; a shared Group they only leave.** What

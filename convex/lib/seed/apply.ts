@@ -298,8 +298,12 @@ export async function resetSample(ctx: MutationCtx) {
     const groupId = ctx.db.normalizeId('groups', id)
     if (groupId) await destroyGroup(ctx, groupId)
   }
+  // Only the housemates. What else is recorded is the Group's own content, and
+  // deleting a parent here would strand children the cascade still has to
+  // reach through it.
   for (const id of recorded) {
-    if (await alive(id)) await ctx.db.delete(id)
+    const userId = ctx.db.normalizeId('users', id)
+    if (userId && (await alive(userId))) await ctx.db.delete(userId)
   }
 
   // What a deleted housemate leaves behind outside the Sample Group.
