@@ -1,6 +1,7 @@
 /**
  * A note's most characters, reads of whole notes that stay inside a query's
- * 16 MiB (APP-805), and deleting a Group full of them (APP-826). The backend here refuses what Convex would.
+ * 16 MiB (APP-805), and deleting a Group full of them (APP-826). The backend
+ * here refuses what Convex would.
  */
 import { NOTE_MAX_CHARS } from '@gather/core/notes'
 import type { PaginationResult } from 'convex/server'
