@@ -1,13 +1,13 @@
-import { todayIn } from '@gather/core/civil-date'
-import { editedRead, pickRows, type SourceLine, settleLine, withEdits } from '@gather/core/grocery-pick'
 import { describe, expect, test } from 'vitest'
-import type { PlannedMeal } from './week'
+import { todayIn } from './civilDate'
+import { editedRead, pickRows, type SourceLine, settleLine, withEdits } from './groceries/pick'
+import type { PlannedMeal } from './weekMenu'
 import {
   defaultDays,
   rowsOfLines,
   type WeekRecipe,
   weekGroceryLines,
-} from './week-groceries'
+} from './weekMenuGroceries'
 
 const meal = (id: string, date: string, recipeId?: string, title = id): PlannedMeal =>
   ({
