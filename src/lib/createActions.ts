@@ -65,8 +65,9 @@ const CREATE: Record<ModuleId, CreateDef | null> = {
   beers: (m) => ({ label: m.tastings.index.add, link: onIndex('/beers') }),
   // Readings arrive from the meter, not from a form.
   energy: null,
-  // Not built on the web yet (`status: 'placeholder'`).
+  // A meal is chosen for a slot of the week, so its empty slots are the way in.
   'meal-planner': null,
+  // Not built on the web yet (`status: 'placeholder'`).
   groceries: null,
   'recurring-costs': null,
   'shared-costs': null,

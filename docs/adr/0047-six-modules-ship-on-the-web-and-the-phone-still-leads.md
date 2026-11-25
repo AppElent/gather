@@ -40,7 +40,7 @@ and shares the phone's words.
 | Notes | `pending-port` | [APP-351](https://linear.app/appelent/issue/APP-351) |
 | Calendar | `pending-port` | [APP-344](https://linear.app/appelent/issue/APP-344) |
 | Groceries | `pending-port` | [APP-316](https://linear.app/appelent/issue/APP-316) |
-| Meal planner | `pending-port` | [APP-322](https://linear.app/appelent/issue/APP-322) |
+| Meal planner | `parity` | [APP-322](https://linear.app/appelent/issue/APP-322) |
 | Shared costs | `pending-port` | [APP-329](https://linear.app/appelent/issue/APP-329) |
 
 Until a port lands, its web route stays a `ModulePlaceholder` owned by

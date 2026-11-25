@@ -8,10 +8,11 @@
  * not on it yet.
  */
 import { localMidnight, todayIn } from '@gather/core/civil-date'
+import { eatersOf, sentenceCase, servingsOf, weekdayName } from '@gather/core/week-menu'
+import { type CountedMeal, defaultDays, rowsOfLines, weekDays, weekGroceryLines } from '@gather/core/week-menu-groceries'
 import { router } from 'expo-router'
 import { useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-
 import { api } from '../../../convex/api'
 import { useQuery } from '../../../convex/queries'
 import { haptics } from '../../../feedback/haptics'
@@ -24,21 +25,7 @@ import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { moduleHref } from '../../moduleDestination'
 import { AddToGroceriesSheet } from '../add-to-groceries/add-sheet'
 import { useIngredientLines } from '../add-to-groceries/use-recipe-lines'
-import {
-  eatersOf,
-  type PlannedMeal,
-  sentenceCase,
-  servingsOf,
-  type WeekData,
-  weekdayName,
-} from './week'
-import {
-  type CountedMeal,
-  defaultDays,
-  rowsOfLines,
-  weekDays,
-  weekGroceryLines,
-} from './week-groceries'
+import type { PlannedMeal, WeekData } from './week'
 
 export function WeekGroceriesSheet({
   data,
@@ -110,7 +97,7 @@ export function WeekGroceriesSheet({
     return plural(locale, from.length, words.fromMany)
   }
 
-  const countedMeals: CountedMeal[] = meals
+  const countedMeals: CountedMeal<PlannedMeal>[] = meals
     .filter((meal) => counted.has(meal.date))
     .map((meal) => ({
       meal,

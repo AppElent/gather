@@ -51,7 +51,7 @@ export const MODULES = [
     id: 'meal-planner',
     icon: 'CalendarHeart',
     group: 'kitchen',
-    status: 'placeholder',
+    status: 'live',
     mobileStatus: 'live',
   },
   {

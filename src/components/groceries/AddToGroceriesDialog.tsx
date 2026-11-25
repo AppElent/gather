@@ -13,10 +13,12 @@ import {
   pickRows,
   type RowMeta,
   type SourceLine,
+  sectionsByAisle,
+  settleLine,
 } from '@gather/core/grocery-pick'
 import { useMutation, useQuery } from 'convex/react'
 import { Minus, Plus } from 'lucide-react'
-import { useId, useMemo, useState } from 'react'
+import { type ReactNode, useId, useMemo, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, plural, useI18n } from '../../lib/i18n'
@@ -27,7 +29,7 @@ import { ModuleTile } from '../app/ModuleTile'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { fieldClass } from '../recipes/fields'
 import { readLastGroceryList, writeLastGroceryList } from './preferences'
-import { useRecipeLines } from './useRecipeLines'
+import { useAisleOf, useRecipeLines } from './useRecipeLines'
 
 export interface AddToGroceriesSource {
   title: string
@@ -37,9 +39,9 @@ export interface AddToGroceriesSource {
 
 /**
  * Source-agnostic Add-to-groceries dialog (APP-316, APP-312; reused by
- * recipes now and the week menu in APP-322): servings stepper, target list
- * selector, ingredient checkboxes with live scaling, merge previews, In stock
- * defaults and AI count.
+ * recipes and the week menu, APP-322): servings stepper or day grid, target
+ * list selector, ingredient checkboxes with live scaling, merge previews, In
+ * stock defaults and AI count.
  */
 export function AddToGroceriesDialog({
   source,
@@ -48,18 +50,37 @@ export function AddToGroceriesDialog({
   aiCount,
   readingAsText = false,
   preferredListId,
+  days,
+  byAisle = false,
+  after,
   footnote,
   onAdded,
+  onSending,
   onClose,
 }: {
   source: AddToGroceriesSource
-  lines: readonly SourceLine[]
+  /**
+   * The lines, or what they are given the keys of the rows the person ticked
+   * or unticked: the week menu keeps a line they touched while it was being
+   * read apart from the item it merges into (APP-479).
+   */
+  lines:
+    | readonly SourceLine[]
+    | ((touched: ReadonlySet<string>) => readonly SourceLine[])
   servings?: { value: number; onChange: (value: number) => void }
   aiCount: AiCount | null
   readingAsText?: boolean
   preferredListId?: string
+  /** The week menu's day grid, under the source card. */
+  days?: ReactNode
+  /** One section per aisle, in walking order, instead of one list. */
+  byAisle?: boolean
+  /** Below the lines: the week menu's meals to check, given the chosen list. */
+  after?: (listId: Id<'taskLists'> | undefined) => ReactNode
   footnote?: string
   onAdded?: (listName: string) => void
+  /** Told while the lines are being sent, so the days stay as they were. */
+  onSending?: (sending: boolean) => void
   onClose: () => void
 }) {
   const { slug: groupSlug } = useRequiredCurrentGroup()
@@ -96,10 +117,16 @@ export function AddToGroceriesDialog({
   const listSelectId = useId()
   const servingsLabelId = useId()
 
+  const shown = useMemo(
+    () =>
+      typeof lines === 'function' ? lines(new Set(Object.keys(ticks))) : lines,
+    [lines, ticks],
+  )
+  const detailed = shown.some((line) => line.detail)
   const pick = useMemo(
     () =>
       pickRows({
-        lines,
+        lines: shown,
         servings: servings?.value,
         items: (tasks ?? []).map((task) => ({
           id: task._id,
@@ -112,7 +139,7 @@ export function AddToGroceriesDialog({
         inStock,
         readingAsText,
       }),
-    [lines, servings?.value, tasks, ticks, inStock, readingAsText],
+    [shown, servings?.value, tasks, ticks, inStock, readingAsText],
   )
 
   const amountText = (amount: GroceryAmount) =>
@@ -134,6 +161,9 @@ export function AddToGroceriesDialog({
           ? words.alreadyOn
           : fmt(words.covered, { amount: amountOrOne(meta.have) })
       case 'inStock':
+        // Under a meal ("Shakshuka · Tue · in stock"), the short form.
+        if (detailed)
+          return meta.adding ? words.inStockShortAdding : words.inStockShort
         return meta.adding ? words.inStockAdding : words.inStock
       case 'ai':
         return meta.earlier || !aiCount
@@ -150,8 +180,26 @@ export function AddToGroceriesDialog({
   }
 
   const toggle = (row: PickRow) => {
-    setTicks((current) => ({ ...current, [row.key]: !row.on }))
+    if (busy) return
+    const line = shown.find((candidate) => candidate.key === row.key) ?? row
+    setTicks((current) => settleLine(current, line, !row.on))
   }
+
+  const aisleTitles = useMemo(
+    () =>
+      byAisle
+        ? pick.rows
+            .filter(
+              (row) => row.meta?.kind !== 'reading' && row.meta?.kind !== 'text',
+            )
+            .map((row) => row.title)
+        : [],
+    [byAisle, pick.rows],
+  )
+  const aisleOf = useAisleOf(groupSlug, listId, aisleTitles)
+  const sections = byAisle
+    ? sectionsByAisle(pick.rows, aisleOf)
+    : [{ id: null, rows: pick.rows }]
 
   const count = pick.lines.length
 
@@ -159,6 +207,7 @@ export function AddToGroceriesDialog({
     if (!list || count === 0 || busy) return
     setBusy(true)
     setFailed(false)
+    onSending?.(true)
     try {
       await addLines({
         groupSlug,
@@ -172,6 +221,7 @@ export function AddToGroceriesDialog({
     } catch {
       setFailed(true)
       setBusy(false)
+      onSending?.(false)
     }
   }
 
@@ -230,6 +280,8 @@ export function AddToGroceriesDialog({
             </p>
           </div>
         </div>
+
+        {days}
 
         <div className="flex flex-wrap items-end gap-3">
           {servings ? (
@@ -306,21 +358,27 @@ export function AddToGroceriesDialog({
           </div>
         </div>
 
-        <fieldset className="m-0 grid gap-1 border-0 p-0">
+        {sections.map((section) => (
+        <fieldset
+            key={section.id ?? 'all'}
+            className="m-0 grid gap-1 border-0 p-0"
+          >
           <legend className="mb-1 text-footnote font-semibold text-[var(--muted)]">
-            {words.ingredients}
+            {section.id ? g.aisles[section.id] : words.ingredients}
           </legend>
           <div className="rounded-[var(--radius-control)] bg-[var(--ground)] px-3">
-            {pick.rows.map((row) => {
+            {section.rows.map((row) => {
               const amount = row.adds
                 ? `+${amountOrOne(row.adds)}`
                 : row.amount.quantity === undefined
                   ? amountText(row.amount)
                   : amountOrOne(row.amount)
-              const meta = [row.detail, metaText(row.meta)]
-                .filter(Boolean)
-                .join(' · ')
               const strongMeta = row.meta?.kind === 'merge' && row.on
+              const why = metaText(row.meta)
+              // "Already on: 3, becomes 5" says it all; the rest follow the meals.
+              const meta = strongMeta
+                ? why
+                : [row.detail, why].filter(Boolean).join(' · ')
               return (
                 <label
                   key={row.key}
@@ -329,6 +387,7 @@ export function AddToGroceriesDialog({
                   <input
                     type="checkbox"
                     checked={row.on}
+                    disabled={busy}
                     onChange={() => toggle(row)}
                     className="size-5 shrink-0 accent-[var(--accent-text)]"
                   />
@@ -366,6 +425,9 @@ export function AddToGroceriesDialog({
             })}
           </div>
         </fieldset>
+        ))}
+
+        {after?.(listId)}
       </div>
     </Dialog>
   )
@@ -374,6 +436,7 @@ export function AddToGroceriesDialog({
 /** Add-to-groceries dialog bound to a single Recipe. */
 export function RecipeToGroceriesDialog({
   recipe,
+  startServings,
   preferredListId,
   onAdded,
   onClose,
@@ -384,6 +447,8 @@ export function RecipeToGroceriesDialog({
     ingredients: readonly string[]
     servings?: number
   }
+  /** Where the stepper starts: a planned meal's servings. */
+  startServings?: number
   preferredListId?: string
   onAdded?: (listName: string) => void
   onClose: () => void
@@ -395,7 +460,9 @@ export function RecipeToGroceriesDialog({
     ingredients: recipe.ingredients,
     servings: recipe.servings,
   })
-  const [servings, setServings] = useState(recipe.servings ?? 0)
+  const [servings, setServings] = useState(
+    startServings ?? recipe.servings ?? 0,
+  )
 
   return (
     <AddToGroceriesDialog
@@ -421,8 +488,7 @@ export function RecipeToGroceriesDialog({
 
 /**
  * Chooser opened from Groceries' "From a recipe" button: pick a recipe from
- * the Current Group to open its Add-to-groceries dialog. The week menu joins
- * it with its own web page (APP-322).
+ * the Current Group to open its Add-to-groceries dialog.
  */
 export function FromRecipeDialog({
   preferredListId,
