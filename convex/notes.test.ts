@@ -587,6 +587,23 @@ describe('notes whose title has the words come first (APP-806)', () => {
     },
   )
 
+  test.each([
+    [110, 85],
+    [150, 45],
+  ])(
+    'the newest note among the first 100 index matches is kept behind %i title hits (%i body hits before it)',
+    async (titleHits, before) => {
+      const { notes, search } = await crowded([
+        ...weeks(titleHits),
+        ...bodyHits(before, 'this week'),
+        { title: 'Fresh', body: 'a week', updatedAt: 9999, by: 'bob' },
+        ...bodyHits(150 - before, 'this week'),
+      ])
+      expect(await notes('week')).toContain('Fresh')
+      expect(await search('week', 'bob')).toEqual(['Fresh'])
+    },
+  )
+
   test('an unfilled note is found behind 100+ filled matches', async () => {
     const { notes } = await crowded([
       // First in the old indexes, which read 50 notes each.

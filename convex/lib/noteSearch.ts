@@ -227,16 +227,23 @@ export async function findNotes(
   //   tier  cut                     show
   //   0     title hits              title hits
   //   1     unfilled index matches  unfilled index matches
-  //   2     the newest notes        the newest notes the index matched
+  //   2     the newest notes, newest  the newest notes the index matched
+  //         first, however they were
+  //         found
   //   3     `search_text` matches   `search_text` matches (`MAX_MATCHES`)
   //   4     substring matches       substring matches, the newest included
   //
   // The newest notes are cut late because `search.group` filters on Who and When
   // after this, so one cut here cannot be found with them; the index ranks
   // above a substring match when listed, as it always did.
-  const placed = new Map<Id<'notes'>, { note: Doc<'notes'>; cut: number; show: number }>()
+  const recentRank = new Map(recent.map((note, index) => [note._id, index]))
+  const placed = new Map<
+    Id<'notes'>,
+    { note: Doc<'notes'>; cut: number; show: number; seq: number }
+  >()
   const place = (note: Doc<'notes'>, cut: number, show: number) => {
-    if (!placed.has(note._id)) placed.set(note._id, { note, cut, show })
+    if (!placed.has(note._id))
+      placed.set(note._id, { note, cut, show, seq: placed.size })
   }
   const byIndex = candidates.filter((note) => matches(noteSearchText(note)))
   const indexed = new Set(byIndex.map((note) => note._id))
@@ -247,7 +254,7 @@ export async function findNotes(
   for (const note of bodyHits
     .filter((note) => note.searchText !== undefined)
     .slice(0, MAX_MATCHES))
-    place(note, 3, 3)
+    place(note, recentRank.has(note._id) ? 2 : 3, 3)
   // The substring pass: the newest notes, then the candidates the index did not
   // match. An index match cut above is not read back in, but a recent one is.
   for (const note of recent) {
@@ -257,13 +264,22 @@ export async function findNotes(
     if (inTitle(note)) place(note, 0, 0)
     else place(note, 2, index ? 2 : 4)
   }
-  for (const note of candidates)
-    if (!indexed.has(note._id) && contains(note))
-      inTitle(note) ? place(note, 0, 0) : place(note, 4, 4)
+  for (const note of candidates) {
+    if (indexed.has(note._id) || !contains(note)) continue
+    if (inTitle(note)) place(note, 0, 0)
+    else place(note, 4, 4)
+  }
+  const rank = (id: Id<'notes'>) => recentRank.get(id) ?? 0
   const kept = [...placed.values()]
-    .sort((a, b) => a.cut - b.cut)
+    .sort(
+      (a, b) =>
+        a.cut - b.cut ||
+        (a.cut === 2 ? rank(a.note._id) - rank(b.note._id) : a.seq - b.seq),
+    )
     .slice(0, MAX_ANSWER)
-  return kept.sort((a, b) => a.show - b.show).map(({ note }) => note)
+  return kept
+    .sort((a, b) => a.show - b.show || a.seq - b.seq)
+    .map(({ note }) => note)
 }
 
 /** The first line with anything on it: what a result row shows under the title. */
