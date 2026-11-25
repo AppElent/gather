@@ -308,12 +308,10 @@ export function GroceriesPage({
       }
       // The list on screen, as the phone's gear passes it.
       settings={
-        loadingLists
-          ? linkTo('groceriesSettings')
-          : activeList && {
-              ...linkTo('groceriesSettings'),
-              search: { list: activeList._id },
-            }
+        activeList && {
+          ...linkTo('groceriesSettings'),
+          search: { list: activeList._id },
+        }
       }
     />
   )
