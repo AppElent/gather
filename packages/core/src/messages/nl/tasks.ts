@@ -619,6 +619,10 @@ export const tasks = {
 
   smart: {
     section: 'Slimme lijsten',
+    shown: {
+      one: '{count} slimme lijst zichtbaar',
+      other: '{count} slimme lijsten zichtbaar',
+    },
     lists: {
       today: { title: 'Vandaag', subtitle: 'Vandaag of te laat' },
       mine: { title: 'Mijn taken', subtitle: 'Aan jou toegewezen' },

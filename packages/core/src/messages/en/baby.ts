@@ -20,8 +20,7 @@ export const eventTypes = {
 
 export const log = {
   list: {
-    subtitle:
-      'Temperature, feeding, sleep, growth and more — shared with the group.',
+    count: { one: '{count} child', other: '{count} children' },
     addChild: 'Add child',
     emptyTitle: 'No children yet',
     emptyBody:

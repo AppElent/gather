@@ -76,7 +76,9 @@ export const ROUTES = {
   taskList: '/tasks/$listId',
   smartTaskList: '/tasks/smart/$smartList',
   task: '/tasks/task/$taskId',
+  tasksSettings: '/tasks/settings',
 
+  babySettings: '/baby/settings',
   newChild: '/baby/new',
   child: '/baby/$babyId',
   editChild: '/baby/$babyId/edit',

@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
+import { parseHiddenSmartLists } from '@gather/core/smart-lists'
 import { act } from 'react'
 import { afterEach, expect, test, vi } from 'vitest'
 
 import { mount } from '../testing/dom'
-import { parseHiddenSmartLists, useHiddenSmartLists } from './hiddenSmartLists'
+import { useHiddenSmartLists } from './hiddenSmartLists'
 
 const stored = new Map<string, string>()
 vi.mock('./localPreference', () => ({

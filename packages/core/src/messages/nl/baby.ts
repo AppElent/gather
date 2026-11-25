@@ -18,8 +18,7 @@ export const eventTypes = {
 
 export const log = {
   list: {
-    subtitle:
-      'Temperatuur, voeding, slaap, groei en meer — gedeeld met de Groep.',
+    count: { one: '{count} kind', other: '{count} kinderen' },
     addChild: 'Kind toevoegen',
     emptyTitle: 'Nog geen kinderen',
     emptyBody:

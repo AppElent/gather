@@ -746,6 +746,8 @@ export const tasks = {
    */
   smart: {
     section: 'Smart lists',
+    /** Tasks settings: how many of them the index shows. */
+    shown: { one: '{count} smart list shown', other: '{count} smart lists shown' },
     lists: {
       today: { title: 'Today', subtitle: 'Due today or overdue' },
       mine: { title: 'My tasks', subtitle: 'Assigned to you' },

@@ -62,8 +62,18 @@ vi.mock('@tanstack/react-router', () => ({
     state.navigated.push(to)
   },
   Navigate: ({ to }: { to: string }) => <p>{`navigated to ${to}`}</p>,
-  Link: ({ children, to }: { children: ReactNode; to: string }) => (
-    <a href={to}>{children}</a>
+  Link: ({
+    children,
+    to,
+    'aria-label': label,
+  }: {
+    children: ReactNode
+    to: string
+    'aria-label'?: string
+  }) => (
+    <a href={to} aria-label={label}>
+      {children}
+    </a>
   ),
 }))
 
@@ -840,6 +850,31 @@ describe('the other pages', () => {
     expect(screen.getByText('My tasks')).toBeTruthy()
     expect(screen.getByText('Household')).toBeTruthy()
     expect(screen.getByText('2 open', { selector: 'span' })).toBeTruthy()
+  })
+
+  test('the gear opens Tasks settings', () => {
+    renderTasks(<TasksIndexPage />)
+    expect(
+      screen.getByRole('link', { name: 'Settings for Tasks' }),
+    ).toHaveAttribute('href', '/tasks/settings')
+  })
+
+  test('the index leaves out what this browser hides, but never Today', () => {
+    const key = 'gather:tasks:hidden-smart-lists'
+    const store = (ids: string[]) =>
+      window.localStorage.setItem(key, JSON.stringify(ids))
+    store(['today', 'mine'])
+    const { unmount } = renderTasks(<TasksIndexPage />)
+    expect(screen.getByText('Nothing due today.')).toBeTruthy()
+    expect(screen.queryByText('My tasks')).toBeNull()
+    expect(screen.getByText('Upcoming')).toBeTruthy()
+    unmount()
+
+    store(['mine', 'upcoming', 'unassigned'])
+    renderTasks(<TasksIndexPage />)
+    expect(screen.queryByText('Smart lists')).toBeNull()
+    expect(screen.getByText('Nothing due today.')).toBeTruthy()
+    window.localStorage.removeItem(key)
   })
 
   test('a new packing list arrives with its sections', async () => {

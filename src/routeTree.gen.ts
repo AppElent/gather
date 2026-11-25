@@ -34,6 +34,7 @@ import { Route as AppSharedCostsRouteImport } from './routes/_app/shared-costs'
 import { Route as AppTasksRouteImport } from './routes/_app/tasks'
 import { Route as AppBabyIndexRouteImport } from './routes/_app/baby/index'
 import { Route as AppBabyNewRouteImport } from './routes/_app/baby/new'
+import { Route as AppBabySettingsRouteImport } from './routes/_app/baby/settings'
 import { Route as AppBeersIndexRouteImport } from './routes/_app/beers/index'
 import { Route as AppCalendarIndexRouteImport } from './routes/_app/calendar/index'
 import { Route as AppCheesesIndexRouteImport } from './routes/_app/cheeses/index'
@@ -60,6 +61,7 @@ import { Route as AppRecipesIndexRouteImport } from './routes/_app/recipes/index
 import { Route as AppRecipesNewRouteImport } from './routes/_app/recipes/new'
 import { Route as AppTasksIndexRouteImport } from './routes/_app/tasks/index'
 import { Route as AppTasksListIdRouteImport } from './routes/_app/tasks/$listId'
+import { Route as AppTasksSettingsRouteImport } from './routes/_app/tasks/settings'
 import { Route as AppWinesIndexRouteImport } from './routes/_app/wines/index'
 import { Route as AppBabyBabyIdIndexRouteImport } from './routes/_app/baby/$babyId.index'
 import { Route as AppBabyBabyIdEditRouteImport } from './routes/_app/baby/$babyId.edit'
@@ -205,6 +207,11 @@ const AppBabyNewRoute = AppBabyNewRouteImport.update({
   path: '/baby/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBabySettingsRoute = AppBabySettingsRouteImport.update({
+  id: '/baby/settings',
+  path: '/baby/settings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppBeersIndexRoute = AppBeersIndexRouteImport.update({
   id: '/beers/',
   path: '/beers/',
@@ -333,6 +340,11 @@ const AppTasksIndexRoute = AppTasksIndexRouteImport.update({
 const AppTasksListIdRoute = AppTasksListIdRouteImport.update({
   id: '/$listId',
   path: '/$listId',
+  getParentRoute: () => AppTasksRoute,
+} as any)
+const AppTasksSettingsRoute = AppTasksSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppTasksRoute,
 } as any)
 const AppWinesIndexRoute = AppWinesIndexRouteImport.update({
@@ -465,6 +477,7 @@ export interface FileRoutesByFullPath {
   '/shared-costs': typeof AppSharedCostsRoute
   '/tasks': typeof AppTasksRouteWithChildren
   '/baby/new': typeof AppBabyNewRoute
+  '/baby/settings': typeof AppBabySettingsRoute
   '/energy/connect': typeof AppEnergyConnectRoute
   '/energy/contract': typeof AppEnergyContractRoute
   '/energy/costs': typeof AppEnergyCostsRoute
@@ -481,6 +494,7 @@ export interface FileRoutesByFullPath {
   '/notes/$noteId': typeof AppNotesNoteIdRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/tasks/$listId': typeof AppTasksListIdRoute
+  '/tasks/settings': typeof AppTasksSettingsRoute
   '/baby/': typeof AppBabyIndexRoute
   '/beers/': typeof AppBeersIndexRoute
   '/calendar/': typeof AppCalendarIndexRoute
@@ -535,6 +549,7 @@ export interface FileRoutesByTo {
   '/shared-costs': typeof AppSharedCostsRoute
   '/': typeof AppIndexRoute
   '/baby/new': typeof AppBabyNewRoute
+  '/baby/settings': typeof AppBabySettingsRoute
   '/energy/connect': typeof AppEnergyConnectRoute
   '/energy/contract': typeof AppEnergyContractRoute
   '/energy/costs': typeof AppEnergyCostsRoute
@@ -551,6 +566,7 @@ export interface FileRoutesByTo {
   '/notes/$noteId': typeof AppNotesNoteIdRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/tasks/$listId': typeof AppTasksListIdRoute
+  '/tasks/settings': typeof AppTasksSettingsRoute
   '/baby': typeof AppBabyIndexRoute
   '/beers': typeof AppBeersIndexRoute
   '/calendar': typeof AppCalendarIndexRoute
@@ -609,6 +625,7 @@ export interface FileRoutesById {
   '/_app/tasks': typeof AppTasksRouteWithChildren
   '/_app/': typeof AppIndexRoute
   '/_app/baby/new': typeof AppBabyNewRoute
+  '/_app/baby/settings': typeof AppBabySettingsRoute
   '/_app/energy/connect': typeof AppEnergyConnectRoute
   '/_app/energy/contract': typeof AppEnergyContractRoute
   '/_app/energy/costs': typeof AppEnergyCostsRoute
@@ -625,6 +642,7 @@ export interface FileRoutesById {
   '/_app/notes/$noteId': typeof AppNotesNoteIdRoute
   '/_app/recipes/new': typeof AppRecipesNewRoute
   '/_app/tasks/$listId': typeof AppTasksListIdRoute
+  '/_app/tasks/settings': typeof AppTasksSettingsRoute
   '/_app/baby/': typeof AppBabyIndexRoute
   '/_app/beers/': typeof AppBeersIndexRoute
   '/_app/calendar/': typeof AppCalendarIndexRoute
@@ -683,6 +701,7 @@ export interface FileRouteTypes {
     | '/shared-costs'
     | '/tasks'
     | '/baby/new'
+    | '/baby/settings'
     | '/energy/connect'
     | '/energy/contract'
     | '/energy/costs'
@@ -699,6 +718,7 @@ export interface FileRouteTypes {
     | '/notes/$noteId'
     | '/recipes/new'
     | '/tasks/$listId'
+    | '/tasks/settings'
     | '/baby/'
     | '/beers/'
     | '/calendar/'
@@ -753,6 +773,7 @@ export interface FileRouteTypes {
     | '/shared-costs'
     | '/'
     | '/baby/new'
+    | '/baby/settings'
     | '/energy/connect'
     | '/energy/contract'
     | '/energy/costs'
@@ -769,6 +790,7 @@ export interface FileRouteTypes {
     | '/notes/$noteId'
     | '/recipes/new'
     | '/tasks/$listId'
+    | '/tasks/settings'
     | '/baby'
     | '/beers'
     | '/calendar'
@@ -826,6 +848,7 @@ export interface FileRouteTypes {
     | '/_app/tasks'
     | '/_app/'
     | '/_app/baby/new'
+    | '/_app/baby/settings'
     | '/_app/energy/connect'
     | '/_app/energy/contract'
     | '/_app/energy/costs'
@@ -842,6 +865,7 @@ export interface FileRouteTypes {
     | '/_app/notes/$noteId'
     | '/_app/recipes/new'
     | '/_app/tasks/$listId'
+    | '/_app/tasks/settings'
     | '/_app/baby/'
     | '/_app/beers/'
     | '/_app/calendar/'
@@ -1064,6 +1088,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBabyNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/baby/settings': {
+      id: '/_app/baby/settings'
+      path: '/baby/settings'
+      fullPath: '/baby/settings'
+      preLoaderRoute: typeof AppBabySettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/beers/': {
       id: '/_app/beers/'
       path: '/beers'
@@ -1246,6 +1277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTasksListIdRouteImport
       parentRoute: typeof AppTasksRoute
     }
+    '/_app/tasks/settings': {
+      id: '/_app/tasks/settings'
+      path: '/settings'
+      fullPath: '/tasks/settings'
+      preLoaderRoute: typeof AppTasksSettingsRouteImport
+      parentRoute: typeof AppTasksRoute
+    }
     '/_app/wines/': {
       id: '/_app/wines/'
       path: '/wines'
@@ -1409,6 +1447,7 @@ const AppMealPlannerRouteWithChildren = AppMealPlannerRoute._addFileChildren(
 
 interface AppTasksRouteChildren {
   AppTasksListIdRoute: typeof AppTasksListIdRoute
+  AppTasksSettingsRoute: typeof AppTasksSettingsRoute
   AppTasksIndexRoute: typeof AppTasksIndexRoute
   AppTasksSmartSmartListRoute: typeof AppTasksSmartSmartListRoute
   AppTasksTaskTaskIdRoute: typeof AppTasksTaskTaskIdRoute
@@ -1416,6 +1455,7 @@ interface AppTasksRouteChildren {
 
 const AppTasksRouteChildren: AppTasksRouteChildren = {
   AppTasksListIdRoute: AppTasksListIdRoute,
+  AppTasksSettingsRoute: AppTasksSettingsRoute,
   AppTasksIndexRoute: AppTasksIndexRoute,
   AppTasksSmartSmartListRoute: AppTasksSmartSmartListRoute,
   AppTasksTaskTaskIdRoute: AppTasksTaskTaskIdRoute,
@@ -1441,6 +1481,7 @@ interface AppRouteChildren {
   AppTasksRoute: typeof AppTasksRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppBabyNewRoute: typeof AppBabyNewRoute
+  AppBabySettingsRoute: typeof AppBabySettingsRoute
   AppEnergyConnectRoute: typeof AppEnergyConnectRoute
   AppEnergyContractRoute: typeof AppEnergyContractRoute
   AppEnergyCostsRoute: typeof AppEnergyCostsRoute
@@ -1498,6 +1539,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppTasksRoute: AppTasksRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppBabyNewRoute: AppBabyNewRoute,
+  AppBabySettingsRoute: AppBabySettingsRoute,
   AppEnergyConnectRoute: AppEnergyConnectRoute,
   AppEnergyContractRoute: AppEnergyContractRoute,
   AppEnergyCostsRoute: AppEnergyCostsRoute,
