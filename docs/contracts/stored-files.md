@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when uploading, preparing, replacing, or deleting a photo or any Convex stored file.
-version: 1.2.0
+version: 1.2.1
 status: current
 ---
 
@@ -37,8 +37,9 @@ no blob outlives the last row that points at it.
   reopened on a kept draft takes up the upload its closed row started.
 - On the phone, local files are read with `expo-file-system`
   ([mobile bindings](../../apps/mobile/CODING_STANDARDS.md#bindings)).
-- **Group deletion returns storage ids** rather than deleting inline; the caller
-  schedules them ([account deletion](account-deletion.md)).
+- **Group deletion carries storage ids through its steps** rather than deleting
+  inline; `cascade.releaseFiles` lets them go after the last page
+  ([account deletion](account-deletion.md)).
 
 ## Out of scope
 

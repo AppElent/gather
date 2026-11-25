@@ -16,7 +16,7 @@ import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation } from './_generated/server'
 import { writePauseMs } from './lib/energyWritePace'
-import { destroyGroup, detachFromGroup, purgeNotesPage } from './lib/groupCascade'
+import { destroyGroup, detachFromGroup, purgeGroupPage } from './lib/groupCascade'
 import { deletePushData } from './lib/notifications'
 import { deleteStoredFile } from './lib/storedFiles'
 import { deleteWatchDevices } from './lib/watchDevices'
@@ -74,12 +74,28 @@ export const purgeEnergyRows = internalMutation({
   },
 })
 
-/** Delete the rest of a destroyed Group's notes, a page per step (APP-826). */
+/** Delete the rest of a destroyed Group's rows, a page per step (APP-842). */
+export const purgeGroup = internalMutation({
+  args: {
+    groupId: v.id('groups'),
+    storageIds: v.array(v.id('_storage')),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await purgeGroupPage(ctx, args.groupId, args.storageIds)
+    return null
+  },
+})
+
+/**
+ * Nothing schedules this any more: it finishes the steps a Group deleted before
+ * APP-842 was deployed still had queued (docs/migrations/README.md).
+ */
 export const purgeNotes = internalMutation({
   args: { groupId: v.id('groups') },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await purgeNotesPage(ctx, args.groupId)
+    await purgeGroupPage(ctx, args.groupId, [])
     return null
   },
 })

@@ -282,7 +282,7 @@ describe('deleting a Group full of notes (APP-826)', () => {
       ctx.db.system.query('_scheduled_functions').collect(),
     )
     expect(steps.every((step) => step.state.kind === 'success')).toBe(true)
-    return steps.filter((step) => step.name.includes('purgeNotes')).length
+    return steps.filter((step) => step.name.includes('purgeGroup')).length
   }
 
   type Households = Awaited<ReturnType<typeof households>>

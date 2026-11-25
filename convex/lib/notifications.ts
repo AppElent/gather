@@ -236,7 +236,7 @@ async function rowsFor(
 }
 
 /** Cancel a row's job if it has not started; the generation covers the rest. */
-async function cancelJob(
+export async function cancelJob(
   ctx: MutationCtx,
   jobId: Id<'_scheduled_functions'> | undefined,
 ) {
@@ -326,25 +326,6 @@ export async function fireScheduled(
   }
   await ctx.db.delete(row._id)
   return await queueDelivery(ctx, row.userId, row.payload)
-}
-
-/**
- * Withdraw every send still queued about a Group, for a Group being deleted:
- * each would send nothing, but its row and job would outlive the Group until
- * their time.
- */
-export async function cancelGroupSends(
-  ctx: MutationCtx,
-  groupId: Id<'groups'>,
-) {
-  const queued = await ctx.db
-    .query('scheduledNotifications')
-    .withIndex('by_group', (q) => q.eq('payload.groupId', groupId))
-    .collect()
-  for (const row of queued) {
-    await cancelJob(ctx, row.jobId)
-    await ctx.db.delete(row._id)
-  }
 }
 
 /**
