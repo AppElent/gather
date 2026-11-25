@@ -12,4 +12,9 @@ export const notes = {
   pin: 'Notitie vastzetten',
   unpin: 'Notitie losmaken',
   delete: 'Notitie verwijderen',
+  length: '{count} van {max} tekens',
+  refusals: {
+    'notes:too-long':
+      'Een notitie kan 100.000 tekens bevatten, inclusief de titel. Kort de notitie in om te bewaren.',
+  },
 } satisfies typeof enNotes

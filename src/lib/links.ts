@@ -67,6 +67,10 @@ export const ROUTES = {
   calendarDay: '/calendar/day/$date',
   calendarEvent: '/calendar/event/$eventId',
 
+  taskList: '/tasks/$listId',
+  smartTaskList: '/tasks/smart/$smartList',
+  task: '/tasks/task/$taskId',
+
   newChild: '/baby/new',
   child: '/baby/$babyId',
   editChild: '/baby/$babyId/edit',

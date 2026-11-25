@@ -77,3 +77,27 @@ test('once the server holds it after all, later changes show again', () => {
   saved('From elsewhere')
   expect(text().draft).toBe('From elsewhere')
 })
+
+/** A commit that did not take the text leaves it unsaved (APP-805). */
+test('text a commit did not take stays, over a change from elsewhere, and is tried again', () => {
+  let field = {} as ReturnType<typeof useDebouncedText>
+  let take = false
+  const seen: string[] = []
+  function Probe({ value }: { value: string }) {
+    field = useDebouncedText(value, (next) => {
+      seen.push(next)
+      return take
+    })
+    return null
+  }
+  const view = mount(<Probe value="saved" />)
+  act(() => field.change('mine'))
+  act(() => field.flush())
+  view.rerender(<Probe value="theirs" />)
+  expect(field.draft).toBe('mine')
+  take = true
+  act(() => field.flush())
+  act(() => field.flush())
+  expect(seen).toEqual(['mine', 'mine'])
+  view.unmount()
+})

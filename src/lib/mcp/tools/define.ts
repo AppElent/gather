@@ -1,3 +1,4 @@
+import { en as coreEn } from '@gather/core/messages'
 import { registerAppTool } from '@modelcontextprotocol/ext-apps/server'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
@@ -162,6 +163,7 @@ const REFUSAL_KINDS: Record<string, string> = {
     'The event changed while you were editing it. Read it again and retry.',
   'calendar:assignee-not-member': 'That person is not in this Group.',
   'calendar:person-not-member': 'That person is not in this Group.',
+  'notes:too-long': coreEn.notes.refusals['notes:too-long'],
 }
 
 /** What the agent reads about a refusal Gather made on purpose. */
