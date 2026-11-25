@@ -27,7 +27,8 @@ jobs:
       # new drift blocks the PR.
       - run: node scripts/check-project.mjs --strict
       # The local gate (docs/runbooks/verification.md): check, root and
-      # Convex typecheck, the phone app's own typecheck, and every Vitest project.
+      # Convex typecheck, the phone and TV apps' own typechecks, and every Vitest
+      # project.
       # Running the same script keeps "green locally" and "green in CI" the same thing.
       - run: pnpm verify
       # Build catches bundling/plugin/SSR-compile breakage that typecheck + tests
