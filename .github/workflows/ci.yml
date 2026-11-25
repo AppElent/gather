@@ -26,9 +26,9 @@ jobs:
       # Toolkit conformance (docs/standards/baseline.md): fails on any warning, so
       # new drift blocks the PR.
       - run: node scripts/check-project.mjs --strict
-      # The local gate (docs/runbooks/verification.md): check, root typecheck,
-      # the phone app's own typecheck, and every Vitest project. Running the
-      # same script keeps "green locally" and "green in CI" the same thing.
+      # The local gate (docs/runbooks/verification.md): check, root and
+      # Convex typecheck, the phone app's own typecheck, and every Vitest project.
+      # Running the same script keeps "green locally" and "green in CI" the same thing.
       - run: pnpm verify
       # Build catches bundling/plugin/SSR-compile breakage that typecheck + tests
       # miss. preview.yml builds only for labelled PRs, so this keeps the build
