@@ -405,10 +405,10 @@ export const FEATURES = defineFeatures([
   {
     id: 'calendar',
     kind: 'product',
-    status: 'pending-port',
-    platforms: ['mobile'],
-    reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-344.`,
+    status: 'parity',
+    platforms: ['web', 'mobile'],
     routes: {
+      web: ['_app/calendar/**'],
       mobile: [
         '(app)/(tabs)/all/calendar/**',
         '(app)/(tabs)/search/calendar/**',
@@ -482,10 +482,9 @@ export const FEATURES = defineFeatures([
     kind: 'product',
     status: 'exclusive',
     platforms: ['web'],
-    reason: `Placeholders for phone Modules. Calendar, notes, meal planner and shared costs are replaced by their web ports (${WEB_PORTS_ADR}); recurring costs and savings goals wait for a decision per Module (APP-83, ${ADR}).`,
+    reason: `Placeholders for phone Modules. Notes, meal planner and shared costs are replaced by their web ports (${WEB_PORTS_ADR}); recurring costs and savings goals wait for a decision per Module (APP-83, ${ADR}).`,
     routes: {
       web: [
-        '_app/calendar',
         '_app/notes',
         '_app/meal-planner',
         '_app/recurring-costs',

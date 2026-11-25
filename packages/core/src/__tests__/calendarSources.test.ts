@@ -1,11 +1,11 @@
-import { normalizeCalendarEvent } from '@gather/core/calendar'
 import { describe, expect, test } from 'vitest'
+import { normalizeCalendarEvent } from '../calendar'
 
 import {
   applySourceReport,
   isMonthLoaded,
   mergeSourceEvents,
-} from './calendarSources'
+} from '../calendarSources'
 
 const event = (id: string, calendarId: string, revision = 1) =>
   normalizeCalendarEvent({

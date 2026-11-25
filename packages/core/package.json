@@ -12,6 +12,7 @@
     "./baby-events": "./src/babyEvents.ts",
     "./barcodes": "./src/barcodes.ts",
     "./calendar": "./src/calendar.ts",
+    "./calendar-sources": "./src/calendarSources.ts",
     "./civil-date": "./src/civilDate.ts",
     "./data-export": "./src/dataExport.ts",
     "./decimal": "./src/decimal.ts",
