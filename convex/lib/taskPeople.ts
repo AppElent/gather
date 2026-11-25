@@ -57,5 +57,7 @@ export function withAssignee(
   const assigneeId = people?.matched.get(responsibleId)
   if (assigneeId) return { ...task, assigneeId }
   const person = people?.source.people.find((each) => each.id === responsibleId)
-  return { ...task, assigneeName: person?.name ?? '' }
+  const name = person?.name ?? ''
+  // Someone who has not set a name may have their address for one.
+  return { ...task, assigneeName: name.includes('@') ? '' : name }
 }

@@ -463,6 +463,10 @@ describe('who a linked task is given to (APP-405)', () => {
         groupSlug: HOME,
         write: { kind: 'update', taskId: 't1', title: 'Plumber' },
       }),
-    ).toMatchObject({ status: 'ok', refresh: true, tasks: [] })
+    ).toMatchObject({
+      status: 'ok',
+      refresh: true,
+      tasks: [{ externalId: 't1', assigneeName: '' }],
+    })
   })
 })

@@ -804,7 +804,7 @@ export const writeTask = action({
           people = await peopleOf(ctx, args, conn, config)
         } catch {
           // The write landed, so what fails from here only asks for a refresh.
-          return { status: 'ok', tasks: [], refresh: true }
+          outcome.refresh = true
         }
       }
       return {

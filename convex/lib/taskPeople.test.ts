@@ -63,7 +63,13 @@ describe('membersOfPeople', () => {
 test('a task says its Member, else a name, and never the provider’s id', () => {
   const task = { externalId: 't', title: 't', done: false }
   const people = {
-    source: { shared: true, people: [person('2', 'x@x.nl')] },
+    source: {
+      shared: true,
+      people: [
+        person('2', 'x@x.nl'),
+        { ...person('4', 'y@x.nl'), name: 'y@x.nl' },
+      ],
+    },
     matched: new Map([['1', id('ann')]]),
   }
   const whose = (responsibleId?: string, known = true) =>
@@ -72,5 +78,6 @@ test('a task says its Member, else a name, and never the provider’s id', () =>
   expect(whose('1')).toEqual({ ...task, assigneeId: 'ann' })
   expect(whose('2')).toEqual({ ...task, assigneeName: 'Person 2' })
   expect(whose('3')).toEqual({ ...task, assigneeName: '' })
+  expect(whose('4')).toEqual({ ...task, assigneeName: '' })
   expect(whose('1', false)).toEqual({ ...task, assigneeName: '' })
 })
