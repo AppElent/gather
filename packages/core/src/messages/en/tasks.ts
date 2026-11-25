@@ -299,6 +299,22 @@ export const tasks = {
     topLevel: 'Not under a task',
     noParents: 'There is no task on this list it can go under.',
     addSubtask: 'Add a subtask to {task}',
+    /** Moving a task to another list, within its source (APP-821). */
+    moveTo: {
+      with: '{title}, with {count} subtasks',
+      withOne: '{title}, with 1 subtask',
+      other: 'Other source',
+      otherWeb: 'Other source (not possible)',
+      notPossible: '{list}, not possible: other source',
+      goesAlong:
+        'Subtasks, comments, repeat and reminders move with it. Its section does not: it lands in the new list without a section.',
+      stays:
+        'A task stays in the source it lives in. It cannot move to a Gather or Notion list.',
+      staysLocal: 'A task stays in the source it lives in. It cannot move to a linked list.',
+      explained:
+        'A task moves within the same {provider} account; subtasks, comments and repeat go with it, its section does not. A task stays in the source it lives in.',
+      moved: 'Moved to {list}',
+    },
   },
 
   addList: {

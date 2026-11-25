@@ -245,6 +245,22 @@ export const tasks = {
     topLevel: 'Niet onder een taak',
     noParents: 'Er is geen taak op deze lijst waar hij onder kan.',
     addSubtask: 'Subtaak toevoegen aan {task}',
+    moveTo: {
+      with: '{title}, met {count} subtaken',
+      withOne: '{title}, met 1 subtaak',
+      other: 'Andere bron',
+      otherWeb: 'Andere bron (kan niet)',
+      notPossible: '{list}, kan niet: andere bron',
+      goesAlong:
+        'Subtaken, opmerkingen, herhaling en herinneringen gaan mee. De sectie niet: in de nieuwe lijst staat hij zonder sectie.',
+      stays:
+        'Een taak blijft in de bron waar hij staat. Naar een Gather- of Notion-lijst verplaatsen kan niet.',
+      staysLocal:
+        'Een taak blijft in de bron waar hij staat. Naar een gekoppelde lijst verplaatsen kan niet.',
+      explained:
+        'Verplaatsen kan binnen hetzelfde {provider}-account; subtaken, opmerkingen en herhaling gaan mee, de sectie niet. Een taak blijft in de bron waar hij staat.',
+      moved: 'Verplaatst naar {list}',
+    },
   },
 
   addList: {

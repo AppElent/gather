@@ -30,6 +30,7 @@ vi.mock('convex/react', () => ({
 }))
 
 import { localIsoDate } from '@gather/core/civil-date'
+import { moveLinkedToList, type SendWrite } from '@gather/core/linked-lists'
 import type { TaskRepeat } from '@gather/core/task-repeat'
 import {
   type CompletedOccurrence,
@@ -63,6 +64,7 @@ function listRow(id: string, provider: 'local' | 'notion' | 'todoist') {
     display,
     kind: 'plain' as const,
     icon: null,
+    connectionId: null,
     color: null,
     grocery: false,
     checkedClearedAt: null,
@@ -977,6 +979,67 @@ describe('a linked list is written to in its provider first (APP-448)', () => {
     })
     expect(externalSnapshot().get('first')?.tasks[0].pending).toBeUndefined()
     expect(fetchTasks).toHaveBeenCalledTimes(1)
+  })
+
+  test('a move leaves one list, shows on the other, and undo puts it back under its parent', async () => {
+    // What Todoist holds, by list.
+    const held: Record<string, ReturnType<typeof row>[]> = {
+      from: [row('p'), row('s', { parentExternalId: 'p' })],
+      to: [],
+    }
+    const fetchTasks = (id: string) =>
+      Promise.resolve({ status: 'ok' as const, tasks: [...held[id]] })
+    const sent: unknown[] = []
+    const send: SendWrite = async (id, write) => {
+      sent.push([id, write])
+      if (write.kind === 'moveToList') {
+        held[id] = held[id].filter((each) => each.externalId !== write.taskId)
+        held[write.listId].push(row(write.taskId))
+      } else if (write.kind === 'move') {
+        held[id] = held[id].map((each) =>
+          each.externalId === write.taskId
+            ? row('s', { parentExternalId: write.parentId })
+            : each,
+        )
+        return { status: 'ok', tasks: [held[id][1]], refresh: false }
+      }
+      return { status: 'ok', tasks: [row('s')], refresh: true }
+    }
+    await syncExternalList('from', fetchTasks)
+    await syncExternalList('to', fetchTasks)
+    const undo = await moveLinkedToList(
+      { id: 's', listId: 'from', parentTaskId: 'p' },
+      'to',
+      send,
+      fetchTasks,
+    )
+    expect(rows('from')).toEqual(['p'])
+    await vi.waitFor(() => expect(rows('to')).toEqual(['s']))
+
+    await undo()
+    expect(rows('to')).toEqual([])
+    expect(rows('from')).toEqual(['p', 's'])
+    expect(externalSnapshot().get('from')?.tasks[1].parentTaskId).toBe('p')
+    expect(sent).toEqual([
+      ['from', { kind: 'moveToList', taskId: 's', listId: 'to' }],
+      ['to', { kind: 'moveToList', taskId: 's', listId: 'from' }],
+      ['from', { kind: 'move', taskId: 's', parentId: 'p' }],
+    ])
+  })
+
+  test('a refused move leaves the task where it is', async () => {
+    const fetchTasks = answering(row('a'))
+    await syncExternalList('stays', fetchTasks)
+    await expect(
+      moveLinkedToList(
+        { id: 'a', listId: 'stays' },
+        'elsewhere',
+        () => Promise.resolve({ status: 'error', reason: 'failed' }),
+        fetchTasks,
+      ),
+    ).rejects.toMatchObject({ reason: 'failed' })
+    expect(rows('stays')).toEqual(['a'])
+    expect(externalSnapshot().has('elsewhere')).toBe(false)
   })
 
   test('a subtask lands under its parent', async () => {

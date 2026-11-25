@@ -90,7 +90,7 @@ function SmartListBody({
               ? menu({
                   task,
                   list,
-                  onDeleted: selected ? close : undefined,
+                  onGone: selected ? close : undefined,
                 })
               : []
           }

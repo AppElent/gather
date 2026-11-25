@@ -17,6 +17,7 @@ import type { RowMenuAction } from '../app/RowMenu'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { ChoiceList } from './ChoiceList'
 import { useTaskLists } from './data'
+import { LinkedListChoice } from './LinkedListChoice'
 import { type Notice, useTasksNotices } from './TasksNotices'
 import { type TaskActions, useTaskActions } from './useTaskActions'
 import { dayWords, deleteBody, providerName } from './words'
@@ -24,6 +25,7 @@ import { dayWords, deleteBody, providerName } from './words'
 type TaskDialog =
   | { kind: 'move' | 'section'; task: Task; list: TaskList }
   | { kind: 'under'; task: Task }
+  | { kind: 'moveLinked'; task: Task; list: TaskList; onGone?: () => void }
   | { kind: 'complete'; task: Task }
 
 interface MenuContext {
@@ -32,8 +34,8 @@ interface MenuContext {
   /** Where in its group it may go, when its place is the list's to give. */
   onMove?: { up?: () => void; down?: () => void }
   onOpen?: () => void
-  /** The task was deleted: a page or panel about it leaves. */
-  onDeleted?: () => void
+  /** The task was deleted or moved away: a page or panel about it leaves. */
+  onGone?: () => void
 }
 
 interface Workspace {
@@ -96,7 +98,7 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
     list,
     onMove,
     onOpen,
-    onDeleted,
+    onGone,
   }: MenuContext): RowMenuAction[] => {
     const local = list.provider === 'local'
     const items: RowMenuAction[] = []
@@ -131,6 +133,9 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
       add('under', t.tasks.linkedWrite.moveUnder, () =>
         setDialog({ kind: 'under', task }),
       )
+      add('move', words.menu.move, () =>
+        setDialog({ kind: 'moveLinked', task, list, onGone }),
+      )
     }
     if (task.sourceUrl) {
       add(
@@ -152,7 +157,7 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
             errorFallback: words.failed,
             run: async () => {
               await actions.remove(task.id)
-              onDeleted?.()
+              onGone?.()
               show({ message: fmt(words.deleted, { title: task.title }) })
             },
           }),
@@ -234,6 +239,12 @@ export function TasksWorkspace({ children }: { children: ReactNode }) {
           onClose={close}
           onChoose={(id) => choose(() => actions.moveUnder(dialog.task, id))}
         />
+      ) : null}
+
+      {dialog?.kind === 'moveLinked' ? (
+        <Dialog title={words.menu.move} onClose={close}>
+          <LinkedListChoice {...dialog} onClose={close} />
+        </Dialog>
       ) : null}
 
       {confirmDialog}

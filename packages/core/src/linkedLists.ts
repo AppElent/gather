@@ -73,6 +73,8 @@ export type LinkedTaskWrite =
       requestKey?: string
     }
   | { kind: 'move'; taskId: string; parentId: string | null }
+  /** To another list of the same connection (APP-821). */
+  | { kind: 'moveToList'; taskId: string; listId: string }
 
 type WriteResult =
   | { status: 'ok'; tasks: ProviderTask[]; refresh: boolean }
@@ -400,6 +402,48 @@ export async function writeLinkedTask(
   } finally {
     markPending(listId, taskId, false)
     if (refresh) void syncExternalList(listId, fetchTasks)
+  }
+}
+
+/** Reads a list again if anyone holds it, begun after what just changed it. */
+async function reread(listId: string, fetchTasks: FetchTasks) {
+  if (!external.has(listId)) return
+  await inFlight.get(listId)
+  await syncExternalList(listId, fetchTasks)
+}
+
+/**
+ * A linked task to another list of its connection (APP-821). Resolves to the
+ * way back: to its own list again and under its own parent, at no section.
+ */
+export async function moveLinkedToList(
+  task: Pick<Task, 'id' | 'listId' | 'parentTaskId'>,
+  listId: string,
+  send: SendWrite,
+  fetchTasks: FetchTasks,
+  connection: Connection = ALWAYS_ONLINE,
+): Promise<() => Promise<void>> {
+  const write = (from: string, change: LinkedTaskWrite) =>
+    writeLinkedTask(from, change, send, fetchTasks, connection)
+  const moved = await write(task.listId, {
+    kind: 'moveToList',
+    taskId: task.id,
+    listId,
+  })
+  const taskId = moved.taskId ?? task.id
+  void reread(listId, fetchTasks)
+  return async () => {
+    // It may never have been opened here, and only fresh rows are written to.
+    if (!external.get(listId)?.fresh) await syncExternalList(listId, fetchTasks)
+    await write(listId, { kind: 'moveToList', taskId, listId: task.listId })
+    await reread(task.listId, fetchTasks)
+    if (task.parentTaskId) {
+      await write(task.listId, {
+        kind: 'move',
+        taskId,
+        parentId: task.parentTaskId,
+      })
+    }
   }
 }
 

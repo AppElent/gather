@@ -513,6 +513,25 @@ const writer: TaskProviderWriter = {
     )
     return { tasks: [mapTodoistTask(moved)], refresh: false }
   },
+
+  async moveToSource(accessToken, config, taskId, target, fetchImpl = fetch) {
+    const [from, to] = await Promise.all([
+      projectIdOf(accessToken, config, fetchImpl),
+      projectIdOf(accessToken, target, fetchImpl),
+    ])
+    const task = await requireTask(accessToken, from, taskId, fetchImpl)
+    // Two lists can show one project: it is there already, in its section.
+    if (from === to) return { tasks: [], refresh: true }
+    const moved = await onTask(
+      todoistRequest<TodoistApiTask>(
+        accessToken,
+        taskPath(task.id, '/move'),
+        fetchImpl,
+        { method: 'POST', json: { project_id: to } },
+      ),
+    )
+    return { tasks: [mapTodoistTask(moved)], refresh: true }
+  },
 }
 
 /** A change as `item_update` takes it, keeping a due's repeat and time. */

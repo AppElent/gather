@@ -175,6 +175,8 @@ export interface ListRow {
   suggestionsOff?: boolean
   sections?: TaskSection[]
   capabilities?: { write: boolean }
+  /** A linked list's connection; absent from a server older than APP-821. */
+  connectionId?: string | null
 }
 
 /** A task as Convex holds it, as much of it as a Task reads. */

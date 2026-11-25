@@ -110,4 +110,10 @@ export const linkedTaskWriteValidator = v.union(
     /** The task to go under, or null for the top of the list. */
     parentId: v.union(v.string(), v.null()),
   }),
+  v.object({
+    kind: v.literal('moveToList'),
+    taskId: v.string(),
+    /** A linked list of the same connection (APP-821). */
+    listId: v.id('taskLists'),
+  }),
 )
