@@ -26,7 +26,7 @@ import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { AuthError } from '../components/AuthError'
 import { api, type Id } from '../convex/api'
-import { useLiveQuery, useQuery } from '../convex/queries'
+import { useLiveQuery } from '../convex/queries'
 import { confirmDestructive } from '../feedback/confirmDestructive'
 import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
@@ -44,9 +44,6 @@ export function LeaveOrDeleteGroupSection() {
   const { group } = useGroup()
   const leaveGroup = useMutation(api.groups.leaveGroup)
   const deleteGroup = useMutation(api.groups.deleteGroup)
-  // `GroupProvider` holds the same subscription, so this reads its result.
-  const myGroups = useQuery(api.groups.myGroups, {})
-  const role = myGroups?.find((each) => each._id === group._id)?.role
   // Once the reader is out, the Group's own queries would only refuse until
   // `GroupProvider` moves on, so they are not asked again.
   const [gone, setGone] = useState<Id<'groups'> | null>(null)
@@ -59,7 +56,7 @@ export function LeaveOrDeleteGroupSection() {
 
   if (gone === group._id) return null
 
-  const exits = groupExits(role, status)
+  const exits = groupExits(group.role, status)
 
   async function run(which: Exit) {
     if (busy) return

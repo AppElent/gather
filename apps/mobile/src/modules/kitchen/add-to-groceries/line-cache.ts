@@ -8,7 +8,8 @@
  * the recipe's schema and every installed app stay as they are; the cost is
  * that another phone in the household asks once for itself.
  */
-import { type GroceryUnit, isGroceryUnit } from '@gather/core/groceries'
+import { isGroceryUnit } from '@gather/core/groceries'
+import type { CachedRead } from '@gather/core/grocery-ai-batches'
 import {
   clearPreference,
   readPreference,
@@ -16,11 +17,7 @@ import {
   writePreference,
 } from '../../../prefs/localPreference'
 
-export interface CachedRead {
-  name: string
-  quantity?: number
-  unit?: GroceryUnit
-}
+export type { CachedRead }
 
 /** A reading, or null: the AI read the line as plain text. */
 export type CachedLine = CachedRead | null

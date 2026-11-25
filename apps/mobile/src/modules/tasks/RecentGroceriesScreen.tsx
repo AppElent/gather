@@ -7,6 +7,7 @@
  * Recent is no table of its own: it is the checked items of the Group's
  * grocery lists (`tasks.recentGroceries`).
  */
+import { todayIn } from '@gather/core/civil-date'
 import { groceryKey, parseGroceryLine } from '@gather/core/groceries'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
@@ -15,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { haptics } from '../../feedback/haptics'
+import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
@@ -39,6 +41,7 @@ export function RecentGroceries({ listId }: { listId: string }) {
   const recent = useRecentGroceries()
   const { tasks } = useTaskList(listId)
   const actions = useTaskActions()
+  const { group } = useGroup()
   // Rows put back from here stay, marked as on the list, until the screen
   // closes. The server keeps the checked row in Recent since APP-311 (a
   // put-back adds a copy); this hold covers a row that leaves Recent anyway,
@@ -54,7 +57,7 @@ export function RecentGroceries({ listId }: { listId: string }) {
     ...live,
     ...[...kept.values()].filter((row) => !liveIds.has(row._id)),
   ].sort((a, b) => b.doneAt - a.doneAt)
-  const days = recentDays(rows)
+  const days = recentDays(rows, group.timeZone)
   const now = Date.now()
 
   const putBack = (row: RecentRow) => {
@@ -70,7 +73,7 @@ export function RecentGroceries({ listId }: { listId: string }) {
     })
   }
 
-  const today = new Date(now).toDateString()
+  const today = todayIn(group.timeZone, now)
   const dayLabel = (date: string) => {
     const day = new Date(`${date}T12:00:00`)
     const long = day.toLocaleDateString(locale, {
@@ -78,7 +81,7 @@ export function RecentGroceries({ listId }: { listId: string }) {
       day: 'numeric',
       month: 'long',
     })
-    if (day.toDateString() === today) return `${r.today} · ${long}`
+    if (date === today) return `${r.today} · ${long}`
     return long.charAt(0).toLocaleUpperCase(locale) + long.slice(1)
   }
 

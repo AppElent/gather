@@ -52,6 +52,10 @@ interface ImageUploadFieldProps {
    * photo it is about to store has an id.
    */
   onUploadingChange?: (uploading: boolean) => void
+  /** Held while the form saves, so a photo cannot change under the save. */
+  disabled?: boolean
+  /** `false` for a row inside a form that already has its own surface. */
+  framed?: boolean
 }
 
 export function ImageUploadField({
@@ -62,6 +66,8 @@ export function ImageUploadField({
   label,
   fieldId = 'image-upload',
   onUploadingChange,
+  disabled = false,
+  framed = true,
 }: ImageUploadFieldProps) {
   const image = useMessages().common.image
   const [uploading, setUploading] = useState(false)
@@ -105,7 +111,11 @@ export function ImageUploadField({
   const displayUrl = previewUrl ?? imageUrl
 
   return (
-    <div className="mx-auto mb-6 max-w-2xl rounded-xl border p-4">
+    <div
+      className={
+        framed ? 'mx-auto mb-6 max-w-2xl rounded-xl border p-4' : undefined
+      }
+    >
       <label htmlFor={fieldId} className="mb-2 block text-sm font-medium">
         {label ?? image.label}
       </label>
@@ -117,7 +127,7 @@ export function ImageUploadField({
             className="h-20 w-20 shrink-0 rounded-lg object-cover"
           />
         ) : (
-          <div className="h-20 w-20 shrink-0 rounded-lg bg-[var(--surface-2)]" />
+          <div className="h-20 w-20 shrink-0 rounded-lg border border-[var(--hair)] bg-[var(--surface-2)]" />
         )}
         <div className="min-w-0 flex-1">
           {/* Visually hidden, not removed: it is still the field, still the
@@ -129,7 +139,7 @@ export function ImageUploadField({
             type="file"
             accept="image/*"
             className="peer sr-only"
-            disabled={uploading}
+            disabled={uploading || disabled}
             onChange={(e) => {
               const file = e.target.files?.[0]
               // Cleared straight away so that choosing the same file again
@@ -156,7 +166,8 @@ export function ImageUploadField({
           {displayUrl && !uploading && (
             <button
               type="button"
-              className="mt-1 block text-xs underline"
+              disabled={disabled}
+              className="mt-1 block text-xs underline disabled:cursor-not-allowed disabled:opacity-60"
               onClick={() => {
                 setPreviewUrl(null)
                 onChange(undefined)

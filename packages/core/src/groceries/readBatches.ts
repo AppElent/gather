@@ -6,7 +6,14 @@
  * first answer that is not a reading (over the cap, offline, no answer) stops
  * the rest, which are added as plain text, as before.
  */
-import type { CachedRead } from './line-cache'
+import type { GroceryUnit } from './parse'
+
+/** What the AI read in one line. */
+export interface CachedRead {
+  name: string
+  quantity?: number
+  unit?: GroceryUnit
+}
 
 /** The lines one call may carry (`convex/lib/groceryLinesAi.ts`). */
 export const AI_LINES_MAX = 40

@@ -1,8 +1,12 @@
 /** Every time zone, searched by name: the Group's zone is one of them (APP-779). */
 import {
+  currentZoneName,
   deviceTimeZone,
   listTimeZones,
   searchTimeZones,
+  sortTimeZones,
+  timeZoneName,
+  timeZonePlace,
 } from '@gather/core/time-zones'
 import { useMemo, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
@@ -25,14 +29,23 @@ export function TimeZoneSheet({
   onClose: () => void
 }) {
   const tokens = useTokens()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const text = t.shell.groups.timeZone
+  const current = selected && currentZoneName(selected)
   const [query, setQuery] = useState('')
   const zones = useMemo(
-    () => listTimeZones(deviceTimeZone(), selected),
-    [selected],
+    () =>
+      sortTimeZones(
+        listTimeZones(deviceTimeZone(), selected),
+        locale,
+        text.places,
+      ),
+    [selected, locale, text.places],
   )
-  const shown = useMemo(() => searchTimeZones(zones, query), [zones, query])
+  const shown = useMemo(
+    () => searchTimeZones(zones, query, locale, text.places),
+    [zones, query, locale, text.places],
+  )
 
   return (
     <NativeSheet
@@ -69,7 +82,7 @@ export function TimeZoneSheet({
           <InsetListItem index={index} count={shown.length}>
             <ZoneRow
               zone={item}
-              selected={item === selected}
+              selected={item === current}
               onPress={() => onChoose(item)}
             />
           </InsetListItem>
@@ -89,13 +102,15 @@ function ZoneRow({
   onPress: () => void
 }) {
   const tokens = useTokens()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const place = timeZonePlace(zone, t.shell.groups.timeZone.places)
+  const name = timeZoneName(zone, locale)
   const separator = useInsetSeparator()
   return (
     <Pressable
       testID={`time-zone-${zone}`}
       {...radioProps(selected, t.a11y.radioButton)}
-      accessibilityLabel={zone}
+      accessibilityLabel={name ? `${place}, ${name}` : place}
       android_ripple={{ color: tokens.surface2 }}
       onPress={onPress}
       style={({ pressed }) => [
@@ -104,7 +119,12 @@ function ZoneRow({
       ]}
     >
       <View style={[styles.rowContent, separator]}>
-        <Text style={[styles.name, { color: tokens.ink }]}>{zone}</Text>
+        <View style={styles.text}>
+          <Text style={[styles.place, { color: tokens.ink }]}>{place}</Text>
+          {name ? (
+            <Text style={[styles.name, { color: tokens.muted }]}>{name}</Text>
+          ) : null}
+        </View>
         {selected ? <UI_ICONS.Check size={20} color={tokens.ink} /> : null}
       </View>
     </Pressable>
@@ -128,6 +148,8 @@ const styles = StyleSheet.create({
     minHeight: SIZE.rowMin,
     paddingRight: SPACE[4],
   },
-  name: { ...TYPE.body, flex: 1 },
+  text: { flex: 1, paddingVertical: SPACE[2] },
+  place: { ...TYPE.body },
+  name: { ...TYPE.footnote },
   empty: { ...TYPE.subhead, textAlign: 'center', paddingVertical: SPACE[4] },
 })

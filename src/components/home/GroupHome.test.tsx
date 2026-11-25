@@ -202,6 +202,24 @@ describe('an empty day', () => {
 })
 
 describe('the Now card', () => {
+  test("goes by the Group's day, not this device's", () => {
+    vi.setSystemTime(new Date('2026-11-29T10:30:00Z'))
+    state.lists = [HOUSE]
+    state.tasks = {
+      list_house: [task('Due Sunday', 'list_house', { dueDate: '2026-11-29' })],
+    }
+    const { unmount } = renderInGroup(<GroupHome />, {
+      group: { ...HOUSEHOLD, timeZone: 'Pacific/Kiritimati' },
+    })
+    expect(screen.getByTestId('start-now')).toBeDefined()
+    expect(screen.getByText(/Monday.*30 Nov|30 Nov.*Monday|Monday.*Nov.* 30/)).toBeDefined()
+    unmount()
+    renderInGroup(<GroupHome />, {
+      group: { ...HOUSEHOLD, timeZone: 'Europe/Amsterdam' },
+    })
+    expect(screen.queryByTestId('start-now')).toBeNull()
+  })
+
   test('counts the overdue tasks and opens the one list they are on', () => {
     state.lists = [HOUSE, WEEKEND]
     state.tasks = {

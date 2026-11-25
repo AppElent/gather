@@ -10,7 +10,7 @@
  * the provider first and changes these rows only once it was accepted
  * (`writeLinkedTask`, ADR-0020).
  */
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import {
   type GroceryAisle,
   type GroceryUnit,
@@ -49,6 +49,7 @@ import {
 import { api, type Doc, type Id } from '../../convex/api'
 import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
+import { newSaveKey } from '../../ui/composer-drafts'
 import { type ComposedTask, parsedTask } from './composerDraft'
 import type { ComposedGrocery } from './groceryDraft'
 import type { ListDisplay, ListSync, Priority, Task, TaskList } from './types'
@@ -113,6 +114,24 @@ const onTheirWay = new Map<string, Map<string, number>>()
  * are not the provider's until it is answered.
  */
 const unanswered = new Map<string, number>()
+
+/** Lists a write was refused on offline, to be read once back online. */
+const awaitingConnection = new Set<string>()
+
+/** The key of each "Complete all" until it was taken, by list and task. */
+const completeKeys = new Map<string, string>()
+
+/** The connection as a write needs it. */
+export interface Connection {
+  isOnline: () => boolean
+  /** Runs once, the next time the connection is back. */
+  whenOnline: (run: () => void) => void
+}
+
+const ALWAYS_ONLINE: Connection = {
+  isOnline: () => true,
+  whenOnline: () => {},
+}
 
 /**
  * How long a write or fetch may take, waiting its turn included. Convex holds
@@ -245,14 +264,15 @@ export async function writeLinkedTask(
   write: LinkedTaskWrite,
   send: SendWrite,
   fetchTasks: FetchTasks,
-  isOnline: () => boolean = () => true,
+  connection: Connection = ALWAYS_ONLINE,
 ): Promise<{ taskId?: string }> {
   const taskId = 'taskId' in write ? write.taskId : undefined
   // Convex would keep an unsent action and send it once back online.
   const refuseOffline = () => {
-    if (isOnline()) return
+    if (connection.isOnline()) return
     const entry = external.get(listId)
     if (entry) put(listId, { sync: 'failed', tasks: entry.tasks })
+    syncWhenOnline(listId, fetchTasks, connection)
     throw new LinkedWriteError('offline', listId)
   }
   if (!external.get(listId)?.fresh) throw new LinkedWriteError('stale', listId)
@@ -317,6 +337,28 @@ export async function writeLinkedTask(
     markPending(listId, taskId, false)
     if (refresh) void syncExternalList(listId, fetchTasks)
   }
+}
+
+/**
+ * Reads a list again once the connection is back, so that an offline refusal
+ * does not leave it read-only (APP-799). One read per refusal, not a sync.
+ */
+function syncWhenOnline(
+  listId: string,
+  fetchTasks: FetchTasks,
+  connection: Connection,
+) {
+  if (awaitingConnection.has(listId)) return
+  awaitingConnection.add(listId)
+  connection.whenOnline(async () => {
+    awaitingConnection.delete(listId)
+    if (external.get(listId)?.fresh) return
+    const sync = await syncExternalList(listId, fetchTasks)
+    // It dropped again before the answer.
+    if (sync === 'failed' && !connection.isOnline()) {
+      syncWhenOnline(listId, fetchTasks, connection)
+    }
+  })
 }
 
 /** Asks the provider for one list now; a second ask while one runs joins it. */
@@ -652,9 +694,10 @@ export function useTaskLists(): readonly ListRow[] | undefined {
 
 /** Every list in the Current Group, and every task on them. */
 export function useTaskState() {
+  const { group } = useGroup()
   const lists = useTaskLists()
   const state = useListsOf(lists ?? NO_LISTS)
-  return { today: localIsoDate(), ...state }
+  return { today: todayIn(group.timeZone), ...state }
 }
 
 /**
@@ -663,13 +706,14 @@ export function useTaskState() {
  * holds (ADR-0021 keeps a provider fetch behind opening its list).
  */
 export function useLocalTaskState() {
+  const { group } = useGroup()
   const lists = useTaskLists()
   const local = useMemo(
     () => (lists ?? NO_LISTS).filter((list) => list.provider === 'local'),
     [lists],
   )
   const state = useListsOf(local)
-  return { today: localIsoDate(), loaded: lists !== undefined, ...state }
+  return { today: todayIn(group.timeZone), loaded: lists !== undefined, ...state }
 }
 
 /**
@@ -677,6 +721,7 @@ export function useLocalTaskState() {
  * the Group's lists or asking any other provider.
  */
 export function useTaskList(listId: string) {
+  const { group } = useGroup()
   const lists = useTaskLists()
   const only = useMemo(
     () => (lists ?? NO_LISTS).filter((list) => list._id === listId),
@@ -684,7 +729,7 @@ export function useTaskList(listId: string) {
   )
   const state = useListsOf(only)
   return {
-    today: localIsoDate(),
+    today: todayIn(group.timeZone),
     list: state.lists[0],
     tasks: [...state.tasks].sort((a, b) => a.order - b.order),
     refresh: () => state.refresh(listId),
@@ -711,13 +756,18 @@ export function linkedHomeOf(
  * neither knows (a linked one nobody has fetched yet, say from Recents) asks
  * the Group's linked lists, as opening them would. `task` stays the last row
  * seen while the server still places it, so moving it to another list does
- * not blank the screen while that list's rows arrive.
+ * not blank the screen while that list's rows arrive. One project can be linked
+ * to two lists, so a linked task stays with `openedFrom`, the list it was
+ * opened from (APP-799).
  */
-export function useTaskOf(taskId: string) {
+export function useTaskOf(taskId: string, openedFrom?: string) {
   const { group } = useGroup()
   const lists = useTaskLists()
   const linked = useSyncExternalStore(subscribe, externalSnapshot)
-  const linkedHome = linkedHomeOf(lists, linked, taskId)
+  const opened = lists?.find(
+    (list) => list._id === openedFrom && list.provider !== 'local',
+  )?._id
+  const linkedHome = opened ?? linkedHomeOf(lists, linked, taskId)
   const localHome = useQuery(
     api.tasks.listOf,
     linkedHome ? 'skip' : { groupSlug: group.slug, taskId },
@@ -734,9 +784,12 @@ export function useTaskOf(taskId: string) {
   const found = state.tasks.find((task) => task.id === taskId)
   const last = useRef<Task | undefined>(undefined)
   if (found) last.current = found
-  else if (!home) last.current = undefined
+  else if (!home || (opened && linked.get(opened)?.sync === 'synced')) {
+    // Nothing holds it any more.
+    last.current = undefined
+  }
   return {
-    today: localIsoDate(),
+    today: todayIn(group.timeZone),
     lists: state.lists,
     tasks: state.tasks,
     task: found ?? last.current,
@@ -949,7 +1002,7 @@ export function smartModel(
  */
 export function useSmartLists(): SmartLists {
   const { group } = useGroup()
-  const today = localIsoDate()
+  const today = todayIn(group.timeZone)
   const lists = useTaskLists()
   const answer = useQuery(api.tasks.smartLists, {
     groupSlug: group.slug,
@@ -1074,14 +1127,29 @@ export function useTaskActions() {
     writeLinkedTask(
       listId,
       change,
-      (id, sent) =>
-        sendWrite({
+      async (id, sent) => {
+        const result = await sendWrite({
           listId: id as Id<'taskLists'>,
           groupSlug,
           write: sent,
-        }),
+        })
+        // Also when the answer came too late for the write to wait for it.
+        if (result.status === 'ok' && sent.kind === 'setDone') {
+          completeKeys.delete(`${id}:${sent.taskId}`)
+        }
+        return result
+      },
       (id) => getTasks({ listId: id as Id<'taskLists'>, groupSlug }),
-      () => convex.connectionState().isWebSocketConnected,
+      {
+        isOnline: () => convex.connectionState().isWebSocketConnected,
+        whenOnline: (run) => {
+          const stop = convex.subscribeToConnectionState((state) => {
+            if (!state.isWebSocketConnected) return
+            stop()
+            run()
+          })
+        },
+      },
     )
 
   /** A linked task's fields in its provider, or a local one's in Convex. */
@@ -1157,7 +1225,7 @@ export function useTaskActions() {
       listId: listId as Id<'taskLists'>,
       groupSlug,
       title: task.title,
-      today: localIsoDate(),
+      today: todayIn(group.timeZone),
       // The draft's own key: sent twice (a close and reopen mid-save, or a
       // retry after a lost answer), it still makes one task.
       ...(saveKey ? { idempotencyKey: saveKey } : {}),
@@ -1261,18 +1329,24 @@ export function useTaskActions() {
         const row = external
           .get(linkedId)
           ?.tasks.find((each) => each.id === task.id)
+        const place = `${linkedId}:${task.id}`
+        if (options.withSubtasks && !completeKeys.has(place)) {
+          completeKeys.set(place, newSaveKey())
+        }
         await write(linkedId, {
           kind: 'setDone',
           taskId: task.id,
           done: !row?.done,
-          ...(options.withSubtasks ? { withSubtasks: true } : {}),
+          ...(options.withSubtasks
+            ? { withSubtasks: true, requestKey: completeKeys.get(place) }
+            : {}),
         })
         return null
       }
       const completion = await toggle({
         taskId: task.id as Id<'tasks'>,
         groupSlug,
-        today: localIsoDate(),
+        today: todayIn(group.timeZone),
         // Only "Complete all" sends it (APP-304).
         ...(options.withSubtasks ? { withSubtasks: true } : {}),
       })
@@ -1286,7 +1360,7 @@ export function useTaskActions() {
       undoCompletion({ completionId, groupSlug }),
     /** A rule, or null for no repeat; the server anchors it on the date. */
     setRepeat: (id: string, repeat: TaskRepeat | null) =>
-      patch(id, { repeat, today: localIsoDate() }),
+      patch(id, { repeat, today: todayIn(group.timeZone) }),
     renameTask: (task: TaskRef, title: string) => edit(task, { title }),
     setDue: (task: TaskRef, value: string | undefined) =>
       edit(task, { dueDate: value ?? null }),

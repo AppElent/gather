@@ -149,6 +149,7 @@ export const viewTools = [
         groupName: group.name,
         listId,
         listName: list.name,
+        timeZone: group.timeZone,
         canWrite: scoped && list.writable,
         readOnlyReason: !list.writable
           ? 'external'

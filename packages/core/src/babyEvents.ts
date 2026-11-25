@@ -76,6 +76,18 @@ export function asBabyEvent<E extends { type: BabyEventType; data: unknown }>(
   return event as unknown as Omit<E, 'type' | 'data'> & BabyEvent
 }
 
+const PHOTO_EVENT_TYPES: readonly BabyEventType[] = ['memory']
+
+/**
+ * Whether an entry of this type offers a photo, on the web and on the phone.
+ *
+ * Only Memory does today. `photoId` is on the event, not inside a Memory's
+ * payload, so another type that should carry one is one more member here.
+ */
+export function offersPhoto(type: BabyEventType): boolean {
+  return PHOTO_EVENT_TYPES.includes(type)
+}
+
 const REQUIRED_TEXT_FIELDS = {
   medication: { key: 'name', message: 'enterMedicationName' },
   vaccination: { key: 'name', message: 'enterVaccineName' },

@@ -268,3 +268,56 @@ describe('a Member of the child Group asking under a different slug', () => {
     expect(events).toHaveLength(1)
   })
 })
+
+describe('the photo on a Memory', () => {
+  test('replacing, removing and deleting each delete the blob let go', async () => {
+    const { t, noor } = await seed()
+    const asAlice = t.withIdentity(alice)
+    const store = () =>
+      t.run(async (ctx) => await ctx.storage.store(new Blob(['x'])))
+    const [first, second, third] = [await store(), await store(), await store()]
+    const stored = () =>
+      t.run(async (ctx) =>
+        (await ctx.db.system.query('_storage').collect()).map((f) => f._id),
+      )
+    const memory = {
+      groupSlug: JANSEN,
+      timestamp: 1_760_000_000_000,
+      data: { what: 'First laugh' },
+    }
+
+    const eventId = await asAlice.mutation(api.babyEvents.add, {
+      ...memory,
+      babyId: noor,
+      type: 'memory',
+      photoId: first,
+    })
+    await asAlice.mutation(api.babyEvents.update, {
+      ...memory,
+      eventId,
+      photoId: second,
+    })
+    expect(await stored()).toEqual([second, third])
+
+    await asAlice.mutation(api.babyEvents.update, { ...memory, eventId })
+    expect(await stored()).toEqual([second, third])
+
+    await asAlice.mutation(api.babyEvents.update, {
+      ...memory,
+      eventId,
+      photoId: null,
+    })
+    expect(await stored()).toEqual([third])
+
+    await asAlice.mutation(api.babyEvents.update, {
+      ...memory,
+      eventId,
+      photoId: third,
+    })
+    await asAlice.mutation(api.babyEvents.remove, {
+      eventId,
+      groupSlug: JANSEN,
+    })
+    expect(await stored()).toEqual([])
+  })
+})

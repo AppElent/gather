@@ -74,6 +74,8 @@ export function ExternalTaskList({
   const [rows, setRows] = useState<UnifiedTask[]>([])
   const [problem, setProblem] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  /** A write was refused offline: read the list again once back online. */
+  const [awaitingConnection, setAwaitingConnection] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [addingTo, setAddingTo] = useState<string | null>(null)
   const writing = useRef(false)
@@ -81,6 +83,8 @@ export function ExternalTaskList({
   const unanswered = useRef(0)
   /** The retry key of each title being added, until Todoist took it. */
   const addKeys = useRef(new Map<string, string>())
+  /** The retry key of each "Complete all", until Todoist took it. */
+  const completeKeys = useRef(new Map<string, string>())
   const { confirm, dialog } = useConfirmAction()
   const messages = useMessages()
   const { external, linkedWrite, local, subtasks: subtaskWords } = messages.tasks
@@ -97,14 +101,38 @@ export function ExternalTaskList({
           ? 'error'
           : result.status,
       )
+      return result.status === 'ok'
     } catch {
       setState('error')
+      return false
     }
   }, [getTasks, listId, groupSlug])
 
   useEffect(() => {
     void load()
   }, [load])
+
+  // One read per refusal, when the connection is back (APP-799).
+  useEffect(() => {
+    if (!awaitingConnection) return
+    let stopped = false
+    const online = () => convex.connectionState().isWebSocketConnected
+    const reload = async () => {
+      if (stopped || !online()) return
+      stopped = true
+      setProblem(null)
+      const loaded = await load()
+      // It dropped again before the answer: wait for the next time.
+      if (!loaded && !online()) stopped = false
+      else setAwaitingConnection(false)
+    }
+    const unsubscribe = convex.subscribeToConnectionState(() => void reload())
+    void reload()
+    return () => {
+      stopped = true
+      unsubscribe()
+    }
+  }, [awaitingConnection, convex, load])
 
   const refresh = () => {
     setProblem(null)
@@ -124,6 +152,7 @@ export function ExternalTaskList({
     if (!convex.connectionState().isWebSocketConnected) {
       failed('offline')
       setState('error')
+      setAwaitingConnection(true)
       return false
     }
     writing.current = true
@@ -135,6 +164,15 @@ export function ExternalTaskList({
       settled = true
     }
     sent.then(settle, settle)
+    sent.then(
+      (result) => {
+        // Also when the answer came too late for the write to wait for it.
+        if (result.status === 'ok' && change.kind === 'setDone') {
+          completeKeys.current.delete(change.taskId)
+        }
+      },
+      () => {},
+    )
     try {
       const result = await within(sent)
       if (result.status === 'reconnect') {
@@ -211,13 +249,17 @@ export function ExternalTaskList({
 
   function toggle(task: UnifiedTask) {
     const open = childrenOf(task.externalId).filter((row) => !row.done).length
-    const run = (withSubtasks: boolean) =>
-      write({
+    const run = (withSubtasks: boolean) => {
+      const requestKey =
+        completeKeys.current.get(task.externalId) ?? crypto.randomUUID()
+      if (withSubtasks) completeKeys.current.set(task.externalId, requestKey)
+      return write({
         kind: 'setDone',
         taskId: task.externalId,
         done: !task.done,
-        ...(withSubtasks ? { withSubtasks: true } : {}),
+        ...(withSubtasks ? { withSubtasks: true, requestKey } : {}),
       })
+    }
     if (task.done || open === 0) {
       void run(false)
       return

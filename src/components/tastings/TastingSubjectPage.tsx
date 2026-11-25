@@ -27,7 +27,11 @@ export function TastingSubjectPage({
   kind: TastingKind
   subjectId: string
 }) {
-  const { slug: groupSlug, name: groupName } = useRequiredCurrentGroup()
+  const {
+    slug: groupSlug,
+    name: groupName,
+    timeZone,
+  } = useRequiredCurrentGroup()
   const nav = TASTING_LINKS[kind]
   const id = subjectId as Id<'tastingSubjects'>
   const detail = useQuery(api.tastings.getSubject, { groupSlug, id, kind })
@@ -242,6 +246,7 @@ export function TastingSubjectPage({
         kind={kind}
         groupSlug={groupSlug}
         groupName={groupName}
+        timeZone={timeZone}
         subject={dialogSubject}
         onClose={() => setLogging(false)}
       />
@@ -251,6 +256,7 @@ export function TastingSubjectPage({
         kind={kind}
         groupSlug={groupSlug}
         groupName={groupName}
+        timeZone={timeZone}
         subject={dialogSubject}
         tasting={editing ?? undefined}
         onClose={() => setEditing(null)}

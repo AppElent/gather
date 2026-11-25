@@ -1,7 +1,6 @@
 import { todayIn } from '@gather/core/civil-date'
+import { editedRead, pickRows, type SourceLine, settleLine, withEdits } from '@gather/core/grocery-pick'
 import { describe, expect, test } from 'vitest'
-
-import { editedRead, pickRows, type SourceLine, settleLine, withEdits } from '../add-to-groceries/pick'
 import type { PlannedMeal } from './week'
 import {
   defaultDays,

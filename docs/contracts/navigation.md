@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a nested web route, breadcrumbs, a back link, or a Module's web address.
-version: 2.0.0
+version: 2.1.0
 status: current
 ---
 
@@ -22,6 +22,10 @@ apply as written. Gather binds them:
   itself — Recipes → *Stamppot* → Edit, and the same for the Baby log and the
   tasting Modules. `Breadcrumbs.routes.test.ts` walks `src/routes/_app/` for it.
   The one exception is the OAuth callback.
+- **A Module page with a list and a record beside it uses `ListDetailLayout`**
+  (`src/components/app/ListDetailLayout.tsx`). The page keeps the selection in
+  the URL. Below 1024 px the open record replaces the list, or a row goes to a
+  page of its own with a trail.
 - **Content labels** (a recipe's title, a cheese's name) are never translated
   ([ADR-0011](../adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md)).
 - **Every link to a page in the signed-in app is built with `linkTo` or
