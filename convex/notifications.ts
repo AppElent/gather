@@ -222,6 +222,37 @@ export const forgetEndedSessions = mutation({
   },
 })
 
+/**
+ * A Clerk session that is over, from `POST /clerk/webhook`: wherever it was
+ * ended (the account portal too), the phone registered under it gets no more
+ * pushes and the watches it paired lose their keys. A phone registered since
+ * under another session stays.
+ */
+export const forgetSessionOf = internalMutation({
+  args: { clerkId: v.string(), sessionId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { clerkId, sessionId }) => {
+    const users = await ctx.db
+      .query('users')
+      .withIndex('by_clerkId', (q) => q.eq('clerkId', clerkId))
+      .collect()
+    for (const user of users) {
+      const phones = await ctx.db
+        .query('pushDevices')
+        .withIndex('by_user', (q) => q.eq('userId', user._id))
+        .collect()
+      for (const phone of phones)
+        if (phone.sessionId === sessionId) await ctx.db.delete(phone._id)
+      await deleteWatchDevices(
+        ctx,
+        user._id,
+        (watch) => watch.sessionId === sessionId,
+      )
+    }
+    return null
+  },
+})
+
 /** The caller's switches, resolved, and the Groups they have muted. */
 export const settings = query({
   args: {},
