@@ -1,7 +1,7 @@
-import { resolveMealPreferences } from '@gather/core/meal-preferences'
 import { describe, expect, test } from 'vitest'
+import { resolveMealPreferences } from './mealPreferences'
 
-import { en } from '../../../i18n/messages/en'
+import { en } from './messages'
 import {
   daySlots,
   dinnersPlanned,
@@ -15,7 +15,7 @@ import {
   weekdayInText,
   weekdayName,
   weekRange,
-} from './week'
+} from './weekMenu'
 
 const words = en.mealPlanner
 const members = [

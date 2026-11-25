@@ -52,6 +52,8 @@ import { Route as AppGroceriesRecentRouteImport } from './routes/_app/groceries/
 import { Route as AppIntegrationsCallbackRouteImport } from './routes/_app/integrations.callback'
 import { Route as AppLoyaltyCardsIndexRouteImport } from './routes/_app/loyalty-cards/index'
 import { Route as AppLoyaltyCardsNewRouteImport } from './routes/_app/loyalty-cards/new'
+import { Route as AppMealPlannerIndexRouteImport } from './routes/_app/meal-planner/index'
+import { Route as AppMealPlannerSettingsRouteImport } from './routes/_app/meal-planner/settings'
 import { Route as AppNotesIndexRouteImport } from './routes/_app/notes/index'
 import { Route as AppNotesNoteIdRouteImport } from './routes/_app/notes/$noteId'
 import { Route as AppRecipesIndexRouteImport } from './routes/_app/recipes/index'
@@ -70,6 +72,8 @@ import { Route as AppCheesesSubjectIdEditRouteImport } from './routes/_app/chees
 import { Route as AppGroceriesItemItemIdRouteImport } from './routes/_app/groceries/item.$itemId'
 import { Route as AppLoyaltyCardsCardIdIndexRouteImport } from './routes/_app/loyalty-cards/$cardId.index'
 import { Route as AppLoyaltyCardsCardIdEditRouteImport } from './routes/_app/loyalty-cards/$cardId.edit'
+import { Route as AppMealPlannerMealMealIdRouteImport } from './routes/_app/meal-planner/meal/$mealId'
+import { Route as AppMealPlannerProposalDraftIdRouteImport } from './routes/_app/meal-planner/proposal/$draftId'
 import { Route as AppRecipesRecipeIdIndexRouteImport } from './routes/_app/recipes/$recipeId.index'
 import { Route as AppRecipesRecipeIdEditRouteImport } from './routes/_app/recipes/$recipeId.edit'
 import { Route as AppTasksSmartSmartListRouteImport } from './routes/_app/tasks/smart/$smartList'
@@ -291,6 +295,16 @@ const AppLoyaltyCardsNewRoute = AppLoyaltyCardsNewRouteImport.update({
   path: '/loyalty-cards/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMealPlannerIndexRoute = AppMealPlannerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppMealPlannerRoute,
+} as any)
+const AppMealPlannerSettingsRoute = AppMealPlannerSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppMealPlannerRoute,
+} as any)
 const AppNotesIndexRoute = AppNotesIndexRouteImport.update({
   id: '/notes/',
   path: '/notes/',
@@ -384,6 +398,18 @@ const AppLoyaltyCardsCardIdEditRoute =
     path: '/loyalty-cards/$cardId/edit',
     getParentRoute: () => AppRoute,
   } as any)
+const AppMealPlannerMealMealIdRoute =
+  AppMealPlannerMealMealIdRouteImport.update({
+    id: '/meal/$mealId',
+    path: '/meal/$mealId',
+    getParentRoute: () => AppMealPlannerRoute,
+  } as any)
+const AppMealPlannerProposalDraftIdRoute =
+  AppMealPlannerProposalDraftIdRouteImport.update({
+    id: '/proposal/$draftId',
+    path: '/proposal/$draftId',
+    getParentRoute: () => AppMealPlannerRoute,
+  } as any)
 const AppRecipesRecipeIdIndexRoute = AppRecipesRecipeIdIndexRouteImport.update({
   id: '/recipes/$recipeId/',
   path: '/recipes/$recipeId/',
@@ -431,7 +457,7 @@ export interface FileRoutesByFullPath {
   '/group-settings': typeof AppGroupSettingsRoute
   '/groups': typeof AppGroupsRoute
   '/home': typeof AppHomeRoute
-  '/meal-planner': typeof AppMealPlannerRoute
+  '/meal-planner': typeof AppMealPlannerRouteWithChildren
   '/pantry': typeof AppPantryRoute
   '/recurring-costs': typeof AppRecurringCostsRoute
   '/savings-goals': typeof AppSavingsGoalsRoute
@@ -451,6 +477,7 @@ export interface FileRoutesByFullPath {
   '/groceries/recent': typeof AppGroceriesRecentRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
+  '/meal-planner/settings': typeof AppMealPlannerSettingsRoute
   '/notes/$noteId': typeof AppNotesNoteIdRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/tasks/$listId': typeof AppTasksListIdRoute
@@ -461,6 +488,7 @@ export interface FileRoutesByFullPath {
   '/energy/': typeof AppEnergyIndexRoute
   '/groceries/': typeof AppGroceriesIndexRoute
   '/loyalty-cards/': typeof AppLoyaltyCardsIndexRoute
+  '/meal-planner/': typeof AppMealPlannerIndexRoute
   '/notes/': typeof AppNotesIndexRoute
   '/recipes/': typeof AppRecipesIndexRoute
   '/tasks/': typeof AppTasksIndexRoute
@@ -472,6 +500,8 @@ export interface FileRoutesByFullPath {
   '/cheeses/$subjectId/edit': typeof AppCheesesSubjectIdEditRoute
   '/groceries/item/$itemId': typeof AppGroceriesItemItemIdRoute
   '/loyalty-cards/$cardId/edit': typeof AppLoyaltyCardsCardIdEditRoute
+  '/meal-planner/meal/$mealId': typeof AppMealPlannerMealMealIdRoute
+  '/meal-planner/proposal/$draftId': typeof AppMealPlannerProposalDraftIdRoute
   '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
   '/tasks/smart/$smartList': typeof AppTasksSmartSmartListRoute
   '/tasks/task/$taskId': typeof AppTasksTaskTaskIdRoute
@@ -498,7 +528,6 @@ export interface FileRoutesByTo {
   '/group-settings': typeof AppGroupSettingsRoute
   '/groups': typeof AppGroupsRoute
   '/home': typeof AppHomeRoute
-  '/meal-planner': typeof AppMealPlannerRoute
   '/pantry': typeof AppPantryRoute
   '/recurring-costs': typeof AppRecurringCostsRoute
   '/savings-goals': typeof AppSavingsGoalsRoute
@@ -518,6 +547,7 @@ export interface FileRoutesByTo {
   '/groceries/recent': typeof AppGroceriesRecentRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
+  '/meal-planner/settings': typeof AppMealPlannerSettingsRoute
   '/notes/$noteId': typeof AppNotesNoteIdRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/tasks/$listId': typeof AppTasksListIdRoute
@@ -528,6 +558,7 @@ export interface FileRoutesByTo {
   '/energy': typeof AppEnergyIndexRoute
   '/groceries': typeof AppGroceriesIndexRoute
   '/loyalty-cards': typeof AppLoyaltyCardsIndexRoute
+  '/meal-planner': typeof AppMealPlannerIndexRoute
   '/notes': typeof AppNotesIndexRoute
   '/recipes': typeof AppRecipesIndexRoute
   '/tasks': typeof AppTasksIndexRoute
@@ -539,6 +570,8 @@ export interface FileRoutesByTo {
   '/cheeses/$subjectId/edit': typeof AppCheesesSubjectIdEditRoute
   '/groceries/item/$itemId': typeof AppGroceriesItemItemIdRoute
   '/loyalty-cards/$cardId/edit': typeof AppLoyaltyCardsCardIdEditRoute
+  '/meal-planner/meal/$mealId': typeof AppMealPlannerMealMealIdRoute
+  '/meal-planner/proposal/$draftId': typeof AppMealPlannerProposalDraftIdRoute
   '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
   '/tasks/smart/$smartList': typeof AppTasksSmartSmartListRoute
   '/tasks/task/$taskId': typeof AppTasksTaskTaskIdRoute
@@ -567,7 +600,7 @@ export interface FileRoutesById {
   '/_app/group-settings': typeof AppGroupSettingsRoute
   '/_app/groups': typeof AppGroupsRoute
   '/_app/home': typeof AppHomeRoute
-  '/_app/meal-planner': typeof AppMealPlannerRoute
+  '/_app/meal-planner': typeof AppMealPlannerRouteWithChildren
   '/_app/pantry': typeof AppPantryRoute
   '/_app/recurring-costs': typeof AppRecurringCostsRoute
   '/_app/savings-goals': typeof AppSavingsGoalsRoute
@@ -588,6 +621,7 @@ export interface FileRoutesById {
   '/_app/groceries/recent': typeof AppGroceriesRecentRoute
   '/_app/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/_app/loyalty-cards/new': typeof AppLoyaltyCardsNewRoute
+  '/_app/meal-planner/settings': typeof AppMealPlannerSettingsRoute
   '/_app/notes/$noteId': typeof AppNotesNoteIdRoute
   '/_app/recipes/new': typeof AppRecipesNewRoute
   '/_app/tasks/$listId': typeof AppTasksListIdRoute
@@ -598,6 +632,7 @@ export interface FileRoutesById {
   '/_app/energy/': typeof AppEnergyIndexRoute
   '/_app/groceries/': typeof AppGroceriesIndexRoute
   '/_app/loyalty-cards/': typeof AppLoyaltyCardsIndexRoute
+  '/_app/meal-planner/': typeof AppMealPlannerIndexRoute
   '/_app/notes/': typeof AppNotesIndexRoute
   '/_app/recipes/': typeof AppRecipesIndexRoute
   '/_app/tasks/': typeof AppTasksIndexRoute
@@ -609,6 +644,8 @@ export interface FileRoutesById {
   '/_app/cheeses/$subjectId/edit': typeof AppCheesesSubjectIdEditRoute
   '/_app/groceries/item/$itemId': typeof AppGroceriesItemItemIdRoute
   '/_app/loyalty-cards/$cardId/edit': typeof AppLoyaltyCardsCardIdEditRoute
+  '/_app/meal-planner/meal/$mealId': typeof AppMealPlannerMealMealIdRoute
+  '/_app/meal-planner/proposal/$draftId': typeof AppMealPlannerProposalDraftIdRoute
   '/_app/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
   '/_app/tasks/smart/$smartList': typeof AppTasksSmartSmartListRoute
   '/_app/tasks/task/$taskId': typeof AppTasksTaskTaskIdRoute
@@ -658,6 +695,7 @@ export interface FileRouteTypes {
     | '/groceries/recent'
     | '/integrations/callback'
     | '/loyalty-cards/new'
+    | '/meal-planner/settings'
     | '/notes/$noteId'
     | '/recipes/new'
     | '/tasks/$listId'
@@ -668,6 +706,7 @@ export interface FileRouteTypes {
     | '/energy/'
     | '/groceries/'
     | '/loyalty-cards/'
+    | '/meal-planner/'
     | '/notes/'
     | '/recipes/'
     | '/tasks/'
@@ -679,6 +718,8 @@ export interface FileRouteTypes {
     | '/cheeses/$subjectId/edit'
     | '/groceries/item/$itemId'
     | '/loyalty-cards/$cardId/edit'
+    | '/meal-planner/meal/$mealId'
+    | '/meal-planner/proposal/$draftId'
     | '/recipes/$recipeId/edit'
     | '/tasks/smart/$smartList'
     | '/tasks/task/$taskId'
@@ -705,7 +746,6 @@ export interface FileRouteTypes {
     | '/group-settings'
     | '/groups'
     | '/home'
-    | '/meal-planner'
     | '/pantry'
     | '/recurring-costs'
     | '/savings-goals'
@@ -725,6 +765,7 @@ export interface FileRouteTypes {
     | '/groceries/recent'
     | '/integrations/callback'
     | '/loyalty-cards/new'
+    | '/meal-planner/settings'
     | '/notes/$noteId'
     | '/recipes/new'
     | '/tasks/$listId'
@@ -735,6 +776,7 @@ export interface FileRouteTypes {
     | '/energy'
     | '/groceries'
     | '/loyalty-cards'
+    | '/meal-planner'
     | '/notes'
     | '/recipes'
     | '/tasks'
@@ -746,6 +788,8 @@ export interface FileRouteTypes {
     | '/cheeses/$subjectId/edit'
     | '/groceries/item/$itemId'
     | '/loyalty-cards/$cardId/edit'
+    | '/meal-planner/meal/$mealId'
+    | '/meal-planner/proposal/$draftId'
     | '/recipes/$recipeId/edit'
     | '/tasks/smart/$smartList'
     | '/tasks/task/$taskId'
@@ -794,6 +838,7 @@ export interface FileRouteTypes {
     | '/_app/groceries/recent'
     | '/_app/integrations/callback'
     | '/_app/loyalty-cards/new'
+    | '/_app/meal-planner/settings'
     | '/_app/notes/$noteId'
     | '/_app/recipes/new'
     | '/_app/tasks/$listId'
@@ -804,6 +849,7 @@ export interface FileRouteTypes {
     | '/_app/energy/'
     | '/_app/groceries/'
     | '/_app/loyalty-cards/'
+    | '/_app/meal-planner/'
     | '/_app/notes/'
     | '/_app/recipes/'
     | '/_app/tasks/'
@@ -815,6 +861,8 @@ export interface FileRouteTypes {
     | '/_app/cheeses/$subjectId/edit'
     | '/_app/groceries/item/$itemId'
     | '/_app/loyalty-cards/$cardId/edit'
+    | '/_app/meal-planner/meal/$mealId'
+    | '/_app/meal-planner/proposal/$draftId'
     | '/_app/recipes/$recipeId/edit'
     | '/_app/tasks/smart/$smartList'
     | '/_app/tasks/task/$taskId'
@@ -1142,6 +1190,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLoyaltyCardsNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/meal-planner/': {
+      id: '/_app/meal-planner/'
+      path: '/'
+      fullPath: '/meal-planner/'
+      preLoaderRoute: typeof AppMealPlannerIndexRouteImport
+      parentRoute: typeof AppMealPlannerRoute
+    }
+    '/_app/meal-planner/settings': {
+      id: '/_app/meal-planner/settings'
+      path: '/settings'
+      fullPath: '/meal-planner/settings'
+      preLoaderRoute: typeof AppMealPlannerSettingsRouteImport
+      parentRoute: typeof AppMealPlannerRoute
+    }
     '/_app/notes/': {
       id: '/_app/notes/'
       path: '/notes'
@@ -1268,6 +1330,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLoyaltyCardsCardIdEditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/meal-planner/meal/$mealId': {
+      id: '/_app/meal-planner/meal/$mealId'
+      path: '/meal/$mealId'
+      fullPath: '/meal-planner/meal/$mealId'
+      preLoaderRoute: typeof AppMealPlannerMealMealIdRouteImport
+      parentRoute: typeof AppMealPlannerRoute
+    }
+    '/_app/meal-planner/proposal/$draftId': {
+      id: '/_app/meal-planner/proposal/$draftId'
+      path: '/proposal/$draftId'
+      fullPath: '/meal-planner/proposal/$draftId'
+      preLoaderRoute: typeof AppMealPlannerProposalDraftIdRouteImport
+      parentRoute: typeof AppMealPlannerRoute
+    }
     '/_app/recipes/$recipeId/': {
       id: '/_app/recipes/$recipeId/'
       path: '/recipes/$recipeId'
@@ -1313,6 +1389,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppMealPlannerRouteChildren {
+  AppMealPlannerSettingsRoute: typeof AppMealPlannerSettingsRoute
+  AppMealPlannerIndexRoute: typeof AppMealPlannerIndexRoute
+  AppMealPlannerMealMealIdRoute: typeof AppMealPlannerMealMealIdRoute
+  AppMealPlannerProposalDraftIdRoute: typeof AppMealPlannerProposalDraftIdRoute
+}
+
+const AppMealPlannerRouteChildren: AppMealPlannerRouteChildren = {
+  AppMealPlannerSettingsRoute: AppMealPlannerSettingsRoute,
+  AppMealPlannerIndexRoute: AppMealPlannerIndexRoute,
+  AppMealPlannerMealMealIdRoute: AppMealPlannerMealMealIdRoute,
+  AppMealPlannerProposalDraftIdRoute: AppMealPlannerProposalDraftIdRoute,
+}
+
+const AppMealPlannerRouteWithChildren = AppMealPlannerRoute._addFileChildren(
+  AppMealPlannerRouteChildren,
+)
+
 interface AppTasksRouteChildren {
   AppTasksListIdRoute: typeof AppTasksListIdRoute
   AppTasksIndexRoute: typeof AppTasksIndexRoute
@@ -1338,7 +1432,7 @@ interface AppRouteChildren {
   AppGroupSettingsRoute: typeof AppGroupSettingsRoute
   AppGroupsRoute: typeof AppGroupsRoute
   AppHomeRoute: typeof AppHomeRoute
-  AppMealPlannerRoute: typeof AppMealPlannerRoute
+  AppMealPlannerRoute: typeof AppMealPlannerRouteWithChildren
   AppPantryRoute: typeof AppPantryRoute
   AppRecurringCostsRoute: typeof AppRecurringCostsRoute
   AppSavingsGoalsRoute: typeof AppSavingsGoalsRoute
@@ -1395,7 +1489,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGroupSettingsRoute: AppGroupSettingsRoute,
   AppGroupsRoute: AppGroupsRoute,
   AppHomeRoute: AppHomeRoute,
-  AppMealPlannerRoute: AppMealPlannerRoute,
+  AppMealPlannerRoute: AppMealPlannerRouteWithChildren,
   AppPantryRoute: AppPantryRoute,
   AppRecurringCostsRoute: AppRecurringCostsRoute,
   AppSavingsGoalsRoute: AppSavingsGoalsRoute,

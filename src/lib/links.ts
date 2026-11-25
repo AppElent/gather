@@ -66,6 +66,10 @@ export const ROUTES = {
 
   note: '/notes/$noteId',
 
+  mealPlannerSettings: '/meal-planner/settings',
+  plannedMeal: '/meal-planner/meal/$mealId',
+  mealProposal: '/meal-planner/proposal/$draftId',
+
   calendarDay: '/calendar/day/$date',
   calendarEvent: '/calendar/event/$eventId',
 

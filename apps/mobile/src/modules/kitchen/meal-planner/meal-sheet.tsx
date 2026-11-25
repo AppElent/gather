@@ -8,11 +8,11 @@
  * an undo instead of asking first.
  */
 import { addDays, localMidnight } from '@gather/core/civil-date'
+import { awayAt, clock, daySlots, dayTitle, eatersOf, joinNames, mealIn, servingsOf, shortNames, weekdayInText, weekdayName } from '@gather/core/week-menu'
 import { useMutation } from 'convex/react'
 import { router } from 'expo-router'
 import { useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
-
 import { NativeSheet } from '../../../components/NativeSheet'
 import { api, type Id } from '../../../convex/api'
 import { haptics } from '../../../feedback/haptics'
@@ -24,21 +24,7 @@ import { InsetList, InsetRow } from '../../../ui/inset-list'
 import { useSheetDraft } from '../../../ui/sheet-drafts'
 import { moduleHref } from '../../moduleDestination'
 import { Coin } from './parts'
-import {
-  awayAt,
-  clock,
-  daySlots,
-  dayTitle,
-  eatersOf,
-  joinNames,
-  mealIn,
-  type PlannedMeal,
-  servingsOf,
-  shortNames,
-  type WeekData,
-  weekdayInText,
-  weekdayName,
-} from './week'
+import type { PlannedMeal, WeekData } from './week'
 
 const MAX_SERVINGS = 50
 const MAX_NOTE = 500
