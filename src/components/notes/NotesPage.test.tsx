@@ -1,4 +1,7 @@
+import { nl } from '@gather/core/messages'
+import { noteRefusal } from '@gather/core/refusals'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { ConvexError } from 'convex/values'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { renderInGroup } from '../app/testing'
@@ -11,9 +14,11 @@ const state = vi.hoisted(() => ({
   queries: {} as Record<string, unknown>,
   calls: [] as [string, Record<string, unknown>][],
   fail: new Set<string>(),
+  refuse: null as { kind: string } | null,
   navigated: [] as unknown[],
   desktop: true,
   page: {} as Record<string, unknown>,
+  pinnedPage: {} as Record<string, unknown>,
 }))
 
 vi.mock('../../../convex/_generated/api', () => {
@@ -30,9 +35,11 @@ vi.mock('convex/react', () => ({
     const answer = state.queries[name]
     return typeof answer === 'function' ? answer(args) : answer
   },
-  usePaginatedQuery: () => state.page,
+  usePaginatedQuery: (_name: string, args: { pinnedOnly?: boolean }) =>
+    args.pinnedOnly ? state.pinnedPage : state.page,
   useMutation: (name: string) => async (args: Record<string, unknown>) => {
     state.calls.push([name, args])
+    if (state.refuse) throw new ConvexError(state.refuse)
     if (state.fail.has(name)) throw new Error('nope')
     return 'new-id'
   },
@@ -80,6 +87,7 @@ beforeEach(() => {
   for (const id of ['n1', 'n2', 'n3', 'n4']) discardDraft(`u1:g_household:${id}`)
   state.calls = []
   state.fail = new Set()
+  state.refuse = null
   state.navigated = []
   state.desktop = true
   window.matchMedia = ((query: string) => ({
@@ -89,8 +97,12 @@ beforeEach(() => {
     removeEventListener: () => {},
   })) as unknown as typeof window.matchMedia
   state.page = { results: [GIFTS], status: 'Exhausted', loadMore: () => {} }
+  state.pinnedPage = {
+    results: [WIFI, BOILER],
+    status: 'Exhausted',
+    loadMore: () => {},
+  }
   state.queries = {
-    'notes:listPinned': [WIFI, BOILER],
     'notes:get': ({ noteId }: { noteId: string }) =>
       ALL.find(({ _id }) => _id === noteId) ?? null,
     'notes:searchNotes': [],
@@ -144,6 +156,18 @@ describe('the list', () => {
     expect(loadMore).toHaveBeenCalled()
   })
 
+  test('reads on through empty pages before it says there are no notes', () => {
+    const loadMore = vi.fn()
+    const loadPinned = vi.fn()
+    state.page = { results: [], status: 'CanLoadMore', loadMore }
+    state.pinnedPage = { results: [], status: 'CanLoadMore', loadMore: loadPinned }
+    renderInGroup(<NotesPage />)
+    expect(loadMore).toHaveBeenCalled()
+    expect(loadPinned).toHaveBeenCalled()
+    expect(screen.queryByText('No notes yet.')).toBeNull()
+    expect(screen.getByLabelText('Loading…')).toBeInTheDocument()
+  })
+
   test('search asks the server once there are two letters', async () => {
     state.queries['notes:searchNotes'] = ({ query }: { query: string }) =>
       query === 'gi' ? [GIFTS] : []
@@ -165,7 +189,7 @@ describe('the list', () => {
   })
 
   test('no notes is an invitation, in Dutch too', () => {
-    state.queries['notes:listPinned'] = []
+    state.pinnedPage = { results: [], status: 'Exhausted', loadMore: () => {} }
     state.page = { results: [], status: 'Exhausted', loadMore: () => {} }
     renderInGroup(<NotesPage />, { locale: 'nl' })
     expect(screen.getByText('Nog geen notities.')).toBeInTheDocument()
@@ -248,6 +272,18 @@ describe('the note', () => {
       expect(screen.getByTestId('note-status')).toHaveTextContent('Saved'),
     )
     expect(callsOf('notes:update')).toHaveLength(2)
+  })
+
+  test('a note that is too long is said in the reader’s language, and kept', async () => {
+    state.refuse = noteRefusal('too-long')
+    renderInGroup(<NotesPage noteId="n1" />, { locale: 'nl' })
+    const field = screen.getByRole('textbox', { name: nl.notes.bodyPlaceholder })
+    fireEvent.change(field, { target: { value: 'mine' } })
+    fireEvent.blur(field)
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      nl.notes.refusals['notes:too-long'],
+    )
+    expect(field).toHaveValue('mine')
   })
 
   test('unsaved text of a note somebody deleted can still be copied', async () => {

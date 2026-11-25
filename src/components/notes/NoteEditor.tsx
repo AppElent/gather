@@ -151,7 +151,11 @@ export function NoteEditor({
         >
           <p className="m-0 min-w-0 flex-1 text-subhead text-[var(--danger)]">
             {fmt(words.web.notSavedBody, {
-              reason: errorText(draft.error, messages.common.errors.didNotWork),
+              reason: errorText(
+                draft.error,
+                messages.common.errors.didNotWork,
+                words.refusals,
+              ),
             })}
           </p>
           <button
