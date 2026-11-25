@@ -44,8 +44,8 @@ import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
+import { openWebPage } from '../../feedback/openWebPage'
 import { fmt, plural, useI18n } from '../../i18n'
-import { openBrowserAsync } from '../../observability/native-presentation'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { MODULE_ICONS, UI_ICONS } from '../../theme/icons'
 import { RADIUS, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
@@ -386,7 +386,7 @@ export function RecipeScreen() {
               testID="recipe-source"
               onPress={() => {
                 const url = recipe.sourceUrl
-                if (url) openBrowserAsync(url).catch(() => {})
+                if (url) void openWebPage(url, t.errors.openPageFailed)
               }}
               style={({ pressed }) => [
                 styles.source,
