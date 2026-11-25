@@ -14,6 +14,7 @@
  * Messages arrive as a parameter rather than from the context (ADR-0011's third
  * rule), which is what lets the matcher be tested with no React tree.
  */
+import { ACCOUNT_PORTAL_URL } from '@gather/core/account-portal'
 import type { AppearancePreference } from '@gather/core/appearance'
 import type { Locale } from '@gather/core/i18n'
 
@@ -39,6 +40,7 @@ export type SettingsEntryId =
   | 'account-email'
   | 'account-devices'
   | 'account-export'
+  | 'account-portal'
   | 'account-delete'
   | 'groups'
   | 'notifications'
@@ -213,6 +215,11 @@ export function settingsSections(
               id: 'account-export',
               label: t.account.dataExport.title,
               href: '/settings/account/export',
+            },
+            {
+              id: 'account-portal',
+              label: t.account.portal.action,
+              url: ACCOUNT_PORTAL_URL,
             },
             {
               id: 'account-delete',

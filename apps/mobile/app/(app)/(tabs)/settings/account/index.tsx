@@ -33,6 +33,7 @@ import { useSignOut } from '../../../../../src/auth/useSignOut'
 import { useAvailability } from '../../../../../src/availability/AvailabilityProvider'
 import { useI18n } from '../../../../../src/i18n'
 import { showAlert } from '../../../../../src/observability/native-presentation'
+import { openAccountPortal } from '../../../../../src/settings/account-portal'
 import { identityInitial } from '../../../../../src/settings/identity'
 import { setProfilePhoto } from '../../../../../src/settings/profilePhoto'
 import type { SettingsHref } from '../../../../../src/settings/sections'
@@ -105,6 +106,12 @@ export default function Account() {
           icon={UI_ICONS.Download}
           label={t.account.dataExport.title}
           href="/settings/account/export"
+        />
+        <Row
+          icon={UI_ICONS.UserCog}
+          label={t.account.portal.action}
+          testID="account-row-portal"
+          onPress={() => void openAccountPortal(t)}
         />
       </View>
 
@@ -237,32 +244,42 @@ function Row({
   icon,
   label,
   value,
-  href,
   first = false,
   destructive = false,
   disabled = false,
+  ...target
 }: {
   icon: Glyph
   label: string
   value?: string
-  href: SettingsHref
   first?: boolean
   destructive?: boolean
   disabled?: boolean
-}) {
+} & (
+  | { href: SettingsHref }
+  // Leaves for a web page, so it says so instead of promising a screen.
+  | { onPress: () => void; testID: string }
+)) {
   const tokens = useTokens()
   const Icon = icon
-  const ChevronRight = UI_ICONS.ChevronRight
+  const Trailing =
+    'href' in target ? UI_ICONS.ChevronRight : UI_ICONS.ExternalLink
   const color = destructive ? tokens.danger : tokens.ink
 
   return (
     <Pressable
-      testID={`account-row-${href.split('/').pop()}`}
-      accessibilityRole="button"
+      testID={
+        'href' in target
+          ? `account-row-${target.href.split('/').pop()}`
+          : target.testID
+      }
+      accessibilityRole={'href' in target ? 'button' : 'link'}
       accessibilityLabel={[label, value].filter(Boolean).join(', ')}
       accessibilityState={{ disabled }}
       disabled={disabled}
-      onPress={() => router.push(href)}
+      onPress={() =>
+        'href' in target ? router.push(target.href) : target.onPress()
+      }
       style={({ pressed }) => [
         styles.row,
         !first && {
@@ -291,7 +308,7 @@ function Row({
           {value}
         </Text>
       ) : null}
-      <ChevronRight
+      <Trailing
         size={18}
         color={tokens.muted}
         strokeWidth={1.8}

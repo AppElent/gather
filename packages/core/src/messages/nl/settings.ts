@@ -24,6 +24,15 @@ export const settings = {
     },
   },
 
+  accountPortal: {
+    title: 'AppElent-account',
+    description:
+      'Je login werkt in elke AppElent-app. Beheer daar je e-mailadressen, inlogmethoden, apparaten en tweestapsverificatie.',
+    action: 'Beheer je AppElent-account',
+    newTab: '(opent in een nieuw tabblad)',
+    failed: 'Je AppElent-account kon niet worden geopend. Probeer het opnieuw.',
+  },
+
   signedInDevices: {
     title: 'Ingelogde apparaten',
     description: 'Waar je bent ingelogd.',
