@@ -6,17 +6,17 @@
  * check. The sheet itself is APP-312's (`add-to-groceries/`), which merges
  * the lines into the list as top-ups: a second run adds only what is missing.
  */
-import { addDays } from '@gather/core/civil-date'
+import { addDays } from './civilDate'
 import {
   combineGroceryLines,
   type GroceryAddLine,
   type GroceryUnit,
   groceryKey,
   scaleGroceryQuantity,
-} from '@gather/core/groceries'
+} from './groceries'
 
-import type { LineRead, SourceLine } from '@gather/core/grocery-pick'
-import type { PlannedMeal } from './week'
+import type { LineRead, SourceLine } from './groceries/pick'
+import type { PlannedMeal } from './weekMenu'
 
 /** The seven days of the week that starts on `from`, Monday first. */
 export function weekDays(from: string): string[] {
@@ -49,13 +49,13 @@ export interface WeekRecipe {
 }
 
 /** A meal that counts, with the servings it is planned for. */
-export interface CountedMeal {
-  meal: PlannedMeal
+export interface CountedMeal<M extends PlannedMeal = PlannedMeal> {
+  meal: M
   servings: number
 }
 
-export interface WeekLinesInput {
-  meals: readonly CountedMeal[]
+export interface WeekLinesInput<M extends PlannedMeal = PlannedMeal> {
+  meals: readonly CountedMeal<M>[]
   /** The Recipes planned, by id; a meal whose Recipe is missing is a meal to check. */
   recipes: ReadonlyMap<string, WeekRecipe>
   /** Each Recipe's ingredients as read (`useIngredientLines`), by Recipe id. */
@@ -64,7 +64,7 @@ export interface WeekLinesInput {
    * Where a line comes from, for the list and the row: one meal ("Shakshuka ·
    * di"), two ("Shakshuka di, Tacos do"), or more ("3 recepten").
    */
-  label: (meals: readonly PlannedMeal[]) => string
+  label: (meals: readonly M[]) => string
   /**
    * Keys of the rows the person ticked, unticked or retyped (the sheet's
    * `ticks` and `edits`). A line they touched while it was still being read
@@ -81,11 +81,11 @@ export interface WeekLinesInput {
   formerRows?: ReadonlyMap<string, ReadonlySet<string>>
 }
 
-export interface WeekLines {
+export interface WeekLines<M extends PlannedMeal = PlannedMeal> {
   /** One line per item, scaled and combined, for the sheet. */
   lines: SourceLine[]
   /** Meals with nothing to read: quick meals, Recipes without ingredients. */
-  toCheck: PlannedMeal[]
+  toCheck: M[]
 }
 
 /**
@@ -99,11 +99,13 @@ export interface WeekLines {
  * its own row, so their tick or retype cannot take the other meals' amounts
  * with it (APP-479). Every line tops the list up rather than adding to it.
  */
-export function weekGroceryLines(input: WeekLinesInput): WeekLines {
-  const toCheck: PlannedMeal[] = []
+export function weekGroceryLines<M extends PlannedMeal>(
+  input: WeekLinesInput<M>,
+): WeekLines<M> {
+  const toCheck: M[] = []
   const read: Array<{
     line: GroceryAddLine
-    meal: PlannedMeal
+    meal: M
     via: Via
     /** The key this line has while it is still being read. */
     unreadKey: string
