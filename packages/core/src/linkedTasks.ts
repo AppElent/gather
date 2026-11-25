@@ -110,8 +110,8 @@ interface MoveTargetList {
 /**
  * Where a task on `from` can go (APP-821): a local task to local lists, a
  * linked one to the lists of its own connection that can be written to. The
- * server holds the same rule. Every other list is `other`, for the reason
- * that a task stays in its source.
+ * server holds the connection to the same rule. Every other list is `other`,
+ * for the reason that a task stays in its source.
  */
 export function moveTargets<T extends MoveTargetList>(
   from: MoveTargetList,

@@ -33,6 +33,7 @@ import { localIsoDate } from '@gather/core/civil-date'
 import { moveLinkedToList, type SendWrite } from '@gather/core/linked-lists'
 import type { TaskRepeat } from '@gather/core/task-repeat'
 import {
+  announceMove,
   type CompletedOccurrence,
   ensureExternalLists,
   externalEntry,
@@ -47,9 +48,11 @@ import {
   settledDetails,
   smartModel,
   syncExternalList,
+  takeMove,
   taskSections,
   toggleInPlace,
-  useTaskActions,writeLinkedTask 
+  useTaskActions,
+  writeLinkedTask,
 } from './store'
 import type { TaskList } from './types'
 
@@ -1339,4 +1342,13 @@ describe('a linked list is written to in its provider first (APP-448)', () => {
     await syncExternalList('notion-list', answering(row('a')))
     expect(writable('notion-list', 'notion')).toBe(false)
   })
+})
+
+test('a move is left once by its own screen, then told once by the next (APP-821)', () => {
+  const news = { taskId: 'a', listName: 'Garden', undo: async () => {} }
+  announceMove(news)
+  expect(takeMove('a')).toBe('leave')
+  expect(takeMove('a')).toBeNull()
+  expect(takeMove()).toBe(news)
+  expect(takeMove()).toBeNull()
 })

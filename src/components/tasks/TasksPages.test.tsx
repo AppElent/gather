@@ -848,6 +848,35 @@ describe('what a review found (APP-308)', () => {
     )
   })
 
+  test('a linked move that settles after you went elsewhere leaves you there (APP-821)', async () => {
+    const linked = {
+      provider: 'todoist',
+      capabilities: { write: true },
+      connectionId: 'c1',
+    }
+    state.queries['taskLists:list'] = [
+      list('me', 'Errands', linked),
+      list('mg', 'Garden', linked),
+    ]
+    state.queries['integrations:listConnections'] = []
+    state.queries['tasks:listOf'] = null
+    state.linked = {
+      status: 'ok',
+      tasks: [{ externalId: 'm1', title: 'Seeds', done: false, labels: [] }],
+    }
+    state.written = { status: 'ok', tasks: [], refresh: false }
+    const before = window.location.href
+    renderTasks(<TaskListPage listId="me" selectedTaskId="m1" />)
+    fireEvent.click(
+      await within(panel()).findByRole('button', { name: /^List/ }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Garden' }))
+    window.history.pushState(null, '', '/recipes')
+    await screen.findByText('Moved to Garden.')
+    expect(state.navigated).toHaveLength(0)
+    window.history.replaceState(null, '', before)
+  })
+
   test('a project linked to two lists: a task stays with the one it was opened from', async () => {
     const linked = { provider: 'todoist', capabilities: { write: true } }
     state.queries['taskLists:list'] = [

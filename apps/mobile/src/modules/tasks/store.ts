@@ -205,18 +205,23 @@ export interface MovedTask {
 }
 
 const MOVED_KEPT_MS = 3000
-let moved: { news: MovedTask; at: number } | null = null
+let moved: { news: MovedTask; at: number; left: boolean } | null = null
 const movedListeners = new Set<() => void>()
 
 export function announceMove(news: MovedTask) {
-  moved = { news, at: Date.now() }
+  moved = { news, at: Date.now(), left: false }
   for (const listener of movedListeners) listener()
 }
 
 /** The move still to be told, unless the asking screen is that task's own. */
 export function takeMove(aboutTaskId?: string): MovedTask | 'leave' | null {
   if (!moved || Date.now() - moved.at > MOVED_KEPT_MS) return null
-  if (moved.news.taskId === aboutTaskId) return 'leave'
+  if (moved.news.taskId === aboutTaskId) {
+    // Once: a screen that asks again must not leave the one under it too.
+    if (moved.left) return null
+    moved.left = true
+    return 'leave'
+  }
   const { news } = moved
   moved = null
   return news

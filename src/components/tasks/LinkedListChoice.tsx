@@ -53,8 +53,10 @@ export function LinkedListChoice({
           onClose()
           const name = own.find((each) => each._id === id)?.name ?? ''
           if (id === list.id) return
+          const openedAt = window.location.href
           actions.moveToLinkedList(task, id).then((undo) => {
-            onGone?.()
+            // The write takes a while: whoever went elsewhere stays there.
+            if (window.location.href === openedAt) onGone?.()
             show({
               message: fmt(t.tasks.web.moved, { list: name }),
               undo: () => {
