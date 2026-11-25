@@ -166,7 +166,7 @@ export interface EnergySolarHour {
 export interface EnergyBatteryDay {
   chargeKwh: number
   dischargeKwh: number
-  /** What was charged and discharged at each hour's price; null without prices. */
+  /** Charged and discharged at each hour's price; null without prices or one of the two. */
   chargeEur: number | null
   dischargeEur: number | null
 }
@@ -242,7 +242,8 @@ export function energySolarDay(
 
 /**
  * Charged and discharged at each hour's own price. The value is one minus the
- * other; a day with an hour that has no price has no value, never a guess.
+ * other; a day with an hour that has no price, or with only one of the two
+ * measured, has no value, never a guess.
  */
 function batteryDay(hours: readonly EnergySolarHour[]): EnergyBatteryDay | null {
   const measured = hours.filter(
@@ -253,7 +254,9 @@ function batteryDay(hours: readonly EnergySolarHour[]): EnergyBatteryDay | null 
   let dischargeKwh = 0
   let chargeEur = 0
   let dischargeEur = 0
-  let priced = true
+  let priced =
+    hours.some((hour) => hour.chargeKwh !== null) &&
+    hours.some((hour) => hour.dischargeKwh !== null)
   for (const hour of measured) {
     const charge = hour.chargeKwh ?? 0
     const discharge = hour.dischargeKwh ?? 0

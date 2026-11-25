@@ -336,7 +336,7 @@ function DayView({ day, today }: { day: string; today: string }) {
           </Text>
         </View>
       )}
-      {period.hasHourly && (period.channels.battery || period.channels.batterySoc) ? (
+      {period.hasHourly && period.channels.batterySoc ? (
         <EnergyChargeCard
           day={day}
           today={today}

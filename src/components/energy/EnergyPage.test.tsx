@@ -223,8 +223,8 @@ describe('EnergyPage', () => {
     expect(rows.map((row) => row.getAttribute('href'))).toEqual([
       '/energy/usage',
       '/energy/prices',
-      '/energy/solar',
       '/energy/costs',
+      '/energy/solar',
       '/energy/readings',
       '/energy/contract',
       '/energy/sources',

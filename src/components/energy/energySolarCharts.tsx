@@ -68,28 +68,26 @@ export function ChargeChart({
     )
     .filter((point) => point !== null)
   const strip = energyBatteryStrip(period.hours, now, messages.energy, locale)
-  if (points.length === 0 && !strip) return null
-  const values = points.map((point) => point.percent)
-  const last = points[points.length - 1]
   const first = points[0]
+  const last = points[points.length - 1]
+  if (!first || !last) return null
+  const values = points.map((point) => point.percent)
   const line = points.map((point) => `${point.x},${point.y}`).join(' ')
   const date = formatEnergyDate(period.days[0]?.day ?? '', locale, 'dayMonth')
   const percent = energySocNow(period.hours)
   const label = [
-    points.length
-      ? fmt(copy.socLabel, {
-          date,
-          low: Math.round(Math.min(...values)),
-          high: Math.round(Math.max(...values)),
-        })
-      : null,
+    fmt(copy.socLabel, {
+      date,
+      low: Math.round(Math.min(...values)),
+      high: Math.round(Math.max(...values)),
+    }),
     strip?.sentence,
   ]
     .filter(Boolean)
     .join(' ')
   return (
     <ChartFigure
-      title={points.length ? copy.socTitle : solar.battery}
+      title={copy.socTitle}
       aside={
         isToday && percent !== null ? (
           <span className="text-xs text-[var(--muted)] tabular-nums">
@@ -113,38 +111,34 @@ export function ChargeChart({
       }
     >
       <div aria-hidden="true" className="flex gap-2">
-        {first ? (
-          <div className="flex h-[100px] w-7 shrink-0 flex-col justify-between text-right text-xs leading-none text-[var(--muted)] tabular-nums">
-            <span>100</span>
-            <span>50</span>
-            <span>0</span>
-          </div>
-        ) : null}
+        <div className="flex h-[100px] w-7 shrink-0 flex-col justify-between text-right text-xs leading-none text-[var(--muted)] tabular-nums">
+          <span>100</span>
+          <span>50</span>
+          <span>0</span>
+        </div>
         <div className="grid min-w-0 flex-1 gap-1">
-          {first && last ? (
-            <svg
-              viewBox="0 0 240 100"
-              preserveAspectRatio="none"
-              className="block h-[100px] w-full"
-            >
-              <line x1="0" y1="1" x2="240" y2="1" stroke="var(--hair)" vectorEffect="non-scaling-stroke" />
-              <line x1="0" y1="50" x2="240" y2="50" stroke="var(--hair)" vectorEffect="non-scaling-stroke" />
-              <line x1="0" y1="99" x2="240" y2="99" stroke="var(--muted)" vectorEffect="non-scaling-stroke" />
-              <polygon
-                points={`${first.x},100 ${line} ${last.x},100`}
-                fill="var(--home-wash)"
-              />
-              <polyline
-                points={line}
-                fill="none"
-                stroke="var(--ink)"
-                strokeWidth="2.5"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-              />
-            </svg>
-          ) : null}
+          <svg
+            viewBox="0 0 240 100"
+            preserveAspectRatio="none"
+            className="block h-[100px] w-full"
+          >
+            <line x1="0" y1="1" x2="240" y2="1" stroke="var(--hair)" vectorEffect="non-scaling-stroke" />
+            <line x1="0" y1="50" x2="240" y2="50" stroke="var(--hair)" vectorEffect="non-scaling-stroke" />
+            <line x1="0" y1="99" x2="240" y2="99" stroke="var(--muted)" vectorEffect="non-scaling-stroke" />
+            <polygon
+              points={`${first.x},100 ${line} ${last.x},100`}
+              fill="var(--home-wash)"
+            />
+            <polyline
+              points={line}
+              fill="none"
+              stroke="var(--ink)"
+              strokeWidth="2.5"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
           {strip ? (
             <div className="flex gap-0.5">
               {strip.cells.map((cell) => (
@@ -182,7 +176,7 @@ export function SocBar({ percent }: { percent: number }) {
   )
 }
 
-/** Bars in ink on one scale, with an average as a dashed line when given. */
+/** Bars in solar's colour on one scale, with an average as a dashed line when given. */
 export function SolarBars({
   bars,
   height,
@@ -207,7 +201,7 @@ export function SolarBars({
           <span
             key={bar.key}
             data-bar={bar.future ? 'future' : 'up'}
-            className={`min-w-0 flex-1 rounded-t-[3px] ${bar.future ? FUTURE_BAR : 'bg-[var(--ink)]'}`}
+            className={`min-w-0 flex-1 rounded-t-[3px] ${bar.future ? FUTURE_BAR : 'bg-[var(--home-text)]'}`}
             style={{ height: bar.future ? 4 : scale(bar.height) }}
           />
         ))}

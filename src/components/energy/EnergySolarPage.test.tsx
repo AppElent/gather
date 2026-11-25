@@ -131,6 +131,13 @@ describe('EnergySolarPage', () => {
     expect(battery).not.toHaveTextContent('Earned =')
   })
 
+  test('without a charge level there is no charge level card', () => {
+    state.solar = solarMonth({ batterySoc: false })
+    renderInGroup(<EnergySolarPage />)
+    expect(screen.getByRole('region', { name: 'Battery' })).toBeVisible()
+    expect(screen.queryByRole('figure', { name: /Charged/ })).toBeNull()
+  })
+
   test('facts the site cannot measure are left out, not zero', () => {
     const month = solarMonth({ battery: false, batterySoc: false })
     month.days = month.days.map((day) => ({

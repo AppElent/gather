@@ -511,11 +511,11 @@ export const energy = {
     value: 'Opgeleverd',
     valueUnknown: 'Nog niet beschikbaar',
     valueWhyUnknown:
-      'Voor een of meer uren is er nog geen contract of geen prijs, dus de opbrengst is nog niet te berekenen.',
+      'Voor een of meer uren is er nog geen contract of prijs, of alleen laden of ontladen is gemeten, dus de opbrengst is nog niet te berekenen.',
     unpricedDays: {
-      one: '1 dag telt niet mee: daarvoor is er nog geen contract of geen prijs.',
+      one: '1 dag telt niet mee: er is nog geen contract of prijs, of alleen laden of ontladen is gemeten.',
       other:
-        '{count} dagen tellen niet mee: daarvoor is er nog geen contract of geen prijs.',
+        '{count} dagen tellen niet mee: er is nog geen contract of prijs, of alleen laden of ontladen is gemeten.',
     },
     valueFootnote:
       'Opbrengst = ontladen × prijs op dat uur − geladen × prijs op dat uur.',

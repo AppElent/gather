@@ -172,6 +172,7 @@ describe('a month', () => {
 
   test('is for members of the Group', async () => {
     const { t } = await seedHours(FULL)
+    await expect(t.query(api.energySolar.month, MONTH)).rejects.toThrow()
     await expect(
       t.withIdentity(carol).query(api.energySolar.month, MONTH),
     ).rejects.toThrow()
@@ -252,6 +253,14 @@ describe('assets', () => {
       save(t, { asset: { ...ROOF, name: ' ' } }),
     ).rejects.toThrow('assetNeedsName')
     await expect(save(t, {}, carol)).rejects.toThrow()
+    await expect(
+      t.mutation(api.energyAssets.save, { ...HOME, asset: ROOF, today: DAY }),
+    ).rejects.toThrow()
+    for (const person of [t, t.withIdentity(carol)]) {
+      await expect(
+        person.mutation(api.energyAssets.remove, { ...HOME, assetId }),
+      ).rejects.toThrow()
+    }
     await t.run(async (ctx) => {
       const other = await ctx.db
         .query('groups')

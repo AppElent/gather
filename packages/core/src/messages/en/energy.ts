@@ -540,10 +540,10 @@ export const energy = {
     value: 'Earned',
     valueUnknown: 'Not available yet',
     valueWhyUnknown:
-      'One or more hours have no contract or no price yet, so the earnings cannot be worked out.',
+      'One or more hours have no contract or price yet, or only charging or discharging is measured, so the earnings cannot be worked out.',
     unpricedDays: {
-      one: '1 day is left out: it has no contract or no price yet.',
-      other: '{count} days are left out: they have no contract or no price yet.',
+      one: '1 day is left out: it has no contract or price yet, or only charging or discharging was measured.',
+      other: '{count} days are left out: they have no contract or price yet, or only charging or discharging was measured.',
     },
     valueFootnote:
       'Earned = discharged × price of that hour − charged × price of that hour.',

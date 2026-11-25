@@ -361,16 +361,6 @@ function SiteHome({
           onPress={() => open('/all/energy/prices')}
         />
         <InsetRow
-          key="solar"
-          testID="energy-row-solar"
-          title={words.solar.title}
-          subtitle={
-            solar ? energySolarRowSub(solar.days, words) : words.solar.rowSub
-          }
-          chevron
-          onPress={() => open('/all/energy/solar')}
-        />
-        <InsetRow
           key="costs"
           testID="energy-row-costs"
           title={words.home.costs}
@@ -384,6 +374,16 @@ function SiteHome({
           }
           chevron
           onPress={() => open('/all/energy/costs')}
+        />
+        <InsetRow
+          key="solar"
+          testID="energy-row-solar"
+          title={words.solar.title}
+          subtitle={
+            solar ? energySolarRowSub(solar.days, words) : words.solar.rowSub
+          }
+          chevron
+          onPress={() => open('/all/energy/solar')}
         />
         <InsetRow
           key="readings"

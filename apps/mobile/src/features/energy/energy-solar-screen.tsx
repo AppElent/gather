@@ -60,6 +60,7 @@ import { SectionLabel } from '../../ui/section-label'
 import { isAccessibilityTextSize } from '../../ui/text-scale'
 import { EnergyChargeCard } from './components/energy-charge-card'
 import { EnergyDayBars } from './components/energy-day-bars'
+import { energySolarColour } from './components/energy-mirror-chart'
 import { EnergyShareBar } from './components/energy-share-bar'
 import { dayTicks, HOUR_TICKS } from './energy-chart-text'
 import { useEnergyMinute } from './use-energy-minute'
@@ -242,7 +243,7 @@ function Figures({
         now={now}
       />
       <BatteryCard data={data} totals={totals} hours={hours} />
-      {hours && data.battery ? (
+      {hours && data.batterySoc ? (
         <EnergyChargeCard day={today} today={today} hours={hours} now={now} />
       ) : null}
     </>
@@ -337,6 +338,7 @@ function SunCards({
           <CardTitle unit={words.units.kWh}>{words.solar.perHour}</CardTitle>
           <EnergyDayBars
             testID="energy-solar-hours"
+            colour={energySolarColour(tokens)}
             bars={perHour.bars.map(asBar)}
             height={72}
             label={perHour.sentence}
@@ -352,6 +354,7 @@ function SunCards({
           <CardTitle unit={words.units.percent}>{words.solar.perDay}</CardTitle>
           <EnergyDayBars
             testID="energy-solar-days"
+            colour={energySolarColour(tokens)}
             bars={perDay.bars.map(asBar)}
             height={80}
             average={perDay.average}

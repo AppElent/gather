@@ -1,5 +1,6 @@
 /**
- * One bar per day or hour in `ink` (Costs per month, designs/energy section 5),
+ * One bar per day or hour, in `ink` (Costs per month, designs/energy section 5)
+ * or the colour given,
  * with an average as a dashed `ink` line on a `surface` edge when given, so it
  * reads across the bars. A day still to come is a 4 pt dashed `hairStrong` outline; a past day without a
  * figure stays empty, never a zero bar. One VoiceOver element with the
@@ -17,6 +18,7 @@ export function EnergyDayBars({
   bars,
   height,
   average,
+  colour,
   label,
   ticks,
   testID,
@@ -25,6 +27,7 @@ export function EnergyDayBars({
   height: number
   /** On the bars' own scale. */
   average?: number
+  colour?: string
   label: string
   ticks: readonly string[]
   testID?: string
@@ -61,7 +64,7 @@ export function EnergyDayBars({
                         bar.value !== null && bar.value > 0 && max > 0
                           ? Math.max(2, (bar.value / max) * height)
                           : 0,
-                      backgroundColor: tokens.ink,
+                      backgroundColor: colour ?? tokens.ink,
                     },
               ]}
             />

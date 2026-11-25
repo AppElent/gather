@@ -56,52 +56,48 @@ export function EnergySocChart({
         importantForAccessibility="no-hide-descendants"
         style={styles.wrap}
       >
-        {first ? (
-          <View style={styles.axis}>
-            {['100', '50', '0'].map((value) => (
-              <Text
-                key={value}
-                style={[TYPE.footnote, TABULAR, { color: tokens.muted }]}
-              >
-                {value}
-              </Text>
-            ))}
-          </View>
-        ) : null}
-        <View style={styles.plot}>
-          {first ? (
-            <Svg
-              width="100%"
-              height={HEIGHT}
-              viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-              preserveAspectRatio="none"
+        <View style={styles.axis}>
+          {['100', '50', '0'].map((value) => (
+            <Text
+              key={value}
+              style={[TYPE.footnote, TABULAR, { color: tokens.muted }]}
             >
-              <Line x1={0} y1={1} x2={WIDTH} y2={1} stroke={tokens.hair} strokeWidth={1} />
-              <Line x1={0} y1={50} x2={WIDTH} y2={50} stroke={tokens.hair} strokeWidth={1} />
-              <Line
-                x1={0}
-                y1={HEIGHT - 1}
-                x2={WIDTH}
-                y2={HEIGHT - 1}
-                stroke={tokens.hairStrong}
-                strokeWidth={1}
+              {value}
+            </Text>
+          ))}
+        </View>
+        <View style={styles.plot}>
+          <Svg
+            width="100%"
+            height={HEIGHT}
+            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+            preserveAspectRatio="none"
+          >
+            <Line x1={0} y1={1} x2={WIDTH} y2={1} stroke={tokens.hair} strokeWidth={1} />
+            <Line x1={0} y1={50} x2={WIDTH} y2={50} stroke={tokens.hair} strokeWidth={1} />
+            <Line
+              x1={0}
+              y1={HEIGHT - 1}
+              x2={WIDTH}
+              y2={HEIGHT - 1}
+              stroke={tokens.hairStrong}
+              strokeWidth={1}
+            />
+            {area ? (
+              <Polygon points={area} fill={home.fill} fillOpacity={0.25} />
+            ) : null}
+            {line ? (
+              <Polyline
+                points={line}
+                fill="none"
+                stroke={tokens.ink}
+                strokeWidth={2.5}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
               />
-              {area ? (
-                <Polygon points={area} fill={home.fill} fillOpacity={0.25} />
-              ) : null}
-              {line ? (
-                <Polyline
-                  points={line}
-                  fill="none"
-                  stroke={tokens.ink}
-                  strokeWidth={2.5}
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  vectorEffect="non-scaling-stroke"
-                />
-              ) : null}
-            </Svg>
-          ) : null}
+            ) : null}
+          </Svg>
           {strip.length > 0 ? (
             <View style={styles.strip}>
               {strip.map((cell) => (

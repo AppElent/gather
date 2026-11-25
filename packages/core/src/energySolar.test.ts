@@ -106,6 +106,22 @@ describe('a day', () => {
     })
     expect(energySolarTotals([unknown]).battery?.valueEur).toBeNull()
   })
+
+  test.each(['chargeKwh', 'dischargeKwh'] as const)(
+    'a day with only %s measured has no value',
+    (key) => {
+      const day = energySolarDay('2026-11-20', [hour({ [key]: 2 })])
+      expect(day.battery).toMatchObject({
+        [key]: 2,
+        chargeEur: null,
+        dischargeEur: null,
+      })
+      expect(energySolarTotals([day]).battery).toMatchObject({
+        valueEur: null,
+        unpricedDays: 1,
+      })
+    },
+  )
 })
 
 describe('the price of an hour', () => {

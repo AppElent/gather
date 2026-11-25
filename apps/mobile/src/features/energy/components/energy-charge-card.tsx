@@ -34,16 +34,14 @@ export function EnergyChargeCard({
   const percents = hours.map((hour) => hour.socPercent)
   const known = percents.filter((value): value is number => value !== null)
   const strip = energyBatteryStrip(hours, now, words, locale)
-  if (known.length === 0 && !strip) return null
+  if (known.length === 0) return null
   const percent = energySocNow(hours)
   const label = [
-    known.length > 0
-      ? fmt(words.usage.socLabel, {
-          date: formatEnergyDate(day, locale, 'dayMonth'),
-          low: Math.round(Math.min(...known)),
-          high: Math.round(Math.max(...known)),
-        })
-      : null,
+    fmt(words.usage.socLabel, {
+      date: formatEnergyDate(day, locale, 'dayMonth'),
+      low: Math.round(Math.min(...known)),
+      high: Math.round(Math.max(...known)),
+    }),
     strip?.sentence,
   ]
     .filter(Boolean)
@@ -55,7 +53,7 @@ export function EnergyChargeCard({
     >
       <View style={styles.head}>
         <Text style={[TYPE.subhead, styles.flex, { color: tokens.muted }]}>
-          {known.length > 0 ? words.usage.socTitle : words.solar.battery}
+          {words.usage.socTitle}
         </Text>
         {day === today && percent !== null ? (
           <Text style={[TYPE.footnote, TABULAR, { color: tokens.muted }]}>
@@ -65,7 +63,7 @@ export function EnergyChargeCard({
       </View>
       <EnergySocChart
         testID="energy-soc-chart"
-        percents={known.length > 0 ? percents : []}
+        percents={percents}
         strip={strip?.cells}
         label={label}
         ticks={HOUR_TICKS}

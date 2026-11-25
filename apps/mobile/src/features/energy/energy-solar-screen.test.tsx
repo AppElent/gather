@@ -171,6 +171,17 @@ test('earnings without a price say they are not known', () => {
   view.unmount()
 })
 
+test('without a charge level there is no charge level card', () => {
+  energyState.queries['energySolar:month'] = {
+    ...solarMonth(),
+    batterySoc: false,
+  }
+  const view = open()
+  expect(byTestId('energy-solar-battery')).not.toBeNull()
+  expect(byTestId('energy-usage-soc')).toBeNull()
+  view.unmount()
+})
+
 test('payback shows for an asset with a price, and opens its form', () => {
   const october = {
     ...solarMonth(),

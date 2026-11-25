@@ -229,13 +229,6 @@ function SiteHome({
           danger={priceState?.problem}
         />
         <NavRow
-          link={linkTo('energySolar')}
-          label={copy.solar.title}
-          sub={
-            solar ? energySolarRowSub(solar.days, copy) : copy.solar.rowSub
-          }
-        />
-        <NavRow
           link={linkTo('energyCosts')}
           label={copy.home.costs}
           sub={
@@ -245,6 +238,13 @@ function SiteHome({
                   month: formatEnergyDate(month, locale, 'month'),
                 })
               : copy.home.costsSubNone
+          }
+        />
+        <NavRow
+          link={linkTo('energySolar')}
+          label={copy.solar.title}
+          sub={
+            solar ? energySolarRowSub(solar.days, copy) : copy.solar.rowSub
           }
         />
         <NavRow

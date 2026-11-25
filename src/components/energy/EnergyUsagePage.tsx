@@ -255,7 +255,7 @@ function DayView({
       ) : (
         <p className="m-0 text-sm text-[var(--muted)]">{copy.noHours}</p>
       )}
-      {hourly && (period.channels.batterySoc || period.channels.battery) ? (
+      {hourly && period.channels.batterySoc ? (
         <ChargeChart period={period} isToday={day === today} now={now} />
       ) : null}
       {hasData ? <Facts facts={factsOf(period, messages, locale)} /> : null}

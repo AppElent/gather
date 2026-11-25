@@ -224,7 +224,7 @@ function Figures({
         totals={totals}
         period={range === 'today' ? (period ?? null) : null}
       />
-      {range === 'today' && data.battery && period ? (
+      {range === 'today' && data.batterySoc && period ? (
         <ChargeChart period={period} isToday now={now} />
       ) : null}
     </>
