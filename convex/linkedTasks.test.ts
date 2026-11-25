@@ -283,7 +283,11 @@ describe('taskLists.writeTask', () => {
       })
     const task = { id: 't1', content: 'x', priority: 1, project_id: 'proj' }
     const fetchMock = todoistAnswers((method) =>
-      json(method === 'GET' ? task : { ...task, project_id: 'garden' }),
+      json(
+        method === 'GET'
+          ? task
+          : { ...task, project_id: 'garden', responsible_uid: 'C' },
+      ),
     )
     for (const refused of [otherAccount, notion.listId, local]) {
       await expect(move(refused)).rejects.toThrow(/read-only/)
@@ -296,6 +300,7 @@ describe('taskLists.writeTask', () => {
     expect(fetchMock).not.toHaveBeenCalled()
 
     expect(await move(garden)).toMatchObject({ status: 'ok', refresh: true })
+    // The move is the last request: nobody reads whom the moved row is for.
     const last = fetchMock.mock.calls.at(-1)
     expect(last?.[0]).toMatch(/\/tasks\/t1\/move$/)
     expect(JSON.parse(String(last?.[1]?.body))).toEqual({ project_id: 'garden' })

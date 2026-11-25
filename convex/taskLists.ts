@@ -821,7 +821,12 @@ export const writeTask = action({
         responsibleId,
         target,
       )
-      if (outcome.tasks.some((task) => task.responsibleId) && !people) {
+      // A moved row is not held by the list it left, so nobody reads its people.
+      if (
+        write.kind !== 'moveToList' &&
+        outcome.tasks.some((task) => task.responsibleId) &&
+        !people
+      ) {
         try {
           people = await peopleOf(ctx, args, conn, config)
         } catch {
