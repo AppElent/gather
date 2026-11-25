@@ -21,7 +21,11 @@ export function PaymentDialog({
   const words = finances.split
   const formId = useId()
   const amountRef = useRef<HTMLInputElement>(null)
-  const [personId, setPersonId] = useState(people[0]?.id ?? '')
+  const [picked, setPicked] = useState(people[0]?.id ?? '')
+  // Whoever was picked may leave the Group while this is open.
+  const personId = people.some((person) => person.id === picked)
+    ? picked
+    : (people[0]?.id ?? '')
   const [amount, setAmount] = useState('')
   const [label, setLabel] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -67,7 +71,7 @@ export function PaymentDialog({
           label={words.web.payer}
           people={people}
           selected={[personId]}
-          onPress={setPersonId}
+          onPress={setPicked}
         />
         <label className="grid gap-1 text-footnote text-[var(--muted)]">
           {finances.recurringCosts.cost.amount}
