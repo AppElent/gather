@@ -14,6 +14,9 @@ const exclude = [...configDefaults.exclude, '**/.claude/**']
 // environment, so they are separate projects rather than one include glob.
 export default defineConfig({
   test: {
+    // Parallel agent runs share one Mac; vitest's default is nearly one per
+    // core, which exhausts its memory. CI runs alone, so it keeps that default.
+    maxWorkers: process.env.CI ? undefined : '25%',
     projects: [
       {
         plugins: [viteReact(), gatherMcpViews()],
