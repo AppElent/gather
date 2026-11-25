@@ -358,12 +358,12 @@ export const nl = {
     identity: 'Account: {name}',
 
     modulePage: {
-      title: '{module}-instellingen',
-      open: 'Instellingen van {module}',
+      title: coreNl.shell.modulePage.settingsTitle,
+      open: coreNl.shell.modulePage.settingsOf,
       footer: 'Dezelfde pagina’s als het tandwiel rechtsboven in elke module.',
       phoneOnly: 'Bewaard op deze telefoon, hetzelfde in elke groep.',
-      sharedList: 'Voor {list}, gedeeld met iedereen in {group}.',
-      shared: 'Gedeeld met iedereen in {group}.',
+      sharedList: coreNl.shell.modulePage.settingsSharedList,
+      shared: coreNl.shell.modulePage.settingsShared,
     },
   },
 

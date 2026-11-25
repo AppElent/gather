@@ -66,6 +66,11 @@ function toggle(id: SmartListId) {
   for (const listener of listeners) listener()
 }
 
+/** A test's storage is not the one read before it. */
+export function resetHiddenSmartListsForTests() {
+  cached = null
+}
+
 export function useHiddenSmartLists() {
   const hidden = useSyncExternalStore(subscribe, snapshot, () => NONE)
   return { hidden, toggle }

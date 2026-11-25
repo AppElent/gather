@@ -103,6 +103,8 @@ export interface InsetRowProps {
    * and the track is drawn at the row's end.
    */
   switchedOn?: boolean
+  /** Dims an `onClick` row and ignores it; it stays focusable and is read out. */
+  disabled?: boolean
   /** Extra content under the footnote, inside the text column. */
   children?: ReactNode
 }
@@ -127,6 +129,7 @@ export function InsetRow({
   controls,
   selected,
   switchedOn,
+  disabled = false,
   children,
 }: InsetRowProps) {
   const stretched =
@@ -153,8 +156,9 @@ export function InsetRow({
       {...(switchedOn === undefined
         ? {}
         : { role: 'switch', 'aria-checked': switchedOn })}
-      onClick={onClick}
-      className={`w-full cursor-pointer border-0 bg-transparent p-0 text-left font-[inherit] ${stretched}`}
+      aria-disabled={disabled || undefined}
+      onClick={disabled ? undefined : onClick}
+      className={`w-full ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} border-0 bg-transparent p-0 text-left font-[inherit] ${stretched}`}
     >
       {titleNode}
     </button>
@@ -166,7 +170,7 @@ export function InsetRow({
   return (
     <li
       className={`group/row relative flex min-h-[var(--size-row-min)] items-stretch gap-3 pl-4 first:rounded-t-[var(--radius-card)] last:rounded-b-[var(--radius-card)] ${
-        interactive && !controls ? 'hover:bg-[var(--surface-2)]' : ''
+        interactive && !controls && !disabled ? 'hover:bg-[var(--surface-2)]' : ''
       } ${selected ? 'bg-[var(--surface-2)]' : ''}`}
     >
       {leading ? (
@@ -193,7 +197,9 @@ export function InsetRow({
             {trailing}
           </span>
         ) : null}
-        {switchedOn === undefined ? null : <SwitchTrack on={switchedOn} />}
+        {switchedOn === undefined ? null : (
+          <SwitchTrack on={switchedOn} dimmed={disabled} />
+        )}
         {controls ? (
           <span className="relative z-[1] flex shrink-0 items-center gap-1">
             {controls}
@@ -218,13 +224,13 @@ export function InsetRow({
 }
 
 /** A switch row's track; the row itself is the control. */
-function SwitchTrack({ on }: { on: boolean }) {
+function SwitchTrack({ on, dimmed }: { on: boolean; dimmed: boolean }) {
   return (
     <span
       aria-hidden="true"
       className={`inline-flex h-7 w-12 shrink-0 items-center rounded-[var(--radius-pill)] transition-colors motion-reduce:transition-none ${
         on ? 'bg-[var(--accent-text)]' : 'bg-[var(--hair-strong)]'
-      }`}
+      } ${dimmed ? 'opacity-60' : ''}`}
     >
       <span
         className={`size-6 rounded-[var(--radius-pill)] bg-white transition-transform motion-reduce:transition-none ${

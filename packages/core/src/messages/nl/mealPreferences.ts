@@ -1,7 +1,6 @@
 import type { Messages } from '../en'
 
 export const mealPreferences = {
-  title: 'Eetvoorkeuren',
   subhead:
     'Voor heel {group}. Gather gebruikt dit bij zelf kiezen, Plan mijn week en Iets anders.',
   closing:

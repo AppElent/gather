@@ -99,6 +99,7 @@ export const shell = {
     settingsOf: 'Instellingen van {module}',
     settingsTitle: '{module}-instellingen',
     settingsShared: 'Gedeeld met iedereen in {group}.',
+    settingsSharedList: 'Voor {list}, gedeeld met iedereen in {group}.',
     settingsBrowser: 'Bewaard in deze browser, hetzelfde in elke groep.',
     closePanel: 'Paneel sluiten',
   },
