@@ -1,4 +1,4 @@
-import type { CalendarEvent } from '@gather/core/calendar'
+import type { CalendarEvent } from './calendar'
 
 /**
  * Merges the events every month source reported into one list. Sources of a
