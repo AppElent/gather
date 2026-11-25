@@ -110,12 +110,15 @@ export interface TaskProviderWriter {
     changes: TaskFieldChanges,
     fetchImpl?: typeof fetch,
   ): Promise<WriteOutcome>
-  /** `withSubtasks` completes a recurring task's open subtasks with it. */
+  /**
+   * `withSubtasks` completes everything open under a recurring task with it.
+   * Retried with the same `requestKey`, it moves each recurring subtask on once.
+   */
   closeTask(
     accessToken: string,
     config: SourceConfig,
     taskId: string,
-    options: { withSubtasks: boolean },
+    options: { withSubtasks: boolean; requestKey?: string },
     fetchImpl?: typeof fetch,
   ): Promise<WriteOutcome>
   reopenTask(

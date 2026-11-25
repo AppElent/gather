@@ -208,7 +208,7 @@ export default function Home() {
                       router.push(
                         {
                           pathname: '/all/tasks/task/[taskId]',
-                          params: { taskId: task.id },
+                          params: { taskId: task.id, listId: task.listId },
                         },
                         { withAnchor: true },
                       )

@@ -11,6 +11,8 @@ import {
 
 const TODOIST_API = 'https://api.todoist.com/api/v1'
 const PAGE_SIZE = '200'
+/** How many commands one Sync request may hold. */
+const SYNC_COMMANDS = 100
 /** The completed-task endpoint answers at most three months. */
 const COMPLETED_WINDOW_MS = 89 * 24 * 60 * 60_000
 
@@ -305,6 +307,16 @@ async function uuidOf(key: string): Promise<string> {
 
 const apiPriority = (priority: 1 | 2 | 3 | 4) => 5 - priority
 
+/** The open tasks anywhere under one, the deepest first. */
+function openBelow(
+  tasks: readonly TodoistApiTask[],
+  taskId: string,
+): TodoistApiTask[] {
+  return tasks
+    .filter((task) => task.parent_id === taskId)
+    .flatMap((child) => [...openBelow(tasks, child.id), child])
+}
+
 /**
  * Reads back what an accepted write left. A failed read must not say the write
  * failed, so it only asks for a refresh.
@@ -410,27 +422,49 @@ const writer: TaskProviderWriter = {
     // A recurring one only moves to its next date and leaves its subtasks.
     // Subtasks go first, so that one refused leaves the task where it was: a
     // retry must not move it on twice.
-    const close = (tasks: TodoistApiTask[]) =>
-      sync(
-        accessToken,
-        tasks.map(({ id }) => ({
-          type: 'item_close',
-          uuid: crypto.randomUUID(),
-          args: { id },
-        })),
-        fetchImpl,
-      )
-    const children = options.withSubtasks
-      ? await allPages<TodoistApiTask>(
+    const closing = (id: string, uuid: string): SyncCommand => ({
+      type: 'item_close',
+      uuid,
+      args: { id },
+    })
+    if (options.withSubtasks) {
+      const below = openBelow(
+        await allPages<TodoistApiTask>(
           accessToken,
           '/tasks',
-          { parent_id: task.id },
+          { project_id: projectId },
           'results',
           fetchImpl,
+        ),
+        task.id,
+      )
+      // A recurring subtask stays open once closed, so a retry meets it again:
+      // a UUID of its own for this key and occurrence moves it on once.
+      const { requestKey } = options
+      const occurrence = `${projectId}:${requestKey}:${task.id}:${task.due.date}`
+      const commands = await Promise.all(
+        below.map(async (each) =>
+          closing(
+            each.id,
+            requestKey && each.due?.is_recurring
+              ? await uuidOf(`${occurrence}:${each.id}`)
+              : crypto.randomUUID(),
+          ),
+        ),
+      )
+      for (let at = 0; at < commands.length; at += SYNC_COMMANDS) {
+        await sync(
+          accessToken,
+          commands.slice(at, at + SYNC_COMMANDS),
+          fetchImpl,
         )
-      : []
-    if (children.length > 0) await close(children)
-    await close([task])
+      }
+    }
+    await sync(
+      accessToken,
+      [closing(task.id, crypto.randomUUID())],
+      fetchImpl,
+    )
     const outcome = await readBack(accessToken, task.id, fetchImpl)
     return { ...outcome, refresh: true }
   },

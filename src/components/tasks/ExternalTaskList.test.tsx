@@ -5,14 +5,24 @@ import type { Id } from '../../../convex/_generated/dataModel'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { ExternalTaskList } from './ExternalTaskList'
 
-const { connection, getTasks, writeTask } = vi.hoisted(() => ({
+const { connection, connectionListeners, getTasks, writeTask } = vi.hoisted(() => ({
   connection: { isWebSocketConnected: true },
+  connectionListeners: new Set<() => void>(),
   getTasks: vi.fn(),
   writeTask: vi.fn(),
 }))
 
+// One client for every render, as the provider gives.
+const convex = {
+  connectionState: () => connection,
+  subscribeToConnectionState: (listener: () => void) => {
+    connectionListeners.add(listener)
+    return () => connectionListeners.delete(listener)
+  },
+}
+
 vi.mock('convex/react', () => ({
-  useConvex: () => ({ connectionState: () => connection }),
+  useConvex: () => convex,
   useAction: (reference: Parameters<typeof getFunctionName>[0]) =>
     getFunctionName(reference) === 'taskLists:getTasks' ? getTasks : writeTask,
 }))
@@ -117,6 +127,42 @@ test('offline nothing is sent, the title stays and the list is read-only', async
   for (const box of screen.getAllByRole('checkbox')) expect(box).toBeDisabled()
 })
 
+test('after an offline refusal the list is read again once back online', async () => {
+  renderList()
+  await screen.findByText('Pack')
+  connection.isWebSocketConnected = false
+  add('Hat')
+  await screen.findByRole('alert')
+  const reconnect = async (online: boolean) => {
+    connection.isWebSocketConnected = online
+    await act(async () => {
+      for (const listener of connectionListeners) listener()
+    })
+  }
+  await reconnect(false)
+  expect(getTasks).toHaveBeenCalledTimes(1)
+  await reconnect(true)
+  expect(getTasks).toHaveBeenCalledTimes(2)
+  for (const box of screen.getAllByRole('checkbox')) expect(box).toBeEnabled()
+  expect(screen.queryByRole('alert')).toBeNull()
+  expect(screen.getByLabelText('New task in Trip')).toHaveValue('Hat')
+  // Once per refusal: not on every reconnect.
+  await reconnect(true)
+  expect(getTasks).toHaveBeenCalledTimes(2)
+})
+
+test('a refused edit keeps the typed title', async () => {
+  writeTask.mockResolvedValue({ status: 'error', reason: 'failed' })
+  renderList()
+  fireEvent.click(await screen.findByLabelText('Edit Pack'))
+  const field = screen.getByDisplayValue('Pack')
+  fireEvent.change(field, { target: { value: 'Pack light' } })
+  fireEvent.submit(field.closest('form') as HTMLFormElement)
+  await screen.findByRole('alert')
+  await waitFor(() => expect(getTasks).toHaveBeenCalledTimes(2))
+  expect(screen.getByDisplayValue('Pack light')).toBeInTheDocument()
+})
+
 test('a late write gives up with an error, read-only until it is answered', async () => {
   renderList()
   await screen.findByText('Pack')
@@ -178,7 +224,29 @@ test('completing a parent asks, and completes its subtasks', async () => {
     taskId: 'p',
     done: true,
     withSubtasks: true,
+    requestKey: expect.any(String),
   })
+})
+
+test('Complete all retried carries the same key until Todoist took it', async () => {
+  const completeAll = async (times: number) => {
+    await waitFor(() => expect(screen.getByLabelText('Toggle Pack')).toBeEnabled())
+    fireEvent.click(screen.getByLabelText('Toggle Pack'))
+    fireEvent.click(screen.getByRole('button', { name: 'Complete all' }))
+    await waitFor(() => expect(writeTask).toHaveBeenCalledTimes(times))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  }
+  renderList()
+  await screen.findByText('Pack')
+  writeTask.mockResolvedValue({ status: 'error', reason: 'failed' })
+  await completeAll(1)
+  // Recurring: answered open, so it can be completed again.
+  writeTask.mockResolvedValue({ status: 'ok', tasks: [parent], refresh: false })
+  await completeAll(2)
+  await completeAll(3)
+  const keys = writeTask.mock.calls.map(([sent]) => sent.write.requestKey)
+  expect(keys[1]).toBe(keys[0])
+  expect(keys[2]).not.toBe(keys[0])
 })
 
 test('a subtask moves out from under its parent, and an edit sends what changed', async () => {

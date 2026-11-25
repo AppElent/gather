@@ -26,6 +26,10 @@ export function useDebouncedText(
   const [draft, setDraft] = useState(value)
   /** The keystroke not yet written, or `null` when everything is saved. */
   const pending = useRef<string | null>(null)
+  /** What a refused save left in the field, until a blur sends it again. */
+  const refused = useRef<string | null>(null)
+  /** The text last sent, so a refusal of an older one is not kept over it. */
+  const sent = useRef<string | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const latest = useRef(commit)
   latest.current = commit
@@ -37,14 +41,19 @@ export function useDebouncedText(
     }
     const next = pending.current
     pending.current = null
-    if (next !== null) latest.current(next)
+    if (next === null) return
+    sent.current = next
+    latest.current(next)
   }, [])
 
   // Adopt a change that came from somewhere else — another screen, another
   // phone — but never on top of a keystroke that has not been written yet, or
   // the field would fight the person typing in it.
   useEffect(() => {
-    if (pending.current === null) setDraft(value)
+    if (pending.current !== null) return
+    if (refused.current !== null && refused.current.trim() !== value) return
+    refused.current = null
+    setDraft(value)
   }, [value])
 
   // Leaving mid-sentence keeps the sentence.
@@ -54,18 +63,36 @@ export function useDebouncedText(
     (next: string) => {
       setDraft(next)
       pending.current = next
+      refused.current = null
       if (timer.current) clearTimeout(timer.current)
       if (!onBlurOnly) timer.current = setTimeout(flush, IDLE)
     },
     [flush, onBlurOnly],
   )
 
-  /** Back to the saved text after a refused save, unless typed in since. */
+  /** Blur: what was typed, or what was refused before, is saved. */
+  const blur = useCallback(() => {
+    if (pending.current === null) pending.current = refused.current
+    refused.current = null
+    flush()
+  }, [flush])
+
+  /**
+   * Keeps a refused text in the field to try again, unless typed in or
+   * sent again since. Leaving does not send it: only a blur does.
+   */
+  const keep = useCallback((text: string) => {
+    if (pending.current !== null || sent.current !== text) return
+    refused.current = text
+    setDraft(text)
+  }, [])
+
+  /** Back to the saved text, unless typed in since. */
   const saved = useRef(value)
   saved.current = value
   const reset = useCallback(() => {
     if (pending.current === null) setDraft(saved.current)
   }, [])
 
-  return { draft, change, flush, reset }
+  return { draft, change, flush, blur, keep, reset }
 }
