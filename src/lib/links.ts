@@ -64,6 +64,9 @@ export const ROUTES = {
   groceriesInStock: '/groceries/in-stock',
   groceriesItem: '/groceries/item/$itemId',
 
+  calendarDay: '/calendar/day/$date',
+  calendarEvent: '/calendar/event/$eventId',
+
   taskList: '/tasks/$listId',
   smartTaskList: '/tasks/smart/$smartList',
   task: '/tasks/task/$taskId',
