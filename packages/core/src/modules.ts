@@ -72,7 +72,7 @@ export const MODULES = [
     id: 'shared-costs',
     icon: 'Users',
     group: 'money',
-    status: 'placeholder',
+    status: 'live',
     mobileStatus: 'live',
   },
   {
