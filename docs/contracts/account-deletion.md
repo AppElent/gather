@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 3.1.0
+version: 3.2.0
 status: current
 ---
 
@@ -28,6 +28,9 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   because every read and write resolves its Group or a membership first. A
   recipe Shared into another Group stays readable there until its page goes.
   The last pages may go just after the account's `users` row.
+- **Background work rechecks its Group when it writes.** An action or scheduled
+  run authorised earlier may finish after the deletion; its write refuses a
+  Group that is gone (`storeConnection`, `takeBudget`; APP-877).
 - The files of the deleted rows travel along and are released after the last
   page, because a release scans every photo-holding table. A step that failed
   for good is run again by hand with its own arguments, which hold their ids.

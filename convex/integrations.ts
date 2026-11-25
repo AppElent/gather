@@ -13,7 +13,7 @@ import {
   getGatedIdentity,
   rejectConnectedApps,
 } from './lib/connectedApps'
-import { requireGroupBySlug } from './lib/groupAccess'
+import { groupRefusalError, requireGroupBySlug } from './lib/groupAccess'
 import { requireIdentity } from './lib/sharing'
 import { externalProviderValidator } from './lib/taskFields'
 import { getAdapter } from './lib/taskProviders'
@@ -128,6 +128,9 @@ export const storeConnection = internalMutation({
     connectedBy: v.id('users'),
   },
   handler: async (ctx, args) => {
+    // The Group was authorised before the provider answered, and may have been
+    // deleted since: its token must not outlive it.
+    if (!(await ctx.db.get(args.groupId))) throw groupRefusalError('unknown-group')
     const existing = await ctx.db
       .query('integrationConnections')
       .withIndex('by_group_provider', (q) =>

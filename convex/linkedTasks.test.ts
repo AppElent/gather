@@ -394,6 +394,31 @@ test('finishing a Todoist connection repeats the redirect URI it set out with', 
   vi.unstubAllEnvs()
 })
 
+test('a Group deleted while the provider answers keeps no token (APP-877)', async () => {
+  const { t, home } = await seed()
+  vi.stubEnv('TODOIST_CLIENT_ID', 'client')
+  vi.stubEnv('TODOIST_CLIENT_SECRET', 'secret')
+  vi.stubGlobal('fetch', async () => {
+    await t
+      .withIdentity(alice)
+      .mutation(api.groups.deleteGroup, { groupId: home })
+    return Response.json({ access_token: 'token' })
+  })
+  await expect(
+    t.withIdentity(alice).action(api.integrations.completeOAuth, {
+      provider: 'todoist',
+      groupSlug: HOME,
+      code: 'code',
+      redirectUri: 'https://gather.example/integrations/callback',
+    }),
+  ).rejects.toThrow('groups:unknown-group')
+  expect(
+    await t.run((ctx) => ctx.db.query('integrationConnections').collect()),
+  ).toEqual([])
+  vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
+})
+
 describe('who a linked task is given to (APP-405)', () => {
   const SECRET = 'bob@elsewhere.example'
   /** A shared project with Alice (the connection's account), Carla and Bob. */
