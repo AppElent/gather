@@ -22,9 +22,8 @@ import {
  */
 
 /**
- * The month holding a day, Monday first, in the five or six weeks it needs
- * (four for a February that starts on a Monday and has 28 days). Days of the
- * neighbouring months fill the first and last week.
+ * The month holding a day, Monday first, in five weeks, or six when it needs
+ * them. Days of the neighbouring months fill the first and last.
  */
 export function monthWeeks(value: string): string[][] {
   const first = monthStart(value)
@@ -32,7 +31,7 @@ export function monthWeeks(value: string): string[][] {
   const weeks: string[][] = []
   for (
     let monday = mondayStart(first);
-    compareIsoDates(monday, next) < 0;
+    weeks.length < 5 || compareIsoDates(monday, next) < 0;
     monday = addDays(monday, 7)
   )
     weeks.push(weekOf(monday))

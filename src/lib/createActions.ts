@@ -24,7 +24,13 @@ import { type AppLink, linkTo } from './links'
 
 export type CreateMessages = Pick<
   Messages,
-  'modules' | 'recipes' | 'baby' | 'loyaltyCards' | 'tasks' | 'tastings' | 'calendar'
+  | 'modules'
+  | 'recipes'
+  | 'baby'
+  | 'loyaltyCards'
+  | 'tasks'
+  | 'tastings'
+  | 'calendar'
 >
 
 export interface CreateAction {

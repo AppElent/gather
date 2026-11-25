@@ -159,7 +159,10 @@ function PeopleMenu({
 }) {
   const words = useMessages().calendar
   const menu = useMenu()
-  const chosen = filter?.userIds ?? []
+  // Somebody who left the Group is refused by the server.
+  const chosen = (filter?.userIds ?? []).filter((id) =>
+    people.some((person) => person.id === id),
+  )
   const withUnassigned = filter?.includeUnassigned ?? false
   const names = [
     ...people.filter(({ id }) => chosen.includes(id)).map(({ name }) => name),

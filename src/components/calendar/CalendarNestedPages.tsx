@@ -46,15 +46,15 @@ export function CalendarDayPage({ date }: { date: string }) {
     onSaved: (saved) => goTo(saved.date),
     onDeleted: () => {},
   })
-  const create = () => editing.create(date)
+  const create = () => {
+    if (!data.loading) editing.create(date)
+  }
   useCalendarKeys({
     day: date,
     weeks: false,
     onDay: goTo,
     onToday: () => goTo(today),
-    onNew: () => {
-      if (!data.loading) create()
-    },
+    onNew: create,
   })
   const subtitleOf = useEventSubtitle(data.calendars, data.people)
   const dayEvents = eventsOn(events, date)

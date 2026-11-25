@@ -78,11 +78,17 @@ export function EventDialog({
   )
   const [values, setValues] = useState<EventValues>(initial)
   const [key] = useState(() => crypto.randomUUID())
-  const [conflicted, setConflicted] = useState(false)
+  // The revision the Member was warned about: saving again replaces that one.
+  const [warned, setWarned] = useState<number | null>(null)
   const [asNew, setAsNew] = useState(!event)
   const [errors, setErrors] = useState<CalendarFieldErrors>({})
   const [saving, setSaving] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
+  // A calendar can go while the dialog is open.
+  const calendarId =
+    calendars.find(({ id }) => id === values.calendarId)?.id ??
+    calendars[0]?.id ??
+    null
   const set = (change: Partial<EventValues>) => {
     setValues((current) => ({ ...current, ...change }))
     setFailure(null)
@@ -101,9 +107,9 @@ export function EventDialog({
   const save = async (submitted: FormEvent) => {
     submitted.preventDefault()
     if (submitting.current) return
-    const problems = validateCalendarFields(values)
+    const problems = validateCalendarFields({ ...values, calendarId })
     setErrors(problems)
-    if (hasCalendarErrors(problems) || !values.calendarId) {
+    if (hasCalendarErrors(problems) || !calendarId) {
       if (problems.title) titleRef.current?.focus()
       return
     }
@@ -115,7 +121,7 @@ export function EventDialog({
     const fields = {
       ...rest,
       groupSlug,
-      calendarId: values.calendarId as Id<'calendars'>,
+      calendarId: calendarId as Id<'calendars'>,
       assigneeIds: values.assigneeIds as Id<'users'>[],
     }
     try {
@@ -126,8 +132,7 @@ export function EventDialog({
                 ...fields,
                 id: event.id as Id<'calendarEvents'>,
                 expectedRevision:
-                  (conflicted ? latest.current?.revision : undefined) ??
-                  event.revision,
+warned ?? event.revision,
                 startMinutes,
                 endMinutes,
                 location,
@@ -143,13 +148,13 @@ export function EventDialog({
               idempotencyKey: key,
             })
       submitting.current = false
-      onSaved({ id, date: values.date, calendarId: values.calendarId })
+      onSaved({ id, date: values.date, calendarId })
     } catch (caught) {
       submitting.current = false
       setSaving(false)
       const refusal = readCalendarRefusal(caught)
       if (refusal === 'conflict') {
-        setConflicted(true)
+        setWarned(latest.current?.revision ?? null)
         setFailure(words.web.conflictSave)
       } else if (
         event &&
@@ -222,7 +227,7 @@ export function EventDialog({
             {(props) => (
               <select
                 {...props}
-                value={values.calendarId ?? ''}
+                value={calendarId ?? ''}
                 onChange={(e) => set({ calendarId: e.target.value })}
                 className={inputClass}
               >

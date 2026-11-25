@@ -102,7 +102,9 @@ export function CalendarPage({
     isDesktop
       ? go({ day: date })
       : void navigate(linkTo('calendarDay', { date }))
-  const closeEvent = () => go({ day })
+  // An event's own day, also when the address names none or it has moved.
+  const eventDay = event?.date ?? day
+  const closeEvent = () => go({ day: eventDay })
 
   const editing = useCalendarEditing({
     calendars,
@@ -111,13 +113,12 @@ export function CalendarPage({
     onSaved: ({ id, date }, isNew) =>
       // A new event is on its day; an edited one stays open.
       go(isNew || !eventId ? { day: date } : { day: date, event: id }, true),
-    onDeleted: closeEvent,
+    onDeleted: (deleted) => go({ day: deleted.date }, true),
   })
   const create = () => editing.create(day)
   const [createAsked, setCreateAsked] = useState(false)
-  useStartCreating({ startCreating, onCreateStarted }, () =>
-    setCreateAsked(true),
-  )
+  const askCreate = () => setCreateAsked(true)
+  useStartCreating({ startCreating, onCreateStarted }, askCreate)
   const latestCreate = useRef(create)
   latestCreate.current = create
   // Not before the calendars are known: without one, adding one comes first.
@@ -147,7 +148,7 @@ export function CalendarPage({
     weeks: view === 'month',
     onDay: (date) => go({ day: date }, true),
     onToday: goToday,
-    onNew: create,
+    onNew: askCreate,
   })
 
   // Closing an event the layout has no opener for (opened from the panel, or
@@ -275,7 +276,7 @@ export function CalendarPage({
   )
 
   const back = {
-    label: fmt(words.web.backToDay, { date: dayTitle(day, locale) }),
+    label: fmt(words.web.backToDay, { date: dayTitle(eventDay, locale) }),
     onClick: closeEvent,
   }
   const panel = eventId ? (
@@ -310,30 +311,31 @@ export function CalendarPage({
     <>
       <ListDetailLayout
         header={
-<>
-          <WashHeader
-            group="home"
-            icon="Calendar"
-            title={messages.modules.byId.calendar.label}
-            back={{
-              label: messages.shell.allModules.title,
-              link: linkTo('all'),
-            }}
-            summary={
-              loading
-                ? undefined
-                : {
-                    count: plural(locale, todayCount, words.web.summary),
-                    scope: plural(
-                      locale,
-                      calendars.length,
-                      words.web.calendarCount,
-                    ),
-                  }
-            }
-            primary={{ label: words.web.primary, onClick: create }}
-          />
-{toolbar}</>
+          <>
+            <WashHeader
+              group="home"
+              icon="Calendar"
+              title={messages.modules.byId.calendar.label}
+              back={{
+                label: messages.shell.allModules.title,
+                link: linkTo('all'),
+              }}
+              summary={
+                loading
+                  ? undefined
+                  : {
+                      count: plural(locale, todayCount, words.web.summary),
+                      scope: plural(
+                        locale,
+                        calendars.length,
+                        words.web.calendarCount,
+                      ),
+                    }
+              }
+              primary={{ label: words.web.primary, onClick: askCreate }}
+            />
+            {toolbar}
+          </>
         }
         list={list}
         panel={panel}

@@ -17,11 +17,11 @@ import {
 
 describe('monthWeeks', () => {
   test.each([
-    // Monday 1 June 2026; Sunday 1 Nov 2026; February 2027 is four whole weeks.
+    // Monday 1 June 2026; Sunday 1 Nov 2026; February 2027 fills four weeks and takes five.
     ['2026-06-15', 5, '2026-06-01', '2026-07-05'],
     ['2026-11-24', 6, '2026-10-26', '2026-12-06'],
     ['2026-12-31', 5, '2026-11-30', '2027-01-03'],
-    ['2027-02-01', 4, '2027-02-01', '2027-02-28'],
+    ['2027-02-01', 5, '2027-02-01', '2027-03-07'],
   ])('%s takes %i Monday-first weeks', (day, weeks, first, last) => {
     const grid = monthWeeks(day)
     expect(grid).toHaveLength(weeks)

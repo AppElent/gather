@@ -83,7 +83,6 @@ export const calendar = {
       tasting: 'Pruim',
     },
     colorOf: 'Kleur van {calendar}: {color}',
-    visibilityOf: '{calendar} tonen',
     deleteCalendar: '{calendar} verwijderen',
     panel: 'Gekozen dag',
     backToDay: 'Terug naar {date}',

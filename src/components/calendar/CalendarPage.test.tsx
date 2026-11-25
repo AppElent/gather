@@ -272,6 +272,14 @@ describe('an event', () => {
     expect(lastSearch()).toEqual({ day: DAY })
   })
 
+  test('opened without a day goes back to its own day', () => {
+    renderInGroup(<CalendarPage event="e1" />)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Back to Tuesday, November 24' }),
+    )
+    expect(lastSearch()).toEqual({ day: DAY })
+  })
+
   test('from a subscribed calendar is read-only and says so', () => {
     renderInGroup(<CalendarPage day={DAY} event="e3" />)
     expect(within(panel()).getByText(/^Read-only/)).toBeInTheDocument()
