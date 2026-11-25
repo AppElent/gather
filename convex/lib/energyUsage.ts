@@ -13,6 +13,7 @@
 import { addDays } from '@gather/core/civil-date'
 import {
   addEnergyCosts,
+  amsterdamDayHours,
   amsterdamDayOf,
   amsterdamDayStart,
   DEFAULT_ENERGY_PRICE_PROVIDER,
@@ -21,10 +22,14 @@ import {
   type EnergyCost,
   type EnergyDayUse,
   type EnergyElectricityPrice,
+  type EnergySolarDay,
+  type EnergySolarHour,
   energyContractOn,
   energyDayCost,
   energyDayFixedCost,
+  energyHourImportPrice,
   energyNetMetering,
+  energySolarDay,
   netMeteringOn,
   primaryEnergySite,
   spreadReadingsOverDays,
@@ -157,6 +162,9 @@ type Bucket = {
   gas: number | null
   charge: number | null
   discharge: number | null
+  /** Per hour: whether the grid's import and export were measured at all. */
+  importMeasured: boolean
+  exportMeasured: boolean
   socSum: number
   socCount: number
 }
@@ -172,6 +180,8 @@ function emptyBucket(): Bucket {
     gas: null,
     charge: null,
     discharge: null,
+    importMeasured: false,
+    exportMeasured: false,
     socSum: 0,
     socCount: 0,
   }
@@ -195,9 +205,11 @@ function addTo(
   switch (channel.kind) {
     case 'gridImport':
       bucket.importKwh[tariff] += amount
+      bucket.importMeasured = true
       break
     case 'gridExport':
       bucket.exportKwh[tariff] += amount
+      bucket.exportMeasured = true
       break
     case 'solar':
       bucket.solar = (bucket.solar ?? 0) + amount
@@ -426,16 +438,27 @@ export async function siteContracts(
     .collect()
 }
 
+/** A site's solar panels and batteries, oldest first. */
+export async function siteAssets(ctx: QueryCtx, siteId: Id<'energySites'>) {
+  return ctx.db
+    .query('energyAssets')
+    .withIndex('by_site', (q) => q.eq('siteId', siteId))
+    .collect()
+}
+
 export interface EnergyRange {
   days: EnergyDay[]
   /** Per hour, only when asked for and only from hourly sources. */
   hours: EnergyHour[]
   contracts: Doc<'energyContracts'>[]
+  /** Each day's measured hours with their price, only with `solar`. */
+  solarDays: EnergySolarDay[]
 }
 
 /**
  * Usage and costs for each of `days` (consecutive, in order). With
- * `hourly`, also each hour of the range from hourly sources. Net metering is
+ * `hourly`, also each hour of the range from hourly sources; with `solar`,
+ * each day's solar and battery figures from the same hours (APP-496). Net metering is
  * over the days given, so a day's share takes its whole month.
  */
 export async function computeEnergyRange(
@@ -443,11 +466,11 @@ export async function computeEnergyRange(
   site: Doc<'energySites'>,
   channels: readonly ChannelWithSource[],
   days: readonly string[],
-  options: { hourly?: boolean } = {},
+  options: { hourly?: boolean; solar?: boolean } = {},
 ): Promise<EnergyRange> {
   const first = days[0]
   const last = days[days.length - 1]
-  if (!first || !last) return { days: [], hours: [], contracts: [] }
+  if (!first || !last) return { days: [], hours: [], contracts: [], solarDays: [] }
   const start = amsterdamDayStart(first)
   const end = amsterdamDayStart(addDays(last, 1))
   const hasSolar = channels.some((each) => each.channel.kind === 'solar')
@@ -719,7 +742,92 @@ export async function computeEnergyRange(
     }),
   )
 
-  return { days: result, hours, contracts }
+  const solarSince = options.solar
+    ? await firstHourOf(
+        ctx,
+        channels.filter((each) => each.channel.kind === 'solar' && !each.manual),
+      )
+    : null
+  const solarDays = options.solar
+    ? days.map((day) =>
+        energySolarDay(
+          day,
+          solarHours(
+            day,
+            hourBuckets,
+            energyContractOn(contracts, day),
+            prices,
+            solarSince,
+          ),
+        ),
+      )
+    : []
+
+  return { days: result, hours, contracts, solarDays }
+}
+
+/** The first hour any of `channels` has a figure for. */
+export async function firstHourOf(
+  ctx: QueryCtx,
+  channels: readonly ChannelWithSource[],
+): Promise<number | null> {
+  const first = await Promise.all(
+    channels.map(({ channel }) =>
+      ctx.db
+        .query('energyIntervals')
+        .withIndex('by_channel_hour', (q) => q.eq('channelId', channel._id))
+        .first(),
+    ),
+  )
+  const starts = first.flatMap((each) => (each ? [each.hourStart] : []))
+  return starts.length ? Math.min(...starts) : null
+}
+
+/**
+ * A day's hours as `energySolarDay` reads them, each with its price. An
+ * inverter that is off at night reports no figure then: on a day it reported
+ * at all, such an hour made nothing. Hours before `solarSince`, when solar
+ * was not measured yet, stay unknown.
+ */
+function solarHours(
+  day: string,
+  buckets: ReadonlyMap<number, Bucket>,
+  contract: Doc<'energyContracts'> | undefined,
+  prices: SitePrices,
+  solarSince: number | null,
+): EnergySolarHour[] {
+  const hours = amsterdamDayHours(day).flatMap((at) => {
+    const bucket = buckets.get(at)
+    return bucket ? [{ at, bucket }] : []
+  })
+  const reported = hours.some(({ bucket }) => bucket.solar !== null)
+  const off = (at: number) =>
+    reported && solarSince !== null && at >= solarSince ? 0 : null
+  // A split meter counts an hour on the tariff that applied; an hour it
+  // counted nothing in has the tariff of the hour before it.
+  const tariffs = hours.map(({ bucket }) => hourTariff(bucket))
+  let tariff = tariffs.find((each) => each !== null) ?? 't2'
+  return hours.map(({ at, bucket }, index) => {
+    tariff = tariffs[index] ?? tariff
+    return {
+      importKwh: bucket.importMeasured ? sum(bucket.importKwh) : null,
+      exportKwh: bucket.exportMeasured ? sum(bucket.exportKwh) : null,
+      solarKwh: bucket.solar ?? off(at),
+      chargeKwh: bucket.charge,
+      dischargeKwh: bucket.discharge,
+      importPrice: energyHourImportPrice(
+        contract as EnergyContractTerms | undefined,
+        prices.electricity(at, at + HOUR_MS),
+        tariff,
+      ),
+    }
+  })
+}
+
+function hourTariff({ importKwh, exportKwh }: Bucket): 't1' | 't2' | null {
+  const t1 = importKwh.t1 + exportKwh.t1
+  const t2 = importKwh.t2 + exportKwh.t2
+  return t1 === t2 ? null : t1 > t2 ? 't1' : 't2'
 }
 
 /**

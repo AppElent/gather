@@ -40,6 +40,7 @@ import {
   YearPairBars,
   yearLegend,
 } from './energyShared'
+import { ChargeChart } from './energySolarCharts'
 
 export type EnergyUsageRange = 'day' | 'month' | 'year'
 
@@ -255,7 +256,7 @@ function DayView({
         <p className="m-0 text-sm text-[var(--muted)]">{copy.noHours}</p>
       )}
       {hourly && period.channels.batterySoc ? (
-        <ChargeChart period={period} isToday={day === today} />
+        <ChargeChart period={period} isToday={day === today} now={now} />
       ) : null}
       {hasData ? <Facts facts={factsOf(period, messages, locale)} /> : null}
       {period.totals.estimated ? (
@@ -290,88 +291,6 @@ function HourChart({ period, now }: { period: EnergyPeriod; now: number }) {
         showDown={showSolar}
         ticks={HOUR_TICKS}
       />
-    </ChartFigure>
-  )
-}
-
-/** The battery's state of charge through the day: a line over a light area. */
-function ChargeChart({
-  period,
-  isToday,
-}: {
-  period: EnergyPeriod
-  isToday: boolean
-}) {
-  const { messages, locale } = useI18n()
-  const copy = messages.energy.usage
-  const count = Math.max(1, period.hours.length - 1)
-  const points = period.hours
-    .map((hour, index) =>
-      hour.socPercent === null
-        ? null
-        : {
-            x: (index / count) * 240,
-            y: 100 - Math.min(100, Math.max(0, hour.socPercent)),
-            percent: hour.socPercent,
-          },
-    )
-    .filter((point) => point !== null)
-  if (points.length === 0) return null
-  const values = points.map((point) => point.percent)
-  const low = Math.round(Math.min(...values))
-  const high = Math.round(Math.max(...values))
-  const last = points[points.length - 1] as (typeof points)[number]
-  const first = points[0] as (typeof points)[number]
-  const line = points.map((point) => `${point.x},${point.y}`).join(' ')
-  const area = `${first.x},100 ${line} ${last.x},100`
-  const date = formatEnergyDate(period.days[0]?.day ?? '', locale, 'dayMonth')
-  const label = fmt(copy.socLabel, { date, low, high })
-  return (
-    <ChartFigure
-      title={copy.socTitle}
-      aside={
-        isToday ? (
-          <span className="text-xs text-[var(--muted)] tabular-nums">
-            {fmt(copy.socNow, { percent: Math.round(last.percent) })}
-          </span>
-        ) : null
-      }
-      label={label}
-      sentence={label}
-    >
-      <div aria-hidden="true" className="flex gap-2">
-        <div className="flex h-[100px] w-7 shrink-0 flex-col justify-between text-right text-xs leading-none text-[var(--muted)] tabular-nums">
-          <span>100</span>
-          <span>50</span>
-          <span>0</span>
-        </div>
-        <div className="grid min-w-0 flex-1 gap-1">
-          <svg
-            viewBox="0 0 240 100"
-            preserveAspectRatio="none"
-            className="block h-[100px] w-full"
-          >
-            <line x1="0" y1="1" x2="240" y2="1" stroke="var(--hair)" vectorEffect="non-scaling-stroke" />
-            <line x1="0" y1="50" x2="240" y2="50" stroke="var(--hair)" vectorEffect="non-scaling-stroke" />
-            <line x1="0" y1="99" x2="240" y2="99" stroke="var(--muted)" vectorEffect="non-scaling-stroke" />
-            <polygon points={area} fill="var(--home-wash)" />
-            <polyline
-              points={line}
-              fill="none"
-              stroke="var(--ink)"
-              strokeWidth="2.5"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          </svg>
-          <div className="flex justify-between text-xs text-[var(--muted)] tabular-nums">
-            {HOUR_TICKS.map((tick) => (
-              <span key={tick}>{tick}</span>
-            ))}
-          </div>
-        </div>
-      </div>
     </ChartFigure>
   )
 }

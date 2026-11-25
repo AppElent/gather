@@ -27,10 +27,12 @@ import {
   energyMonthOf,
 } from '@gather/core/energy'
 import {
+  energyHomeBattery,
   energyHomeSourceLine,
   energyHomeSources,
   energyPriceFootnote,
   energyPriceStateLine,
+  energySolarRowSub,
   formatEnergyDate,
   formatEnergyEuro,
 } from '@gather/core/energy-present'
@@ -50,7 +52,7 @@ import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { moduleHref } from '../../modules/moduleDestination'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, SPACE, TYPE, useTokens } from '../../theme/tokens'
+import { NUMERAL_XL_MAX_SCALE, RADIUS, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { Button } from '../../ui/button'
 import { Card } from '../../ui/card'
 import { Field } from '../../ui/field'
@@ -69,6 +71,7 @@ import {
   EnergyPriceNowCard,
   EnergyPriceTodayCard,
 } from './components/energy-price-cards'
+import { EnergyShareBar } from './components/energy-share-bar'
 import {
   daySlots,
   type EnergyHourRow,
@@ -82,6 +85,7 @@ import {
 } from './energy-chart-text'
 import { contractSummary } from './energy-summary-text'
 import { useEnergyMinute } from './use-energy-minute'
+import type { EnergySolarMonth } from './use-energy-payback'
 
 type SourceChoice = 'homeAssistant' | 'manual'
 
@@ -221,6 +225,12 @@ function SiteHome({
     api.energyUsage.day,
     usage?.hasHourly ? { groupSlug, day: today, today } : 'skip',
   )
+  const solar = useQuery(
+    api.energySolar.month,
+    usage?.hasHourly && (usage.channels.solar || usage.channels.battery)
+      ? { groupSlug, month, today }
+      : 'skip',
+  )
   const contracts = useQuery(api.energyContracts.list, { groupSlug })
   const now = useEnergyMinute()
   const prices = useQuery(api.energyPrices.view, {
@@ -239,7 +249,7 @@ function SiteHome({
   const needsFirstReading =
     hasSources && typedMeters === 0 && !hourly && !connected
   const open = (
-    path: `/all/energy/${'usage' | 'costs' | 'readings' | 'contract' | 'sources' | 'connect' | 'prices'}`,
+    path: `/all/energy/${'usage' | 'costs' | 'readings' | 'contract' | 'sources' | 'connect' | 'prices' | 'solar'}`,
   ) => router.push(moduleHref(path))
 
   const cost = usage?.totals.cost
@@ -319,6 +329,15 @@ function SiteHome({
         />
       ) : null}
 
+      {usage?.channels.battery && hours ? (
+        <BatteryHomeCard
+          hours={hours.hours}
+          today={solar?.days.find((each) => each.day === today)}
+          now={now}
+          onPress={() => open('/all/energy/solar')}
+        />
+      ) : null}
+
       <InsetList accessibilityLabel={words.home.navLabel} testID="energy-nav">
         <InsetRow
           key="usage"
@@ -355,6 +374,16 @@ function SiteHome({
           }
           chevron
           onPress={() => open('/all/energy/costs')}
+        />
+        <InsetRow
+          key="solar"
+          testID="energy-row-solar"
+          title={words.solar.title}
+          subtitle={
+            solar ? energySolarRowSub(solar.days, words) : words.solar.rowSub
+          }
+          chevron
+          onPress={() => open('/all/energy/solar')}
         />
         <InsetRow
           key="readings"
@@ -395,6 +424,61 @@ function SiteHome({
         </Text>
       ) : null}
     </>
+  )
+}
+
+/** What the battery does now, how full it is and what it earned today. */
+function BatteryHomeCard({
+  hours,
+  today,
+  now,
+  onPress,
+}: {
+  hours: Parameters<typeof energyHomeBattery>[0]
+  today: EnergySolarMonth['days'][number] | undefined
+  now: number
+  onPress: () => void
+}) {
+  const tokens = useTokens('home')
+  const { t, locale } = useI18n()
+  const words = t.energy
+  const card = energyHomeBattery(hours, today, now, words, locale)
+  if (!card.state && card.percent === null && !card.value) return null
+  return (
+    <Pressable
+      testID="energy-battery-card"
+      accessibilityRole="button"
+      accessibilityLabel={card.label}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.chartCard,
+        { backgroundColor: pressed ? tokens.surface2 : tokens.surface },
+      ]}
+    >
+      <View style={styles.chartHead}>
+        <Text style={[TYPE.bodyStrong, styles.flex, { color: tokens.ink }]}>
+          {words.solar.homeBattery}
+        </Text>
+        <UI_ICONS.ChevronRight size={14} color={tokens.muted} strokeWidth={2.6} />
+      </View>
+      {card.state ? (
+        <Text style={[TYPE.subhead, { color: tokens.muted }]}>{card.state}</Text>
+      ) : null}
+      {card.percent !== null ? (
+        <>
+          <Text
+            maxFontSizeMultiplier={NUMERAL_XL_MAX_SCALE}
+            style={[TYPE.numeralL, { color: tokens.ink }]}
+          >
+            {Math.round(card.percent)}%
+          </Text>
+          <EnergyShareBar share={card.percent / 100} />
+        </>
+      ) : null}
+      {card.value ? (
+        <Text style={[TYPE.subhead, { color: tokens.ink }]}>{card.value}</Text>
+      ) : null}
+    </Pressable>
   )
 }
 

@@ -521,7 +521,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-function AmountField({
+export function AmountField({
   id,
   label,
   unit,

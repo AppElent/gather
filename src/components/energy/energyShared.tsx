@@ -386,13 +386,13 @@ export function Facts({
 
 // -- Charts ---------------------------------------------------------------------
 
-const FUTURE_BAR =
+export const FUTURE_BAR =
   'border border-dashed border-[var(--muted)] opacity-50'
 
 function Legend({
   items,
 }: {
-  items: readonly { label: string; swatch: 'ink' | 'solar' | 'muted' | 'future' | 'outline' }[]
+  items: readonly { label: string; swatch: 'ink' | 'solar' | 'muted' | 'future' | 'outline' | 'idle' }[]
 }) {
   const swatch = {
     ink: 'bg-[var(--ink)]',
@@ -400,6 +400,7 @@ function Legend({
     muted: 'bg-[var(--muted)]',
     future: FUTURE_BAR,
     outline: 'border-2 border-[var(--ink)]',
+    idle: 'bg-[var(--surface-2)] border border-[var(--hair)]',
   }
   return (
     <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-xs text-[var(--muted)]">

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { renderInGroup } from '../app/testing'
 import { EnergyPage } from './EnergyPage'
-import { monthPeriod, priceView } from './testing'
+import { batteryDay, monthPeriod, priceView, solarMonth } from './testing'
 
 /**
  * The empty Energy Module offers one step, adding an address, and the form
@@ -17,6 +17,7 @@ const state = vi.hoisted(() => ({
   form: null as unknown,
   month: null as unknown,
   day: null as unknown,
+  solar: null as unknown,
   prices: null as unknown,
   calls: [] as unknown[],
   navigate: vi.fn(),
@@ -30,6 +31,7 @@ vi.mock('convex/react', () => ({
     if (name === 'energyReadings:form') return state.form
     if (name === 'energyUsage:month') return state.month
     if (name === 'energyUsage:day') return state.day
+    if (name === 'energySolar:month') return state.solar
     if (name === 'energyPrices:view') return state.prices
     return state.houses
   },
@@ -61,6 +63,7 @@ vi.mock('../../../convex/_generated/api', () => ({
     energy: { overview: 'energy:overview', createSite: 'energy:createSite' },
     energyReadings: { form: 'energyReadings:form' },
     energyUsage: { month: 'energyUsage:month', day: 'energyUsage:day' },
+    energySolar: { month: 'energySolar:month' },
     energyPrices: { view: 'energyPrices:view' },
     houses: { list: 'houses:list' },
   },
@@ -74,6 +77,7 @@ beforeEach(() => {
   state.form = null
   state.month = null
   state.day = null
+  state.solar = null
   state.prices = null
   state.calls = []
   state.navigate.mockClear()
@@ -189,7 +193,7 @@ describe('EnergyPage', () => {
     expect(screen.queryByText('Binnenkort')).not.toBeInTheDocument()
   })
 
-  test('with readings, it shows the days of this month and the six rows', () => {
+  test('with readings, it shows the days of this month and the rows', () => {
     state.overview = {
       site: { _id: 's1', name: 'Thuis' },
       sources: [{ _id: 'src1', kind: 'manual', label: 'Meter readings', status: 'ok' }],
@@ -220,6 +224,7 @@ describe('EnergyPage', () => {
       '/energy/usage',
       '/energy/prices',
       '/energy/costs',
+      '/energy/solar',
       '/energy/readings',
       '/energy/contract',
       '/energy/sources',
@@ -360,5 +365,27 @@ describe('EnergyPage', () => {
         within(nav).getByText(/EnergyZero has not given all prices yet\./),
       ).toBeInTheDocument()
     })
+  })
+
+  test('a battery gets a card with what it does, and a row to its page', () => {
+    state.overview = {
+      site: { _id: 'site1', name: 'Thuis' },
+      sources: [
+        { _id: 's1', kind: 'homeAssistant', label: 'Home Assistant', status: 'ok' },
+      ],
+    }
+    state.day = batteryDay()
+    state.month = state.day
+    state.solar = solarMonth()
+    renderInGroup(<EnergyPage />)
+    const card = screen.getByText('Home battery').closest('a')
+    expect(card).toHaveAttribute('href', '/energy/solar')
+    // 19:55 in Amsterdam; the latest hour with figures is 18:00.
+    expect(card).toHaveTextContent('Around 18:00: discharging 1.5 kW')
+    expect(card).toHaveTextContent('64%')
+    expect(card).toHaveTextContent('Earned €0.59 today by charging cheap')
+    expect(
+      screen.getByRole('link', { name: /Solar and battery.*31%/ }),
+    ).toBeInTheDocument()
   })
 })

@@ -598,3 +598,54 @@ export function priceView(overrides: Record<string, unknown> = {}) {
     ...overrides,
   }
 }
+
+/** 23 November 2026 with a roof and a battery, measured up to 12:00. */
+export function batteryHours(now: number) {
+  return amsterdamDayHours('2026-11-23').map((hourStart, index) => {
+    const past = hourStart < now
+    return {
+      hourStart,
+      hasData: past,
+      importKwh: past ? 0.4 : 0,
+      exportKwh: 0,
+      consumptionKwh: past ? 0.4 : 0,
+      solarKwh: past ? (index === 11 ? 0.95 : 0.1) : null,
+      batteryChargeKwh: past ? (index === 2 || index === 3 ? 2.4 : 0) : null,
+      batteryDischargeKwh: past ? (index === 8 ? 1.5 : 0) : null,
+      socPercent: past ? (index === 12 ? 64 : 20 + index * 2) : null,
+    }
+  })
+}
+
+/** What `energySolar.month` answers on 23 November 2026. */
+export function solarMonth(overrides: Record<string, unknown> = {}) {
+  return {
+    siteName: 'Thuis',
+    status: 'ok',
+    solar: true,
+    battery: true,
+    batterySoc: true,
+    firstDay: '2026-11-23',
+    assets: [],
+    days: [
+      {
+        day: '2026-11-23',
+        producedKwh: 6,
+        selfUsedKwh: 4,
+        returnedKwh: 2,
+        selfUsedEur: 1.2,
+        consumptionKwh: 20,
+        ownKwh: 6.2,
+        battery: {
+          chargeKwh: 4.8,
+          dischargeKwh: 3,
+          chargeEur: 0.96,
+          dischargeEur: 1.55,
+        },
+        solarEur: 1.4,
+        batteryEur: 0.59,
+      },
+    ],
+    ...overrides,
+  }
+}

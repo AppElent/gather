@@ -387,7 +387,8 @@ export const FEATURES = defineFeatures([
 
   // Energy (APP-491): the phone leads, the web follows with the same
   // functions (designs/energy/README.md): usage, costs, readings and the
-  // contract (APP-494), Home Assistant (APP-495), prices (APP-493).
+  // contract (APP-494), Home Assistant (APP-495), prices (APP-493), solar and
+  // battery (APP-496).
   {
     id: 'energy',
     kind: 'product',

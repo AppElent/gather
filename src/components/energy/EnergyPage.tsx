@@ -1,10 +1,12 @@
 import { checkEnergySiteName, ENERGY_LIMITS } from '@gather/core/energy'
 import {
   type EnergySourceState,
+  energyHomeBattery,
   energyHomeHasProblem,
   energyHomeSourceLine,
   energyHomeSources,
   energyPriceStateLine,
+  energySolarRowSub,
   formatEnergyDate,
   formatEnergyEuro,
 } from '@gather/core/energy-present'
@@ -36,6 +38,7 @@ import {
   useEnergyMinute,
   useEnergyToday,
 } from './energyShared'
+import { type EnergySolarMonth, SocBar } from './energySolarCharts'
 
 type SourceChoice = 'homeAssistant' | 'manual'
 
@@ -113,6 +116,12 @@ function SiteHome({
   const day = useQuery(
     api.energyUsage.day,
     hourly ? { groupSlug, day: today, today } : 'skip',
+  )
+  const solarOrBattery =
+    hourly && (period.channels.solar || period.channels.battery)
+  const solar = useQuery(
+    api.energySolar.month,
+    solarOrBattery ? { groupSlug, month, today } : 'skip',
   )
   const typedChannels = form?.channels.length ?? 0
 
@@ -197,6 +206,14 @@ function SiteHome({
         )
       ) : null}
 
+      {period?.channels.battery && day ? (
+        <BatteryHomeCard
+          period={day}
+          today={solar?.days.find((each) => each.day === today)}
+          now={now}
+        />
+      ) : null}
+
       <RowList as="nav" label={copy.home.navLabel}>
         <NavRow
           link={linkTo('energyUsage')}
@@ -221,6 +238,13 @@ function SiteHome({
                   month: formatEnergyDate(month, locale, 'month'),
                 })
               : copy.home.costsSubNone
+          }
+        />
+        <NavRow
+          link={linkTo('energySolar')}
+          label={copy.solar.title}
+          sub={
+            solar ? energySolarRowSub(solar.days, copy) : copy.solar.rowSub
           }
         />
         <NavRow
@@ -251,6 +275,50 @@ function SiteHome({
       </RowList>
       {prices?.today ? <PriceFootnote prices={prices.today} /> : null}
     </>
+  )
+}
+
+/** What the battery does now, how full it is and what it earned today. */
+function BatteryHomeCard({
+  period,
+  today,
+  now,
+}: {
+  period: EnergyPeriod
+  today: EnergySolarMonth['days'][number] | undefined
+  now: number
+}) {
+  const { messages, locale } = useI18n()
+  const copy = messages.energy.solar
+  const card = energyHomeBattery(
+    period.hours,
+    today,
+    now,
+    messages.energy,
+    locale,
+  )
+  if (!card.state && card.percent === null && !card.value) return null
+  return (
+    <Link
+      {...linkTo('energySolar')}
+      className="shell-card grid gap-2 text-[var(--ink)] no-underline"
+    >
+      <span className="flex flex-wrap items-baseline justify-between gap-x-3">
+        <span className="text-base font-semibold">{copy.homeBattery}</span>
+        {card.state ? (
+          <span className="text-sm text-[var(--muted)]">{card.state}</span>
+        ) : null}
+      </span>
+      {card.percent !== null ? (
+        <span className="grid gap-1.5">
+          <span className="text-xl font-bold tabular-nums">
+            {Math.round(card.percent)}%
+          </span>
+          <SocBar percent={card.percent} />
+        </span>
+      ) : null}
+      {card.value ? <span className="text-sm">{card.value}</span> : null}
+    </Link>
   )
 }
 

@@ -179,6 +179,11 @@ export const ENERGY_REFUSAL_CODES = [
   // APP-493: the price source.
   'priceKeyNeeded',
   'priceKeyInvalid',
+  // APP-496: solar panels and batteries.
+  'assetNeedsName',
+  'assetInvalid',
+  'assetInFuture',
+  'tooManyAssets',
 ] as const
 export type EnergyRefusalCode = (typeof ENERGY_REFUSAL_CODES)[number]
 
