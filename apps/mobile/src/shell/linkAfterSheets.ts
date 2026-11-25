@@ -12,7 +12,8 @@
  *
  * One arrival is held at a time, and the newest wins: a link's screen never
  * lands on top of the chooser a share was still waiting to open. A share that
- * loses keeps its Drop pending; only its chooser does not open.
+ * loses keeps its Drop pending and is told (`onSuperseded`), so `DropGate` can
+ * bring its chooser back once the newer screen is up (APP-817).
  */
 import {
   closeAllSheets,
@@ -22,6 +23,13 @@ import {
 
 /** What waits for the sheets, or `null` when nothing does. */
 let held: { share: boolean } | null = null
+
+/**
+ * Whether the newest arrival to wait or pass went on to open. A share that
+ * loses is told with this, so its chooser comes back from the newer arrival
+ * opening and not from whatever the person does next.
+ */
+let newest: Promise<boolean> = Promise.resolve(false)
 
 /**
  * The share extension's link is in: forgets a link that waits. A share that
@@ -44,17 +52,25 @@ export function isWaitingForSheets() {
 function wayClear(
   share: boolean,
   wanted: () => boolean,
+  onSuperseded?: (newerOpened: Promise<boolean>) => void,
 ): true | Promise<boolean> {
   held = null
-  if (!hasOpenSheets() && !hasOpenPrompts()) return true
+  if (!hasOpenSheets() && !hasOpenPrompts()) {
+    newest = Promise.resolve(wanted())
+    return true
+  }
   const arrival = { share }
   held = arrival
   const current = () => held === arrival && wanted()
-  return closeAllSheets(current).then(() => {
+  const done = closeAllSheets(current).then(() => {
     const go = current()
+    // Something newer took the slot while this one still wanted it.
+    if (held !== arrival && wanted()) onSuperseded?.(newest)
     if (held === arrival) held = null
     return go
   })
+  newest = done
+  return done
 }
 
 /**
@@ -75,9 +91,18 @@ export function openAfterSheets(
   {
     share = false,
     wanted = () => true,
-  }: { share?: boolean; wanted?: () => boolean } = {},
+    onSuperseded,
+  }: {
+    share?: boolean
+    wanted?: () => boolean
+    /**
+     * Called once when something newer replaced this while it still wanted to
+     * open, with whether that newer arrival went on to open.
+     */
+    onSuperseded?: (newerOpened: Promise<boolean>) => void
+  } = {},
 ) {
-  const clear = wayClear(share, wanted)
+  const clear = wayClear(share, wanted, onSuperseded)
   if (clear === true) open()
   else
     void clear.then((go) => {
