@@ -178,13 +178,22 @@ export function useTaskSheets({
 }) {
   const { t } = useI18n()
   const actions = useTaskActions()
-  const [open, setOpen] = useState<{ kind: TaskSheet; taskId: string } | null>(
-    null,
-  )
+  const [open, setOpen] = useState<{
+    kind: TaskSheet
+    taskId: string
+    /** A linked task's list: two lists can show the same one (APP-839). */
+    linkedListId?: string
+  } | null>(null)
   const completeTask = useCompleteTask()
   const writeFailed = useWriteFailed()
   const close = () => setOpen(null)
-  const task = open && tasks.find((each) => each.id === open.taskId)
+  const task =
+    open &&
+    tasks.find(
+      (each) =>
+        each.id === open.taskId &&
+        (!open.linkedListId || each.listId === open.linkedListId),
+    )
 
   const confirmDelete = (task: Task) =>
     confirmDestructive({
@@ -212,7 +221,11 @@ export function useTaskSheets({
       case 'under':
       case 'reminder':
       case 'section':
-        setOpen({ kind: action, taskId: task.id })
+        setOpen({
+          kind: action,
+          taskId: task.id,
+          linkedListId: task.linked ? task.listId : undefined,
+        })
         break
       case 'reorder':
         onReorder?.()

@@ -161,11 +161,16 @@ export function connectionOf(convex: {
   return {
     isOnline: () => convex.connectionState().isWebSocketConnected,
     whenOnline: (run) => {
-      const stop = convex.subscribeToConnectionState((state) => {
-        if (!state.isWebSocketConnected) return
-        stop()
+      // May be told at once, before `stop` is known.
+      let stop: (() => void) | undefined
+      let done = false
+      stop = convex.subscribeToConnectionState((state) => {
+        if (done || !state.isWebSocketConnected) return
+        done = true
+        stop?.()
         run()
       })
+      if (done) stop()
     },
   }
 }

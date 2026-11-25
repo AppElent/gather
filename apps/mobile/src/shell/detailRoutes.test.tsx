@@ -14,10 +14,14 @@ import SearchEvent from '../../app/(app)/(tabs)/search/calendar/[eventId]'
 import SearchTask from '../../app/(app)/(tabs)/search/tasks/task/[taskId]'
 import { mount } from '../testing/dom'
 
-const state = vi.hoisted(() => ({ id: 'a' }))
+const state = vi.hoisted(() => ({ id: 'a', listId: 'one' }))
 
 vi.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ taskId: state.id, eventId: state.id }),
+  useLocalSearchParams: () => ({
+    taskId: state.id,
+    eventId: state.id,
+    listId: state.listId,
+  }),
 }))
 /** Shows the id it mounted with. */
 function Screen({ taskId, eventId }: { taskId?: string; eventId?: string }) {
@@ -25,7 +29,9 @@ function Screen({ taskId, eventId }: { taskId?: string; eventId?: string }) {
   return first
 }
 vi.mock('../modules/tasks/TaskDetailScreen', () => ({
-  TaskDetail: (props: { taskId: string }) => Screen(props),
+  TaskDetail: (props: { taskId: string; listId?: string }) => (
+    <i data-list={props.listId}>{Screen(props)}</i>
+  ),
 }))
 vi.mock('../modules/calendar/CalendarEventScreen', () => ({
   CalendarEventScreen: (props: { eventId: string }) => Screen(props),
@@ -42,5 +48,11 @@ test.each([
   state.id = 'b'
   view.rerender(<Route />)
   expect(view.container.textContent).toBe('b')
+  view.unmount()
+})
+
+test('a task opens in the list it was opened from', () => {
+  const view = mount(<AllTask />)
+  expect(view.container.querySelector('[data-list="one"]')).not.toBeNull()
   view.unmount()
 })
