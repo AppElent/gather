@@ -34,11 +34,9 @@ export function PaymentDialog({
       amountRef.current?.focus()
       return
     }
-    const person = people.find((each) => each.id === personId)
-    if (!person) return
+    if (!personId) return
     onAdd({
       personId,
-      personName: person.name,
       amountCents: cents,
       label: label.trim() || undefined,
     })

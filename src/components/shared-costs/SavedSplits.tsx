@@ -90,6 +90,7 @@ export function SavedSplitView({
   const { actions, split: words } = messages.finances
   const money = useMoney()
   const savedOn = useSavedOn(timeZone)
+  const Section = level === 1 ? 'h2' : 'h3'
   return (
     <div className="grid gap-4 p-4">
       <DetailPanelHeader
@@ -99,7 +100,7 @@ export function SavedSplitView({
         onClose={onClose}
       />
       <div className="grid gap-1.5">
-        <h3 className={captionClass}>{words.whoPaid}</h3>
+        <Section className={captionClass}>{words.whoPaid}</Section>
         <GroundList label={words.whoPaid}>
           {split.payments.map((payment, index) => (
             <GroundRow
@@ -114,10 +115,10 @@ export function SavedSplitView({
         </GroundList>
       </div>
       <div className="grid gap-1.5">
-        <h3 className={captionClass}>
+        <Section className={captionClass}>
           {words.splitBetween} ·{' '}
           {split.mode === 'equal' ? words.equally : words.custom}
-        </h3>
+        </Section>
         <GroundList label={words.splitBetween}>
           {split.owed.map((owed, index) => (
             <GroundRow
@@ -130,7 +131,7 @@ export function SavedSplitView({
         </GroundList>
       </div>
       <div className="grid gap-1.5">
-        <h3 className={captionClass}>{words.toSettle}</h3>
+        <Section className={captionClass}>{words.toSettle}</Section>
         <TransferList
           transfers={split.transfers.map((transfer) => ({
             from: transfer.from.name,

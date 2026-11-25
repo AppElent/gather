@@ -1,13 +1,15 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, expect, test, vi } from 'vitest'
-import { renderInGroup } from '../app/testing'
+import { renderInGroup, TEST_GROUP } from '../app/testing'
+import { CurrentGroupContext } from '../app/useCurrentGroup'
 import { SharedCostsPage } from './SharedCostsPage'
 
 const state = vi.hoisted(() => ({
   queries: {} as Record<string, unknown>,
   calls: [] as [string, Record<string, unknown>][],
   fail: false,
+  navigated: [] as unknown[],
 }))
 
 vi.mock('../../../convex/_generated/api', () => {
@@ -23,7 +25,9 @@ vi.mock('convex/react', () => ({
   },
 }))
 vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => async () => {},
+  useNavigate: () => async (to: unknown) => {
+    state.navigated.push(to)
+  },
   Link: ({ children, to }: { children: ReactNode; to: string }) => (
     <a href={to}>{children}</a>
   ),
@@ -49,6 +53,7 @@ const SAVED = {
 beforeEach(() => {
   state.calls = []
   state.fail = false
+  state.navigated = []
   state.queries = {
     'groups:members': [nora, sam],
     'splitScenarios:list': [SAVED],
@@ -151,6 +156,15 @@ test('a saved split opens read-only and duplicates into the calculator', () => {
   ).toBe('Ski trip')
   expect(button('Remove €50.00 from Sam')).toBeDefined()
   expect(state.calls).toEqual([])
+  expect(state.navigated).toEqual([
+    { to: '/shared-costs', params: {}, search: {} },
+  ])
+})
+
+test('Escape closes an open split', () => {
+  show('k1')
+  fireEvent.keyDown(button('Duplicate'), { key: 'Escape' })
+  expect(state.navigated).toHaveLength(1)
 })
 
 test('an address naming no split here says Not found', () => {
@@ -161,4 +175,65 @@ test('an address naming no split here says Not found', () => {
 test('euros are written the Dutch way in Dutch', () => {
   show(undefined, 'nl')
   expect(screen.getByText(/2 jan 2025 · €\s50,00/)).toBeDefined()
+})
+
+test('New split asks only about figures that would be lost', async () => {
+  show()
+  const what = screen.getByLabelText('What was it for') as HTMLInputElement
+  fireEvent.change(what, { target: { value: 'Cake' } })
+  pay('10')
+  fireEvent.click(button('New split'))
+  const asked = screen.getByRole('dialog')
+  expect(within(asked).getByText('Replace what you have filled in?')).toBeDefined()
+  fireEvent.click(button('Cancel', asked))
+  expect(what.value).toBe('Cake')
+
+  fireEvent.click(screen.getAllByRole('button', { name: 'Save this' })[0])
+  fireEvent.click(button('Save', screen.getByRole('dialog')))
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  fireEvent.click(button('New split'))
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(what.value).toBe('')
+  expect(screen.getByText('Nothing to divide yet')).toBeDefined()
+})
+
+test('somebody is always left to divide it between, and a payment can go', () => {
+  show()
+  pay('10')
+  const group = screen.getByRole('group', { name: 'Split between' })
+  fireEvent.click(button('Sam', group))
+  expect(screen.getByText('Nothing to settle')).toBeDefined()
+  fireEvent.click(button('Nora', group))
+  expect(button('Nora', group).getAttribute('aria-pressed')).toBe('true')
+  fireEvent.click(button('Remove €10.00 from Nora'))
+  expect(screen.getByText('Nothing to divide yet')).toBeDefined()
+})
+
+test('a split of somebody who left keeps their name', () => {
+  state.queries['splitScenarios:list'] = [
+    { ...SAVED, payments: [{ party: { name: 'Robin' }, amountCents: 5000 }] },
+  ]
+  show('k1')
+  fireEvent.click(button('Duplicate'))
+  expect(button('Remove €50.00 from Robin')).toBeDefined()
+})
+
+test('another Group starts with an empty calculator', () => {
+  const page = (slug: string) => (
+    <main>
+      <CurrentGroupContext
+        value={{
+          current: { ...TEST_GROUP, slug },
+          groups: [],
+          setCurrentGroup: () => {},
+        }}
+      >
+        <SharedCostsPage />
+      </CurrentGroupContext>
+    </main>
+  )
+  const { rerender } = renderInGroup(page('a'))
+  pay('10')
+  rerender(page('b'))
+  expect(screen.getByText('Nothing to divide yet')).toBeDefined()
 })

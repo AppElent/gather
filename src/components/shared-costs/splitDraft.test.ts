@@ -23,9 +23,8 @@ const MEMBERS = [NORA, SAM]
 
 const draft = (more: Partial<SplitDraft> = {}): SplitDraft => ({
   ...EMPTY_DRAFT,
-  payments: [
-    { key: 1, personId: 's', personName: 'Sam', amountCents: 1001 },
-  ],
+  payments: [{ key: 1, personId: 's', amountCents: 1001 }],
+  names: { s: 'Sam' },
   ...more,
 })
 
@@ -55,6 +54,15 @@ test('a payer who leaves mid-calculation keeps their name and their payment', ()
   const payload = savePayload('g', 'Trip', left, outcomeOf(left, people), people)
   expect(payload.payments[0].party).toEqual({ userId: undefined, name: 'Sam' })
   expect(payload.totalCents).toBe(1001)
+})
+
+test('a participant who leaves mid-calculation keeps their part', () => {
+  const chosen = draft({
+    participantIds: ['n', 's'],
+    names: { n: 'Nora', s: 'Sam' },
+  })
+  const { result } = outcomeOf(chosen, peopleOf([SAM], chosen))
+  expect([...result.owedCents.values()]).toEqual([501, 500])
 })
 
 describe('duplicateOf', () => {
@@ -87,6 +95,37 @@ describe('duplicateOf', () => {
       ...saved,
     })
   })
+
+  test.each(['equal', 'custom'] as const)(
+    'two who left under one name stay two people (%s)',
+    (mode) => {
+      const gone = { name: 'Member' }
+      const twice = {
+        ...saved,
+        mode,
+        payments: [{ party: party(SAM), amountCents: 9000 }],
+        participants: [gone, gone, party(SAM)],
+        owed: [gone, gone, party(SAM)].map((each) => ({
+          party: each,
+          amountCents: 3000,
+        })),
+        transfers: [1, 2].map(() => ({
+          from: gone,
+          to: party(SAM),
+          amountCents: 3000,
+        })),
+        totalCents: 9000,
+      } as SavedSplit
+      const copy = duplicateOf(twice, MEMBERS, 'en')
+      const people = peopleOf(MEMBERS, copy)
+      const payload = savePayload('g', twice.name, copy, outcomeOf(copy, people), people)
+      expect(payload).toMatchObject({
+        owed: twice.owed,
+        transfers: twice.transfers,
+        totalCents: 9000,
+      })
+    },
+  )
 })
 
 test('an amount is typed back in the reader’s decimal mark, without grouping', () => {

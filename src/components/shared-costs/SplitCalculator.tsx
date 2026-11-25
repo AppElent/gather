@@ -7,6 +7,7 @@ import { PersonPills } from './PersonPills'
 import { captionClass, GroundList, GroundRow, useMoney } from './parts'
 import {
   customFrom,
+  namesWith,
   type Outcome,
   type Person,
   type SplitDraft,
@@ -40,10 +41,12 @@ export function SplitCalculator({
     const without = participantIds.filter((each) => each !== id)
     // Somebody has to be left to divide it between.
     if (without.length === 0) return
+    const next =
+      without.length === participantIds.length ? [...without, id] : without
     onChange({
       ...draft,
-      participantIds:
-        without.length === participantIds.length ? [...without, id] : without,
+      participantIds: next,
+      names: namesWith(draft, people, next),
     })
   }
 
@@ -52,8 +55,14 @@ export function SplitCalculator({
     onChange({
       ...draft,
       mode,
-      customAmounts:
-        mode === 'custom' ? customFrom(result, locale) : draft.customAmounts,
+      // Amounts typed per person are about these people, whoever joins later.
+      ...(mode === 'custom'
+        ? {
+            customAmounts: customFrom(result, locale),
+            participantIds,
+            names: namesWith(draft, people, participantIds),
+          }
+        : {}),
     })
   }
 
@@ -172,15 +181,14 @@ export function SplitCalculator({
               ))}
             </GroundList>
           ) : null}
-          {balances ? null : (
-            <p
-              id={errorId}
-              role="status"
-              className="m-0 text-footnote font-semibold text-[var(--danger)]"
-            >
-              {errors.customTotal}
-            </p>
-          )}
+          {/* Always there, so the change is announced. */}
+          <p
+            id={errorId}
+            role="status"
+            className="m-0 text-footnote font-semibold text-[var(--danger)] empty:hidden"
+          >
+            {balances ? null : errors.customTotal}
+          </p>
         </div>
       ) : null}
     </section>

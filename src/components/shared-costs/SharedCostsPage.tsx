@@ -26,6 +26,7 @@ import {
   duplicateOf,
   EMPTY_DRAFT,
   isBlank,
+  namesWith,
   newPayment,
   outcomeOf,
   type Person,
@@ -64,6 +65,9 @@ function SharedCosts({ openSplitId }: { openSplitId?: string }) {
   const [sheet, setSheet] = useState<'payment' | 'save' | null>(null)
   const whatRef = useRef<HTMLInputElement>(null)
   const sideRef = useRef<HTMLDivElement>(null)
+  // The draft as it was saved or duplicated: replacing that loses nothing.
+  const kept = useRef<SplitDraft | null>(null)
+  const focusWhat = useRef(false)
   const recordRef = useRef<HTMLElement>(null)
 
   const roster = useMemo<Person[]>(
@@ -89,6 +93,11 @@ function SharedCosts({ openSplitId }: { openSplitId?: string }) {
       recordRef.current?.focus({ preventScroll: desktop })
       return
     }
+    if (focusWhat.current) {
+      focusWhat.current = false
+      whatRef.current?.focus()
+      return
+    }
     const active = document.activeElement
     if (active && active !== document.body) return
     sideRef.current
@@ -99,12 +108,17 @@ function SharedCosts({ openSplitId }: { openSplitId?: string }) {
   /** Puts another calculation in place of this one, asking if it has figures. */
   function replaceWith(next: SplitDraft) {
     const apply = () => {
+      kept.current = next
       setDraft(next)
-      if (open) close()
-      // After the dialog or the record has given focus back.
+      if (open) {
+        // The calculator shows once the address has changed.
+        focusWhat.current = true
+        close()
+      }
+      // After the dialog has given focus back.
       window.setTimeout(() => whatRef.current?.focus(), 0)
     }
-    if (isBlank(draft)) apply()
+    if (isBlank(draft) || draft === kept.current) apply()
     else
       confirm({
         title: words.web.replaceTitle,
@@ -243,6 +257,7 @@ function SharedCosts({ openSplitId }: { openSplitId?: string }) {
             setDraft((current) => ({
               ...current,
               payments: [...current.payments, newPayment(current, payment)],
+              names: namesWith(current, people, [payment.personId]),
             }))
             setSheet(null)
           }}
@@ -252,9 +267,10 @@ function SharedCosts({ openSplitId }: { openSplitId?: string }) {
         <SaveDialog
           suggestedName={draft.what.trim()}
           onClose={() => setSheet(null)}
-          onSave={(name) =>
-            save(savePayload(groupSlug, name, draft, outcome, people))
-          }
+          onSave={async (name) => {
+            await save(savePayload(groupSlug, name, draft, outcome, people))
+            kept.current = draft
+          }}
         />
       ) : null}
       {dialog}

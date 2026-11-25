@@ -33,8 +33,6 @@ export interface Person {
 export interface DraftPayment {
   key: number
   personId: string
-  /** Kept, so a payer who leaves mid-calculation is still named. */
-  personName: string
   amountCents: number
   label?: string
 }
@@ -47,8 +45,11 @@ export interface SplitDraft {
   mode: SplitMode
   /** The typed text, so a half-typed amount is not reformatted. */
   customAmounts: Record<string, string>
-  /** People a duplicated split names who are no longer Members. */
-  former: Person[]
+  /**
+   * The name of everybody the draft has counted, by person id, so whoever
+   * leaves the Group meanwhile keeps their part.
+   */
+  names: Record<string, string>
 }
 
 export const EMPTY_DRAFT: SplitDraft = {
@@ -57,7 +58,7 @@ export const EMPTY_DRAFT: SplitDraft = {
   participantIds: null,
   mode: 'equal',
   customAmounts: {},
-  former: [],
+  names: {},
 }
 
 export function isBlank(draft: SplitDraft): boolean {
@@ -81,18 +82,28 @@ export function amountText(cents: number, locale: string): string {
   }).format(fromCents(cents))
 }
 
-/** Everybody the draft can name: the Members, and whoever it still needs. */
+/** Everybody the draft can name: the Members, and whoever it counted before. */
 export function peopleOf(
   members: readonly Person[],
   draft: SplitDraft,
 ): Person[] {
-  const people = new Map<string, Person>()
-  for (const person of [...members, ...draft.former])
-    people.set(person.id, person)
-  for (const { personId, personName } of draft.payments)
-    if (!people.has(personId))
-      people.set(personId, { id: personId, name: personName })
-  return [...people.values()]
+  const gone = Object.entries(draft.names)
+    .filter(([id]) => !members.some((member) => member.id === id))
+    .map(([id, name]) => ({ id, name }))
+  return [...members, ...gone]
+}
+
+/** The draft's names, with these people's. */
+export function namesWith(
+  draft: SplitDraft,
+  people: readonly Person[],
+  ids: readonly string[],
+): SplitDraft['names'] {
+  const counted = people.filter((person) => ids.includes(person.id))
+  return {
+    ...draft.names,
+    ...Object.fromEntries(counted.map(({ id, name }) => [id, name])),
+  }
 }
 
 export interface Outcome {
@@ -189,34 +200,50 @@ export function duplicateOf(
   members: readonly Person[],
   locale: string,
 ): SplitDraft {
-  const former = new Map<string, Person>()
-  const idOf = (party: Party): string => {
-    const member = members.find((each) => each.userId === party.userId)
-    if (party.userId && member) return member.id
-    const id = `former:${party.userId ?? party.name}`
-    former.set(id, { id, name: party.name })
+  const names: Record<string, string> = {}
+  const name = (id: string, party: Party) => {
+    names[id] = party.name
     return id
   }
+  /**
+   * Leaving the Group takes the id off a party and keeps the name, so two who
+   * left can share one: `participants` and `owed` list the same people in the
+   * same order, and a repeat is told apart by its turn.
+   */
+  const idsOf = (parties: readonly Party[]): string[] => {
+    const turns = new Map<string, number>()
+    return parties.map((party) => {
+      const id = idOf(party)
+      const turn = (turns.get(id) ?? 0) + 1
+      turns.set(id, turn)
+      return name(turn === 1 ? id : `${id}#${turn}`, party)
+    })
+  }
+  const idOf = (party: Party): string =>
+    members.find((each) => party.userId && each.userId === party.userId)?.id ??
+    `former:${party.userId ?? party.name}`
+
+  const participantIds = idsOf(split.participants)
+  const owedIds = idsOf(split.owed.map((owed) => owed.party))
   return {
     what: split.name,
     payments: split.payments.map((payment, index) => ({
       key: index + 1,
-      personId: idOf(payment.party),
-      personName: payment.party.name,
+      personId: name(idOf(payment.party), payment.party),
       amountCents: payment.amountCents,
       label: payment.label,
     })),
-    participantIds: split.participants.map(idOf),
+    participantIds,
     mode: split.mode,
     customAmounts:
       split.mode === 'custom'
         ? Object.fromEntries(
-            split.owed.map((owed) => [
-              idOf(owed.party),
+            split.owed.map((owed, index) => [
+              owedIds[index],
               amountText(owed.amountCents, locale),
             ]),
           )
         : {},
-    former: [...former.values()],
+    names,
   }
 }
