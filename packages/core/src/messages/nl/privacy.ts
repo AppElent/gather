@@ -2,7 +2,7 @@ import type { privacy as enPrivacy } from '../en/privacy'
 
 export const privacy = {
   title: 'Privacyverklaring',
-  updated: 'Laatst bijgewerkt: 20 november 2026',
+  updated: 'Laatst bijgewerkt: 25 november 2026',
   intro: {
     title: 'Wie we zijn',
     body: {
@@ -80,7 +80,7 @@ export const privacy = {
         'Google Fonts: de webapp laadt zijn lettertypen bij Google, dat je IP-adres ontvangt als een pagina laadt.',
     },
     integrations:
-      'Als een Lid van je Groep Notion of Todoist koppelt, worden de taken in de gekoppelde lijst gelezen uit en geschreven naar die dienst, onder het account van dat Lid daar. Voor wat zij opslaan geldt hun eigen privacybeleid.',
+      'Als een Lid van je Groep Notion of Todoist koppelt, worden de taken in de gekoppelde lijst gelezen uit en geschreven naar die dienst, onder het account van dat Lid daar. Als een gekoppeld Todoist-project gedeeld is, worden ook de namen en e-mailadressen van de mensen daarin gelezen, om te herkennen wie van hen Lid is. Hun e-mailadressen worden niet bewaard of getoond. Voor wat zij opslaan geldt hun eigen privacybeleid.',
     recipeImport:
       'Als je een recept importeert vanaf een webadres, haalt onze server die pagina op. De website ziet een verzoek van onze server, niet van jou.',
     transfers:

@@ -6,6 +6,8 @@ import { localIsoDate } from '@gather/core/civil-date'
 import { parseCents } from '@gather/core/finance'
 import { subtasksOf } from '@gather/core/subtasks'
 import {
+  assigneeUnavailable,
+  chosenAssignee,
   hasLinkAndPrice,
   normalizeTaskUrl,
   taskUrlHost,
@@ -394,43 +396,44 @@ function Fields({
           }
         />
       ) : null}
+      {local || list.assignable?.shared || chosenAssignee(task) !== null ? (
+        <FieldRow
+          icon={User}
+          label={words.who}
+          value={
+            chosenAssignee(task) === null
+              ? t.tasks.assignee.nobody
+              : (byId.get(task.assigneeId ?? '')?.name ??
+                (task.assigneeName || t.tasks.assignee.someone))
+          }
+          editor={
+            editable && assigneeUnavailable(list) === null
+              ? (close) => <WhoEditor task={task} list={list} onClose={close} />
+              : undefined
+          }
+        />
+      ) : null}
       {local ? (
-        <>
-          <FieldRow
-            icon={User}
-            label={words.who}
-            value={
-              task.assigneeId
-                ? (byId.get(task.assigneeId)?.name ?? t.tasks.assignee.someone)
-                : t.tasks.assignee.nobody
-            }
-            editor={
-              editable
-                ? (close) => <WhoEditor task={task} onClose={close} />
-                : undefined
-            }
-          />
-          <FieldRow
-            icon={Bell}
-            label={words.reminder}
-            value={
-              task.reminder
-                ? // A reminder is this device's clock, so its day is too.
-                  reminderLabel(
-                    task.reminder,
-                    localIsoDate(),
-                    locale,
-                    t.tasks.task,
-                  )
-                : t.tasks.task.unset
-            }
-            editor={
-              editable
-                ? (close) => <ReminderEditor task={task} onClose={close} />
-                : undefined
-            }
-          />
-        </>
+        <FieldRow
+          icon={Bell}
+          label={words.reminder}
+          value={
+            task.reminder
+              ? // A reminder is this device's clock, so its day is too.
+                reminderLabel(
+                  task.reminder,
+                  localIsoDate(),
+                  locale,
+                  t.tasks.task,
+                )
+              : t.tasks.task.unset
+          }
+          editor={
+            editable
+              ? (close) => <ReminderEditor task={task} onClose={close} />
+              : undefined
+          }
+        />
       ) : null}
       {shown(Boolean(task.priority)) ? (
         <FieldRow

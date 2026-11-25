@@ -286,6 +286,8 @@ export const tasks = {
         'Gather is not allowed to change this list. Reconnect {provider} in the group’s settings on the web, then refresh the list. Nothing was changed.',
       'not-found':
         'This task is not in the {provider} list any more. The list is loading again.',
+      'not-assignable':
+        'This person is not in this {provider} project, or uses another email address there. Nothing was changed.',
       stale:
         'This list is not up to date with {provider}. Refresh it, then try again.',
       failed:
@@ -725,9 +727,11 @@ export const tasks = {
     /** Why the Who row is off on a list (`assigneeUnavailable`). */
     unavailable: {
       readOnly:
-        'Assign this task in {provider}. Gather cannot do that yet.',
+        'Assign this task in {provider}. Gather cannot do that right now.',
       notShared:
         'Only a shared {provider} project has people to give a task to.',
+      noMembers:
+        'Nobody in this group is recognised in this {provider} project. Gather matches people by email address.',
       unsupported: '{provider} lists have no field for who does a task.',
     },
     /** Tasks someone else gave you that you have not opened yet. */

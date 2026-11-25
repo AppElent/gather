@@ -2,9 +2,9 @@ import {
   ProviderAuthError,
   ProviderTaskNotFoundError,
   type SourceConfig,
-  type TaskFieldChanges,
   type TaskProviderAdapter,
   type TaskProviderWriter,
+  type TaskUpdate,
   type UnifiedTask,
   type WriteOutcome,
 } from './types'
@@ -38,6 +38,8 @@ export interface TodoistApiTask {
   checked?: boolean
   /** The task this one is a subtask of; null or absent at the top. */
   parent_id?: string | null
+  /** The collaborator responsible for it; only a shared project has one. */
+  responsible_uid?: string | null
 }
 
 class TodoistHttpError extends Error {
@@ -181,6 +183,7 @@ export function mapTodoistTask(t: TodoistApiTask): UnifiedTask {
     url: t.url ?? `https://app.todoist.com/app/task/${encodeURIComponent(t.id)}`,
     repeatText: t.due?.is_recurring && t.due.string ? t.due.string : undefined,
     parentExternalId: t.parent_id ?? undefined,
+    responsibleId: t.responsible_uid ?? undefined,
   }
 }
 
@@ -515,7 +518,7 @@ const writer: TaskProviderWriter = {
 /** A change as `item_update` takes it, keeping a due's repeat and time. */
 function updateArgs(
   task: TodoistApiTask,
-  changes: TaskFieldChanges,
+  changes: TaskUpdate,
 ): Record<string, unknown> {
   const args: Record<string, unknown> = {}
   if (changes.title !== undefined) args.content = changes.title
@@ -532,6 +535,9 @@ function updateArgs(
     args.priority = changes.priority === null ? 1 : apiPriority(changes.priority)
   }
   if (changes.labels !== undefined) args.labels = changes.labels
+  if (changes.responsibleId !== undefined) {
+    args.responsible_uid = changes.responsibleId
+  }
   return args
 }
 
@@ -566,5 +572,36 @@ export const todoistAdapter: TaskProviderAdapter = {
       fetchImpl,
     )
     return tasks.map(mapTodoistTask)
+  },
+
+  async fetchPeople(accessToken, config, fetchImpl = fetch) {
+    const projectId = encodeURIComponent(
+      await projectIdOf(accessToken, config, fetchImpl),
+    )
+    const project = await todoistRequest<{ is_shared: boolean }>(
+      accessToken,
+      `/projects/${projectId}`,
+      fetchImpl,
+    )
+    if (!project.is_shared) return { shared: false, people: [] }
+    const [collaborators, me] = await Promise.all([
+      allPages<{ id: string; name: string; email: string }>(
+        accessToken,
+        `/projects/${projectId}/collaborators`,
+        {},
+        'results',
+        fetchImpl,
+      ),
+      todoistRequest<{ id: string }>(accessToken, '/user', fetchImpl),
+    ])
+    return {
+      shared: true,
+      people: collaborators.map(({ id, name, email }) => ({
+        id,
+        name,
+        email,
+        self: id === me.id,
+      })),
+    }
   },
 }

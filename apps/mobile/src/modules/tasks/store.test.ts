@@ -994,6 +994,30 @@ describe('a linked list is written to in its provider first (APP-448)', () => {
     })
   })
 
+  test('who has a task follows the provider, and stays with the list (APP-405)', async () => {
+    const assignable = { shared: true, memberIds: ['u1'] }
+    await syncExternalList('given', () =>
+      Promise.resolve({
+        status: 'ok' as const,
+        assignable,
+        tasks: [row('a', { assigneeName: 'Bob' })],
+      }),
+    )
+    await writeLinkedTask(
+      'given',
+      { kind: 'update', taskId: 'a', assigneeId: 'u1' },
+      taken([row('a', { assigneeId: 'u1' })]),
+      answering(),
+    )
+    const [task] = externalSnapshot().get('given')?.tasks ?? []
+    expect(task.assigneeId).toBe('u1')
+    expect(task).not.toHaveProperty('assigneeName')
+    expect(
+      mergeTasks([listRow('given', 'todoist')], {}, externalSnapshot()).lists[0]
+        .assignable,
+    ).toEqual(assignable)
+  })
+
   test('a read-only connection asks to reconnect and changes nothing', async () => {
     const fetchTasks = answering(row('a'))
     await syncExternalList('old-scope', fetchTasks)

@@ -538,7 +538,7 @@ export function useTaskActions() {
         sendWrite({
           listId: id as Id<'taskLists'>,
           groupSlug,
-          write: sent,
+          write: sent as Parameters<typeof sendWrite>[0]['write'],
         }),
       (id) => getTasks({ listId: id as Id<'taskLists'>, groupSlug }),
       connectionOf(convex),
@@ -999,8 +999,13 @@ export function useTaskActions() {
         ids: ids as Id<'tasks'>[],
       }),
     /** The Member responsible, or nobody (APP-302). */
-    setAssignee: (id: string, userId: string | null) =>
-      patch(id, { assigneeId: userId as Id<'users'> | null }),
+    setAssignee: (task: TaskRef, userId: string | null): Promise<unknown> => {
+      const assigneeId = userId as Id<'users'> | null
+      const listId = linkedListOf(task)
+      return listId
+        ? write(listId, { kind: 'update', taskId: task.id, assigneeId })
+        : patch(task.id, { assigneeId })
+    },
     /** The assignee opened a task someone gave them: its notice is seen. */
     markAssignmentSeen: (id: string) =>
       markSeen({ taskId: id as Id<'tasks'>, groupSlug }),

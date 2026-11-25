@@ -14,7 +14,7 @@
  */
 export const privacy = {
   title: 'Privacy statement',
-  updated: 'Last updated: 20 November 2026',
+  updated: 'Last updated: 25 November 2026',
   intro: {
     title: 'Who we are',
     body: {
@@ -92,7 +92,7 @@ export const privacy = {
         'Google Fonts: the web app loads its fonts from Google, which receives your IP address when a page loads.',
     },
     integrations:
-      'If a Member of your Group connects Notion or Todoist, the tasks in the connected list are read from and written to that service under that Member’s account there. Their own privacy policies apply to what they store.',
+      'If a Member of your Group connects Notion or Todoist, the tasks in the connected list are read from and written to that service under that Member’s account there. If a connected Todoist project is shared, the names and email addresses of the people in it are read too, to recognise which of them are Members. Their email addresses are not stored or shown. Their own privacy policies apply to what they store.',
     recipeImport:
       'When you import a recipe from a web address, our server fetches that page. The website sees a request from our server, not from you.',
     transfers:

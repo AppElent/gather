@@ -516,6 +516,68 @@ describe('the panel', () => {
       expect(within(panel()).queryByRole('button', { name })).toBeNull()
     expect(within(panel()).queryByLabelText('Note')).toBeNull()
   })
+
+  describe('who, on a shared Todoist list (APP-405)', () => {
+    const shared = (listId: string, more: object, memberIds = ['u2']) => {
+      state.queries['taskLists:list'] = [
+        list(listId, 'Todoist', {
+          provider: 'todoist',
+          capabilities: { write: true },
+        }),
+      ]
+      state.queries['tasks:listOf'] = null
+      state.linked = {
+        status: 'ok',
+        assignable: { shared: true, memberIds },
+        tasks: [{ externalId: 'w1', title: 'Call plumber', done: false, ...more }],
+      }
+    }
+    const who = () =>
+      waitFor(() => within(panel()).getByRole('button', { name: /^Who/ }))
+
+    test('offers the Members in the project, and writes to Todoist', async () => {
+      shared('w-give', {})
+      renderTasks(<TaskListPage listId="w-give" selectedTaskId="w1" />)
+      fireEvent.click(await who())
+      const choices = within(
+        screen.getByRole('list', { name: 'Who' }),
+      ).getAllByRole('button')
+      expect(choices).toHaveLength(2)
+      fireEvent.click(choices[1])
+      await waitFor(() =>
+        expect(calls('taskLists:writeTask')).toEqual([
+          expect.objectContaining({
+            write: { kind: 'update', taskId: 'w1', assigneeId: 'u2' },
+          }),
+        ]),
+      )
+    })
+
+    test('names someone who is no Member, and Nobody clears them', async () => {
+      shared('w-name', { assigneeName: 'Bob' })
+      renderTasks(<TaskListPage listId="w-name" selectedTaskId="w1" />)
+      const row = await who()
+      expect(row.textContent).toContain('Bob')
+      fireEvent.click(row)
+      fireEvent.click(within(screen.getByRole('list', { name: 'Who' })).getAllByRole('button')[0])
+      await waitFor(() =>
+        expect(calls('taskLists:writeTask')[0]).toMatchObject({
+          write: { kind: 'update', taskId: 'w1', assigneeId: null },
+        }),
+      )
+    })
+
+    test('is shown but not offered when no Member was recognised', async () => {
+      shared('w-none', { assigneeName: '' }, [])
+      renderTasks(<TaskListPage listId="w-none" selectedTaskId="w1" />)
+      await waitFor(() =>
+        expect(within(panel()).getByText('Someone')).toBeTruthy(),
+      )
+      expect(
+        within(panel()).queryByRole('button', { name: /^Who/ }),
+      ).toBeNull()
+    })
+  })
 })
 
 describe('what a review found (APP-308)', () => {

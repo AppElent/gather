@@ -60,6 +60,8 @@ export interface SmartTask {
   /** ISO date, YYYY-MM-DD. */
   dueDate?: string
   assigneeId?: string
+  /** Someone has it who is no Member (a linked task). */
+  assigneeName?: string
 }
 
 /** Who is asking, on which day, and whether the task's list holds jobs. */
@@ -109,7 +111,9 @@ export function inSmartList(
     case 'mine':
       return scope.me !== null && task.assigneeId === scope.me
     case 'unassigned':
-      return !task.assigneeId && holdsJobs(list)
+      return (
+        !task.assigneeId && task.assigneeName === undefined && holdsJobs(list)
+      )
   }
 }
 
