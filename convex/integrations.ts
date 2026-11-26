@@ -315,7 +315,8 @@ export const completeOAuth = action({
       // Refused (the Group went, or the caller left it, while the provider
       // answered): nothing holds the new token, so it must not stay live at
       // the provider either (APP-909).
-      await revokeTokenAt(args.provider, accessToken)
+      // Best effort: the refusal is what the caller sees, whatever happens here.
+      await revokeTokenAt(ctx, args.provider, accessToken).catch(() => {})
       throw error
     }
   },
@@ -330,12 +331,44 @@ function oauthClient(provider: ExternalProviderId) {
 }
 
 /**
- * Revoke a token Gather has dropped, best effort (APP-909).
+ * Whether a connection still holds this token. A provider can hand the same
+ * person the same token again, in another Group or on a reconnect, and revoking
+ * it would end that connection too. The table holds a row per Group and
+ * provider, so the scan stays small.
+ */
+export const isTokenHeld = internalQuery({
+  args: { provider: externalProviderValidator, accessToken: v.string() },
+  handler: async (ctx, args) =>
+    (await ctx.db
+      .query('integrationConnections')
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('provider'), args.provider),
+          q.eq(q.field('accessToken'), args.accessToken),
+        ),
+      )
+      .first()) !== null,
+})
+
+/**
+ * Revoke a token Gather has dropped, best effort (APP-909), unless a
+ * connection still holds it.
  *
  * Whatever the provider answers, the row is already gone: a failure is logged
  * (without the token) and the deletion stands.
  */
-async function revokeTokenAt(provider: ExternalProviderId, accessToken: string) {
+async function revokeTokenAt(
+  ctx: ActionCtx,
+  provider: ExternalProviderId,
+  accessToken: string,
+) {
+  if (
+    await ctx.runQuery(internal.integrations.isTokenHeld, {
+      provider,
+      accessToken,
+    })
+  )
+    return
   const client = oauthClient(provider)
   const revoked =
     client !== null && (await revokeProviderToken(provider, accessToken, client))
@@ -345,8 +378,8 @@ async function revokeTokenAt(provider: ExternalProviderId, accessToken: string) 
 /** The scheduled half of `revokeAfterCommit`. */
 export const revokeToken = internalAction({
   args: { provider: externalProviderValidator, accessToken: v.string() },
-  handler: async (_ctx, args) => {
-    await revokeTokenAt(args.provider, args.accessToken)
+  handler: async (ctx, args) => {
+    await revokeTokenAt(ctx, args.provider, args.accessToken)
   },
 })
 

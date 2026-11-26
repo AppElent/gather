@@ -146,6 +146,34 @@ describe('a dropped token is revoked', () => {
     expect(await tokens()).toEqual([['notion', 'old-notion']])
   })
 
+  test('a token another Group still holds is not revoked', async () => {
+    const { t, todoist, settle, tokens } = await seed()
+    // The same person connected the same Todoist account in a second Group,
+    // and Todoist handed back the same token.
+    await t.run(async (ctx) => {
+      const club = await seedGroup(ctx, { name: 'Club', slug: 'revoke-club' })
+      const userId = (await ctx.db.get(todoist))!.connectedBy
+      await seedMember(ctx, club, userId, 'admin')
+      await ctx.db.insert('integrationConnections', {
+        groupId: club,
+        provider: 'todoist',
+        accessToken: 'old-todoist',
+        accountLabel: 'Todoist',
+        connectedBy: userId,
+      })
+    })
+    const { revokes } = provider('unused')
+    await t
+      .withIdentity(alice)
+      .mutation(api.integrations.disconnect, { connectionId: todoist, groupSlug: HOME })
+    await settle()
+    expect(revokes).toEqual([])
+    expect((await tokens()).sort()).toEqual([
+      ['notion', 'old-notion'],
+      ['todoist', 'old-todoist'],
+    ])
+  })
+
   test('a failed revoke still leaves the connection deleted', async () => {
     const { t, notion, settle, tokens } = await seed()
     const { revokes } = provider('unused', () => new Response(null, { status: 500 }))
