@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { en } from '@gather/core/messages'
+import { NOTE_MAX_CHARS } from '@gather/core/notes'
 import { getFunctionName } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { describe, expect, it } from 'vitest'
@@ -608,19 +610,76 @@ describe('Gather MCP endpoint', () => {
     expect(texts.size).toBe(1)
   })
 
-  it('says a note is too long, and how long one may be', async () => {
-    const out = await callTool(
-      fakeBackend({
-        'notes:update': () => {
+  it('advertises the note limit as the body cap of both note tools', async () => {
+    const listed = await result<{
+      tools: {
+        name: string
+        inputSchema: { properties: { body?: { maxLength?: number } } }
+      }[]
+    }>(
+      await handleGatherMcpRequest(
+        rpc('tools/list'),
+        options(fakeBackend()),
+      ),
+    )
+    for (const name of ['create_note', 'update_note']) {
+      const tool = listed.tools.find((t) => t.name === name)
+      expect(tool?.inputSchema.properties.body?.maxLength).toBe(NOTE_MAX_CHARS)
+    }
+  })
+
+  // The schema only advertises the cap: Convex counts title and body together
+  // and is the one that refuses, so a write of any size has to reach it.
+  const noteWrites = [
+    {
+      tool: 'create_note',
+      mutation: 'notes:create',
+      args: { idempotencyKey: KEY, title: 'T' },
+    },
+    {
+      tool: 'update_note',
+      mutation: 'notes:update',
+      args: { noteId: 'note_1' },
+    },
+  ]
+
+  it.each(noteWrites)(
+    '$tool passes a body at the note limit to Convex',
+    async ({ tool, mutation, args }) => {
+      const backend = fakeBackend({ [mutation]: () => 'note_1' })
+      const body = 'a'.repeat(NOTE_MAX_CHARS)
+      const out = await callTool(backend, tool, {
+        groupId: 'group_home',
+        ...args,
+        body,
+      })
+      expect(out.isError).toBeUndefined()
+      expect(backend.calls.at(-1)).toMatchObject({
+        name: mutation,
+        args: { body },
+      })
+    },
+  )
+
+  it.each(noteWrites)(
+    '$tool answers a body over the note limit with the keyed refusal',
+    async ({ tool, mutation, args }) => {
+      const backend = fakeBackend({
+        [mutation]: () => {
           throw new ConvexError({ kind: 'notes:too-long' })
         },
-      }),
-      'update_note',
-      { groupId: 'group_home', noteId: 'note_1', title: 'New' },
-    )
-    expect(out.isError).toBe(true)
-    expect(out.content[0].text).toContain('100,000')
-  })
+      })
+      const out = await callTool(backend, tool, {
+        groupId: 'group_home',
+        ...args,
+        body: 'a'.repeat(NOTE_MAX_CHARS + 1),
+      })
+      expect(backend.calls.at(-1)?.name).toBe(mutation)
+      expect(out.isError).toBe(true)
+      expect(out.content[0].text).toBe(en.notes.refusals['notes:too-long'])
+      expect(out.content[0].text).toContain(NOTE_MAX_CHARS.toLocaleString('en'))
+    },
+  )
 
   it('updates an event from its current revision, keeping what was not passed', async () => {
     const backend = fakeBackend({

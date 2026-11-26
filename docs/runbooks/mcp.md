@@ -81,6 +81,8 @@ Rules for every tool:
   with no notes.
 - A note holds at most `NOTE_MAX_CHARS` (100,000) characters, title and body
   together; a write past it is refused as `notes:too-long` (APP-805).
+  `create_note` and `update_note` advertise it as the body's `maxLength` but do
+  not check it, so Convex stays the one that refuses (APP-827).
 - There are no delete tools. People delete in the app.
 - Recipes shared into a Group can be read there but changed only from their
   home Group. Task lists that live in Notion or Todoist are listed but their
