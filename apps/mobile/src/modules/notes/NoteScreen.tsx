@@ -43,7 +43,10 @@ import { draftKey } from '../../ui/composer-drafts'
 import { useDebouncedText } from '../../ui/use-debounced-text'
 import {
   announceHeld,
+  forgetHeldField,
   type HeldNote,
+  heldSession,
+  holdsText,
   onHeld,
   readHeld,
   writeHeld,
@@ -94,6 +97,8 @@ export function Note({ noteId }: { noteId: string }) {
   const heldOver = useRef<Partial<Record<keyof NoteText, string[]>>>({})
   /** Kept text put back on opening, with what it may go back over. */
   const restored = useRef<HeldNote>({})
+  /** Sent and not yet answered: kept if the screen closes before it lands. */
+  const inFlight = useRef<HeldNote>({})
   /** Kept text not put back, because its field changed since. */
   const clash = useRef<HeldNote>({})
   const [clashed, setClashed] = useState<HeldNote>({})
@@ -116,9 +121,11 @@ export function Note({ noteId }: { noteId: string }) {
   const { userId } = useAuth()
   const { group } = useGroup()
   const key = draftKey(userId, group._id, `notes:${noteId}`)
+  /** After a sign-out, what this screen still writes is dropped. */
+  const session = useRef(heldSession())
 
   function heldNote(): HeldNote {
-    const out: HeldNote = { ...clash.current }
+    const out: HeldNote = { ...clash.current, ...inFlight.current }
     for (const field of FIELDS) {
       const text = held.current[field]
       if (text !== undefined)
@@ -127,7 +134,7 @@ export function Note({ noteId }: { noteId: string }) {
     return out
   }
   function keepHeld() {
-    writeHeld(key, heldNote())
+    writeHeld(key, heldNote(), session.current)
   }
   /** `patch` is unsaved; `saved` and `base` are what it was written over. */
   function holdText(
@@ -166,27 +173,49 @@ export function Note({ noteId }: { noteId: string }) {
       holdText(patch, saved, base)
       return false
     }
+    const wasHeld = Object.keys(held.current).length > 0
     held.current = {}
     heldOver.current = {}
-    // Nothing unsaved: what this phone kept goes. With a save on its way, it
-    // goes when that lands, so a quit before then still has it.
+    // Nothing unsaved: what this phone kept goes.
     if (Object.keys(patch).length === 0) return keepHeld()
+    // With a save on its way, it goes when that lands: a close or a quit
+    // before then still has it.
+    for (const each of FIELDS) {
+      const text = patch[each]
+      if (text === undefined) continue
+      const kept =
+        restored.current[each]?.text === text ? restored.current[each].over : []
+      inFlight.current = {
+        ...inFlight.current,
+        [each]: { text, over: [...new Set([...kept, saved[each], base[each]])] },
+      }
+    }
+    if (wasHeld) keepHeld()
     sent.current = { ...sent.current, ...patch }
     // The held text of the other field went along: it is no longer unsaved.
     if (patch.title !== undefined) title.settle(patch.title)
     if (patch.body !== undefined) body.settle(patch.body)
     actions.editNote(note.id, patch).then(
       () => {
-        if (mounted.current && Object.keys(held.current).length === 0)
-          keepHeld()
+        landed(patch)
+        if (mounted.current) {
+          if (holdsText(key)) keepHeld()
+        } else
+          for (const each of FIELDS) {
+            const text = patch[each]
+            if (text !== undefined)
+              forgetHeldField(key, each, text, session.current)
+          }
       },
       (error: unknown) => {
+      landed(patch)
       sent.current = {}
       const sentence = noteRefusalSentence(error, t.notes.refusals)
       // Refused or failed, the text stays: on screen to send again on leaving,
       // and on this phone for the next open (APP-829).
       holdText(patch, saved, base, { merge: true })
-      if (!mounted.current) announceHeld(key, heldNote(), sentence)
+      if (!mounted.current)
+        announceHeld(key, heldNote(), sentence, session.current)
       else {
         if (patch.title !== undefined) title.hold(patch.title)
         if (patch.body !== undefined) body.hold(patch.body)
@@ -195,6 +224,15 @@ export function Note({ noteId }: { noteId: string }) {
       if (sentence === null) reportError(error)
       },
     )
+  }
+
+  /** `patch` was answered: no longer in flight, unless sent again since. */
+  function landed(patch: Partial<NoteText>) {
+    const rest = { ...inFlight.current }
+    for (const each of FIELDS)
+      if (patch[each] !== undefined && rest[each]?.text === patch[each])
+        delete rest[each]
+    inFlight.current = rest
   }
 
   const keep = useRef(keepHeld)
@@ -217,8 +255,10 @@ export function Note({ noteId }: { noteId: string }) {
   const { change: changeBody } = body
 
   /** Puts kept text back where its field is as it was left; the rest clashes. */
-  const restore = useRef((_kept: HeldNote, _sentence: string | null) => {})
-  restore.current = (kept, sentence) => {
+  const restore = useRef(
+    (_kept: HeldNote, _sentence: string | null, _opening = false) => {},
+  )
+  restore.current = (kept, sentence, opening = false) => {
     const now = latestNote.current
     if (!now) return
     const clashes: HeldNote = {}
@@ -226,8 +266,9 @@ export function Note({ noteId }: { noteId: string }) {
       const each = kept[field]
       if (!each || each.text === now[field]) continue
       // A field someone else has changed since stays theirs, and so does one
-      // typed in on this screen; the kept text is offered instead.
-      const untouched = drafts.current[field] === now[field]
+      // typed in on this screen; the kept text is offered instead. On opening
+      // nothing was typed: the field may not show the note yet.
+      const untouched = opening || drafts.current[field] === now[field]
       if (untouched && each.over.includes(now[field])) {
         restored.current = { ...restored.current, [field]: each }
         ;(field === 'title' ? changeTitle : changeBody)(each.text)
@@ -243,7 +284,7 @@ export function Note({ noteId }: { noteId: string }) {
     if (!loaded) return
     ready.current = true
     const kept = readHeld(key)
-    if (kept) restore.current(kept, null)
+    if (kept) restore.current(kept, null, true)
     return onHeld(key, (each, sentence) => restore.current(each, sentence))
   }, [loaded, key])
 

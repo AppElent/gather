@@ -27,6 +27,21 @@ export type HeldNote = Partial<Record<keyof NoteText, HeldField>>
 type KvStore = typeof import('expo-sqlite/kv-store').default
 
 const PREFIX = 'gather:notes:held:'
+/**
+ * Above this many characters of JSON, held text stays in memory only: a write
+ * is synchronous, and one refused paste can be megabytes.
+ */
+export const MAX_STORED_LENGTH = 1_000_000
+/**
+ * Bumped by sign-out. A screen still open then, or a save answering after it,
+ * writes under the session it started in, and that write is dropped.
+ */
+let session = 0
+
+/** The session a note screen holds text under: read once, when it opens. */
+export function heldSession(): number {
+  return session
+}
 const memory = new Map<string, HeldNote>()
 const listeners = new Map<string, Set<HeldListener>>()
 
@@ -65,6 +80,11 @@ function isHeld(value: unknown): value is HeldNote {
   )
 }
 
+/** Whether text is held for `key` in memory: no disk read, for every save. */
+export function holdsText(key: string): boolean {
+  return memory.has(key)
+}
+
 /** The text held for `key`, if any. */
 export function readHeld(key: string): HeldNote | undefined {
   const kept = memory.get(key)
@@ -81,18 +101,40 @@ export function readHeld(key: string): HeldNote | undefined {
   }
 }
 
-/** Holds `held` for `key`; nothing, or `undefined`, forgets it. */
-export function writeHeld(key: string, held: HeldNote | undefined): void {
+/**
+ * Holds `held` for `key`; nothing, or `undefined`, forgets it. `from` is the
+ * writer's session: after a sign-out, an older one writes nothing.
+ */
+export function writeHeld(
+  key: string,
+  held: HeldNote | undefined,
+  from = session,
+): void {
+  if (from !== session) return
   const empty = !held || Object.keys(held).length === 0
   if (empty) memory.delete(key)
   else memory.set(key, held)
   try {
     const kv = store()
-    if (empty) kv?.removeItemSync(PREFIX + key)
-    else kv?.setItemSync(PREFIX + key, JSON.stringify(held))
+    const json = empty ? '' : JSON.stringify(held)
+    if (empty || json.length > MAX_STORED_LENGTH) kv?.removeItemSync(PREFIX + key)
+    else kv?.setItemSync(PREFIX + key, json)
   } catch {
     // Memory only: kept until the app quits, as before APP-829.
   }
+}
+
+/** `text` of `field` landed: it is no longer held, unless replaced since. */
+export function forgetHeldField(
+  key: string,
+  field: keyof NoteText,
+  text: string,
+  from = session,
+): void {
+  const kept = readHeld(key)
+  if (kept?.[field]?.text !== text) return
+  const { [field]: _landed, ...rest } = kept
+  writeHeld(key, rest, from)
 }
 
 /**
@@ -104,8 +146,11 @@ export function announceHeld(
   key: string,
   held: HeldNote,
   sentence: string | null,
+  from = session,
 ): boolean {
-  writeHeld(key, held)
+  if (from !== session) return false
+  // Into what is kept, not over it: the screen opened since may hold more.
+  writeHeld(key, { ...readHeld(key), ...held }, from)
   const open = listeners.get(key)
   if (!open || open.size === 0) return false
   for (const listener of open) listener(held, sentence)
@@ -125,6 +170,7 @@ export function onHeld(key: string, listener: HeldListener): () => void {
 
 /** Forgets every note's held text on this phone: sign-out, and tests. */
 export function forgetHeldNotes(): void {
+  session += 1
   memory.clear()
   try {
     const kv = store()

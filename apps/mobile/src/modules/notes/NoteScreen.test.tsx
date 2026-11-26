@@ -15,6 +15,7 @@ import { mount, settle } from '../../testing/dom'
 import {
   forgetHeldMemoryForTests,
   forgetHeldNotes,
+  readHeld,
   setHeldStoreForTests,
 } from './heldText'
 import { Note } from './NoteScreen'
@@ -417,8 +418,10 @@ test('a refusal that arrives after the note was reopened is shown there, and kep
   const id = state.note.id as string
   await type(view, 'note-body', 'c')
   view.unmount()
+  // Still on its way, so kept: the reopened screen has it already.
   const again = mount(<Note noteId={id} />)
-  expect(find(again, 'note-body')?.value).toBe('b')
+  expect(find(again, 'note-body')?.value).toBe('c')
+  expect(find(again, 'note-problem')).toBeNull()
   answer.reject({ data: noteRefusal('too-long') })
   await settle()
   expect(find(again, 'note-body')?.value).toBe('c')
@@ -457,5 +460,54 @@ test('signing out forgets every note\'s kept text', async () => {
   view.unmount()
   expect(state.disk.size).toBe(1)
   forgetHeldNotes()
+  expect(state.disk.size).toBe(0)
+})
+
+// Review round 1, blocker 1: after a quit the note is not cached, so it loads
+// after the screen mounted, while the fields are still empty.
+test('kept text is put back when the note loads after the screen opened', async () => {
+  const view = open({ title: 'T', body: 'b' })
+  const note = state.note
+  await type(view, 'note-body', full)
+  view.unmount()
+  forgetHeldMemoryForTests()
+  state.note = undefined as never
+  const again = mount(<Note noteId={note.id as string} />)
+  state.note = note
+  again.rerender(<Note noteId={note.id as string} />)
+  await settle()
+  expect(find(again, 'note-body')?.value).toBe(full)
+  expect(find(again, 'note-clash')).toBeNull()
+  expect(find(again, 'note-problem')?.textContent).toBe(TOO_LONG)
+  again.unmount()
+})
+
+// Review round 1, blocker 2.
+test('a note open at sign-out writes nothing back, and neither does a late answer', async () => {
+  const answer = deferred()
+  state.editNote.mockReturnValueOnce(answer.promise)
+  const view = open({ title: 'T', body: 'b' })
+  await type(view, 'note-title', 'sent')
+  await type(view, 'note-body', full)
+  expect(state.disk.size).toBe(1)
+  forgetHeldNotes()
+  view.unmount()
+  answer.reject({ data: noteRefusal('too-long') })
+  await settle()
+  expect(state.disk.size).toBe(0)
+  expect(readHeld(`u1:g1:notes:${state.note.id}`)).toBeUndefined()
+})
+
+test('text whose save is still on its way when the note closes is kept until it lands', async () => {
+  const answer = deferred()
+  state.editNote.mockReturnValueOnce(answer.promise)
+  const view = open({ title: 'T', body: 'b' })
+  const id = state.note.id as string
+  await type(view, 'note-body', 'c')
+  view.unmount()
+  expect(readHeld(`u1:g1:notes:${id}`)?.body?.text).toBe('c')
+  answer.resolve()
+  await settle()
+  expect(readHeld(`u1:g1:notes:${id}`)).toBeUndefined()
   expect(state.disk.size).toBe(0)
 })
