@@ -426,6 +426,8 @@ test('a refusal that arrives after the note was reopened is shown there, and kep
   await settle()
   expect(find(again, 'note-body')?.value).toBe('c')
   expect(find(again, 'note-problem')?.textContent).toBe(TOO_LONG)
+  // It is on screen already: nothing to offer (review round 2).
+  expect(find(again, 'note-clash')).toBeNull()
   // Its own close sends it again; refused again, it is still kept.
   state.editNote.mockRejectedValue({ data: noteRefusal('too-long') })
   again.unmount()
@@ -510,4 +512,25 @@ test('text whose save is still on its way when the note closes is kept until it 
   await settle()
   expect(readHeld(`u1:g1:notes:${id}`)).toBeUndefined()
   expect(state.disk.size).toBe(0)
+})
+
+// Review round 2: a late answer goes into what the reopened screen kept.
+test('a late refusal keeps what the reopened screen held meanwhile', async () => {
+  const answer = deferred()
+  state.editNote.mockReturnValueOnce(answer.promise)
+  const view = open({ title: 'T', body: 'b' })
+  const id = state.note.id as string
+  await type(view, 'note-body', 'c')
+  view.unmount()
+  state.editNote.mockReturnValue(new Promise(() => {}))
+  const again = mount(<Note noteId={id} />)
+  await type(again, 'note-title', full)
+  expect(readHeld(`u1:g1:notes:${id}`)?.title?.text).toBe(full)
+  answer.reject({ data: noteRefusal('too-long') })
+  await settle()
+  forgetHeldMemoryForTests()
+  const kept = readHeld(`u1:g1:notes:${id}`)
+  expect(kept?.title?.text).toBe(full)
+  expect(kept?.body?.text).toBe('c')
+  again.unmount()
 })

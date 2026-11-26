@@ -141,7 +141,7 @@ export function Note({ noteId }: { noteId: string }) {
     patch: Partial<NoteText>,
     saved: NoteText,
     base: NoteText,
-    { merge = false } = {},
+    { merge = false, write = true } = {},
   ) {
     const next = merge ? { ...patch, ...held.current } : patch
     const over: Partial<Record<keyof NoteText, string[]>> = {}
@@ -161,7 +161,7 @@ export function Note({ noteId }: { noteId: string }) {
     }
     held.current = next
     heldOver.current = over
-    keepHeld()
+    if (write) keepHeld()
   }
 
   function save(field: keyof NoteText, next: string) {
@@ -213,7 +213,9 @@ export function Note({ noteId }: { noteId: string }) {
       const sentence = noteRefusalSentence(error, t.notes.refusals)
       // Refused or failed, the text stays: on screen to send again on leaving,
       // and on this phone for the next open (APP-829).
-      holdText(patch, saved, base, { merge: true })
+      // Closed since: `announceHeld` writes it, into what a reopened screen
+      // may have kept meanwhile, rather than this screen's copy over it.
+      holdText(patch, saved, base, { merge: true, write: mounted.current })
       if (!mounted.current)
         announceHeld(key, heldNote(), sentence, session.current)
       else {
@@ -264,7 +266,9 @@ export function Note({ noteId }: { noteId: string }) {
     const clashes: HeldNote = {}
     for (const field of FIELDS) {
       const each = kept[field]
-      if (!each || each.text === now[field]) continue
+      // Saved already, or on screen already: nothing to put back or offer.
+      if (!each || each.text === now[field] || drafts.current[field] === each.text)
+        continue
       // A field someone else has changed since stays theirs, and so does one
       // typed in on this screen; the kept text is offered instead. On opening
       // nothing was typed: the field may not show the note yet.
