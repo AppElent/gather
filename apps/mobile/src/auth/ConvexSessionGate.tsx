@@ -57,9 +57,10 @@
  * `GATE_STUCK_MS`: after that the same `SessionError` offers Try again (ask
  * Convex to authenticate afresh and re-run `ensureUser`) or Sign out
  * (`closedGateView`). One cause it can name early: `ensureUser` refusing an
- * account that another phone is deleting, which draws `AccountBeingDeleted`
- * with Sign out alone (APP-939). The gate owns provisioning for that reason: a signed-in
- * account with no `users` row is held here until it has one.
+ * account that is being deleted (usually from another phone), which draws
+ * `AccountBeingDeleted` with Sign out alone (APP-939). The gate owns
+ * provisioning for that reason: a signed-in account with no `users` row is
+ * held here until it has one.
  */
 import { useAuth } from '@clerk/expo'
 import { useConvexAuth } from 'convex/react'

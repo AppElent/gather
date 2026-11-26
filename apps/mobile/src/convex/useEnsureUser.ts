@@ -63,12 +63,13 @@ export function useEnsureUser(): Provisioning {
   // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is the retry signal
   useEffect(() => {
     if (!isAuthenticated) return
+    // A new attempt (another account, a retry) starts with no refusal.
+    setFailed(false)
+    setDeleted(false)
     let current = true
     ensureUser({ name })
       .then(() => {
-        if (!current) return
-        setFailed(false)
-        setDeleted(false)
+        if (current) setFailed(false)
       })
       .catch((error: unknown) => {
         if (!current) return
@@ -82,7 +83,6 @@ export function useEnsureUser(): Provisioning {
 
   const retry = useCallback(() => {
     setFailed(false)
-    setDeleted(false)
     setAttempt((count) => count + 1)
   }, [])
 

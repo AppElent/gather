@@ -99,7 +99,7 @@ export function isSessionOpen(
  *   (`ConvexAuthRecovery`) is an optimisation on top; this is the guarantee.
  *   A provisioning refusal is the one cause known early enough to skip the
  *   wait.
- * - **deleted** — the account is being deleted, asked for on another phone
+ * - **deleted** — the account is being deleted, usually from another phone
  *   (APP-939). Sign out is the only way on: trying again would be refused
  *   the same way. Known as early as a provisioning refusal, and wins over
  *   `stuck`, because it is the one cause the screen can name.

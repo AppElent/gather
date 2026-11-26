@@ -96,15 +96,17 @@ describe('useEnsureUser', () => {
     expect(result.current.deleted).toBe(true)
   })
 
-  test('a later attempt that succeeds clears deleted', async () => {
+  test('a new attempt, such as for another account, starts without the deleted refusal', async () => {
     backend.ensureUser.mockRejectedValue(new ConvexError(ACCOUNT_DELETED))
-    const { result } = renderHook()
+    const { result, view } = renderHook()
     await settle()
     expect(result.current.deleted).toBe(true)
 
-    backend.ensureUser.mockResolvedValue('user-id')
-    act(() => result.current.retry())
+    backend.ensureUser.mockReturnValue(new Promise(() => {}))
+    clerk.user = { fullName: 'Ravi Kapoor', firstName: 'Ravi' }
+    view.rerender(<Probe />)
     await settle()
+    expect(backend.ensureUser).toHaveBeenCalledTimes(2)
     expect(result.current.deleted).toBe(false)
   })
 })

@@ -9,7 +9,7 @@
  * first screen mounted.
  *
  * `AccountBeingDeleted` is the same layout for the one closed-gate cause it
- * can name: another phone is deleting the account (APP-939).
+ * can name: the account is being deleted (APP-939).
  */
 import { StyleSheet, Text, View } from 'react-native'
 
@@ -38,7 +38,7 @@ export function SessionError({
 }
 
 /**
- * The account is being deleted, asked for on another phone (APP-939): the
+ * The account is being deleted, usually from another phone (APP-939): the
  * backend refuses to provision it, so trying again cannot help and Sign out
  * is the one way on.
  */

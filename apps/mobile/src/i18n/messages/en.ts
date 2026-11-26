@@ -826,7 +826,7 @@ export const en = {
     body: 'Gather could not check who is signed in. Try again, or sign out and back in.',
     deletedTitle: 'This account is being deleted',
     deletedBody:
-      'Its deletion was asked for on another device, so Gather cannot open it here. Sign out to continue.',
+      'Gather cannot open it while its data is being removed. Sign out to continue.',
   },
 
   /**

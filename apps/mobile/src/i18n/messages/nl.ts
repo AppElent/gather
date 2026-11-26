@@ -583,7 +583,7 @@ export const nl = {
     body: 'Gather kon niet nagaan wie er is ingelogd. Probeer het opnieuw, of log uit en weer in.',
     deletedTitle: 'Dit account wordt verwijderd',
     deletedBody:
-      'Dat is op een ander apparaat gevraagd, dus Gather kan het hier niet openen. Log uit om verder te gaan.',
+      'Gather kan het niet openen terwijl de gegevens worden verwijderd. Log uit om verder te gaan.',
   },
 
   signedIn: {
