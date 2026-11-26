@@ -132,6 +132,9 @@ export const storeConnection = internalMutation({
     connectedBy: v.id('users'),
   },
   handler: async (ctx, args) => {
+    // The Group was authorised before the provider answered, and may have been
+    // deleted since: its token must not outlive it.
+    if (!(await ctx.db.get(args.groupId))) throw groupRefusalError('unknown-group')
     // The person connecting was a Member when the round trip set out, and may
     // have left (or deleted their account) while the provider answered: someone
     // no longer in the Group must not store or replace its token (APP-908).

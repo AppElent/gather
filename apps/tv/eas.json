@@ -6,6 +6,7 @@
   "build": {
     "development": {
       "distribution": "internal",
+      "channel": "development",
       "environment": "development",
       "env": {
         "APP_VARIANT": "development",
@@ -18,9 +19,19 @@
     },
     "preview": {
       "autoIncrement": true,
+      "channel": "preview",
       "environment": "preview",
       "env": {
         "APP_VARIANT": "preview",
+        "EXPO_TV": "1"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "environment": "production",
+      "env": {
+        "APP_VARIANT": "production",
         "EXPO_TV": "1"
       }
     }

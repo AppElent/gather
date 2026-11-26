@@ -139,17 +139,19 @@ export async function groupUsage(ctx: QueryCtx, groupId: Id<'groups'>, day: stri
     .unique()
 }
 
-/** Whether a question was taken, or which budget refused it. */
-export type GroceryBudgetResult = 'taken' | 'global' | 'group'
+/** Whether a question was taken, or what refused it. */
+export type GroceryBudgetResult = 'taken' | 'global' | 'group' | 'no-group'
 
 /**
  * Take one question from today's global budget and the Group's, or refuse
- * when either is spent. Both counters move together, in one mutation.
+ * when either is spent. Both counters move together, in one mutation. A Group
+ * deleted since the question was scheduled takes nothing (`no-group`).
  */
 export async function takeGroceryAiBudget(
   ctx: MutationCtx,
   groupId: Id<'groups'> | undefined,
 ): Promise<GroceryBudgetResult> {
+  if (groupId && !(await ctx.db.get(groupId))) return 'no-group'
   const day = utcDay(Date.now())
   const global = await ctx.db
     .query('groceryAiUsage')

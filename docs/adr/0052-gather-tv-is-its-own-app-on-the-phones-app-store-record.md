@@ -1,7 +1,7 @@
 ---
 type: decision
 description: Read before changing the Apple TV app's dependencies, bundle ID or EAS profiles, or moving the phone to a newer Expo patch.
-version: 1.0.0
+version: 1.1.0
 status: accepted
 date: 2026-11-24
 ---
@@ -44,13 +44,16 @@ newest copy in the graph, so the TV's newer copy moved the phone's fingerprint.
   updates.
 - When the phone moves to `expo` 58.0.22 or later, align both apps and remove
   the `@expo/log-box` override.
-- There is no EAS project id, update channel or production profile yet. The EAS
-  project (the phone's or a new one) is chosen with the first EAS build.
+- The TV app has its own EAS project, `@appelent/gather-tv`, with its own update
+  URL, channels and remote build number (Eric, 25 November 2026, APP-860).
+  expo-updates reports tvOS as `ios`, so in the phone's project only the channel
+  and runtime would keep a TV update off phones.
 
 ## Enforcement
 
 `scripts/tv-isolation.test.ts` reads the lockfile: the phone resolves stock
-`react-native` 0.88.1 and the TV resolves the fork. The `Mobile runtime`
+`react-native` 0.88.1 and the TV resolves the fork. It also checks that the TV
+app's EAS project and update URL differ from the phone's. The `Mobile runtime`
 workflow compares the phone's fingerprint on every pull request that touches the
 lockfile, but it is informational: read its comment before merging.
 
