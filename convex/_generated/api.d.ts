@@ -101,6 +101,7 @@ import type * as lib_taskLists from "../lib/taskLists.js";
 import type * as lib_taskPeople from "../lib/taskPeople.js";
 import type * as lib_taskProviders_index from "../lib/taskProviders/index.js";
 import type * as lib_taskProviders_notion from "../lib/taskProviders/notion.js";
+import type * as lib_taskProviders_revoke from "../lib/taskProviders/revoke.js";
 import type * as lib_taskProviders_todoist from "../lib/taskProviders/todoist.js";
 import type * as lib_taskProviders_types from "../lib/taskProviders/types.js";
 import type * as lib_taskReminders from "../lib/taskReminders.js";
@@ -243,6 +244,7 @@ declare const fullApi: ApiFromModules<{
   "lib/taskPeople": typeof lib_taskPeople;
   "lib/taskProviders/index": typeof lib_taskProviders_index;
   "lib/taskProviders/notion": typeof lib_taskProviders_notion;
+  "lib/taskProviders/revoke": typeof lib_taskProviders_revoke;
   "lib/taskProviders/todoist": typeof lib_taskProviders_todoist;
   "lib/taskProviders/types": typeof lib_taskProviders_types;
   "lib/taskReminders": typeof lib_taskReminders;

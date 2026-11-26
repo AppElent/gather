@@ -43,6 +43,7 @@ import { cancelJob } from './notifications'
 import { charge, drain, newPurgePage, type PurgePage, pauseMs } from './purgePage'
 import { storedFileIdsOf } from './storedFiles'
 import { unassignFromGroup } from './taskAssignee'
+import { revokeAfterCommit } from './taskProviders/revoke'
 import { cancelSend, dropMemberReminders } from './taskReminders'
 import { purgeCompletionsOfTask } from './taskRepeat'
 import { deleteWatchDevices } from './watchDevices'
@@ -206,6 +207,11 @@ const GROUP_CONTENT: {
       ctx.db
         .query('integrationConnections')
         .withIndex('by_group_provider', (q) => q.eq('groupId', groupId)),
+      // A deleted Group's grant ends at the provider too (APP-909).
+      async (conn) => {
+        await revokeAfterCommit(ctx, conn.provider, conn.accessToken)
+        return true
+      },
     ),
 
   energySources: (ctx, groupId, page) =>
