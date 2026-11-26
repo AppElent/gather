@@ -13,7 +13,11 @@ import {
   getGatedIdentity,
   rejectConnectedApps,
 } from './lib/connectedApps'
-import { requireGroupBySlug } from './lib/groupAccess'
+import {
+  getMembership,
+  groupRefusalError,
+  requireGroupBySlug,
+} from './lib/groupAccess'
 import { requireIdentity } from './lib/sharing'
 import { externalProviderValidator } from './lib/taskFields'
 import { getAdapter } from './lib/taskProviders'
@@ -128,6 +132,12 @@ export const storeConnection = internalMutation({
     connectedBy: v.id('users'),
   },
   handler: async (ctx, args) => {
+    // The person connecting was a Member when the round trip set out, and may
+    // have left (or deleted their account) while the provider answered: someone
+    // no longer in the Group must not store or replace its token (APP-908).
+    if (!(await getMembership(ctx, args.groupId, args.connectedBy))) {
+      throw groupRefusalError('not-a-member')
+    }
     const existing = await ctx.db
       .query('integrationConnections')
       .withIndex('by_group_provider', (q) =>
