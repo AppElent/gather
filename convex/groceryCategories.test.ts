@@ -291,6 +291,44 @@ describe('aisle on add', () => {
     )
   })
 
+  test('a Group deleted before its question goes spends nothing, and a waiting Group asks instead', async () => {
+    const { t, groups } = await seed()
+    const fetchMock = modelAnswers('pasta_world')
+    await addItem(t, 0, groups[0].groceries, 'doenjang')
+    const waiter = await addItem(t, 1, groups[1].groceries, 'doenjang')
+    await t.withIdentity(alice).mutation(api.groups.deleteGroup, {
+      groupId: groups[0].groupId,
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(await categoryOf(t, waiter)).toBe('pasta_world')
+    const usage = await t.run((ctx) => ctx.db.query('groceryAiGroupUsage').collect())
+    expect(usage.map((row) => [row.groupId, row.count])).toEqual([
+      [groups[1].groupId, 1],
+    ])
+    expect(
+      (await t.run((ctx) => ctx.db.query('groceryAiUsage').collect()))[0].count,
+    ).toBe(1)
+  })
+
+  test('a Group deleted before its question goes, with nobody waiting, leaves nothing', async () => {
+    const { t, groups } = await seed()
+    const fetchMock = modelAnswers('pasta_world')
+    await addItem(t, 0, groups[0].groceries, 'doenjang')
+    await t.withIdentity(alice).mutation(api.groups.deleteGroup, {
+      groupId: groups[0].groupId,
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(
+      await t.run(async (ctx) => ({
+        group: await ctx.db.query('groceryAiGroupUsage').collect(),
+        global: await ctx.db.query('groceryAiUsage').collect(),
+        cache: await ctx.db.query('groceryCategoryCache').collect(),
+      })),
+    ).toEqual({ group: [], global: [], cache: [] })
+  })
+
   test('when every waiting Group is out of questions, the question is given up', async () => {
     const { t, groups } = await seed()
     const fetchMock = modelAnswers('pasta_world')

@@ -310,8 +310,9 @@ export function groupTimeZoneRefusalSentence(
  *   sign-in helpers in `convex/lib/sharing.ts` throw it too (APP-581), so every
  *   signed-out refusal reads the same, Group or not.
  * - `unknown-slug`: no Group has that slug.
- * - `unknown-group`: no Group has that id (APP-581), from the Group mutations
- *   in `convex/groups.ts` that name a Group by id.
+ * - `unknown-group`: no Group has that id (APP-581), from a write that names
+ *   a Group by id: the mutations in `convex/groups.ts`, and
+ *   `integrations.storeConnection` for a Group deleted meanwhile.
  * - `not-a-member`: the Group exists and the caller is not in it.
  *
  * The data also carries the English sentence these refusals threw before they
