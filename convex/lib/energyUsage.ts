@@ -109,24 +109,30 @@ type ChannelWithSource = {
   manual: boolean
 }
 
-/** A site's channels, each with whether its source is typed readings. */
+/**
+ * A site's channels, each with whether its source is typed readings.
+ *
+ * Reads only the manual source: every hourly sync patches the Home Assistant
+ * one, and reading it would re-run every open month, payback's past months
+ * included, each hour (APP-921).
+ */
 export async function siteChannels(
   ctx: QueryCtx,
   siteId: Id<'energySites'>,
 ): Promise<ChannelWithSource[]> {
-  const [channels, sources] = await Promise.all([
+  const [channels, manual] = await Promise.all([
     ctx.db
       .query('energyChannels')
       .withIndex('by_site', (q) => q.eq('siteId', siteId))
       .collect(),
     ctx.db
       .query('energySources')
-      .withIndex('by_site', (q) => q.eq('siteId', siteId))
+      .withIndex('by_site_kind', (q) =>
+        q.eq('siteId', siteId).eq('kind', 'manual'),
+      )
       .collect(),
   ])
-  const manualSources = new Set(
-    sources.filter((source) => source.kind === 'manual').map((s) => s._id),
-  )
+  const manualSources = new Set(manual.map((source) => source._id))
   return channels.map((channel) => ({
     channel,
     manual: manualSources.has(channel.sourceId),

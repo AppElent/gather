@@ -13,6 +13,8 @@ import {
 } from '../test/energyUsageFixture'
 import { api } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
+import type { QueryCtx } from './_generated/server'
+import { siteChannels } from './lib/energyUsage'
 
 /** Solar and battery (APP-496), from hourly intervals when they are read. */
 
@@ -210,6 +212,73 @@ describe('a month', () => {
         .withIdentity(carol)
         .query(api.energySolar.month, { ...MONTH, ...OTHER }),
     ).toBeNull()
+  })
+})
+
+describe('payback', () => {
+  /** Each index range read from `energySources`, with what it is narrowed by. */
+  function recordingSources(ctx: QueryCtx) {
+    const ranges: { index: string; eq: [string, unknown][] }[] = []
+    const query = ctx.db.query.bind(ctx.db)
+    const db = new Proxy(ctx.db, {
+      get(target, key, receiver) {
+        if (key !== 'query') return Reflect.get(target, key, receiver)
+        return (table: 'energySources') => {
+          const builder = query(table)
+          if (table !== 'energySources') return builder
+          return new Proxy(builder, {
+            get(inner, name, innerReceiver) {
+              if (name !== 'withIndex') {
+                return Reflect.get(inner, name, innerReceiver)
+              }
+              return (index: string, range: (q: unknown) => unknown) => {
+                const eq: [string, unknown][] = []
+                ranges.push({ index, eq })
+                // Run the range once against a recorder, then for real.
+                type Range = { eq(field: string, value: unknown): Range }
+                const recorder: Range = {
+                  eq: (field, value) => {
+                    eq.push([field, value])
+                    return recorder
+                  },
+                }
+                range(recorder)
+                return Reflect.apply(builder.withIndex, builder, [index, range])
+              }
+            },
+          })
+        }
+      },
+    })
+    return { ctx: { ...ctx, db } as QueryCtx, ranges }
+  }
+
+  test('a past month never reads the source every hourly sync patches (APP-921)', async () => {
+    const { t, homeId, aliceId, siteId } = await seedHours(FULL)
+    await t.run(async (ctx) => {
+      await insertManualMeters(ctx, homeId, siteId, aliceId)
+      const { ctx: recorded, ranges } = recordingSources(ctx)
+      const channels = await siteChannels(recorded, siteId)
+      expect(ranges).toEqual([
+        {
+          index: 'by_site_kind',
+          eq: [
+            ['siteId', siteId],
+            ['kind', 'manual'],
+          ],
+        },
+      ])
+      const sources = await ctx.db
+        .query('energySources')
+        .withIndex('by_site', (q) => q.eq('siteId', siteId))
+        .collect()
+      const kindOf = new Map(sources.map((each) => [each._id, each.kind]))
+      for (const { channel, manual } of channels) {
+        expect(manual).toBe(kindOf.get(channel.sourceId) === 'manual')
+      }
+      expect(channels.filter((each) => each.manual)).toHaveLength(4)
+      expect(channels.filter((each) => !each.manual)).toHaveLength(5)
+    })
   })
 })
 
