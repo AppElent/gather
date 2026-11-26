@@ -124,6 +124,17 @@ export function useAccountDelete(): AccountDeleteValue {
   return value
 }
 
+/**
+ * Whether this phone is running a deletion. `false` outside the provider.
+ * The session gate reads it so a `users.me` that turns `null` under this
+ * phone's own deletion does not re-run `ensureUser` in the moment before the
+ * provider draws `underway` (APP-949).
+ */
+export function useDeletionInProgress(): boolean {
+  const value = use(AccountDeleteContext)
+  return value !== null && value.state.step !== 'idle'
+}
+
 export interface AccountDeleteProviderProps {
   children: ReactNode
   /** Drawn in place of `children` once the purge has started. */
