@@ -337,7 +337,12 @@ export function SearchScreen({
             <ModuleTile group={tile.group} glyph={tile.glyph} size="s" />
           ) : null}
           <View style={styles.rowText}>
-            <Text style={[styles.title, { color: tokens.ink }]}>
+            {/* A long title gets two lines, like the detail
+              under it, so rows stay close to one height (APP-941). */}
+            <Text
+              numberOfLines={2}
+              style={[styles.title, { color: tokens.ink }]}
+            >
               {record.title}
             </Text>
             {record.detail ? (
