@@ -12,7 +12,7 @@
 
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
-import type { Id } from './_generated/dataModel'
+import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation } from './_generated/server'
 import { writePauseMs } from './lib/energyWritePace'
@@ -228,15 +228,26 @@ async function finishAccount(
     return
   }
 
-  // Whatever memberships are left are the shared Groups — the solo ones went
-  // with their Group.
+  // Whatever memberships are left were shared Groups when the purge began —
+  // the solo ones went with their Group. Who else is in one is read again
+  // here, not taken from then (APP-882): when everybody else in it is gone or
+  // being deleted too, or it was made after the purge began (by a request
+  // already in flight; the account is refused since), leaving it would
+  // strand a Group with no Members, so it is destroyed instead. Whichever
+  // purge gets there first does that; the others find the membership gone.
   const membership = await ctx.db
     .query('memberships')
     .withIndex('by_user', (q) => q.eq('userId', userId))
     .first()
   if (membership) {
-    await detachFromGroup(ctx, userId, membership.groupId)
-    await ctx.db.delete(membership._id)
+    if (await anybodyElseStays(ctx, membership)) {
+      await detachFromGroup(ctx, userId, membership.groupId)
+      await ctx.db.delete(membership._id)
+    } else {
+      await destroyGroup(ctx, membership.groupId)
+      // A Group already gone, or one whose memberships wait for a later page.
+      if (await ctx.db.get(membership._id)) await ctx.db.delete(membership._id)
+    }
     await ctx.scheduler.runAfter(0, internal.cascade.purgeAccount, {
       userId,
       groupIds: [],
@@ -245,4 +256,26 @@ async function finishAccount(
   }
 
   await ctx.db.delete(userId)
+}
+
+/**
+ * Whether anybody but this Member is staying in their Group: a membership
+ * whose user is neither gone nor being deleted. The same count as
+ * `groups.exitsFor`.
+ */
+async function anybodyElseStays(
+  ctx: MutationCtx,
+  membership: Doc<'memberships'>,
+): Promise<boolean> {
+  if (!(await ctx.db.get(membership.groupId))) return false
+  const members = await ctx.db
+    .query('memberships')
+    .withIndex('by_group', (q) => q.eq('groupId', membership.groupId))
+    .collect()
+  for (const other of members) {
+    if (other._id === membership._id) continue
+    const user = await ctx.db.get(other.userId)
+    if (user && !user.deletedAt) return true
+  }
+  return false
 }

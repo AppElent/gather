@@ -56,12 +56,20 @@ export async function getUserByClerkId(
   return pickCanonicalUser(matches)
 }
 
-/** Resolve the calling Clerk user to their gather `users` row, or null. */
+/**
+ * Resolve the calling Clerk user to their gather `users` row, or null.
+ *
+ * An account being deleted (`deletedAt`) resolves to null too, so it reads,
+ * writes, creates and joins nothing while its purge runs (APP-882). The few
+ * calls that must still see it — `accountPortal.deletionBlocker` and a
+ * repeated `accounts.deleteAccount` — look the row up by subject instead.
+ */
 export async function getCurrentUser(ctx: QueryCtx) {
   // Gated: a connected app without the write scope is refused in a mutation.
   const identity = await getGatedIdentity(ctx)
   if (!identity) return null
-  return await getUserByClerkId(ctx, identity.subject)
+  const user = await getUserByClerkId(ctx, identity.subject)
+  return user && !user.deletedAt ? user : null
 }
 
 /**

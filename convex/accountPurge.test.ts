@@ -262,3 +262,62 @@ test('each shared Group is left in a step of its own', async () => {
   expect(await count(t, 'groups')).toBe(3)
   expect(await t.run((ctx) => ctx.db.get(aliceId))).toBeNull()
 })
+
+describe('the last Members deleting their accounts together (APP-882)', () => {
+  async function sharedHome(t: Harness, members: Id<'users'>[]) {
+    return await t.run(async (ctx) => {
+      const groupId = await seedGroup(ctx, { name: 'Home', slug: 'home' })
+      for (const userId of members) await seedMember(ctx, groupId, userId)
+      await ctx.db.insert('notes', {
+        groupId,
+        title: 'Wifi',
+        body: 'hunter2',
+        createdBy: members[0],
+        updatedAt: 1,
+      })
+      return groupId
+    })
+  }
+
+  test('take the Group and its content with them', async () => {
+    const { t, aliceId, bobId } = await people()
+    const groupId = await sharedHome(t, [aliceId, bobId])
+
+    // Both start before either purge reaches the Group, so each sees it shared.
+    await t.withIdentity(alice).mutation(api.accounts.deleteAccount, {})
+    await t.withIdentity(bob).mutation(api.accounts.deleteAccount, {})
+    await settle(t)
+
+    expect(await t.run((ctx) => ctx.db.get(groupId))).toBeNull()
+    expect(await count(t, 'memberships')).toBe(0)
+    expect(await count(t, 'notes')).toBe(0)
+    expect(await count(t, 'users')).toBe(0)
+  })
+
+  test('leave a Group somebody still lives in', async () => {
+    const { t, aliceId, bobId } = await people()
+    const carolId = await t.run((ctx) =>
+      ctx.db.insert('users', { clerkId: 'clerk_carol', name: 'C', email: '' }),
+    )
+    const groupId = await sharedHome(t, [aliceId, bobId, carolId])
+
+    await t.withIdentity(alice).mutation(api.accounts.deleteAccount, {})
+    await t.withIdentity(bob).mutation(api.accounts.deleteAccount, {})
+    await settle(t)
+
+    expect(await t.run((ctx) => ctx.db.get(groupId))).not.toBeNull()
+    expect(await count(t, 'memberships')).toBe(1)
+    expect(await count(t, 'notes')).toBe(1)
+  })
+
+  test('take a Group made after the purge began', async () => {
+    const { t, aliceId } = await people()
+    await t.withIdentity(alice).mutation(api.accounts.deleteAccount, {})
+    // Made behind the refusal's back, e.g. by a request already in flight.
+    const groupId = await sharedHome(t, [aliceId])
+    await settle(t)
+
+    expect(await t.run((ctx) => ctx.db.get(groupId))).toBeNull()
+    expect(await count(t, 'notes')).toBe(0)
+  })
+})
