@@ -52,7 +52,8 @@ async function takeOne(
   day = utcDay(Date.now()),
 ): Promise<number | null> {
   const user = await getUserByClerkId(ctx, clerkId)
-  if (!user) throw notSignedInError()
+  // An account being deleted spends nothing (APP-882).
+  if (!user || user.deletedAt) throw notSignedInError()
 
   const row = await ctx.db
     .query('aiUsage')

@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 3.2.0
+version: 3.3.0
 status: current
 ---
 
@@ -108,6 +108,20 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   split naming them is cleared, a saved split scenario keeps their name
   without their id, a calendar event drops them from its assignees, and a
   staple they kept (`groceryStaples.keptBy`, APP-681) no longer names them.
+- **Shared is read again when the purge reaches the Group** (APP-882). The
+  solo and shared Groups are split when the purge starts; by the time a
+  shared one's step runs, everybody else in it may be gone or being deleted
+  too, or it may have been made since. Then it has no Member left to leave
+  it to, so the step destroys it instead. A Member being deleted does not
+  count as staying anywhere: not here, and not in `groups.exitsFor`, so the
+  last live Member may delete the Group.
+- **An account being deleted is signed out of Gather** (APP-882).
+  `getCurrentUser` and `requireCurrentUser` (`convex/lib/sharing.ts`) treat a
+  `users` row with `deletedAt` as no account, so it reads, writes, creates
+  and joins nothing, and spends no AI calls, while the purge runs.
+  `deletionBlocker` and a repeated whole-account `deleteAccount` look the row
+  up by subject, so the first still says the deletion is running and the
+  second is a no-op.
 - **Two choices, Gather's data first** ([ADR-0050](../adr/0050-deleting-gather-data-keeps-the-appelent-login.md)).
   Gather shares its Clerk login with Foundry, Fairway and Arcade Club. "Delete
   Gather data only" runs the purge with `keepLogin`, never calls

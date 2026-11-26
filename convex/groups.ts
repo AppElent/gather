@@ -397,7 +397,8 @@ const ONLY_ADMIN =
  * A membership whose user record is gone is nobody: it has no name on the
  * Members list, it cannot be made an admin, and it cannot leave. Counting it
  * would hold the door for a person who is not there, with no way to satisfy
- * the refusal (APP-362).
+ * the refusal (APP-362). A Member whose account is being deleted is on their
+ * way out the same way, and does not count either (APP-882).
  *
  * Deleting is open to the last Member whatever their role: once everyone else
  * is gone, it takes nobody else's content with it. That is how a Member is
@@ -414,7 +415,8 @@ async function exitsFor(
   const others: Doc<'memberships'>[] = []
   for (const other of memberships) {
     if (other._id === membership._id) continue
-    if ((await ctx.db.get(other.userId)) === null) continue
+    const user = await ctx.db.get(other.userId)
+    if (user === null || user.deletedAt) continue
     others.push(other)
   }
   if (others.length === 0) return { leave: 'last-member', canDelete: true }

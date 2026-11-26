@@ -77,7 +77,6 @@ import {
   getMyGroupIds,
   getUserByClerkId,
   notSignedInError,
-  requireCurrentUser,
   requireIdentity,
 } from './lib/sharing'
 
@@ -215,8 +214,10 @@ export const deleteAccount = mutation({
       await purgeSubject(ctx, identity.subject, { releaseLogin: true })
       return
     }
-    // The whole account needs a Gather account to be deleting.
-    await requireCurrentUser(ctx)
+    // The whole account needs a Gather account to be deleting. One already
+    // being deleted counts: asking again is a no-op, not a refusal.
+    if (!(await getUserByClerkId(ctx, identity.subject)))
+      throw notSignedInError()
     await purgeSubject(ctx, identity.subject, { releaseLogin: false })
   },
 })
