@@ -341,7 +341,12 @@ export function SearchScreen({
               {record.title}
             </Text>
             {record.detail ? (
-              <Text style={[styles.detail, { color: tokens.muted }]}>
+              // A note's excerpt runs up to 200 characters (APP-828); two
+              // lines keep every row close to one height (APP-930).
+              <Text
+                numberOfLines={2}
+                style={[styles.detail, { color: tokens.muted }]}
+              >
                 {record.detail}
               </Text>
             ) : null}
