@@ -546,6 +546,11 @@ export const energy = {
       other:
         '{count} dagen tellen niet mee: daarvoor is er nog geen contract of geen prijs.',
     },
+    paybackMissingBattery: {
+      one: '1 dag telt niet mee: er is nog geen contract of prijs, of alleen laden of ontladen is gemeten.',
+      other:
+        '{count} dagen tellen niet mee: er is nog geen contract of prijs, of alleen laden of ontladen is gemeten.',
+    },
     paybackPartial: 'Een deel kon niet worden geladen, dus het bedrag is nog niet compleet.',
     paybackHint: 'Vul een aankoopbedrag in om te zien wat er is terugverdiend.',
     assets: 'Panelen en batterijen',

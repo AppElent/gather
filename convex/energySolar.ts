@@ -22,7 +22,6 @@ import { query } from './_generated/server'
 import { energyAssetTermsValidator } from './lib/energy'
 import {
   computeEnergyRange,
-  type EnergyDay,
   firstHourOf,
   primarySiteOf,
   siteAssets,
@@ -137,7 +136,11 @@ export const month = query({
         const { battery: each } = day
         return {
           ...day,
-          solarEur: solarEur(day, range.days[index]),
+          solarEur: solarEur(
+            day,
+            range.days[index]?.exportKwh ?? 0,
+            range.exportCents[index] ?? null,
+          ),
           batteryEur:
             each && each.chargeEur !== null && each.dischargeEur !== null
               ? each.dischargeEur - each.chargeEur
@@ -150,15 +153,17 @@ export const month = query({
 
 /**
  * What the roof earned on a day: the grid power it saved, and its share of
- * what sending back earned, net metering included.
+ * what sending back earned, net metering included. Export is priced from
+ * electricity alone, so a gas price still to come leaves it be (APP-920).
  */
 function solarEur(
   solar: { selfUsedEur: number | null; returnedKwh: number | null },
-  day: EnergyDay | undefined,
+  exportKwh: number,
+  exportCents: number | null,
 ): number | null {
-  if (solar.selfUsedEur === null || solar.returnedKwh === null || !day) return null
+  if (solar.selfUsedEur === null || solar.returnedKwh === null) return null
   if (solar.returnedKwh === 0) return solar.selfUsedEur
-  if (day.costStatus !== 'ok' || !day.cost || day.exportKwh <= 0) return null
-  const share = Math.min(1, solar.returnedKwh / day.exportKwh)
-  return solar.selfUsedEur - (day.cost.exportCents / 100) * share
+  if (exportCents === null || exportKwh <= 0) return null
+  const share = Math.min(1, solar.returnedKwh / exportKwh)
+  return solar.selfUsedEur - (exportCents / 100) * share
 }

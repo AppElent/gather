@@ -193,7 +193,24 @@ describe('payback', () => {
       earnedCents: 200,
       purchaseCents: 100_000,
       since: '2026-01-02',
+      countedDays: 1,
       missingDays: 1,
+    })
+  })
+
+  test('keeps the days left out when not one of them has a price (APP-920)', () => {
+    expect(
+      energyPayback(roof, [roof], [
+        day('2026-01-01', { solarEur: null }),
+        day('2026-01-02', { solarEur: null }),
+        day('2026-01-03', { solarMeasured: false, solarEur: null }),
+      ]),
+    ).toEqual({
+      earnedCents: 0,
+      purchaseCents: 100_000,
+      since: '2026-01-01',
+      countedDays: 0,
+      missingDays: 2,
     })
   })
 

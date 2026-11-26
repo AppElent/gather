@@ -154,6 +154,35 @@ describe('a month', () => {
     expect(day?.batteryEur).toBeCloseTo(2 * allIn(0.25) - 3 * allIn(0.05))
   })
 
+  test('a gas price still to come leaves what the roof sent back be (APP-920)', async () => {
+    const { t } = await seedHours({ ...FULL, gas: { 3: 1 } }, DYNAMIC_TERMS)
+    await t.run(async (ctx) => {
+      const starts = amsterdamDayHours(DAY)
+      for (const index of [3, 12, 18]) {
+        for (let quarter = 0; quarter < 4; quarter++) {
+          await ctx.db.insert('energyPrices', {
+            provider: 'energyzero',
+            carrier: 'electricity',
+            start: (starts[index] as number) + quarter * 15 * 60_000,
+            minutes: 15,
+            eurPerUnit: 0.1,
+          })
+        }
+      }
+    })
+    const month = await t.withIdentity(bob).query(api.energySolar.month, MONTH)
+    const day = month?.days.find((each) => each.day === DAY)
+    // Two kWh saved at the all-in price, one sent back at market plus fee.
+    const allIn = (0.1 + 0.02 + 0.1) * 1.21
+    expect(day?.solarEur).toBeCloseTo(2 * allIn + (0.1 - 0.01), 2)
+    expect(day?.batteryEur).toBeCloseTo(-allIn)
+    // The day's cost still waits for the gas price.
+    const usage = await t
+      .withIdentity(bob)
+      .query(api.energyUsage.month, { ...HOME, month: '2026-11', today: DAY })
+    expect(usage?.days.find((each) => each.day === DAY)?.costStatus).toBe('noPrices')
+  })
+
   test('typed readings have no hours, so no figures and no zeros', async () => {
     const { t, homeId, aliceId } = await seedEnergyGroups()
     await t.run(async (ctx) => {

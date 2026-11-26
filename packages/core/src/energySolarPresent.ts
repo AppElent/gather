@@ -418,12 +418,25 @@ export function energyPaybackText(
   const euro = (cents: number) =>
     formatEnergyEuro(cents, locale, { decimals: false })
   const price = euro(asset.purchaseCents)
-  if (!payback) {
+  // A battery measured one way only has no value either, so it says so.
+  const missing =
+    payback && payback.missingDays > 0
+      ? [
+          plural(
+            locale,
+            payback.missingDays,
+            asset.kind === 'battery'
+              ? copy.paybackMissingBattery
+              : copy.paybackMissing,
+          ),
+        ]
+      : []
+  if (!payback || payback.countedDays === 0) {
     return {
       share: 0,
       amount: '',
       rest: fmt(copy.paybackNone, { price }),
-      notes: [],
+      notes: missing,
     }
   }
   const counted =
@@ -438,9 +451,7 @@ export function energyPaybackText(
     rest: fmt(copy.paybackOf, { price }),
     notes: [
       ...(counted ? [counted] : []),
-      ...(payback.missingDays > 0
-        ? [plural(locale, payback.missingDays, copy.paybackMissing)]
-        : []),
+      ...missing,
     ],
   }
 }

@@ -573,6 +573,10 @@ export const energy = {
       one: '1 day is left out: it has no contract or no price yet.',
       other: '{count} days are left out: they have no contract or no price yet.',
     },
+    paybackMissingBattery: {
+      one: '1 day is left out: it has no contract or price yet, or only charging or discharging was measured.',
+      other: '{count} days are left out: they have no contract or price yet, or only charging or discharging was measured.',
+    },
     paybackPartial: 'Part of it could not be loaded, so the amount is not complete yet.',
     paybackHint: 'Fill in a purchase price to see what has been paid back.',
     assets: 'Panels and batteries',
