@@ -207,6 +207,22 @@ test('payback shows for an asset with a price, and opens its form', () => {
   view.unmount()
 })
 
+test('payback names the days left out, also when none has a price (APP-920)', () => {
+  const unpriced = solarMonth({
+    assets: [ROOF, { ...BATTERY, asset: { ...BATTERY.asset, purchaseCents: 400_000 } }],
+    days: solarMonth().days.map((day) => ({ ...day, solarEur: null, batteryEur: null })),
+  })
+  energyState.queries['energySolar:month'] = () => unpriced
+  const view = open()
+  const roof = byTestId('energy-asset-roof')?.textContent
+  expect(roof).toContain('Nothing to count yet of €5,200')
+  expect(roof).toContain('1 day is left out: it has no contract or no price yet.')
+  expect(byTestId('energy-asset-sessy')?.textContent).toContain(
+    '1 day is left out: it has no contract or price yet, or only charging or discharging was measured.',
+  )
+  view.unmount()
+})
+
 test('adds a battery, after saying what is missing', async () => {
   const view = mount(createElement(EnergyAssetScreen))
   await click('segment-battery')

@@ -387,8 +387,14 @@ export interface EnergyPaybackAsset {
 export interface EnergyPayback {
   earnedCents: number
   purchaseCents: number
-  /** The first day that counts: Gather's first figures, or the installation. */
+  /**
+   * The first day that counts: Gather's first figures, or the installation.
+   * With no counted day, the first measured one.
+   */
   since: string
+  /** Days that earned a known amount. */
+  countedDays: number
+  /** Measured days left out: no price, or a battery measured one way only. */
   missingDays: number
 }
 
@@ -397,7 +403,8 @@ const sizeOf = (asset: EnergyPaybackAsset) =>
 
 /**
  * What an asset has paid back of its price, or null without a price or without
- * one day it earned on. Assets of one kind share its day by size, or evenly
+ * one measured day. Measured days without an amount are counted as missing,
+ * also when no day has one, so the reason is not lost (APP-920). Assets of one kind share its day by size, or evenly
  * when one has no size; each counts from the day it was installed.
  */
 export function energyPayback<T extends EnergyPaybackAsset>(
@@ -408,17 +415,21 @@ export function energyPayback<T extends EnergyPaybackAsset>(
   if (asset.purchaseCents === undefined) return null
   let earned = 0
   let since = ''
+  let firstMeasured = ''
+  let countedDays = 0
   let missingDays = 0
   for (const day of days) {
     if (asset.installedOn && day.day < asset.installedOn) continue
     const measured =
       asset.kind === 'solar' ? day.solarMeasured : day.batteryMeasured
     if (!measured) continue
+    if (!firstMeasured || day.day < firstMeasured) firstMeasured = day.day
     const eur = asset.kind === 'solar' ? day.solarEur : day.batteryEur
     if (eur === null) {
       missingDays += 1
       continue
     }
+    countedDays += 1
     const running = assets.filter(
       (each) =>
         each.kind === asset.kind &&
@@ -433,11 +444,12 @@ export function energyPayback<T extends EnergyPaybackAsset>(
     earned += eur * share
     if (!since || day.day < since) since = day.day
   }
-  if (!since) return null
+  if (!firstMeasured) return null
   return {
     earnedCents: Math.round(earned * 100),
     purchaseCents: asset.purchaseCents,
-    since,
+    since: since || firstMeasured,
+    countedDays,
     missingDays,
   }
 }

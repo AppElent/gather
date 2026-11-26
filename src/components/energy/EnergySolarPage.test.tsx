@@ -192,6 +192,22 @@ describe('EnergySolarPage', () => {
     )
   })
 
+  test('payback names the days left out, also when none has a price (APP-920)', () => {
+    const month = solarMonth()
+    state.solar = {
+      ...month,
+      assets: [ROOF, { ...BATTERY, asset: { ...BATTERY.asset, purchaseCents: 400_000 } }],
+      days: month.days.map((day) => ({ ...day, solarEur: null, batteryEur: null })),
+    }
+    renderInGroup(<EnergySolarPage />)
+    const roof = screen.getByRole('button', { name: /Roof/ })
+    expect(roof).toHaveTextContent('Nothing to count yet of €5,200')
+    expect(roof).toHaveTextContent(/days? (is|are) left out: (it has|they have) no contract or no price yet\./)
+    expect(screen.getByRole('button', { name: /Sessy/ })).toHaveTextContent(
+      /left out: (it has|they have) no contract or price yet, or only charging or discharging was measured\./,
+    )
+  })
+
   test('adds a battery, and asks before removing one', async () => {
     state.solar = solarMonth({ assets: [BATTERY] })
     renderInGroup(<EnergySolarPage />)

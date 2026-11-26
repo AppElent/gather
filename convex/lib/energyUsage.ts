@@ -453,6 +453,12 @@ export interface EnergyRange {
   contracts: Doc<'energyContracts'>[]
   /** Each day's measured hours with their price, only with `solar`. */
   solarDays: EnergySolarDay[]
+  /**
+   * Per day, only with `solar`: what sending back earned in cents (negative),
+   * net metering included, priced from electricity alone. A day whose gas has
+   * no price yet still has it; null when its electricity has none (APP-920).
+   */
+  exportCents: (number | null)[]
 }
 
 /**
@@ -470,7 +476,9 @@ export async function computeEnergyRange(
 ): Promise<EnergyRange> {
   const first = days[0]
   const last = days[days.length - 1]
-  if (!first || !last) return { days: [], hours: [], contracts: [], solarDays: [] }
+  if (!first || !last) {
+    return { days: [], hours: [], contracts: [], solarDays: [], exportCents: [] }
+  }
   const start = amsterdamDayStart(first)
   const end = amsterdamDayStart(addDays(last, 1))
   const hasSolar = channels.some((each) => each.channel.kind === 'solar')
@@ -654,6 +662,8 @@ export async function computeEnergyRange(
     (each) => !each.manual && each.channel.kind === 'gridImport',
   )
 
+  // Electricity alone, without gas, for what the roof sent back (APP-920).
+  const electricity: (EnergyCost | null)[] = []
   const result: EnergyDay[] = days.map((day) => {
     const bucket = dayBuckets.get(day) ?? emptyBucket()
     const base = {
@@ -672,6 +682,7 @@ export async function computeEnergyRange(
     // Fixed costs run on every day of a contract, also one without usage or
     // prices (APP-635); null when the contract has none.
     const fixed = contract ? energyDayFixedCost(day, contract) : null
+    electricity.push(null)
     if (!bucket.hasData) {
       return {
         ...base,
@@ -715,6 +726,11 @@ export async function computeEnergyRange(
       gasMarketEurPerM3: average(prices.gas, dayStart, dayEnd),
     }
     const priced = energyDayCost(use, contract as EnergyContractTerms)
+    if (options.solar) {
+      electricity[electricity.length - 1] =
+        priced ??
+        energyDayCost({ ...use, gasM3: null }, contract as EnergyContractTerms)
+    }
     const costWithoutNet = priced ?? fixed
     return {
       ...base,
@@ -724,7 +740,16 @@ export async function computeEnergyRange(
       costStatus: priced ? ('ok' as const) : ('noPrices' as const),
     }
   })
-  netEachMonth(result, contracts)
+  const netted = netEachMonth(
+    result.map((day) => ({
+      ...day,
+      cost: day.costStatus === 'ok' ? day.costWithoutNet : null,
+    })),
+    contracts,
+  )
+  result.forEach((day, index) => {
+    day.cost = netted[index] ?? day.cost
+  })
 
   const hours: EnergyHour[] = !options.hourly
     ? []
@@ -763,7 +788,14 @@ export async function computeEnergyRange(
       )
     : []
 
-  return { days: result, hours, contracts, solarDays }
+  const exportCents = options.solar
+    ? netEachMonth(
+        result.map((day, index) => ({ ...day, cost: electricity[index] ?? null })),
+        contracts,
+      ).map((cost) => cost?.exportCents ?? null)
+    : []
+
+  return { days: result, hours, contracts, solarDays, exportCents }
 }
 
 /** The first hour any of `channels` has a figure for. */
@@ -832,41 +864,45 @@ function hourTariff({ importKwh, exportKwh }: Bucket): 't1' | 't2' | null {
 
 /**
  * Net metering per month and contract over the days given (a month so far):
- * each costed day under a contract with net metering gets its share of that
- * contract's netting in the month (`energyNetMetering`). Changes `days` in place.
+ * each day with a cost under a contract with net metering gets its share of
+ * that contract's netting in the month (`energyNetMetering`). Returns each
+ * day's cost with net metering, in order; a day without a cost stays null.
  */
 function netEachMonth(
-  days: EnergyDay[],
+  days: readonly {
+    day: string
+    importKwh: number
+    exportKwh: number
+    cost: EnergyCost | null
+  }[],
   contracts: readonly Doc<'energyContracts'>[],
-) {
-  const months = new Map<string, EnergyDay[]>()
-  for (const day of days) {
+): (EnergyCost | null)[] {
+  const result = days.map((day) => day.cost)
+  const months = new Map<string, number[]>()
+  days.forEach((day, index) => {
     const contract = energyContractOn(contracts, day.day)
-    if (
-      day.costStatus !== 'ok' ||
-      !day.costWithoutNet ||
-      !contract ||
-      !netMeteringOn(contract, day.day)
-    ) {
-      continue
-    }
+    if (!day.cost || !contract || !netMeteringOn(contract, day.day)) return
     // Each contract settles its own days: a supplier switch mid-month nets
     // the two parts apart.
     const key = `${contract._id}:${day.day.slice(0, 7)}`
-    months.set(key, [...(months.get(key) ?? []), day])
-  }
-  for (const netted of months.values()) {
+    months.set(key, [...(months.get(key) ?? []), index])
+  })
+  for (const indexes of months.values()) {
     const costs = energyNetMetering(
-      netted.map((day) => ({
-        importKwh: day.importKwh,
-        exportKwh: day.exportKwh,
-        cost: day.costWithoutNet as EnergyCost,
-      })),
+      indexes.map((index) => {
+        const day = days[index] as (typeof days)[number]
+        return {
+          importKwh: day.importKwh,
+          exportKwh: day.exportKwh,
+          cost: day.cost as EnergyCost,
+        }
+      }),
     )
-    netted.forEach((day, index) => {
-      day.cost = costs[index] ?? day.cost
+    indexes.forEach((index, at) => {
+      result[index] = costs[at] ?? result[index] ?? null
     })
   }
+  return result
 }
 
 /** Sum the costs of the days that have one; null when none has. */
