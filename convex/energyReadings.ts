@@ -4,9 +4,10 @@
  *
  * A meter counts up. A reading lower than the one before it on the same
  * channel is refused: a new meter is a new channel, not a correction. One
- * reading per channel per day; typing that day again replaces it. Usage is
- * computed from these rows when it is shown (`energyUsage.ts`), so nothing
- * else is written here.
+ * reading per channel per day; typing that day again replaces it, and a
+ * reading typed by mistake can be deleted (APP-714). Usage and costs are
+ * computed from these rows when they are shown (`energyUsage.ts`), so nothing
+ * else is written or recomputed here.
  *
  * Group-scoped like every Energy function (ADR-0031); a channel outside the
  * Group answers like one that does not exist (ADR-0009).
@@ -237,6 +238,89 @@ export const save = mutation({
       )
     }
     for (const write of writes) await write()
+    return null
+  },
+})
+
+/** How many readings `recent` lists, newest first. */
+export const RECENT_READINGS_LIMIT = 30
+
+/**
+ * The readings typed lately, newest first, so one typed by mistake can be
+ * found and deleted. Only the meters the Group reads itself: what a connected
+ * source measures is never a reading here.
+ */
+export const recent = query({
+  args: { groupSlug: v.string() },
+  returns: v.array(
+    v.object({
+      _id: v.id('energyReadings'),
+      kind: energyChannelKindValidator,
+      tariff: v.optional(energyTariffValidator),
+      unit: energyUnitValidator,
+      value: v.number(),
+      at: v.number(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const site = await primarySiteOf(ctx, group._id)
+    if (!site) return []
+    const { channels } = await manualChannels(ctx, site._id)
+    const perChannel = await Promise.all(
+      channels.map(async (channel) => {
+        const readings = await ctx.db
+          .query('energyReadings')
+          .withIndex('by_channel_at', (q) => q.eq('channelId', channel._id))
+          .order('desc')
+          .take(RECENT_READINGS_LIMIT)
+        return readings.map((reading) => ({
+          _id: reading._id,
+          kind: channel.kind,
+          tariff: channel.tariff,
+          unit: channel.unit,
+          value: reading.value,
+          at: reading.at,
+        }))
+      }),
+    )
+    return perChannel
+      .flat()
+      .sort(
+        (a, b) =>
+          b.at - a.at ||
+          CHANNEL_ORDER.indexOf(a.kind) - CHANNEL_ORDER.indexOf(b.kind) ||
+          (a.tariff ?? '').localeCompare(b.tariff ?? ''),
+      )
+      .slice(0, RECENT_READINGS_LIMIT)
+  },
+})
+
+/**
+ * Delete one typed reading (APP-714). Usage and costs follow by themselves:
+ * they are worked out from the readings that remain, and the days it spread
+ * over are spread again from its neighbours. Only a reading of a meter the
+ * Group reads itself: one of another Group, of a connected source, or that is
+ * gone answers alike, as not found (ADR-0009).
+ */
+export const remove = mutation({
+  args: { groupSlug: v.string(), readingId: v.id('energyReadings') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const reading = await ctx.db.get(args.readingId)
+    const channel = reading ? await ctx.db.get(reading.channelId) : null
+    const source = channel ? await ctx.db.get(channel.sourceId) : null
+    if (
+      !reading ||
+      reading.groupId !== group._id ||
+      channel?.groupId !== group._id ||
+      source?.groupId !== group._id ||
+      source.kind !== 'manual'
+    ) {
+      throw new ConvexError(energyRefusal('readingNotFound'))
+    }
+    await ctx.db.delete(reading._id)
     return null
   },
 })

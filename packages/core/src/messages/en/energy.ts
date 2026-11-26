@@ -152,6 +152,14 @@ export const energy = {
     setupGas: 'Gas',
     setupGasHint: 'A gas meter in the house.',
     setupSubmit: 'Add these meters',
+    /** Deleting a typed reading (APP-714). */
+    recentHeading: 'Typed readings',
+    recentRow: '{value} {unit} on {date}',
+    deleteReading: 'Delete {channel} on {date}',
+    deleteTitle: 'Delete this reading?',
+    deleteBody:
+      '{channel}: {value} {unit} on {date}. Usage and costs for the days around it are worked out again without it.',
+    deleteFailed: 'The reading could not be deleted. Try again.',
   },
   /** Costs per month (section 5). */
   costs: {
@@ -651,5 +659,6 @@ export const energy = {
     assetInvalid: 'Check the numbers: they must be above zero and plausible.',
     assetInFuture: 'Choose today or an earlier day.',
     tooManyAssets: 'There are already 20 panels and batteries. Remove one first.',
+    readingNotFound: 'That reading is not there any more.',
   } satisfies Record<EnergyRefusalCode, string>,
 }
