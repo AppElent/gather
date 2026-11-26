@@ -12,6 +12,7 @@ import {
   testConvex,
 } from '../test/convexHarness'
 import { api } from './_generated/api'
+import type { Id } from './_generated/dataModel'
 import { CONNECTED_APP_READ_ONLY } from './lib/connectedApps'
 import { IDEMPOTENCY_KEY_REQUIRED } from './lib/idempotency'
 
@@ -392,6 +393,93 @@ test('finishing a Todoist connection repeats the redirect URI it set out with', 
   })
   vi.unstubAllGlobals()
   vi.unstubAllEnvs()
+})
+
+describe('a Member who leaves while the provider answers stores no token (APP-908)', () => {
+  type Harness = Awaited<ReturnType<typeof seed>>['t']
+  /**
+   * Alice finishes connecting `provider` to Away, and `during` runs while the
+   * provider answers. Carla already holds Away's Todoist connection.
+   */
+  async function finishConnecting(
+    provider: 'todoist' | 'notion',
+    during: (t: Harness, away: Id<'groups'>) => Promise<unknown>,
+  ) {
+    const seeded = await seed()
+    const { t, carlaId } = seeded
+    const away = await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', AWAY))
+        .unique()
+      await ctx.db.insert('integrationConnections', {
+        groupId: group!._id,
+        provider: 'todoist',
+        accessToken: 'carla-token',
+        accountLabel: 'Todoist',
+        connectedBy: carlaId,
+      })
+      return group!._id
+    })
+    for (const name of ['TODOIST', 'NOTION']) {
+      vi.stubEnv(`${name}_CLIENT_ID`, 'client')
+      vi.stubEnv(`${name}_CLIENT_SECRET`, 'secret')
+    }
+    vi.stubGlobal('fetch', async () => {
+      await during(t, away)
+      return Response.json({ access_token: 'alice-token' })
+    })
+    const finished = t
+      .withIdentity(alice)
+      .action(api.integrations.completeOAuth, {
+        provider,
+        groupSlug: AWAY,
+        code: 'code',
+        redirectUri: 'https://gather.example/integrations/callback',
+      })
+    const awayTokens = () =>
+      t.run(async (ctx) =>
+        (
+          await ctx.db
+            .query('integrationConnections')
+            .withIndex('by_group_provider', (q) => q.eq('groupId', away))
+            .collect()
+        ).map((r) => [r.provider, r.accessToken, r.connectedBy]),
+      )
+    return { ...seeded, finished, awayTokens }
+  }
+
+  const leave = (t: Harness, away: Id<'groups'>) =>
+    t.withIdentity(alice).mutation(api.groups.leaveGroup, { groupId: away })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+  })
+
+  test('a new connection is not stored', async () => {
+    const run = await finishConnecting('notion', leave)
+    await expect(run.finished).rejects.toThrow('groups:not-a-member')
+    expect(await run.awayTokens()).toEqual([
+      ['todoist', 'carla-token', run.carlaId],
+    ])
+  })
+
+  test("the Group's existing connection is not replaced", async () => {
+    const run = await finishConnecting('todoist', leave)
+    await expect(run.finished).rejects.toThrow('groups:not-a-member')
+    expect(await run.awayTokens()).toEqual([
+      ['todoist', 'carla-token', run.carlaId],
+    ])
+  })
+
+  test('a Member who stays replaces it', async () => {
+    const run = await finishConnecting('todoist', async () => {})
+    await run.finished
+    expect(await run.awayTokens()).toEqual([
+      ['todoist', 'alice-token', run.aliceId],
+    ])
+  })
 })
 
 test('a Group deleted while the provider answers keeps no token (APP-877)', async () => {
