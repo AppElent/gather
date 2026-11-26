@@ -1,3 +1,4 @@
+import { NOTE_MAX_CHARS } from '@gather/core/notes'
 import { ConvexError } from 'convex/values'
 import { z } from 'zod'
 import { api } from '../../../../convex/_generated/api'
@@ -15,7 +16,14 @@ import { groupId, idempotencyKey } from './shared'
 const MIN_QUERY = 2
 
 const title = z.string().min(1).max(200)
-const body = z.string().max(20_000).describe('Plain text or Markdown')
+// The cap is advertised, not enforced here: Convex counts title and body
+// together and is the one that refuses, with `notes:too-long` (APP-827).
+const body = z
+  .string()
+  .meta({ maxLength: NOTE_MAX_CHARS })
+  .describe(
+    `Plain text or Markdown. Title and body together hold at most ${NOTE_MAX_CHARS} characters.`,
+  )
 
 function publicNote(note: {
   _id: string
