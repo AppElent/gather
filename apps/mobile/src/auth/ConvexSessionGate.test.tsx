@@ -11,6 +11,7 @@ const harness = vi.hoisted(() => ({
    * while unanswered. */
   viewer: undefined as string | null | undefined,
   provisioningFailed: false,
+  provisioningDeleted: false,
   reauthenticate: vi.fn(),
   retryProvisioning: vi.fn(),
   signOut: vi.fn(),
@@ -34,6 +35,7 @@ vi.mock('convex/react', () => ({
 vi.mock('../convex/useEnsureUser', () => ({
   useEnsureUser: () => ({
     failed: harness.provisioningFailed,
+    deleted: harness.provisioningDeleted,
     retry: harness.retryProvisioning,
   }),
 }))
@@ -54,6 +56,14 @@ vi.mock('../components/SessionError', () => ({
       <button type="button" onClick={props.onRetry}>
         Try again
       </button>
+      <button type="button" onClick={props.onSignOut}>
+        Sign out
+      </button>
+    </div>
+  ),
+  AccountBeingDeleted: (props: { onSignOut: () => void }) => (
+    <div>
+      <p>Being deleted</p>
       <button type="button" onClick={props.onSignOut}>
         Sign out
       </button>
@@ -95,6 +105,7 @@ describe('ConvexSessionGate', () => {
     harness.isAuthenticated = true
     harness.viewer = undefined
     harness.provisioningFailed = false
+    harness.provisioningDeleted = false
     harness.reauthenticate.mockReset()
     harness.retryProvisioning.mockReset()
     harness.signOut.mockReset()
@@ -142,6 +153,20 @@ describe('ConvexSessionGate', () => {
     harness.provisioningFailed = true
     const { container } = renderGate()
     expect(button(container, 'Try again')).toBeDefined()
+  })
+
+  test('an account another phone is deleting says so and offers Sign out alone, without waiting', async () => {
+    harness.viewer = null
+    harness.provisioningDeleted = true
+    const { container } = renderGate()
+    expect(container.textContent).toContain('Being deleted')
+    expect(button(container, 'Try again')).toBeUndefined()
+
+    await advance(GATE_STUCK_MS)
+    expect(container.textContent).toContain('Being deleted')
+
+    act(() => button(container, 'Sign out')?.click())
+    expect(harness.signOut).toHaveBeenCalledOnce()
   })
 
   test('a gate that closes again later starts a fresh clock', async () => {

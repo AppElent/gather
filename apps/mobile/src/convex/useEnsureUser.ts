@@ -19,8 +19,11 @@
  * and nothing else.
  *
  * It has one refusal that is not a failure: an account that is mid-deletion,
- * which the backend rejects rather than re-provisioning (ADR-0032). The screen
- * that asked for the deletion is already signing out, so that one is swallowed.
+ * which the backend rejects rather than re-provisioning (ADR-0032). It is
+ * reported as `deleted`, not `failed`: retrying cannot help, and the gate says
+ * so on a phone other than the one that asked for the deletion (APP-939). The
+ * phone that asked never sees it, because once the purge starts
+ * `AccountDeleteProvider` unmounts the gate and with it this hook.
  * Anything else is reported as `failed`, because an account with no `users` row
  * is held behind `ConvexSessionGate` until it has one — swallowing it would
  * leave the person on a loading screen forever. `retry` runs it again.
@@ -37,6 +40,8 @@ import { api } from './api'
 export interface Provisioning {
   /** The last attempt was refused for a reason other than a deletion. */
   failed: boolean
+  /** The last attempt was refused because the account is being deleted. */
+  deleted: boolean
   retry: () => void
 }
 
@@ -53,6 +58,7 @@ export function useEnsureUser(): Provisioning {
   const name = clerkUserName(user)
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)
+  const [deleted, setDeleted] = useState(false)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is the retry signal
   useEffect(() => {
@@ -60,10 +66,14 @@ export function useEnsureUser(): Provisioning {
     let current = true
     ensureUser({ name })
       .then(() => {
-        if (current) setFailed(false)
+        if (!current) return
+        setFailed(false)
+        setDeleted(false)
       })
       .catch((error: unknown) => {
-        if (current && !isAccountDeletedError(error)) setFailed(true)
+        if (!current) return
+        if (isAccountDeletedError(error)) setDeleted(true)
+        else setFailed(true)
       })
     return () => {
       current = false
@@ -72,8 +82,9 @@ export function useEnsureUser(): Provisioning {
 
   const retry = useCallback(() => {
     setFailed(false)
+    setDeleted(false)
     setAttempt((count) => count + 1)
   }, [])
 
-  return { failed, retry }
+  return { failed, deleted, retry }
 }

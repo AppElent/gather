@@ -24,7 +24,7 @@ export const manifest = query({
   args: {},
   handler: async (ctx): Promise<ExportManifest | null> => {
     const user = await getCurrentUser(ctx)
-    if (!user || user.deletedAt) return null
+    if (!user) return null
     return exportManifest(ctx, user)
   },
 })
@@ -41,7 +41,7 @@ export const page = query({
       return readExportPage(ctx, { ...args, me: user, group })
     }
     const user = await getCurrentUser(ctx)
-    if (!user || user.deletedAt) throw notSignedInError()
+    if (!user) throw notSignedInError()
     return readExportPage(ctx, { ...args, me: user, group: null })
   },
 })

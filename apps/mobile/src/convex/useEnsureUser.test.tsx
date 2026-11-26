@@ -88,10 +88,23 @@ describe('useEnsureUser', () => {
     expect(result.current.failed).toBe(false)
   })
 
-  test('does not report an account mid-deletion as a failure: that screen is already signing out', async () => {
+  test('reports an account mid-deletion as deleted, not as a failure to retry', async () => {
     backend.ensureUser.mockRejectedValue(new ConvexError(ACCOUNT_DELETED))
     const { result } = renderHook()
     await settle()
     expect(result.current.failed).toBe(false)
+    expect(result.current.deleted).toBe(true)
+  })
+
+  test('a later attempt that succeeds clears deleted', async () => {
+    backend.ensureUser.mockRejectedValue(new ConvexError(ACCOUNT_DELETED))
+    const { result } = renderHook()
+    await settle()
+    expect(result.current.deleted).toBe(true)
+
+    backend.ensureUser.mockResolvedValue('user-id')
+    act(() => result.current.retry())
+    await settle()
+    expect(result.current.deleted).toBe(false)
   })
 })
