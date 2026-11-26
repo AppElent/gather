@@ -169,6 +169,36 @@ describe('ConvexSessionGate', () => {
     expect(harness.signOut).toHaveBeenCalledOnce()
   })
 
+  test('a phone already open when its account starts being deleted asks again and says so, without waiting (APP-949)', async () => {
+    harness.viewer = 'user_A'
+    const { container, rerender } = renderGate()
+    expect(container.textContent).toBe('signed-in tree')
+
+    // Another phone starts the deletion: `users.me` turns null.
+    harness.viewer = null
+    rerender()
+    await advance(0)
+    expect(harness.retryProvisioning).toHaveBeenCalledOnce()
+
+    // The re-run is refused for the deletion.
+    harness.provisioningDeleted = true
+    rerender()
+    expect(container.textContent).toContain('Being deleted')
+    expect(button(container, 'Try again')).toBeUndefined()
+
+    rerender()
+    await advance(1_000)
+    expect(harness.retryProvisioning).toHaveBeenCalledOnce()
+  })
+
+  test('a first sign-in with no row yet does not re-run provisioning', async () => {
+    harness.viewer = null
+    const { rerender } = renderGate()
+    rerender()
+    await advance(1_000)
+    expect(harness.retryProvisioning).not.toHaveBeenCalled()
+  })
+
   test('a gate that closes again later starts a fresh clock', async () => {
     harness.viewer = 'user_A'
     const { container, rerender } = renderGate()

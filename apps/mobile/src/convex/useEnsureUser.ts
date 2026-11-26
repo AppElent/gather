@@ -21,7 +21,8 @@
  * It has one refusal that is not a failure: an account that is mid-deletion,
  * which the backend rejects rather than re-provisioning (ADR-0032). It is
  * reported as `deleted`, not `failed`: retrying cannot help, and the gate says
- * so on a phone other than the one that asked for the deletion (APP-939). The
+ * so on a phone other than the one that asked for the deletion (APP-939); a
+ * phone already open then is asked again by the gate (APP-949). The
  * phone that asked never sees it, because once the purge starts
  * `AccountDeleteProvider` unmounts the gate and with it this hook.
  * Anything else is reported as `failed`, because an account with no `users` row
