@@ -13,9 +13,22 @@ pnpm --filter @gather/tv run ios        # builds and starts Metro on port 8094
 
 ## EAS profiles
 
-`development` is a simulator build. `preview` is a store build under the phone's
-preview bundle ID. Neither can build yet: the app has no EAS project. Decide that
-first, including whether it shares the phone's remote build number.
+The app has its own EAS project, `@appelent/gather-tv`, separate from the
+phone's (APP-860). expo-updates reports tvOS as `ios`, so a shared project would
+keep a TV update off phones only by channel and runtime; a separate project and
+update URL rule it out. The project also keeps its own remote build number, and
+tvOS has its own build train in App Store Connect, so it cannot clash with the
+phone.
+
+| Profile | Build | Channel |
+| --- | --- | --- |
+| `development` | simulator, Debug | `development` |
+| `preview` | store, `com.appelent.gather.preview` | `preview` |
+| `production` | store, `com.appelent.gather` | `production` |
+
+No profile has been built yet; the first build, its credentials and the OTA job
+belong to APP-648. `scripts/tv-isolation.test.ts` checks the project, update URL
+and channels.
 
 ## Before changing a dependency
 

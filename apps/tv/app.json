@@ -1,11 +1,19 @@
 {
   "expo": {
     "name": "Gather",
-    "slug": "gather",
+    "slug": "gather-tv",
     "platforms": ["ios"],
     "version": "1.0.0",
     "scheme": "gather",
     "userInterfaceStyle": "automatic",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9484de6c-4aeb-4d49-b5c9-83f3779b0dee",
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
+    },
     "ios": {
       "bundleIdentifier": "com.appelent.gather",
       "infoPlist": {
@@ -17,6 +25,11 @@
       "expo-localization",
       ["@react-native-tvos/config-tv", { "isTV": true }]
     ],
+    "extra": {
+      "eas": {
+        "projectId": "9484de6c-4aeb-4d49-b5c9-83f3779b0dee"
+      }
+    },
     "owner": "appelent"
   }
 }

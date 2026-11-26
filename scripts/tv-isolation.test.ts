@@ -163,3 +163,43 @@ test.each(['production', 'preview', 'development'])(
     expect(identity(tvConfig)).toEqual(identity(phoneConfig))
   },
 )
+
+/**
+ * expo-updates reports tvOS as `ios`, so only the EAS project keeps a TV update
+ * off phones: the TV app has its own project, update URL and channels (APP-860).
+ */
+const appJson = (app: string) =>
+  JSON.parse(fs.readFileSync(path.join(repo, 'apps', app, 'app.json'), 'utf8')).expo
+const easJson = (app: string) =>
+  JSON.parse(fs.readFileSync(path.join(repo, 'apps', app, 'eas.json'), 'utf8'))
+
+test('a TV update cannot reach a phone build: the TV app has its own EAS project', () => {
+  const phone = appJson('mobile')
+  const tv = appJson('tv')
+  const tvProject = tv.extra?.eas?.projectId
+  expect(tvProject).toMatch(/^[0-9a-f-]{36}$/)
+  expect(tvProject).not.toBe(phone.extra.eas.projectId)
+  expect(tv.slug).not.toBe(phone.slug)
+  expect(tv.updates.url).toBe(`https://u.expo.dev/${tvProject}`)
+  expect(tv.updates.url).not.toBe(phone.updates.url)
+  expect(tv.owner).toBe(phone.owner)
+})
+
+test.each(['production', 'preview', 'development'])(
+  'the TV app has a %s build profile on its own channel',
+  (variant) => {
+    const profile = easJson('tv').build[variant]
+    expect(profile).toMatchObject({
+      channel: variant,
+      environment: variant,
+      env: { APP_VARIANT: variant, EXPO_TV: '1' },
+    })
+  },
+)
+
+test('the TV build number comes from its own project, separate from the phone', () => {
+  expect(easJson('tv').cli.appVersionSource).toBe('remote')
+  for (const variant of ['production', 'preview']) {
+    expect(easJson('tv').build[variant].autoIncrement).toBe(true)
+  }
+})

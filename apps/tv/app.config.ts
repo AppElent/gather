@@ -33,8 +33,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
     name,
-    // ExpoConfig requires it; `config` types every field as optional.
-    slug: 'gather',
+    // ExpoConfig requires it; `config` types every field as optional. Not the
+    // phone's slug: the TV app has its own EAS project (APP-860).
+    slug: 'gather-tv',
     scheme,
     ios: {
       ...config.ios,
