@@ -180,6 +180,8 @@ test('a TV update cannot reach a phone build: the TV app has its own EAS project
   expect(tvProject).toMatch(/^[0-9a-f-]{36}$/)
   expect(tvProject).not.toBe(phone.extra.eas.projectId)
   expect(tv.slug).not.toBe(phone.slug)
+  // EAS links a build by the resolved slug, which app.config.ts sets.
+  expect(tvConfig({ config: tv } as Parameters<typeof tvConfig>[0]).slug).toBe(tv.slug)
   expect(tv.updates.url).toBe(`https://u.expo.dev/${tvProject}`)
   expect(tv.updates.url).not.toBe(phone.updates.url)
   expect(tv.owner).toBe(phone.owner)
