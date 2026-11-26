@@ -101,3 +101,56 @@ test('text a commit did not take stays, over a change from elsewhere, and is tri
   expect(seen).toEqual(['mine', 'mine'])
   view.unmount()
 })
+
+/** Both mechanisms in one caller: `keep` and a commit returning `false` (APP-829). */
+function both() {
+  let field = {} as ReturnType<typeof useDebouncedText>
+  const state = { take: true, seen: [] as string[] }
+  function Probe({ value }: { value: string }) {
+    field = useDebouncedText(
+      value,
+      (next) => {
+        state.seen.push(next)
+        return state.take ? undefined : false
+      },
+      { onBlurOnly: true },
+    )
+    return null
+  }
+  const view = mount(<Probe value="Old" />)
+  const refuse = (typed: string) => {
+    act(() => field.change(typed))
+    act(() => field.blur())
+    act(() => field.keep(typed))
+  }
+  return { field: () => field, state, refuse, unmount: view.unmount }
+}
+
+test('a refused text a blur could not send either stays refused: leaving does not send it', () => {
+  const { field, state, refuse, unmount } = both()
+  refuse('New')
+  state.take = false
+  act(() => field().blur())
+  expect(field().draft).toBe('New')
+  unmount()
+  expect(state.seen).toEqual(['New', 'New'])
+})
+
+test('a refused text a blur could not send is sent by the next blur', () => {
+  const { field, state, refuse } = both()
+  refuse('New')
+  state.take = false
+  act(() => field().blur())
+  state.take = true
+  act(() => field().blur())
+  act(() => field().blur())
+  expect(state.seen).toEqual(['New', 'New', 'New'])
+})
+
+test('a refused text saved another way is not sent again by a blur', () => {
+  const { field, state, refuse } = both()
+  refuse('New')
+  act(() => field().settle('New'))
+  act(() => field().blur())
+  expect(state.seen).toEqual(['New'])
+})

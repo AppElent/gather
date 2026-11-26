@@ -1174,6 +1174,13 @@ export const en = {
     today: 'Today',
     /** The alert before a delete, which is permanent in Gather today. */
     deleteBody: 'This cannot be undone.',
+    /** A save failed for another reason than the note's own rules (APP-829). */
+    notSaved: 'Not saved yet. It is tried again when you leave this note.',
+    /** Kept unsaved text, not put back because its field changed since. */
+    keptNotPutBack:
+      'This note changed since you left it, so your unsaved text was not put back.',
+    putBack: 'Put back my text',
+    discardKept: 'Discard my text',
   },
 
   /**

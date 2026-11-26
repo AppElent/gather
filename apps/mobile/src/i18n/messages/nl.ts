@@ -849,6 +849,12 @@ export const nl = {
       'De opmaakbalk is getekend, niet aangesloten: dit prototype gaat over de vorm.',
     today: 'Vandaag',
     deleteBody: 'Dit kan niet ongedaan worden gemaakt.',
+    notSaved:
+      'Nog niet opgeslagen. Het wordt opnieuw geprobeerd als je deze notitie verlaat.',
+    keptNotPutBack:
+      'Deze notitie is veranderd sinds je haar verliet, dus je niet-opgeslagen tekst is niet teruggezet.',
+    putBack: 'Mijn tekst terugzetten',
+    discardKept: 'Mijn tekst weggooien',
   },
 
   notifications: {
