@@ -58,9 +58,12 @@
  * Convex to authenticate afresh and re-run `ensureUser`) or Sign out
  * (`closedGateView`). One cause it can name early: `ensureUser` refusing an
  * account that is being deleted (usually from another phone), which draws
- * `AccountBeingDeleted` with Sign out alone (APP-939). The gate owns
- * provisioning for that reason: a signed-in account with no `users` row is
- * held here until it has one.
+ * `AccountBeingDeleted` with Sign out alone (APP-939). A phone that was
+ * already open when the deletion started learns it the same way: when
+ * `users.me` turns `null` for the account the gate had confirmed, the gate
+ * re-runs `ensureUser` once rather than waiting out the clock (APP-949). The
+ * gate owns provisioning for that reason: a signed-in account with no `users`
+ * row is held here until it has one.
  */
 import { useAuth } from '@clerk/expo'
 import { useConvexAuth } from 'convex/react'
@@ -74,6 +77,7 @@ import {
 import { useReauthenticate } from '../convex/ClerkConvexAuth'
 import { QueryCacheProvider } from '../convex/QueryCacheProvider'
 import { type Provisioning, useEnsureUser } from '../convex/useEnsureUser'
+import { useDeletionInProgress } from '../features/account/delete/account-delete-provider'
 import { useTokens } from '../theme/tokens'
 import { SessionIdentityBoundary } from './SessionIdentityBoundary'
 import {
@@ -143,7 +147,32 @@ function Gate({
   // Adjusted during render, React's pattern for state derived from a changing
   // input; `confirmSession` returns the same object once it has converged.
   const next = confirmSession(confirmation, input)
+  // A confirmed account whose `users` row stops answering — `users.me` turns
+  // `null` while the gate is up — has most likely started being deleted from
+  // another phone. Nothing else would re-run `ensureUser` here, so this phone
+  // would wait out `GATE_STUCK_MS` before it could say so (APP-949). Asking
+  // once lets the refusal name the cause straight away. Deleting Gather's data
+  // only releases the login at once, so there the same call provisions a fresh
+  // account, as it would on any sign-in. Detected against the confirmation
+  // before this render folds the `null` in, because afterwards nothing says
+  // the row was ever there. Not while this phone runs the deletion itself:
+  // its provider is about to take the tree away (`AccountDeleteProvider`).
+  const deleting = useDeletionInProgress()
+  const [rowLost, setRowLost] = useState(false)
+  const lostNow =
+    !deleting &&
+    typeof userId === 'string' &&
+    isAuthenticated &&
+    viewer === null &&
+    confirmation.account === userId &&
+    confirmation.confirmed === userId
+  if (lostNow && !rowLost) setRowLost(true)
+  if (viewer && rowLost) setRowLost(false)
   if (next !== confirmation) setConfirmation(next)
+  const { retry: reprovision } = provisioning
+  useEffect(() => {
+    if (rowLost) reprovision()
+  }, [rowLost, reprovision])
 
   const open = isSessionOpen(input, next)
   const quiet = <View style={{ flex: 1, backgroundColor: tokens.ground }} />
