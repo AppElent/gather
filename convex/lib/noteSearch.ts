@@ -282,12 +282,27 @@ export async function findNotes(
     .map(({ note }) => note)
 }
 
-/** The first line with anything on it: what a result row shows under the title. */
+/**
+ * How many UTF-16 code units of a note's first line its excerpt keeps: more
+ * than a result row shows, and small enough that a note of one long line is
+ * not answered twice, as its body and again as its excerpt (APP-828).
+ */
+export const EXCERPT_MAX = 200
+
+/**
+ * The first line with anything on it, trimmed and cut at `EXCERPT_MAX` with an
+ * ellipsis: what a result row shows under the title. The cut never splits a
+ * surrogate pair. The `…` is punctuation, the same in every language, not
+ * catalog text: the phone's row wraps, so without it a cut would not show.
+ */
 export function noteExcerpt(body: string): string {
-  return (
-    body
-      .split('\n')
-      .find((line) => line.trim())
-      ?.trim() ?? ''
-  )
+  const start = body.search(/\S/)
+  if (start === -1) return ''
+  const end = body.indexOf('\n', start)
+  const line = body.slice(start, end === -1 ? undefined : end).trimEnd()
+  if (line.length <= EXCERPT_MAX) return line
+  let cut = EXCERPT_MAX
+  const last = line.charCodeAt(cut - 1)
+  if (last >= 0xd800 && last <= 0xdbff) cut -= 1
+  return `${line.slice(0, cut).trimEnd()}…`
 }

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
-import { noteSearchText } from './lib/noteSearch'
+import { EXCERPT_MAX, noteSearchText } from './lib/noteSearch'
 
 const alice = {
   subject: 'notes_alice',
@@ -219,6 +219,19 @@ describe('searching notes', () => {
       pinned: false,
       updatedByName: 'Alice',
     })
+  })
+
+  test('a note of one long line answers its body once, with a short excerpt', async () => {
+    const { t } = await seed()
+    const body = `boiler ${'x'.repeat(50_000)}`
+    await addNote(t, 'Manual', body)
+    const [found] = await t.withIdentity(alice).query(api.notes.searchNotes, {
+      groupSlug: 'notes-first',
+      query: 'boiler',
+    })
+    expect(found?.body).toBe(body)
+    expect(found?.excerpt).toBe(`${body.slice(0, EXCERPT_MAX)}…`)
+    expect(found?.excerpt.startsWith('boiler x')).toBe(true)
   })
 
   test('a word is found inside a longer one, whole words and prefixes first', async () => {
