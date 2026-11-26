@@ -231,7 +231,8 @@ async function finishAccount(
   // Whatever memberships are left were shared Groups when the purge began —
   // the solo ones went with their Group. Who else is in one is read again
   // here, not taken from then (APP-882): when everybody else in it is gone or
-  // being deleted too, or it was made after the purge began, leaving it would
+  // being deleted too, or it was made after the purge began (by a request
+  // already in flight; the account is refused since), leaving it would
   // strand a Group with no Members, so it is destroyed instead. Whichever
   // purge gets there first does that; the others find the membership gone.
   const membership = await ctx.db
