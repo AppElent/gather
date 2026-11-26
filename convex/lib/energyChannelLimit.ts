@@ -23,24 +23,26 @@ const MONTH_MS = 31 * DAY_MS + HOUR_MS
  *
  *   intervals   30 channels × 745 hours                          22,350
  *   prices      (market + account) × 745 × 4 quarters + gas 745   6,705
- *   channels    330, and the first and last hour of each            990
+ *   channels    330, each one's first hour and the hours on
+ *               either side of the month's end                    1,320
  *   solar       first hour of each solar and battery channel,
  *               twice for solar (`energySolar.month`)               120
- *                                                          total 30,165
+ *                                                          total 30,495
  *
  * 330 is every channel a connection can ever have: a choice takes up a retired
  * channel of its kind and tariff before one is added, so each of the 11 kinds
- * and tariffs stays at 30. They cost three index ranges each, about 1,000,
+ * and tariffs stays at 30. They cost four index ranges each, about 1,300,
  * and solar's first hours one each, 120 more. A document is some 200 bytes,
  * so this is about 6 of the 16 MiB allowed. The rest (typed readings,
  * contracts, the manual source, solar assets, the Group) has no hard bound
- * and the 1,835 left, far more than a household types. `day` reads its month
+ * and the 1,505 left, far more than a household types. `day` reads its month
  * or itself, never both. A realistic site, seven channels and one price feed,
  * scans about 9,000.
  *
  * Payback reads one `energySolar.month` per past month (APP-921). None of
  * them reads the Home Assistant source the hourly sync patches
- * (`siteChannels`), so a past month re-runs only when its own rows change.
+ * (`siteChannels`) or a channel's newest hour (`measuredSpan`), so an hourly
+ * sync leaves past months be.
  */
 export const MAX_CHANNELS = 30
 

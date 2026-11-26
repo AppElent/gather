@@ -375,19 +375,44 @@ function average(slots: readonly PriceSlot[], from: number, to: number) {
  * catch-up (for example the number of hours it covers), which is a schema
  * change.
  */
-export async function measuredSpan(ctx: QueryCtx, channelId: Id<'energyChannels'>) {
+export async function measuredSpan(
+  ctx: QueryCtx,
+  channelId: Id<'energyChannels'>,
+  /**
+   * The end of the range asked about. The span is then exact before it and
+   * only reaches past it: the newest hour is never read, so each new one
+   * leaves a past month be (APP-921).
+   */
+  until?: number,
+) {
   const hours = () =>
     ctx.db
       .query('energyIntervals')
       .withIndex('by_channel_hour', (q) => q.eq('channelId', channelId))
-  const [first, last] = await Promise.all([
-    hours().order('asc').first(),
-    hours().order('desc').first(),
+  const first = await hours().order('asc').first()
+  if (!first) return null
+  if (until === undefined) {
+    const last = await hours().order('desc').first()
+    return { from: first.hourStart, to: (last ?? first).hourStart + HOUR_MS }
+  }
+  const [before, after] = await Promise.all([
+    ctx.db
+      .query('energyIntervals')
+      .withIndex('by_channel_hour', (q) =>
+        q.eq('channelId', channelId).lt('hourStart', until),
+      )
+      .order('desc')
+      .first(),
+    ctx.db
+      .query('energyIntervals')
+      .withIndex('by_channel_hour', (q) =>
+        q.eq('channelId', channelId).gte('hourStart', until),
+      )
+      .first(),
   ])
-  if (!first || !last) return null
   return {
     from: first.hourStart,
-    to: last.hourStart + HOUR_MS,
+    to: (after ?? before ?? first).hourStart + HOUR_MS,
   }
 }
 
@@ -527,7 +552,7 @@ export async function computeEnergyRange(
   if (channels.some((each) => each.manual)) {
     await Promise.all(
       hourly.map(async ({ channel }) => {
-        const span = await measuredSpan(ctx, channel._id)
+        const span = await measuredSpan(ctx, channel._id, end)
         if (span) spans.push({ channel, ...span })
       }),
     )
