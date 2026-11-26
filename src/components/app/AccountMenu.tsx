@@ -1,5 +1,6 @@
-import { useClerk, useUser } from '@clerk/react'
+import { useUser } from '@clerk/react'
 import { Bug, Ellipsis, Languages, LogOut, Settings, Sparkles, UserRound } from 'lucide-react'
+import { useSignOut } from '../../lib/auth/useSignOut'
 import { fmt, type Locale, useI18n } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { MenuButton, MenuLink, MenuSeparator, ShellMenu } from './ShellMenu'
@@ -27,7 +28,7 @@ export function AccountMenu({
   const { locale, messages, setLocale } = useI18n()
   const { accountMenu } = messages.shell
   const { user } = useUser()
-  const { signOut } = useClerk()
+  const signOut = useSignOut()
   const name =
     user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? ''
   const initials = initialsOf(user?.fullName, user?.primaryEmailAddress?.emailAddress)

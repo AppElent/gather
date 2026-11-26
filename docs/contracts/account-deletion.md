@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 3.3.0
+version: 3.4.0
 status: current
 ---
 
@@ -187,6 +187,9 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   once the purge starts. The `deleteSelfEnabled` gate is the phone's
   (`@gather/core/account-deletion`). The confirmation names the account and
   asks for a typed word.
+  Signing out, from the stranded state, after deleting Gather's data, and
+  anywhere else on the web, ends only that session: a second session in the
+  browser stays (APP-872).
 - **The web confirms a recent sign-in before anything is deleted.** Clerk
   deletes a login only within ten minutes of the strongest sign-in factor; a
   browser tab is often older, and finding out after the purge would strand
