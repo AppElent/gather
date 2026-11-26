@@ -824,6 +824,9 @@ export const en = {
   session: {
     title: 'We could not confirm your account',
     body: 'Gather could not check who is signed in. Try again, or sign out and back in.',
+    deletedTitle: 'This account is being deleted',
+    deletedBody:
+      'Gather cannot open it while its data is being removed. Sign out to continue.',
   },
 
   /**

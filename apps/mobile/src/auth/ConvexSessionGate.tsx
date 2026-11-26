@@ -56,15 +56,21 @@
  * never lands, anything else — it never holds anybody for longer than
  * `GATE_STUCK_MS`: after that the same `SessionError` offers Try again (ask
  * Convex to authenticate afresh and re-run `ensureUser`) or Sign out
- * (`closedGateView`). The gate owns provisioning for that reason: a signed-in
- * account with no `users` row is held here until it has one.
+ * (`closedGateView`). One cause it can name early: `ensureUser` refusing an
+ * account that is being deleted (usually from another phone), which draws
+ * `AccountBeingDeleted` with Sign out alone (APP-939). The gate owns
+ * provisioning for that reason: a signed-in account with no `users` row is
+ * held here until it has one.
  */
 import { useAuth } from '@clerk/expo'
 import { useConvexAuth } from 'convex/react'
 import { type ReactNode, useEffect, useState } from 'react'
 import { View } from 'react-native'
 
-import { SessionError } from '../components/SessionError'
+import {
+  AccountBeingDeleted,
+  SessionError,
+} from '../components/SessionError'
 import { useReauthenticate } from '../convex/ClerkConvexAuth'
 import { QueryCacheProvider } from '../convex/QueryCacheProvider'
 import { type Provisioning, useEnsureUser } from '../convex/useEnsureUser'
@@ -163,12 +169,14 @@ function Gate({
   }, [open, retries])
 
   if (!open) {
+    const noRow = isAuthenticated && viewer === null
     const view = closedGateView({
       revealed,
       stuck: stuckAt === retries,
-      provisioningRefused:
-        isAuthenticated && viewer === null && provisioning.failed,
+      provisioningRefused: noRow && provisioning.failed,
+      accountDeleted: noRow && provisioning.deleted,
     })
+    if (view === 'deleted') return <AccountBeingDeleted onSignOut={onSignOut} />
     if (view === 'recover') {
       const retry = () => {
         reauthenticate()

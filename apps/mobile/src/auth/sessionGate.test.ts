@@ -117,7 +117,12 @@ describe('ConvexSessionGate decision', () => {
 })
 
 describe('closedGateView', () => {
-  const waiting = { revealed: false, stuck: false, provisioningRefused: false }
+  const waiting = {
+    revealed: false,
+    stuck: false,
+    provisioningRefused: false,
+    accountDeleted: false,
+  }
 
   test('stays quiet, then admits it is waiting', () => {
     expect(closedGateView(waiting)).toBe('quiet')
@@ -134,5 +139,17 @@ describe('closedGateView', () => {
     expect(closedGateView({ ...waiting, provisioningRefused: true })).toBe(
       'recover',
     )
+  })
+
+  test('says an account another phone is deleting is being deleted, at once and even once stuck', () => {
+    expect(closedGateView({ ...waiting, accountDeleted: true })).toBe('deleted')
+    expect(
+      closedGateView({
+        ...waiting,
+        revealed: true,
+        stuck: true,
+        accountDeleted: true,
+      }),
+    ).toBe('deleted')
   })
 })

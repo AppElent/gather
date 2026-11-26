@@ -581,6 +581,9 @@ export const nl = {
   session: {
     title: 'We konden je account niet bevestigen',
     body: 'Gather kon niet nagaan wie er is ingelogd. Probeer het opnieuw, of log uit en weer in.',
+    deletedTitle: 'Dit account wordt verwijderd',
+    deletedBody:
+      'Gather kan het niet openen terwijl de gegevens worden verwijderd. Log uit om verder te gaan.',
   },
 
   signedIn: {
