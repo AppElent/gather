@@ -258,6 +258,22 @@ describe('testing a connection', () => {
   })
 })
 
+describe('the panels a channel measures', () => {
+  test('a connected solar channel is tied to the site’s one roof (APP-922)', async () => {
+    const seeded = await seed()
+    const roof = await seeded.as.mutation(api.energyAssets.save, {
+      ...HOME,
+      asset: { kind: 'solar', name: 'Dak' },
+      today: '2026-11-20',
+    })
+    await connect(seeded, [IMPORT, { kind: 'solar', statisticId: 'sensor.solar_total' }])
+    const channels = await rows(seeded.t, 'energyChannels')
+    expect(
+      Object.fromEntries(channels.map((each) => [each.kind, each.assetId])),
+    ).toEqual({ gridImport: undefined, solar: roof })
+  })
+})
+
 describe('who may connect', () => {
   const denied = [
     ['a member who is not an admin', bob, 'adminOnly'],

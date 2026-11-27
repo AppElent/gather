@@ -223,14 +223,20 @@ function Figures({
   const totals = energySolarTotals(
     range === 'today' ? data.days.filter((each) => each.day === today) : data.days,
   )
-  if (totals.producedKwh === null && totals.battery === null) {
+  // The charge level is the battery's now, so the month shows it too (APP-922).
+  const todayHours = period?.hours ?? null
+  const percent =
+    data.batterySoc && todayHours ? energySocNow(todayHours) : null
+  if (totals.producedKwh === null && totals.battery === null && percent === null) {
+    // A site that measures only the charge level waits for today's hours.
+    if (data.batterySoc && period === undefined) return null
     return (
       <Text style={[TYPE.body, { color: tokens.muted }]}>
         {range === 'today' ? words.solar.nothingToday : words.solar.nothingMonth}
       </Text>
     )
   }
-  const hours = range === 'today' ? (period?.hours ?? null) : null
+  const hours = range === 'today' ? todayHours : null
   return (
     <>
       <SunCards
@@ -242,7 +248,7 @@ function Figures({
         hours={hours}
         now={now}
       />
-      <BatteryCard data={data} totals={totals} hours={hours} />
+      <BatteryCard data={data} totals={totals} percent={percent} />
       {hours && data.batterySoc ? (
         <EnergyChargeCard day={today} today={today} hours={hours} now={now} />
       ) : null}
@@ -379,18 +385,18 @@ const asBar = (bar: { key: string; height: number; future: boolean }) => ({
 function BatteryCard({
   data,
   totals,
-  hours,
+  percent,
 }: {
   data: EnergySolarMonth
   totals: EnergySolarTotals
-  hours: readonly EnergySolarChartHour[] | null
+  /** The charge level now, when it is measured. */
+  percent: number | null
 }) {
   const tokens = useTokens('home')
   const { t, locale } = useI18n()
   const words = t.energy
   const card = energyBatteryCard(totals, words, locale)
-  if (!card) return null
-  const percent = hours ? energySocNow(hours) : null
+  if (!card && percent === null) return null
   const stored = energyStoredLine(
     percent,
     energyAssetTotal(
@@ -425,7 +431,7 @@ function BatteryCard({
         </View>
       ) : null}
       <View>
-        {card.rows.map((row, index) => (
+        {card?.rows.map((row, index) => (
           <View
             key={row.key}
             accessible
@@ -458,10 +464,10 @@ function BatteryCard({
           </View>
         ))}
       </View>
-      {card.note ? (
+      {card?.note ? (
         <Text style={[TYPE.subhead, { color: tokens.ink }]}>{card.note}</Text>
       ) : null}
-      {card.footnote ? (
+      {card?.footnote ? (
         <Text style={[TYPE.footnote, { color: tokens.muted }]}>
           {card.footnote}
         </Text>

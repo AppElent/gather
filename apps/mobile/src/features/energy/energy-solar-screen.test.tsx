@@ -135,6 +135,39 @@ test('the month: a bar per day against the average', async () => {
   )
   expect(byTestId('energy-average')).not.toBeNull()
   expect(byTestId('energy-soc-chart')).toBeNull()
+  // The charge level is now's, whichever range (APP-922).
+  expect(byTestId('energy-solar-battery')?.textContent).toContain('64%')
+  view.unmount()
+})
+
+test('a charge level alone shows the battery, today and this month (APP-922)', async () => {
+  const month = solarMonth()
+  energyState.queries['energySolar:month'] = {
+    ...month,
+    solar: false,
+    battery: false,
+    batterySoc: true,
+    firstDay: null,
+    days: month.days.map((day) => ({
+      ...day,
+      producedKwh: null,
+      selfUsedKwh: null,
+      returnedKwh: null,
+      selfUsedEur: null,
+      ownKwh: null,
+      battery: null,
+      solarEur: null,
+      batteryEur: null,
+    })),
+  }
+  const view = open()
+  expect(byTestId('energy-solar-sun')).toBeNull()
+  expect(byTestId('energy-solar-battery')?.textContent).toContain('64%')
+  expect(byTestId('energy-usage-soc')).not.toBeNull()
+  expect(document.body.textContent).not.toContain('Earned')
+  await click('segment-month')
+  expect(byTestId('energy-solar-battery')?.textContent).toContain('64%')
+  expect(byTestId('energy-usage-soc')).toBeNull()
   view.unmount()
 })
 

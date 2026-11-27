@@ -58,7 +58,7 @@ const overviewValidator = v.union(
     siteName: v.string(),
     /**
      * `noHourly`: typed readings only. `noAssets`: hours, but nothing measures
-     * solar or a battery.
+     * solar, a battery or its charge level.
      */
     status: v.union(
       v.literal('ok'),
@@ -94,10 +94,12 @@ export const month = query({
       measured.some((each) => kinds.includes(each.channel.kind))
     const solar = has('solar')
     const battery = has('batteryCharge', 'batteryDischarge')
+    const batterySoc = has('batterySoc')
+    // A charge level alone still has a battery to show (APP-922).
     const status =
       measured.length === 0
         ? ('noHourly' as const)
-        : solar || battery
+        : solar || battery || batterySoc
           ? ('ok' as const)
           : ('noAssets' as const)
     const assets = (await siteAssets(ctx, site._id)).map(
@@ -111,7 +113,7 @@ export const month = query({
       status,
       solar,
       battery,
-      batterySoc: has('batterySoc'),
+      batterySoc,
       assets,
     }
     if (status !== 'ok') return { ...base, firstDay: null, days: [] }

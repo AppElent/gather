@@ -33,6 +33,7 @@ import {
   energySourceStatusValidator,
   energyTariffValidator,
 } from './lib/energy'
+import { linkChannelsToAssets } from './lib/energyAssetLinks'
 import {
   IMPORT_MS,
   MAX_CHANNELS,
@@ -414,6 +415,7 @@ export const saveConnection = internalMutation({
       throw new ConvexError(energyRefusal('tooManyChannels'))
     }
     await reconcileManualChannels(ctx, site._id)
+    await linkChannelsToAssets(ctx, site._id)
     await ctx.scheduler.runAfter(
       0,
       internal.energyHomeAssistant.syncSource,
