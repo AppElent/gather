@@ -521,17 +521,17 @@ export const en = {
      * `{module}` is the Module's name as the catalogue spells it.
      */
     modulePage: {
-      title: '{module} settings',
+      title: coreEn.shell.modulePage.settingsTitle,
       /** The gear's accessible name. */
-      open: '{module} settings',
+      open: coreEn.shell.modulePage.settingsOf,
       /** Under the Modules group: the rows are the gear's pages. */
       footer: 'The same pages as the gear at the top right of each Module.',
       /** Under a group of settings written to this phone only. */
       phoneOnly: 'Kept on this phone, the same in every group.',
       /** Under a grocery list's settings; `{list}` and `{group}` are names. */
-      sharedList: 'For {list}, shared with everyone in {group}.',
+      sharedList: coreEn.shell.modulePage.settingsSharedList,
       /** Under settings the whole Group shares; `{group}` is its name. */
-      shared: 'Shared with everyone in {group}.',
+      shared: coreEn.shell.modulePage.settingsShared,
     },
   },
 
@@ -824,6 +824,9 @@ export const en = {
   session: {
     title: 'We could not confirm your account',
     body: 'Gather could not check who is signed in. Try again, or sign out and back in.',
+    deletedTitle: 'This account is being deleted',
+    deletedBody:
+      'Gather cannot open it while its data is being removed. Sign out to continue.',
   },
 
   /**

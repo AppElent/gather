@@ -389,3 +389,15 @@ test('a preference saves at once', () => {
     { groupSlug: TEST_GROUP.slug, diet: 'vegetarian', on: true },
   ])
 })
+
+test('the preferences are the Meal planner settings page', () => {
+  state.queries['mealPreferences:get'] = {
+    ...resolveMealPreferences(null, members),
+    members,
+  }
+  show(<MealPreferencesPage />)
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Meal planner settings' }),
+  ).toBeTruthy()
+  expect(screen.getByRole('link', { name: 'Back to Meal planner' })).toBeTruthy()
+})

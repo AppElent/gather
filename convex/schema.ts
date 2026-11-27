@@ -150,6 +150,7 @@ export default defineSchema({
     // everywhere (docs/migrations/README.md).
     groceryListId: v.optional(v.id('taskLists')),
   })
+    .index('by_imageId', ['imageId'])
     .index('by_inviteCode', ['inviteCode'])
     .index('by_slug', ['slug']),
 
@@ -195,6 +196,7 @@ export default defineSchema({
     ...recipeFields,
     nutritionStale: v.optional(v.boolean()),
   })
+    .index('by_imageId', ['imageId'])
     .index('by_group', ['groupId'])
     // Old recipes by title word, as the next three `search_` indexes do for
     // theirs (`search.ts`, APP-758). The creator and `done` narrow the read to
@@ -777,7 +779,9 @@ export default defineSchema({
     taskListChosen: v.optional(v.boolean()),
     questionsListChosen: v.optional(v.boolean()),
     order: v.number(),
-  }).index('by_group', ['groupId']),
+  })
+    .index('by_photoId', ['photoId'])
+    .index('by_group', ['groupId']),
 
   babyEvents: defineTable({
     babyId: v.id('babies'),
@@ -794,6 +798,7 @@ export default defineSchema({
     loggedBy: v.id('users'),
     data: babyEventDataValidator,
   })
+    .index('by_photoId', ['photoId'])
     .index('by_baby', ['babyId'])
     .index('by_baby_type', ['babyId', 'type']),
 
@@ -1000,6 +1005,7 @@ export default defineSchema({
     /** Attribution only. Confers no ownership and no access (GLOSSARY.md). */
     createdByUserId: v.id('users'),
   })
+    .index('by_photoId', ['photoId'])
     .index('by_group', ['groupId'])
     .index('by_group_kind', ['groupId', 'kind'])
     // Materialising a catalog entry asks exactly this question, on every log.
@@ -1108,7 +1114,10 @@ export default defineSchema({
     order: v.optional(v.number()),
     /** Attribution only. Confers no ownership and no access (GLOSSARY.md). */
     createdByUserId: v.id('users'),
-  }).index('by_group', ['groupId']),
+  })
+    .index('by_frontPhotoId', ['frontPhotoId'])
+    .index('by_backPhotoId', ['backPhotoId'])
+    .index('by_group', ['groupId']),
 
   // -- Energy (APP-491, ADR-0051) -------------------------------------------
   //

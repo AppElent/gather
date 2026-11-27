@@ -30,7 +30,7 @@ const user = {
 }
 vi.mock('@clerk/react', () => ({
   useUser: () => ({ isLoaded: true, isSignedIn: true, user }),
-  useClerk: () => ({ signOut }),
+  useClerk: () => ({ session: { id: 'sess_current' }, signOut }),
 }))
 
 import { renderWithI18n } from '../i18n/testing'
@@ -72,9 +72,12 @@ describe('ProfilePanel', () => {
     )
   })
 
-  it('signs out', () => {
+  it('signs out of the current session only (APP-872)', () => {
+    signOut.mockResolvedValue(undefined)
     renderWithI18n(<ProfilePanel />)
     fireEvent.click(screen.getByRole('button', { name: /sign out/i }))
-    expect(signOut).toHaveBeenCalled()
+    expect(signOut).toHaveBeenCalledExactlyOnceWith({
+      sessionId: 'sess_current',
+    })
   })
 })

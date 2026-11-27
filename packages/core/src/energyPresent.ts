@@ -541,3 +541,6 @@ export function energyChannelRows(
 
 // -- Prices (APP-493) --------------------------------------------------------------
 export * from './energyPricePresent'
+
+// -- Solar and battery (APP-496) ----------------------------------------------------
+export * from './energySolarPresent'

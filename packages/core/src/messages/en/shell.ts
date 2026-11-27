@@ -132,11 +132,13 @@ export const shell = {
     /** The round search button; `{module}` is the Module's name. */
     searchIn: 'Search in {module}',
     /** The gear, where the Module has a settings page. */
-    settingsOf: 'Settings for {module}',
+    settingsOf: '{module} settings',
     /** A Module's settings page: its title. */
     settingsTitle: '{module} settings',
     /** Under settings the whole Group shares; `{group}` is its name. */
     settingsShared: 'Shared with everyone in {group}.',
+    /** Under one list's settings; `{list}` and `{group}` are names. */
+    settingsSharedList: 'For {list}, shared with everyone in {group}.',
     /** Under settings kept in this browser only. */
     settingsBrowser: 'Kept in this browser, the same in every group.',
     /** The detail panel's close button in the list-and-detail layout. */

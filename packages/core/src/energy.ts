@@ -41,4 +41,5 @@ export function primaryEnergySite<
 
 export * from './energyHomeAssistant'
 export * from './energyPrices'
+export * from './energySolar'
 export * from './energyUsage'

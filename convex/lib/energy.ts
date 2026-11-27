@@ -57,6 +57,16 @@ export const energyAssetKindValidator = v.union(
   v.literal('battery'),
 )
 
+/** Panels or a battery as a Member types them (APP-496). */
+export const energyAssetTermsValidator = v.object({
+  kind: energyAssetKindValidator,
+  name: v.string(),
+  peakWatt: v.optional(v.number()),
+  capacityKwh: v.optional(v.number()),
+  installedOn: v.optional(v.string()), // YYYY-MM-DD
+  purchaseCents: v.optional(v.number()),
+})
+
 export const energyPriceProviderValidator = v.union(
   v.literal('energyzero'),
   v.literal('entsoe'),

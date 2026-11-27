@@ -85,7 +85,7 @@ const cents = (eur: number, locale: string) =>
   )
 
 /** An hour on a day's axis. The end of a day is 24:00, not 00:00. */
-function hourLabel(at: number, day: string, locale: string): string {
+export function energyHourLabel(at: number, day: string, locale: string): string {
   const label = formatEnergyHour(at, locale)
   if (label !== '00:00' && label !== '24:00') return label
   return at > amsterdamDayStart(day) ? '24:00' : '00:00'
@@ -96,8 +96,8 @@ const windowOf = (
   day: string,
   locale: string,
 ) => ({
-  from: hourLabel(block.start, day, locale),
-  to: hourLabel(block.end, day, locale),
+  from: energyHourLabel(block.start, day, locale),
+  to: energyHourLabel(block.end, day, locale),
 })
 
 export interface EnergyPriceBar {
@@ -142,7 +142,7 @@ export function energyPriceChart(
   const said = {
     ...windowOf(cheapest, day, locale),
     average: cents(cheapest.average, locale),
-    hour: hourLabel(expensive.start, day, locale),
+    hour: energyHourLabel(expensive.start, day, locale),
     max: cents(expensive.price, locale),
   }
   return {
@@ -175,7 +175,7 @@ export function energyPriceChart(
       {
         label: copy.factExpensive,
         value: fmt(copy.factHour, {
-          hour: hourLabel(expensive.start, day, locale),
+          hour: energyHourLabel(expensive.start, day, locale),
           price: formatEnergyPrice(expensive.price, locale),
         }),
       },
@@ -188,7 +188,7 @@ export function energyPriceChart(
           ? [
               {
                 label: fmt(copy.legendNow, {
-                  hour: hourLabel(current.start, day, locale),
+                  hour: energyHourLabel(current.start, day, locale),
                 }),
                 swatch: 'outline' as const,
               },

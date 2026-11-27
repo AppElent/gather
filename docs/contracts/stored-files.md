@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when uploading, preparing, replacing, or deleting a photo or any Convex stored file.
-version: 2.0.0
+version: 2.1.0
 status: current
 ---
 
@@ -21,7 +21,9 @@ no blob outlives the last row that points at it.
   typed off the schema, as a list of its table's `_storage` columns, so a new
   column fails to compile until it is listed — including a second column on a
   table already listed (a Loyalty card's front and back photos). That registry is what stops a blob being deleted from under a table
-  nobody registered.
+  nobody registered. Each column also needs a `by_<column>` index in the schema
+  (fails to compile without it), so a release reads at most one row however many
+  there are (APP-876).
 - **A stored file lives exactly as long as some row points at it.** Every
   path that orphans a file calls `deleteStoredFile` / `replaceStoredFile`
   *after* the write that let go, behind the access check the mutation already

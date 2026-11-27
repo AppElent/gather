@@ -444,6 +444,8 @@ describe('a recent sign-in, before anything is deleted', () => {
 
     await waitFor(() => expect(leave).toHaveBeenCalledWith('/'))
     expect(state.signedOut).toBe(1)
+    // Only the session whose login is stranded (APP-872).
+    expect(state.signOutArgs).toEqual([{ sessionId: 'sess_1' }])
   })
 })
 
@@ -462,8 +464,9 @@ describe('deleting Gather data only (APP-397)', () => {
     expect(state.purgeArgs).toEqual([
       { expectedSubject: 'user_1', keepLogin: true },
     ])
+    // Only the session that confirmed, not every one in the browser (APP-872).
     expect(state.signOutArgs).toEqual([
-      { redirectUrl: GATHER_DATA_DELETED_HOME },
+      { sessionId: 'sess_1', redirectUrl: GATHER_DATA_DELETED_HOME },
     ])
     expect(del).not.toHaveBeenCalled()
     expect(GATHER_DATA_DELETED_HOME).toBe('/sign-in?deleted=gather')

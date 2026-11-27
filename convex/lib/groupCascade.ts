@@ -30,10 +30,9 @@
  *
  * ## Blobs come back rather than going here
  *
- * `deleteStoredFile` asks whether any row in any photo-holding table still
- * points at a blob, so it costs a scan of each of them per photo. So the
- * storage ids travel along with the steps and are released by scheduled work
- * after the last one, when that scan no longer reads this Group's rows.
+ * `deleteStoredFile` keeps a blob some row still points at. So the storage ids
+ * travel along with the steps and are released by scheduled work after the last
+ * one, when none of this Group's rows can be what keeps it.
  */
 
 import { internal } from '../_generated/api'
@@ -44,6 +43,7 @@ import { cancelJob } from './notifications'
 import { charge, drain, newPurgePage, type PurgePage, pauseMs } from './purgePage'
 import { storedFileIdsOf } from './storedFiles'
 import { unassignFromGroup } from './taskAssignee'
+import { revokeAfterCommit } from './taskProviders/revoke'
 import { cancelSend, dropMemberReminders } from './taskReminders'
 import { purgeCompletionsOfTask } from './taskRepeat'
 import { deleteWatchDevices } from './watchDevices'
@@ -207,6 +207,11 @@ const GROUP_CONTENT: {
       ctx.db
         .query('integrationConnections')
         .withIndex('by_group_provider', (q) => q.eq('groupId', groupId)),
+      // A deleted Group's grant ends at the provider too (APP-909).
+      async (conn) => {
+        await revokeAfterCommit(ctx, conn.provider, conn.accessToken)
+        return true
+      },
     ),
 
   energySources: (ctx, groupId, page) =>

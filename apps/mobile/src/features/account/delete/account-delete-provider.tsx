@@ -31,8 +31,9 @@
  * and around the Apple sheet, so it revokes nothing either (APP-745). After
  * the purge, signing out and saying so are for that session only: a next
  * person is left signed in and untold (APP-746). With nobody signed in, what
- * this phone kept still goes (APP-771); both choices ask that with
- * `nobodySignedIn` (APP-797).
+ * this phone kept still goes (APP-771, APP-797), even when Clerk holds a
+ * second session it has not activated (APP-873): only the phone is cleared
+ * then, and no session is ended.
  *
  * The stranded state is held in memory, so it lasts while the app is open and
  * signed in. Quitting the app, or Clerk ending the session, loses it.
@@ -124,6 +125,19 @@ export function useAccountDelete(): AccountDeleteValue {
   return value
 }
 
+/**
+ * Whether this phone is waiting for `accounts.deleteAccount`. `false` outside
+ * the provider. The session gate reads it so a `users.me` that turns `null`
+ * under this phone's own deletion does not re-run `ensureUser` in the moment
+ * before the provider draws `underway` (APP-949). Only `purging`: that is the
+ * one step that can see it, and a refused deletion must not keep this phone
+ * from noticing another phone's.
+ */
+export function useDeletionInProgress(): boolean {
+  const value = use(AccountDeleteContext)
+  return value?.state.step === 'purging'
+}
+
 export interface AccountDeleteProviderProps {
   children: ReactNode
   /** Drawn in place of `children` once the purge has started. */
@@ -171,17 +185,24 @@ export function AccountDeleteProvider({
     [clerk],
   )
 
-  // Nobody is signed in and nobody is about to be. Only on Clerk's `null`:
-  // it is `undefined` while a session is being switched to. And only with no
-  // other session in the client, which Clerk may be about to activate; the
-  // confirmed one can still be listed there after it has ended.
+  // No session is active. Only on Clerk's `null`: it is `undefined` while a
+  // session is being switched to, which may already be writing what this
+  // phone keeps. What the phone kept then is the confirmed account's, so it
+  // goes, even with a second session in the client that Clerk has not
+  // activated (APP-873).
+  const nobodyActive = useCallback(() => clerk.session === null, [clerk])
+
+  // Nobody is active and no other session is in the client, so the confirmed
+  // one can be ended by its id: `signOut` ends the session left in the client
+  // when the named one is gone. The confirmed one can still be listed there
+  // after it has ended.
   const nobodySignedIn = useCallback(
     (account: Confirmed) =>
-      clerk.session === null &&
+      nobodyActive() &&
       clerk.client.signedInSessions.every(
         (session) => session.id === account.sessionId,
       ),
-    [clerk],
+    [clerk, nobodyActive],
   )
 
   // Ends the run with no refusal to read: the person backed out, or someone
@@ -210,9 +231,21 @@ export function AccountDeleteProvider({
     }
     // Deleting the login may already have ended its session, and what this
     // phone kept of it still has to go; only another session is left alone.
-    if (!sameAccount(account) && !nobodySignedIn(account)) return standDown()
-    endSession(account.sessionId)
-  }, [clerk, sameAccount, nobodySignedIn, endSession, standDown])
+    if (sameAccount(account) || nobodySignedIn(account))
+      return endSession(account.sessionId)
+    // A second session Clerk has not activated: ending the confirmed one by id
+    // could end that one, so only the phone is cleared (APP-873).
+    if (nobodyActive()) forgetAccount()
+    standDown()
+  }, [
+    clerk,
+    sameAccount,
+    nobodySignedIn,
+    nobodyActive,
+    endSession,
+    forgetAccount,
+    standDown,
+  ])
 
   const start = useCallback(
     (choice: DeleteChoice) => {
@@ -258,8 +291,9 @@ export function AccountDeleteProvider({
           return
         }
         if (!sameAccount(account)) {
-          // Nobody signed in: this phone still forgets the account (APP-771).
-          if (nobodySignedIn(account)) forgetAccount()
+          // Nobody signed in: this phone still forgets the account (APP-771),
+          // also beside a session Clerk has not activated (APP-873).
+          if (nobodyActive()) forgetAccount()
           return standDown()
         }
         setState({ step: 'signingOut' })
@@ -271,7 +305,7 @@ export function AccountDeleteProvider({
       user,
       clerk,
       sameAccount,
-      nobodySignedIn,
+      nobodyActive,
       deleteAccount,
       revokeApple,
       deleteLogin,

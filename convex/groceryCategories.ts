@@ -53,12 +53,16 @@ export const classify = internalAction({
       groupId: args.groupId,
     })
     if (taken !== 'taken') {
-      console.warn(`grocery-category: ${taken} AI budget spent; item stays in other`)
-      // Only this Group is out of questions: another Group's waiting item
-      // may still ask.
+      console.warn(
+        taken === 'no-group'
+          ? 'grocery-category: the Group is gone; nothing asked for it'
+          : `grocery-category: ${taken} AI budget spent; item stays in other`,
+      )
+      // Only this Group is out of questions, or gone: another Group's waiting
+      // item may still ask.
       await ctx.runMutation(internal.groceryCategories.release, {
         name: args.name,
-        ...(taken === 'group' && args.groupId
+        ...(taken !== 'global' && args.groupId
           ? {
               handOff: {
                 cleanName: args.cleanName,
@@ -87,11 +91,16 @@ export const classify = internalAction({
 
 /**
  * Take one question from today's global budget and, for an item's question,
- * from its Group's; or refuse.
+ * from its Group's; or refuse. A Group that is gone is refused too.
  */
 export const takeBudget = internalMutation({
   args: { groupId: v.optional(v.id('groups')) },
-  returns: v.union(v.literal('taken'), v.literal('global'), v.literal('group')),
+  returns: v.union(
+    v.literal('taken'),
+    v.literal('global'),
+    v.literal('group'),
+    v.literal('no-group'),
+  ),
   handler: async (ctx, args) => await takeGroceryAiBudget(ctx, args.groupId),
 })
 

@@ -146,7 +146,8 @@ export function readLoyaltyCardRefusal(
  * address" and "an address in another Group" alike, and `houseNotFound` a
  * House link to a House outside the Group (ADR-0009). A meter reading below
  * the one before it is `readingLower` (a new meter is a new channel), one
- * above a later reading `readingHigher` (APP-494).
+ * above a later reading `readingHigher` (APP-494). A reading to delete that
+ * is gone, another Group's or not typed is `readingNotFound` (APP-714).
  */
 export const ENERGY_REFUSAL_CODES = [
   'needsName',
@@ -179,6 +180,13 @@ export const ENERGY_REFUSAL_CODES = [
   // APP-493: the price source.
   'priceKeyNeeded',
   'priceKeyInvalid',
+  // APP-496: solar panels and batteries.
+  'assetNeedsName',
+  'assetInvalid',
+  'assetInFuture',
+  'tooManyAssets',
+  // APP-714: deleting a typed reading.
+  'readingNotFound',
 ] as const
 export type EnergyRefusalCode = (typeof ENERGY_REFUSAL_CODES)[number]
 
@@ -305,8 +313,9 @@ export function groupTimeZoneRefusalSentence(
  *   sign-in helpers in `convex/lib/sharing.ts` throw it too (APP-581), so every
  *   signed-out refusal reads the same, Group or not.
  * - `unknown-slug`: no Group has that slug.
- * - `unknown-group`: no Group has that id (APP-581), from the Group mutations
- *   in `convex/groups.ts` that name a Group by id.
+ * - `unknown-group`: no Group has that id (APP-581), from a write that names
+ *   a Group by id: the mutations in `convex/groups.ts`, and
+ *   `integrations.storeConnection` for a Group deleted meanwhile.
  * - `not-a-member`: the Group exists and the caller is not in it.
  *
  * The data also carries the English sentence these refusals threw before they

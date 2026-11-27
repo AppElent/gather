@@ -60,6 +60,7 @@ export const ROUTES = {
   recipe: '/recipes/$recipeId',
   editRecipe: '/recipes/$recipeId/edit',
 
+  groceriesSettings: '/groceries/settings',
   groceriesRecent: '/groceries/recent',
   groceriesInStock: '/groceries/in-stock',
   groceriesItem: '/groceries/item/$itemId',
@@ -94,6 +95,7 @@ export const ROUTES = {
   energySources: '/energy/sources',
   energyConnect: '/energy/connect',
   energyPrices: '/energy/prices',
+  energySolar: '/energy/solar',
   energyPriceFeed: '/energy/price-source',
 
   cheese: '/cheeses/$subjectId',

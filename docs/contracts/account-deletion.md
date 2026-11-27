@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 3.1.1
+version: 3.4.1
 status: current
 ---
 
@@ -28,8 +28,19 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   because every read and write resolves its Group or a membership first. A
   recipe Shared into another Group stays readable there until its page goes.
   The last pages may go just after the account's `users` row.
+- **Work that outlives its authorisation must recheck its Group** when it
+  writes: an action or scheduled run may finish after the deletion.
+  `storeConnection` and `takeBudget` refuse a Group that is gone (APP-877).
+- **A dropped Todoist or Notion token is revoked at the provider** (APP-909):
+  on disconnect, on a reconnect that replaces it, with its Group, and when a
+  connect is refused after the provider answered. `revokeAfterCommit` schedules
+  `integrations.revokeToken`, so the revoke goes only if the deletion commits.
+  It is best effort: a failed revoke is logged without the token and the
+  deletion stands. A token another connection still holds (a provider can
+  issue the same one twice) is left alone. The token stays in the scheduled
+  job's arguments until Convex prunes completed jobs.
 - The files of the deleted rows travel along and are released after the last
-  page, because a release scans every photo-holding table. A step that failed
+  page, ten per step, when no row of the Group can keep one. A step that failed
   for good is run again by hand with its own arguments, which hold their ids.
 - A Member's default Group is cleared with their membership. Somebody who left
   before may keep a `defaultGroupId` that points at nothing; nothing opens it.
@@ -105,6 +116,26 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   split naming them is cleared, a saved split scenario keeps their name
   without their id, a calendar event drops them from its assignees, and a
   staple they kept (`groceryStaples.keptBy`, APP-681) no longer names them.
+- **Shared is read again when the purge reaches the Group** (APP-882). The
+  solo and shared Groups are split when the purge starts; by the time a
+  shared one's step runs, everybody else in it may be gone or being deleted
+  too, or it may have been made since. Then it has no Member left to leave
+  it to, so the step destroys it instead. A Member being deleted does not
+  count as staying anywhere: not here, and not in `groups.exitsFor`, so the
+  last live Member may delete the Group.
+- **A shared Group keeps an admin** (APP-938). `leaveGroup` refuses the only
+  admin (`only-admin`); account deletion cannot be refused for that, so when
+  the person going is the Group's only admin, the longest-standing Member
+  staying (oldest membership) becomes admin in the same step that detaches
+  them. An admin who is being deleted too does not count, the same as in
+  `groups.exitsFor`.
+- **An account being deleted is signed out of Gather** (APP-882).
+  `getCurrentUser` and `requireCurrentUser` (`convex/lib/sharing.ts`) treat a
+  `users` row with `deletedAt` as no account, so it reads, writes, creates
+  and joins nothing, and spends no AI calls, while the purge runs.
+  `deletionBlocker` and a repeated whole-account `deleteAccount` look the row
+  up by subject, so the first still says the deletion is running and the
+  second is a no-op.
 - **Two choices, Gather's data first** ([ADR-0050](../adr/0050-deleting-gather-data-keeps-the-appelent-login.md)).
   Gather shares its Clerk login with Foundry, Fairway and Arcade Club. "Delete
   Gather data only" runs the purge with `keepLogin`, never calls
@@ -171,6 +202,9 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   once the purge starts. The `deleteSelfEnabled` gate is the phone's
   (`@gather/core/account-deletion`). The confirmation names the account and
   asks for a typed word.
+  Signing out, from the stranded state, after deleting Gather's data, and
+  anywhere else on the web, ends only that session: a second session in the
+  browser stays (APP-872).
 - **The web confirms a recent sign-in before anything is deleted.** Clerk
   deletes a login only within ten minutes of the strongest sign-in factor; a
   browser tab is often older, and finding out after the purge would strand
@@ -235,7 +269,7 @@ subscribes `user.created` and `user.updated` and delivers (Clerk → Webhooks
 - Deleting a Group leaves no row with its `groupId` and no blob only it held,
   once its scheduled steps have run.
 - Deleting an account removes its solo Groups, leaves shared Groups intact
-  without the person, and finally removes the Clerk user.
+  without the person and with an admin, and finally removes the Clerk user.
 - On the phone and the web, a Clerk refusal after the purge has started stays
   on screen, with Try again and Sign out, until one of them succeeds.
 - On the web, nothing is deleted until Clerk has confirmed a recent sign-in.

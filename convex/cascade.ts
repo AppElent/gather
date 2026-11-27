@@ -12,7 +12,7 @@
 
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
-import type { Id } from './_generated/dataModel'
+import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation } from './_generated/server'
 import { writePauseMs } from './lib/energyWritePace'
@@ -24,12 +24,10 @@ import { deleteStoredFile } from './lib/storedFiles'
 /**
  * How many blobs one step releases.
  *
- * `deleteStoredFile` asks whether any row in any photo-holding table still
- * points at the blob before it goes, so each of these scans all of those tables.
- * Twenty stays comfortably inside a transaction, and a household with hundreds
- * of photos simply takes more steps rather than failing.
+ * Releasing one reads at most one row still pointing at it. A row is at most
+ * 1 MiB, so ten stay inside a transaction's 16 MiB whatever those rows hold.
  */
-const FILES_PER_STEP = 20
+const FILES_PER_STEP = 10
 
 export const releaseFiles = internalMutation({
   args: { storageIds: v.array(v.id('_storage')) },
@@ -230,15 +228,28 @@ async function finishAccount(
     return
   }
 
-  // Whatever memberships are left are the shared Groups — the solo ones went
-  // with their Group.
+  // Whatever memberships are left were shared Groups when the purge began —
+  // the solo ones went with their Group. Who else is in one is read again
+  // here, not taken from then (APP-882): when everybody else in it is gone or
+  // being deleted too, or it was made after the purge began (by a request
+  // already in flight; the account is refused since), leaving it would
+  // strand a Group with no Members, so it is destroyed instead. Whichever
+  // purge gets there first does that; the others find the membership gone.
   const membership = await ctx.db
     .query('memberships')
     .withIndex('by_user', (q) => q.eq('userId', userId))
     .first()
   if (membership) {
-    await detachFromGroup(ctx, userId, membership.groupId)
-    await ctx.db.delete(membership._id)
+    const staying = await othersStaying(ctx, membership)
+    if (staying.length > 0) {
+      await keepAnAdmin(ctx, membership, staying)
+      await detachFromGroup(ctx, userId, membership.groupId)
+      await ctx.db.delete(membership._id)
+    } else {
+      await destroyGroup(ctx, membership.groupId)
+      // A Group already gone, or one whose memberships wait for a later page.
+      if (await ctx.db.get(membership._id)) await ctx.db.delete(membership._id)
+    }
     await ctx.scheduler.runAfter(0, internal.cascade.purgeAccount, {
       userId,
       groupIds: [],
@@ -247,4 +258,46 @@ async function finishAccount(
   }
 
   await ctx.db.delete(userId)
+}
+
+/**
+ * The other Members staying in this Member's Group: memberships whose user is
+ * neither gone nor being deleted, oldest first. The same count as
+ * `groups.exitsFor`. None when the Group itself is gone.
+ */
+async function othersStaying(
+  ctx: MutationCtx,
+  membership: Doc<'memberships'>,
+): Promise<Doc<'memberships'>[]> {
+  if (!(await ctx.db.get(membership.groupId))) return []
+  const members = await ctx.db
+    .query('memberships')
+    .withIndex('by_group', (q) => q.eq('groupId', membership.groupId))
+    .collect()
+  const staying: Doc<'memberships'>[] = []
+  for (const other of members) {
+    if (other._id === membership._id) continue
+    const user = await ctx.db.get(other.userId)
+    if (user && !user.deletedAt) staying.push(other)
+  }
+  return staying.sort((a, b) => a._creationTime - b._creationTime)
+}
+
+/**
+ * Hand the admin role on when the person going is the Group's only admin
+ * (APP-938). `leaveGroup` holds that door shut (`only-admin`), because nobody
+ * left could rename, delete or administer the Group; deleting an account
+ * cannot be refused for it, so the longest-standing Member staying becomes
+ * admin instead. An admin who is being deleted too does not count, the same
+ * as in `groups.exitsFor`.
+ */
+async function keepAnAdmin(
+  ctx: MutationCtx,
+  membership: Doc<'memberships'>,
+  staying: Doc<'memberships'>[],
+) {
+  if (membership.role !== 'admin') return
+  if (staying.some((other) => other.role === 'admin')) return
+  const [longest] = staying
+  if (longest) await ctx.db.patch(longest._id, { role: 'admin' })
 }

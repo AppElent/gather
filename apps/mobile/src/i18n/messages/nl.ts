@@ -358,12 +358,12 @@ export const nl = {
     identity: 'Account: {name}',
 
     modulePage: {
-      title: '{module}-instellingen',
-      open: 'Instellingen van {module}',
+      title: coreNl.shell.modulePage.settingsTitle,
+      open: coreNl.shell.modulePage.settingsOf,
       footer: 'Dezelfde pagina’s als het tandwiel rechtsboven in elke module.',
       phoneOnly: 'Bewaard op deze telefoon, hetzelfde in elke groep.',
-      sharedList: 'Voor {list}, gedeeld met iedereen in {group}.',
-      shared: 'Gedeeld met iedereen in {group}.',
+      sharedList: coreNl.shell.modulePage.settingsSharedList,
+      shared: coreNl.shell.modulePage.settingsShared,
     },
   },
 
@@ -581,6 +581,9 @@ export const nl = {
   session: {
     title: 'We konden je account niet bevestigen',
     body: 'Gather kon niet nagaan wie er is ingelogd. Probeer het opnieuw, of log uit en weer in.',
+    deletedTitle: 'Dit account wordt verwijderd',
+    deletedBody:
+      'Gather kan het niet openen terwijl de gegevens worden verwijderd. Log uit om verder te gaan.',
   },
 
   signedIn: {

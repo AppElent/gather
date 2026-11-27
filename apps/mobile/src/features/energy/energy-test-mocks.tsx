@@ -169,6 +169,10 @@ const SectionLabel = ({ children }: { children: ReactNode }) =>
   createElement('h4', null, children)
 const InsetList = ({ children, ...props }: Props) =>
   createElement('div', common(props), children)
+/**
+ * A row; its swipe-revealed Delete and its hold menu are buttons beside it,
+ * `<testID>-swipe-delete` and `<testID>-menu-<id>`.
+ */
 const InsetRow = ({
   title,
   subtitle,
@@ -176,9 +180,12 @@ const InsetRow = ({
   trailing,
   children,
   onPress,
+  onDelete,
+  deleteLabel,
+  menu,
   ...props
-}: Props) =>
-  createElement(
+}: Props) => {
+  const row = createElement(
     onPress ? 'button' : 'div',
     {
       ...common(props),
@@ -196,6 +203,36 @@ const InsetRow = ({
     trailing as ReactNode,
     children,
   )
+  if (!onDelete && !menu) return row
+  const hold = menu as
+    | { actions: { id: string }[]; onAction: (id: string) => void }
+    | undefined
+  return createElement(
+    'div',
+    null,
+    row,
+    onDelete
+      ? createElement(
+          'button',
+          {
+            type: 'button',
+            'data-testid': `${props.testID as string}-swipe-delete`,
+            'aria-label': deleteLabel as string,
+            onClick: onDelete as () => void,
+          },
+          deleteLabel as string,
+        )
+      : null,
+    hold?.actions.map((action) =>
+      createElement('button', {
+        type: 'button',
+        key: action.id,
+        'data-testid': `${props.testID as string}-menu-${action.id}`,
+        onClick: () => hold.onAction(action.id),
+      }),
+    ),
+  )
+}
 const Segmented = ({
   options,
   onChange,
@@ -595,6 +632,57 @@ export function priceView(overrides: Record<string, unknown> = {}) {
     contract: { kind: 'dynamic', supplierName: 'Frank Energie' },
     today: priceDay('2026-11-23', { 2: 0.2, 3: 0.2, 4: 0.2, 13: 0.4 }),
     tomorrow: priceDay('2026-11-24', { 12: 0.1, 13: 0.1, 14: 0.1, 18: 0.5 }),
+    ...overrides,
+  }
+}
+
+/** 23 November 2026 with a roof and a battery, measured up to 12:00. */
+export function batteryHours(now: number) {
+  return amsterdamDayHours('2026-11-23').map((hourStart, index) => {
+    const past = hourStart < now
+    return {
+      hourStart,
+      hasData: past,
+      importKwh: past ? 0.4 : 0,
+      exportKwh: 0,
+      consumptionKwh: past ? 0.4 : 0,
+      solarKwh: past ? (index === 11 ? 0.95 : 0.1) : null,
+      batteryChargeKwh: past ? (index === 2 || index === 3 ? 2.4 : 0) : null,
+      batteryDischargeKwh: past ? (index === 8 ? 1.5 : 0) : null,
+      socPercent: past ? (index === 12 ? 64 : 20 + index * 2) : null,
+    }
+  })
+}
+
+/** What `energySolar.month` answers on 23 November 2026. */
+export function solarMonth(overrides: Record<string, unknown> = {}) {
+  return {
+    siteName: 'Thuis',
+    status: 'ok',
+    solar: true,
+    battery: true,
+    batterySoc: true,
+    firstDay: '2026-11-23',
+    assets: [],
+    days: [
+      {
+        day: '2026-11-23',
+        producedKwh: 6,
+        selfUsedKwh: 4,
+        returnedKwh: 2,
+        selfUsedEur: 1.2,
+        consumptionKwh: 20,
+        ownKwh: 6.2,
+        battery: {
+          chargeKwh: 4.8,
+          dischargeKwh: 3,
+          chargeEur: 0.96,
+          dischargeEur: 1.55,
+        },
+        solarEur: 1.4,
+        batteryEur: 0.59,
+      },
+    ],
     ...overrides,
   }
 }

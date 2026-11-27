@@ -22,7 +22,10 @@ import type { ShellGroup } from './useCurrentGroup'
 const location = vi.hoisted(() => ({ pathname: '/settings' }))
 const pins = vi.hoisted(() => ({ value: ['recipes', 'tasks'] as unknown }))
 const groups = vi.hoisted(() => ({ value: [] as unknown }))
-const clerk = vi.hoisted(() => ({ signOut: vi.fn() }))
+const clerk = vi.hoisted(() => ({
+  session: { id: 'sess_current' },
+  signOut: vi.fn(() => Promise.resolve()),
+}))
 
 /**
  * The router's `Link`, modelled rather than stubbed.
@@ -349,10 +352,12 @@ describe('the account menu', () => {
     ).toBe('/settings')
   })
 
-  test('signs out', () => {
+  test('signs out of the current session only (APP-872)', () => {
     open()
     fireEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }))
-    expect(clerk.signOut).toHaveBeenCalledOnce()
+    expect(clerk.signOut).toHaveBeenCalledExactlyOnceWith({
+      sessionId: 'sess_current',
+    })
   })
 })
 

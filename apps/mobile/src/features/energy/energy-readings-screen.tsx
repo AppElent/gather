@@ -10,6 +10,9 @@
  *
  * A Group that has not named its meters yet first says which it reads
  * (`energyReadings.setupChannels`).
+ *
+ * Below the form, the readings typed lately (APP-714): swiping one left, or
+ * holding it, offers Delete, and an alert asks before it goes.
  */
 import { amsterdamIsoDate, localIsoDate, localMidnight } from '@gather/core/civil-date'
 import {
@@ -43,6 +46,7 @@ import { DateTimeChip, DateTimeWheel } from '../../components/DateTimeField'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { api } from '../../convex/api'
 import { useLiveQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
@@ -56,6 +60,7 @@ import { decimalsOf } from './energy-number-text'
 
 type Form = NonNullable<FunctionReturnType<typeof api.energyReadings.form>>
 type Channel = Form['channels'][number]
+type Recent = FunctionReturnType<typeof api.energyReadings.recent>[number]
 
 export function EnergyReadingsScreen() {
   const tokens = useTokens('home')
@@ -104,13 +109,16 @@ export function EnergyReadingsScreen() {
         ) : form.channels.length === 0 ? (
           <MeterSetup groupSlug={group.slug} measured={form.measured} />
         ) : (
-          <ReadingsForm
-            groupSlug={group.slug}
-            day={day}
-            today={today}
-            onDay={setDay}
-            channels={form.channels}
-          />
+          <>
+            <ReadingsForm
+              groupSlug={group.slug}
+              day={day}
+              today={today}
+              onDay={setDay}
+              channels={form.channels}
+            />
+            <RecentReadings groupSlug={group.slug} />
+          </>
         )}
       </ScrollView>
     </>
@@ -313,6 +321,90 @@ function ReadingsForm({
         onPress={submit}
         testID="energy-readings-save"
       />
+    </View>
+  )
+}
+
+/**
+ * The readings typed lately, newest first. Swipe left or hold a row for
+ * Delete; the alert names the reading and says usage and costs are worked
+ * out again without it.
+ */
+function RecentReadings({ groupSlug }: { groupSlug: string }) {
+  const tokens = useTokens('home')
+  const { t, locale } = useI18n()
+  const words = t.energy
+  const recent = useLiveQuery(api.energyReadings.recent, { groupSlug })
+  const remove = useMutation(api.energyReadings.remove)
+  const [problem, setProblem] = useState<string | null>(null)
+  if (!recent || recent.length === 0) return null
+
+  const describe = (reading: Recent) => ({
+    channel: energyChannelName(reading, words),
+    value: formatEnergyNumber(reading.value, locale, decimalsOf(reading.value)),
+    unit: energyUnitName(reading.unit, words),
+    date: formatEnergyDate(amsterdamDayOf(reading.at), locale, 'dayMonthYear'),
+  })
+
+  const confirmDelete = (reading: Recent) => {
+    const named = describe(reading)
+    confirmDestructive({
+      title: words.readings.deleteTitle,
+      message: fmt(words.readings.deleteBody, named),
+      confirm: t.common.actions.delete,
+      cancel: t.common.actions.cancel,
+      onConfirm: async () => {
+        setProblem(null)
+        try {
+          // The row leaving the list is the answer.
+          await remove({ groupSlug, readingId: reading._id })
+        } catch (caught) {
+          haptics.actionFailed()
+          const code = readEnergyRefusal(caught)
+          setProblem(code ? words.refusals[code] : words.readings.deleteFailed)
+        }
+      },
+    })
+  }
+
+  return (
+    <View style={styles.section} testID="energy-recent-readings">
+      <SectionLabel>{words.readings.recentHeading}</SectionLabel>
+      <InsetList>
+        {recent.map((reading) => {
+          const named = describe(reading)
+          return (
+            <InsetRow
+              key={reading._id}
+              testID={`energy-recent-${reading._id}`}
+              title={named.channel}
+              subtitle={fmt(words.readings.recentRow, named)}
+              accessibilityLabel={`${named.channel}, ${fmt(words.readings.recentRow, named)}`}
+              deleteLabel={t.common.actions.delete}
+              onDelete={() => confirmDelete(reading)}
+              menu={{
+                actions: [
+                  {
+                    id: 'delete',
+                    title: t.common.actions.delete,
+                    attributes: { destructive: true },
+                  },
+                ],
+                onAction: () => confirmDelete(reading),
+              }}
+            />
+          )
+        })}
+      </InsetList>
+      {problem ? (
+        <Text
+          accessibilityRole="alert"
+          testID="energy-recent-problem"
+          style={[TYPE.subhead, { color: tokens.danger }]}
+        >
+          {problem}
+        </Text>
+      ) : null}
     </View>
   )
 }

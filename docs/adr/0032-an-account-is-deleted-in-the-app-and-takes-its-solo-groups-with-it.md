@@ -1,7 +1,7 @@
 ---
 type: decision
 description: Read before changing account deletion or what happens to a person's Groups.
-version: 1.0.0
+version: 1.0.1
 status: accepted
 date: 2026-09-01
 ---
@@ -48,8 +48,9 @@ This requires "Delete self" to be enabled on the Clerk instance.
 **The cascade runs in scheduled steps**, one Group per invocation
 (`convex/cascade.ts`), because a Convex mutation is one bounded transaction and
 a household has no guaranteed size. Stored files are released in batches behind
-it — `deleteStoredFile` costs five table scans per blob, so they cannot go
-inline.
+it — `deleteStoredFile` cost five table scans per blob, so they could not go
+inline. (Since APP-876 it costs one index lookup per photo column; the files of
+a Group still go in batches.)
 
 **`convex/lib/groupCascade.ts` is a registry that cannot be forgotten.** Its
 table set is derived from the data model — every table with a `groupId` — so a
