@@ -466,6 +466,24 @@ describe('recent', () => {
     ])
   })
 
+  test("leaves out a retired meter's readings", async () => {
+    const { t, importT1, gas } = await seedMeters()
+    const as = t.withIdentity(bob)
+    await as.mutation(api.energyReadings.save, {
+      ...HOME,
+      day: '2026-11-01',
+      readings: [
+        { channelId: importT1, value: 1000 },
+        { channelId: gas, value: 300 },
+      ],
+    })
+    await t.run((ctx) => ctx.db.patch(gas, { retiredAt: NOW }))
+    const recent = await as.query(api.energyReadings.recent, HOME)
+    expect(recent.map(({ kind, value }) => ({ kind, value }))).toEqual([
+      { kind: 'gridImport', value: 1000 },
+    ])
+  })
+
   test('is empty without an address, and refused outside the Group', async () => {
     const empty = await seedEnergyGroups()
     expect(
@@ -570,6 +588,18 @@ describe('remove', () => {
     ).rejects.toThrow('energy:readingNotFound')
     await expect(
       as.mutation(api.energyReadings.remove, { ...HOME, readingId: imported }),
+    ).rejects.toThrow('energy:readingNotFound')
+    expect(await rows(t)).toHaveLength(3)
+  })
+
+  test("refuses a retired meter's reading as not found, and deletes nothing", async () => {
+    // A retired meter can come back; deleting its readings would change past usage.
+    const { t, importT1, middle } = await seedRead()
+    await t.run((ctx) => ctx.db.patch(importT1, { retiredAt: NOW }))
+    await expect(
+      t
+        .withIdentity(bob)
+        .mutation(api.energyReadings.remove, { ...HOME, readingId: middle }),
     ).rejects.toThrow('energy:readingNotFound')
     expect(await rows(t)).toHaveLength(3)
   })
