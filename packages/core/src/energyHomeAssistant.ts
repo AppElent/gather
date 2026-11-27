@@ -92,6 +92,13 @@ export const ENERGY_SOURCE_PROBLEMS = [
   'statisticMissing',
   /** An admin disconnected it. */
   'disconnected',
+  // Enelogic (APP-497).
+  /** Enelogic no longer accepts Gather's access: sign in there again. */
+  'enelogicRevoked',
+  /** Enelogic does not answer, or not as expected. */
+  'enelogicUnreachable',
+  /** One or more chosen measuring points or registers are gone. */
+  'enelogicMissing',
 ] as const
 export type EnergySourceProblem = (typeof ENERGY_SOURCE_PROBLEMS)[number]
 

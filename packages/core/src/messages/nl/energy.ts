@@ -330,6 +330,8 @@ export const energy = {
     addHomeAssistantSub: 'Per uur, ook HomeWizard en Zonneplan uit Home Assistant',
     addManualSub: 'Zelf typen',
     enelogic: 'Enelogic',
+    addEnelogicSub: 'Per uur uit je slimme meter, via je Enelogic-account',
+    adminsConnectEnelogic: 'Alleen beheerders van de Groep kunnen Enelogic koppelen.',
     homeWizard: 'HomeWizard rechtstreeks',
     soon: 'Binnenkort',
     homeWizardSoon: 'Binnenkort. Via Home Assistant werkt het al.',
@@ -343,6 +345,11 @@ export const energy = {
       statisticMissing: 'Een sensor bestaat niet meer in Home Assistant: {statistics}.',
       disconnected: 'Losgekoppeld.',
       syncFailed: 'Bijwerken is mislukt. Gather probeert het elk uur opnieuw.',
+      enelogicRevoked:
+        'Enelogic geeft Gather geen toegang meer. Log opnieuw in bij Enelogic.',
+      enelogicUnreachable:
+        'Enelogic antwoordt niet. Gather probeert het over zes uur opnieuw.',
+      enelogicMissing: 'Een meetpunt staat niet meer in Enelogic: {statistics}.',
     },
     homeProblem: '{source}: {line}',
     homeConnected: '{source} · bijgewerkt {when}',
@@ -391,6 +398,36 @@ export const energy = {
     footer:
       'Alleen beheerders van de Groep zien dit. Het token blijft op de server van Gather. Gather leest alleen statistieken en stuurt niets aan.',
     adminsOnly: 'Alleen beheerders van de Groep kunnen Home Assistant koppelen.',
+  },
+  enelogic: {
+    title: 'Enelogic',
+    summary: 'Koppel Enelogic',
+    summarySub: 'Alleen lezen, nooit aansturen',
+    stepAccount: '1 · Account',
+    signIn: 'Inloggen bij Enelogic',
+    signingIn: 'Enelogic openen…',
+    signInAgain: 'Opnieuw inloggen bij Enelogic',
+    accountHint:
+      'Gather opent Enelogic. Log daar in en geef Gather toestemming om je meetpunten te lezen; daarna stuurt Enelogic je hierheen terug.',
+    accountConnected: 'Gather mag je Enelogic-account lezen.',
+    read: 'Meetpunten lezen',
+    reading: 'Lezen…',
+    found: {
+      one: 'In je meetpunten staat 1 kanaal.',
+      other: 'In je meetpunten staan {count} kanalen.',
+    },
+    foundNone: 'Je Enelogic-account heeft nog geen meetpunten met standen.',
+    stepChannels: '2 · Wat Gather leest',
+    channelsHint:
+      'Overgenomen uit je meetpunt dat het laatst is gelezen. Kies zo nodig een ander register voor een kanaal.',
+    footer:
+      'Alleen beheerders van de Groep zien dit. De toegang tot Enelogic blijft op de server van Gather. Gather leest Enelogic elke zes uur en stuurt niets aan.',
+    disconnect: 'Enelogic loskoppelen',
+    disconnectTitle: 'Enelogic loskoppelen?',
+    disconnectBody:
+      'Gather vergeet de toegang en stopt met lezen. Wat al gelezen is, blijft.',
+    adminsOnly: 'Alleen beheerders van de Groep kunnen Enelogic koppelen.',
+    onTheWeb: 'Koppel het in Gather op het web, onder Energie › Bronnen.',
   },
   prices: {
     title: 'Prijzen',
@@ -633,5 +670,13 @@ export const energy = {
     assetInFuture: 'Kies vandaag of een eerdere dag.',
     tooManyAssets: 'Er staan al 20 panelen en batterijen. Verwijder er eerst een.',
     readingNotFound: 'Die stand is er niet meer.',
+    enelogicNotConfigured: 'Enelogic is op deze server nog niet ingesteld.',
+    enelogicRefused: 'Enelogic heeft het inloggen niet geaccepteerd. Probeer het opnieuw.',
+    enelogicUnreachable: 'Enelogic antwoordt niet. Probeer het later opnieuw.',
+    enelogicRevoked:
+      'Enelogic geeft Gather geen toegang meer. Log opnieuw in bij Enelogic.',
+    enelogicNotConnected: 'Log eerst in bij Enelogic.',
+    registerNotFound:
+      'Een gekozen register staat niet in je Enelogic-account. Lees de meetpunten opnieuw.',
   },
 } satisfies Messages['energy']

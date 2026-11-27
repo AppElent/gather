@@ -45,6 +45,15 @@ crons.daily(
   { lookback: true },
 )
 
+// Enelogic's meter readings (APP-497), every six hours: its free plan allows
+// 500 API calls a month, and a sync costs one per measuring point.
+crons.cron(
+  'sync enelogic',
+  '40 */6 * * *',
+  internal.energySources.startSyncs,
+  { kind: 'enelogic' },
+)
+
 // Day-ahead prices, published around 13:00 in Amsterdam (APP-493): 13:35 in
 // summer, and in winter 12:35, whose retries carry on from there.
 crons.daily(

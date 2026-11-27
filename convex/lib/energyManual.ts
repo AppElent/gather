@@ -2,7 +2,7 @@ import { energyChannelCovered, energyChannelsOverlap } from '@gather/core/energy
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 
-/** The channels in use of a site's connected Home Assistant. */
+/** The channels in use of a site's connected sources (Home Assistant, Enelogic). */
 export async function connectedChannels(
   ctx: QueryCtx,
   siteId: Id<'energySites'>,
@@ -19,7 +19,7 @@ export async function connectedChannels(
   ])
   const connected = new Set(
     sources
-      .filter((each) => each.kind === 'homeAssistant' && each.secret)
+      .filter((each) => each.kind !== 'manual' && each.secret)
       .map((each) => each._id),
   )
   return channels.filter(

@@ -59,6 +59,7 @@ function Sources({ list }: { list: SourceList }) {
   const homeAssistant = list.sources.some(
     (each) => each.kind === 'homeAssistant',
   )
+  const enelogic = list.sources.some((each) => each.kind === 'enelogic')
 
   return (
     <>
@@ -91,9 +92,11 @@ function Sources({ list }: { list: SourceList }) {
                   link={
                     source.kind === 'manual'
                       ? linkTo('energyReadings')
-                      : list.canManage
-                        ? linkTo('energyConnect')
-                        : null
+                      : !list.canManage
+                        ? null
+                        : source.kind === 'enelogic'
+                          ? linkTo('energyEnelogic')
+                          : linkTo('energyConnect')
                   }
                 />
               )
@@ -139,7 +142,19 @@ function Sources({ list }: { list: SourceList }) {
             label={words.readings.title}
             sub={copy.addManualSub}
           />
-          <ValueRow label={copy.enelogic} sub={copy.soon} value="" />
+          {enelogic ? null : list.canManage ? (
+            <NavRow
+              link={linkTo('energyEnelogic')}
+              label={copy.enelogic}
+              sub={copy.addEnelogicSub}
+            />
+          ) : (
+            <ValueRow
+              label={copy.enelogic}
+              sub={copy.adminsConnectEnelogic}
+              value=""
+            />
+          )}
           <ValueRow label={copy.homeWizard} sub={copy.homeWizardSoon} value="" />
         </RowList>
       </Section>

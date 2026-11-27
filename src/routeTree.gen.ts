@@ -42,6 +42,7 @@ import { Route as AppEnergyIndexRouteImport } from './routes/_app/energy/index'
 import { Route as AppEnergyConnectRouteImport } from './routes/_app/energy/connect'
 import { Route as AppEnergyContractRouteImport } from './routes/_app/energy/contract'
 import { Route as AppEnergyCostsRouteImport } from './routes/_app/energy/costs'
+import { Route as AppEnergyEnelogicRouteImport } from './routes/_app/energy/enelogic'
 import { Route as AppEnergyPriceSourceRouteImport } from './routes/_app/energy/price-source'
 import { Route as AppEnergyPricesRouteImport } from './routes/_app/energy/prices'
 import { Route as AppEnergyReadingsRouteImport } from './routes/_app/energy/readings'
@@ -247,6 +248,11 @@ const AppEnergyContractRoute = AppEnergyContractRouteImport.update({
 const AppEnergyCostsRoute = AppEnergyCostsRouteImport.update({
   id: '/energy/costs',
   path: '/energy/costs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEnergyEnelogicRoute = AppEnergyEnelogicRouteImport.update({
+  id: '/energy/enelogic',
+  path: '/energy/enelogic',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEnergyPriceSourceRoute = AppEnergyPriceSourceRouteImport.update({
@@ -493,6 +499,7 @@ export interface FileRoutesByFullPath {
   '/energy/connect': typeof AppEnergyConnectRoute
   '/energy/contract': typeof AppEnergyContractRoute
   '/energy/costs': typeof AppEnergyCostsRoute
+  '/energy/enelogic': typeof AppEnergyEnelogicRoute
   '/energy/price-source': typeof AppEnergyPriceSourceRoute
   '/energy/prices': typeof AppEnergyPricesRoute
   '/energy/readings': typeof AppEnergyReadingsRoute
@@ -567,6 +574,7 @@ export interface FileRoutesByTo {
   '/energy/connect': typeof AppEnergyConnectRoute
   '/energy/contract': typeof AppEnergyContractRoute
   '/energy/costs': typeof AppEnergyCostsRoute
+  '/energy/enelogic': typeof AppEnergyEnelogicRoute
   '/energy/price-source': typeof AppEnergyPriceSourceRoute
   '/energy/prices': typeof AppEnergyPricesRoute
   '/energy/readings': typeof AppEnergyReadingsRoute
@@ -645,6 +653,7 @@ export interface FileRoutesById {
   '/_app/energy/connect': typeof AppEnergyConnectRoute
   '/_app/energy/contract': typeof AppEnergyContractRoute
   '/_app/energy/costs': typeof AppEnergyCostsRoute
+  '/_app/energy/enelogic': typeof AppEnergyEnelogicRoute
   '/_app/energy/price-source': typeof AppEnergyPriceSourceRoute
   '/_app/energy/prices': typeof AppEnergyPricesRoute
   '/_app/energy/readings': typeof AppEnergyReadingsRoute
@@ -723,6 +732,7 @@ export interface FileRouteTypes {
     | '/energy/connect'
     | '/energy/contract'
     | '/energy/costs'
+    | '/energy/enelogic'
     | '/energy/price-source'
     | '/energy/prices'
     | '/energy/readings'
@@ -797,6 +807,7 @@ export interface FileRouteTypes {
     | '/energy/connect'
     | '/energy/contract'
     | '/energy/costs'
+    | '/energy/enelogic'
     | '/energy/price-source'
     | '/energy/prices'
     | '/energy/readings'
@@ -874,6 +885,7 @@ export interface FileRouteTypes {
     | '/_app/energy/connect'
     | '/_app/energy/contract'
     | '/_app/energy/costs'
+    | '/_app/energy/enelogic'
     | '/_app/energy/price-source'
     | '/_app/energy/prices'
     | '/_app/energy/readings'
@@ -1166,6 +1178,13 @@ declare module '@tanstack/react-router' {
       path: '/energy/costs'
       fullPath: '/energy/costs'
       preLoaderRoute: typeof AppEnergyCostsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/energy/enelogic': {
+      id: '/_app/energy/enelogic'
+      path: '/energy/enelogic'
+      fullPath: '/energy/enelogic'
+      preLoaderRoute: typeof AppEnergyEnelogicRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/energy/price-source': {
@@ -1523,6 +1542,7 @@ interface AppRouteChildren {
   AppEnergyConnectRoute: typeof AppEnergyConnectRoute
   AppEnergyContractRoute: typeof AppEnergyContractRoute
   AppEnergyCostsRoute: typeof AppEnergyCostsRoute
+  AppEnergyEnelogicRoute: typeof AppEnergyEnelogicRoute
   AppEnergyPriceSourceRoute: typeof AppEnergyPriceSourceRoute
   AppEnergyPricesRoute: typeof AppEnergyPricesRoute
   AppEnergyReadingsRoute: typeof AppEnergyReadingsRoute
@@ -1583,6 +1603,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEnergyConnectRoute: AppEnergyConnectRoute,
   AppEnergyContractRoute: AppEnergyContractRoute,
   AppEnergyCostsRoute: AppEnergyCostsRoute,
+  AppEnergyEnelogicRoute: AppEnergyEnelogicRoute,
   AppEnergyPriceSourceRoute: AppEnergyPriceSourceRoute,
   AppEnergyPricesRoute: AppEnergyPricesRoute,
   AppEnergyReadingsRoute: AppEnergyReadingsRoute,

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
 import { en } from '../../i18n/messages/en'
 import { mount } from '../../testing/dom'
-import { EnergySourcesScreen } from './energy-sources-screen'
+import { ENELOGIC_WEB_URL, EnergySourcesScreen } from './energy-sources-screen'
 import { byTestId, energyState, resetEnergyState } from './energy-test-mocks'
 
 vi.mock('react-native', async () => (await import('./energy-test-mocks')).reactNativeMock())
@@ -44,6 +44,12 @@ vi.mock('../../ui/screen-header', async () =>
   (await import('./energy-test-mocks')).screenHeaderMock(),
 )
 vi.mock('../../ui/wash-header', async () => (await import('./energy-test-mocks')).washHeaderMock())
+const opened = vi.hoisted(() => [] as string[])
+vi.mock('../../feedback/openWebPage', () => ({
+  openWebPage: async (url: string) => {
+    opened.push(url)
+  },
+}))
 vi.mock('@expo/ui/community/menu', async () => (await import('./energy-test-mocks')).menuMock())
 
 
@@ -73,6 +79,7 @@ const list = {
 
 beforeEach(() => {
   resetEnergyState()
+  opened.length = 0
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2026-11-23T12:00:00Z'))
 })
@@ -127,5 +134,42 @@ test('a Member sees the sources but cannot connect one', () => {
   expect(energyState.pushes).toEqual([])
   byTestId('energy-add-manual')?.click()
   expect(energyState.pushes).toEqual(['/all/energy/readings'])
+  view.unmount()
+})
+
+test('Enelogic connects on the web: its rows open the web page', () => {
+  energyState.queries['energySources:list'] = list
+  const view = mount(createElement(EnergySourcesScreen))
+  const add = byTestId('energy-add-enelogic')
+  expect(add?.textContent).toContain(en.energy.enelogic.onTheWeb)
+  add?.click()
+  expect(opened).toEqual([ENELOGIC_WEB_URL])
+  expect(energyState.pushes).toEqual([])
+  view.unmount()
+
+  energyState.queries['energySources:list'] = {
+    ...list,
+    sources: [
+      ...list.sources,
+      { ...list.sources[0], _id: 'en', kind: 'enelogic', label: 'Enelogic' },
+    ],
+  }
+  const again = mount(createElement(EnergySourcesScreen))
+  expect(byTestId('energy-add-enelogic')).toBeNull()
+  byTestId('energy-source-row-enelogic')?.click()
+  expect(opened).toEqual([ENELOGIC_WEB_URL, ENELOGIC_WEB_URL])
+  again.unmount()
+})
+
+test('a Member cannot connect Enelogic', () => {
+  energyState.queries['energySources:list'] = {
+    ...list,
+    canManage: false,
+  }
+  const view = mount(createElement(EnergySourcesScreen))
+  const add = byTestId('energy-add-enelogic')
+  expect(add?.textContent).toContain(en.energy.sources.adminsConnectEnelogic)
+  add?.click()
+  expect(opened).toEqual([])
   view.unmount()
 })
