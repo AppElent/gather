@@ -147,7 +147,7 @@ export function DropPickScreen() {
       openInGroup(named._id, () => {
         clear()
         router.dismissTo('/home')
-        router.push(href)
+        router.push(href, { withAnchor: true })
       })
     } catch (error) {
       // Back is still the chooser and the Drop is still pending, so recovery
