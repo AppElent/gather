@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 3.4.0
+version: 3.5.1
 status: current
 ---
 
@@ -46,6 +46,11 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   before may keep a `defaultGroupId` that points at nothing; nothing opens it.
 - `tasks`, `calendarEvents` and `babyEvents` hang off a parent rather than a
   Group, so each is deleted inside its parent's entry.
+- **Deleting one list, calendar or child** (APP-878) deletes the parent row,
+  then its children a page per transaction: the first page with the parent,
+  the rest in `cascade.purgeChildren` steps. Nothing reaches them meanwhile,
+  because every read and every queued send resolves the parent first. A
+  child's log photos are released after its last page.
 - **Energy** (ADR-0051): every Energy table but `energyPrices` carries a
   `groupId` and is read by `by_group`. A Group's price feeds take the account
   prices fetched through them (`energyPrices` by `feedId`); market prices have
@@ -167,8 +172,9 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   Apple link; a verified `user.created` or `user.updated` mirrors the login's
   verified Sign in with Apple users into `appleSignInLinks` (APP-388), keeping
   the newest by the Clerk user's `updated_at`. A verified `session.ended`,
-  `session.removed` or `session.revoked` deletes the watches paired under that
-  session ([watch API](watch-api.md)). Any other event, a second
+  `session.removed` or `session.revoked` deletes the push registration of the
+  phone signed in with that session (APP-845) and the watches paired under it
+  ([watch API](watch-api.md)). Any other event, a second
   delivery or a subject Gather never had answers 200 and does nothing.
 - **`deleteSelfEnabled` is checked before the whole account is deleted.** Purging a
   household for an account Clerk then refuses to delete is the worst outcome

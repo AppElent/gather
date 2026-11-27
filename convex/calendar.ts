@@ -17,7 +17,7 @@ import {
   validateEventFields,
 } from './lib/calendar'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
-import { purgeEventsOfCalendar } from './lib/groupCascade'
+import { purgeChildrenPage } from './lib/groupCascade'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
 
 const nullableNumber = v.union(v.null(), v.number())
@@ -305,8 +305,9 @@ export const removeCalendar = mutation({
       args.id,
       calendarRefusal('not-found'),
     )
-    await purgeEventsOfCalendar(ctx, calendar._id)
+    // The events go after it, a page at a time (APP-878).
     await ctx.db.delete(calendar._id)
+    await purgeChildrenPage(ctx, { table: 'calendars', id: calendar._id }, [])
     const memberships = await ctx.db
       .query('memberships')
       .withIndex('by_group', (q) => q.eq('groupId', calendar.groupId))

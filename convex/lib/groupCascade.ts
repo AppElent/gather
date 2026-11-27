@@ -18,7 +18,8 @@
  * Three tables are deliberately *not* in it, because they hang off a parent
  * rather than off a Group: `tasks` (a list), `calendarEvents` (a calendar) and
  * `babyEvents` (a baby). Each is deleted by the entry that owns its parent, so
- * the parent's rows are still there to be enumerated from.
+ * the parent's rows are still there to be enumerated from. Deleting just one
+ * such parent pages its children out after it (`purgeChildrenPage`).
  *
  * ## A page per transaction
  *
@@ -36,50 +37,111 @@
  */
 
 import { internal } from '../_generated/api'
-import type { Doc, Id, TableNames } from '../_generated/dataModel'
+import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import type { GroupScopedTable } from './groupAccess'
 import { cancelJob } from './notifications'
 import { charge, drain, newPurgePage, type PurgePage, pauseMs } from './purgePage'
-import { storedFileIdsOf } from './storedFiles'
 import { unassignFromGroup } from './taskAssignee'
 import { revokeAfterCommit } from './taskProviders/revoke'
 import { cancelSend, dropMemberReminders } from './taskReminders'
-import { purgeCompletionsOfTask } from './taskRepeat'
 import { deleteWatchDevices } from './watchDevices'
 
-/** Delete these rows, handing back the stored files they were holding. */
-async function purge<T extends TableNames>(
+/**
+ * A parent whose children are found only through it, and go with it: a list's
+ * tasks, a calendar's events, a child's log.
+ */
+export type ChildParent =
+  | { table: 'taskLists'; id: Id<'taskLists'> }
+  | { table: 'calendars'; id: Id<'calendars'> }
+  | { table: 'babies'; id: Id<'babies'> }
+
+/**
+ * Delete a page of a parent's children. True means none are left.
+ *
+ * A task's queued reminder is withdrawn with it (APP-305), and its completion
+ * history goes ahead of it (APP-303): by the task, since a list's completions
+ * have no index of their own.
+ */
+function purgeChildren(
   ctx: MutationCtx,
-  table: T,
-  rows: Doc<T>[],
-): Promise<Id<'_storage'>[]> {
-  const files: Id<'_storage'>[] = []
-  for (const row of rows) {
-    files.push(...storedFileIdsOf(table, row))
-    await ctx.db.delete(row._id)
+  parent: ChildParent,
+  page: PurgePage,
+): Promise<boolean> {
+  switch (parent.table) {
+    case 'taskLists':
+      return drain(
+        ctx,
+        page,
+        'tasks',
+        ctx.db
+          .query('tasks')
+          .withIndex('by_list', (q) => q.eq('listId', parent.id)),
+        async (task) => {
+          await cancelSend(ctx, task)
+          return await drain(
+            ctx,
+            page,
+            'taskCompletions',
+            ctx.db
+              .query('taskCompletions')
+              .withIndex('by_task', (q) => q.eq('taskId', task._id)),
+          )
+        },
+      )
+    case 'calendars':
+      return drain(
+        ctx,
+        page,
+        'calendarEvents',
+        ctx.db
+          .query('calendarEvents')
+          .withIndex('by_calendar', (q) => q.eq('calendarId', parent.id)),
+      )
+    case 'babies':
+      return drain(
+        ctx,
+        page,
+        'babyEvents',
+        ctx.db
+          .query('babyEvents')
+          .withIndex('by_baby', (q) => q.eq('babyId', parent.id)),
+      )
   }
-  return files
 }
 
 /**
- * Delete a list's tasks: the only way to find them is through the list. A
- * task's queued reminder is withdrawn with it (APP-305), and its completion
- * history goes too (APP-303).
+ * Delete a page of a deleted parent's children and schedule the next while any
+ * are left, or the release of the stored files they held when none are
+ * (APP-878). Years of a child's log or a calendar's events are more than one
+ * transaction holds.
+ *
+ * The parent row is already gone, and every way to its children reads it
+ * first, so nothing reaches the rest meanwhile. `heldFiles` are released with
+ * the children's photos, after the last page: a blob some row still points at
+ * is kept.
  */
-export async function purgeTasksOfList(
+export async function purgeChildrenPage(
   ctx: MutationCtx,
-  listId: Id<'taskLists'>,
-) {
-  const tasks = await ctx.db
-    .query('tasks')
-    .withIndex('by_list', (q) => q.eq('listId', listId))
-    .collect()
-  for (const task of tasks) {
-    await cancelSend(ctx, task)
-    await purgeCompletionsOfTask(ctx, task._id)
+  parent: ChildParent,
+  heldFiles: Id<'_storage'>[],
+): Promise<void> {
+  const page = newPurgePage()
+  const empty = await purgeChildren(ctx, parent, page)
+  let storageIds = [...heldFiles, ...page.files]
+  if (storageIds.length > 0 && (empty || storageIds.length > MAX_HELD_FILES)) {
+    await ctx.scheduler.runAfter(0, internal.cascade.releaseFiles, {
+      storageIds,
+    })
+    storageIds = []
   }
-  await purge(ctx, 'tasks', tasks)
+  if (!empty) {
+    await ctx.scheduler.runAfter(
+      pauseMs(page),
+      internal.cascade.purgeChildren,
+      { parent, storageIds },
+    )
+  }
 }
 
 /**
@@ -88,6 +150,8 @@ export async function purgeTasksOfList(
  * questions cards. Both are set through `requireInGroup`, so they live in the
  * list's own Group. A card that lost its list also loses `…Chosen`, so the
  * list `babies.ensureAuxLists` gives it next dies with the child.
+ *
+ * The tasks go a page at a time after the list (`purgeChildrenPage`).
  */
 export async function deleteTaskList(
   ctx: MutationCtx,
@@ -95,7 +159,6 @@ export async function deleteTaskList(
 ) {
   const list = await ctx.db.get(listId)
   if (!list) return
-  await purgeTasksOfList(ctx, listId)
   await ctx.db.delete(listId)
 
   const group = await ctx.db.get(list.groupId)
@@ -136,36 +199,7 @@ export async function deleteTaskList(
     }
     if (Object.keys(patch).length > 0) await ctx.db.patch(baby._id, patch)
   }
-}
-
-/** Delete a calendar's events: the only way to find them is through it. */
-export async function purgeEventsOfCalendar(
-  ctx: MutationCtx,
-  calendarId: Id<'calendars'>,
-) {
-  await purge(
-    ctx,
-    'calendarEvents',
-    await ctx.db
-      .query('calendarEvents')
-      .withIndex('by_calendar', (q) => q.eq('calendarId', calendarId))
-      .collect(),
-  )
-}
-
-/** Delete a child's events, handing back the photos they held. */
-export async function purgeEventsOfBaby(
-  ctx: MutationCtx,
-  babyId: Id<'babies'>,
-): Promise<Id<'_storage'>[]> {
-  return await purge(
-    ctx,
-    'babyEvents',
-    await ctx.db
-      .query('babyEvents')
-      .withIndex('by_baby', (q) => q.eq('babyId', babyId))
-      .collect(),
-  )
+  await purgeChildrenPage(ctx, { table: 'taskLists', id: listId }, [])
 }
 
 /**

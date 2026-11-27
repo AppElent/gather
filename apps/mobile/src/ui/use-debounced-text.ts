@@ -73,9 +73,16 @@ export function useDebouncedText(
 
   /** Blur: what was typed, or what was refused before, is saved. */
   const blur = useCallback(() => {
-    if (pending.current === null) pending.current = refused.current
+    const retry = pending.current === null ? refused.current : null
+    if (retry !== null) pending.current = retry
     refused.current = null
     flush()
+    // Not taken again (`commit` returned `false`): it stays refused, for the
+    // next blur, so leaving still does not send it (APP-829).
+    if (retry !== null && pending.current === retry) {
+      pending.current = null
+      refused.current = retry
+    }
   }, [flush])
 
   /**
@@ -97,6 +104,8 @@ export function useDebouncedText(
 
   /** `text` was saved another way: nothing to write, unless typed in since. */
   const settle = useCallback((text: string) => {
+    // A refused copy of it is saved too: a later blur must not send it again.
+    if (refused.current === text) refused.current = null
     if (pending.current !== text) return
     pending.current = null
     if (timer.current) clearTimeout(timer.current)
