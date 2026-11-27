@@ -321,7 +321,10 @@ async function holdEnded(
 
 /**
  * Whether this person's session ended within the window: a sweep for it is
- * still waiting. Only jobs scheduled in the window are read, newest first.
+ * still waiting. Only jobs scheduled in the window are read, newest first:
+ * a household app schedules a handful in five minutes, so this stays small
+ * on a phone's launch path. A deployment scheduling thousands a minute would
+ * want an `endedSessions` table instead.
  */
 async function hasJustEnded(
   ctx: MutationCtx,
