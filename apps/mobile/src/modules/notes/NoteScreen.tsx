@@ -281,7 +281,7 @@ export function Note({ noteId }: { noteId: string }) {
       // and on this phone for the next open (APP-829).
       // Closed since: `announceHeld` writes it, into what a reopened screen
       // may have kept meanwhile, rather than this screen's copy over it.
-      holdText({ ...held.current, ...patch }, saved, base, {
+      holdText(toHold(patch), saved, base, {
         write: mounted.current,
       })
       if (!mounted.current)
@@ -310,16 +310,7 @@ export function Note({ noteId }: { noteId: string }) {
   ) {
     landed(patch)
     sent.current = {}
-    // Answers come in the order sent, so this text is newer than what an
-    // earlier answer held; but text held as the field shows it was typed since.
-    const latest = { ...held.current, ...patch }
-    for (const field of FIELDS)
-      if (
-        held.current[field] !== undefined &&
-        held.current[field] === drafts.current[field]
-      )
-        latest[field] = held.current[field]
-    holdText(latest, saved, base, { write: mounted.current })
+    holdText(toHold(patch), saved, base, { write: mounted.current })
     if (!mounted.current) {
       announceHeld(
         key,
@@ -394,6 +385,22 @@ export function Note({ noteId }: { noteId: string }) {
         showAlert(t.notes.conflict.copyFailed)
       },
     )
+  }
+
+  /**
+   * What to hold once `patch` was refused or failed. Answers come in the order
+   * sent, so `patch` is newer than what an earlier answer held; but text held
+   * as the field shows it was typed since, and stays (APP-998).
+   */
+  function toHold(patch: Partial<NoteText>): Partial<NoteText> {
+    const latest = { ...held.current, ...patch }
+    for (const field of FIELDS)
+      if (
+        held.current[field] !== undefined &&
+        held.current[field] === drafts.current[field]
+      )
+        latest[field] = held.current[field]
+    return latest
   }
 
   /** `patch` was answered: no longer in flight, unless sent again since. */
