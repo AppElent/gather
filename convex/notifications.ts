@@ -26,9 +26,11 @@ import {
 } from '@gather/core/notifications'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
+import type { Id } from './_generated/dataModel'
 import {
   internalAction,
   internalMutation,
+  type MutationCtx,
   mutation,
   query,
 } from './_generated/server'
@@ -57,6 +59,16 @@ export const INVALID_PUSH_TOKEN = 'Not an Expo push token'
 
 /** A row this recent outlives a session list that may predate it. */
 export const SESSION_GRACE_MS = 10 * 60 * 1000
+
+/**
+ * How long an ended session's phone may still reach us (APP-887). Clerk's
+ * tokens live 60 seconds, so a phone whose session was just revoked can call
+ * `registerDevice` for about a minute more; this leaves room for clock skew.
+ */
+export const ENDED_SESSION_WINDOW_MS = 5 * 60 * 1000
+
+/** Session ids one `forgetEndedSessions` call may hold open; Clerk lists fewer. */
+const MAX_ENDED_SESSIONS = 50
 
 const EXPO_SEND = 'https://exp.host/--/api/v2/push/send'
 const EXPO_RECEIPTS = 'https://exp.host/--/api/v2/push/getReceipts'
@@ -100,6 +112,10 @@ const pushMessageValidator = v.object({
  * caller's own row. It is what lets a sign-out release the row without a
  * session (`releaseDevice`) and a revoked session's phone be forgotten
  * (`forgetEndedSessions`).
+ *
+ * A session that has just ended stores nothing (APP-887): its phone can
+ * still call for as long as its last token lives, after the webhook or the
+ * revoke already forgot it.
  */
 export const registerDevice = mutation({
   args: {
@@ -115,6 +131,11 @@ export const registerDevice = mutation({
     if (!isExpoPushToken(token)) throw new ConvexError(INVALID_PUSH_TOKEN)
     if (sessionId !== undefined && !isSessionId(sessionId))
       throw new ConvexError(INVALID_SESSION_ID)
+    if (
+      sessionId !== undefined &&
+      (await hasJustEnded(ctx, user._id, sessionId))
+    )
+      return null
 
     const now = Date.now()
     const held = await ctx.db
@@ -219,6 +240,10 @@ export const forgetEndedSessions = mutation({
         !active.has(watch.sessionId) &&
         (ended.has(watch.sessionId) || watch.createdAt < settled),
     )
+    const closed = [...ended]
+      .filter((id) => isSessionId(id) && !active.has(id))
+      .slice(0, MAX_ENDED_SESSIONS)
+    if (closed.length > 0) await holdEnded(ctx, user._id, closed)
     return null
   },
 })
@@ -238,21 +263,93 @@ export const forgetSessionOf = internalMutation({
       .withIndex('by_clerkId', (q) => q.eq('clerkId', clerkId))
       .collect()
     for (const user of users) {
-      const phones = await ctx.db
-        .query('pushDevices')
-        .withIndex('by_user', (q) => q.eq('userId', user._id))
-        .collect()
-      for (const phone of phones)
-        if (phone.sessionId === sessionId) await ctx.db.delete(phone._id)
-      await deleteWatchDevices(
-        ctx,
-        user._id,
-        (watch) => watch.sessionId === sessionId,
-      )
+      await forgetSessions(ctx, user._id, [sessionId])
+      await holdEnded(ctx, user._id, [sessionId])
     }
     return null
   },
 })
+
+/**
+ * The end of an ended session's window (APP-887): whatever registered under
+ * it in the meantime goes too. While this job waits, `registerDevice`
+ * stores nothing for those sessions; that pending job is the only record
+ * that they ended.
+ */
+export const sweepEndedSessions = internalMutation({
+  args: { userId: v.id('users'), sessionIds: v.array(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, { userId, sessionIds }) => {
+    await forgetSessions(ctx, userId, sessionIds)
+    return null
+  },
+})
+
+/** Drop a person's phones and watches signed in with one of these sessions. */
+async function forgetSessions(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  sessionIds: readonly string[],
+) {
+  const ended = new Set(sessionIds)
+  const phones = await ctx.db
+    .query('pushDevices')
+    .withIndex('by_user', (q) => q.eq('userId', userId))
+    .collect()
+  for (const phone of phones)
+    if (phone.sessionId !== undefined && ended.has(phone.sessionId))
+      await ctx.db.delete(phone._id)
+  await deleteWatchDevices(
+    ctx,
+    userId,
+    (watch) => watch.sessionId !== undefined && ended.has(watch.sessionId),
+  )
+}
+
+/** Keep these sessions closed to `registerDevice` for the window. */
+async function holdEnded(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  sessionIds: string[],
+) {
+  await ctx.scheduler.runAfter(
+    ENDED_SESSION_WINDOW_MS,
+    internal.notifications.sweepEndedSessions,
+    { userId, sessionIds },
+  )
+}
+
+/**
+ * Whether this person's session ended within the window: a sweep for it is
+ * still waiting. Only jobs scheduled in the window are read, newest first:
+ * a household app schedules a handful in five minutes, so this stays small
+ * on a phone's launch path. A deployment scheduling thousands a minute would
+ * want an `endedSessions` table instead.
+ */
+async function hasJustEnded(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  sessionId: string,
+) {
+  const since = Date.now() - ENDED_SESSION_WINDOW_MS
+  for await (const job of ctx.db.system
+    .query('_scheduled_functions')
+    .order('desc')) {
+    if (job._creationTime < since) return false
+    if (job.state.kind !== 'pending' || !job.name.includes('sweepEndedSessions'))
+      continue
+    const args = job.args[0] as
+      | { userId?: unknown; sessionIds?: unknown }
+      | undefined
+    if (
+      args?.userId === userId &&
+      Array.isArray(args.sessionIds) &&
+      args.sessionIds.includes(sessionId)
+    )
+      return true
+  }
+  return false
+}
 
 /** The caller's switches, resolved, and the Groups they have muted. */
 export const settings = query({
