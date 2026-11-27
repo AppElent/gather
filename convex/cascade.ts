@@ -16,7 +16,12 @@ import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation } from './_generated/server'
 import { writePauseMs } from './lib/energyWritePace'
-import { destroyGroup, detachFromGroup, purgeGroupPage } from './lib/groupCascade'
+import {
+  destroyGroup,
+  detachFromGroup,
+  purgeChildrenPage,
+  purgeGroupPage,
+} from './lib/groupCascade'
 import { cancelJob } from './lib/notifications'
 import { drain, newPurgePage, pauseMs } from './lib/purgePage'
 import { deleteStoredFile } from './lib/storedFiles'
@@ -81,6 +86,26 @@ export const purgeGroup = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     await purgeGroupPage(ctx, args.groupId, args.storageIds)
+    return null
+  },
+})
+
+/**
+ * Delete the rest of a deleted list's tasks, calendar's events or child's log,
+ * a page per step (APP-878).
+ */
+export const purgeChildren = internalMutation({
+  args: {
+    parent: v.union(
+      v.object({ table: v.literal('taskLists'), id: v.id('taskLists') }),
+      v.object({ table: v.literal('calendars'), id: v.id('calendars') }),
+      v.object({ table: v.literal('babies'), id: v.id('babies') }),
+    ),
+    storageIds: v.array(v.id('_storage')),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await purgeChildrenPage(ctx, args.parent, args.storageIds)
     return null
   },
 })

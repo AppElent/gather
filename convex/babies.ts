@@ -12,7 +12,7 @@ import {
   requireGroupBySlug,
   requireInGroup,
 } from './lib/groupAccess'
-import { deleteTaskList, purgeEventsOfBaby } from './lib/groupCascade'
+import { deleteTaskList, purgeChildrenPage } from './lib/groupCascade'
 import { nextOrder } from './lib/order'
 import {
   deleteStoredFile,
@@ -288,16 +288,16 @@ export const remove = mutation({
       args.id,
       'Baby not found',
     )
-    // The entries are gone, so nothing points at their pictures any more. A
-    // Memory's photo is reachable from nowhere else once its entry is deleted.
-    for (const photo of await purgeEventsOfBaby(ctx, args.id)) {
-      await deleteStoredFile(ctx, photo)
-    }
     await deleteAuxTaskList(ctx, baby.taskListId, baby.taskListChosen)
     await deleteAuxTaskList(ctx, baby.questionsListId, baby.questionsListChosen)
     await ctx.db.delete(args.id)
     // After the row is gone, so that the child being deleted is not itself
     // counted as still holding the photo.
     await deleteStoredFile(ctx, baby.photoId)
+    // The log goes after the child, a page at a time, and its photos are
+    // released once the last entry is gone: a Memory's photo is reachable
+    // from nowhere else then, and releasing hundreds inline passes a
+    // transaction's limits (APP-878).
+    await purgeChildrenPage(ctx, { table: 'babies', id: args.id }, [])
   },
 })
