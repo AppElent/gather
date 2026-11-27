@@ -10,6 +10,7 @@ import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { INVALID_SESSION_ID } from './lib/sessions'
 import {
+  ENDED_SESSION_WINDOW_MS,
   INVALID_PUSH_TOKEN,
   MAX_DEVICES,
   SESSION_GRACE_MS,
@@ -296,6 +297,46 @@ describe('devices', () => {
     ])
     // Bob's session is not Alice's to end.
     expect(await devicesOf(t, w.bob)).toHaveLength(1)
+  })
+
+  test('a phone registering after its session was revoked in the app stores nothing (APP-887)', async () => {
+    const t = testConvex()
+    const w = await world(t)
+    await register(t, asAlice, 'mine', 'en', 'sess_mine')
+    await register(t, asAlice, 'lost', 'en', 'sess_lost')
+    const start = Date.now()
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.notifications.forgetEndedSessions, {
+        activeSessionIds: ['sess_mine'],
+        endedSessionIds: ['sess_lost'],
+      })
+
+    // The lost phone's last token still works for a moment.
+    await register(t, asAlice, 'lost', 'en', 'sess_lost')
+    expect((await devicesOf(t, w.alice)).map((d) => d.token)).toEqual([
+      token('mine'),
+    ])
+    // Another person's phone with that session id is not Alice's to block.
+    await register(t, asBob, 'bob', 'en', 'sess_lost')
+    expect(await devicesOf(t, w.bob)).toHaveLength(1)
+
+    // A row that slipped in anyway goes when the window closes.
+    await t.run(async (ctx) => {
+      await ctx.db.insert('pushDevices', {
+        userId: w.alice,
+        token: token('straggler'),
+        platform: 'ios',
+        locale: 'en',
+        sessionId: 'sess_lost',
+        updatedAt: Date.now(),
+      })
+    })
+    await drain(t)
+    expect(Date.now()).toBeGreaterThanOrEqual(start + ENDED_SESSION_WINDOW_MS)
+    expect((await devicesOf(t, w.alice)).map((d) => d.token)).toEqual([
+      token('mine'),
+    ])
   })
 })
 

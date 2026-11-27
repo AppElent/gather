@@ -428,4 +428,35 @@ describe('session events (APP-653, APP-845)', () => {
       watches: ['sess_one', 'sess_two'],
     })
   })
+
+  test('a phone registering after its session ended leaves no row (APP-887)', async () => {
+    vi.useFakeTimers()
+    try {
+      const t = testConvex()
+      await signedInPhones(t)
+      const body = sessionEvent('session.revoked', {
+        id: 'sess_one',
+        user_id: alice.subject,
+      })
+      expect((await post(t, body, signed(body))).status).toBe(200)
+
+      // Its token still lives for a moment: the phone registers again.
+      const again = (sessionId: string) =>
+        t.withIdentity(alice).mutation(api.notifications.registerDevice, {
+          token: 'ExponentPushToken[again]',
+          platform: 'ios',
+          locale: 'en',
+          sessionId,
+        })
+      await again('sess_one')
+      expect((await sessions(t)).phones).toEqual(['sess_two', null])
+
+      // Somebody signing in on that phone afresh is a new session, and stays.
+      await again('sess_three')
+      await t.finishAllScheduledFunctions(vi.runAllTimers)
+      expect((await sessions(t)).phones).toEqual(['sess_two', null, 'sess_three'])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
