@@ -146,7 +146,8 @@ export function readLoyaltyCardRefusal(
  * address" and "an address in another Group" alike, and `houseNotFound` a
  * House link to a House outside the Group (ADR-0009). A meter reading below
  * the one before it is `readingLower` (a new meter is a new channel), one
- * above a later reading `readingHigher` (APP-494).
+ * above a later reading `readingHigher` (APP-494). A reading to delete that
+ * is gone, another Group's or not typed is `readingNotFound` (APP-714).
  */
 export const ENERGY_REFUSAL_CODES = [
   'needsName',
@@ -184,6 +185,8 @@ export const ENERGY_REFUSAL_CODES = [
   'assetInvalid',
   'assetInFuture',
   'tooManyAssets',
+  // APP-714: deleting a typed reading.
+  'readingNotFound',
 ] as const
 export type EnergyRefusalCode = (typeof ENERGY_REFUSAL_CODES)[number]
 

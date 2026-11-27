@@ -169,6 +169,10 @@ const SectionLabel = ({ children }: { children: ReactNode }) =>
   createElement('h4', null, children)
 const InsetList = ({ children, ...props }: Props) =>
   createElement('div', common(props), children)
+/**
+ * A row; its swipe-revealed Delete and its hold menu are buttons beside it,
+ * `<testID>-swipe-delete` and `<testID>-menu-<id>`.
+ */
 const InsetRow = ({
   title,
   subtitle,
@@ -176,9 +180,12 @@ const InsetRow = ({
   trailing,
   children,
   onPress,
+  onDelete,
+  deleteLabel,
+  menu,
   ...props
-}: Props) =>
-  createElement(
+}: Props) => {
+  const row = createElement(
     onPress ? 'button' : 'div',
     {
       ...common(props),
@@ -196,6 +203,36 @@ const InsetRow = ({
     trailing as ReactNode,
     children,
   )
+  if (!onDelete && !menu) return row
+  const hold = menu as
+    | { actions: { id: string }[]; onAction: (id: string) => void }
+    | undefined
+  return createElement(
+    'div',
+    null,
+    row,
+    onDelete
+      ? createElement(
+          'button',
+          {
+            type: 'button',
+            'data-testid': `${props.testID as string}-swipe-delete`,
+            'aria-label': deleteLabel as string,
+            onClick: onDelete as () => void,
+          },
+          deleteLabel as string,
+        )
+      : null,
+    hold?.actions.map((action) =>
+      createElement('button', {
+        type: 'button',
+        key: action.id,
+        'data-testid': `${props.testID as string}-menu-${action.id}`,
+        onClick: () => hold.onAction(action.id),
+      }),
+    ),
+  )
+}
 const Segmented = ({
   options,
   onChange,

@@ -2,7 +2,8 @@
 /**
  * Meter readings (APP-494, designs/energy section 10): a reading lower than
  * the one before it is refused in its row before anything is sent, a good
- * one is saved, and a Group without meters first says which it reads.
+ * one is saved, and a Group without meters first says which it reads. A
+ * typed reading is deleted by swipe or hold, only after the alert (APP-714).
  */
 import { amsterdamIsoDate } from '@gather/core/civil-date'
 import { createElement } from 'react'
@@ -33,6 +34,9 @@ vi.mock('../../group/GroupProvider', async () => (await import('./energy-test-mo
 vi.mock('../../i18n', async () => (await import('./energy-test-mocks')).i18nMock())
 vi.mock('../../theme/icons', async () => (await import('./energy-test-mocks')).iconsMock())
 vi.mock('../../theme/tokens', async () => (await import('./energy-test-mocks')).tokensMock())
+vi.mock('../../feedback/confirmDestructive', async () =>
+  (await import('./energy-test-mocks')).confirmMock(),
+)
 vi.mock('../../feedback/haptics', async () => (await import('./energy-test-mocks')).hapticsMock())
 vi.mock('../../components/LoadingSkeleton', async () =>
   (await import('./energy-test-mocks')).skeletonMock(),
@@ -207,5 +211,82 @@ test('the bar above each decimal keypad moves on and puts the keyboard away', ()
   expect(document.activeElement).toBe(byTestId('energy-reading-c2'))
   expect(byTestId('energy-reading-c2-next')).toBeNull()
   expect(callsTo('energyReadings:save')).toEqual([])
+  view.unmount()
+})
+
+const typed = {
+  _id: 'r1',
+  kind: 'gridImport',
+  tariff: 't1',
+  unit: 'kWh',
+  value: 1240.5,
+  at: Date.UTC(2026, 10, 10, 11),
+}
+
+test('typed readings are listed below the form, newest first', async () => {
+  energyState.queries['energyReadings:recent'] = [typed]
+  const view = mount(createElement(EnergyReadingsScreen))
+  await settle()
+  const row = byTestId('energy-recent-r1')
+  expect(row?.textContent).toContain('From the grid, off-peak')
+  expect(row?.textContent).toContain('1,240.5 kWh on November 10, 2026')
+  view.unmount()
+})
+
+test('no typed readings, no list', async () => {
+  energyState.queries['energyReadings:recent'] = []
+  const view = mount(createElement(EnergyReadingsScreen))
+  await settle()
+  expect(byTestId('energy-recent-readings')).toBeNull()
+  view.unmount()
+})
+
+test('swiping to Delete asks first, and only confirming deletes', async () => {
+  energyState.queries['energyReadings:recent'] = [typed]
+  const view = mount(createElement(EnergyReadingsScreen))
+  await settle()
+  byTestId('energy-recent-r1-swipe-delete')?.click()
+  await settle()
+  // Asked, nothing sent yet: dismissing the alert leaves the reading.
+  expect(energyState.confirms).toHaveLength(1)
+  expect(energyState.confirms[0]).toMatchObject({
+    title: en.energy.readings.deleteTitle,
+    message:
+      'From the grid, off-peak: 1,240.5 kWh on November 10, 2026. Usage and costs for the days around it are worked out again without it.',
+    confirm: en.common.actions.delete,
+  })
+  expect(callsTo('energyReadings:remove')).toEqual([])
+
+  energyState.confirms[0]?.onConfirm()
+  await settle()
+  expect(callsTo('energyReadings:remove')).toEqual([
+    { groupSlug: 'home', readingId: 'r1' },
+  ])
+  view.unmount()
+})
+
+test('holding a row offers the same Delete', async () => {
+  energyState.queries['energyReadings:recent'] = [typed]
+  const view = mount(createElement(EnergyReadingsScreen))
+  await settle()
+  byTestId('energy-recent-r1-menu-delete')?.click()
+  await settle()
+  expect(energyState.confirms).toHaveLength(1)
+  expect(callsTo('energyReadings:remove')).toEqual([])
+  view.unmount()
+})
+
+test('a refused delete says why', async () => {
+  energyState.queries['energyReadings:recent'] = [typed]
+  energyState.refuse = { kind: 'energy:readingNotFound' }
+  const view = mount(createElement(EnergyReadingsScreen))
+  await settle()
+  byTestId('energy-recent-r1-swipe-delete')?.click()
+  await settle()
+  energyState.confirms[0]?.onConfirm()
+  await settle()
+  expect(byTestId('energy-recent-problem')?.textContent).toBe(
+    en.energy.refusals.readingNotFound,
+  )
   view.unmount()
 })

@@ -133,6 +133,13 @@ export const energy = {
     setupGas: 'Gas',
     setupGasHint: 'Een gasmeter in huis.',
     setupSubmit: 'Voeg deze meters toe',
+    recentHeading: 'Getypte standen',
+    recentRow: '{value} {unit} op {date}',
+    deleteReading: '{channel} van {date} verwijderen',
+    deleteTitle: 'Deze stand verwijderen?',
+    deleteBody:
+      '{channel}: {value} {unit} op {date}. Verbruik en kosten van de dagen eromheen worden zonder deze stand opnieuw berekend.',
+    deleteFailed: 'De stand kon niet worden verwijderd. Probeer het opnieuw.',
   },
   costs: {
     title: 'Kosten per maand',
@@ -625,5 +632,6 @@ export const energy = {
     assetInvalid: 'Controleer de bedragen: ze moeten groter dan nul en aannemelijk zijn.',
     assetInFuture: 'Kies vandaag of een eerdere dag.',
     tooManyAssets: 'Er staan al 20 panelen en batterijen. Verwijder er eerst een.',
+    readingNotFound: 'Die stand is er niet meer.',
   },
 } satisfies Messages['energy']

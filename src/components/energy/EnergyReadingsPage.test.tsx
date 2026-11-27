@@ -6,17 +6,20 @@ import { EnergyReadingsPage } from './EnergyReadingsPage'
 
 /**
  * Typing meter readings (APP-494): a lower reading is refused inline before
- * anything is sent, and a site without typed meters first names them.
+ * anything is sent, and a site without typed meters first names them. A
+ * typed reading is deleted only after the dialog asks (APP-714).
  */
 
 const state = vi.hoisted(() => ({
   form: null as unknown,
+  recent: [] as unknown,
   calls: [] as { name: string; args: unknown }[],
   result: Promise.resolve(null) as Promise<unknown>,
 }))
 
 vi.mock('convex/react', () => ({
-  useQuery: () => state.form,
+  useQuery: (name: string) =>
+    name === 'energyReadings:recent' ? state.recent : state.form,
   useMutation: (name: string) => (args: unknown) => {
     state.calls.push({ name, args })
     return state.result
@@ -35,6 +38,8 @@ vi.mock('../../../convex/_generated/api', () => ({
       form: 'energyReadings:form',
       save: 'energyReadings:save',
       setupChannels: 'energyReadings:setupChannels',
+      recent: 'energyReadings:recent',
+      remove: 'energyReadings:remove',
     },
   },
 }))
@@ -45,6 +50,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2026-11-20T18:55:00Z'))
   state.calls = []
+  state.recent = []
   state.result = Promise.resolve(null)
   state.form = {
     hasManualSource: true,
@@ -210,5 +216,87 @@ describe('EnergyReadingsPage', () => {
     fireEvent.click(submit)
     await waitFor(() => expect(state.calls).toHaveLength(1))
     expect(state.calls[0]?.args).toMatchObject({ export: false, gas: true })
+  })
+
+  describe('deleting a typed reading', () => {
+    const READING_AT = Date.parse('2026-11-10T11:00:00Z')
+    beforeEach(() => {
+      state.recent = [
+        {
+          _id: 'r1',
+          kind: 'gridImport',
+          tariff: 't1',
+          unit: 'kWh',
+          value: 24250.4,
+          at: READING_AT,
+        },
+      ]
+    })
+
+    test('lists the typed readings with a Delete for each', () => {
+      renderInGroup(<EnergyReadingsPage />)
+      const list = screen.getByRole('region', { name: 'Typed readings' })
+      expect(list).toHaveTextContent('From the grid, off-peak')
+      expect(list).toHaveTextContent('24,250.4 kWh on November 10, 2026')
+      expect(
+        screen.getByRole('button', {
+          name: 'Delete From the grid, off-peak on November 10, 2026',
+        }),
+      ).toBeInTheDocument()
+    })
+
+    test('asks first, and Cancel deletes nothing', () => {
+      renderInGroup(<EnergyReadingsPage />)
+      fireEvent.click(
+        screen.getByRole('button', { name: /^Delete From the grid/ }),
+      )
+      const dialog = screen.getByRole('dialog', { name: 'Delete this reading?' })
+      expect(dialog).toHaveTextContent(
+        'From the grid, off-peak: 24,250.4 kWh on November 10, 2026. Usage and costs for the days around it are worked out again without it.',
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(state.calls).toEqual([])
+    })
+
+    test('confirming deletes that one reading', async () => {
+      renderInGroup(<EnergyReadingsPage />, { locale: 'nl' })
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Stroom van het net, dal van 10 november 2026 verwijderen',
+        }),
+      )
+      screen.getByRole('dialog', { name: 'Deze stand verwijderen?' })
+      fireEvent.click(screen.getByRole('button', { name: 'Verwijderen' }))
+      await waitFor(() =>
+        expect(state.calls).toEqual([
+          {
+            name: 'energyReadings:remove',
+            args: { groupSlug: 'jansen-household', readingId: 'r1' },
+          },
+        ]),
+      )
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+      )
+    })
+
+    test('a refusal keeps the dialog open and says why', async () => {
+      state.result = Promise.reject(
+        Object.assign(new Error('refused'), {
+          data: { kind: 'energy:readingNotFound' },
+        }),
+      )
+      state.result.catch(() => {})
+      renderInGroup(<EnergyReadingsPage />)
+      fireEvent.click(
+        screen.getByRole('button', { name: /^Delete From the grid/ }),
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'That reading is not there any more.',
+      )
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
   })
 })
