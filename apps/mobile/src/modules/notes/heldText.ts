@@ -20,6 +20,12 @@ export interface HeldField {
   text: string
   /** The field's text when it was held: the note's, and the one sent. */
   over: string[]
+  /**
+   * Why the server refused `text`, when it did (APP-970): shown again when the
+   * text comes back after a quit, and the text is not sent again until changed.
+   * Text held by the phone's own length check is never sent, so has none.
+   */
+  refused?: string
 }
 
 export type HeldNote = Partial<Record<keyof NoteText, HeldField>>
@@ -76,7 +82,9 @@ function isHeld(value: unknown): value is HeldNote {
       (field === 'title' || field === 'body') &&
       typeof held?.text === 'string' &&
       Array.isArray(held.over) &&
-      held.over.every((each: unknown) => typeof each === 'string'),
+      held.over.every((each: unknown) => typeof each === 'string') &&
+      // Kept before APP-970 without one: still put back.
+      (held.refused === undefined || typeof held.refused === 'string'),
   )
 }
 
