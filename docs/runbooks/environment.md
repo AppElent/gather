@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when adding or changing an environment variable, an Infisical value, a Convex deployment variable, or a generated env file.
-version: 2.1.0
+version: 2.1.1
 ---
 
 # Environment
@@ -91,8 +91,8 @@ the manifest and `.env.example`, not here.
   links for web Apple revocation (APP-388,
   [account deletion](../contracts/account-deletion.md#web-apple-revocation)),
   and to `session.ended`, `session.removed` and `session.revoked`, which end the
-  keys of watches paired under that session (APP-653,
-  [watch API](../contracts/watch-api.md)).
+  pushes to the phone signed in with that session (APP-845) and the keys of
+  watches paired under it (APP-653, [watch API](../contracts/watch-api.md)).
   Each Clerk instance has its own endpoint and secret: the development one for
   `local`, the production one for `production`, which waits for Eric's go
   (APP-392). Per-PR preview backends get none. Optional: without it the route refuses every request
