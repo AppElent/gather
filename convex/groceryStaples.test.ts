@@ -269,7 +269,7 @@ describe('staples', () => {
         createdBy: aliceId,
         order: OPEN_ITEMS_SCAN_LIMIT,
       })
-      return [...(await openKeysOn(ctx, groceries))]
+      return [...(await openKeysOn(ctx, groceries, '2026-11-20'))]
     })
     expect(keys).toEqual(['rijst'])
   })
@@ -323,9 +323,21 @@ describe('staples', () => {
       expect(after.map(({ _id, done }) => ({ _id, done }))).toEqual([
         { _id: item._id, done: false },
       ])
-      // Low again and bought through the item sheet: the same.
-      await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true })
-      expect(await itemsOn(t, groceries)).toHaveLength(1)
+      // Waiting off the list, so the Staples screen does not call it on it.
+      const waiting = await as.query(api.groceryStaples.list, { groupSlug: SLUG })
+      expect(waiting.staples[0]).toMatchObject({ low: false, onList: false })
+      // Low again: the waiting item comes forward to today, no second copy
+      // (APP-989).
+      expect(
+        await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true }),
+      ).toEqual({ onList: true })
+      const forward = await itemsOn(t, groceries)
+      expect(forward.map(({ _id, done, dueDate }) => ({ _id, done, dueDate }))).toEqual([
+        { _id: item._id, done: false, dueDate: '2026-11-20' },
+      ])
+      const shown = await as.query(api.groceryStaples.list, { groupSlug: SLUG })
+      expect(shown.staples[0]).toMatchObject({ low: true, onList: true })
+      // Bought through the item sheet a week on: restocked, and it moves on.
       vi.setSystemTime(new Date('2026-11-27T12:00:00Z'))
       await as.mutation(api.tasks.update, {
         groupSlug: SLUG,
@@ -334,7 +346,73 @@ describe('staples', () => {
         today: '2026-11-27',
       })
       expect((await staple(t, id))?.low).toBe(false)
-      expect((await itemsOn(t, groceries)).map((row) => row.done)).toEqual([false])
+      const bought = await itemsOn(t, groceries)
+      expect(bought).toHaveLength(1)
+      expect(bought[0]).toMatchObject({ done: false, dueDate: '2026-12-04' })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  test('a waiting repeating item comes forward with its dated subtasks (APP-989)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-20T12:00:00Z'))
+    try {
+      const { t, as, aliceId, groceries } = await seed()
+      const { item, sub } = await t.run(async (ctx) => {
+        const item = await ctx.db.insert('tasks', {
+          listId: groceries,
+          title: 'Koffie',
+          done: false,
+          createdBy: aliceId,
+          order: 0,
+          dueDate: '2026-11-27',
+          repeat: { mode: 'fixed', unit: 'week', every: 1 },
+        })
+        const sub = await ctx.db.insert('tasks', {
+          listId: groceries,
+          parentTaskId: item,
+          title: 'Bonen',
+          done: false,
+          createdBy: aliceId,
+          order: 1,
+          dueDate: '2026-11-27',
+        })
+        return { item, sub }
+      })
+      const id = await addStaple(as, 'koffie')
+      await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true })
+      const rows = await itemsOn(t, groceries)
+      expect(rows).toHaveLength(2)
+      expect(rows.find((row) => row._id === item)?.dueDate).toBe('2026-11-20')
+      expect(rows.find((row) => row._id === sub)?.dueDate).toBe('2026-11-20')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  test('an item on the list today is left as it is, even when repeating', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-20T12:00:00Z'))
+    try {
+      const { t, as, aliceId, groceries } = await seed()
+      const item = await t.run((ctx) =>
+        ctx.db.insert('tasks', {
+          listId: groceries,
+          title: 'Thee',
+          done: false,
+          createdBy: aliceId,
+          order: 0,
+          dueDate: '2026-11-18',
+          repeat: { mode: 'fixed', unit: 'week', every: 1 },
+        }),
+      )
+      const id = await addStaple(as, 'Thee')
+      await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true })
+      const rows = await itemsOn(t, groceries)
+      expect(rows.map(({ _id, dueDate }) => ({ _id, dueDate }))).toEqual([
+        { _id: item, dueDate: '2026-11-18' },
+      ])
     } finally {
       vi.useRealTimers()
     }
