@@ -1036,6 +1036,7 @@ export function useTaskActions() {
       item: ComposedGrocery,
       saveKey: string,
     ): Promise<{ taskId: string } & GroceryDetails> => {
+      const today = todayIn(group.timeZone)
       const taskId = await add({
         listId: listId as Id<'taskLists'>,
         groupSlug,
@@ -1043,6 +1044,8 @@ export function useTaskActions() {
         idempotencyKey: saveKey,
         ...(item.quantity !== undefined ? { quantity: item.quantity } : {}),
         ...(item.unit !== undefined ? { unit: item.unit } : {}),
+        // A typed repeat (APP-993): on the list today, back on its schedule.
+        ...(item.repeat ? { repeat: item.repeat, dueDate: today, today } : {}),
       })
       return { taskId, ...(await groceryDetails(taskId, item)) }
     },

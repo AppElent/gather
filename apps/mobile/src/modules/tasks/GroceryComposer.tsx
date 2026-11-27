@@ -25,6 +25,12 @@ import {
   isGroceryAisle,
 } from '@gather/core/groceries'
 import { readTaskRefusal } from '@gather/core/refusals'
+import { QUICK_REPEATS } from '@gather/core/task-quick-add-line'
+import {
+  describeRepeat,
+  normalizeRepeat,
+  sameRepeat,
+} from '@gather/core/task-repeat'
 import { useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -62,16 +68,18 @@ import { OFFERED_UNITS, useGroceryAmountText, useTypedAisle } from './GroceryFie
 import { GroceryCompletions, type GroceryPick } from './GrocerySuggestions'
 import {
   addedSummary,
-  amountSpans,
   type ComposedGrocery,
   composedGrocery,
   emptyGroceryDraft,
   type GroceryDraft,
   isGroceryDirty,
+  lineSpans,
   nextGroceryDraft,
   quantityChoices,
   withAmount,
   withLine,
+  withoutRepeat,
+  withRepeat,
 } from './groceryDraft'
 import { groceryListsOf, onShoppingList } from './groceryList'
 import { TASK_ICONS } from './icons'
@@ -235,7 +243,7 @@ function GroceryComposerCard({
   onOpenItem: (taskId: string) => void
 }) {
   const tokens = useTokens('kitchen')
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const words = t.composer
   const own = words.grocery
   const g = t.tasks.grocery
@@ -345,7 +353,7 @@ function GroceryComposerCard({
     }
   })
 
-  const item = composedGrocery(draft)
+  const item = composedGrocery(draft, today)
   // With its amount, as the server reads it: "2 blik tomaten" is in tins.
   const detected = useTypedAisle(
     target?._id,
@@ -701,6 +709,22 @@ function GroceryComposerCard({
     },
     ...(hasAmount ? [removeGroup('amount:remove')] : []),
   ]
+  // The task composer's short repeats (APP-993); the item is on the list
+  // today, so each is anchored there.
+  const repeatMenu: MenuAction[] = [
+    ...(Object.keys(QUICK_REPEATS) as (keyof typeof QUICK_REPEATS)[]).map((unit) => {
+      const rule = normalizeRepeat(QUICK_REPEATS[unit], today)
+      return {
+        id: `repeat:${unit}`,
+        title: t.tasks.repeat.summary.every[unit].one,
+        state:
+          rule && item.repeat && sameRepeat(rule, item.repeat)
+            ? ('on' as const)
+            : ('off' as const),
+      }
+    }),
+    ...(item.repeat ? [removeGroup('repeat:remove')] : []),
+  ]
   const aisleMenu: MenuAction[] = [
     ...GROCERY_AISLES.map((id) => ({
       id: `aisle:${id}`,
@@ -730,6 +754,14 @@ function GroceryComposerCard({
       // A typed amount's words stay as the name; a tapped one just goes.
       change({ ...now, amount: now.amount ? undefined : null })
     else if (id === 'aisle:remove') change({ ...now, aisle: undefined })
+    else if (id === 'repeat:remove') change(withoutRepeat(now))
+    else if (kind === 'repeat' && value in QUICK_REPEATS) {
+      const rule = normalizeRepeat(
+        QUICK_REPEATS[value as keyof typeof QUICK_REPEATS],
+        today,
+      )
+      if (rule) change(withRepeat(now, rule))
+    }
     // Any aisle tapped is a choice, the one shown too: "keep it in Other"
     // holds against a later AI answer.
     else if (kind === 'aisle' && isGroceryAisle(value))
@@ -746,6 +778,9 @@ function GroceryComposerCard({
 
   const named = (name: string, value?: string) =>
     value ? `${name}: ${value}` : name
+  const repeatText = item.repeat
+    ? describeRepeat(item.repeat, t.tasks.repeat.summary, locale)
+    : undefined
   const chips: ComposerChip[] = [
     ...(target
       ? [
@@ -793,6 +828,20 @@ function GroceryComposerCard({
       onMenu,
       testID: 'composer-chip-aisle',
     },
+    ...(repeatText
+      ? [
+          {
+            id: 'repeat',
+            label: repeatText,
+            accessibilityLabel: named(t.tasks.repeat.title, repeatText),
+            set: true,
+            icon: TASK_ICONS.Repeat,
+            menu: repeatMenu,
+            onMenu,
+            testID: 'composer-chip-repeat',
+          },
+        ]
+      : []),
     ...(draft.staple
       ? [
           {
@@ -867,7 +916,7 @@ function GroceryComposerCard({
             editable={field.editable && !waiting}
             autoFocus
             line={draft.line}
-            parsed={{ parts: amountSpans(draft) }}
+            parsed={{ parts: lineSpans(draft) }}
             onChangeText={(line) => change(withLine(latest.current, line))}
             placeholder={own.title}
             placeholderTextColor={field.placeholderTextColor}
