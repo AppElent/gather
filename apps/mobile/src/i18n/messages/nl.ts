@@ -858,6 +858,24 @@ export const nl = {
       'Deze notitie is veranderd sinds je haar verliet, dus je niet-opgeslagen tekst is niet teruggezet.',
     putBack: 'Mijn tekst terugzetten',
     discardKept: 'Mijn tekst weggooien',
+    saving: 'Opslaan…',
+    saved: 'Opgeslagen',
+    conflicted: 'Niet opgeslagen: iemand anders heeft haar aangepast',
+    conflict: {
+      title: 'Deze notitie is veranderd',
+      changedBy:
+        '{name} heeft haar aangepast terwijl jij schreef. Er is niets overschreven.',
+      changedBySomeone:
+        'Iemand anders heeft haar aangepast terwijl jij schreef. Er is niets overschreven.',
+      theirs: 'Hun versie',
+      mine: 'Jouw versie',
+      keepMine: 'Mijn versie houden',
+      keepTheirs: 'Hun versie houden',
+      copyMine: 'Mijn versie naar een nieuwe notitie',
+      copyFailed: 'Je versie kon niet worden gekopieerd. Ze staat er nog.',
+      changedSince:
+        'Niet opgeslagen: iemand anders heeft deze notitie intussen aangepast.',
+    },
   },
 
   notifications: {

@@ -18,7 +18,7 @@ import {
   noteLength,
 } from '@gather/core/notes'
 import { noteRefusalSentence } from '@gather/core/refusals'
-import { Stack, useRouter } from 'expo-router'
+import { type Href, Stack, usePathname, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
   KeyboardAvoidingView,
@@ -35,6 +35,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
+import { showAlert } from '../../observability/native-presentation'
 import { reportError } from '../../observability/report'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { UI_ICONS } from '../../theme/icons'
@@ -51,6 +52,13 @@ import {
   readHeld,
   writeHeld,
 } from './heldText'
+import { NoteConflictSheet } from './NoteConflictSheet'
+import {
+  type NoteBase,
+  nextBase,
+  overlaps,
+  type TheirNote,
+} from './noteConflict'
 import { confirmDeleteNote } from './notesActions'
 import { type NoteText, noteWhen, preview, unsavedText } from './noteText'
 import { useNote, useNoteActions } from './store'
@@ -117,6 +125,17 @@ export function Note({ noteId }: { noteId: string }) {
   /** The note loaded and its kept text was read: leaving may write it back. */
   const ready = useRef(false)
   const [refused, setRefused] = useState<string | null>(null)
+  /** The saved version this screen's text is typed on (APP-347). */
+  const baseRef = useRef<NoteBase | null>(null)
+  /** Another Member's save this screen's text met, until the person chooses. */
+  const conflictRef = useRef<{ from: NoteBase; theirs: TheirNote } | null>(null)
+  const [conflict, setConflict] = useState(conflictRef.current)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [copying, setCopying] = useState(false)
+  /** Saves sent and not yet answered. */
+  const saving = useRef(0)
+  const [status, setStatus] = useState<'saving' | 'saved' | null>(null)
+  const pathname = usePathname()
 
   const { userId } = useAuth()
   const { group } = useGroup()
@@ -169,6 +188,13 @@ export function Note({ noteId }: { noteId: string }) {
     const base = { title: note.title, body: note.body }
     const saved = { ...base, ...sent.current }
     const patch = unsavedText(saved, { ...held.current, [field]: next })
+    // A conflict waits for the person's choice: nothing is sent meanwhile, and
+    // the text is kept as typed over the version it started from.
+    const open = conflictRef.current
+    if (open) {
+      if (Object.keys(patch).length > 0) holdText(patch, open.from, open.from)
+      return false
+    }
     if (Object.keys(patch).length > 0 && isNoteTooLong({ ...saved, ...patch })) {
       holdText(patch, saved, base)
       return false
@@ -195,8 +221,47 @@ export function Note({ noteId }: { noteId: string }) {
     // The held text of the other field went along: it is no longer unsaved.
     if (patch.title !== undefined) title.settle(patch.title)
     if (patch.body !== undefined) body.settle(patch.body)
-    actions.editNote(note.id, patch).then(
-      () => {
+    send(note.id, patch, saved, base)
+  }
+
+  /** Sends `patch`, written over `saved` (and `base`), from the screen's base. */
+  function send(
+    id: string,
+    patch: Partial<NoteText>,
+    saved: NoteText,
+    base: NoteText,
+  ) {
+    const from = baseRef.current ?? { ...base, updatedAt: 0 }
+    saving.current += 1
+    setStatus('saving')
+    const settled = () => {
+      saving.current -= 1
+      return saving.current === 0
+    }
+    actions.editNote(id, patch, from.updatedAt).then(
+      (result) => {
+        if (result?.status === 'conflict') {
+          settled()
+          const theirs = result.note
+          // This screen's own save may have landed since this one was sent.
+          const now = baseRef.current
+          const typedOn = now && now.updatedAt > from.updatedAt ? now : from
+          // They changed the other field only: sent again from their version.
+          if (!overlaps(patch, typedOn, theirs)) {
+            baseRef.current = {
+              title: theirs.title,
+              body: theirs.body,
+              updatedAt: theirs.updatedAt,
+            }
+            send(id, patch, saved, base)
+            return
+          }
+          conflicted(patch, saved, base, from, theirs)
+          return
+        }
+        if (settled() && mounted.current) setStatus('saved')
+        if (result && result.updatedAt >= (baseRef.current?.updatedAt ?? 0))
+          baseRef.current = { ...saved, ...patch, updatedAt: result.updatedAt }
         landed(patch)
         if (mounted.current) {
           if (holdsText(key)) keepHeld()
@@ -208,6 +273,7 @@ export function Note({ noteId }: { noteId: string }) {
           }
       },
       (error: unknown) => {
+      if (settled() && mounted.current) setStatus(null)
       landed(patch)
       sent.current = {}
       const sentence = noteRefusalSentence(error, t.notes.refusals)
@@ -215,7 +281,9 @@ export function Note({ noteId }: { noteId: string }) {
       // and on this phone for the next open (APP-829).
       // Closed since: `announceHeld` writes it, into what a reopened screen
       // may have kept meanwhile, rather than this screen's copy over it.
-      holdText(patch, saved, base, { merge: true, write: mounted.current })
+      holdText({ ...held.current, ...patch }, saved, base, {
+        write: mounted.current,
+      })
       if (!mounted.current)
         announceHeld(key, heldNote(), sentence, session.current)
       else {
@@ -224,6 +292,96 @@ export function Note({ noteId }: { noteId: string }) {
         setRefused(sentence ?? t.notes.notSaved)
       }
       if (sentence === null) reportError(error)
+      },
+    )
+  }
+
+  /**
+   * Another Member saved over the version `patch` was typed on (APP-347):
+   * nothing was written. The text stays, held as any unsaved text is, and the
+   * person chooses in the sheet; a screen closed since shows it on reopening.
+   */
+  function conflicted(
+    patch: Partial<NoteText>,
+    saved: NoteText,
+    base: NoteText,
+    from: NoteBase,
+    theirs: TheirNote,
+  ) {
+    landed(patch)
+    sent.current = {}
+    // Answers come in the order sent, so this text is newer than what an
+    // earlier answer held; but text held as the field shows it was typed since.
+    const latest = { ...held.current, ...patch }
+    for (const field of FIELDS)
+      if (
+        held.current[field] !== undefined &&
+        held.current[field] === drafts.current[field]
+      )
+        latest[field] = held.current[field]
+    holdText(latest, saved, base, { write: mounted.current })
+    if (!mounted.current) {
+      announceHeld(
+        key,
+        heldNote(),
+        t.notes.conflict.changedSince,
+        session.current,
+      )
+      return
+    }
+    if (patch.title !== undefined) title.hold(patch.title)
+    if (patch.body !== undefined) body.hold(patch.body)
+    const open = { from, theirs }
+    conflictRef.current = open
+    setConflict(open)
+    setSheetOpen(true)
+    setStatus(null)
+    haptics.actionFailed()
+  }
+
+  function resolved(theirs: TheirNote) {
+    baseRef.current = {
+      title: theirs.title,
+      body: theirs.body,
+      updatedAt: theirs.updatedAt,
+    }
+    conflictRef.current = null
+    setConflict(null)
+    setSheetOpen(false)
+  }
+  /** Saves this screen's text over their version. */
+  function keepMine() {
+    const open = conflictRef.current
+    if (!open) return
+    resolved(open.theirs)
+    save('title', drafts.current.title)
+    save('body', drafts.current.body)
+  }
+  /** Drops this screen's unsaved text; the note shows their version. */
+  function keepTheirs() {
+    const open = conflictRef.current
+    if (!open) return
+    resolved(open.theirs)
+    held.current = {}
+    heldOver.current = {}
+    title.discard()
+    body.discard()
+    keepHeld()
+  }
+  /** This screen's text becomes a note of its own; this one keeps theirs. */
+  function copyMine() {
+    if (!conflictRef.current) return
+    setCopying(true)
+    actions.copyNote(drafts.current).then(
+      (id) => {
+        setCopying(false)
+        keepTheirs()
+        router.replace(pathname.replace(/[^/]+$/, id) as Href)
+      },
+      (error: unknown) => {
+        setCopying(false)
+        reportError(error)
+        showAlert(t.notes.conflict.copyFailed)
       },
     )
   }
@@ -253,6 +411,12 @@ export function Note({ noteId }: { noteId: string }) {
   latestNote.current = note
   const drafts = useRef({ title: title.draft, body: body.draft })
   drafts.current = { title: title.draft, body: body.draft }
+  if (note && !conflictRef.current)
+    baseRef.current = nextBase(
+      baseRef.current,
+      { title: note.title, body: note.body, updatedAt: note.updatedAt },
+      drafts.current,
+    )
   const { change: changeTitle } = title
   const { change: changeBody } = body
 
@@ -418,6 +582,27 @@ export function Note({ noteId }: { noteId: string }) {
                     name: note.updatedByName,
                   })}
             </Text>
+            {conflict ? (
+              <Pressable
+                testID="note-save-status"
+                accessibilityRole="button"
+                accessibilityLiveRegion="polite"
+                onPress={() => setSheetOpen(true)}
+                hitSlop={8}
+              >
+                <Text style={[styles.metaText, { color: tokens.danger }]}>
+                  {`· ${t.notes.conflicted}`}
+                </Text>
+              </Pressable>
+            ) : status ? (
+              <Text
+                testID="note-save-status"
+                accessibilityLiveRegion="polite"
+                style={[styles.metaText, { color: tokens.muted }]}
+              >
+                {`· ${status === 'saving' ? t.notes.saving : t.notes.saved}`}
+              </Text>
+            ) : null}
           </View>
 
           <TextInput
@@ -537,6 +722,18 @@ export function Note({ noteId }: { noteId: string }) {
           ))}
         </View>
       </KeyboardAvoidingView>
+
+      {conflict && sheetOpen ? (
+        <NoteConflictSheet
+          mine={text}
+          theirs={conflict.theirs}
+          busy={copying}
+          onKeepMine={keepMine}
+          onKeepTheirs={keepTheirs}
+          onCopyMine={copyMine}
+          onClose={() => setSheetOpen(false)}
+        />
+      ) : null}
     </>
   )
 }
@@ -555,7 +752,12 @@ const styles = StyleSheet.create({
     padding: 0,
     marginTop: 6,
   },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  meta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 5,
+  },
   metaText: { ...TYPE.footnote },
   body: {
     ...TYPE.body,

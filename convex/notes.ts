@@ -258,6 +258,16 @@ export const create = mutation({
   },
 })
 
+/**
+ * Changes a note's title, body or pin.
+ *
+ * `baseUpdatedAt` is the `updatedAt` the edit started from (APP-347). When
+ * another Member has edited the note since, nothing is written and the answer
+ * is `conflict`, with the note as it is now, so the editor can choose. The
+ * caller's own later edits never conflict: its saves overlap while it types.
+ * Left out, the last write wins, as before: installed phones from before
+ * APP-347, the web and the MCP tool send none (`docs/migrations/README.md`).
+ */
 export const update = mutation({
   args: {
     groupSlug: v.string(),
@@ -265,7 +275,20 @@ export const update = mutation({
     title: v.optional(v.string()),
     body: v.optional(v.string()),
     pinned: v.optional(v.boolean()),
+    baseUpdatedAt: v.optional(v.number()),
   },
+  returns: v.union(
+    v.object({ status: v.literal('saved'), updatedAt: v.number() }),
+    v.object({
+      status: v.literal('conflict'),
+      note: v.object({
+        title: v.string(),
+        body: v.string(),
+        updatedAt: v.number(),
+        updatedByName: v.union(v.string(), v.null()),
+      }),
+    }),
+  ),
   handler: async (ctx, args) => {
     const { doc, user } = await requireInGroup(
       ctx,
@@ -278,12 +301,35 @@ export const update = mutation({
     const edited =
       (args.title !== undefined && args.title !== doc.title) ||
       (args.body !== undefined && args.body !== doc.body)
+    const editor = doc.updatedBy ?? doc.createdBy
+    if (
+      edited &&
+      args.baseUpdatedAt !== undefined &&
+      args.baseUpdatedAt !== doc.updatedAt &&
+      editor !== user._id
+    ) {
+      return {
+        status: 'conflict' as const,
+        note: {
+          title: doc.title,
+          body: doc.body,
+          updatedAt: doc.updatedAt,
+          updatedByName: (await ctx.db.get(editor))?.name ?? null,
+        },
+      }
+    }
+    // Always later than the version it replaces, so two edits in one
+    // millisecond still read as two versions.
+    const updatedAt = edited
+      ? Math.max(Date.now(), doc.updatedAt + 1)
+      : doc.updatedAt
     await patchNote(ctx, doc, {
       ...(args.title !== undefined ? { title: args.title } : {}),
       ...(args.body !== undefined ? { body: args.body } : {}),
       ...(args.pinned !== undefined ? { pinned: args.pinned } : {}),
-      ...(edited ? { updatedBy: user._id, updatedAt: Date.now() } : {}),
+      ...(edited ? { updatedBy: user._id, updatedAt } : {}),
     })
+    return { status: 'saved' as const, updatedAt }
   },
 })
 
