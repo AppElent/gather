@@ -17,20 +17,6 @@ export function eligibleDinnerCandidates<T extends DinnerCandidate>(
   )
 }
 
-/** Pick a replacement without immediately repeating the dinner being replaced. */
-export function randomDinner(
-  candidates: readonly DinnerCandidate[],
-  currentId?: string,
-  random: () => number = Math.random,
-): DinnerCandidate | undefined {
-  const alternatives = candidates.filter(
-    (candidate) => candidate.id !== currentId,
-  )
-  const pool = alternatives.length > 0 ? alternatives : candidates
-  if (pool.length === 0) return undefined
-  return pool[Math.floor(random() * pool.length)]
-}
-
 /** A meal moment, in the order a day shows them (ADR-0027). */
 export const MEAL_SLOTS = ['breakfast', 'lunch', 'dinner'] as const
 export type MealSlot = (typeof MEAL_SLOTS)[number]
