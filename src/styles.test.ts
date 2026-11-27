@@ -277,6 +277,17 @@ describe('graphics take the group text, not its fill', () => {
     }
   })
 
+  test('solar matches the phone and reaches 3:1 in both themes (APP-742)', () => {
+    const phone = { light: MODULE_TINTS.light.home.text, dark: MODULE_TINTS.dark.home.fill }
+    for (const scheme of ['light', 'dark'] as const) {
+      const t = theme(scheme)
+      expect(t['--energy-solar'], scheme).toBe(phone[scheme].toLowerCase())
+      for (const bg of ['--ground', '--surface'])
+        expect(ratio(rgb(t['--energy-solar']), rgb(t[bg])), `${scheme} solar on ${bg}`).toBeGreaterThanOrEqual(3)
+    }
+    expect(block(DARK_SYSTEM)['--energy-solar']).toBe('var(--home-fill)')
+  })
+
   test('no component paints a graphic with a group fill', () => {
     const offenders: string[] = []
     const walk = (dir: string) => {
