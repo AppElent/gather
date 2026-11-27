@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Notities, telefoon</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+a{text-decoration:none;color:inherit}
+svg{flex:none}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: {{c.bg}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: {{c.ink}}">
+  <div style="height: 54px"></div>
+
+  <!-- Bar -->
+  <div style="height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: relative">
+    <button aria-label="{{t.back}}" style="width: 44px; height: 44px; border-radius: 999px; background: {{c.glass}}; border: 0.5px solid {{c.hair}}; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    </button>
+    <span style="position: absolute; left: 80px; right: 120px; text-align: center; font-size: 17px; font-weight: 600">{{barTitle}}</span>
+    <div style="display: flex; gap: 8px">
+      <sc-for list="{{barButtons}}" as="bb" hint-placeholder-count="1">
+        <button aria-label="{{bb.label}}" style="min-width: 44px; height: 44px; padding: 0 {{bb.pad}}px; box-sizing: border-box; border-radius: 999px; background: {{bb.bg}}; border: 0.5px solid {{c.hair}}; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; color: {{bb.fg}}">
+          <sc-if value="{{bb.hasIcon}}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{bb.fg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{bb.icon}}"></path></svg></sc-if>
+          <sc-if value="{{bb.hasText}}" hint-placeholder-val="{{ false }}"><span>{{bb.text}}</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- Note body -->
+  <sc-if value="{{isNote}}" hint-placeholder-val="{{ true }}">
+    <div style="padding: 8px 20px 0; display: flex; flex-direction: column; gap: 8px">
+      <h1 style="margin: 0 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 28px; line-height: 34px; font-weight: 700">{{noteTitle}}</h1>
+      <span style="font-size: 13px; color: {{c.muted}}; margin-bottom: 6px">{{noteMeta}}</span>
+      <sc-for list="{{lines}}" as="l" hint-placeholder-count="5">
+        <div style="display: flex; align-items: flex-start; gap: 10px; border-radius: 10px; margin: 0 -8px; padding: 2px 8px; background: {{l.selBg}}">
+          <sc-if value="{{l.selecting}}" hint-placeholder-val="{{ false }}">
+            <span role="checkbox" aria-checked="{{l.selOn}}" aria-label="{{l.text}}" style="margin-top: 2px; width: 22px; height: 22px; border-radius: 999px; box-sizing: border-box; border: 2px solid {{l.selRing}}; background: {{l.selFill}}; display: flex; align-items: center; justify-content: center">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{c.onAccent}}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+            </span>
+          </sc-if>
+          <sc-if value="{{l.isH}}" hint-placeholder-val="{{ false }}"><h2 style="margin: 8px 0 0; font-size: 20px; line-height: 26px; font-weight: 700">{{l.text}}</h2></sc-if>
+          <sc-if value="{{l.isP}}" hint-placeholder-val="{{ true }}"><p style="margin: 0; font-size: 17px; line-height: 24px">{{l.pre}}<strong>{{l.bold}}</strong>{{l.post}}<sc-if value="{{l.hasLink}}" hint-placeholder-val="{{ false }}"><a href="#" style="color: {{c.accentText}}; text-decoration: underline">{{l.link}}</a></sc-if></p></sc-if>
+          <sc-if value="{{l.isLi}}" hint-placeholder-val="{{ false }}"><div style="display: flex; gap: 10px; font-size: 17px; line-height: 24px"><span aria-hidden="true" style="width: 14px; color: {{c.muted}}">{{l.mark}}</span><span>{{l.text}}</span></div></sc-if>
+          <sc-if value="{{l.isTodo}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 17px; line-height: 24px">
+              <span role="checkbox" aria-checked="{{l.doneStr}}" aria-label="{{l.text}}" style="margin-top: 2px; width: 20px; height: 20px; border-radius: 6px; box-sizing: border-box; border: 2px solid {{l.ring}}; background: {{l.fill}}; display: flex; align-items: center; justify-content: center">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="{{c.onAccent}}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+              </span>
+              <span style="color: {{l.fg}}; text-decoration: {{l.strike}}">{{l.text}}</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{l.isImg}}" hint-placeholder-val="{{ false }}">
+            <figure style="margin: 6px 0; width: 100%; display: flex; flex-direction: column; gap: 4px">
+              <div role="img" aria-label="{{l.text}}" style="height: 200px; border-radius: 16px; background: {{c.photo}}; display: flex; align-items: flex-end; justify-content: space-between; padding: 10px; box-sizing: border-box; outline: {{l.outline}}">
+                <span style="padding: 3px 8px; border-radius: 999px; background: rgba(0,0,0,.45); color: #FFFFFF; font-size: 12px; font-weight: 600">{{t.photoLabel}}</span>
+                <sc-if value="{{l.uploading}}" hint-placeholder-val="{{ false }}"><span style="padding: 3px 8px; border-radius: 999px; background: rgba(0,0,0,.45); color: #FFFFFF; font-size: 12px">{{t.uploading}}</span></sc-if>
+              </div>
+              <figcaption style="font-size: 13px; color: {{c.muted}}">{{l.text}}</figcaption>
+            </figure>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- Lists (notes list, recently deleted) -->
+  <sc-if value="{{isList}}" hint-placeholder-val="{{ false }}">
+    <div style="padding: 4px 16px; display: flex; flex-direction: column; gap: 16px">
+      <h1 style="margin: 0; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 34px; font-weight: 700">{{listTitle}}</h1>
+      <sc-if value="{{hasListSub}}" hint-placeholder-val="{{ false }}"><p style="margin: -10px 0 0; font-size: 15px; line-height: 20px; color: {{c.muted}}">{{listSub}}</p></sc-if>
+      <sc-for list="{{sections}}" as="s" hint-placeholder-count="2">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <sc-if value="{{s.hasHead}}" hint-placeholder-val="{{ false }}"><h2 style="margin: 0; padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{s.head}}</h2></sc-if>
+          <div style="background: {{c.surface}}; border-radius: 16px; overflow: hidden">
+            <sc-for list="{{s.rows}}" as="r" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 9px 14px; box-sizing: border-box; border-top: {{r.line}}">
+                <sc-if value="{{r.hasIcon}}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{r.iconColor}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.icon}}"></path></svg></sc-if>
+                <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+                  <span style="font-size: 17px; line-height: 22px; font-weight: {{r.weight}}; color: {{r.fg}}">{{r.title}}</span>
+                  <span style="font-size: 13px; line-height: 18px; color: {{r.subColor}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.sub}}</span>
+                </div>
+                <sc-if value="{{r.hasValue}}" hint-placeholder-val="{{ false }}"><span style="font-size: 15px; color: {{c.muted}}">{{r.value}}</span></sc-if>
+                <sc-if value="{{r.chev}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></sc-if>
+                <sc-if value="{{r.isMenu}}" hint-placeholder-val="{{ false }}"><button aria-label="{{t.more}}" style="width: 36px; height: 36px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="{{c.ink}}" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg></button></sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{s.hasFoot}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{s.foot}}</p></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- Formatting toolbar above keyboard -->
+  <sc-if value="{{hasKeyboard}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 0; right: 0; bottom: 0">
+      <div role="toolbar" aria-label="{{t.format}}" style="display: flex; align-items: center; gap: 4px; padding: 6px 8px; background: {{c.toolbar}}; border-top: 0.5px solid {{c.hair}}">
+        <sc-for list="{{tools}}" as="tool" hint-placeholder-count="8">
+          <button aria-label="{{tool.label}}" aria-pressed="{{tool.on}}" style="flex: 1; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: {{tool.bg}}; color: {{tool.fg}}; font-size: 17px; font-weight: {{tool.weight}}; font-style: {{tool.style}}">
+            <sc-if value="{{tool.hasIcon}}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{tool.fg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{tool.icon}}"></path></svg></sc-if>
+            <sc-if value="{{tool.hasText}}" hint-placeholder-val="{{ false }}"><span>{{tool.text}}</span></sc-if>
+          </button>
+        </sc-for>
+      </div>
+      <div aria-hidden="true" style="height: 290px; background: {{c.keyboard}}; display: flex; flex-direction: column; gap: 10px; padding: 10px 4px 0; box-sizing: border-box">
+        <sc-for list="{{kbRows}}" as="kr" hint-placeholder-count="3">
+          <div style="display: flex; justify-content: center; gap: 6px">
+            <sc-for list="{{kr}}" as="k" hint-placeholder-count="10"><span style="width: 32px; height: 42px; border-radius: 6px; background: {{c.key}}; box-shadow: 0 1px 0 rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; font-size: 20px; color: {{c.ink}}">{{k}}</span></sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Selection bar -->
+  <sc-if value="{{hasSelBar}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 16px; right: 16px; bottom: 34px; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 18px; border-radius: 999px; background: {{c.glassBar}}; border: 0.5px solid {{c.hair}}; box-shadow: 0 8px 24px rgba(0,0,0,.16)">
+      <span style="flex-grow: 1; font-size: 15px; font-weight: 600">{{t.selCount}}</span>
+      <button style="height: 44px; padding: 0 18px; border-radius: 999px; background: {{c.accent}}; color: {{c.onAccentBtn}}; font-size: 17px; font-weight: 700">{{t.sendTo}}</button>
+    </div>
+  </sc-if>
+
+  <!-- Toast -->
+  <sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; left: 16px; right: 16px; bottom: 104px; display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 18px; border-radius: 16px; background: {{c.toast}}; color: {{c.toastFg}}; box-shadow: 0 8px 24px rgba(0,0,0,.2)">
+      <span style="flex-grow: 1; font-size: 15px">{{toast.text}}</span>
+      <button style="min-height: 36px; padding: 0 10px; font-size: 15px; font-weight: 700; color: {{c.toastAction}}">{{toast.action}}</button>
+    </div>
+  </sc-if>
+
+  <!-- Tab bar -->
+  <sc-if value="{{showTabs}}" hint-placeholder-val="{{ false }}">
+    <nav aria-label="{{t.tabs}}" style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; background: {{c.glassBar}}; border-top: 0.5px solid {{c.hair}}; display: flex; justify-content: space-around; padding-top: 8px; box-sizing: border-box">
+      <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="5">
+        <a href="#" aria-label="{{tab.label}}" style="width: 64px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: {{tab.color}}; font-size: 10px; line-height: 12px; font-weight: 600">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{tab.color}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{tab.icon}}"></path></svg>
+          <span>{{tab.label}}</span>
+        </a>
+      </sc-for>
+    </nav>
+  </sc-if>
+
+  <!-- Sheet -->
+  <sc-if value="{{hasSheet}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,.32)"></div>
+    <div role="dialog" aria-label="{{sheet.title}}" style="position: absolute; left: 0; right: 0; bottom: 0; border-radius: 28px 28px 0 0; background: {{c.ground}}; padding: 8px 16px 34px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px">
+      <span aria-hidden="true" style="align-self: center; width: 36px; height: 5px; border-radius: 999px; background: {{c.hairStrong}}"></span>
+      <div style="display: flex; flex-direction: column; gap: 2px; padding: 0 4px">
+        <span style="font-size: 20px; font-weight: 700">{{sheet.title}}</span>
+        <span style="font-size: 15px; color: {{c.muted}}">{{sheet.sub}}</span>
+      </div>
+      <sc-for list="{{sheet.groups}}" as="g" hint-placeholder-count="2">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <sc-if value="{{g.hasHead}}" hint-placeholder-val="{{ false }}"><h2 style="margin: 0; padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{g.head}}</h2></sc-if>
+          <div style="background: {{c.surface}}; border-radius: 16px; overflow: hidden">
+            <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3">
+              <button style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; box-sizing: border-box; border-top: {{r.line}}">
+                <span aria-hidden="true" style="width: 30px; height: 30px; border-radius: 9px; background: {{r.tile}}; display: flex; align-items: center; justify-content: center">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{r.tileFg}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.icon}}"></path></svg>
+                </span>
+                <span style="flex-grow: 1; display: flex; flex-direction: column">
+                  <span style="font-size: 17px; line-height: 22px">{{r.label}}</span>
+                  <sc-if value="{{r.hasSub}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: {{c.muted}}">{{r.sub}}</span></sc-if>
+                </span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- Action sheet -->
+  <sc-if value="{{hasAction}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,.32)"></div>
+    <div role="alertdialog" aria-label="{{action.title}}" style="position: absolute; left: 10px; right: 10px; bottom: 34px; display: flex; flex-direction: column; gap: 8px">
+      <div style="border-radius: 14px; overflow: hidden; background: {{c.menu}}">
+        <div style="padding: 14px 16px; text-align: center; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13px; font-weight: 600; color: {{c.muted}}">{{action.title}}</span>
+          <span style="font-size: 13px; color: {{c.muted}}">{{action.msg}}</span>
+        </div>
+        <sc-for list="{{action.items}}" as="a" hint-placeholder-count="2">
+          <button style="display: block; width: 100%; min-height: 56px; border-top: 0.5px solid {{c.hair}}; text-align: center; font-size: 19px; color: {{a.color}}">{{a.label}}</button>
+        </sc-for>
+      </div>
+      <button style="min-height: 56px; border-radius: 14px; background: {{c.menuSolid}}; text-align: center; font-size: 19px; font-weight: 600; color: {{c.accentText}}">{{t.cancel}}</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["edit","read","plain","list","deleted","deletedAction","image","drop","select","picker"],"default":"edit"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lang":{"editor":"enum","options":["nl","en"],"default":"nl"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const screen = this.props.screen ?? 'edit';
+    const dark = (this.props.theme ?? 'light') === 'dark';
+    const en = (this.props.lang ?? 'nl') === 'en';
+    const L = (nl, e) => (en ? e : nl);
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#2E3331', hairStrong: '#3A3F3D', danger: '#F0917F',
+      glass: 'rgba(44,46,45,.78)', glassBar: 'rgba(27,30,29,.96)', menu: 'rgba(44,46,45,.98)', menuSolid: '#2C2E2D', toolbar: '#1B1E1D', keyboard: '#2B2D2C', key: '#4A4C4B',
+      accentText: '#F2C060', accent: '#D99B2B', onAccent: '#2B1F06', onAccentBtn: '#2B1F06', homeWash: '#2E2611', kitchenFill: '#0B7C75', photo: '#3B4A44',
+      toast: '#F1F3F1', toastFg: '#0F1110', toastAction: '#8A5C08', selWash: '#2E2611'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', muted: '#5E6764', hair: '#DFE2DE', hairStrong: '#C9CDC8', danger: '#A4372C',
+      glass: 'rgba(255,255,255,.78)', glassBar: 'rgba(255,255,255,.96)', menu: 'rgba(249,249,248,.98)', menuSolid: '#FFFFFF', toolbar: '#F7F8F6', keyboard: '#D1D4D0', key: '#FFFFFF',
+      accentText: '#8A5C08', accent: '#F2B233', onAccent: '#2B1F06', onAccentBtn: '#2B1F06', homeWash: '#FBEBC6', kitchenFill: '#0B7C75', photo: '#9DB3A6',
+      toast: '#1A1F1D', toastFg: '#FFFFFF', toastAction: '#F2C060', selWash: '#FBEBC6'
+    };
+    c.bg = ['list', 'deleted', 'deletedAction'].includes(screen) ? c.ground : c.surface;
+    const icons = {
+      more: 'M5 12h.01M12 12h.01M19 12h.01', share: 'M12 3v12M7 8l5-5 5 5M5 14v6h14v-6', photo: 'M4 6h16v13H4zM8 13l3-3 5 5M15 10h.01',
+      list: 'M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01', olist: 'M10 6h10M10 12h10M10 18h10M4 5l1-1v4M3.5 11.5a1 1 0 0 1 2 .5l-2 2h2M3.5 17h1.5a.8.8 0 0 1 0 1.6H4.5a.8.8 0 0 1 0 1.6H3.5',
+      todo: 'M4 4h7v7H4zM6 7.5l1.5 1.5L10 6M14 7h6M4 14h7v7H4zM14 17h6', link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5',
+      kbd: 'M3 7h18v10H3zM7 11h.01M11 11h.01M15 11h.01M8 14h8', trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13', restore: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5',
+      note: 'M6 3h9l4 4v14H6zM14 3v5h5', cart: 'M3 4h2l2.4 11h10.2L20 8H6.2M9 20h.01M17 20h.01', check: 'M4 12l5 5L20 6', plus: 'M12 5v14M5 12h14'
+    };
+    const t = {
+      back: L('Terug', 'Back'), more: L('Meer', 'More'), format: L('Opmaak', 'Formatting'), cancel: L('Annuleer', 'Cancel'), tabs: L('Tabbladen', 'Tabs'),
+      photoLabel: L('Foto', 'Photo'), uploading: L('Uploaden…', 'Uploading…'), selCount: L('3 regels gekozen', '3 lines selected'), sendTo: L('Naar…', 'Send to…')
+    };
+    const line = (i) => (i === 0 ? '0' : '0.5px solid ' + c.hair);
+    const ln = (kind, text, o = {}) => ({
+      isH: kind === 'h', isP: kind === 'p', isLi: kind === 'li' || kind === 'ol', isTodo: kind === 'todo', isImg: kind === 'img',
+      text, mark: kind === 'ol' ? (o.n ?? '1') + '.' : '•', pre: o.pre ?? text, bold: o.bold ?? '', post: o.post ?? '', hasLink: !!o.link, link: o.link ?? '',
+      doneStr: o.done ? 'true' : 'false', ring: o.done ? c.accent : c.muted, fill: o.done ? c.accent : 'transparent', fg: o.done ? c.muted : c.ink, strike: o.done ? 'line-through' : 'none',
+      selecting: !!o.selecting, selOn: o.sel ? 'true' : 'false', selRing: o.sel ? c.accent : c.muted, selFill: o.sel ? c.accent : 'transparent', selBg: o.sel ? c.selWash : 'transparent',
+      uploading: !!o.uploading, outline: o.focus ? '3px solid ' + c.accent : 'none'
+    });
+    const selecting = screen === 'select' || screen === 'picker';
+    const S = (i) => ({ selecting, sel: selecting && [3, 4, 5].includes(i) });
+    const weekend = [
+      ln('p', '', { pre: L('Alles voor het ', 'Everything for the '), bold: L('weekend op Texel', 'Texel weekend'), post: L('. Boot gaat vr 13 nov om 15:30, ', '. Ferry leaves Fri 13 Nov 15:30, '), link: L('tickets', 'tickets') }),
+      ln('h', L('Inpakken', 'Packing')),
+      ln('todo', L('Regenjassen', 'Rain jackets'), { done: true, ...S(2) }),
+      ln('todo', L('Zonnebrandcrème', 'Sunscreen'), S(3)),
+      ln('todo', L('Opladers', 'Chargers'), S(4)),
+      ln('todo', L('Stroopwafels voor onderweg', 'Stroopwafels for the trip'), S(5)),
+      ln('h', L('Plan', 'Plan')),
+      ln('ol', L('Fietsen huren bij de haven', 'Rent bikes at the harbour'), { n: '1' }),
+      ln('ol', L('Ecomare met Sam', 'Ecomare with Sam'), { n: '2' }),
+      ln('li', L('Zaterdag eten bij Paal 17', 'Saturday dinner at Paal 17'))
+    ];
+    let lines = weekend, barButtons = [], barTitle = '', isNote = true, isList = false, hasKeyboard = false, tools = [], toast = null, sheet = null, action = null, showTabs = false, hasSelBar = false;
+    let listTitle = '', listSub = '', sections = [];
+    const bb = (o) => ({ label: o.label, hasIcon: !!o.icon, icon: o.icon ?? '', hasText: !!o.text, text: o.text ?? '', bg: o.bg ?? c.glass, fg: o.fg ?? c.ink, pad: o.text ? 14 : 0 });
+    const tool = (label, o) => ({ label, on: o.on ? 'true' : 'false', bg: o.on ? c.homeWash : 'transparent', fg: o.on ? c.accentText : c.ink, hasIcon: !!o.icon, icon: o.icon ?? '', hasText: !!o.text, text: o.text ?? '', weight: o.weight ?? 600, style: o.style ?? 'normal' });
+    const kbRows = [['q','w','e','r','t','y','u','i','o','p'], ['a','s','d','f','g','h','j','k','l'], ['z','x','c','v','b','n','m']];
+    const done = bb({ label: L('Klaar', 'Done'), text: L('Klaar', 'Done'), bg: c.accent, fg: c.onAccent });
+    const more = bb({ label: t.more, icon: icons.more });
+    const noteTitle = L('Weekend Texel', 'Texel weekend');
+    let noteMeta = L('Familie Jansen · Anne, vandaag 10:12', 'Familie Jansen · Anne, today 10:12');
+
+    if (screen === 'edit') {
+      barButtons = [done]; hasKeyboard = true; lines = weekend.slice(0, 6);
+      tools = [
+        tool(L('Kop', 'Heading'), { text: 'Aa' }), tool(L('Vet', 'Bold'), { text: 'B', weight: 800, on: true }), tool(L('Cursief', 'Italic'), { text: 'I', style: 'italic', weight: 500 }),
+        tool(L('Lijst', 'Bullet list'), { icon: icons.list }), tool(L('Genummerde lijst', 'Numbered list'), { icon: icons.olist }), tool(L('Afvinklijst', 'Checklist'), { icon: icons.todo, on: true }),
+        tool(L('Link', 'Link'), { icon: icons.link }), tool(L('Foto', 'Photo'), { icon: icons.photo })
+      ];
+    } else if (screen === 'read') {
+      barButtons = [bb({ label: L('Delen', 'Share'), icon: icons.share }), more];
+    } else if (screen === 'plain') {
+      barButtons = [more]; noteMeta = L('Gewone tekst uit 2025 · opent en bewaart ongewijzigd', 'Plain text from 2025 · opens and saves unchanged');
+      lines = [ln('p', L('Wachtwoord wifi oma: zie koelkast', 'Grandma’s wifi password: see fridge')), ln('p', L('- melk', '- milk')), ln('p', L('- brood', '- bread')), ln('p', L('Bel loodgieter na 9 uur', 'Call the plumber after 9'))];
+    } else if (screen === 'image') {
+      barButtons = [done]; hasKeyboard = false;
+      lines = [weekend[0], ln('img', L('De boot naar Texel', 'The ferry to Texel'), { focus: true }), ln('h', L('Inpakken', 'Packing')), weekend[2], weekend[3], ln('img', L('Paklijst van vorig jaar', 'Last year’s packing list'), { uploading: true })];
+      toast = { text: L('Foto toegevoegd', 'Photo added'), action: L('Ongedaan maken', 'Undo') };
+    } else if (screen === 'select' || screen === 'picker') {
+      barTitle = L('Kies regels', 'Select lines');
+      barButtons = [bb({ label: L('Klaar', 'Done'), text: L('Klaar', 'Done') })];
+      lines = weekend.slice(1, 10); hasSelBar = screen === 'select';
+      if (screen === 'picker') {
+        const r = (label, sub, icon, tile, tileFg) => ({ label, hasSub: !!sub, sub: sub ?? '', icon, tile, tileFg });
+        const g = (head, rows) => ({ hasHead: !!head, head: head ?? '', rows: rows.map((x, i) => ({ ...x, line: line(i) })) });
+        sheet = { title: L('3 regels sturen naar…', 'Send 3 lines to…'), sub: L('De regels blijven ook in de notitie.', 'The lines also stay in the note.'), groups: [
+          g(L('BOODSCHAPPEN', 'GROCERIES'), [r(L('Boodschappenlijst', 'Grocery list'), L('Albert Heijn', 'Albert Heijn'), icons.cart, c.kitchenFill, '#FFFFFF')]),
+          g(L('TAKEN', 'TASKS'), [r(L('Huishouden', 'Household'), L('12 open', '12 open'), icons.check, c.accent, c.onAccent), r(L('Texel', 'Texel'), L('nieuw · 0 open', 'new · 0 open'), icons.check, c.accent, c.onAccent), r(L('Nieuwe takenlijst…', 'New task list…'), null, icons.plus, c.surface2, c.ink)])
+        ] };
+      }
+    } else if (screen === 'drop') {
+      isNote = false; isList = true; showTabs = false;
+      listTitle = L('Notities', 'Notes');
+      sections = [{ hasHead: false, head: '', hasFoot: false, foot: '', rows: [] }];
+      const r = (label, sub, icon, tile, tileFg) => ({ label, hasSub: !!sub, sub: sub ?? '', icon, tile, tileFg });
+      const g = (head, rows) => ({ hasHead: !!head, head: head ?? '', rows: rows.map((x, i) => ({ ...x, line: line(i) })) });
+      sections = [];
+      sheet = { title: L('Foto bewaren in Gather', 'Save photo in Gather'), sub: L('1 foto uit Foto’s', '1 photo from Photos'), groups: [
+        g(L('NOTITIES', 'NOTES'), [r(L('Nieuwe notitie', 'New note'), L('Met deze foto', 'With this photo'), icons.plus, c.accent, c.onAccent), r(L('Toevoegen aan Weekend Texel', 'Add to Texel weekend'), L('Onderaan de notitie', 'At the end of the note'), icons.note, c.surface2, c.ink), r(L('Toevoegen aan een andere…', 'Add to another…'), null, icons.note, c.surface2, c.ink)]),
+        g(L('OF', 'OR'), [r(L('Recept uit foto', 'Recipe from photo'), L('Keuken', 'Kitchen'), icons.photo, c.kitchenFill, '#FFFFFF')])
+      ] };
+    } else if (screen === 'list' || screen === 'deleted' || screen === 'deletedAction') {
+      isNote = false; isList = true;
+      const r = (title, sub, o = {}) => ({ title, sub, weight: o.weight ?? 600, fg: o.fg ?? c.ink, subColor: o.subColor ?? c.muted, hasIcon: !!o.icon, icon: o.icon ?? '', iconColor: o.iconColor ?? c.muted, hasValue: !!o.value, value: o.value ?? '', chev: !!o.chev, isMenu: !!o.menu });
+      const sec = (head, rows, foot) => ({ hasHead: !!head, head: head ?? '', rows: rows.map((x, i) => ({ ...x, line: line(i) })), hasFoot: !!foot, foot: foot ?? '' });
+      if (screen === 'list') {
+        showTabs = true; barButtons = [bb({ label: L('Zoeken', 'Search'), icon: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-3.5-3.5' })];
+        listTitle = L('Notities', 'Notes');
+        sections = [
+          sec(L('VASTGEZET', 'PINNED'), [r(L('Wifi en codes', 'Wifi and codes'), L('Gast: Jansen-gast · alarm 4471', 'Guest: Jansen-guest · alarm 4471'))]),
+          sec(L('DEZE WEEK', 'THIS WEEK'), [r(L('Weekend Texel', 'Texel weekend'), L('vandaag · Alles voor het weekend op Texel…', 'today · Everything for the Texel weekend…')), r(L('Cadeaus december', 'December presents'), L('wo · Sam: lego, Anne: boek…', 'Wed · Sam: lego, Anne: book…'))]),
+          sec(null, [r(L('Recent verwijderd', 'Recently deleted'), L('3 notities · 30 dagen bewaard', '3 notes · kept for 30 days'), { icon: icons.trash, weight: 400, chev: true })])
+        ];
+        toast = { text: L('‘Boodschappen oud’ verwijderd', '‘Old groceries’ deleted'), action: L('Ongedaan maken', 'Undo') };
+      } else {
+        barTitle = ''; listTitle = L('Recent verwijderd', 'Recently deleted');
+        listSub = L('Notities blijven hier 30 dagen en verdwijnen dan voorgoed. Iedereen in Familie Jansen ziet ze.', 'Notes stay here for 30 days, then they are gone for good. Everyone in Familie Jansen sees them.');
+        listSub = listSub;
+        sections = [sec(null, [
+          r(L('Boodschappen oud', 'Old groceries'), L('Verwijderd door jou · nog 30 dagen', 'Deleted by you · 30 days left'), { menu: true }),
+          r(L('Notulen VvE', 'HOA minutes'), L('Verwijderd door Anne · nog 12 dagen', 'Deleted by Anne · 12 days left'), { menu: true }),
+          r(L('Ideeën tuin', 'Garden ideas'), L('Verwijderd door jou · nog 2 dagen', 'Deleted by you · 2 days left'), { menu: true, subColor: c.danger })
+        ])];
+        barButtons = [bb({ label: L('Alles legen', 'Empty all'), text: L('Leeg', 'Empty'), fg: c.danger })];
+        if (screen === 'deletedAction') action = { title: L('Notulen VvE', 'HOA minutes'), msg: L('Verwijderd door Anne op 9 november.', 'Deleted by Anne on 9 November.'), items: [
+          { label: L('Zet terug', 'Restore'), color: c.accentText }, { label: L('Definitief verwijderen', 'Delete for good'), color: c.danger }
+        ] };
+      }
+    }
+    if (!barButtons.length) barButtons = [more];
+    const tabIcons = ['M3 11l9-8 9 8M5 10v10h14V10', 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z', 'M12 5v14M5 12h14', 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-3.5-3.5', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2v3M12 19v3M2 12h3M19 12h3'];
+    const tabs = [L('Home', 'Home'), L('Alles', 'All'), L('Nieuw', 'New'), L('Zoeken', 'Search'), L('Instellingen', 'Settings')].map((label, i) => ({ label, icon: tabIcons[i], color: i === 1 ? c.ink : c.muted }));
+    return {
+      c, t, barTitle, barButtons, isNote, isList, lines, noteTitle, noteMeta, listTitle, hasListSub: !!listSub, listSub, sections,
+      hasKeyboard, tools, kbRows, hasToast: !!toast, toast: toast ?? { text: '', action: '' }, hasSelBar, showTabs, tabs,
+      hasSheet: !!sheet, sheet: sheet ?? { title: '', sub: '', groups: [] }, hasAction: !!action, action: action ?? { title: '', msg: '', items: [] }
+    };
+  }
+}
+</script>
+</body>
+</html>

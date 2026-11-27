@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Agenda, web</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+a{text-decoration:none;color:inherit}
+svg{flex:none}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; position: relative; overflow: hidden; display: flex; background: {{c.ground}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: {{c.ink}}; font-size: 15px">
+
+  <!-- Module sidebar -->
+  <aside aria-label="{{t.side}}" style="width: 256px; flex: none; box-sizing: border-box; padding: 20px 16px; border-right: 1px solid {{c.hair}}; display: flex; flex-direction: column; gap: 20px; background: {{c.surface}}">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 9px; background: {{c.fab}}; display: flex; align-items: center; justify-content: center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.fabOn}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v16H4zM4 10h16M9 3v4M15 3v4"></path></svg>
+      </span>
+      <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; font-weight: 700">{{t.title}}</span>
+    </div>
+    <sc-for list="{{side}}" as="s" hint-placeholder-count="3">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <h2 style="margin: 0 0 2px; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: {{c.muted}}">{{s.head}}</h2>
+        <sc-for list="{{s.rows}}" as="r" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 10px; min-height: 34px">
+            <sc-if value="{{r.isCheck}}" hint-placeholder-val="{{ true }}">
+              <span role="checkbox" aria-checked="{{r.on}}" aria-label="{{r.label}}" style="width: 18px; height: 18px; border-radius: 5px; box-sizing: border-box; border: 2px solid {{r.color}}; background: {{r.fill}}; display: flex; align-items: center; justify-content: center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{c.surface}}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+              </span>
+            </sc-if>
+            <sc-if value="{{r.isToggle}}" hint-placeholder-val="{{ false }}">
+              <span role="switch" aria-checked="{{r.on}}" aria-label="{{r.label}}" style="width: 36px; height: 22px; border-radius: 999px; background: {{r.track}}; position: relative; display: block; flex: none">
+                <span aria-hidden="true" style="position: absolute; top: 2px; left: {{r.knob}}px; width: 18px; height: 18px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25)"></span>
+              </span>
+            </sc-if>
+            <sc-if value="{{r.isLink}}" hint-placeholder-val="{{ false }}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.accentText}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.icon}}"></path></svg>
+            </sc-if>
+            <div style="display: flex; flex-direction: column; flex-grow: 1; min-width: 0">
+              <span style="font-size: 14px; line-height: 18px; color: {{r.labelColor}}; font-weight: {{r.weight}}">{{r.label}}</span>
+              <sc-if value="{{r.hasSub}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; line-height: 16px; color: {{r.subColor}}">{{r.sub}}</span></sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-for>
+  </aside>
+
+  <!-- Main -->
+  <main style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; padding: 16px 20px 16px; box-sizing: border-box">
+    <div style="display: flex; align-items: center; gap: 12px; height: 48px; flex-wrap: wrap">
+      <button style="height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid {{c.hairStrong}}; font-weight: 600; color: {{c.accentText}}">{{t.today}}</button>
+      <button aria-label="{{t.prev}}" style="width: 36px; height: 36px; border-radius: 999px; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+      <button aria-label="{{t.next}}" style="width: 36px; height: 36px; border-radius: 999px; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+      <h1 style="margin: 0; flex-grow: 1; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 26px; font-weight: 700">{{t.month}}</h1>
+      <div role="radiogroup" aria-label="{{t.view}}" style="display: flex; height: 36px; padding: 2px; box-sizing: border-box; border-radius: 999px; background: {{c.surface2}}">
+        <sc-for list="{{views}}" as="v" hint-placeholder-count="3">
+          <button role="radio" aria-checked="{{v.on}}" style="padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 600; background: {{v.bg}}; color: {{v.fg}}; box-shadow: {{v.shadow}}">{{v.label}}</button>
+        </sc-for>
+      </div>
+      <button style="height: 36px; padding: 0 16px; border-radius: 999px; background: {{c.fab}}; color: {{c.fabOn}}; font-weight: 700; display: flex; align-items: center; gap: 6px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.fabOn}}" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>{{t.add}}
+      </button>
+    </div>
+
+    <div style="margin-top: 8px; flex-grow: 1; display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; background: {{c.surface}}; border: 1px solid {{c.hair}}">
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-bottom: 1px solid {{c.hair}}">
+        <sc-for list="{{wd}}" as="w" hint-placeholder-count="7"><span style="padding: 6px 10px; font-size: 12px; font-weight: 700; color: {{c.muted}}">{{w}}</span></sc-for>
+      </div>
+      <sc-for list="{{weeks}}" as="wk" hint-placeholder-count="6">
+        <div style="position: relative; flex: 1; border-top: {{wk.line}}">
+          <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); height: 100%">
+            <sc-for list="{{wk.days}}" as="d" hint-placeholder-count="7">
+              <div style="border-left: {{d.line}}; padding: 4px 6px 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; min-width: 0; background: {{d.cellBg}}">
+                <span style="align-self: flex-start; min-width: 24px; height: 24px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: {{d.weight}}; background: {{d.bg}}; color: {{d.fg}}">{{d.n}}</span>
+                <div style="height: {{wk.barSpace}}px"></div>
+                <sc-for list="{{d.items}}" as="it" hint-placeholder-count="1">
+                  <div style="display: flex; align-items: center; gap: 5px; min-height: 18px; font-size: 12px; line-height: 16px; white-space: nowrap; overflow: hidden; border-radius: 6px; padding: {{it.pad}}; background: {{it.bg}}">
+                    <sc-if value="{{it.isEvent}}" hint-placeholder-val="{{ true }}"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 999px; background: {{it.color}}"></span></sc-if>
+                    <sc-if value="{{it.isMeal}}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenText}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{icons.fork}}"></path></svg></sc-if>
+                    <sc-if value="{{it.isTask}}" hint-placeholder-val="{{ false }}"><span role="checkbox" aria-checked="false" aria-label="{{it.title}}" style="width: 11px; height: 11px; border-radius: 999px; border: 1.5px solid {{c.muted}}; box-sizing: border-box"></span></sc-if>
+                    <sc-if value="{{it.hasTime}}" hint-placeholder-val="{{ true }}"><span style="color: {{c.muted}}; font-variant-numeric: tabular-nums">{{it.time}}</span></sc-if>
+                    <span style="overflow: hidden; text-overflow: ellipsis; color: {{it.fg}}">{{it.title}}</span>
+                    <sc-if value="{{it.repeat}}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="{{t.repeats}}"><path d="{{icons.repeat}}"></path></svg></sc-if>
+                    <sc-if value="{{it.linked}}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="{{t.subscribed}}"><path d="{{icons.link}}"></path></svg></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+          <sc-for list="{{wk.bars}}" as="bar" hint-placeholder-count="1">
+            <span style="position: absolute; top: {{bar.top}}px; left: calc({{bar.l}} * 100% / 7 + {{bar.padL}}px); width: calc({{bar.w}} * 100% / 7 - {{bar.padW}}px); height: 18px; border-radius: 6px; background: {{bar.bg}}; color: {{bar.fg}}; font-size: 12px; line-height: 18px; font-weight: 600; padding: 0 8px; box-sizing: border-box; white-space: nowrap; overflow: hidden; display: flex; gap: 6px">
+              <span>{{bar.label}}</span><span style="opacity: .8; font-weight: 500">{{bar.sub}}</span>
+            </span>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+  </main>
+
+  <!-- Right panel -->
+  <sc-if value="{{hasPanel}}" hint-placeholder-val="{{ false }}">
+    <aside aria-label="{{panel.title}}" style="position: absolute; top: 0; right: 0; bottom: 0; width: 400px; box-sizing: border-box; padding: 20px; background: {{c.ground}}; border-left: 1px solid {{c.hair}}; box-shadow: -12px 0 40px rgba(0,0,0,.12); display: flex; flex-direction: column; gap: 16px; overflow: hidden">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <span style="font-size: 13px; font-weight: 600; color: {{c.muted}}">{{panel.eyebrow}}</span>
+        <button aria-label="{{t.close}}" style="width: 32px; height: 32px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+      <h2 style="margin: 0; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 26px; font-weight: 700">{{panel.title}}</h2>
+      <sc-for list="{{panel.groups}}" as="g" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <sc-if value="{{g.hasHead}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; font-weight: 700; color: {{c.muted}}">{{g.head}}</span></sc-if>
+          <div style="border-radius: 14px; background: {{c.surface}}; overflow: hidden">
+            <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="2">
+              <div style="display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 8px 12px; box-sizing: border-box; border-top: {{r.line}}; background: {{r.bg}}">
+                <span style="flex-grow: 1; font-size: 15px; color: {{r.labelColor}}; font-weight: {{r.weight}}">{{r.label}}</span>
+                <sc-if value="{{r.hasValue}}" hint-placeholder-val="{{ false }}"><span style="font-size: 15px; color: {{r.valueColor}}; padding: {{r.valuePad}}; border-radius: 8px; border: {{r.valueBorder}}">{{r.value}}</span></sc-if>
+                <sc-if value="{{r.isCheck}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.accentText}}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="{{t.chosen}}"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{g.hasFoot}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; line-height: 16px; color: {{c.muted}}">{{g.foot}}</span></sc-if>
+        </div>
+      </sc-for>
+    </aside>
+  </sc-if>
+
+  <!-- Centered dialog -->
+  <sc-if value="{{hasDialog}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,.34); display: flex; align-items: center; justify-content: center">
+      <div role="dialog" aria-label="{{dialog.title}}" style="width: {{dialog.w}}px; box-sizing: border-box; padding: 24px; border-radius: 22px; background: {{c.ground}}; box-shadow: 0 24px 64px rgba(0,0,0,.3); display: flex; flex-direction: column; gap: 14px">
+        <h2 style="margin: 0; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; font-weight: 700">{{dialog.title}}</h2>
+        <sc-if value="{{dialog.hasMsg}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-size: 15px; line-height: 21px; color: {{c.muted}}">{{dialog.msg}}</p></sc-if>
+        <sc-for list="{{dialog.fields}}" as="f" hint-placeholder-count="2">
+          <label style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; font-weight: 600; color: {{c.muted}}">{{f.label}}</span>
+            <span style="min-height: 42px; padding: 10px 12px; box-sizing: border-box; border-radius: 12px; background: {{c.surface}}; border: 1px solid {{f.border}}; font-size: 15px; color: {{f.fg}}">{{f.value}}</span>
+            <sc-if value="{{f.hasHint}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; line-height: 16px; color: {{f.hintColor}}">{{f.hint}}</span></sc-if>
+          </label>
+        </sc-for>
+        <sc-for list="{{dialog.choices}}" as="ch" hint-placeholder-count="3">
+          <button style="display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: {{ch.bg}}; border: {{ch.border}}">
+            <span style="font-size: 15px; font-weight: 600; color: {{ch.fg}}">{{ch.label}}</span>
+            <span style="font-size: 13px; color: {{c.muted}}">{{ch.sub}}</span>
+          </button>
+        </sc-for>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px">
+          <button style="height: 40px; padding: 0 16px; border-radius: 999px; background: {{c.surface2}}; font-weight: 600">{{t.cancel}}</button>
+          <button style="height: 40px; padding: 0 18px; border-radius: 999px; background: {{c.fab}}; color: {{c.fabOn}}; font-weight: 700">{{dialog.ok}}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["month","repeat","subscribe","event","overlay"],"default":"month"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lang":{"editor":"enum","options":["nl","en"],"default":"nl"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const screen = this.props.screen ?? 'month';
+    const dark = (this.props.theme ?? 'light') === 'dark';
+    const en = (this.props.lang ?? 'nl') === 'en';
+    const L = (nl, e) => (en ? e : nl);
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#2E3331', hairStrong: '#3A3F3D', danger: '#F0917F',
+      accentText: '#F2C060', fab: '#D99B2B', fabOn: '#2B1F06', homeWash: '#2E2611', kitchenText: '#6FD6CD', kitchenWash: '#133230', track: '#30D158', trackOff: '#3A3F3D',
+      today: '#D99B2B', todayOn: '#2B1F06', cal1: '#D99B2B', cal2: '#4FB3AC', cal3: '#B28BF0', cal4: '#8FB4F5', onCal: '#0F1110', past: '#151817'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', muted: '#5E6764', hair: '#DFE2DE', hairStrong: '#C9CDC8', danger: '#A4372C',
+      accentText: '#8A5C08', fab: '#F2B233', fabOn: '#2B1F06', homeWash: '#FBEBC6', kitchenText: '#0B7C75', kitchenWash: '#DDEFEC', track: '#34C759', trackOff: '#E3E5E2',
+      today: '#1A1F1D', todayOn: '#FFFFFF', cal1: '#D99B2B', cal2: '#0B7C75', cal3: '#7B4FC9', cal4: '#2459BD', onCal: '#FFFFFF', past: '#F7F8F6'
+    };
+    const icons = {
+      repeat: 'M17 2l3 3-3 3M3 11V9a4 4 0 0 1 4-4h13M7 22l-3-3 3-3M21 13v2a4 4 0 0 1-4 4H4',
+      link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5',
+      fork: 'M7 2v8a2 2 0 0 0 2 2v10M11 2v8M7 6h4M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4v11',
+      plus: 'M12 5v14M5 12h14'
+    };
+    const t = {
+      side: L('Agenda-zijbalk', 'Calendar sidebar'), title: L('Agenda', 'Calendar'), today: L('Vandaag', 'Today'), prev: L('Vorige maand', 'Previous month'), next: L('Volgende maand', 'Next month'),
+      month: L('November 2026', 'November 2026'), view: L('Weergave', 'View'), add: L('Afspraak', 'Event'), repeats: L('Herhaalt', 'Repeats'), subscribed: L('Uit een abonnement', 'From a subscription'),
+      close: L('Sluiten', 'Close'), chosen: L('Gekozen', 'Selected'), cancel: L('Annuleer', 'Cancel')
+    };
+    const overlayOn = screen === 'overlay';
+    const line = (i) => (i === 0 ? '0' : '1px solid ' + c.hair);
+
+    const chk = (label, color, on, sub, subColor) => ({ isCheck: true, isToggle: false, isLink: false, label, color, on: on ? 'true' : 'false', fill: on ? color : 'transparent', labelColor: c.ink, weight: 400, hasSub: !!sub, sub: sub ?? '', subColor: subColor ?? c.muted });
+    const tog = (label, on) => ({ isCheck: false, isToggle: true, isLink: false, label, on: on ? 'true' : 'false', track: on ? c.track : c.trackOff, knob: on ? 16 : 2, labelColor: c.ink, weight: 400, hasSub: false, sub: '' });
+    const lnk = (label, icon) => ({ isCheck: false, isToggle: false, isLink: true, icon, label, labelColor: c.accentText, weight: 600, hasSub: false, sub: '' });
+    const failed = screen === 'month';
+    const side = [
+      { head: L('AGENDA’S', 'CALENDARS'), rows: [chk(L('Gezin', 'Family'), c.cal1, true), chk('Eric', c.cal2, true), chk(L('Werk', 'Work'), c.cal3, true), lnk(L('Nieuwe agenda', 'New calendar'), icons.plus)] },
+      { head: L('ABONNEMENTEN', 'SUBSCRIPTIONS'), rows: [
+        chk(L('Schoolvakanties', 'School holidays'), c.cal4, true, L('Bijgewerkt 14:02', 'Updated 14:02')),
+        chk('VV Noordster JO11', c.cal1, true, failed ? L('Bijwerken mislukt · laatst 09:00', 'Couldn’t update · last 09:00') : L('Bijgewerkt 14:00', 'Updated 14:00'), failed ? c.danger : c.muted),
+        lnk(L('Abonneren op een link', 'Subscribe to a link'), icons.link)
+      ] },
+      { head: L('OOK TONEN', 'ALSO SHOW'), rows: [tog(L('Maaltijden', 'Meals'), overlayOn), tog(L('Taken die vervallen', 'Tasks due'), overlayOn)] }
+    ];
+
+    const views = [L('Maand', 'Month'), L('Week', 'Week'), L('Agenda', 'Agenda')].map((label, i) => ({ label, on: i === 0 ? 'true' : 'false', bg: i === 0 ? c.surface : 'transparent', fg: i === 0 ? c.ink : c.muted, shadow: i === 0 ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }));
+    const wd = en ? ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] : ['MA', 'DI', 'WO', 'DO', 'VR', 'ZA', 'ZO'];
+
+    const E = (time, title, color, o = {}) => ({ isEvent: true, isMeal: false, isTask: false, hasTime: !!time, time: time ?? '', title, color, fg: c.ink, repeat: !!o.repeat, linked: !!o.linked, bg: 'transparent', pad: '0 2px' });
+    const M = (title) => ({ isEvent: false, isMeal: true, isTask: false, hasTime: false, time: '', title, fg: c.ink, repeat: false, linked: false, bg: c.kitchenWash, pad: '1px 5px' });
+    const T = (title) => ({ isEvent: false, isMeal: false, isTask: true, hasTime: false, time: '', title, fg: c.ink, repeat: false, linked: false, bg: c.surface2, pad: '1px 5px' });
+    const items = {
+      3: [E('07:00', L('Groene container', 'Green bin'), c.cal2, { repeat: true })],
+      7: [E('09:30', L('Zwemles Sam', 'Swimming Sam'), c.cal1, { repeat: true })],
+      14: [E('09:30', L('Zwemles Sam', 'Swimming Sam'), c.cal1, { repeat: true })],
+      17: [E('07:00', L('Groene container', 'Green bin'), c.cal2, { repeat: true })],
+      21: [E('09:30', L('Zwemles Sam', 'Swimming Sam'), c.cal1, { repeat: true })],
+      24: [E('08:45', L('Tandarts', 'Dentist'), c.cal2)],
+      28: [E('09:30', L('Zwemles Sam', 'Swimming Sam'), c.cal1, { repeat: true }), E('10:15', L('Uitwedstrijd JO11', 'Away match U11'), c.cal4, { linked: true })],
+      30: [E(null, L('Huur', 'Rent'), c.cal1, { repeat: true })]
+    };
+    const overlay = {
+      23: [M(L('Pasta pesto', 'Pasta pesto'))], 24: [M(L('Nasi', 'Nasi'))], 25: [M(L('Soep', 'Soup')), T(L('Pakket terugsturen', 'Return parcel'))], 26: [M(L('Wraps', 'Wraps'))],
+      27: [M(L('Stamppot boerenkool', 'Kale stamppot')), T(L('Groene container buiten', 'Green bin out'))], 28: [M('Pizza'), T(L('Cadeau oma', 'Gift for grandma'))], 29: [M('Lasagne')]
+    };
+    const startDays = [26, 2, 9, 16, 23, 30];
+    const barRows = [0, 0, 1, 1, 2, 0];
+    const weeks = startDays.map((s, w) => {
+      const days = [];
+      for (let i = 0; i < 7; i++) {
+        let n = s + i; let inMonth = true;
+        if (w === 0) { if (n > 31) { n -= 31; } else { inMonth = false; } }
+        if (w === 5 && n > 30) { n -= 30; inMonth = false; }
+        const isToday = inMonth && n === 27;
+        let its = inMonth ? (items[n] ?? []) : [];
+        if (overlayOn && inMonth && overlay[n]) its = its.concat(overlay[n]);
+        days.push({ n: (w === 0 && !inMonth) || (w === 5 && !inMonth) ? String(n) : String(n), line: line(i), weight: isToday ? 700 : 500, bg: isToday ? c.today : 'transparent', fg: isToday ? c.todayOn : (inMonth ? c.ink : c.muted), cellBg: inMonth ? 'transparent' : c.past, items: its });
+      }
+      const bars = [];
+      const bar = (l, wdt, label, sub, color, row) => ({ l, w: wdt, label, sub: sub ?? '', top: 32 + row * 22, bg: color, fg: c.onCal, padL: 3, padW: 6 });
+      if (w === 2) bars.push(bar(4, 3, 'Weekend Texel', L('vr 13 – zo 15', 'Fri 13 – Sun 15'), c.cal1, 0));
+      if (w === 3) bars.push(bar(2, 1, L('Studiedag', 'Training day'), '', c.cal4, 0));
+      if (w === 4) { bars.push(bar(0, 5, L('Opa en oma logeren', 'Grandparents staying over'), L('ma 23 – vr 27', 'Mon 23 – Fri 27'), c.cal1, 0)); bars.push(bar(3, 2, L('Nachtdienst Anne', 'Night shift Anne'), L('do 22:00 – vr 06:00', 'Thu 22:00 – Fri 06:00'), c.cal3, 1)); }
+      return { line: w === 0 ? '0' : '1px solid ' + c.hair, days, bars, barSpace: barRows[w] * 22 };
+    });
+
+    const prow = (label, o = {}) => ({ label, labelColor: o.labelColor ?? c.ink, weight: o.weight ?? 400, hasValue: o.value !== undefined, value: o.value ?? '', valueColor: o.valueColor ?? c.muted, valuePad: o.boxed ? '4px 10px' : '0', valueBorder: o.boxed ? '1px solid ' + c.hairStrong : '0', isCheck: !!o.check, bg: o.hl ? c.homeWash : 'transparent' });
+    const pgroup = (head, rows, foot) => ({ hasHead: !!head, head: head ?? '', rows: rows.map((r, i) => ({ ...r, line: line(i) })), hasFoot: !!foot, foot: foot ?? '' });
+
+    let panel = null, dialog = null;
+    if (screen === 'repeat') {
+      panel = { eyebrow: L('Afspraak bewerken', 'Edit event'), title: L('Zwemles Sam', 'Swimming lesson Sam'), groups: [
+        pgroup(null, [prow(L('Begint', 'Starts'), { value: L('za 5 dec · 09:45', 'Sat 5 Dec · 09:45'), boxed: true }), prow(L('Eindigt', 'Ends'), { value: '10:30', boxed: true })]),
+        pgroup(L('HERHALEN', 'REPEAT'), [prow(L('Elke', 'Every'), { value: L('1 week', '1 week'), boxed: true }), prow(L('Op', 'On'), { value: L('za', 'Sat'), boxed: true }), prow(L('Eindigt', 'Ends'), { value: L('Nooit', 'Never'), boxed: true })], L('Elke week op zaterdag. Volgende: 12 dec, 19 dec, 26 dec.', 'Weekly on Saturday. Next: 12 Dec, 19 Dec, 26 Dec.')),
+        pgroup(null, [prow(L('Agenda', 'Calendar'), { value: L('Gezin', 'Family') }), prow(L('Herinnering', 'Reminder'), { value: L('15 min vooraf', '15 min before') })])
+      ] };
+      const ch = (label, sub, on) => ({ label, sub, bg: on ? c.homeWash : c.surface, border: on ? '2px solid ' + c.fab : '1px solid ' + c.hair, fg: c.ink });
+      dialog = { w: 440, title: L('Wijziging bewaren voor…', 'Save changes for…'), hasMsg: true, msg: L('Zwemles Sam herhaalt elke week.', 'Swimming lesson Sam repeats weekly.'), fields: [], ok: L('Bewaar', 'Save'), choices: [
+        ch(L('Alleen deze afspraak', 'This event only'), L('za 5 dec wordt 09:45; de rest blijft 09:30', 'Sat 5 Dec becomes 09:45; the rest stays 09:30'), true),
+        ch(L('Deze en volgende', 'This and following'), L('Vanaf 5 dec om 09:45', 'From 5 Dec at 09:45'), false),
+        ch(L('Hele reeks', 'Whole series'), L('Alle keren, ook de vorige', 'Every occurrence, earlier ones too'), false)
+      ] };
+    } else if (screen === 'subscribe') {
+      const fld = (label, value, hint, o = {}) => ({ label, value, fg: o.ph ? c.muted : c.ink, border: o.focus ? c.fab : c.hairStrong, hasHint: !!hint, hint: hint ?? '', hintColor: o.ok ? c.kitchenText : c.muted });
+      dialog = { w: 520, title: L('Abonneren op een link', 'Subscribe to a link'), hasMsg: true, msg: L('School, club of een werkagenda. Alleen lezen; Gather ververst elk uur.', 'School, club or a work calendar. Read-only; Gather refreshes every hour.'), ok: L('Abonneren', 'Subscribe'), choices: [], fields: [
+        fld(L('Link', 'Link'), 'https://www.vvnoordster.nl/teams/jo11-1/agenda.ics', L('32 afspraken gevonden · 7 nov t/m 27 mrt', '32 events found · 7 Nov to 27 Mar'), { focus: true, ok: true }),
+        fld(L('Naam', 'Name'), 'VV Noordster JO11'),
+        fld(L('Kleur', 'Colour'), L('Amber', 'Amber'), L('Iedereen in de groep ziet de afspraken; de link zelf alleen jij.', 'Everyone in the group sees the events; only you see the link.'))
+      ] };
+    } else if (screen === 'event') {
+      panel = { eyebrow: L('Afspraak', 'Event'), title: L('Uitwedstrijd JO11', 'Away match U11'), groups: [
+        pgroup(null, [prow(L('za 28 november · 10:15 – 11:30', 'Sat 28 November · 10:15 – 11:30')), prow(L('Sportpark De Wierde', 'De Wierde sports park'), { labelColor: c.muted }), prow(L('Uit VV Noordster JO11 · alleen lezen', 'From VV Noordster U11 · read-only'), { labelColor: c.muted })]),
+        pgroup(L('HERINNERING · ALLEEN VOOR JOU', 'REMINDER · ONLY FOR YOU'), [
+          prow(L('Geen', 'None')), prow(L('Op het moment zelf', 'At time of event')), prow(L('15 min vooraf', '15 min before')),
+          prow(L('30 min vooraf', '30 min before')), prow(L('1 uur vooraf', '1 hour before'), { check: true, hl: true }), prow(L('1 dag vooraf', '1 day before'))
+        ], L('Je standaard is 15 min vooraf (Instellingen › Meldingen). Meldingen komen op je telefoon.', 'Your default is 15 min before (Settings › Notifications). Notifications arrive on your phone.'))
+      ] };
+    }
+
+    return {
+      c, t, icons, side, views, wd, weeks,
+      hasPanel: !!panel, panel: panel ?? { eyebrow: '', title: '', groups: [] },
+      hasDialog: !!dialog, dialog: dialog ?? { w: 400, title: '', hasMsg: false, msg: '', fields: [], choices: [], ok: '' }
+    };
+  }
+}
+</script>
+</body>
+</html>
