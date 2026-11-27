@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { api, type Id } from '../../convex/api'
 import { usePaginatedQuery, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
+import { newSaveKey } from '../../ui/composer-drafts'
 
 export interface Note {
   id: string
@@ -100,8 +101,24 @@ export function useNoteActions() {
         ...(note.pinned ? { pinned: true } : {}),
         idempotencyKey: saveKey,
       }),
-    editNote: (id: string, patch: { title?: string; body?: string }) =>
-      update({ noteId: id as Id<'notes'>, groupSlug, ...patch }),
+    /**
+     * `baseUpdatedAt` is the version the edit started from (APP-347): when
+     * another Member saved since, nothing is written and the answer is
+     * `conflict`, with their version.
+     */
+    editNote: (
+      id: string,
+      patch: { title?: string; body?: string },
+      baseUpdatedAt: number,
+    ) => update({ noteId: id as Id<'notes'>, groupSlug, ...patch, baseUpdatedAt }),
+    /** A copy of this person's text, as a note of its own. */
+    copyNote: (note: { title: string; body: string }) =>
+      create({
+        groupSlug,
+        title: note.title,
+        body: note.body,
+        idempotencyKey: newSaveKey(),
+      }),
     togglePin: (note: Note) =>
       update({
         noteId: note.id as Id<'notes'>,

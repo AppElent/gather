@@ -133,6 +133,148 @@ describe('notes through a Group address', () => {
   })
 })
 
+describe('an edit that started from an older version (APP-347)', () => {
+  /** Bob's note in the Group he shares with Alice, at `updatedAt` 2. */
+  async function shared() {
+    const { t } = await seed()
+    const [note] = await t
+      .withIdentity(bob)
+      .query(api.notes.list, { groupSlug: 'notes-second' })
+    return { t, noteId: note._id }
+  }
+  const read = (t: Awaited<ReturnType<typeof seed>>['t'], noteId: string) =>
+    t
+      .withIdentity(alice)
+      .query(api.notes.get, { groupSlug: 'notes-second', noteId })
+
+  test('is refused, with the note as it is now, when another Member edited it since', async () => {
+    const { t, noteId } = await shared()
+    const bobs = await t.withIdentity(bob).mutation(api.notes.update, {
+      groupSlug: 'notes-second',
+      noteId,
+      body: 'Bob changed it',
+      baseUpdatedAt: 2,
+    })
+    expect(bobs.status).toBe('saved')
+    const alices = await t.withIdentity(alice).mutation(api.notes.update, {
+      groupSlug: 'notes-second',
+      noteId,
+      body: 'Alice changed it',
+      baseUpdatedAt: 2,
+    })
+    expect(alices).toEqual({
+      status: 'conflict',
+      note: {
+        title: 'Second note',
+        body: 'Bob changed it',
+        updatedAt: bobs.status === 'saved' ? bobs.updatedAt : -1,
+        updatedByName: 'Bob',
+      },
+    })
+    expect(await read(t, noteId)).toMatchObject({
+      body: 'Bob changed it',
+      updatedByName: 'Bob',
+    })
+  })
+
+  test('saves from the version it was refused at: Keep mine', async () => {
+    const { t, noteId } = await shared()
+    await t.withIdentity(bob).mutation(api.notes.update, {
+      groupSlug: 'notes-second',
+      noteId,
+      body: 'Bob changed it',
+    })
+    const refused = await t.withIdentity(alice).mutation(api.notes.update, {
+      groupSlug: 'notes-second',
+      noteId,
+      body: 'Alice changed it',
+      baseUpdatedAt: 2,
+    })
+    if (refused.status !== 'conflict') throw new Error('expected a conflict')
+    const kept = await t.withIdentity(alice).mutation(api.notes.update, {
+      groupSlug: 'notes-second',
+      noteId,
+      body: 'Alice changed it',
+      baseUpdatedAt: refused.note.updatedAt,
+    })
+    expect(kept.status).toBe('saved')
+    expect(await read(t, noteId)).toMatchObject({
+      body: 'Alice changed it',
+      updatedByMe: true,
+    })
+  })
+
+  test("never conflicts with the caller's own saves, which overlap while typing", async () => {
+    const { t, noteId } = await shared()
+    for (const body of ['Bob types', 'Bob types more'])
+      expect(
+        await t.withIdentity(bob).mutation(api.notes.update, {
+          groupSlug: 'notes-second',
+          noteId,
+          body,
+          baseUpdatedAt: 2,
+        }),
+      ).toMatchObject({ status: 'saved' })
+    expect(await read(t, noteId)).toMatchObject({ body: 'Bob types more' })
+  })
+
+  test('a pin, or the text it already has, is not an edit and never conflicts', async () => {
+    const { t, noteId } = await shared()
+    await t.withIdentity(bob).mutation(api.notes.update, {
+      groupSlug: 'notes-second',
+      noteId,
+      body: 'Bob changed it',
+    })
+    for (const patch of [{ pinned: true }, { body: 'Bob changed it' }])
+      expect(
+        await t.withIdentity(alice).mutation(api.notes.update, {
+          groupSlug: 'notes-second',
+          noteId,
+          baseUpdatedAt: 2,
+          ...patch,
+        }),
+      ).toMatchObject({ status: 'saved' })
+    expect(await read(t, noteId)).toMatchObject({
+      pinned: true,
+      updatedByName: 'Bob',
+    })
+  })
+
+  test('without a base the last write still wins, for installed phones', async () => {
+    const { t, noteId } = await shared()
+    await t.withIdentity(bob).mutation(api.notes.update, {
+      groupSlug: 'notes-second',
+      noteId,
+      body: 'Bob changed it',
+    })
+    expect(
+      await t.withIdentity(alice).mutation(api.notes.update, {
+        groupSlug: 'notes-second',
+        noteId,
+        body: 'Alice changed it',
+      }),
+    ).toMatchObject({ status: 'saved' })
+    expect(await read(t, noteId)).toMatchObject({ body: 'Alice changed it' })
+  })
+
+  test('two edits in one millisecond are still two versions', async () => {
+    const { t, noteId } = await shared()
+    const first = await t.withIdentity(bob).mutation(api.notes.update, {
+      groupSlug: 'notes-second',
+      noteId,
+      body: 'One',
+    })
+    const second = await t.withIdentity(bob).mutation(api.notes.update, {
+      groupSlug: 'notes-second',
+      noteId,
+      body: 'Two',
+    })
+    if (first.status !== 'saved' || second.status !== 'saved')
+      throw new Error('expected saves')
+    expect(second.updatedAt).toBeGreaterThan(first.updatedAt)
+  })
+})
+
 describe('searching notes', () => {
   type Harness = Awaited<ReturnType<typeof seed>>['t']
   async function addNote(t: Harness, title: string, body = '') {

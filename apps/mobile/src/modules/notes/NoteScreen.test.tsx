@@ -9,7 +9,7 @@ import { NOTE_MAX_CHARS } from '@gather/core/notes'
 import { noteRefusal } from '@gather/core/refusals'
 import type { ReactNode } from 'react'
 import { act } from 'react'
-import { beforeEach, expect, test, vi } from 'vitest'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { en } from '../../i18n/messages/en'
 import { mount, settle } from '../../testing/dom'
 import {
@@ -23,6 +23,9 @@ import { Note } from './NoteScreen'
 const state = vi.hoisted(() => ({
   note: {} as Record<string, unknown>,
   editNote: vi.fn(),
+  copyNote: vi.fn(),
+  replaced: [] as string[],
+  alerts: [] as string[],
   reported: [] as unknown[],
   disk: new Map<string, string>(),
 }))
@@ -62,12 +65,18 @@ vi.mock('@clerk/expo', () => ({ useAuth: () => ({ userId: 'u1' }) }))
 vi.mock('@expo/ui/community/menu', () => ({ MenuView: () => null }))
 vi.mock('expo-router', () => ({
   Stack: { Screen: () => null },
-  useRouter: () => ({ back: () => {} }),
+  usePathname: () => `/all/notes/${state.note?.id as string}`,
+  useRouter: () => ({
+    back: () => {},
+    replace: (href: string) => state.replaced.push(href),
+  }),
 }))
 vi.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ bottom: 0 }),
 }))
-vi.mock('../../feedback/haptics', () => ({ haptics: {} }))
+vi.mock('../../feedback/haptics', () => ({
+  haptics: { actionFailed: () => {} },
+}))
 vi.mock('../../group/GroupProvider', () => ({
   useGroup: () => ({ group: { _id: 'g1' } }),
 }))
@@ -91,10 +100,37 @@ vi.mock('../../theme/tokens', () => ({
 vi.mock('../../observability/report', () => ({
   reportError: (error: unknown) => state.reported.push(error),
 }))
+vi.mock('../../observability/native-presentation', () => ({
+  showAlert: (message: string) => state.alerts.push(message),
+}))
+vi.mock('../../components/NativeSheet', async () => {
+  const React = await import('react')
+  return {
+    NativeSheet: ({
+      title,
+      subtitle,
+      children,
+    }: {
+      title: string
+      subtitle?: string
+      children: ReactNode
+    }) =>
+      React.createElement(
+        'section',
+        { 'data-testid': 'sheet' },
+        React.createElement('h2', null, title),
+        React.createElement('p', null, subtitle),
+        children,
+      ),
+  }
+})
 vi.mock('./notesActions', () => ({ confirmDeleteNote: () => {} }))
 vi.mock('./store', () => ({
   useNote: () => state.note,
-  useNoteActions: () => ({ editNote: state.editNote }),
+  useNoteActions: () => ({
+    editNote: state.editNote,
+    copyNote: state.copyNote,
+  }),
 }))
 
 const TOO_LONG = en.notes.refusals['notes:too-long']
@@ -147,6 +183,9 @@ const disk = {
 
 beforeEach(() => {
   state.editNote.mockReset().mockResolvedValue(undefined)
+  state.copyNote.mockReset().mockResolvedValue('copy1')
+  state.replaced = []
+  state.alerts = []
   state.reported = []
   setHeldStoreForTests(disk as never)
   forgetHeldNotes()
@@ -171,10 +210,11 @@ test('text with no room is refused on screen and not sent, until it fits', async
   expect(state.editNote).not.toHaveBeenCalled()
   await type(view, 'note-title', '')
   expect(find(view, 'note-problem')).toBeNull()
-  expect(state.editNote).toHaveBeenCalledWith(state.note.id, {
-    title: '',
-    body: full,
-  })
+  expect(state.editNote).toHaveBeenCalledWith(
+    state.note.id,
+    { title: '', body: full },
+    1,
+  )
   view.unmount()
 })
 
@@ -196,7 +236,11 @@ test('a note already over the limit opens without an error, and can be shortened
   expect(find(view, 'note-problem')?.textContent).toBe(TOO_LONG)
   expect(state.editNote).not.toHaveBeenCalled()
   await type(view, 'note-body', 'short')
-  expect(state.editNote).toHaveBeenCalledWith(state.note.id, { body: 'short' })
+  expect(state.editNote).toHaveBeenCalledWith(
+    state.note.id,
+    { body: 'short' },
+    1,
+  )
   view.unmount()
 })
 
@@ -303,7 +347,7 @@ test('refused text comes back on a reopen before an earlier save landed', async 
   const view = open({ title: 'T', body: 'b' })
   const id = state.note.id as string
   await type(view, 'note-body', 'short')
-  expect(state.editNote).toHaveBeenCalledWith(id, { body: 'short' })
+  expect(state.editNote).toHaveBeenCalledWith(id, { body: 'short' }, 1)
   await type(view, 'note-body', full)
   view.unmount()
   // The note still has the old body: 'short' has not landed.
@@ -391,14 +435,14 @@ test('text whose save failed is said, sent again on leaving, and kept if that fa
   view.unmount()
   await settle()
   expect(state.editNote).toHaveBeenCalledTimes(2)
-  expect(state.editNote).toHaveBeenLastCalledWith(id, { body: 'c' })
+  expect(state.editNote).toHaveBeenLastCalledWith(id, { body: 'c' }, 1)
   // Back online: reopened, it is put back and sent.
   state.editNote.mockReset().mockResolvedValue(undefined)
   forgetHeldMemoryForTests()
   const again = mount(<Note noteId={id} />)
   expect(find(again, 'note-body')?.value).toBe('c')
   await blur(again, 'note-body')
-  expect(state.editNote).toHaveBeenCalledWith(id, { body: 'c' })
+  expect(state.editNote).toHaveBeenCalledWith(id, { body: 'c' }, 1)
   state.note = { ...state.note, body: 'c' }
   again.rerender(<Note noteId={id} />)
   again.unmount()
@@ -533,4 +577,148 @@ test('a late refusal keeps what the reopened screen held meanwhile', async () =>
   expect(kept?.title?.text).toBe(full)
   expect(kept?.body?.text).toBe('c')
   again.unmount()
+})
+
+describe('another Member saved while this person was writing (APP-347)', () => {
+  const theirs = {
+    title: 'T',
+    body: 'theirs',
+    updatedAt: 5,
+    updatedByName: 'Bob',
+  }
+  /** The answer to the next save, and the note as the query then has it. */
+  async function conflictOn(
+    view: ReturnType<typeof open>,
+    field: string,
+    text: string,
+    them = theirs,
+  ) {
+    state.editNote.mockResolvedValueOnce({ status: 'conflict', note: them })
+    await type(view, field, text)
+    state.note = {
+      ...state.note,
+      title: them.title,
+      body: them.body,
+      updatedAt: them.updatedAt,
+      updatedByName: them.updatedByName,
+      updatedByMe: false,
+    }
+    view.rerender(<Note noteId={state.note.id as string} />)
+    await settle()
+  }
+  const shown = (view: ReturnType<typeof open>, testId: string) =>
+    find(view, testId)?.textContent
+
+  test('nothing is overwritten: both versions are shown, and nothing more is sent', async () => {
+    const view = open({ title: 'T', body: 'b' })
+    const id = state.note.id as string
+    await conflictOn(view, 'note-body', 'mine')
+    expect(state.editNote).toHaveBeenCalledWith(id, { body: 'mine' }, 1)
+    expect(find(view, 'sheet')?.textContent).toContain(
+      'Bob changed it while you were writing. Nothing was overwritten.',
+    )
+    expect(shown(view, 'note-conflict-theirs')).toContain('theirs')
+    expect(shown(view, 'note-conflict-mine')).toContain('mine')
+    expect(find(view, 'note-body')?.value).toBe('mine')
+    expect(shown(view, 'note-save-status')).toBe(`· ${en.notes.conflicted}`)
+    await type(view, 'note-body', 'mine, more')
+    view.unmount()
+    expect(state.editNote).toHaveBeenCalledTimes(1)
+    expect(readHeld(`u1:g1:notes:${id}`)?.body?.text).toBe('mine, more')
+  })
+
+  test('Keep mine saves it over their version', async () => {
+    const view = open({ title: 'T', body: 'b' })
+    const id = state.note.id as string
+    await conflictOn(view, 'note-body', 'mine')
+    state.editNote.mockResolvedValueOnce({ status: 'saved', updatedAt: 6 })
+    await tap(view, 'note-conflict-keep-mine')
+    expect(state.editNote).toHaveBeenLastCalledWith(id, { body: 'mine' }, 5)
+    expect(find(view, 'sheet')).toBeNull()
+    expect(shown(view, 'note-save-status')).toBe(`· ${en.notes.saved}`)
+    view.unmount()
+  })
+
+  test('Keep theirs drops this text and shows theirs', async () => {
+    const view = open({ title: 'T', body: 'b' })
+    const id = state.note.id as string
+    await conflictOn(view, 'note-body', 'mine')
+    await tap(view, 'note-conflict-keep-theirs')
+    expect(find(view, 'note-body')?.value).toBe('theirs')
+    expect(find(view, 'sheet')).toBeNull()
+    view.unmount()
+    expect(state.editNote).toHaveBeenCalledTimes(1)
+    expect(readHeld(`u1:g1:notes:${id}`)).toBeUndefined()
+  })
+
+  test('Copy mine makes a note of this text and opens it; this one keeps theirs', async () => {
+    const view = open({ title: 'T', body: 'b' })
+    await conflictOn(view, 'note-body', 'mine')
+    await tap(view, 'note-conflict-copy-mine')
+    expect(state.copyNote).toHaveBeenCalledWith({ title: 'T', body: 'mine' })
+    expect(state.replaced).toEqual(['/all/notes/copy1'])
+    expect(find(view, 'note-body')?.value).toBe('theirs')
+    view.unmount()
+    expect(state.editNote).toHaveBeenCalledTimes(1)
+  })
+
+  test('a copy that fails says so and keeps the conflict open', async () => {
+    state.copyNote.mockRejectedValueOnce(new Error('offline'))
+    const view = open({ title: 'T', body: 'b' })
+    await conflictOn(view, 'note-body', 'mine')
+    await tap(view, 'note-conflict-copy-mine')
+    expect(state.alerts).toEqual([en.notes.conflict.copyFailed])
+    expect(find(view, 'note-body')?.value).toBe('mine')
+    expect(find(view, 'sheet')).not.toBeNull()
+    view.unmount()
+  })
+
+  test('when they changed only the other field, it is sent again from their version', async () => {
+    const view = open({ title: 'T', body: 'b' })
+    const id = state.note.id as string
+    state.editNote
+      .mockResolvedValueOnce({
+        status: 'conflict',
+        note: { ...theirs, title: 'Their title', body: 'b' },
+      })
+      .mockResolvedValueOnce({ status: 'saved', updatedAt: 6 })
+    await type(view, 'note-body', 'mine')
+    expect(state.editNote).toHaveBeenCalledTimes(2)
+    expect(state.editNote).toHaveBeenLastCalledWith(id, { body: 'mine' }, 5)
+    expect(find(view, 'sheet')).toBeNull()
+    view.unmount()
+  })
+
+  test('the autosave line says saving, then saved', async () => {
+    const answer = deferred()
+    state.editNote.mockReturnValueOnce(answer.promise)
+    const view = open({ title: 'T', body: 'b' })
+    await type(view, 'note-body', 'c')
+    expect(shown(view, 'note-save-status')).toBe(`· ${en.notes.saving}`)
+    answer.resolve()
+    await settle()
+    expect(shown(view, 'note-save-status')).toBe(`· ${en.notes.saved}`)
+    view.unmount()
+  })
+
+  test('a conflict answered after leaving keeps the text for the next open', async () => {
+    let answer = (_value: unknown) => {}
+    state.editNote.mockReturnValueOnce(
+      new Promise((resolve) => {
+        answer = resolve
+      }),
+    )
+    const view = open({ title: 'T', body: 'b' })
+    const id = state.note.id as string
+    await type(view, 'note-body', 'mine')
+    view.unmount()
+    answer({ status: 'conflict', note: theirs })
+    await settle()
+    expect(readHeld(`u1:g1:notes:${id}`)?.body?.text).toBe('mine')
+    state.note = { ...state.note, body: 'theirs', updatedAt: 5 }
+    const again = mount(<Note noteId={id} />)
+    expect(find(again, 'note-body')?.value).toBe('theirs')
+    expect(find(again, 'note-clash')).not.toBeNull()
+    again.unmount()
+  })
 })

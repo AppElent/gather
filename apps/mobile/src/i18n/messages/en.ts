@@ -1184,6 +1184,30 @@ export const en = {
       'This note changed since you left it, so your unsaved text was not put back.',
     putBack: 'Put back my text',
     discardKept: 'Discard my text',
+    /** The autosave line next to "Edited …" (APP-347). */
+    saving: 'Saving…',
+    saved: 'Saved',
+    conflicted: 'Not saved: changed by someone else',
+    /**
+     * The sheet when another Member saved the note while this person was
+     * writing (APP-347): nothing was overwritten, and they choose.
+     */
+    conflict: {
+      title: 'This note changed',
+      changedBy:
+        '{name} changed it while you were writing. Nothing was overwritten.',
+      changedBySomeone:
+        'Someone else changed it while you were writing. Nothing was overwritten.',
+      theirs: 'Their version',
+      mine: 'Your version',
+      keepMine: 'Keep mine',
+      keepTheirs: 'Keep theirs',
+      copyMine: 'Copy mine to a new note',
+      copyFailed: 'Your version could not be copied. It is still here.',
+      /** Left before the answer came: shown on the next open, with the kept text. */
+      changedSince:
+        'Not saved: someone else changed this note meanwhile.',
+    },
   },
 
   /**
