@@ -14,7 +14,6 @@ import {
   stapleKey,
   writableGroceryList,
 } from './lib/groceryStaples'
-import { recipeShareDiff, syncRecipeShares } from './lib/recipeShares'
 import { pickCanonicalUser } from './lib/sharing'
 import { stableDigest } from './lib/stableDigest'
 import { deleteStoredFile } from './lib/storedFiles'
@@ -75,103 +74,6 @@ export const removePersonalGroupSemantics = internalMutation({
       }
     }
     return { apply, converted: legacy.length }
-  },
-})
-
-/**
- * Backfills `recipeShares` from `recipes.sharedGroupIds` (APP-299). Shares
- * made before the table existed have no row, so the kitchen's recipe picker
- * would not offer them until this has run. Idempotent: each recipe's rows are
- * made to match its array, so a second pass finds nothing to do.
- *
- * One page of recipes per call. Dry by default; run with `{ apply: true }`,
- * passing back `cursor` while `more` is true, then a dry pass from the start
- * must report `created` and `removed` zero. **End condition:** the dev and
- * production results are recorded in docs/migrations/README.md; then delete
- * this and its test.
- */
-const RECIPE_SHARES_BATCH = 200
-
-export const backfillRecipeShares = internalMutation({
-  args: {
-    apply: v.optional(v.boolean()),
-    cursor: v.optional(v.union(v.string(), v.null())),
-  },
-  handler: async (ctx, args) => {
-    const apply = args.apply ?? false
-    const page = await ctx.db
-      .query('recipes')
-      .paginate({ numItems: RECIPE_SHARES_BATCH, cursor: args.cursor ?? null })
-    let created = 0
-    let removed = 0
-    for (const recipe of page.page) {
-      if (apply) {
-        const result = await syncRecipeShares(
-          ctx,
-          recipe._id,
-          recipe.sharedGroupIds,
-        )
-        created += result.created
-        removed += result.removed
-      } else {
-        const diff = await recipeShareDiff(
-          ctx,
-          recipe._id,
-          recipe.sharedGroupIds,
-        )
-        created += diff.missing.length
-        removed += diff.stale.length
-      }
-    }
-    return {
-      apply,
-      scanned: page.page.length,
-      created,
-      removed,
-      more: !page.isDone,
-      cursor: page.continueCursor,
-    }
-  },
-})
-
-/**
- * Gives every Planned meal from before meal slots (APP-317, ADR-0027) its
- * slot: each was a day's one dinner, so it becomes `dinner`. Reads already
- * treat a missing slot as dinner, so the app is right before and after this
- * runs; it exists so the schema can later make `slot` required.
- *
- * Pages through `plannedDinners` by `cursor`. Dry unless `{ apply: true }`;
- * run it until `more` is false, then run the dry pass again from the start
- * and confirm every page reports `missing` zero.
- */
-const MEAL_SLOTS_BATCH = 200
-
-export const backfillMealSlots = internalMutation({
-  args: {
-    apply: v.optional(v.boolean()),
-    cursor: v.optional(v.union(v.string(), v.null())),
-    // Rows per call, at most the default; tests use a small one to page.
-    batch: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const apply = args.apply ?? false
-    const numItems = Math.max(
-      1,
-      Math.min(MEAL_SLOTS_BATCH, Math.floor(args.batch ?? MEAL_SLOTS_BATCH)),
-    )
-    const page = await ctx.db
-      .query('plannedDinners')
-      .paginate({ numItems, cursor: args.cursor ?? null })
-    const missing = page.page.filter((meal) => meal.slot === undefined)
-    if (apply)
-      for (const meal of missing) await ctx.db.patch(meal._id, { slot: 'dinner' })
-    return {
-      apply,
-      scanned: page.page.length,
-      missing: missing.length,
-      more: !page.isDone,
-      cursor: page.continueCursor,
-    }
   },
 })
 

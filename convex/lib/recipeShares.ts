@@ -14,42 +14,23 @@ import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { isVisibleToGroups } from './groupAccess'
 
 /**
- * How the recipe's share rows differ from `sharedGroupIds`: the rows to
- * delete (stale or duplicate) and the Groups that have none yet.
+ * Make the recipe's share rows match `sharedGroupIds`: insert the missing,
+ * delete the stale and duplicate.
  */
-export async function recipeShareDiff(
-  ctx: QueryCtx,
+async function syncRecipeShares(
+  ctx: MutationCtx,
   recipeId: Id<'recipes'>,
   sharedGroupIds: readonly Id<'groups'>[],
-): Promise<{ stale: Id<'recipeShares'>[]; missing: Id<'groups'>[] }> {
+): Promise<void> {
   const rows = await ctx.db
     .query('recipeShares')
     .withIndex('by_recipe_group', (q) => q.eq('recipeId', recipeId))
     .collect()
-  const wanted = new Set(sharedGroupIds)
-  const kept = new Set<Id<'groups'>>()
-  const stale: Id<'recipeShares'>[] = []
-  for (const row of rows) {
-    if (wanted.has(row.groupId) && !kept.has(row.groupId)) kept.add(row.groupId)
-    else stale.push(row._id)
-  }
-  return { stale, missing: [...wanted].filter((id) => !kept.has(id)) }
-}
-
-/**
- * Make the recipe's share rows match `sharedGroupIds`: insert the missing,
- * delete the rest.
- */
-export async function syncRecipeShares(
-  ctx: MutationCtx,
-  recipeId: Id<'recipes'>,
-  sharedGroupIds: readonly Id<'groups'>[],
-): Promise<{ created: number; removed: number }> {
-  const { stale, missing } = await recipeShareDiff(ctx, recipeId, sharedGroupIds)
-  for (const id of stale) await ctx.db.delete(id)
+  const missing = new Set(sharedGroupIds)
+  for (const row of rows)
+    if (!missing.delete(row.groupId)) await ctx.db.delete(row._id)
   for (const groupId of missing)
     await ctx.db.insert('recipeShares', { recipeId, groupId })
-  return { created: missing.length, removed: stale.length }
 }
 
 /** Set a recipe's `sharedGroupIds` and its share rows together. */
@@ -71,33 +52,44 @@ export async function dropRecipeShares(
 }
 
 /**
- * Every recipe visible in a Group, read by index: its own (`by_group`) and
- * those Shared into it (`recipeShares.by_group`). A recipe of an unrelated
- * Group is never read while the rows match `sharedGroupIds`; a row that lags
- * costs one `get` and is dropped by the visibility check.
+ * The recipes of other Groups Shared into this one, oldest recipe first, read
+ * by index (`recipeShares.by_group`). A row that lags `sharedGroupIds` costs one `get`
+ * and is dropped by the visibility check.
+ */
+export async function recipesSharedInto(
+  ctx: QueryCtx,
+  groupId: Id<'groups'>,
+): Promise<Doc<'recipes'>[]> {
+  const shares = await ctx.db
+    .query('recipeShares')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .collect()
+  const ids = [...new Set(shares.map((share) => share.recipeId))]
+  return (await Promise.all(ids.map((id) => ctx.db.get(id))))
+    .filter(
+      (recipe): recipe is Doc<'recipes'> =>
+        recipe !== null &&
+        recipe.groupId !== groupId &&
+        isVisibleToGroups(recipe, [groupId]),
+    )
+    .sort((a, b) => a._creationTime - b._creationTime)
+}
+
+/**
+ * Every recipe visible in a Group: its own (`by_group`) and those Shared into
+ * it. A recipe of an unrelated Group is never read while the share rows match
+ * `sharedGroupIds`.
  */
 export async function recipesVisibleIn(
   ctx: QueryCtx,
   groupId: Id<'groups'>,
 ): Promise<Doc<'recipes'>[]> {
-  const [own, shares] = await Promise.all([
+  const [own, sharedIn] = await Promise.all([
     ctx.db
       .query('recipes')
       .withIndex('by_group', (q) => q.eq('groupId', groupId))
       .collect(),
-    ctx.db
-      .query('recipeShares')
-      .withIndex('by_group', (q) => q.eq('groupId', groupId))
-      .collect(),
+    recipesSharedInto(ctx, groupId),
   ])
-  const sharedIds = [...new Set(shares.map((share) => share.recipeId))]
-  const sharedIn = (
-    await Promise.all(sharedIds.map((id) => ctx.db.get(id)))
-  ).filter(
-    (recipe): recipe is Doc<'recipes'> =>
-      recipe !== null &&
-      recipe.groupId !== groupId &&
-      isVisibleToGroups(recipe, [groupId]),
-  )
   return [...own, ...sharedIn]
 }

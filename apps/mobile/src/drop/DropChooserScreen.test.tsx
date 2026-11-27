@@ -19,6 +19,7 @@ const state = vi.hoisted(() => ({
   params: {} as { url?: string; text?: string },
   offered: [] as unknown[],
   dismissedTo: [] as unknown[],
+  pushed: [] as unknown[][],
   commit: async (): Promise<unknown> => ({ ok: true, href: '/home' }),
 }))
 
@@ -90,7 +91,7 @@ vi.mock('expo-router', () => ({
   Stack: Object.assign(() => null, { Screen: () => null }),
   useLocalSearchParams: () => state.params,
   useRouter: () => ({
-    push: () => {},
+    push: (...args: unknown[]) => state.pushed.push(args),
     dismissTo: (href: unknown) => state.dismissedTo.push(href),
   }),
 }))
@@ -109,7 +110,7 @@ vi.mock('../group/GroupProvider', () => ({
       { _id: 'g2', name: 'Cabin' },
     ],
   }),
-  useOpenInGroup: () => () => {},
+  useOpenInGroup: () => (_group: unknown, go: () => void) => go(),
 }))
 vi.mock('../i18n', async () => {
   const { en: messages } = await import('../i18n/messages/en')
@@ -162,6 +163,7 @@ beforeEach(() => {
   state.params = {}
   state.offered = []
   state.dismissedTo = []
+  state.pushed = []
 })
 
 afterEach(() => {
@@ -303,6 +305,22 @@ test.each([
   await settle()
   expect(view.container.textContent).toContain(sentence)
   expect(view.container.textContent).toContain('Pasta')
+  view.unmount()
+  state.commit = before
+})
+
+test('a saved Drop opens its destination over its tab root, so reselecting the tab pops to it (APP-963)', async () => {
+  const before = state.commit
+  state.commit = async () => ({ ok: true, href: '/all/recipes/import?link=x' })
+  const view = mount(createElement(DropChooserScreen))
+  const save = [...view.container.querySelectorAll('button')].find((button) =>
+    [en.common.actions.save, en.drop.continue].includes(button.textContent ?? ''),
+  )
+  save?.click()
+  await settle()
+  expect(state.pushed).toEqual([
+    ['/all/recipes/import?link=x', { withAnchor: true }],
+  ])
   view.unmount()
   state.commit = before
 })

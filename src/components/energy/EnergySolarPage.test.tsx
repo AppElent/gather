@@ -116,6 +116,33 @@ describe('EnergySolarPage', () => {
     })
     expect(figure.querySelectorAll('[data-bar]')).toHaveLength(30)
     expect(figure.querySelector('[data-average]')).not.toBeNull()
+    // The charge level is now's, whichever range (APP-922).
+    expect(screen.getByRole('region', { name: 'Battery' })).toHaveTextContent('64%')
+    expect(screen.queryByRole('figure', { name: /Charged/ })).toBeNull()
+  })
+
+  test('a charge level alone shows the battery, today and this month (APP-922)', () => {
+    const month = solarMonth({ solar: false, battery: false, firstDay: null })
+    month.days = month.days.map((day) => ({
+      ...day,
+      producedKwh: null,
+      selfUsedKwh: null,
+      returnedKwh: null,
+      selfUsedEur: null,
+      ownKwh: null,
+      battery: null,
+      solarEur: null,
+      batteryEur: null,
+    }))
+    state.solar = month
+    renderInGroup(<EnergySolarPage />)
+    const battery = screen.getByRole('region', { name: 'Battery' })
+    expect(battery).toHaveTextContent('64%')
+    expect(battery).not.toHaveTextContent('Earned')
+    expect(screen.getByRole('figure', { name: /Charged/ })).toBeVisible()
+    expect(screen.queryByText('Generated')).toBeNull()
+    fireEvent.click(screen.getByRole('tab', { name: 'November' }))
+    expect(screen.getByRole('region', { name: 'Battery' })).toHaveTextContent('64%')
   })
 
   test('earnings without a price say they are not known', () => {

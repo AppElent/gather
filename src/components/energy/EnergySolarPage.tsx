@@ -201,7 +201,12 @@ function Figures({
       ? data.days.filter((each) => each.day === today)
       : data.days
   const totals = energySolarTotals(days)
-  if (totals.producedKwh === null && totals.battery === null) {
+  // The charge level is the battery's now, so the month shows it too (APP-922).
+  const percent =
+    data.batterySoc && period ? energySocNow(period.hours) : null
+  if (totals.producedKwh === null && totals.battery === null && percent === null) {
+    // A site that measures only the charge level waits for today's hours.
+    if (data.batterySoc && period === undefined) return null
     return (
       <p className="m-0 text-sm text-[var(--muted)]">
         {range === 'today' ? copy.nothingToday : copy.nothingMonth}
@@ -219,11 +224,7 @@ function Figures({
         period={period ?? null}
         now={now}
       />
-      <BatteryCard
-        data={data}
-        totals={totals}
-        period={range === 'today' ? (period ?? null) : null}
-      />
+      <BatteryCard data={data} totals={totals} percent={percent} />
       {range === 'today' && data.batterySoc && period ? (
         <ChargeChart period={period} isToday now={now} />
       ) : null}
@@ -342,17 +343,17 @@ function Unit({ text }: { text: string }) {
 function BatteryCard({
   data,
   totals,
-  period,
+  percent,
 }: {
   data: EnergySolarMonth
   totals: EnergySolarTotals
-  period: EnergyPeriod | null
+  /** The charge level now, when it is measured. */
+  percent: number | null
 }) {
   const { messages, locale } = useI18n()
   const copy = messages.energy.solar
   const card = energyBatteryCard(totals, messages.energy, locale)
-  if (!card) return null
-  const percent = period ? energySocNow(period.hours) : null
+  if (!card && percent === null) return null
   const stored = energyStoredLine(
     percent,
     energyAssetTotal(
@@ -381,7 +382,7 @@ function BatteryCard({
         </div>
       ) : null}
       <dl className="m-0 grid divide-y divide-[var(--hair)]">
-        {card.rows.map((row) => (
+        {card?.rows.map((row) => (
           <div
             key={row.key}
             className={`flex flex-wrap items-baseline justify-between gap-x-3 py-2 ${row.strong ? 'font-bold' : ''}`}
@@ -391,8 +392,8 @@ function BatteryCard({
           </div>
         ))}
       </dl>
-      {card.note ? <p className="m-0 text-sm">{card.note}</p> : null}
-      {card.footnote ? (
+      {card?.note ? <p className="m-0 text-sm">{card.note}</p> : null}
+      {card?.footnote ? (
         <p className="m-0 text-sm text-[var(--muted)]">{card.footnote}</p>
       ) : null}
     </section>

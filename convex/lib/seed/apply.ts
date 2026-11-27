@@ -527,7 +527,6 @@ export async function applySample(
         mealEntryId,
         title: source.title,
         prepMinutes: source.prepMinutes,
-        quickLimit: dinner.quickLimit,
       }),
     )
   }
