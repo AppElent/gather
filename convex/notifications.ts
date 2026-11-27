@@ -10,7 +10,8 @@
  * The internal ones are `notify`, `schedule` and `cancel`, thin wrappers over
  * `lib/notifications.ts` for callers that are already scheduled work. A
  * mutation that causes a notification calls the helpers directly instead, so
- * the notification is queued in its own transaction.
+ * the notification is queued in its own transaction. `forgetSessionOf` is
+ * the Clerk webhook's: a session that ended anywhere drops its phones.
  *
  * Delivery is Expo's push service. `sendPush` posts the messages and reads
  * the tickets back; an install Expo says is gone (`DeviceNotRegistered`) is
@@ -224,7 +225,7 @@ export const forgetEndedSessions = mutation({
 
 /**
  * A Clerk session that is over, from `POST /clerk/webhook`: wherever it was
- * ended (the account portal too), the phone registered under it gets no more
+ * ended (the account portal too), the phones registered under it get no more
  * pushes and the watches it paired lose their keys. A phone registered since
  * under another session stays.
  */
