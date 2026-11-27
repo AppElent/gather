@@ -1,4 +1,8 @@
-import { amsterdamDayHours, energyMonthDays } from '@gather/core/energy'
+import {
+  amsterdamDayHours,
+  energyMonthDays,
+  energyPaybackDayOf,
+} from '@gather/core/energy'
 import { describe, expect, test } from 'vitest'
 import { alice, bob, carol } from '../test/convexHarness'
 import {
@@ -14,6 +18,7 @@ import {
 import { api } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
+import { paybackDaysOf } from './energySolar'
 import { computeEnergyRange, siteChannels } from './lib/energyUsage'
 
 /** Solar and battery (APP-496), from hourly intervals when they are read. */
@@ -356,6 +361,45 @@ describe('payback', () => {
       expect(channels.filter((each) => each.manual)).toHaveLength(4)
       expect(channels.filter((each) => !each.manual)).toHaveLength(5)
     })
+  })
+
+  test('an asset edit leaves a past month be (APP-962)', async () => {
+    const { t, siteId } = await seedHours(FULL)
+    await t.run(async (ctx) => {
+      const site = await ctx.db.get(siteId)
+      if (!site) throw new Error('no site')
+      const { ctx: recorded, ranges } = recordingReads(ctx)
+      const days = await paybackDaysOf(recorded, site, '2026-11', DAY)
+      expect(days).toHaveLength(20)
+      expect(ranges.some((each) => each.table === 'energyChannels')).toBe(true)
+      expect(ranges.filter((each) => each.table === 'energyAssets')).toEqual([])
+    })
+  })
+
+  test("a past month counts what that month's answer counts", async () => {
+    const { t } = await seedHours(FULL)
+    const month = await t.withIdentity(bob).query(api.energySolar.month, MONTH)
+    const payback = await t
+      .withIdentity(bob)
+      .query(api.energySolar.paybackMonth, MONTH)
+    expect(payback).toEqual(month?.days.map(energyPaybackDayOf))
+    expect(payback?.find((each) => each.day === DAY)).toMatchObject({
+      solarMeasured: true,
+      batteryMeasured: true,
+    })
+  })
+
+  test('a past month is for members of the Group', async () => {
+    const { t } = await seedHours(FULL)
+    await expect(t.query(api.energySolar.paybackMonth, MONTH)).rejects.toThrow()
+    await expect(
+      t.withIdentity(carol).query(api.energySolar.paybackMonth, MONTH),
+    ).rejects.toThrow()
+    expect(
+      await t
+        .withIdentity(carol)
+        .query(api.energySolar.paybackMonth, { ...MONTH, ...OTHER }),
+    ).toBeNull()
   })
 })
 

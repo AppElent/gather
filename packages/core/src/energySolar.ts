@@ -376,6 +376,23 @@ export interface EnergyPaybackDay {
   batteryMeasured: boolean
 }
 
+/** A day of `energySolar.month` as payback counts it. */
+export function energyPaybackDayOf(day: {
+  day: string
+  solarEur: number | null
+  batteryEur: number | null
+  selfUsedKwh: number | null
+  battery: object | null
+}): EnergyPaybackDay {
+  return {
+    day: day.day,
+    solarEur: day.solarEur,
+    batteryEur: day.batteryEur,
+    solarMeasured: day.selfUsedKwh !== null,
+    batteryMeasured: day.battery !== null,
+  }
+}
+
 export interface EnergyPaybackAsset {
   kind: EnergyAssetKind
   peakWatt?: number
