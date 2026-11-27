@@ -28,6 +28,7 @@ import {
   aisleSections,
   checkedOncePerName,
   inCheckedSection,
+  onShoppingList,
 } from './groceryList'
 import { useTaskActions } from './store'
 import type { Task, TaskList } from './types'
@@ -35,6 +36,7 @@ import type { Task, TaskList } from './types'
 export function GroceryListBody({
   list,
   tasks,
+  today,
   row,
   empty,
   lingering,
@@ -42,6 +44,11 @@ export function GroceryListBody({
 }: {
   list: TaskList
   tasks: readonly Task[]
+  /**
+   * The Group's day: a repeating item checked off waits off the list until
+   * its next due date (APP-520).
+   */
+  today: string
   /**
    * Items just checked that still stand in their aisle (`useLingering`); the
    * screen owns them, so its summary and Clear checked count agree.
@@ -61,7 +68,9 @@ export function GroceryListBody({
   const [busy, setBusy] = useState(false)
   const g = t.tasks.grocery
 
-  const open = tasks.filter((task) => !task.done || lingering.has(task.id))
+  const open = tasks.filter(
+    (task) => onShoppingList(task, today) || lingering.has(task.id),
+  )
   const checked = checkedOncePerName(
     tasks,
     tasks.filter(

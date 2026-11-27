@@ -7,6 +7,7 @@ import {
   testConvex,
 } from '../test/convexHarness'
 import { api } from './_generated/api'
+import { completionDay } from './lib/taskRepeat'
 
 /**
  * The Tasks index's counts (APP-430), through the real function: one answer
@@ -110,6 +111,49 @@ describe('tasks.openCounts', () => {
     expect(of(linked)).toBeUndefined()
     expect(answer).toHaveLength(4)
     expect(of(packing)).toBeDefined()
+  })
+
+  test('a repeating grocery item checked off is not open until it is due (APP-520)', async () => {
+    const { t, house, groceries } = await seed()
+    const as = t.withIdentity(alice)
+    const today = completionDay(undefined)
+    const repeat = { mode: 'afterDone', every: 1, unit: 'week' } as const
+    const [coffee, bins] = await t.run(async (ctx) => {
+      const createdBy = (await ctx.db.query('users').first())!._id
+      return await Promise.all(
+        [groceries, house].map((listId, order) =>
+          ctx.db.insert('tasks', {
+            listId,
+            title: order === 0 ? 'Coffee' : 'Mop',
+            done: false,
+            createdBy,
+            order: 100 + order,
+            dueDate: today,
+            repeat,
+          }),
+        ),
+      )
+    })
+    const count = async (id: string) =>
+      (
+        await as.query(api.tasks.openCounts, { groupSlug: JANSEN })
+      ).find((row) => row.listId === id)?.open
+    // Due today: on the list, Milk and Coffee.
+    expect(await count(groceries)).toBe(2)
+    for (const taskId of [coffee, bins]) {
+      await as.mutation(api.tasks.toggleDone, {
+        taskId,
+        groupSlug: JANSEN,
+        today,
+      })
+    }
+    // Coffee moved on a week and stays open, but waits off the grocery list.
+    const moved = await t.run((ctx) => ctx.db.get(coffee))
+    expect(moved).toMatchObject({ done: false })
+    expect(moved?.dueDate).not.toBe(today)
+    expect(await count(groceries)).toBe(1)
+    // A repeating chore on a list of tasks still counts as open.
+    expect(await count(house)).toBe(4)
   })
 
   test('a packing list says how much is packed', async () => {

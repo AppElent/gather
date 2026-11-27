@@ -567,6 +567,21 @@ describe('reading', () => {
     })
   })
 
+  test('leaves out a repeating item checked off until its next date (APP-520)', async () => {
+    const { t, groceries } = await setup()
+    const repeat = { mode: 'afterDone', every: 1, unit: 'week' } as const
+    await task(t, groceries, 'melk')
+    await task(t, groceries, 'koffie', { repeat, dueDate: '2999-01-01' })
+    await task(t, groceries, 'brood', { repeat, dueDate: '2020-01-01' })
+    const { key } = await pair(t)
+    expect(await (await get(t, 'groceries', key)).json()).toMatchObject({
+      sections: [{ items: [{ title: 'melk' }, { title: 'brood' }] }],
+    })
+    expect(await (await get(t, 'modules', key)).json()).toMatchObject({
+      modules: [{ id: 'groceries', open: 2 }, {}, {}],
+    })
+  })
+
   test("falls back to the Group's list, and to none", async () => {
     const { t, market, home, groceries } = await setup()
     const { key } = await pair(t, { groceryListId: market })

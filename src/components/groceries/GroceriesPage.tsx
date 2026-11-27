@@ -1,3 +1,4 @@
+import { todayIn } from '@gather/core/civil-date'
 import {
   formatGroceryAmount,
   isDefaultAisleOrder,
@@ -7,6 +8,7 @@ import {
   checkedOncePerName,
   groceryListsOf,
   inCheckedSection,
+  onShoppingList,
   openGroceryList,
 } from '@gather/core/grocery-list'
 import { Link, useNavigate } from '@tanstack/react-router'
@@ -167,9 +169,12 @@ export function GroceriesPage({
     return map
   }, [openCounts])
 
+  // A repeating item checked off waits off the list for its next due date
+  // (APP-520); the hour clock moves the day on while the page is open.
+  const today = todayIn(group.timeZone, hour)
   const openTasks = useMemo(
-    () => (tasks ?? []).filter((task) => !task.done),
-    [tasks],
+    () => (tasks ?? []).filter((task) => onShoppingList(task, today)),
+    [tasks, today],
   )
   const checkedTasks = useMemo(() => {
     if (!tasks || !activeList) return []
