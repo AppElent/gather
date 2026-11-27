@@ -123,6 +123,12 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   it to, so the step destroys it instead. A Member being deleted does not
   count as staying anywhere: not here, and not in `groups.exitsFor`, so the
   last live Member may delete the Group.
+- **A shared Group keeps an admin** (APP-938). `leaveGroup` refuses the only
+  admin (`only-admin`); account deletion cannot be refused for that, so when
+  the person going is the Group's only admin, the longest-standing Member
+  staying (oldest membership) becomes admin in the same step that detaches
+  them. An admin who is being deleted too does not count, the same as in
+  `groups.exitsFor`.
 - **An account being deleted is signed out of Gather** (APP-882).
   `getCurrentUser` and `requireCurrentUser` (`convex/lib/sharing.ts`) treat a
   `users` row with `deletedAt` as no account, so it reads, writes, creates
@@ -262,7 +268,7 @@ subscribes `user.created` and `user.updated` and delivers (Clerk → Webhooks
 - Deleting a Group leaves no row with its `groupId` and no blob only it held,
   once its scheduled steps have run.
 - Deleting an account removes its solo Groups, leaves shared Groups intact
-  without the person, and finally removes the Clerk user.
+  without the person and with an admin, and finally removes the Clerk user.
 - On the phone and the web, a Clerk refusal after the purge has started stays
   on screen, with Try again and Sign out, until one of them succeeds.
 - On the web, nothing is deleted until Clerk has confirmed a recent sign-in.

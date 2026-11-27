@@ -321,3 +321,113 @@ describe('the last Members deleting their accounts together (APP-882)', () => {
     expect(await count(t, 'notes')).toBe(0)
   })
 })
+
+describe('a Group whose only admin deletes their account (APP-938)', () => {
+  const carol = { subject: 'clerk_carol', name: 'Carol', email: 'c@example.com' }
+
+  async function household(
+    t: Harness,
+    roles: [Id<'users'>, 'admin' | 'member'][],
+  ) {
+    return await t.run(async (ctx) => {
+      const groupId = await seedGroup(ctx, { name: 'Home', slug: 'home' })
+      for (const [userId, role] of roles)
+        await seedMember(ctx, groupId, userId, role)
+      return groupId
+    })
+  }
+
+  async function withCarol(t: Harness) {
+    return await t.run((ctx) =>
+      ctx.db.insert('users', {
+        clerkId: carol.subject,
+        name: carol.name,
+        email: carol.email,
+      }),
+    )
+  }
+
+  const roles = (t: Harness, groupId: Id<'groups'>) =>
+    t.run(async (ctx) => {
+      const rows = await ctx.db
+        .query('memberships')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect()
+      return Object.fromEntries(rows.map((row) => [row.userId, row.role]))
+    })
+
+  test('hands the admin role to the longest-standing Member staying', async () => {
+    const { t, aliceId, bobId } = await people()
+    const carolId = await withCarol(t)
+    const groupId = await household(t, [
+      [aliceId, 'admin'],
+      [bobId, 'member'],
+      [carolId, 'member'],
+    ])
+
+    await deleteAccount(t)
+    await settle(t)
+
+    expect(await roles(t, groupId)).toEqual({
+      [bobId]: 'admin',
+      [carolId]: 'member',
+    })
+    // The new admin can administer the Group.
+    await t
+      .withIdentity(bob)
+      .mutation(api.groups.renameGroup, { groupId, name: 'Our home' })
+    expect((await t.run((ctx) => ctx.db.get(groupId)))?.name).toBe('Our home')
+  })
+
+  test('promotes nobody when another admin stays', async () => {
+    const { t, aliceId, bobId } = await people()
+    const carolId = await withCarol(t)
+    const groupId = await household(t, [
+      [aliceId, 'admin'],
+      [bobId, 'member'],
+      [carolId, 'admin'],
+    ])
+
+    await deleteAccount(t)
+    await settle(t)
+
+    expect(await roles(t, groupId)).toEqual({
+      [bobId]: 'member',
+      [carolId]: 'admin',
+    })
+  })
+
+  test('does not count an admin whose account is being deleted too', async () => {
+    const { t, aliceId, bobId } = await people()
+    const carolId = await withCarol(t)
+    const groupId = await household(t, [
+      [aliceId, 'admin'],
+      [bobId, 'admin'],
+      [carolId, 'member'],
+    ])
+
+    await deleteAccount(t)
+    await t.withIdentity(bob).mutation(api.accounts.deleteAccount, {})
+    await settle(t)
+
+    expect(await roles(t, groupId)).toEqual({ [carolId]: 'admin' })
+  })
+
+  test('changes no role when a Member who is not an admin goes', async () => {
+    const { t, aliceId, bobId } = await people()
+    const carolId = await withCarol(t)
+    const groupId = await household(t, [
+      [aliceId, 'member'],
+      [bobId, 'admin'],
+      [carolId, 'member'],
+    ])
+
+    await deleteAccount(t)
+    await settle(t)
+
+    expect(await roles(t, groupId)).toEqual({
+      [bobId]: 'admin',
+      [carolId]: 'member',
+    })
+  })
+})

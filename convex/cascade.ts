@@ -240,7 +240,9 @@ async function finishAccount(
     .withIndex('by_user', (q) => q.eq('userId', userId))
     .first()
   if (membership) {
-    if (await anybodyElseStays(ctx, membership)) {
+    const staying = await othersStaying(ctx, membership)
+    if (staying.length > 0) {
+      await keepAnAdmin(ctx, membership, staying)
       await detachFromGroup(ctx, userId, membership.groupId)
       await ctx.db.delete(membership._id)
     } else {
@@ -259,23 +261,43 @@ async function finishAccount(
 }
 
 /**
- * Whether anybody but this Member is staying in their Group: a membership
- * whose user is neither gone nor being deleted. The same count as
- * `groups.exitsFor`.
+ * The other Members staying in this Member's Group: memberships whose user is
+ * neither gone nor being deleted, oldest first. The same count as
+ * `groups.exitsFor`. None when the Group itself is gone.
  */
-async function anybodyElseStays(
+async function othersStaying(
   ctx: MutationCtx,
   membership: Doc<'memberships'>,
-): Promise<boolean> {
-  if (!(await ctx.db.get(membership.groupId))) return false
+): Promise<Doc<'memberships'>[]> {
+  if (!(await ctx.db.get(membership.groupId))) return []
   const members = await ctx.db
     .query('memberships')
     .withIndex('by_group', (q) => q.eq('groupId', membership.groupId))
     .collect()
+  const staying: Doc<'memberships'>[] = []
   for (const other of members) {
     if (other._id === membership._id) continue
     const user = await ctx.db.get(other.userId)
-    if (user && !user.deletedAt) return true
+    if (user && !user.deletedAt) staying.push(other)
   }
-  return false
+  return staying.sort((a, b) => a._creationTime - b._creationTime)
+}
+
+/**
+ * Hand the admin role on when the person going is the Group's only admin
+ * (APP-938). `leaveGroup` holds that door shut (`only-admin`), because nobody
+ * left could rename, delete or administer the Group; deleting an account
+ * cannot be refused for it, so the longest-standing Member staying becomes
+ * admin instead. An admin who is being deleted too does not count, the same
+ * as in `groups.exitsFor`.
+ */
+async function keepAnAdmin(
+  ctx: MutationCtx,
+  membership: Doc<'memberships'>,
+  staying: Doc<'memberships'>[],
+) {
+  if (membership.role !== 'admin') return
+  if (staying.some((other) => other.role === 'admin')) return
+  const [longest] = staying
+  if (longest) await ctx.db.patch(longest._id, { role: 'admin' })
 }
