@@ -45,6 +45,20 @@ export const notes = {
     loadErrorTitle: 'Notes could not be loaded',
     loadErrorBody: 'Check your connection and try again.',
     createFailed: 'The note could not be created. Try again.',
+    /** Another Member saved while this person typed (APP-994), as on the phone. */
+    conflict: {
+      title: 'This note changed',
+      changedBy:
+        '{name} changed it while you were writing. Nothing was overwritten.',
+      changedBySomeone:
+        'Someone else changed it while you were writing. Nothing was overwritten.',
+      theirs: 'Their version',
+      mine: 'Your version',
+      keepMine: 'Keep mine',
+      keepTheirs: 'Keep theirs',
+      copyMine: 'Copy mine to a new note',
+      copyFailed: 'Your version could not be copied. It is still here. {reason}',
+    },
   },
   /** How much of the room a nearly full note uses: "98,500 of 100,000 characters". */
   length: '{count} of {max} characters',

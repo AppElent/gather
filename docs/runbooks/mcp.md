@@ -83,6 +83,10 @@ Rules for every tool:
   together; a write past it is refused as `notes:too-long` (APP-805).
   `create_note` and `update_note` advertise it as the body's `maxLength` but do
   not check it, so Convex stays the one that refuses (APP-827).
+- `update_note` requires `baseUpdatedAt`: the note's `updatedAt` as the agent
+  last read it from `list_notes`. When another Member saved since, nothing is
+  written and the tool answers an error naming the newer version, so the agent
+  reads it again before deciding (APP-994).
 - There are no delete tools. People delete in the app.
 - Recipes shared into a Group can be read there but changed only from their
   home Group. Task lists that live in Notion or Todoist are listed but their

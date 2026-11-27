@@ -266,7 +266,8 @@ export const create = mutation({
  * is `conflict`, with the note as it is now, so the editor can choose. The
  * caller's own later edits never conflict: its saves overlap while it types.
  * Left out, the last write wins, as before: installed phones from before
- * APP-347, the web and the MCP tool send none (`docs/migrations/README.md`).
+ * APP-347 send none (`docs/migrations/README.md`). The web's note editor and
+ * MCP `update_note` send it (APP-994).
  */
 export const update = mutation({
   args: {

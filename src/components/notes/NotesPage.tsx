@@ -219,6 +219,7 @@ export function NotesPage({
         onTogglePin={() => void commands.togglePin(note)}
         onDelete={() => confirmDelete(note)}
         onClose={close}
+        onOpen={(id) => void navigate(addressOf(id))}
       />
     ) : (
       <NoteNotice

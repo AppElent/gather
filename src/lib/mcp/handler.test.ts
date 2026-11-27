@@ -639,9 +639,76 @@ describe('Gather MCP endpoint', () => {
     {
       tool: 'update_note',
       mutation: 'notes:update',
-      args: { noteId: 'note_1' },
+      args: { noteId: 'note_1', baseUpdatedAt: '2026-11-12T12:00:00.000Z' },
     },
   ]
+
+  describe('update_note sends the version the agent read (APP-994)', () => {
+    const READ = '2026-11-12T12:00:00.000Z'
+    const NEWER = Date.UTC(2026, 10, 12, 12, 5)
+
+    it('passes the version on, and answers the new one', async () => {
+      const backend = fakeBackend({
+        'notes:update': () => ({ status: 'saved', updatedAt: NEWER }),
+      })
+      const out = await callTool(backend, 'update_note', {
+        groupId: 'group_home',
+        noteId: 'note_1',
+        baseUpdatedAt: READ,
+        body: 'mine',
+      })
+      expect(out.isError).toBeUndefined()
+      expect(backend.calls.at(-1)).toMatchObject({
+        name: 'notes:update',
+        args: {
+          groupSlug: 'home',
+          noteId: 'note_1',
+          body: 'mine',
+          baseUpdatedAt: Date.parse(READ),
+        },
+      })
+      expect(out.structuredContent).toMatchObject({
+        updated: true,
+        updatedAt: new Date(NEWER).toISOString(),
+      })
+    })
+
+    it('answers a conflict as an error that names the newer version', async () => {
+      const backend = fakeBackend({
+        'notes:update': () => ({
+          status: 'conflict',
+          note: {
+            title: 'Wifi',
+            body: 'theirs',
+            updatedAt: NEWER,
+            updatedByName: 'Sam',
+          },
+        }),
+      })
+      const out = await callTool(backend, 'update_note', {
+        groupId: 'group_home',
+        noteId: 'note_1',
+        baseUpdatedAt: READ,
+        body: 'mine',
+      })
+      expect(out.isError).toBe(true)
+      expect(out.content[0].text).toContain('Not saved: Sam changed this note')
+      expect(out.content[0].text).toContain(new Date(NEWER).toISOString())
+    })
+
+    it('refuses an edit without the version it is based on', async () => {
+      const backend = fakeBackend()
+      const out = await callTool(backend, 'update_note', {
+        groupId: 'group_home',
+        noteId: 'note_1',
+        body: 'mine',
+      })
+      expect(out.isError).toBe(true)
+      expect(backend.calls.map((call) => call.name)).not.toContain(
+        'notes:update',
+      )
+    })
+  })
 
   it.each(noteWrites)(
     '$tool passes a body at the note limit to Convex',
