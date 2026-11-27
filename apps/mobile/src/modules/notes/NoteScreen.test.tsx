@@ -483,6 +483,25 @@ test('a refusal that arrives after the note was reopened is shown there, and kep
   await settle()
 })
 
+// APP-969: once the text it was about is saved, nothing is refused any more.
+test('a late refusal\'s sentence goes when the reopened screen saves that text', async () => {
+  const answer = deferred()
+  state.editNote.mockReturnValueOnce(answer.promise)
+  const view = open({ title: 'T', body: 'b' })
+  const id = state.note.id as string
+  await type(view, 'note-body', 'c')
+  view.unmount()
+  const again = mount(<Note noteId={id} />)
+  answer.reject({ data: noteRefusal('too-long') })
+  await settle()
+  expect(find(again, 'note-problem')?.textContent).toBe(TOO_LONG)
+  // The reopened screen sends the same text, and this time it lands.
+  await blur(again, 'note-body')
+  expect(state.editNote).toHaveBeenLastCalledWith(id, { body: 'c' }, 1)
+  expect(find(again, 'note-problem')).toBeNull()
+  again.unmount()
+})
+
 test('typing in a field the late text was meant for keeps the typing, and offers the text', async () => {
   const answer = deferred()
   state.editNote.mockReturnValueOnce(answer.promise)
