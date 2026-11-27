@@ -96,7 +96,7 @@ async function request(url: string, init: RequestInit): Promise<Response> {
   }
 }
 
-/** A token answer: a refused grant is `revoked`, anything else unexpected `unreachable`. */
+/** A token answer: a refused grant (`invalid_grant`) is `revoked`, anything else unexpected `unreachable`. */
 async function tokens(
   grant: Record<string, string>,
 ): Promise<{ access: string; refresh: string | null }> {
@@ -113,14 +113,17 @@ async function tokens(
       client_secret: clientSecret,
     }).toString(),
   })
-  if (response.status === 400 || response.status === 401) {
-    throw new EnelogicError('revoked')
-  }
-  if (!response.ok) throw new EnelogicError('unreachable')
   const body = (await response.json().catch(() => null)) as Record<
     string,
     unknown
   > | null
+  // Only a refused grant asks to sign in again; a refused client is ours to fix.
+  if (response.status === 400 || response.status === 401) {
+    throw new EnelogicError(
+      body?.error === 'invalid_grant' ? 'revoked' : 'unreachable',
+    )
+  }
+  if (!response.ok) throw new EnelogicError('unreachable')
   const access = body?.access_token
   const refresh = body?.refresh_token
   if (typeof access !== 'string' || !access) {
@@ -155,7 +158,7 @@ async function accessFor(
   ctx: ActionCtx,
   sourceId: Id<'energySources'>,
   refresh: string,
-): Promise<string | null> {
+): Promise<{ access: string; secret: string } | null> {
   let answer: Awaited<ReturnType<typeof tokens>>
   try {
     answer = await tokens({
@@ -178,8 +181,9 @@ async function accessFor(
       to: answer.refresh,
     })
     if (!stored) return null
+    return { access: answer.access, secret: answer.refresh }
   }
-  return answer.access
+  return { access: answer.access, secret: refresh }
 }
 
 function refusalOf(error: unknown): unknown {
@@ -319,17 +323,20 @@ export const test = action({
       throw new ConvexError(energyRefusal('enelogicNotConnected'))
     }
     let points: { point: EnelogicPoint; rates: number[] }[]
+    let held = context.secret
     try {
       const access = await accessFor(ctx, context.sourceId, context.secret)
       // Another run has just renewed the access: try again in a moment.
       if (access === null) {
         throw new ConvexError(energyRefusal('enelogicUnreachable'))
       }
-      points = await pointsWithRates(access)
+      held = access.secret
+      points = await pointsWithRates(access.access)
     } catch (error) {
       if (error instanceof EnelogicError && error.problem === 'revoked') {
         await ctx.runMutation(internal.energyEnelogic.finishSync, {
           sourceId: context.sourceId,
+          secret: held,
           problem: 'enelogicRevoked',
           missing: [],
         })
@@ -582,17 +589,20 @@ const problemValidator = v.union(
 /**
  * Record how a sync ended. `lastSyncedAt` moves only when every channel was
  * read, so a source in error keeps saying when its data is from (ADR-0020).
+ * Only a run that holds the stored token speaks: one that started before a
+ * new sign-in, or lost a renewal, says nothing about the source now.
  */
 export const finishSync = internalMutation({
   args: {
     sourceId: v.id('energySources'),
+    secret: v.string(),
     problem: problemValidator,
     missing: v.array(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const source = await ctx.db.get(args.sourceId)
-    if (!source?.secret) return null
+    if (!source?.secret || source.secret !== args.secret) return null
     if (args.problem === null) {
       await ctx.db.patch(source._id, {
         status: 'ok',
@@ -627,12 +637,14 @@ export const syncSource = internalAction({
       sourceId: args.sourceId,
     })
     if (!plan) return null
+    let held = plan.secret
     const finish = (
       problem: Infer<typeof problemValidator>,
       missing: string[] = [],
     ) =>
       ctx.runMutation(internal.energyEnelogic.finishSync, {
         sourceId: args.sourceId,
+        secret: held,
         problem,
         missing,
       })
@@ -641,8 +653,10 @@ export const syncSource = internalAction({
       return null
     }
     try {
-      const access = await accessFor(ctx, args.sourceId, plan.secret)
-      if (access === null) return null
+      const renewed = await accessFor(ctx, args.sourceId, plan.secret)
+      if (renewed === null) return null
+      held = renewed.secret
+      const access = renewed.access
       const now = Date.now()
       const missing: string[] = []
       const points = new Map<number, Plan['channels']>()

@@ -82,11 +82,11 @@ function fakeEnelogic() {
       const form = new URLSearchParams(String(init?.body))
       if (
         form.get('client_id') !== 'client-id' ||
-        form.get('client_secret') !== 'client-secret' ||
-        state.revoked
+        form.get('client_secret') !== 'client-secret'
       ) {
-        return json({ error: 'invalid_client' }, 400)
+        return json({ error: 'invalid_client' }, 401)
       }
+      if (state.revoked) return json({ error: 'invalid_grant' }, 400)
       if (form.get('grant_type') === 'authorization_code') {
         return form.get('code') === 'good-code' &&
           form.get('redirect_uri') === REDIRECT
@@ -449,6 +449,43 @@ describe('reading', () => {
     })
     const [after] = await rows(seeded.t, 'energySources')
     expect(after?.status).toBe('ok')
+  })
+
+  test('a run that started before a new sign-in says nothing', async () => {
+    const seeded = await seed()
+    await signIn(seeded)
+    await settle(seeded.t)
+    const [source] = await rows(seeded.t, 'energySources')
+    if (!source) throw new Error('no source')
+    await seeded.t.mutation(internal.energyEnelogic.finishSync, {
+      sourceId: source._id,
+      secret: 'refresh-before',
+      problem: 'enelogicRevoked',
+      missing: [],
+    })
+    const [after] = await rows(seeded.t, 'energySources')
+    expect(after?.status).toBe('ok')
+  })
+
+  test('a refused client is not a revoked grant', async () => {
+    const seeded = await seed()
+    await signIn(seeded)
+    await seeded.as.action(api.energyEnelogic.connect, {
+      ...HOME,
+      channels: [...SPLIT],
+      history: false,
+    })
+    await settle(seeded.t)
+    vi.stubEnv('ENELOGIC_CLIENT_SECRET', 'rotated-elsewhere')
+    await seeded.t.mutation(internal.energySources.startSyncs, {
+      kind: 'enelogic',
+    })
+    await settle(seeded.t)
+    const [source] = await rows(seeded.t, 'energySources')
+    expect(source).toMatchObject({
+      status: 'error',
+      lastError: 'enelogicUnreachable',
+    })
   })
 
   test('disconnecting forgets the token and keeps what was read', async () => {
