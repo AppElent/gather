@@ -139,7 +139,8 @@ export function forgetHeldField(
 
 /**
  * Holds `held` and hands it to the note open for `key`, if one is: a save
- * that failed after its screen closed reaches the screen opened since.
+ * that failed after its screen closed reaches the screen opened since. A field
+ * that screen keeps stays its own; the late text is offered there instead.
  * Returns whether one was open.
  */
 export function announceHeld(
@@ -149,10 +150,13 @@ export function announceHeld(
   from = session,
 ): boolean {
   if (from !== session) return false
-  // Into what is kept, not over it: the screen opened since may hold more.
-  writeHeld(key, { ...readHeld(key), ...held }, from)
   const open = listeners.get(key)
-  if (!open || open.size === 0) return false
+  const opened = open !== undefined && open.size > 0
+  // Into what is kept, not over it: the screen opened since may hold more.
+  // A field it holds stays its own (APP-967); the late text is offered there.
+  const kept = readHeld(key)
+  writeHeld(key, opened ? { ...held, ...kept } : { ...kept, ...held }, from)
+  if (!opened) return false
   for (const listener of open) listener(held, sentence)
   return true
 }
