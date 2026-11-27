@@ -101,15 +101,15 @@ const tibberDay = (day: string, total = 0.3) =>
     startsAt: new Date(slot.start).toISOString(),
     currency: 'EUR',
   }))
-const tibberAnswer = (total = 0.3) => ({
+const tibberAnswer = (total = 0.3, [today, tomorrow] = [TODAY, TOMORROW]) => ({
   data: {
     viewer: {
       homes: [
         {
           currentSubscription: {
             priceInfo: {
-              today: tibberDay(TODAY, total),
-              tomorrow: tibberDay(TOMORROW, total),
+              today: tibberDay(today, total),
+              tomorrow: tibberDay(tomorrow, total),
             },
           },
         },
@@ -476,6 +476,35 @@ describe('Tibber', () => {
     expect(await scheduled(t, 'fetchFeed')).toHaveLength(10)
   })
 
+  test('a good fetch leaves the feed as it was, so no month that reads it re-runs (APP-960)', async () => {
+    const { t } = await seedSite()
+    handler = tibber({ body: tibberAnswer() })
+    await save(t, 'tibber', KEY)
+    await drain(t)
+    const [first] = await feeds(t)
+    expect(first?.lastFetchedAt).toBeGreaterThanOrEqual(NOW)
+
+    const nextDay = NOW + 24 * 3_600_000
+    vi.setSystemTime(nextDay)
+    handler = tibber({ body: tibberAnswer(0.3, [TOMORROW, '2026-11-25']) })
+    await t.mutation(internal.energyPrices.startAccountFetches, {})
+    await drain(t)
+    expect(await prices(t)).toHaveLength(288)
+    expect(await feeds(t)).toEqual([first])
+    // The time still moves: the newest price stored says when.
+    const seen = await view(t, TOMORROW)
+    expect(seen?.lastFetchedAt).toBeGreaterThanOrEqual(nextDay)
+
+    // A failure writes the last good time down once, and keeps it.
+    handler = tibber({ status: 502, body: '' })
+    await t.mutation(internal.energyPrices.startAccountFetches, {})
+    await drain(t)
+    const [failed] = await feeds(t)
+    expect(failed).toMatchObject({ status: 'error', lastError: 'unreachable' })
+    expect(failed?.lastFetchedAt).toBeGreaterThanOrEqual(nextDay)
+    expect((await view(t, TOMORROW))?.lastFetchedAt).toBe(failed?.lastFetchedAt)
+  })
+
   test('an answer for a key that was replaced meanwhile is dropped', async () => {
     const { t } = await seedSite()
     await save(t, 'tibber', KEY)
@@ -592,6 +621,20 @@ describe('ENTSO-E', () => {
     await drain(t)
     expect((await feeds(t)).map((feed) => feed.status)).toEqual(['ok', 'ok'])
     expect((await prices(t)).filter((row) => row.provider === 'entsoe')).toHaveLength(192)
+  })
+
+  test('a fetch that finds the days stored leaves every feed as it was (APP-960)', async () => {
+    const { t } = await seedSite()
+    handler = (url, init) =>
+      url.includes('entsoe') ? { body: entsoeAnswer } : energyZeroOnly(url, init)
+    await save(t, 'entsoe', TOKEN)
+    await drain(t)
+    const before = await feeds(t)
+    expect(before).toMatchObject([{ status: 'ok' }])
+    vi.setSystemTime(NOW + 3_600_000)
+    await t.action(internal.energyPriceFetch.fetchEntsoe, {})
+    await drain(t)
+    expect(await feeds(t)).toEqual(before)
   })
 
   test('without a token it is never asked', async () => {
