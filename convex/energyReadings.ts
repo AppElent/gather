@@ -300,8 +300,10 @@ export const recent = query({
  * Delete one typed reading (APP-714). Usage and costs follow by themselves:
  * they are worked out from the readings that remain, and the days it spread
  * over are spread again from its neighbours. Only a reading of a meter the
- * Group reads itself: one of another Group, of a connected source, or that is
- * gone answers alike, as not found (ADR-0009).
+ * Group reads itself and still uses: one of another Group, of a connected
+ * source, of a retired meter, or that is gone answers alike, as not found
+ * (ADR-0009). A retired meter can come back, and deleting its old readings
+ * would change past usage (APP-956).
  */
 export const remove = mutation({
   args: { groupSlug: v.string(), readingId: v.id('energyReadings') },
@@ -316,7 +318,8 @@ export const remove = mutation({
       reading.groupId !== group._id ||
       channel?.groupId !== group._id ||
       source?.groupId !== group._id ||
-      source.kind !== 'manual'
+      source.kind !== 'manual' ||
+      channel.retiredAt !== undefined
     ) {
       throw new ConvexError(energyRefusal('readingNotFound'))
     }

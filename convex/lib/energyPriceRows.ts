@@ -6,7 +6,7 @@
  * rows alone.
  */
 import type { EnergyPriceProvider } from '@gather/core/energy'
-import type { Id } from '../_generated/dataModel'
+import type { Doc, Id } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 
 /** Providers whose rows belong to no Group. */
@@ -78,4 +78,33 @@ export async function priceFeedOf(ctx: QueryCtx, siteId: Id<'energySites'>) {
     .withIndex('by_site', (q) => q.eq('siteId', siteId))
     .order('desc')
     .first()
+}
+
+/**
+ * When a feed's own provider last stored a price: the newest of its account
+ * rows, or the newest market row of its provider. A good fetch stores the next
+ * day, so this is when it last gave prices without the feed row being written
+ * on every fetch, which would re-run every month that reads it (APP-960).
+ */
+export async function newestPriceAt(
+  ctx: QueryCtx,
+  feed: Pick<Doc<'energyPriceFeeds'>, '_id' | 'provider' | 'scope'>,
+): Promise<number | null> {
+  const newest =
+    feed.scope === 'account'
+      ? await ctx.db
+          .query('energyPrices')
+          .withIndex('by_feed_carrier_start', (q) =>
+            q.eq('feedId', feed._id).eq('carrier', 'electricity'),
+          )
+          .order('desc')
+          .first()
+      : await ctx.db
+          .query('energyPrices')
+          .withIndex('by_provider_carrier_start', (q) =>
+            q.eq('provider', feed.provider).eq('carrier', 'electricity'),
+          )
+          .order('desc')
+          .first()
+  return newest ? Math.floor(newest._creationTime) : null
 }
