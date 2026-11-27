@@ -112,11 +112,14 @@ export function SubtaskSection({
               onOpen={() =>
                 router.push({
                   pathname: '/all/tasks/task/[taskId]',
-                  params: { taskId: subtask.id },
+                  params: { taskId: subtask.id, listId: list.id },
                 })
               }
               menu={{
-                reorder: open.length > 1 && !subtask.done,
+                reorder:
+                  list.provider === 'local' &&
+                  open.length > 1 &&
+                  !subtask.done,
                 onAction: (action) =>
                   action === 'reorder'
                     ? setReordering(true)
@@ -129,14 +132,17 @@ export function SubtaskSection({
               listId={list.id}
               placeholder={words.add}
               parent={task}
+              linked={list.provider !== 'local'}
               onFailed={() => showAlert(words.failed)}
             />
           ) : null}
         </InsetList>
       )}
-      <Text style={[styles.hint, { color: tokens.muted }]}>
-        {words.footnote}
-      </Text>
+      {list.provider === 'local' ? (
+        <Text style={[styles.hint, { color: tokens.muted }]}>
+          {words.footnote}
+        </Text>
+      ) : null}
     </View>
   )
 }

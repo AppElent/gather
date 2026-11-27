@@ -1,3 +1,5 @@
+import { en } from '@gather/core/messages'
+import { deviceTimeZone, timeZoneLabel } from '@gather/core/time-zones'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { ConvexError } from 'convex/values'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
@@ -21,6 +23,7 @@ const OTHERS_REMAIN = { leave: 'allowed', canDelete: false }
 const exits = vi.hoisted(() => ({ value: undefined as unknown }))
 const queried = vi.hoisted(() => ({ value: [] as Array<[string, unknown]> }))
 const deleteError = vi.hoisted(() => ({ value: null as unknown }))
+const zoneError = vi.hoisted(() => ({ value: null as unknown }))
 const calls = vi.hoisted(() => ({ value: [] as Array<[string, unknown]> }))
 const navigated = vi.hoisted(() => ({ value: [] as unknown[] }))
 
@@ -37,6 +40,7 @@ vi.mock('convex/react', () => ({
     if (name === 'groups:deleteGroup' && deleteError.value) {
       throw deleteError.value
     }
+    if (name === 'groups:setTimeZone' && zoneError.value) throw zoneError.value
   },
 }))
 
@@ -46,6 +50,7 @@ vi.mock('../../../convex/_generated/api', () => ({
       leaveStatus: 'groups:leaveStatus',
       inviteCode: 'groups:inviteCode',
       renameGroup: 'groups:renameGroup',
+      setTimeZone: 'groups:setTimeZone',
       leaveGroup: 'groups:leaveGroup',
       deleteGroup: 'groups:deleteGroup',
       updateAppearance: 'groups:updateAppearance',
@@ -66,6 +71,7 @@ beforeEach(() => {
   exits.value = LAST_MEMBER
   queried.value = []
   deleteError.value = null
+  zoneError.value = null
   calls.value = []
   navigated.value = []
 })
@@ -81,6 +87,102 @@ const leaveButton = () =>
 const noteFor = (button: HTMLElement | null) =>
   document.getElementById(button?.getAttribute('aria-describedby') ?? '')
     ?.textContent
+
+describe('the time zone', () => {
+  const zone = () => screen.getByLabelText('Time zone') as unknown as HTMLSelectElement
+
+  const save = () =>
+    screen.getByRole('button', { name: 'Save time zone' }) as unknown as HTMLButtonElement
+  const sent = () =>
+    calls.value
+      .filter(([name]) => name === 'groups:setTimeZone')
+      .map(([, args]) => args)
+
+  test('changing it saves nothing and stays enabled; Save sends the pick', async () => {
+    renderCard({ ...TEST_GROUP, timeZone: 'Asia/Tokyo' })
+    expect(zone().value).toBe('Asia/Tokyo')
+    expect(save().disabled).toBe(true)
+    for (const value of ['Asia/Tashkent', 'UTC']) {
+      fireEvent.change(zone(), { target: { value } })
+      expect(zone().value).toBe(value)
+      expect(zone().disabled).toBe(false)
+    }
+    expect(sent()).toEqual([])
+    fireEvent.click(save())
+    expect(zone().disabled).toBe(false)
+    await waitFor(() =>
+      expect(sent()).toEqual([{ groupId: TEST_GROUP._id, timeZone: 'UTC' }]),
+    )
+  })
+
+  test('an admin clears it, or uses the device’s', async () => {
+    renderCard({ ...TEST_GROUP, timeZone: 'Pacific/Kiritimati' })
+    fireEvent.change(zone(), { target: { value: '' } })
+    fireEvent.click(save())
+    await waitFor(() => expect(sent()).toHaveLength(1))
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Use this device/ }),
+    )
+    await waitFor(() =>
+      expect(sent()).toEqual([
+        { groupId: TEST_GROUP._id, timeZone: null },
+        {
+          groupId: TEST_GROUP._id,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+      ]),
+    )
+  })
+
+  test.each([
+    ['admin-only', 'Alleen een beheerder van deze Groep kan de tijdzone wijzigen.'],
+    ['unknown-zone', 'Gather kent de tijdzone van UTC nog niet. Kies een plaats in de buurt met dezelfde tijd.'],
+  ])('%s is refused in the reader’s language', async (code, sentence) => {
+    zoneError.value = new ConvexError({ kind: `groupTimeZone:${code}` })
+    renderWithI18n(<GroupIdentitySettings group={TEST_GROUP} />, {
+      locale: 'nl',
+    })
+    fireEvent.change(screen.getByLabelText('Tijdzone'), {
+      target: { value: 'UTC' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Tijdzone opslaan' }))
+    expect((await screen.findByRole('alert')).textContent).toBe(sentence)
+  })
+
+  test('the device’s zone is in the note, where it wraps', () => {
+    renderCard()
+    expect(zone().selectedOptions[0].textContent).toBe('Each device’s own')
+    expect(document.getElementById('group-time-zone-note')?.textContent).toContain(
+      timeZoneLabel(deviceTimeZone(), 'en', en.settings.group.timeZonePlaces),
+    )
+  })
+
+  test('a plain member only reads it', () => {
+    renderCard({ ...TEST_GROUP, role: 'member' })
+    expect(zone().disabled).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Save time zone' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Use this device/ })).toBeNull()
+  })
+})
+
+describe('the appearance', () => {
+  test('speaks the reader’s language, Dutch included', () => {
+    renderWithI18n(<GroupIdentitySettings group={TEST_GROUP} />, {
+      locale: 'nl',
+    })
+    const icon = screen.getByLabelText('Icoon') as unknown as HTMLSelectElement
+    expect([...icon.options].map((option) => option.textContent)).toEqual([
+      'Mensen',
+      'Huis',
+      'Hart',
+      'Eten',
+      'Wijn',
+    ])
+    expect(
+      screen.getByRole('button', { name: 'Uiterlijk opslaan' }),
+    ).not.toBeNull()
+  })
+})
 
 describe('who is offered it', () => {
   test('not a Member who is not an admin while others remain; they may leave', () => {

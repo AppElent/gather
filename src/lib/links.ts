@@ -60,6 +60,26 @@ export const ROUTES = {
   recipe: '/recipes/$recipeId',
   editRecipe: '/recipes/$recipeId/edit',
 
+  groceriesSettings: '/groceries/settings',
+  groceriesRecent: '/groceries/recent',
+  groceriesInStock: '/groceries/in-stock',
+  groceriesItem: '/groceries/item/$itemId',
+
+  note: '/notes/$noteId',
+
+  mealPlannerSettings: '/meal-planner/settings',
+  plannedMeal: '/meal-planner/meal/$mealId',
+  mealProposal: '/meal-planner/proposal/$draftId',
+
+  calendarDay: '/calendar/day/$date',
+  calendarEvent: '/calendar/event/$eventId',
+
+  taskList: '/tasks/$listId',
+  smartTaskList: '/tasks/smart/$smartList',
+  task: '/tasks/task/$taskId',
+  tasksSettings: '/tasks/settings',
+
+  babySettings: '/baby/settings',
   newChild: '/baby/new',
   child: '/baby/$babyId',
   editChild: '/baby/$babyId/edit',
@@ -75,6 +95,7 @@ export const ROUTES = {
   energySources: '/energy/sources',
   energyConnect: '/energy/connect',
   energyPrices: '/energy/prices',
+  energySolar: '/energy/solar',
   energyPriceFeed: '/energy/price-source',
 
   cheese: '/cheeses/$subjectId',

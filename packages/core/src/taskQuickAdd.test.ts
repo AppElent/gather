@@ -184,6 +184,25 @@ describe('parseQuickAdd', () => {
   it('reads a time that has passed today as tomorrow', () => {
     expect(parse('Pills at 9:00', { now: '21:00' }).dueDate).toBe('2026-11-19')
     expect(parse('Pills at 22:00', { now: '21:00' }).dueDate).toBe('2026-11-18')
+    // The Group is a day ahead: a bare time stays due on the Group's today so
+    // it is not overdue at once, while reminderDate keeps the phone's upcoming
+    // clock day so the reminder fires in an hour rather than a day late.
+    const ahead = { today: '2026-11-19', clockDay: '2026-11-18', now: '21:00' }
+    expect(parse('Pills at 22:00', ahead)).toMatchObject({
+      dueDate: '2026-11-19',
+      reminderDate: '2026-11-18',
+      time: '22:00',
+    })
+    expect(parse('Pills at 9:00', ahead)).toMatchObject({
+      dueDate: '2026-11-19',
+      time: '09:00',
+    })
+    expect(parse('Pills at 9:00', ahead).reminderDate).toBeUndefined()
+    // A repeat does not lock a travel offset into reminderDate for every future occurrence.
+    const repeating = parse('Pills at 22:00 every day', ahead)
+    expect(repeating).toMatchObject({ dueDate: '2026-11-19', time: '22:00' })
+    expect(repeating.reminderDate).toBeUndefined()
+    expect(parse('Pills tomorrow', ahead).dueDate).toBe('2026-11-20')
   })
 
   it('refuses dates and times that do not exist', () => {

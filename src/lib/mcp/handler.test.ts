@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { en } from '@gather/core/messages'
+import { NOTE_MAX_CHARS } from '@gather/core/notes'
 import { getFunctionName } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { describe, expect, it } from 'vitest'
@@ -238,6 +240,25 @@ describe('Gather MCP endpoint', () => {
     expect(out.content[0].text).not.toContain('secret-invite')
   })
 
+  it("exposes a Group's timeZone in list_groups when set", async () => {
+    const backend = fakeBackend({
+      'groups:myGroups': () => [
+        { ...GROUPS[0], timeZone: 'Europe/Amsterdam' },
+      ],
+    })
+    const out = await callTool(backend, 'list_groups', {})
+    expect(out.structuredContent).toEqual({
+      groups: [
+        {
+          id: 'group_home',
+          name: 'Home',
+          role: 'admin',
+          timeZone: 'Europe/Amsterdam',
+        },
+      ],
+    })
+  })
+
   it('calls Convex by the Group slug and strips private fields', async () => {
     const backend = fakeBackend({
       'notes:listPage': () => ({
@@ -363,6 +384,33 @@ describe('Gather MCP endpoint', () => {
       expect(out.isError).toBe(true)
       expect(out.content[0].text).toMatch(/cursor is no longer valid/)
     }
+  })
+
+  it('refuses a one-character query instead of answering with no notes', async () => {
+    const backend = fakeBackend()
+    for (const query of ['a', ' a ']) {
+      const out = await callTool(backend, 'list_notes', {
+        groupId: 'group_home',
+        query,
+      })
+      expect(out.isError).toBe(true)
+      expect(out.content[0].text).toMatch(/at least 2 characters/)
+    }
+    expect(backend.calls.map((c) => c.name)).not.toContain('notes:searchNotes')
+  })
+
+  it('does not read another failure that mentions InvalidCursor as a stale cursor', async () => {
+    const out = await callTool(
+      fakeBackend({
+        'notes:listPage': () => {
+          throw new Error('Could not load notes: ignored InvalidCursor flag')
+        },
+      }),
+      'list_notes',
+      { groupId: 'group_home', cursor: 'fresh' },
+    )
+    expect(out.isError).toBe(true)
+    expect(out.content[0].text).toBe('The Gather tool failed.')
   })
 
   it('refuses a Group the caller is not in like a missing one, before any data call', async () => {
@@ -561,6 +609,77 @@ describe('Gather MCP endpoint', () => {
     }
     expect(texts.size).toBe(1)
   })
+
+  it('advertises the note limit as the body cap of both note tools', async () => {
+    const listed = await result<{
+      tools: {
+        name: string
+        inputSchema: { properties: { body?: { maxLength?: number } } }
+      }[]
+    }>(
+      await handleGatherMcpRequest(
+        rpc('tools/list'),
+        options(fakeBackend()),
+      ),
+    )
+    for (const name of ['create_note', 'update_note']) {
+      const tool = listed.tools.find((t) => t.name === name)
+      expect(tool?.inputSchema.properties.body?.maxLength).toBe(NOTE_MAX_CHARS)
+    }
+  })
+
+  // The schema only advertises the cap: Convex counts title and body together
+  // and is the one that refuses, so a write of any size has to reach it.
+  const noteWrites = [
+    {
+      tool: 'create_note',
+      mutation: 'notes:create',
+      args: { idempotencyKey: KEY, title: 'T' },
+    },
+    {
+      tool: 'update_note',
+      mutation: 'notes:update',
+      args: { noteId: 'note_1' },
+    },
+  ]
+
+  it.each(noteWrites)(
+    '$tool passes a body at the note limit to Convex',
+    async ({ tool, mutation, args }) => {
+      const backend = fakeBackend({ [mutation]: () => 'note_1' })
+      const body = 'a'.repeat(NOTE_MAX_CHARS)
+      const out = await callTool(backend, tool, {
+        groupId: 'group_home',
+        ...args,
+        body,
+      })
+      expect(out.isError).toBeUndefined()
+      expect(backend.calls.at(-1)).toMatchObject({
+        name: mutation,
+        args: { body },
+      })
+    },
+  )
+
+  it.each(noteWrites)(
+    '$tool answers a body over the note limit with the keyed refusal',
+    async ({ tool, mutation, args }) => {
+      const backend = fakeBackend({
+        [mutation]: () => {
+          throw new ConvexError({ kind: 'notes:too-long' })
+        },
+      })
+      const out = await callTool(backend, tool, {
+        groupId: 'group_home',
+        ...args,
+        body: 'a'.repeat(NOTE_MAX_CHARS + 1),
+      })
+      expect(backend.calls.at(-1)?.name).toBe(mutation)
+      expect(out.isError).toBe(true)
+      expect(out.content[0].text).toBe(en.notes.refusals['notes:too-long'])
+      expect(out.content[0].text).toContain(NOTE_MAX_CHARS.toLocaleString('en'))
+    },
+  )
 
   it('updates an event from its current revision, keeping what was not passed', async () => {
     const backend = fakeBackend({
@@ -979,6 +1098,59 @@ describe('Gather MCP endpoint', () => {
       from: '2026-11-16',
       toExclusive: '2026-11-23',
     })
+  })
+
+  it("show_week_agenda's today is in the Group's zone (APP-475)", async () => {
+    const backend = fakeBackend({
+      // 12:00Z is already the next day at UTC+14.
+      'groups:myGroups': () => [
+        { ...GROUPS[0], timeZone: 'Pacific/Kiritimati' },
+      ],
+      'calendar:listCalendars': () => ({
+        page: [],
+        isDone: true,
+        continueCursor: '',
+      }),
+    })
+    const out = await callTool(backend, 'show_week_agenda', {
+      groupId: 'group_home',
+    })
+    expect(out.structuredContent).toMatchObject({
+      today: '2026-11-18',
+      timeZone: 'Pacific/Kiritimati',
+    })
+  })
+
+  it('show_week_agenda hands its UTC fallback zone to the view when the Group has none', async () => {
+    const backend = fakeBackend({
+      'calendar:listCalendars': () => ({
+        page: [],
+        isDone: true,
+        continueCursor: '',
+      }),
+    })
+    const out = await callTool(backend, 'show_week_agenda', {
+      groupId: 'group_home',
+    })
+    expect(out.structuredContent).toMatchObject({
+      today: '2026-11-17',
+      timeZone: 'UTC',
+    })
+  })
+
+  it("gives the task list view the Group's zone", async () => {
+    const backend = fakeBackend({
+      'groups:myGroups': () => [{ ...GROUPS[0], timeZone: 'Pacific/Kiritimati' }],
+      'taskLists:list': () => [
+        { _id: 'list_1', name: 'Groceries', provider: 'local', writable: true },
+      ],
+      'tasks:listByList': () => [],
+    })
+    const shown = await callTool(backend, 'show_task_list', {
+      groupId: 'group_home',
+      listId: 'list_1',
+    })
+    expect(shown.structuredContent).toMatchObject({ timeZone: 'Pacific/Kiritimati' })
   })
 
   it('shows a task list as writable only with the write scope', async () => {

@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read when creating, preparing, or cleaning a worktree and its backend resources.
-version: 3.5.0
+version: 3.6.0
 applies_to: [all]
 ---
 
@@ -42,7 +42,7 @@ every app and editor, and cleans up what it created.
   applies its Convex values, writes client URLs, seeds, and records it for cleanup.
   Each cloud worktree costs one deployment of the team quota, so before creating one,
   `prepare` first reconciles this repository's workspaces whose checkout is gone.
-  When creation is refused for quota, nothing was created, so the ledger records the
+  When creation is refused for quota (`DeploymentQuotaReached`), nothing was created, so the ledger records the
   deployment as absent and `clean` finishes at once instead of waiting for an expiry.
 - Cleanup removes only what the ledger owns: scoped credentials, unchanged generated
   files, and the cloud deployments it created. `clean` and `gc --apply` delete an
@@ -51,6 +51,11 @@ every app and editor, and cleans up what it created.
   it as a non-default dev deployment with that reference; otherwise it waits for its
   expiry. Modified or unowned files stay; the checkout is never deleted. A failed
   cleanup is outstanding work, not permission to erase the ledger.
+- A finished branch does not keep its cloud deployment until expiry. On the Mac,
+  the daily worktree cleanup (`pnpm worktrees --apply` in developer-home) runs
+  `clean` for a worktree whose branch has a pull request, none of them open, when
+  nothing but its ledger keeps it, so the deployment goes within a day of the merge
+  or close. A worktree with an open pull request, or none yet, keeps it.
 - `env apply` never overwrites an output file it did not generate. Prepare replaces
   a pre-existing one that holds only what the Convex CLI writes (its comment and
   deployment selectors); any other names the file in the failure, to move aside.

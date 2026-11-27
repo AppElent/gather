@@ -34,6 +34,8 @@ const appleUser = {
   ],
 }
 
+const confirmed = { expectedSubject: 'user_alex', stillConfirmed: () => true }
+
 beforeEach(() => {
   mocks.os = 'ios'
   mocks.bundleId = 'com.appelent.gather.preview'
@@ -49,10 +51,11 @@ describe('revoking Sign in with Apple before deletion', () => {
       authorizationCode: 'apple-code',
     })
     const revoke = vi.fn().mockResolvedValue(null)
-    expect(await revokeAppleSignIn(appleUser, revoke)).toBe('continue')
+    expect(await revokeAppleSignIn(appleUser, revoke, confirmed)).toBe('continue')
     expect(revoke).toHaveBeenCalledWith({
       authorizationCode: 'apple-code',
       bundleId: 'com.appelent.gather.preview',
+      expectedSubject: 'user_alex',
     })
     expect(mocks.reportError).not.toHaveBeenCalled()
   })
@@ -62,7 +65,7 @@ describe('revoking Sign in with Apple before deletion', () => {
       Object.assign(new Error('canceled'), { code: 'ERR_REQUEST_CANCELED' }),
     )
     const revoke = vi.fn()
-    expect(await revokeAppleSignIn(appleUser, revoke)).toBe('cancelled')
+    expect(await revokeAppleSignIn(appleUser, revoke, confirmed)).toBe('cancelled')
     expect(revoke).not.toHaveBeenCalled()
     expect(mocks.reportError).not.toHaveBeenCalled()
   })
@@ -74,7 +77,7 @@ describe('revoking Sign in with Apple before deletion', () => {
     })
     const failure = new Error('Apple revocation failed')
     const revoke = vi.fn().mockRejectedValue(failure)
-    expect(await revokeAppleSignIn(appleUser, revoke)).toBe('continue')
+    expect(await revokeAppleSignIn(appleUser, revoke, confirmed)).toBe('continue')
     expect(mocks.reportError).toHaveBeenCalledWith(failure)
   })
 
@@ -84,7 +87,7 @@ describe('revoking Sign in with Apple before deletion', () => {
       authorizationCode: 'other-code',
     })
     const revoke = vi.fn()
-    expect(await revokeAppleSignIn(appleUser, revoke)).toBe('continue')
+    expect(await revokeAppleSignIn(appleUser, revoke, confirmed)).toBe('continue')
     expect(revoke).not.toHaveBeenCalled()
     expect(mocks.reportError).toHaveBeenCalled()
   })
@@ -92,7 +95,7 @@ describe('revoking Sign in with Apple before deletion', () => {
   test('a build without a bundle ID never opens the sheet', async () => {
     mocks.bundleId = undefined
     const revoke = vi.fn()
-    expect(await revokeAppleSignIn(appleUser, revoke)).toBe('continue')
+    expect(await revokeAppleSignIn(appleUser, revoke, confirmed)).toBe('continue')
     expect(mocks.signIn).not.toHaveBeenCalled()
     expect(mocks.reportError).toHaveBeenCalled()
   })
@@ -103,16 +106,48 @@ describe('revoking Sign in with Apple before deletion', () => {
     const microsoft = {
       externalAccounts: [{ provider: 'microsoft', providerUserId: 'ms-1' }],
     }
-    expect(await revokeAppleSignIn(emailOnly, revoke)).toBe('continue')
-    expect(await revokeAppleSignIn(microsoft, revoke)).toBe('continue')
+    expect(await revokeAppleSignIn(emailOnly, revoke, confirmed)).toBe('continue')
+    expect(await revokeAppleSignIn(microsoft, revoke, confirmed)).toBe('continue')
     expect(mocks.signIn).not.toHaveBeenCalled()
   })
 
   test('Android has no native sheet and skips straight to deletion', async () => {
     mocks.os = 'android'
     const revoke = vi.fn()
-    expect(await revokeAppleSignIn(appleUser, revoke)).toBe('continue')
+    expect(await revokeAppleSignIn(appleUser, revoke, confirmed)).toBe('continue')
     expect(mocks.signIn).not.toHaveBeenCalled()
     expect(mocks.reportError).not.toHaveBeenCalled()
+  })
+
+  test('a session that changed before the sheet never opens it (APP-745)', async () => {
+    const revoke = vi.fn()
+    expect(
+      await revokeAppleSignIn(appleUser, revoke, {
+        ...confirmed,
+        stillConfirmed: () => false,
+      }),
+    ).toBe('changed')
+    expect(mocks.signIn).not.toHaveBeenCalled()
+    expect(revoke).not.toHaveBeenCalled()
+  })
+
+  test('a session that changed under the sheet never sends the code (APP-745)', async () => {
+    let same = true
+    mocks.signIn.mockImplementation(() => {
+      same = false
+      return Promise.resolve({
+        user: 'apple-alex',
+        authorizationCode: 'apple-code',
+      })
+    })
+    const revoke = vi.fn()
+    expect(
+      await revokeAppleSignIn(appleUser, revoke, {
+        ...confirmed,
+        stillConfirmed: () => same,
+      }),
+    ).toBe('changed')
+    expect(mocks.signIn).toHaveBeenCalledOnce()
+    expect(revoke).not.toHaveBeenCalled()
   })
 })

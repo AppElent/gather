@@ -6,21 +6,24 @@ import type { Doc, Id } from '../../../convex/_generated/dataModel'
 import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { BABY_INPUT_CLASS as inputClass } from './babyEventFields'
-import type { EventValues } from './babyEventFormValues'
+import type { EntryPhoto, EventValues } from './babyEventFormValues'
 import {
   buildEventInput,
   initialEventValues,
+  newEntryPhotoId,
   rememberEventChoices,
 } from './babyEventFormValues'
 import { DateTimeFields } from './DateTimeFields'
+import { EntryPhotoField } from './EntryPhotoField'
 import { EventTypeFields } from './EventTypeFields'
 
-type BabyEventDoc = Doc<'babyEvents'>
+type BabyEventDoc = Doc<'babyEvents'> & { photoUrl?: string | null }
 
 interface EventFormProps {
   babyId: Id<'babies'>
   /** The Group the entry belongs to — every write is authorised by it. */
   groupSlug: string
+  timeZone?: string
   type: BabyEventType
   event?: BabyEventDoc
   onDone: () => void
@@ -30,6 +33,7 @@ interface EventFormProps {
 export function EventForm({
   babyId,
   groupSlug,
+  timeZone,
   type,
   event,
   onDone,
@@ -43,6 +47,9 @@ export function EventForm({
     initialEventValues(type, event),
   )
   const [notes, setNotes] = useState(event?.notes ?? '')
+  const [photo, setPhoto] = useState<EntryPhoto>(undefined)
+  // Saving while a photo is on its way would store the entry without it.
+  const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const messages = useMessages()
@@ -52,6 +59,7 @@ export function EventForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (uploading) return
     const built = buildEventInput(type, values, timestampMs)
     if (built.error) {
       setError(validation[built.error])
@@ -68,6 +76,7 @@ export function EventForm({
           timestamp: timestampMs,
           endTimestamp: built.endTimestamp ?? null,
           notes: notes.trim() || null,
+          photoId: photo,
           data: built.data,
         })
       } else {
@@ -78,6 +87,7 @@ export function EventForm({
           timestamp: timestampMs,
           endTimestamp: built.endTimestamp,
           notes: notes.trim() || undefined,
+          photoId: newEntryPhotoId(photo),
           data: built.data,
         })
       }
@@ -101,6 +111,7 @@ export function EventForm({
         <DateTimeFields
           label={type === 'sleep' ? entry.start : entry.when}
           valueMs={timestampMs}
+          timeZone={timeZone}
           onChange={(ms) => ms !== undefined && setTimestampMs(ms)}
           required
         />
@@ -110,6 +121,7 @@ export function EventForm({
         type={type}
         values={values}
         timestampMs={timestampMs}
+        timeZone={timeZone}
         onChange={(patch) => setValues((prev) => ({ ...prev, ...patch }))}
       />
 
@@ -123,12 +135,21 @@ export function EventForm({
         />
       </label>
 
+      <EntryPhotoField
+        type={type}
+        photoUrl={event?.photoUrl}
+        value={photo}
+        onChange={setPhoto}
+        onUploadingChange={setUploading}
+        disabled={submitting}
+      />
+
       {error && <p className="m-0 text-sm text-[var(--danger)]">{error}</p>}
 
       <div className="flex gap-2">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || uploading}
           className="min-h-9 rounded-[var(--radius-control)] border border-[var(--accent)] bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--on-accent)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting

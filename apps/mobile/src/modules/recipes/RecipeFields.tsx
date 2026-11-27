@@ -28,6 +28,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { PhotoField } from '../../components/PhotoField'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { useKeyboardDoneBar } from '../../ui/keyboard-done-bar'
 import { NutritionFacts } from './NutritionFacts'
 import { lines, type RecipeFormValues, servingCount } from './recipeForm'
 import { StarRating } from './StarRating'
@@ -308,22 +309,30 @@ function Input({
   ...props
 }: React.ComponentProps<typeof TextInput> & { minHeight?: number }) {
   const tokens = useTokens('kitchen')
+  const { inputAccessoryViewID, accessory, inputKey } = useKeyboardDoneBar({
+    keyboardType: props.keyboardType,
+  })
   return (
-    <TextInput
-      {...props}
-      multiline={multiline}
-      textAlignVertical={multiline ? 'top' : 'center'}
-      placeholderTextColor={tokens.muted}
-      style={[
-        styles.input,
-        {
-          color: tokens.ink,
-          backgroundColor: tokens.surface,
-          borderColor: tokens.hair,
-        },
-        minHeight ? { minHeight } : null,
-      ]}
-    />
+    <>
+      {accessory}
+      <TextInput
+        key={inputKey}
+        {...props}
+        inputAccessoryViewID={inputAccessoryViewID}
+        multiline={multiline}
+        textAlignVertical={multiline ? 'top' : 'center'}
+        placeholderTextColor={tokens.muted}
+        style={[
+          styles.input,
+          {
+            color: tokens.ink,
+            backgroundColor: tokens.surface,
+            borderColor: tokens.hair,
+          },
+          minHeight ? { minHeight } : null,
+        ]}
+      />
+    </>
   )
 }
 

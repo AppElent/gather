@@ -72,6 +72,7 @@ export interface QuickLogSheetProps {
   babyId: Id<'babies'>
   childName: string
   groupSlug: string
+  timeZone?: string
   /** The type the button that opened this asked for. */
   type: BabyEventType
   /** What else this Child can be logged with, in its own order. */
@@ -99,6 +100,7 @@ export function QuickLogSheet({
   babyId,
   childName,
   groupSlug,
+  timeZone,
   type,
   tracked,
   previous,
@@ -292,6 +294,7 @@ export function QuickLogSheet({
           value={timestamp}
           onChange={setTimestamp}
           now={opened}
+          timeZone={timeZone}
           open={whenOpen}
           onToggle={() => setWhenOpen((was) => !was)}
         />
@@ -404,6 +407,7 @@ export function QuickLogSheet({
               }
               disabled={saving}
               initialPreview={previews[each]}
+              uploadScope={`${draft.scope}:${each}`}
               onPreviewChange={(preview) =>
                 setPreviews((prev) => ({ ...prev, [each]: preview }))
               }

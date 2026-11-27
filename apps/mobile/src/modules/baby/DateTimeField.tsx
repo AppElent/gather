@@ -17,17 +17,20 @@
  * this app has its own language toggle and a screen that mixes the two reads
  * as a bug (ADR-0011).
  */
+import { runtimeTimeZone } from '@gather/core/time-zones'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../../i18n'
 import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
-import { daysApart, shiftDays, shiftMinutes } from './entryTime'
+import { daysApart, partsOf, shiftDays, shiftMinutes } from './entryTime'
 
 export interface DateTimeFieldProps {
   value: number
   onChange: (next: number) => void
   /** The moment the sheet opened — what "Today" and "Yesterday" are measured from. */
   now: number
+  /** The Group's IANA time zone when set; absent uses this device's calendar. */
+  timeZone?: string
   open: boolean
   onToggle: () => void
 }
@@ -36,6 +39,7 @@ export function DateTimeField({
   value,
   onChange,
   now,
+  timeZone,
   open,
   onToggle,
 }: DateTimeFieldProps) {
@@ -43,12 +47,14 @@ export function DateTimeField({
   const { t, locale } = useI18n()
   const tint = tokens.tintOf('home')
   const text = t.baby.log.entry
+  const zone = timeZone ? (runtimeTimeZone(timeZone) ?? undefined) : undefined
 
   const time = new Date(value).toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
+    ...(zone ? { timeZone: zone } : {}),
   })
-  const offset = daysApart(now, value)
+  const offset = daysApart(now, value, timeZone)
   const day =
     offset === 0
       ? text.today
@@ -58,6 +64,7 @@ export function DateTimeField({
             weekday: 'short',
             day: 'numeric',
             month: 'short',
+            ...(zone ? { timeZone: zone } : {}),
           })
 
   function stepper(
@@ -105,7 +112,7 @@ export function DateTimeField({
     )
   }
 
-  const parts = new Date(value)
+  const parts = partsOf(value, timeZone)
 
   return (
     <View
@@ -140,23 +147,25 @@ export function DateTimeField({
               day,
               text.earlierDay,
               text.laterDay,
-              (direction) => onChange(shiftDays(value, direction)),
+              (direction) => onChange(shiftDays(value, direction, timeZone)),
               1.5,
             )}
             {stepper(
               text.hour,
-              String(parts.getHours()).padStart(2, '0'),
+              String(parts.hour).padStart(2, '0'),
               text.earlierHour,
               text.laterHour,
-              (direction) => onChange(shiftMinutes(value, direction * 60)),
+              (direction) =>
+                onChange(shiftMinutes(value, direction * 60, timeZone)),
               1,
             )}
             {stepper(
               text.minute,
-              String(parts.getMinutes()).padStart(2, '0'),
+              String(parts.minute).padStart(2, '0'),
               text.earlierMinute,
               text.laterMinute,
-              (direction) => onChange(shiftMinutes(value, direction * 5)),
+              (direction) =>
+                onChange(shiftMinutes(value, direction * 5, timeZone)),
               1,
             )}
           </View>

@@ -63,13 +63,17 @@ const TASKS = moduleById('tasks')
 const BABY = moduleById('baby-log')
 
 export function GroupHome() {
-  const { slug: groupSlug, name: groupName } = useRequiredCurrentGroup()
+  const {
+    slug: groupSlug,
+    name: groupName,
+    timeZone,
+  } = useRequiredCurrentGroup()
   const { locale, messages } = useI18n()
   const words = messages.shell.today
-  const day = useStartDay(groupSlug)
+  const day = useStartDay(groupSlug, timeZone)
 
   const byline = [
-    spelledDate(day.now, locale, words.date),
+    spelledDate(day.today, locale, words.date),
     day.memberCount === undefined
       ? null
       : plural(locale, day.memberCount, words.members),
@@ -115,11 +119,11 @@ export function GroupHome() {
         <StartHeading id="start-today">{words.heading}</StartHeading>
         <TodayRail
           now={day.railNow}
-          nowLabel={fmt(words.now, { time: clockTime(day.now) })}
+          nowLabel={fmt(words.now, { time: clockTime(day.now, timeZone) })}
           items={day.rail.map((entry) => ({
             id: entry.id,
             timestamp: entry.timestamp,
-            time: clockTime(entry.timestamp),
+            time: clockTime(entry.timestamp, timeZone),
             group: BABY.group,
             icon: EVENT_TYPE_ICONS[entry.type] ?? BABY.icon,
             title: entry.line,

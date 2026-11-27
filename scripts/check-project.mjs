@@ -110,6 +110,11 @@ async function wranglerPaths(root, read, add) {
   return paths;
 }
 
+// The one npm alias the toolkit accepts: an Apple TV app swaps React Native for
+// its TV fork (react-native-tvos), which Expo documents as an alias of
+// `react-native`. It must name one exact version: no range, no dist-tag.
+const ALLOWED_ALIASES = { 'react-native': /^npm:react-native-tvos@\d+\.\d+\.\d+(-\d+)?$/ };
+
 export function dependencyProblems(pkg) {
   const problems = [];
   for (const field of DEPENDENCY_FIELDS) {
@@ -119,6 +124,8 @@ export function dependencyProblems(pkg) {
       if (typeof spec !== 'string' || LOCAL_SPEC.test(spec)) continue;
       const range = spec.trim();
       if (name === '@typescript/native') problems.push(`${name} is not allowed; use typescript ~6.0.x`);
+      else if (range.startsWith('npm:') && ALLOWED_ALIASES[name]?.test(range)) continue;
+      else if (name === 'react-native' && /^npm:react-native-tvos(@|$)/.test(range)) problems.push(`${name} aliases ${range.slice(4)}; name one exact version, such as npm:react-native-tvos@0.88.1-0`);
       else if (range.startsWith('npm:')) problems.push(`${name} is an npm alias (${range}); depend on the package directly`);
       else if (field === 'peerDependencies' && range === '*') continue;
       else if (range === '' || range === '*' || DIST_TAG.test(range)) problems.push(`${name} uses a floating range or dist-tag (${range || 'empty'}); pin a version or semver range`);

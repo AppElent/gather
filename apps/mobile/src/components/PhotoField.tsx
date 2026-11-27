@@ -96,6 +96,11 @@ export interface PhotoFieldProps {
   initialPreview?: PhotoPreview | null
   /** Told what the row shows of a local file, for a form that keeps a draft. */
   onPreviewChange?: (preview: PhotoPreview | null) => void
+  /**
+   * The draft this row belongs to (`useSheetDraft`'s `scope`): an upload is
+   * taken up again only within it, and is forgotten when the draft is.
+   */
+  uploadScope?: string
   /** Prefix for the controls' `testID`s, so a verification run can reach them. */
   testID?: string
 }
@@ -112,6 +117,7 @@ export function PhotoField({
   onBusyChange,
   initialPreview,
   onPreviewChange,
+  uploadScope,
   testID,
 }: PhotoFieldProps) {
   const tokens = useTokens(group)
@@ -158,7 +164,7 @@ export function PhotoField({
     setBusy(true)
     onBusyChange?.(true)
     try {
-      const storageId = await uploadPhotoOnce(uri, generateUploadUrl)
+      const storageId = await uploadPhotoOnce(uri, generateUploadUrl, uploadScope)
       if (stale()) return
       onChange(storageId)
       onPreviewChange?.({ uri, uploaded: true })

@@ -38,7 +38,7 @@ export function FinanceLabScreen() {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { t } = useI18n()
-  const { groupSlug, format, text } = useFinances()
+  const { groupSlug, format, text, today } = useFinances()
   const [naming, setNaming] = useState(false)
   const [name, setName] = useState('')
 
@@ -98,7 +98,7 @@ export function FinanceLabScreen() {
         <Section title={text.index.houses} />
         <Card>
           {houses.map((house) => {
-            const totals = calculationTotals(toLoanParts(house.parts))
+            const totals = calculationTotals(toLoanParts(house.parts, today))
             return (
               <Row
                 key={house._id}

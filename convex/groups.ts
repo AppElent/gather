@@ -1,3 +1,5 @@
+import { groupTimeZoneRefusal } from '@gather/core/refusals'
+import { canonicalTimeZone, currentZoneName } from '@gather/core/time-zones'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
@@ -57,6 +59,7 @@ const listedGroupValidator = v.object({
   isPersonal: v.optional(v.boolean()),
   icon: v.optional(v.string()),
   imageId: v.optional(v.id('_storage')),
+  timeZone: v.optional(v.string()),
   groceryListId: v.optional(v.id('taskLists')),
   imageUrl: v.union(v.string(), v.null()),
   role: groupRoleValidator,
@@ -97,6 +100,9 @@ export const myGroups = query({
           isPersonal: group.isPersonal,
           icon: group.icon,
           imageId: group.imageId,
+          // Saved before APP-814, it can be a name IANA has since replaced, and
+          // installed phones compare it with their own by name.
+          timeZone: group.timeZone && currentZoneName(group.timeZone),
           groceryListId: group.groceryListId,
           imageUrl: group.imageId
             ? await ctx.storage.getUrl(group.imageId)
@@ -240,6 +246,31 @@ export const renameGroup = mutation({
   },
 })
 
+/**
+ * The zone the Group's "today" is in (APP-475); null goes back to each
+ * device's own. Whoever may rename the Group may set it.
+ */
+export const setTimeZone = mutation({
+  args: {
+    groupId: v.id('groups'),
+    timeZone: v.union(v.string(), v.null()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { group, membership } = await requireMembership(ctx, args.groupId)
+    if (!isAdmin(membership)) {
+      throw new ConvexError(groupTimeZoneRefusal('admin-only'))
+    }
+    const timeZone =
+      args.timeZone === null ? undefined : canonicalTimeZone(args.timeZone)
+    if (timeZone === null) {
+      throw new ConvexError(groupTimeZoneRefusal('unknown-zone'))
+    }
+    await ctx.db.patch(group._id, { timeZone })
+    return null
+  },
+})
+
 export const generateImageUploadUrl = mutation({
   args: {},
   handler: signedInUploadUrl,
@@ -366,7 +397,8 @@ const ONLY_ADMIN =
  * A membership whose user record is gone is nobody: it has no name on the
  * Members list, it cannot be made an admin, and it cannot leave. Counting it
  * would hold the door for a person who is not there, with no way to satisfy
- * the refusal (APP-362).
+ * the refusal (APP-362). A Member whose account is being deleted is on their
+ * way out the same way, and does not count either (APP-882).
  *
  * Deleting is open to the last Member whatever their role: once everyone else
  * is gone, it takes nobody else's content with it. That is how a Member is
@@ -383,7 +415,8 @@ async function exitsFor(
   const others: Doc<'memberships'>[] = []
   for (const other of memberships) {
     if (other._id === membership._id) continue
-    if ((await ctx.db.get(other.userId)) === null) continue
+    const user = await ctx.db.get(other.userId)
+    if (user === null || user.deletedAt) continue
     others.push(other)
   }
   if (others.length === 0) return { leave: 'last-member', canDelete: true }

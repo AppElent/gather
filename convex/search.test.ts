@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 
@@ -398,6 +398,47 @@ describe('Group search for notes (APP-348)', () => {
   })
 })
 
+describe('Group search for notes inside words (APP-702)', () => {
+  const frank = {
+    subject: 'search_frank',
+    name: 'Frank',
+    email: 'search-frank@example.com',
+  }
+
+  test('finds a word inside a compound and in Thai and Hindi, like the other types', async () => {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const frankId = await ctx.db.insert('users', {
+        clerkId: frank.subject,
+        name: frank.name,
+        email: frank.email,
+      })
+      const groupId = await seedGroup(ctx, {
+        name: 'Inside',
+        slug: 'search-inside-words',
+        inviteCode: 'search-inside-words',
+      })
+      await seedMember(ctx, groupId, frankId, 'admin')
+      const note = { groupId, createdBy: frankId, updatedAt: 1 }
+      await ctx.db.insert('notes', { ...note, title: 'Menu', body: 'De wijnkaart' })
+      await ctx.db.insert('notes', { ...note, title: 'Talen', body: 'ภาษาไทย हिन्दी' })
+    })
+    const titles = async (query: string) =>
+      (
+        await t.withIdentity(frank).query(api.search.group, {
+          groupSlug: 'search-inside-words',
+          query,
+          accepts: ['note'],
+        })
+      ).map((result) => result.title)
+
+    expect(await titles('kaart')).toEqual(['Menu'])
+    expect(await titles('wijn kaart')).toEqual(['Menu'])
+    expect(await titles('ภาษาไทย')).toEqual(['Talen'])
+    expect(await titles('हिन्दी')).toEqual(['Talen'])
+  })
+})
+
 describe('Group search recipe budget', () => {
   const dan = {
     subject: 'search_dan',
@@ -438,5 +479,809 @@ describe('Group search recipe budget', () => {
       accepts: ['recipe'],
     })
     expect(results.map((result) => result.title)).toEqual(['Oldest pie'])
+  })
+})
+
+describe('Group search server filters (APP-633)', () => {
+  const eve = {
+    subject: 'search_eve',
+    name: 'Eve',
+    email: 'search-eve@example.com',
+  }
+  const slug = 'search-server-filters'
+  const TODAY = '2026-11-25' // a Wednesday
+  const accepts = ['task', 'note', 'calendarEvent'] as ('task' | 'note' | 'calendarEvent')[]
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  /** Eve and Sam's Group, with `insert` to add a row at a moment. */
+  async function household() {
+    const t = testConvex()
+    vi.setSystemTime('2026-01-01T12:00:00Z')
+    const ids = await t.run(async (ctx) => {
+      const eveId = await ctx.db.insert('users', {
+        clerkId: eve.subject,
+        name: eve.name,
+        email: eve.email,
+      })
+      const samId = await ctx.db.insert('users', {
+        clerkId: 'search_sam',
+        name: 'Sam',
+        email: 'search-sam@example.com',
+      })
+      const groupId = await seedGroup(ctx, { name: 'Home', slug })
+      await seedMember(ctx, groupId, eveId, 'admin')
+      await seedMember(ctx, groupId, samId)
+      const listId = await ctx.db.insert('taskLists', {
+        groupId,
+        name: 'Chores',
+        provider: 'local',
+        order: 0,
+      })
+      const calendarId = await ctx.db.insert('calendars', {
+        groupId,
+        name: 'Family',
+        source: 'local',
+        createdBy: eveId,
+      })
+      return { eveId, samId, groupId, listId, calendarId }
+    })
+    const note = async (title: string, at: string, by = ids.eveId) => {
+      vi.setSystemTime(at)
+      await t.run(async (ctx) => {
+        await ctx.db.insert('notes', {
+          groupId: ids.groupId,
+          title,
+          body: '',
+          createdBy: by,
+          updatedAt: Date.now(),
+        })
+      })
+    }
+    const task = async (
+      title: string,
+      fields: { dueDate?: string; done?: boolean } = {},
+    ) => {
+      await t.run(async (ctx) => {
+        await ctx.db.insert('tasks', {
+          listId: ids.listId,
+          title,
+          done: false,
+          order: 0,
+          createdBy: ids.eveId,
+          ...fields,
+        })
+      })
+    }
+    const search = async (filters: {
+      createdBy?: string
+      when?: 'today' | 'week' | 'month' | 'earlier'
+      status?: 'open' | 'done'
+      today?: string
+      timeZone?: string
+    }) =>
+      (
+        await t.withIdentity(eve).query(api.search.group, {
+          groupSlug: slug,
+          query: 'milk',
+          accepts,
+          ...filters,
+        })
+      )
+        .map((row) => row.title)
+        .sort()
+    return { t, ...ids, note, task, search }
+  }
+
+  test('finds the older matches that 30 newer ones crowd out', async () => {
+    const { note, search, samId } = await household()
+    await note('milk old Sam', '2026-10-02T12:00:00Z', samId)
+    await note('milk old Eve', '2026-10-03T12:00:00Z')
+    for (let index = 0; index < 35; index += 1)
+      await note(`milk ${index}`, '2026-11-24T12:00:00Z')
+
+    const plain = await search({})
+    expect(plain).toHaveLength(30)
+    expect(plain).not.toContain('milk old Sam')
+
+    const when = { when: 'earlier', today: TODAY, timeZone: 'Europe/Amsterdam' } as const
+    expect(await search(when)).toEqual(['milk old Eve', 'milk old Sam'])
+    expect(await search({ createdBy: samId })).toEqual(['milk old Sam'])
+    expect(await search({ ...when, createdBy: samId })).toEqual(['milk old Sam'])
+  })
+
+  test('a filtered search still returns at most 30 rows', async () => {
+    const { note, search, eveId } = await household()
+    for (let index = 0; index < 35; index += 1)
+      await note(`milk ${index}`, '2026-11-24T12:00:00Z')
+    expect(await search({ createdBy: eveId })).toHaveLength(30)
+  })
+
+  test('Status narrows tasks before the limit and removes no other type', async () => {
+    const { note, task, search } = await household()
+    await note('milk note', '2026-11-01T12:00:00Z')
+    await task('milk done', { done: true })
+    for (let index = 0; index < 35; index += 1) await task(`milk ${index}`)
+
+    expect(await search({})).not.toContain('milk done')
+    expect(await search({ status: 'done' })).toEqual(['milk done', 'milk note'])
+    expect(await search({ status: 'open' })).not.toContain('milk done')
+  })
+
+  test('When reads an event’s date, a task’s due date, else the day added', async () => {
+    const { t, note, task, search, calendarId, eveId } = await household()
+    const event = (title: string, date: string) =>
+      t.run(async (ctx) => {
+        await ctx.db.insert('calendarEvents', {
+          calendarId,
+          title,
+          date,
+          startMinutes: 540,
+          endMinutes: 600,
+          createdBy: eveId,
+        })
+      })
+    // Oldest first: the harness never lets a creation time go back.
+    vi.setSystemTime('2026-10-01T12:00:00Z')
+    await task('milk task today', { dueDate: TODAY })
+    await task('milk task undated')
+    await event('milk event Sunday', '2026-11-29')
+    await event('milk event next Monday', '2026-11-30')
+    await event('milk event first', '2026-11-01')
+    await note('milk note October', '2026-10-31T12:00:00Z')
+    await note('milk note Monday', '2026-11-23T12:00:00Z')
+
+    const when = (value: 'today' | 'week' | 'month' | 'earlier') =>
+      search({ when: value, today: TODAY, timeZone: 'Europe/Amsterdam' })
+    const week = ['milk event Sunday', 'milk note Monday', 'milk task today']
+    expect(await when('today')).toEqual(['milk task today'])
+    expect(await when('week')).toEqual(week)
+    expect(await when('month')).toEqual(
+      [...week, 'milk event first', 'milk event next Monday'].sort(),
+    )
+    expect(await when('earlier')).toEqual(['milk note October', 'milk task undated'])
+  })
+
+  test('the day added is the reader’s, not UTC’s', async () => {
+    const { note, search } = await household()
+    await note('milk late', '2026-11-24T23:30:00Z')
+    const on = (today: string, timeZone?: string) =>
+      search({ when: 'today', today, timeZone })
+    expect(await on(TODAY, 'Europe/Amsterdam')).toEqual(['milk late'])
+    expect(await on('2026-11-24', 'America/New_York')).toEqual(['milk late'])
+    expect(await on(TODAY, 'America/New_York')).toEqual([])
+    // Told nothing, it is the Netherlands' day.
+    expect(await on(TODAY)).toEqual(['milk late'])
+    expect(await search({ when: 'today' })).toEqual(['milk late'])
+    // The zone alone also says which day today is.
+    vi.setSystemTime('2026-11-25T06:30:00Z')
+    expect(
+      await search({ when: 'today', timeZone: 'America/Los_Angeles' }),
+    ).toEqual(['milk late'])
+  })
+
+  test('refuses a day or a zone that does not exist', async () => {
+    const { search } = await household()
+    await expect(search({ when: 'today', today: '2026-02-31' })).rejects.toThrow('Invalid date')
+    await expect(
+      search({ when: 'today', today: TODAY, timeZone: 'Mars/Base' }),
+    ).rejects.toThrow('Invalid time zone')
+  })
+
+  test('the filters open no Group to a non-member', async () => {
+    const { t, eveId } = await household()
+    const args = { groupSlug: slug, query: 'milk', createdBy: eveId }
+    await expect(t.query(api.search.group, args)).rejects.toThrow()
+    await expect(
+      t
+        .withIdentity({ subject: 'search_stranger' })
+        .query(api.search.group, args),
+    ).rejects.toThrow()
+  })
+})
+
+describe('Group search past the newest rows (APP-758)', () => {
+  const gail = {
+    subject: 'search_gail',
+    name: 'Gail',
+    email: 'search-gail@example.com',
+  }
+  type Type = 'recipe' | 'tasting' | 'task' | 'calendarEvent'
+  const TYPES: Type[] = ['recipe', 'tasting', 'task', 'calendarEvent']
+
+  /** Two Groups of Gail's, each with a row of `title` older than the scan. */
+  async function seedOld(type: Type) {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const gailId = await ctx.db.insert('users', {
+        clerkId: gail.subject,
+        name: gail.name,
+        email: gail.email,
+      })
+      for (const [slug, suffix] of [
+        ['search-old-home', ''],
+        ['search-old-other', ' elsewhere'],
+      ] as const) {
+        const groupId = await seedGroup(ctx, {
+          name: slug,
+          slug,
+          inviteCode: slug,
+        })
+        await seedMember(ctx, groupId, gailId, 'admin')
+        const listId = await ctx.db.insert('taskLists', {
+          groupId,
+          name: 'Chores',
+          provider: 'local',
+          order: 0,
+        })
+        const calendarId = await ctx.db.insert('calendars', {
+          groupId,
+          name: 'Family',
+          source: 'local',
+          createdBy: gailId,
+        })
+        const add = async (title: string, kind: 'wine' | 'beer' = 'wine') => {
+          if (type === 'recipe')
+            await ctx.db.insert('recipes', {
+              groupId,
+              sharedGroupIds: [],
+              createdByUserId: gailId,
+              title,
+              ingredients: [],
+              steps: [],
+              tags: [],
+            })
+          else if (type === 'tasting')
+            await ctx.db.insert('tastingSubjects', {
+              groupId,
+              kind,
+              name: title,
+              attributes: {},
+              createdByUserId: gailId,
+            })
+          else if (type === 'task')
+            await ctx.db.insert('tasks', {
+              listId,
+              title,
+              done: false,
+              order: 0,
+              createdBy: gailId,
+            })
+          else
+            await ctx.db.insert('calendarEvents', {
+              calendarId,
+              title,
+              date: '2026-01-01',
+              createdBy: gailId,
+            })
+        }
+        await add(`Oude wijnkaart: Boiler${suffix}`)
+        const newer = type === 'recipe' || type === 'tasting' ? 200 : 50
+        for (let index = 0; index < newer - 1; index += 1)
+          await add(`Row ${index}`)
+        await add('Nieuwe dranklijst', 'beer')
+        if (type === 'recipe') await add('Nieuwe -- map')
+      }
+    })
+    return async (query: string, kind?: 'wine' | 'beer') =>
+      (
+        await t.withIdentity(gail).query(api.search.group, {
+          groupSlug: 'search-old-home',
+          query,
+          accepts: [type],
+          kind,
+        })
+      ).map((row) => row.title)
+  }
+
+  test.each(TYPES)('finds an old %s by word, in this Group only', async (type) => {
+    const search = await seedOld(type)
+    const old = ['Oude wijnkaart: Boiler']
+    expect(await search('boiler')).toEqual(old) // a whole word
+    expect(await search('wijnk')).toEqual(old) // the start of the last one
+    expect(await search('boiler oude')).toEqual(old) // every word, apart
+    expect(await search('elsewhere')).toEqual([]) // another Group's
+    expect(await search('boiler dranklijst')).toEqual([]) // not only one word
+    // Inside a word only on the newest rows, as before.
+    expect(await search('lijst')).toEqual(['Nieuwe dranklijst'])
+    // Read by the scan and by the index, returned once.
+    expect(await search('dranklijst')).toEqual(['Nieuwe dranklijst'])
+  })
+
+  test('narrows old tastings to the asked Kind', async () => {
+    const search = await seedOld('tasting')
+    expect(await search('boiler', 'wine')).toEqual(['Oude wijnkaart: Boiler'])
+    expect(await search('boiler', 'beer')).toEqual([])
+  })
+
+  test('a search with no searchable word still scans', async () => {
+    const search = await seedOld('recipe')
+    expect(await search('--')).toEqual(['Nieuwe -- map'])
+  })
+
+  test('filters an old match and keeps the ranking', async () => {
+    const t = testConvex()
+    const samId = await t.run(async (ctx) => {
+      const [gailId, samId] = await Promise.all([
+        ctx.db.insert('users', {
+          clerkId: gail.subject,
+          name: gail.name,
+          email: gail.email,
+        }),
+        ctx.db.insert('users', {
+          clerkId: 'search_old_sam',
+          name: 'Sam',
+          email: 'search-old-sam@example.com',
+        }),
+      ])
+      const slug = 'search-old-filters'
+      const groupId = await seedGroup(ctx, { name: 'Home', slug })
+      await seedMember(ctx, groupId, gailId, 'admin')
+      const listId = await ctx.db.insert('taskLists', {
+        groupId,
+        name: 'Chores',
+        provider: 'local',
+        order: 0,
+      })
+      const task = { listId, order: 0, createdBy: gailId }
+      await ctx.db.insert('tasks', {
+        ...task,
+        title: 'Milk',
+        done: true,
+        dueDate: '2020-03-01',
+        createdBy: samId,
+      })
+      for (let index = 0; index < 60; index += 1)
+        await ctx.db.insert('tasks', {
+          ...task,
+          title: `Buy milk ${index}`,
+          done: false,
+        })
+      return samId
+    })
+    const search = async (filters: {
+      createdBy?: string
+      status?: 'open' | 'done'
+      when?: 'today'
+      today?: string
+    }) =>
+      (
+        await t.withIdentity(gail).query(api.search.group, {
+          groupSlug: 'search-old-filters',
+          query: 'milk',
+          accepts: ['task'],
+          ...filters,
+        })
+      ).map((row) => row.title)
+
+    const plain = await search({})
+    expect(plain).toHaveLength(30)
+    expect(plain[0]).toBe('Milk') // an exact title ranks first, however old
+    expect(await search({ createdBy: samId })).toEqual(['Milk'])
+    expect(await search({ status: 'done' })).toEqual(['Milk'])
+    expect(await search({ status: 'open' })).not.toContain('Milk')
+    expect(await search({ when: 'today', today: '2020-03-01' })).toEqual(['Milk'])
+  })
+})
+
+describe('Group search filters inside the index reads (APP-787)', () => {
+  const finn = {
+    subject: 'search_finn',
+    name: 'Finn',
+    email: 'search-finn@example.com',
+  }
+  const slug = 'search-index-filters'
+  type Type = 'recipe' | 'tasting' | 'task' | 'calendarEvent'
+  const BUDGET: Record<Type, number> = {
+    recipe: 100,
+    tasting: 100,
+    task: 50,
+    calendarEvent: 50,
+  }
+  // The scan of the newest rows, which the wanted row must also be behind.
+  const SCAN: Record<Type, number> = {
+    recipe: 200,
+    tasting: 200,
+    task: 50,
+    calendarEvent: 50,
+  }
+  const TYPES = Object.keys(BUDGET) as Type[]
+
+  /**
+   * `wanted` sits behind more than the index budget of Finn's older matches
+   * (the test search returns ties oldest first, Convex newest first) and more
+   * than the scan of newer rows. `wanted` is Sam's, and a task is done.
+   */
+  async function seed(type: Type) {
+    const t = testConvex()
+    const ids = await t.run(async (ctx) => {
+      const user = (subject: string, name: string) =>
+        ctx.db.insert('users', {
+          clerkId: subject,
+          name,
+          email: `${subject}@example.com`,
+        })
+      const finnId = await user(finn.subject, finn.name)
+      const samId = await user('search_finn_sam', 'Sam')
+      const strangerId = await user('search_finn_stranger', 'Stranger')
+      const groupId = await seedGroup(ctx, { name: 'Home', slug })
+      const otherId = await seedGroup(ctx, {
+        name: 'Other',
+        slug: `${slug}-other`,
+        inviteCode: `${slug}-other`,
+      })
+      for (const id of [groupId, otherId])
+        for (const userId of [finnId, samId])
+          await seedMember(ctx, id, userId, 'admin')
+      const parents = async (id: typeof groupId) => ({
+        groupId: id,
+        listId: await ctx.db.insert('taskLists', {
+          groupId: id,
+          name: 'Chores',
+          provider: 'local',
+          order: 0,
+        }),
+        calendarId: await ctx.db.insert('calendars', {
+          groupId: id,
+          name: 'Family',
+          source: 'local',
+          createdBy: finnId,
+        }),
+      })
+      const home = await parents(groupId)
+      const other = await parents(otherId)
+      const add = async (
+        where: typeof home,
+        title: string,
+        by: typeof finnId,
+        { done = false, kind = 'wine' as 'wine' | 'beer' } = {},
+      ) => {
+        if (type === 'recipe')
+          await ctx.db.insert('recipes', {
+            groupId: where.groupId,
+            sharedGroupIds: [],
+            createdByUserId: by,
+            title,
+            ingredients: [],
+            steps: [],
+            tags: [],
+          })
+        else if (type === 'tasting')
+          await ctx.db.insert('tastingSubjects', {
+            groupId: where.groupId,
+            kind,
+            name: title,
+            attributes: {},
+            createdByUserId: by,
+          })
+        else if (type === 'task')
+          await ctx.db.insert('tasks', {
+            listId: where.listId,
+            title,
+            done,
+            order: 0,
+            createdBy: by,
+          })
+        else
+          await ctx.db.insert('calendarEvents', {
+            calendarId: where.calendarId,
+            title,
+            date: '2026-01-01',
+            createdBy: by,
+          })
+      }
+      for (let index = 0; index < BUDGET[type] + 5; index += 1)
+        await add(home, `Cocoa ${index}`, finnId)
+      await add(home, 'Wanted cocoa', samId, { done: true })
+      await add(home, 'Beer cocoa', samId, { done: true, kind: 'beer' })
+      await add(home, 'Stranger cocoa', strangerId)
+      await add(other, 'Elsewhere cocoa', samId, { done: true })
+      for (let index = 0; index < SCAN[type]; index += 1)
+        await add(home, `Row ${index}`, finnId)
+      return { finnId, samId, strangerId, groupId }
+    })
+    const search = async (filters: {
+      createdBy?: string
+      status?: 'open' | 'done'
+      kind?: 'wine' | 'beer'
+      when?: 'today'
+      today?: string
+    }) =>
+      (
+        await t.withIdentity(finn).query(api.search.group, {
+          groupSlug: slug,
+          query: 'cocoa',
+          accepts: [type],
+          ...filters,
+        })
+      ).map((row) => row.title)
+    return { search, ...ids }
+  }
+
+  test.each(TYPES)(
+    "Who finds a Member's old %s behind the index budget, in this Group only",
+    async (type) => {
+      const { search, samId } = await seed(type)
+      expect((await search({ createdBy: samId })).sort()).toEqual([
+        'Beer cocoa',
+        'Wanted cocoa',
+      ])
+    },
+  )
+
+  test.each(TYPES)('without a filter the %s rows stay as read', async (type) => {
+    const { search } = await seed(type)
+    const rows = await search({})
+    expect(rows).toHaveLength(30)
+    expect(rows).not.toContain('Wanted cocoa')
+  })
+
+  test.each(TYPES)('an unusable Who finds no %s and does not throw', async (type) => {
+    const { search, groupId, strangerId } = await seed(type)
+    for (const createdBy of ['nobody', groupId, strangerId])
+      expect(await search({ createdBy })).toEqual([])
+    // An empty one is no filter, as before.
+    expect(await search({ createdBy: '' })).toHaveLength(30)
+  })
+
+  test('When still filters the rows Who narrowed the read to', async () => {
+    const { search, samId } = await seed('calendarEvent')
+    const on = (today: string) =>
+      search({ createdBy: samId, when: 'today', today })
+    expect((await on('2026-01-01')).sort()).toEqual(['Beer cocoa', 'Wanted cocoa'])
+    expect(await on('2026-01-02')).toEqual([])
+  })
+
+  test('Who and Kind narrow tastings together', async () => {
+    const { search, samId } = await seed('tasting')
+    expect(await search({ createdBy: samId, kind: 'wine' })).toEqual([
+      'Wanted cocoa',
+    ])
+  })
+
+  test('Status finds an old done task behind the index budget', async () => {
+    const { search, samId, finnId } = await seed('task')
+    const done = ['Beer cocoa', 'Wanted cocoa']
+    expect((await search({ status: 'done' })).sort()).toEqual(done)
+    expect((await search({ status: 'done', createdBy: samId })).sort()).toEqual(
+      done,
+    )
+    expect(await search({ status: 'done', createdBy: finnId })).toEqual([])
+    expect(await search({ status: 'open', createdBy: samId })).toEqual([])
+  })
+
+  test('Status finds an old open task behind the index budget', async () => {
+    const t = await openBehindDone()
+    const rows = await t.withIdentity(finn).query(api.search.group, {
+      groupSlug: slug,
+      query: 'cocoa',
+      accepts: ['task'],
+      status: 'open',
+    })
+    expect(rows.map((row) => row.title)).toEqual(['Wanted cocoa'])
+  })
+
+  async function openBehindDone() {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const finnId = await ctx.db.insert('users', {
+        clerkId: finn.subject,
+        name: finn.name,
+        email: finn.email,
+      })
+      const groupId = await seedGroup(ctx, { name: 'Home', slug })
+      await seedMember(ctx, groupId, finnId, 'admin')
+      const listId = await ctx.db.insert('taskLists', {
+        groupId,
+        name: 'Chores',
+        provider: 'local',
+        order: 0,
+      })
+      const task = { listId, order: 0, createdBy: finnId }
+      for (let index = 0; index < 55; index += 1)
+        await ctx.db.insert('tasks', { ...task, title: `Cocoa ${index}`, done: true })
+      await ctx.db.insert('tasks', { ...task, title: 'Wanted cocoa', done: false })
+      for (let index = 0; index < 50; index += 1)
+        await ctx.db.insert('tasks', { ...task, title: `Row ${index}`, done: true })
+    })
+    return t
+  }
+})
+
+describe('Group search past the first 20 lists and calendars (APP-786)', () => {
+  const hana = {
+    subject: 'search_hana',
+    name: 'Hana',
+    email: 'search-hana@example.com',
+  }
+  /** The bound in `search.ts`: the lists and calendars searched per Group. */
+  const PARENT_LIMIT = 80
+
+  /**
+   * A Group with `count` task lists and calendars, oldest first; the one at
+   * each 1-based position in `titles` holds a row of that title, and every
+   * other holds a filler row.
+   */
+  async function seedMany(titles: Record<number, string>, count = 85) {
+    const t = testConvex()
+    const ids = await t.run(async (ctx) => {
+      const hanaId = await ctx.db.insert('users', {
+        clerkId: hana.subject,
+        name: hana.name,
+        email: hana.email,
+      })
+      const otherId = await ctx.db.insert('users', {
+        clerkId: 'search_hana_other',
+        name: 'Other',
+        email: 'search-hana-other@example.com',
+      })
+      const groupId = await seedGroup(ctx, {
+        name: 'Many',
+        slug: 'search-many',
+      })
+      const elsewhereId = await seedGroup(ctx, {
+        name: 'Elsewhere',
+        slug: 'search-many-elsewhere',
+      })
+      await seedMember(ctx, groupId, hanaId, 'admin')
+      for (let position = 1; position <= count; position += 1) {
+        const title = titles[position] ?? `Filler ${position}`
+        const listId = await ctx.db.insert('taskLists', {
+          groupId,
+          name: `List ${position}`,
+          provider: 'local',
+          order: position,
+        })
+        await ctx.db.insert('tasks', {
+          listId,
+          title,
+          done: position % 2 === 0,
+          order: 0,
+          createdBy: position === 25 ? otherId : hanaId,
+          dueDate: position === 25 ? '2020-03-01' : undefined,
+        })
+        const calendarId = await ctx.db.insert('calendars', {
+          groupId,
+          name: `Calendar ${position}`,
+          source: 'local',
+          createdBy: hanaId,
+        })
+        await ctx.db.insert('calendarEvents', {
+          calendarId,
+          title,
+          date: '2026-01-01',
+          createdBy: position === 25 ? otherId : hanaId,
+        })
+      }
+      // Another Group's list and calendar hold the same words.
+      const elsewhereList = await ctx.db.insert('taskLists', {
+        groupId: elsewhereId,
+        name: 'Elsewhere',
+        provider: 'local',
+        order: 0,
+      })
+      await ctx.db.insert('tasks', {
+        listId: elsewhereList,
+        title: 'Zolder elsewhere',
+        done: false,
+        order: 0,
+        createdBy: otherId,
+      })
+      const elsewhereCalendar = await ctx.db.insert('calendars', {
+        groupId: elsewhereId,
+        name: 'Elsewhere',
+        source: 'local',
+        createdBy: otherId,
+      })
+      await ctx.db.insert('calendarEvents', {
+        calendarId: elsewhereCalendar,
+        title: 'Zolder elsewhere',
+        date: '2026-01-01',
+        createdBy: otherId,
+      })
+      return { otherId }
+    })
+    const search = async (
+      query: string,
+      extra: {
+        accepts?: ('task' | 'calendarEvent')[]
+        createdBy?: string
+        status?: 'open' | 'done'
+        when?: 'earlier'
+        today?: string
+      } = {},
+    ) =>
+      (
+        await t.withIdentity(hana).query(api.search.group, {
+          groupSlug: 'search-many',
+          query,
+          accepts: ['task', 'calendarEvent'],
+          ...extra,
+        })
+      ).map((row) => `${row.type}:${row.title}`)
+    return { t, search, ...ids }
+  }
+
+  test('finds a task and an event in the 25th list and calendar, by word and prefix', async () => {
+    const { search } = await seedMany({ 25: 'Zolder opruimen' })
+    const both = ['task:Zolder opruimen', 'calendarEvent:Zolder opruimen']
+    expect((await search('zolder')).sort()).toEqual([...both].sort())
+    expect((await search('opruim')).sort()).toEqual([...both].sort())
+    expect(await search('opruimen zolder', { accepts: ['task'] })).toEqual([
+      'task:Zolder opruimen',
+    ])
+    expect(await search('zolder', { accepts: ['calendarEvent'] })).toEqual([
+      'calendarEvent:Zolder opruimen',
+    ])
+    // Not another Group's row of the same words.
+    expect(await search('elsewhere')).toEqual([])
+  })
+
+  test('matches inside a word only in the first 20 lists', async () => {
+    const { search } = await seedMany({ 20: 'Zolderkast', 21: 'Zolderkast' })
+    expect(await search('kast', { accepts: ['task'] })).toEqual([
+      'task:Zolderkast',
+    ])
+    expect(await search('zolderkast', { accepts: ['task'] })).toHaveLength(2)
+  })
+
+  test('keeps the bound: the last searched list is found, the next is not', async () => {
+    const { search } = await seedMany({
+      [PARENT_LIMIT]: 'Laatste kelder',
+      [PARENT_LIMIT + 1]: 'Buiten garage',
+    })
+    expect((await search('kelder')).sort()).toEqual([
+      'calendarEvent:Laatste kelder',
+      'task:Laatste kelder',
+    ])
+    expect(await search('garage')).toEqual([])
+  })
+
+  test('applies Who, When and Status to a match past the 20th', async () => {
+    const { search, otherId } = await seedMany({ 25: 'Zolder opruimen' })
+    // Position 25 is open (odd) and by the other Member, due 2020-03-01.
+    expect(await search('zolder', { createdBy: otherId })).toHaveLength(2)
+    expect(
+      await search('zolder', { accepts: ['task'], status: 'open' }),
+    ).toEqual(['task:Zolder opruimen'])
+    expect(
+      await search('zolder', { accepts: ['task'], status: 'done' }),
+    ).toEqual([])
+    expect(
+      await search('zolder', {
+        accepts: ['task'],
+        when: 'earlier',
+        today: '2026-06-01',
+      }),
+    ).toEqual(['task:Zolder opruimen'])
+  })
+
+  test('leaves an external task list out', async () => {
+    const { t, search } = await seedMany({}, 3)
+    await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .filter((q) => q.eq(q.field('slug'), 'search-many'))
+        .unique()
+      const listId = await ctx.db.insert('taskLists', {
+        groupId: group!._id,
+        name: 'Synced',
+        provider: 'todoist',
+        order: 99,
+      })
+      await ctx.db.insert('tasks', {
+        listId,
+        title: 'Zolder synced',
+        done: false,
+        order: 0,
+        createdBy: (await ctx.db.query('users').first())!._id,
+      })
+    })
+    expect(await search('synced')).toEqual([])
   })
 })

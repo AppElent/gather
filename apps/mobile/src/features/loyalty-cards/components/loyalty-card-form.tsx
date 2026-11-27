@@ -236,6 +236,8 @@ export function LoyaltyCardForm({
 
       <View style={styles.field}>
         <Field
+          // iOS ties the Done bar to a field only as both mount.
+          key={cardNumberKeyboard(draft.barcodeFormat)}
           ref={numberRef}
           label={words.cardNumber}
           value={draft.cardNumber}
@@ -250,6 +252,7 @@ export function LoyaltyCardForm({
           returnKeyType="next"
           submitBehavior="submit"
           onSubmitEditing={() => holderRef.current?.focus()}
+          onNext={() => holderRef.current?.focus()}
           accessibilityHint={numberHints || undefined}
           invalid={Boolean(numberProblem)}
           testID="loyalty-card-number-input"

@@ -667,3 +667,77 @@ describe('deleting a Group from the app', () => {
     expect(shares.map((share) => share.groupId)).toEqual([third])
   })
 })
+
+describe('an account whose deletion is running (APP-882)', () => {
+  /** Alice and Bob share a Group, and Alice's purge has begun but not run. */
+  async function midPurge(t: Harness) {
+    await signUp(t, asAlice)
+    await signUp(t, asBob)
+    const alice = await userId(t, asAlice)
+    const bob = await userId(t, asBob)
+    const groupId = await sharedGroup(t, alice, bob)
+    await t.run((ctx) => ctx.db.patch(alice, { deletedAt: Date.now() }))
+    return { alice, bob, groupId }
+  }
+  const notSignedIn = { data: { kind: 'groups:not-signed-in' } }
+
+  test('cannot write, create or join a Group', async () => {
+    const t = testConvex()
+    await midPurge(t)
+    const as = t.withIdentity(asAlice)
+
+    await expect(
+      as.mutation(api.notes.create, {
+        groupSlug: 'household',
+        title: 'Late',
+        body: 'note',
+        idempotencyKey: crypto.randomUUID(),
+      }),
+    ).rejects.toMatchObject(notSignedIn)
+    await expect(
+      as.mutation(api.groups.createGroup, { name: 'New' }),
+    ).rejects.toMatchObject(notSignedIn)
+    await expect(
+      as.mutation(api.groups.joinByInvite, { inviteCode: 'abc123' }),
+    ).rejects.toMatchObject(notSignedIn)
+    expect(await as.query(api.users.me, {})).toBeNull()
+    expect(await as.query(api.groups.myGroups, {})).toEqual([])
+
+    const rows = await t.run(async (ctx) => ({
+      notes: await ctx.db.query('notes').collect(),
+      groups: await ctx.db.query('groups').collect(),
+    }))
+    expect(rows.notes).toEqual([])
+    expect(rows.groups).toHaveLength(1)
+  })
+
+  test('is still told its deletion is running, and may ask again', async () => {
+    const t = testConvex()
+    await midPurge(t)
+    const as = t.withIdentity(asAlice)
+
+    expect(await as.query(api.accountPortal.deletionBlocker, {})).toEqual({
+      code: 'deletionInProgress',
+      params: {},
+    })
+    await as.mutation(api.accounts.deleteAccount, {
+      expectedSubject: asAlice.subject,
+    })
+    // A repeat starts no second purge.
+    const purges = await t.run(async (ctx) =>
+      (await ctx.db.system.query('_scheduled_functions').collect()).filter(
+        (job) => job.name.includes('purgeAccount'),
+      ),
+    )
+    expect(purges).toEqual([])
+  })
+
+  test('does not keep the last Member from deleting the Group', async () => {
+    const t = testConvex()
+    await midPurge(t)
+    const status = await t
+      .withIdentity(asBob)
+      .query(api.groups.leaveStatus, { slug: 'household' })
+    expect(status).toEqual({ leave: 'last-member', canDelete: true })
+  })
+})

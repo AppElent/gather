@@ -37,9 +37,17 @@ vi.mock('@tanstack/react-router', () => ({
   }: {
     children: ReactNode
     to: string
-    search?: { range?: string }
+    search?: { range?: string; year?: number }
   }) => (
-    <a href={search?.range ? `${to}?range=${search.range}` : to}>{children}</a>
+    <a
+      href={
+        search?.range
+          ? `${to}?range=${search.range}${search.year ? `&year=${search.year}` : ''}`
+          : to
+      }
+    >
+      {children}
+    </a>
   ),
 }))
 
@@ -94,9 +102,68 @@ describe('EnergyCostsPage', () => {
     expect(screen.queryByText(/Highest on/)).toBeNull()
     expect(screen.getByRole('link', { name: 'Year ›' })).toHaveAttribute(
       'href',
-      '/energy/usage?range=year',
+      '/energy/usage?range=year&year=2026',
     )
     expect(screen.getByText('40.0 kWh, netted against usage')).toBeInTheDocument()
+  })
+
+  test('the Year link opens the year being viewed', () => {
+    state.months['2025-12'] = monthPeriod('2025-12', '2026-11-20')
+    renderInGroup(<EnergyCostsPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }))
+    expect(screen.getByRole('link', { name: 'Year ›' })).toHaveAttribute(
+      'href',
+      '/energy/usage?range=year&year=2026',
+    )
+    for (let step = 0; step < 10; step++) {
+      fireEvent.click(screen.getByRole('button', { name: 'Previous month' }))
+    }
+    expect(screen.getByText('December 2025')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Year ›' })).toHaveAttribute(
+      'href',
+      '/energy/usage?range=year&year=2025',
+    )
+  })
+
+  test('the caption runs to today when fixed costs outrun the readings', () => {
+    const period = monthPeriod('2026-11', '2026-11-20')
+    for (const each of period.days) {
+      if (each.day > '2026-11-18') each.hasData = false
+    }
+    period.totals.lastDay = '2026-11-18'
+    state.months['2026-11'] = period
+    renderInGroup(<EnergyCostsPage />)
+    const total = screen.getByRole('region', { name: 'Total' })
+    expect(within(total).getByText('November 1 to November 20')).toBeInTheDocument()
+  })
+
+  test('a past month is captioned to its last day', () => {
+    const period = monthPeriod('2026-10', '2026-11-20')
+    for (const each of period.days) {
+      if (each.day > '2026-10-28') each.hasData = false
+    }
+    period.totals.lastDay = '2026-10-28'
+    state.months['2026-10'] = period
+    renderInGroup(<EnergyCostsPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }))
+    const total = screen.getByRole('region', { name: 'Total' })
+    expect(within(total).getByText('October 1 to October 31')).toBeInTheDocument()
+  })
+
+  test('the caption shows no range when no day carries a cost', () => {
+    const period = monthPeriod('2026-11', '2026-11-20', {}, {
+      cost: null,
+      costWithoutNet: null,
+    })
+    // A total with no costed day: the range has nothing to span, so it hides.
+    period.totals.cost = cost(6000)
+    period.totals.costWithoutNet = cost(7000)
+    state.months['2026-11'] = period
+    renderInGroup(<EnergyCostsPage />)
+    const total = screen.getByRole('region', { name: 'Total' })
+    expect(within(total).getByText('€60.00')).toBeInTheDocument()
+    expect(total).not.toHaveTextContent(/November \d+ to November \d+/)
+    expect(within(total).queryByText(/ to /)).toBeNull()
   })
 
   test('the day that costs the most is named when days differ', () => {

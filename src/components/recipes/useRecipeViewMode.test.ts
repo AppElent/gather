@@ -6,9 +6,9 @@ afterEach(() => {
   window.localStorage.clear()
 })
 
-test('defaults to grid mode', () => {
+test('defaults to the list (compact) mode', () => {
   const { result } = renderHook(() => useRecipeViewMode())
-  expect(result.current[0]).toBe('grid')
+  expect(result.current[0]).toBe('compact')
 })
 
 test('reads a previously stored mode on mount', () => {

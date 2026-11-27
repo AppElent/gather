@@ -49,12 +49,12 @@ export function EnergyPricesPage() {
       <Breadcrumbs trail={energyTrail(messages, copy.title)} className="mb-0" />
       {view === undefined ? (
         <>
-          <h2 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h2>
+          <h1 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h1>
           <div className="h-40 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]" />
         </>
       ) : view === null ? (
         <>
-          <h2 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h2>
+          <h1 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h1>
           <SurfaceCard>
             <p className="m-0 text-sm">{messages.energy.empty.summary}</p>
           </SurfaceCard>
@@ -89,13 +89,13 @@ function Prices({ view, now }: { view: EnergyPriceView; now: number }) {
   return (
     <>
       <div className="grid gap-1">
-        <h2 className="m-0 font-rounded text-2xl font-bold">
+        <h1 className="m-0 font-rounded text-2xl font-bold">
           {current && view.today
             ? fmt(view.today.basis === 'allIn' ? copy.now : copy.nowMarket, {
                 price: formatEnergyPrice(current.price, locale),
               })
             : copy.nowNone}
-        </h2>
+        </h1>
         <p className="m-0 text-sm text-[var(--muted)]">
           {fmt(copy.source, {
             site: view.siteName,

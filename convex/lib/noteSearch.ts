@@ -1,53 +1,182 @@
+import { isNoteTooLong } from '@gather/core/notes'
+import { noteRefusal } from '@gather/core/refusals'
+import type { WithoutSystemFields } from 'convex/server'
+import { ConvexError, getDocumentSize } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
-import type { QueryCtx } from '../_generated/server'
+import type { MutationCtx, QueryCtx } from '../_generated/server'
+import { indexSearch, normalized } from './searchText'
 
-/** Convex searches on at most this many terms. */
-const MAX_TERMS = 16
+/** Of the notes `search_text` matches without the title, a search answers this many. */
+const MAX_MATCHES = 100
+/** In all, with the title hits, the unfilled notes and the substring matches. */
+const MAX_ANSWER = 2 * MAX_MATCHES
 /**
- * How many matches are read from each index. The two together are at most the
- * 200 notes `search.group` read when it scanned the table.
+ * How far one search reads in `search_text`, whatever it finds on the way:
+ * Convex refuses to read past 1024 search results.
  */
-const MATCHES_PER_INDEX = 100
+const MAX_CANDIDATES = 1000
+/**
+ * The bytes one search reads of notes (APP-805): of `search_text`, of the
+ * newest, and of each of the two old indexes. Each read ends with the note that
+ * crosses its bound, at most 1 MiB, so a search stays under 13 MiB of a query's
+ * 16; `search.group` reads its other types from what is left.
+ */
+const CANDIDATE_BYTES = 4 * 1024 * 1024
+const RECENT_BYTES = 3 * 1024 * 1024
+const FALLBACK_BYTES = 1024 * 1024
+/** Read from each of the two old indexes until the narrow step (APP-701). */
+const FALLBACK_MATCHES = 50
+const RECENT_NOTES = 100
 const MIN_QUERY = 2
 
-/** Convex leaves longer words (in UTF-8 bytes) out of its search indexes. */
-const MAX_TERM_BYTES = 31
+type NoteText = Pick<Doc<'notes'>, 'title' | 'body'>
 
 /**
- * The words of a text, split where Convex's own tokenizer splits. Split before
- * lowercasing, as it does: "İ" lowercases to a letter and a mark.
+ * What `notes.searchText` holds: the text `search_text` indexes. Derived from
+ * title and body, so every write of either goes through `insertNote` or
+ * `patchNote`, which keep it in step (`noteWrites.test.ts`).
  */
-function wordsOf(text: string): string[] {
-  return text.split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+export function noteSearchText({ title, body }: NoteText): string {
+  return `${title}\n${body}`
 }
 
-/** Lowercase letter by letter, as Convex does: a final "Σ" becomes "σ". */
-function lower(word: string): string {
-  return Array.from(word, (letter) => letter.toLowerCase()).join('')
+/**
+ * The notes a query answers, in its order, until there are `count` of them or
+ * they come to `bytes` as stored: the note that crosses the bound is the last.
+ */
+export async function takeNotes(
+  notes: AsyncIterable<Doc<'notes'>>,
+  { count = Number.POSITIVE_INFINITY, bytes }: { count?: number; bytes: number },
+): Promise<Doc<'notes'>[]> {
+  const taken: Doc<'notes'>[] = []
+  let read = 0
+  for await (const note of notes) {
+    taken.push(note)
+    read += getDocumentSize(note)
+    if (taken.length >= count || read >= bytes) break
+  }
+  return taken
 }
 
-/** The words of a search that the indexes can match. */
-function termsOf(text: string): string[] {
-  const encoder = new TextEncoder()
-  return wordsOf(text)
-    .filter((word) => encoder.encode(word).length <= MAX_TERM_BYTES)
-    .slice(0, MAX_TERMS)
+function refuseTooLong(note: NoteText) {
+  if (isNoteTooLong(note)) throw new ConvexError(noteRefusal('too-long'))
+}
+
+type NoteFields = Omit<WithoutSystemFields<Doc<'notes'>>, 'searchText'>
+
+/**
+ * Adds a note, unless it is too long. The caller has already authorised the
+ * Group.
+ */
+export async function insertNote(ctx: MutationCtx, note: NoteFields) {
+  refuseTooLong(note)
+  return ctx.db.insert('notes', { ...note, searchText: noteSearchText(note) })
+}
+
+/**
+ * Changes a note, unless its text changes and is too long. The caller has
+ * already authorised it.
+ *
+ * A note from before the limit (APP-805) can be over it. Its text may stay as
+ * it is, so it can be pinned; `searchText` is then left alone, because with it
+ * the note may not fit in a document.
+ */
+export async function patchNote(
+  ctx: MutationCtx,
+  note: Doc<'notes'>,
+  patch: Partial<NoteFields>,
+) {
+  const next = { ...note, ...patch }
+  if (next.title !== note.title || next.body !== note.body) refuseTooLong(next)
+  return ctx.db.patch(note._id, {
+    ...patch,
+    ...(isNoteTooLong(next) ? {} : { searchText: noteSearchText(next) }),
+  })
+}
+
+/**
+ * `search_text`'s notes for a search, best first, until the candidate or
+ * byte budget is spent. The index ranks notes with *any* word and does not
+ * promise that one with all of them, or one with them in its title, comes
+ * first, so it is read on past the first matches, not cut off at a page or at
+ * `MAX_MATCHES` of them (APP-806).
+ */
+async function textCandidates(
+  ctx: QueryCtx,
+  groupId: Id<'groups'>,
+  { search }: ReturnType<typeof indexSearch>,
+): Promise<Doc<'notes'>[]> {
+  const candidates: Doc<'notes'>[] = []
+  if (search === '') return candidates
+  let bytes = 0
+  for await (const note of ctx.db
+    .query('notes')
+    .withSearchIndex('search_text', (q) =>
+      q.search('searchText', search).eq('groupId', groupId),
+    )) {
+    candidates.push(note)
+    bytes += getDocumentSize(note)
+    if (candidates.length >= MAX_CANDIDATES || bytes >= CANDIDATE_BYTES)
+      break
+  }
+  return candidates
+}
+
+/**
+ * The old path, for notes the backfill has not reached: they are not in
+ * `search_text`. Goes with the narrow step that makes `searchText` required.
+ */
+async function unfilledCandidates(
+  ctx: QueryCtx,
+  groupId: Id<'groups'>,
+  search: string,
+): Promise<Doc<'notes'>[]> {
+  if (search === '') return []
+  const [byTitle, byBody] = await Promise.all([
+    takeNotes(
+      ctx.db
+        .query('notes')
+        .withSearchIndex('search_title', (q) =>
+          q.search('title', search).eq('groupId', groupId),
+        ),
+      { count: FALLBACK_MATCHES, bytes: FALLBACK_BYTES },
+    ),
+    takeNotes(
+      ctx.db
+        .query('notes')
+        .withSearchIndex('search_body', (q) =>
+          q.search('body', search).eq('groupId', groupId),
+        ),
+      { count: FALLBACK_MATCHES, bytes: FALLBACK_BYTES },
+    ),
+  ])
+  return [...byTitle, ...byBody].filter((note) => note.searchText === undefined)
 }
 
 /**
  * The notes of one Group that contain every word of `text`, in the title, the
- * body, or across the two. The caller has already authorised the Group.
+ * body, or across the two. The caller has already authorised the Group. Notes
+ * whose title has every word come first, then the rest, each in the order
+ * found, then the answer is cut at `MAX_ANSWER`, so a title hit is cut only
+ * when that many have one. Behind the title hits the cut falls last on what
+ * only the old indexes and the newest notes find (unfilled notes, and index
+ * matches among the newest notes), then on the other `search_text` matches
+ * (`MAX_MATCHES` of them stay), then on the substring matches (APP-806).
  *
- * A Convex search index covers one field, so there is one for the title and
- * one for the body; a combined field would need a backfill of every note.
- * Both filter on `groupId`. The indexes match notes with *any* word, so that
- * every word is there is checked here, by their own rule: a word matches
- * whole, and the last one, still being typed, from its start. So "kaart" does
- * not find "wijnkaart".
+ * Two passes, merged, the first first:
  *
- * The check runs on each index's best `MATCHES_PER_INDEX`. A note with one
- * word in its title and another in its body can be missed when more than that
- * many notes match one word as well; that is the read budget, not a page size.
+ * 1. The `search_text` index over title and body together, filtered on
+ *    `groupId`. It matches notes with *any* word, so that every word is there
+ *    is checked here, by its own rule: a word matches whole, and the last one,
+ *    still being typed, from its start. It ranks best first, and finds a note
+ *    however old it is.
+ * 2. A substring check, as every other type on the search screen does
+ *    (`search.group`), over the Group's newest `RECENT_NOTES` notes and the
+ *    index's other candidates: every word must be somewhere in the text, so
+ *    "kaart" finds "wijnkaart". An index cannot do this, so older notes are
+ *    reachable only by whole word or prefix. This pass also takes the words
+ *    the indexes drop (past the 16th, 32 bytes or more) and a search with no
+ *    word in it, such as an emoji.
  */
 export async function findNotes(
   ctx: QueryCtx,
@@ -55,46 +184,125 @@ export async function findNotes(
   text: string,
 ): Promise<Doc<'notes'>[]> {
   if (text.trim().length < MIN_QUERY) return []
-  const terms = termsOf(text)
-  if (terms.length === 0) return []
-  const search = terms.join(' ')
-  const [byTitle, byBody] = await Promise.all([
-    ctx.db
-      .query('notes')
-      .withSearchIndex('search_title', (q) =>
-        q.search('title', search).eq('groupId', groupId),
-      )
-      .take(MATCHES_PER_INDEX),
-    ctx.db
-      .query('notes')
-      .withSearchIndex('search_body', (q) =>
-        q.search('body', search).eq('groupId', groupId),
-      )
-      .take(MATCHES_PER_INDEX),
+  const asked = indexSearch(text)
+  const { words, search, matches } = asked
+  // Every word, or the whole search when it has none (an emoji, "--").
+  const needles = (words.length > 0 ? words : [text]).map(normalized)
+  const [byText, unfilled, recent] = await Promise.all([
+    textCandidates(ctx, groupId, asked),
+    unfilledCandidates(ctx, groupId, search),
+    takeNotes(
+      ctx.db
+        .query('notes')
+        .withIndex('by_group_and_updatedAt', (q) => q.eq('groupId', groupId))
+        .order('desc'),
+      { count: RECENT_NOTES, bytes: RECENT_BYTES },
+    ),
   ])
-  // Title matches first, each part in the index's relevance order.
-  const notes = new Map(
-    [...byTitle, ...byBody].map((note) => [note._id, note] as const),
-  )
-  const whole = terms.slice(0, -1).map(lower)
-  const typing = lower(terms[terms.length - 1])
-  return [...notes.values()].filter((note) => {
-    const words = new Set(
-      wordsOf(`${note.title}\n${note.body}`).map(lower),
+  // One unfilled note can come from both of the old indexes.
+  const candidates = [
+    ...new Map(
+      [...byText, ...unfilled].map((note) => [note._id, note] as const),
+    ).values(),
+  ]
+  const titled = new Map<Id<'notes'>, boolean>()
+  const inTitle = (note: Doc<'notes'>) => {
+    let known = titled.get(note._id)
+    if (known === undefined) {
+      const title = normalized(note.title)
+      known =
+        matches(note.title) || needles.every((needle) => title.includes(needle))
+      titled.set(note._id, known)
+    }
+    return known
+  }
+  const contains = (note: Doc<'notes'>) => {
+    const haystack = normalized(noteSearchText(note))
+    return needles.every((needle) => haystack.includes(needle))
+  }
+  // Every answer is placed twice: `cut`, what survives the cap, and `show`, the
+  // order it is listed in. Both are tiers, and within a tier notes keep the
+  // order they were found in.
+  //
+  //   tier  cut                     show
+  //   0     title hits              title hits
+  //   1     unfilled index matches  unfilled index matches
+  //   2     the newest notes, newest  the newest notes the index matched
+  //         first, however they were
+  //         found
+  //   3     `search_text` matches   `search_text` matches (`MAX_MATCHES`)
+  //   4     substring matches       substring matches, the newest included
+  //
+  // The newest notes are cut late because `search.group` filters on Who and When
+  // after this, so one cut here cannot be found with them; the index ranks
+  // above a substring match when listed, as it always did.
+  const recentRank = new Map(recent.map((note, index) => [note._id, index]))
+  const placed = new Map<
+    Id<'notes'>,
+    { note: Doc<'notes'>; cut: number; show: number; seq: number }
+  >()
+  const place = (note: Doc<'notes'>, cut: number, show: number) => {
+    if (!placed.has(note._id))
+      placed.set(note._id, { note, cut, show, seq: placed.size })
+  }
+  const byIndex = candidates.filter((note) => matches(noteSearchText(note)))
+  const indexed = new Set(byIndex.map((note) => note._id))
+  for (const note of byIndex) if (inTitle(note)) place(note, 0, 0)
+  const bodyHits = byIndex.filter((note) => !inTitle(note))
+  for (const note of bodyHits)
+    if (note.searchText === undefined) place(note, 1, 1)
+  for (const note of bodyHits
+    .filter((note) => note.searchText !== undefined)
+    .slice(0, MAX_MATCHES))
+    place(note, recentRank.has(note._id) ? 2 : 3, 3)
+  // The substring pass: the newest notes, then the candidates the index did not
+  // match. An index match cut above is not read back in, but a recent one is.
+  for (const note of recent) {
+    if (placed.has(note._id)) continue
+    const index = indexed.has(note._id) || matches(noteSearchText(note))
+    if (!index && !contains(note)) continue
+    if (inTitle(note)) place(note, 0, 0)
+    else place(note, 2, index ? 2 : 4)
+  }
+  for (const note of candidates) {
+    if (indexed.has(note._id) || !contains(note)) continue
+    if (inTitle(note)) place(note, 0, 0)
+    else place(note, 4, 4)
+  }
+  const rank = (id: Id<'notes'>) => recentRank.get(id) ?? 0
+  const kept = [...placed.values()]
+    .sort(
+      (a, b) =>
+        a.cut - b.cut ||
+        (a.cut === 2 ? rank(a.note._id) - rank(b.note._id) : a.seq - b.seq),
     )
-    return (
-      whole.every((term) => words.has(term)) &&
-      [...words].some((word) => word.startsWith(typing))
-    )
-  })
+    .slice(0, MAX_ANSWER)
+  return kept
+    .sort((a, b) => a.show - b.show || a.seq - b.seq)
+    .map(({ note }) => note)
 }
 
-/** The first line with anything on it: what a result row shows under the title. */
+/**
+ * How many UTF-16 code units of a note's first line its excerpt keeps: more
+ * than a result row shows, and small enough that a note of one long line is
+ * not answered twice, as its body and again as its excerpt (APP-828).
+ */
+export const EXCERPT_MAX = 200
+
+/**
+ * The first line with anything on it, trimmed and cut at `EXCERPT_MAX` with an
+ * ellipsis: what a result row shows under the title. The cut never splits a
+ * surrogate pair. The `…` is punctuation, the same in every language, not
+ * catalog text: the phone's row wraps, so without it a cut would not show.
+ */
 export function noteExcerpt(body: string): string {
-  return (
-    body
-      .split('\n')
-      .find((line) => line.trim())
-      ?.trim() ?? ''
-  )
+  const start = body.search(/\S/)
+  if (start === -1) return ''
+  const end = body.indexOf('\n', start)
+  const line = body.slice(start, end === -1 ? undefined : end).trimEnd()
+  if (line.length <= EXCERPT_MAX) return line
+  let cut = EXCERPT_MAX
+  const last = line.charCodeAt(cut - 1)
+  if (last >= 0xd800 && last <= 0xdbff) cut -= 1
+  return `${line.slice(0, cut).trimEnd()}…`
 }

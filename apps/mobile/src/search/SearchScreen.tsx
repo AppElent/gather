@@ -7,7 +7,9 @@
  * the keyboard dance and Dynamic Type are not.
  */
 
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
+import { STATUS_VALUES, WHEN_VALUES } from '@gather/core/search-filters'
+import { deviceTimeZone } from '@gather/core/time-zones'
 import {
   Stack,
   useIsFocused,
@@ -58,11 +60,10 @@ import {
   narrowed,
   type SearchFilters,
   type SearchModuleId,
-  STATUS_VALUES,
   searchKindOf,
   searchModulesShown,
+  serverFilters,
   typesFor,
-  WHEN_VALUES,
   withModule,
 } from './searchFilters'
 import { onSearchFocusRequest } from './searchFocus'
@@ -78,6 +79,7 @@ import {
   type SearchStack,
   toRecent,
 } from './searchResults'
+import { useGroupSearch } from './useGroupSearch'
 
 const MINIMUM_QUERY = 2
 const SKELETON_ROWS = 4
@@ -175,8 +177,8 @@ export function SearchScreen({
   const trimmed = text.trim()
   const ready = trimmed.length >= MINIMUM_QUERY
   const settled = debounced.trim() === trimmed
-  const results = useQuery(
-    api.search.group,
+  const today = todayIn(group.timeZone)
+  const results = useGroupSearch(
     ready && settled
       ? {
           groupSlug: group.slug,
@@ -185,7 +187,8 @@ export function SearchScreen({
           // Wines asks for wines, so beers and cheeses cannot take its 30 rows.
           kind: searchKindOf(filters.module) ?? undefined,
         }
-      : 'skip',
+      : null,
+    serverFilters(filters, today, group.timeZone ?? deviceTimeZone()),
   )
   const members = useQuery(api.groups.members, { slug: group.slug })
   const me = useQuery(api.users.me, {})
@@ -334,11 +337,21 @@ export function SearchScreen({
             <ModuleTile group={tile.group} glyph={tile.glyph} size="s" />
           ) : null}
           <View style={styles.rowText}>
-            <Text style={[styles.title, { color: tokens.ink }]}>
+            {/* A long title gets two lines, like the detail
+              under it, so rows stay close to one height (APP-941). */}
+            <Text
+              numberOfLines={2}
+              style={[styles.title, { color: tokens.ink }]}
+            >
               {record.title}
             </Text>
             {record.detail ? (
-              <Text style={[styles.detail, { color: tokens.muted }]}>
+              // A note's excerpt runs up to 200 characters (APP-828); two
+              // lines keep every row close to one height (APP-930).
+              <Text
+                numberOfLines={2}
+                style={[styles.detail, { color: tokens.muted }]}
+              >
                 {record.detail}
               </Text>
             ) : null}
@@ -356,8 +369,9 @@ export function SearchScreen({
       )
     })
 
-  const today = localIsoDate()
-  const filtered = shown ? applyFilters(shown, filters, today) : null
+  const filtered = shown
+    ? applyFilters(shown, filters, today, group.timeZone)
+    : null
   const found = filtered?.map((result) => ({
     result,
     record: toRecent(result, t),

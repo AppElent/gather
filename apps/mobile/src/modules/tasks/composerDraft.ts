@@ -18,15 +18,22 @@
  * - Removing a recognised chip leaves its words in the title: that is the
  *   parser's `dismissed`, which the line keeps.
  */
-import { addDays, mondayStart } from '@gather/core/civil-date'
 import type {
   QuickAdd,
   QuickAddKind,
   QuickAddPart,
 } from '@gather/core/task-quick-add'
-import { normalizeRepeat, type TaskRepeat } from '@gather/core/task-repeat'
+import { readRepeat } from '@gather/core/task-quick-add-line'
+import type { TaskRepeat } from '@gather/core/task-repeat'
 import { newSaveKey } from '../../ui/composer-drafts'
 import type { Priority } from './types'
+
+export {
+  dateShortcuts,
+  LINKED_KINDS,
+  parseOnly,
+  QUICK_REPEATS,
+} from '@gather/core/task-quick-add-line'
 
 /** A reminder's wall clock on this phone; the zone is added when it saves. */
 export interface ReminderPick {
@@ -70,6 +77,17 @@ export interface TaskDraft {
    * often it is sent, across a close and a reopen. A new draft has a new one.
    */
   saveKey: string
+}
+
+/** The composed task as a linked list's provider can hold it. */
+export function linkedTask(task: ComposedTask): ComposedTask {
+  const { title, dueDate, labels, priority } = task
+  return {
+    title,
+    labels,
+    ...(dueDate ? { dueDate } : {}),
+    ...(priority ? { priority } : {}),
+  }
 }
 
 /** The fields one new task is saved with. */
@@ -161,10 +179,18 @@ export function composedTask(draft: TaskDraft, parsed: QuickAdd): ComposedTask {
   const pick = <T>(choice: T | null | undefined, read: T | undefined) =>
     choice === null ? undefined : (choice ?? read)
   const dueDate = pick(choices.dueDate, parsed.dueDate)
-  // A typed time is a reminder on the task's day; a time alone is on the
-  // day the parser gave it.
+  // A typed time is a reminder on the task's day; a time alone uses its phone
+  // clock day (`parsed.reminderDate`) when the Group is a day ahead so the
+  // reminder still fires on the upcoming phone clock while the due date stays
+  // on the Group's today.
   const typedReminder = parsed.time
-    ? { date: dueDate ?? parsed.dueDate ?? '', time: parsed.time }
+    ? {
+        date:
+          choices.dueDate !== undefined
+            ? (dueDate ?? '')
+            : (parsed.reminderDate ?? dueDate ?? ''),
+        time: parsed.time,
+      }
     : undefined
   const reminder = pick(
     choices.reminder,
@@ -185,17 +211,6 @@ export function composedTask(draft: TaskDraft, parsed: QuickAdd): ComposedTask {
     ...(notes ? { notes } : {}),
     ...(reminder ? { reminder } : {}),
   }
-}
-
-/**
- * The repeat the line read, anchored on the task's own due date: a date
- * picked on the chip moves "every week" to that weekday and "every month" to
- * that day. What was typed stays as typed ("every Tuesday" is Tuesday).
- */
-function readRepeat(parsed: QuickAdd, dueDate: string | undefined) {
-  const typed = parsed.parts.find((part) => part.kind === 'repeat')
-  if (typed?.kind !== 'repeat' || !dueDate) return parsed.repeat
-  return normalizeRepeat(typed.repeat, dueDate) ?? parsed.repeat
 }
 
 /** A quick-add line on its own, as the Add tab and a list's row save it. */
@@ -260,20 +275,3 @@ export function afterLineChange(
 ): TaskChoices {
   return line === loadedLine ? choices : afterTyping(choices, before, parts)
 }
-
-/** The date menu's shortcuts: today, tomorrow, the weekend, next Monday. */
-export function dateShortcuts(today: string, weekend: string) {
-  return {
-    today,
-    tomorrow: addDays(today, 1),
-    weekend,
-    nextWeek: mondayStart(addDays(today, 7)),
-  }
-}
-
-/** The short repeats the Repeat menu offers before Custom…. */
-export const QUICK_REPEATS = {
-  day: { mode: 'fixed', unit: 'day', every: 1 },
-  week: { mode: 'fixed', unit: 'week', every: 1 },
-  month: { mode: 'fixed', unit: 'month', every: 1 },
-} as const satisfies Record<string, TaskRepeat>

@@ -1,12 +1,13 @@
+import { isIsoDate } from '@gather/core/civil-date'
 import type { ExternalProviderId } from '@gather/core/domain'
 import { aisleOrder, isDefaultAisleOrder } from '@gather/core/groceries'
 import { taskRefusal } from '@gather/core/refusals'
-import { ConvexError, v } from 'convex/values'
+import { ConvexError, type Infer, v } from 'convex/values'
 import { internal } from './_generated/api'
-import type { Id } from './_generated/dataModel'
-import type { MutationCtx } from './_generated/server'
+import type { Doc, Id } from './_generated/dataModel'
+import type { ActionCtx, MutationCtx } from './_generated/server'
 import { action, internalQuery, mutation, query } from './_generated/server'
-import { getGatedIdentity } from './lib/connectedApps'
+import { getGatedIdentity, isConnectedApp } from './lib/connectedApps'
 import {
   groceryTitleKey,
   isGroceryList,
@@ -16,9 +17,10 @@ import {
 import { groceryAisleValidator } from './lib/groceryFields'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { deleteTaskList } from './lib/groupCascade'
-import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
+import { createOnce, IDEMPOTENCY_KEY_REQUIRED, idempotencyKeyValidator } from './lib/idempotency'
 import { nextOrder } from './lib/order'
 import {
+  linkedTaskWriteValidator,
   providerConfigValidator,
   taskListColorValidator,
   taskListDisplayValidator,
@@ -26,8 +28,21 @@ import {
   taskListKindValidator,
   taskProviderValidator,
 } from './lib/taskFields'
+import {
+  type MatchedPeople,
+  membersOfPeople,
+  withAssignee,
+} from './lib/taskPeople'
 import { getAdapter } from './lib/taskProviders'
-import { ProviderAuthError, type UnifiedTask } from './lib/taskProviders/types'
+import {
+  ProviderAuthError,
+  ProviderTaskNotFoundError,
+  type SourceConfig,
+  type TaskProviderWriter,
+  type TaskUpdate,
+  type UnifiedTask,
+  type WriteOutcome,
+} from './lib/taskProviders/types'
 import {
   checkedSectionName,
   checkSectionCount,
@@ -69,12 +84,21 @@ export const list = query({
         aisleOrder: l.aisleOrder ?? null,
         // APP-311: whether the list's "Maybe needed" strip is switched off.
         suggestionsOff: l.suggestionsOff ?? false,
-        // Whether this list can be added to from Gather: only a local list
-        // has `tasks` rows, and no provider write path exists (ADR-0021).
+        // Whether this list's tasks are Gather's own rows, which the `tasks`
+        // mutations write. Installed phones write to every `writable` list
+        // through those, so a linked list stays false here whatever its
+        // provider can do; `capabilities` says that.
         // Callers that offer a list as somewhere to write — the baby log's
         // checklist cards, for one — need this before the person picks, not
         // after they try.
         writable: l.provider === 'local',
+        // APP-821: a linked task moves only between lists of one connection.
+        connectionId: l.providerConfig?.connectionId ?? null,
+        // APP-448: whether `taskLists.writeTask` can write to it (ADR-0021).
+        capabilities: {
+          write:
+            l.provider !== 'local' && getAdapter(l.provider).capabilities.write,
+        },
       }))
   },
 })
@@ -524,8 +548,58 @@ export const getList = internalQuery({
   },
 })
 
+/** The live Members of a list's Group, for matching; carries addresses. */
+export const matchableMembers = internalQuery({
+  args: { listId: v.id('taskLists'), groupSlug: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.listId,
+      'List not found',
+    )
+    const memberships = await ctx.db
+      .query('memberships')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const users = await Promise.all(
+      memberships.map((each) => ctx.db.get(each.userId)),
+    )
+    return users.flatMap((user) =>
+      user && !user.deletedAt ? [{ _id: user._id, email: user.email }] : [],
+    )
+  },
+})
+
+/** A linked list's people, and which Members they are. */
+async function peopleOf(
+  ctx: ActionCtx,
+  args: { listId: Id<'taskLists'>; groupSlug: string },
+  conn: Doc<'integrationConnections'>,
+  config: SourceConfig,
+): Promise<MatchedPeople | null> {
+  const source = await getAdapter(conn.provider).fetchPeople?.(
+    conn.accessToken,
+    config,
+  )
+  if (!source) return null
+  const members = await ctx.runQuery(internal.taskLists.matchableMembers, {
+    listId: args.listId,
+    groupSlug: args.groupSlug,
+  })
+  return { source, matched: membersOfPeople(source, members, conn.connectedBy) }
+}
+
 export type GetTasksResult =
-  | { status: 'ok'; tasks: UnifiedTask[] }
+  | {
+      status: 'ok'
+      tasks: UnifiedTask[]
+      /**
+       * Whom a linked list's tasks can be given to (APP-405); absent when its
+       * provider has nobody, or could not be asked.
+       */
+      assignable?: { shared: boolean; memberIds: Id<'users'>[] }
+    }
   | { status: 'reconnect'; provider: ExternalProviderId }
   | { status: 'error'; message: string }
 
@@ -572,11 +646,23 @@ export const getTasks = action({
     })
     if (!conn) return { status: 'reconnect', provider: list.provider }
     try {
-      const tasks = await getAdapter(list.provider).fetchTasks(
-        conn.accessToken,
-        config,
-      )
-      return { status: 'ok', tasks }
+      const [tasks, people] = await Promise.all([
+        getAdapter(list.provider).fetchTasks(conn.accessToken, config),
+        // Not knowing who is in it does not keep the list from loading.
+        peopleOf(ctx, args, conn, config).catch(() => null),
+      ])
+      return {
+        status: 'ok',
+        tasks: tasks.map((task) => withAssignee(task, people)),
+        ...(people
+          ? {
+              assignable: {
+                shared: people.source.shared,
+                memberIds: [...new Set(people.matched.values())],
+              },
+            }
+          : {}),
+      }
     } catch (error) {
       if (error instanceof ProviderAuthError) {
         return { status: 'reconnect', provider: list.provider }
@@ -584,6 +670,183 @@ export const getTasks = action({
       return {
         status: 'error',
         message: `Could not load tasks from ${list.provider} — try refreshing`,
+      }
+    }
+  },
+})
+
+export type LinkedTaskWrite = Infer<typeof linkedTaskWriteValidator>
+
+export type WriteTaskResult =
+  | ({ status: 'ok' } & WriteOutcome)
+  | { status: 'reconnect'; provider: ExternalProviderId }
+  | { status: 'error'; reason: 'not-found' | 'not-assignable' | 'failed' }
+
+const MAX_TITLE = 500
+const REQUEST_KEY = /^[\w-]{1,64}$/
+
+/** A write as the provider may be sent it; throws on one that makes no sense. */
+function checkedWrite(write: LinkedTaskWrite): LinkedTaskWrite {
+  if (write.kind === 'create' || write.kind === 'update') {
+    if (write.dueDate != null && !isIsoDate(write.dueDate)) {
+      throw new ConvexError('Date must be YYYY-MM-DD')
+    }
+    if (write.title !== undefined) {
+      const title = write.title.trim()
+      if (!title || title.length > MAX_TITLE) {
+        throw new ConvexError('A task needs a title of at most 500 characters')
+      }
+      return { ...write, title }
+    }
+  }
+  if (write.kind === 'move' && write.parentId === write.taskId) {
+    throw new ConvexError('A task cannot be its own subtask')
+  }
+  return write
+}
+
+function runWrite(
+  writer: TaskProviderWriter,
+  accessToken: string,
+  config: SourceConfig,
+  write: LinkedTaskWrite,
+  responsibleId: TaskUpdate['responsibleId'],
+  target: SourceConfig | undefined,
+): Promise<WriteOutcome> {
+  switch (write.kind) {
+    case 'create': {
+      const { kind: _, requestKey, ...task } = write
+      return writer.createTask(accessToken, config, {
+        ...task,
+        ...(requestKey && REQUEST_KEY.test(requestKey) ? { requestKey } : {}),
+      })
+    }
+    case 'update': {
+      const { kind: _, taskId, assigneeId: __, ...changes } = write
+      return writer.updateTask(accessToken, config, taskId, {
+        ...changes,
+        ...(responsibleId === undefined ? {} : { responsibleId }),
+      })
+    }
+    case 'setDone':
+      return write.done
+        ? writer.closeTask(accessToken, config, write.taskId, {
+            withSubtasks: write.withSubtasks ?? false,
+            ...(write.requestKey && REQUEST_KEY.test(write.requestKey)
+              ? { requestKey: write.requestKey }
+              : {}),
+          })
+        : writer.reopenTask(accessToken, config, write.taskId)
+    case 'move':
+      return writer.moveTask(accessToken, config, write.taskId, write.parentId)
+    case 'moveToList':
+      if (!target) throw new ConvexError(taskRefusal('read-only'))
+      return writer.moveToSource(accessToken, config, write.taskId, target)
+  }
+}
+
+/**
+ * One write to a linked list, made in its provider first (ADR-0020): Gather
+ * stores none of it, and answers `ok` only once the provider accepted it.
+ * Local lists are written by the `tasks` mutations, and a provider without a
+ * write path is refused.
+ */
+export const writeTask = action({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    write: linkedTaskWriteValidator,
+  },
+  handler: async (ctx, args): Promise<WriteTaskResult> => {
+    await getGatedIdentity(ctx)
+    const list = await ctx.runQuery(internal.taskLists.getList, {
+      listId: args.listId,
+      groupSlug: args.groupSlug,
+    })
+    const writer =
+      list.provider === 'local' ? undefined : getAdapter(list.provider).writer
+    if (list.provider === 'local' || !writer) {
+      throw new ConvexError(taskRefusal('read-only'))
+    }
+    const write = checkedWrite(args.write)
+    // A connected app retries, so its create must carry a key (ADR-0046).
+    if (
+      write.kind === 'create' &&
+      !REQUEST_KEY.test(write.requestKey ?? '') &&
+      (await isConnectedApp(ctx))
+    ) {
+      throw new ConvexError(IDEMPOTENCY_KEY_REQUIRED)
+    }
+    const config = list.providerConfig
+    if (!config) return { status: 'error', reason: 'failed' }
+    let target: SourceConfig | undefined
+    if (write.kind === 'moveToList') {
+      // In this Group, and of this very connection: a task stays in its source.
+      const to = await ctx.runQuery(internal.taskLists.getList, {
+        listId: write.listId,
+        groupSlug: args.groupSlug,
+      })
+      if (
+        to.provider !== list.provider ||
+        to.providerConfig?.connectionId !== config.connectionId
+      ) {
+        throw new ConvexError(taskRefusal('read-only'))
+      }
+      target = to.providerConfig
+    }
+    const conn = await ctx.runQuery(internal.integrations.getConnection, {
+      connectionId: config.connectionId,
+    })
+    if (!conn) return { status: 'reconnect', provider: list.provider }
+    try {
+      let people: Awaited<ReturnType<typeof peopleOf>> | undefined
+      let responsibleId: string | null | undefined
+      if (write.kind === 'update' && write.assigneeId !== undefined) {
+        responsibleId = null
+        if (write.assigneeId !== null) {
+          people = await peopleOf(ctx, args, conn, config)
+          responsibleId = [...(people?.matched ?? [])].find(
+            ([, memberId]) => memberId === write.assigneeId,
+          )?.[0]
+          if (!responsibleId) {
+            return { status: 'error', reason: 'not-assignable' }
+          }
+        }
+      }
+      const outcome = await runWrite(
+        writer,
+        conn.accessToken,
+        config,
+        write,
+        responsibleId,
+        target,
+      )
+      // A moved row is not held by the list it left, so nobody reads its people.
+      if (
+        write.kind !== 'moveToList' &&
+        outcome.tasks.some((task) => task.responsibleId) &&
+        !people
+      ) {
+        try {
+          people = await peopleOf(ctx, args, conn, config)
+        } catch {
+          // The write landed, so what fails from here only asks for a refresh.
+          outcome.refresh = true
+        }
+      }
+      return {
+        status: 'ok',
+        refresh: outcome.refresh,
+        tasks: outcome.tasks.map((task) => withAssignee(task, people)),
+      }
+    } catch (error) {
+      if (error instanceof ProviderAuthError) {
+        return { status: 'reconnect', provider: list.provider }
+      }
+      return {
+        status: 'error',
+        reason:
+          error instanceof ProviderTaskNotFoundError ? 'not-found' : 'failed',
       }
     }
   },

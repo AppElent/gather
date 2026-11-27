@@ -1,3 +1,4 @@
+import { NOTE_MAX_CHARS } from '@gather/core/notes'
 import { ConvexError } from 'convex/values'
 import { z } from 'zod'
 import { api } from '../../../../convex/_generated/api'
@@ -11,8 +12,18 @@ import {
 } from './define'
 import { groupId, idempotencyKey } from './shared'
 
+/** Shortest query `notes.searchNotes` searches for; shorter reads as no match. */
+const MIN_QUERY = 2
+
 const title = z.string().min(1).max(200)
-const body = z.string().max(20_000).describe('Plain text or Markdown')
+// The cap is advertised, not enforced here: Convex counts title and body
+// together and is the one that refuses, with `notes:too-long` (APP-827).
+const body = z
+  .string()
+  .meta({ maxLength: NOTE_MAX_CHARS })
+  .describe(
+    `Plain text or Markdown. Title and body together hold at most ${NOTE_MAX_CHARS} characters.`,
+  )
 
 function publicNote(note: {
   _id: string
@@ -38,7 +49,11 @@ function isInvalidCursor(error: unknown) {
     (error instanceof ConvexError &&
       (error.data as { paginationError?: unknown } | null)?.paginationError ===
         'InvalidCursor') ||
-    (error instanceof Error && error.message.includes('InvalidCursor'))
+    // The older shape: the message is the error's name, "InvalidCursor: ...",
+    // possibly after a prefix line. A message that only mentions the word is
+    // some other failure.
+    (error instanceof Error &&
+      /(?:^|\n|Error: )InvalidCursor: /.test(error.message))
   )
 }
 
@@ -71,6 +86,10 @@ export const noteTools = [
       const slug = await groupSlug(context, groupId)
       const text = query?.trim()
       if (text) {
+        if (text.length < MIN_QUERY)
+          throw new ToolInputError(
+            `The query must be at least ${MIN_QUERY} characters. Use more of the word, or leave the query out to list notes.`,
+          )
         const found = await context.backend.query(api.notes.searchNotes, {
           groupSlug: slug,
           query: text,

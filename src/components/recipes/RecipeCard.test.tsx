@@ -20,10 +20,15 @@ test('grid mode shows title, stars, tags, and photo', () => {
   )
 })
 
-test('recipes without a photo render the recipe glyph, not a broken image', () => {
-  render(<RecipeCard recipe={{ ...recipe, imageUrl: null }} mode="grid" />)
+test('recipes without a photo render the Kitchen tile, not a broken image', () => {
+  const { container } = render(
+    <RecipeCard recipe={{ ...recipe, imageUrl: null }} mode="grid" />,
+  )
   expect(screen.queryByRole('img')).not.toBeInTheDocument()
-  expect(screen.getByText('🍲')).toBeInTheDocument()
+  expect(container.querySelector('[data-tile]')).toHaveAttribute(
+    'data-group',
+    'kitchen',
+  )
 })
 
 test('compact mode renders the same content in a row layout', () => {

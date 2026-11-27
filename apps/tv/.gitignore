@@ -1,0 +1,12 @@
+node_modules/
+.expo/
+dist/
+expo-env.d.ts
+.DS_Store
+.env*.local
+*.tsbuildinfo
+
+# generated native folder
+/ios
+
+.agent-device/

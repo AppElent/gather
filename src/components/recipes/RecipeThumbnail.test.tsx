@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { expect, test } from 'vitest'
 import { RecipeThumbnail } from './RecipeThumbnail'
 
@@ -11,13 +11,15 @@ test('a photograph is the photograph', () => {
     'src',
     'https://example.test/stamppot.jpg',
   )
-  expect(screen.queryByText('🍲')).toBeNull()
+  expect(container.querySelector('[data-tile]')).toBeNull()
 })
 
-test('no photograph, or a query that came back empty, is the recipe glyph', () => {
-  const { rerender } = render(<RecipeThumbnail />)
-  expect(screen.getByText('🍲')).toBeDefined()
+test('no photograph, or a query that came back empty, is the Kitchen tile, never a placeholder picture', () => {
+  const { container, rerender } = render(<RecipeThumbnail />)
+  const tile = () => container.querySelector('[data-tile]')
+  expect(tile()).toHaveAttribute('data-group', 'kitchen')
+  expect(container.querySelector('img')).toBeNull()
 
   rerender(<RecipeThumbnail src={null} />)
-  expect(screen.getByText('🍲')).toBeDefined()
+  expect(tile()).toHaveAttribute('data-group', 'kitchen')
 })

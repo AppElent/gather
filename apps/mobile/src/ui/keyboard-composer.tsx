@@ -27,7 +27,7 @@
  *   wheel or calendar, drags by its top band, because those scroll too. What counts as a drag is
  *   `composer-gestures.ts`.
  * - **The card closes; the draft stays.** Every way out (scrim, swipe down,
- *   Android Back, a share from another app) is `onClose`, and the kind keeps what was typed
+ *   Android Back, a share or link from another app) is `onClose`, and the kind keeps what was typed
  *   (`composer-drafts.ts`). Nothing asks to confirm.
  */
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
@@ -43,6 +43,7 @@ import {
   ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
+  type KeyboardEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -258,7 +259,7 @@ function ComposerCard({
     // Drawn on this render when it was hidden; focused once it is there.
     requestAnimationFrame(() => bodyRef.current?.focus())
   }
-  const keyboardUp = useKeyboardUp()
+  const keyboard = useKeyboard()
   const drag = useSharedValue(0)
 
   const toggle = (next = !expanded) => {
@@ -412,7 +413,7 @@ function ComposerCard({
           <GestureDetector gesture={cardPan}>
           <Animated.View
             testID={testID}
-            layout={LinearTransition.duration(220)}
+            layout={cardLayout(keyboard.moving)}
             onLayout={(event) => {
               heights.current[expanded ? 'expanded' : 'small'] =
                 event.nativeEvent.layout.height
@@ -422,7 +423,7 @@ function ComposerCard({
               expanded && styles.expanded,
               {
                 backgroundColor: tokens.surface,
-                marginBottom: SPACE[2] + (keyboardUp ? 0 : insets.bottom),
+                marginBottom: SPACE[2] + (keyboard.up ? 0 : insets.bottom),
               },
               dragStyle,
             ]}
@@ -642,25 +643,60 @@ export function ComposerAddButton({
 /** The room a screen leaves under its content so the add button covers nothing. */
 export const ADD_BUTTON_CLEARANCE = 60 + SPACE[4] + SPACE[2]
 
-/** Whether the keyboard is up, from the events that move it. */
-function useKeyboardUp(): boolean {
+/** How the card moves when its own content changes its size. */
+const CARD_TRANSITION = LinearTransition.duration(220)
+
+/** The card's `layout`: none while the keyboard moves, see `useKeyboard`. */
+function cardLayout(moving: boolean) {
+  return moving ? undefined : CARD_TRANSITION
+}
+
+/** Past the keyboard's own duration, so its animation is over when this ends. */
+const KEYBOARD_MOVED_MS = 100
+
+/**
+ * Whether the keyboard is up, and whether it is moving, from the events that
+ * move it.
+ *
+ * While it moves, `KeyboardAvoidingView` animates the card with React Native's
+ * `LayoutAnimation`. A card that also has a Reanimated `layout` crashes the app
+ * when it is closed in that time: React Native sends the card's last frame and
+ * its removal in one transaction, and Reanimated starts a layout animation for
+ * a view that is already gone ("Parent node is nullptr", APP-774). So the card
+ * has no `layout` while `moving`.
+ */
+export function useKeyboard(): { up: boolean; moving: boolean } {
   const [up, setUp] = useState(Keyboard.isVisible())
+  const [moving, setMoving] = useState(false)
   useEffect(() => {
     const ios = Platform.OS === 'ios'
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const move = (next: boolean) => (event: KeyboardEvent) => {
+      setUp(next)
+      // Android resizes the window; nothing else animates the card there.
+      if (!ios) return
+      setMoving(true)
+      clearTimeout(timer)
+      timer = setTimeout(
+        () => setMoving(false),
+        event.duration + KEYBOARD_MOVED_MS,
+      )
+    }
     const show = Keyboard.addListener(
       ios ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => setUp(true),
+      move(true),
     )
     const hide = Keyboard.addListener(
       ios ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => setUp(false),
+      move(false),
     )
     return () => {
+      clearTimeout(timer)
       show.remove()
       hide.remove()
     }
   }, [])
-  return up
+  return { up, moving }
 }
 
 const styles = StyleSheet.create({

@@ -58,7 +58,11 @@ export function Checklist({
       <InsetList>
         {active.map(row)}
         {writable ? (
-          <TaskComposer listId={listId} placeholder={addLabel} />
+          <TaskComposer
+            listId={listId}
+            placeholder={addLabel}
+            linked={list !== undefined && list.provider !== 'local'}
+          />
         ) : (
           <View style={styles.readOnly}>
             <Text style={[styles.readOnlyText, { color: tokens.muted }]}>
@@ -82,7 +86,7 @@ export function Checklist({
         </Text>
       ) : null}
 
-      {list?.sync === 'live' && tasks.length === 0 && writable ? (
+      {(list?.sync === 'live' || list?.sync === 'synced') && tasks.length === 0 && writable ? (
         <Text style={[styles.note, { color: tokens.muted }]}>{emptyLabel}</Text>
       ) : null}
     </View>

@@ -4,8 +4,7 @@ import { DEFAULT_PINS } from '@gather/core/pins'
 import { describe, expect, test } from 'vitest'
 import {
   activeNavItemId,
-  DOCK_SLOTS,
-  dockNavItems,
+  activeTab,
   getRouteContext,
   getRouteGroup,
   jumpTargets,
@@ -15,8 +14,8 @@ import {
 
 /**
  * The navigation, tested where it lives: one list, and one answer about which
- * item a route belongs to. The sidebar and the dock render it, so nothing here
- * needs to render anything.
+ * item a route belongs to. The sidebar and the tab bar render it, so nothing
+ * here needs to render anything.
  */
 
 function ids(pins: readonly string[] | undefined) {
@@ -46,44 +45,29 @@ describe('the navigation list', () => {
   })
 
   test('marks a Module that is not built yet', () => {
-    const items = navItems(['recipes', 'notes'], en)
-    expect(items.find((i) => i.id === 'notes')?.placeholder).toBe(true)
+    const items = navItems(['recipes', 'savings-goals'], en)
+    expect(items.find((i) => i.id === 'savings-goals')?.placeholder).toBe(true)
     expect(items.find((i) => i.id === 'recipes')?.placeholder).toBe(false)
   })
 })
 
-describe('the mobile dock', () => {
-  test('shows the whole list when it fits', () => {
-    const items = navItems(['recipes', 'tasks'], en)
-    expect(dockNavItems(items).map((i) => i.id)).toEqual([
-      'home',
-      'recipes',
-      'tasks',
-      'all',
-    ])
+describe('the phone-width tab bar', () => {
+  test('lights Start on Start and Settings on your Settings', () => {
+    expect(activeTab('/home')).toBe('home')
+    expect(activeTab('/settings')).toBe('settings')
   })
 
-  test('keeps Home and All at the ends and drops the overflowing pins', () => {
-    const items = navItems(
-      ['recipes', 'tasks', 'meal-planner', 'baby-log', 'wines'],
-      en,
-    )
-    const shown = dockNavItems(items)
-    expect(shown).toHaveLength(DOCK_SLOTS)
-    expect(shown.map((i) => i.id)).toEqual([
-      'home',
-      'recipes',
-      'tasks',
-      'meal-planner',
-      'all',
-    ])
+  test('puts every Module page under All, pinned or not, as the phone does', () => {
+    expect(activeTab('/all')).toBe('all')
+    expect(activeTab('/tasks')).toBe('all')
+    expect(activeTab('/recipes/r1/edit')).toBe('all')
+    expect(activeTab('/baby')).toBe('all')
   })
 
-  test('copes with someone who has pinned nothing', () => {
-    expect(dockNavItems(navItems([], en)).map((i) => i.id)).toEqual([
-      'home',
-      'all',
-    ])
+  test('lights nothing on a page that is no tab', () => {
+    expect(activeTab('/groups')).toBeNull()
+    expect(activeTab('/account')).toBeNull()
+    expect(activeTab('/group-settings')).toBeNull()
   })
 })
 
@@ -137,48 +121,11 @@ describe('which item is active', () => {
     expect(new Set(labels).size).toBe(labels.length)
   })
 
-  /**
-   * The criterion in full. Both surfaces ask `activeNavItemId` about the same
-   * full list, so the answer is the same by construction; what has to be shown
-   * is that the dock can still display the item they agreed on after cutting
-   * the list down.
-   */
-  test('is an item the dock still shows, however many pins there are', () => {
-    const many = navItems(
-      ['recipes', 'tasks', 'meal-planner', 'baby-log', 'wines'],
-      en,
-    )
-    const paths = [
-      '/home',
-      '/all',
-      '/recipes',
-      '/recipes/r1',
-      '/tasks',
-      '/meal-planner',
-      // Pinned fifth, so it is past where the dock runs out of room.
-      '/baby',
-      '/settings',
-    ]
-    for (const path of paths) {
-      const active = activeNavItemId(path, many)
-      const shown = dockNavItems(many, active).map((i) => i.id)
-      expect(shown).toHaveLength(DOCK_SLOTS)
-      if (active) expect(shown).toContain(active)
-    }
-  })
-
-  test('keeps the active pin in the dock in place of one that fits', () => {
-    const many = navItems(
-      ['recipes', 'tasks', 'meal-planner', 'baby-log', 'wines'],
-      en,
-    )
-    expect(dockNavItems(many, 'baby-log').map((i) => i.id)).toEqual([
-      'home',
-      'recipes',
-      'tasks',
-      'baby-log',
-      'all',
-    ])
+  test('carries the Module’s group for its tile, and none for Home and All', () => {
+    expect(items.find((i) => i.id === 'recipes')?.group).toBe('kitchen')
+    expect(items.find((i) => i.id === 'tasks')?.group).toBe('home')
+    expect(items.find((i) => i.id === 'home')?.group).toBeUndefined()
+    expect(items.find((i) => i.id === 'all')?.group).toBeUndefined()
   })
 })
 
@@ -238,7 +185,7 @@ describe('where the jump-to palette can send you', () => {
   })
 })
 
-describe('the route context the topbar shows', () => {
+describe('the route context Ask Gather is given', () => {
   test('names the Group surfaces', () => {
     expect(getRouteContext('/home', en).title).toBe('Home')
     expect(getRouteContext('/all', en).title).toBe('All modules')

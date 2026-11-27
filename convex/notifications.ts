@@ -44,7 +44,9 @@ import {
   notify as notifyNow,
   schedule as scheduleSend,
 } from './lib/notifications'
+import { INVALID_SESSION_ID, isSessionId } from './lib/sessions'
 import { getCurrentUser, requireCurrentUser } from './lib/sharing'
+import { deleteWatchDevices } from './lib/watchDevices'
 
 /** Phones one person may register; the least recently seen goes first. */
 export const MAX_DEVICES = 10
@@ -52,15 +54,8 @@ export const MAX_DEVICES = 10
 /** The refusal for a token that is not an Expo push token. */
 export const INVALID_PUSH_TOKEN = 'Not an Expo push token'
 
-/** The refusal for something that is not a Clerk session id. */
-export const INVALID_SESSION_ID = 'Not a session id'
-
 /** A row this recent outlives a session list that may predate it. */
 export const SESSION_GRACE_MS = 10 * 60 * 1000
-
-function isSessionId(value: string) {
-  return /^sess_[A-Za-z0-9]{1,64}$/.test(value)
-}
 
 const EXPO_SEND = 'https://exp.host/--/api/v2/push/send'
 const EXPO_RECEIPTS = 'https://exp.host/--/api/v2/push/getReceipts'
@@ -214,6 +209,15 @@ export const forgetEndedSessions = mutation({
         (ended.has(row.sessionId) || row.updatedAt < settled)
       )
         await ctx.db.delete(row._id)
+    // The watches those phones paired lose their keys the same way (APP-653).
+    await deleteWatchDevices(
+      ctx,
+      user._id,
+      (watch) =>
+        watch.sessionId !== undefined &&
+        !active.has(watch.sessionId) &&
+        (ended.has(watch.sessionId) || watch.createdAt < settled),
+    )
     return null
   },
 })

@@ -4,18 +4,18 @@ import {
   type CalendarView,
   filterCalendarEvents,
 } from '@gather/core/calendar'
+import {
+  applySourceReport,
+  calendarSourceKey,
+  isMonthLoaded,
+  mergeSourceEvents,
+} from '@gather/core/calendar-sources'
 import { addMonths, monthStart } from '@gather/core/civil-date'
 import { useCallback, useMemo, useState } from 'react'
 import { api } from '../../convex/api'
 import { usePaginatedQuery, useQuery } from '../../convex/queries'
 
 import type { CalendarScreenData } from './CalendarScreen'
-import {
-  applySourceReport,
-  calendarSourceKey,
-  isMonthLoaded,
-  mergeSourceEvents,
-} from './calendarSources'
 
 export interface CalendarConnectedData extends CalendarScreenData {
   view: CalendarView

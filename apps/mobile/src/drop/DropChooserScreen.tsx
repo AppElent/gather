@@ -35,9 +35,10 @@
  * navigates, and a failure never leaves this screen at all.
  */
 import { moduleById } from '@gather/core/modules'
+import { noteRefusalSentence } from '@gather/core/refusals'
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -68,7 +69,7 @@ import {
   targetsForDrop,
 } from './dropTargets'
 import { dropPickHref } from './paths'
-import { type DropProblem, useDropCommit } from './useDropCommit'
+import { useDropCommit } from './useDropCommit'
 
 export function DropChooserScreen() {
   const tokens = useTokens()
@@ -91,18 +92,35 @@ export function DropChooserScreen() {
   const [saveGroup, setSaveGroup] = useState(group._id)
   const [naming, setNaming] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [problem, setProblem] = useState<DropProblem | 'failed' | null>(null)
+  const [problem, setProblem] = useState<string | null>(null)
 
   const drop = pending?.drop ?? null
 
   // A chooser with nothing to choose for is not a screen — unless the address
-  // carried a payload, which is the harness above. Reached otherwise by
-  // dismissing the Drop, or by returning here after it was answered.
+  // carried a payload, which is the harness above. A newer harness link also
+  // replaces a Drop that is already pending (APP-840), without re-offering the
+  // same seed after it was cleared or double-offering in Strict Mode.
+  const seeded = useRef<{ key: string; delivered: boolean } | null>(null)
   useEffect(() => {
-    if (drop) return
-    const seeded = dropFromLink({ url: seedUrl, text: seedText })
-    if (seeded) offer(seeded)
-    else router.replace('/home')
+    const next = dropFromLink({ url: seedUrl, text: seedText })
+    if (!next) {
+      seeded.current = null
+      // Back to the tabs underneath: replacing this screen would stack a second
+      // tabs layout over them, which `<scheme>://quick` then opens behind (APP-775).
+      if (!drop) router.dismissTo('/home')
+      return
+    }
+    const key = `${seedUrl ?? ''}\0${seedText ?? ''}`
+    if (seeded.current?.key !== key) {
+      seeded.current = { key, delivered: false }
+      offer(next)
+      return
+    }
+    if (drop) {
+      seeded.current.delivered = true
+      return
+    }
+    if (seeded.current.delivered) router.dismissTo('/home')
     // Destructured rather than depending on the params object, which
     // `useLocalSearchParams` rebuilds every render.
   }, [drop, offer, router, seedUrl, seedText])
@@ -144,7 +162,7 @@ export function DropChooserScreen() {
       }
       if (!result.ok) {
         haptics.actionFailed()
-        setProblem(result.problem)
+        setProblem(text.problems[result.problem])
         return
       }
 
@@ -163,9 +181,11 @@ export function DropChooserScreen() {
         router.dismissTo('/home')
         router.push(href)
       })
-    } catch {
+    } catch (error) {
       haptics.actionFailed()
-      setProblem('failed')
+      setProblem(
+        noteRefusalSentence(error, t.notes.refusals) ?? text.failed,
+      )
     } finally {
       setSaving(false)
     }
@@ -225,7 +245,7 @@ export function DropChooserScreen() {
 
             {problem ? (
               <Text style={[styles.problem, { color: tokens.danger }]}>
-                {problem === 'failed' ? text.failed : text.problems[problem]}
+                {problem}
               </Text>
             ) : null}
 

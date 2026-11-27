@@ -66,6 +66,7 @@ export function useBabyLog() {
   return {
     groupSlug,
     groupName: group.name,
+    timeZone: group.timeZone,
     /** `undefined` while loading, `[]` when this Group has no Child yet. */
     children,
     child,

@@ -1,7 +1,8 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { beforeEach, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { renderWithI18n } from '../../lib/i18n/testing'
+import { stubImagePipeline } from '../photo/testing'
 import { MultiEventForm } from './MultiEventForm'
 
 const add = vi.fn()
@@ -18,11 +19,17 @@ beforeEach(() => {
   window.localStorage.clear()
 })
 
-function renderForm(onDone = vi.fn()) {
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
+
+function renderForm(onDone = vi.fn(), timeZone?: string) {
   return renderWithI18n(
     <MultiEventForm
       babyId={babyId}
       groupSlug="jansen-household"
+      timeZone={timeZone}
       onDone={onDone}
       onCancel={vi.fn()}
     />,
@@ -52,6 +59,23 @@ test('saves one entry per checked type, all at the same timestamp', async () => 
   // that Group rather than against every Group the caller is in.
   expect(calls.every((c) => c.groupSlug === 'jansen-household')).toBe(true)
   await waitFor(() => expect(onDone).toHaveBeenCalled())
+})
+
+test("displays and saves the shared time in the Group's time zone", async () => {
+  const now = Date.UTC(2026, 0, 15, 0, 0) // 09:00 in Asia/Tokyo
+  vi.spyOn(Date, 'now').mockReturnValue(now)
+  const { container } = renderForm(vi.fn(), 'Asia/Tokyo')
+
+  const date = container.querySelector<HTMLInputElement>('input[type="date"]')
+  const time = container.querySelector<HTMLInputElement>('input[type="time"]')
+  expect(date?.value).toBe('2026-01-15')
+  expect(time?.value).toBe('09:00')
+
+  fireEvent.change(time as HTMLInputElement, { target: { value: '10:30' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save 3 entries' }))
+
+  await waitFor(() => expect(add).toHaveBeenCalledTimes(3))
+  expect(add.mock.calls[0][0].timestamp).toBe(Date.UTC(2026, 0, 15, 1, 30))
 })
 
 test('unchecking a type drops its block and its entry', async () => {
@@ -110,4 +134,46 @@ test('a failed save keeps the unsaved entries on screen', async () => {
   // Temperature saved, so only feeding and diaper are still pending.
   expect(screen.queryByText('Temperature (°C)')).toBeNull()
   expect(screen.getByRole('button', { name: 'Save 2 entries' })).toBeDefined()
+})
+
+async function addMemoryWithPhoto() {
+  stubImagePipeline()
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: true, json: async () => ({ storageId: 'p1' }) })),
+  )
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Memory' }))
+  fireEvent.change(screen.getByLabelText('What happened'), {
+    target: { value: 'First laugh' },
+  })
+  fireEvent.change(screen.getByLabelText('Photo'), {
+    target: { files: [new File(['x'], 'a.jpg', { type: 'image/jpeg' })] },
+  })
+  fireEvent.click(await screen.findByRole('button', { name: 'Use photo' }))
+  await screen.findByRole('button', { name: 'Remove photo' })
+}
+
+const savedMemory = () =>
+  add.mock.calls.map(([args]) => args).find((c) => c?.type === 'memory')
+
+test('a Memory among several entries carries its photo, and only it', async () => {
+  renderForm()
+  await addMemoryWithPhoto()
+  fireEvent.click(screen.getByRole('button', { name: 'Save 4 entries' }))
+
+  await waitFor(() => expect(savedMemory()?.photoId).toBe('p1'))
+  const others = add.mock.calls.filter(([args]) => args?.type && args.type !== 'memory')
+  expect(others.every(([args]) => args.photoId === undefined)).toBe(true)
+})
+
+test('unticking a Memory drops its photo', async () => {
+  renderForm()
+  await addMemoryWithPhoto()
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Memory' }))
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Memory' }))
+  expect(screen.queryByRole('button', { name: 'Remove photo' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Save 4 entries' }))
+
+  await waitFor(() => expect(savedMemory()).toBeDefined())
+  expect(savedMemory().photoId).toBeUndefined()
 })

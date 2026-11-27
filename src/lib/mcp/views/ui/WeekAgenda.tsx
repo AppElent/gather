@@ -1,6 +1,7 @@
+import { mondayStart, todayIn } from '@gather/core/civil-date'
 import { useState } from 'react'
 import type { AgendaEvent, WeekAgendaResult } from '../types'
-import { localToday, type ViewText } from './i18n'
+import type { ViewText } from './i18n'
 import type { ViewProps } from './ViewRoot'
 
 function time(event: AgendaEvent, text: ViewText) {
@@ -29,8 +30,9 @@ export function WeekAgenda({
       setBusy(false)
     }
   }
-  // The viewer's day, not the server's UTC one.
-  const today = localToday()
+  // Worked out here, not read from `result.today`, so a view left open turns.
+  const today = todayIn(result.timeZone)
+  const isCurrentWeek = mondayStart(today) === result.weekStart
   const total = result.days.reduce((sum, day) => sum + day.events.length, 0)
   return (
     <section aria-busy={busy}>
@@ -43,7 +45,7 @@ export function WeekAgenda({
             })}
           </h2>
           <p className="muted small">
-            {result.isCurrentWeek ? `${t.agenda.thisWeek} · ` : ''}
+            {isCurrentWeek ? `${t.agenda.thisWeek} · ` : ''}
             {text.plural(total, t.agenda.count)}
           </p>
         </div>

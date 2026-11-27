@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
+import { EXCERPT_MAX, noteSearchText } from './lib/noteSearch'
 
 const alice = {
   subject: 'notes_alice',
@@ -220,11 +221,95 @@ describe('searching notes', () => {
     })
   })
 
-  test('earlier words match whole; only the last is completed', async () => {
+  test('a note of one long line answers its body once, with a short excerpt', async () => {
+    const { t } = await seed()
+    const body = `boiler ${'x'.repeat(50_000)}`
+    await addNote(t, 'Manual', body)
+    const [found] = await t.withIdentity(alice).query(api.notes.searchNotes, {
+      groupSlug: 'notes-first',
+      query: 'boiler',
+    })
+    expect(found?.body).toBe(body)
+    expect(found?.excerpt).toBe(`${body.slice(0, EXCERPT_MAX)}…`)
+    expect(found?.excerpt.startsWith('boiler x')).toBe(true)
+  })
+
+  test('a word is found inside a longer one, whole words and prefixes first', async () => {
     const { t } = await seed()
     await addNote(t, 'Boilerplate manual')
     await addNote(t, 'Boiler manual')
-    expect(await titles(t, 'boiler manu')).toEqual(['Boiler manual'])
+    expect(await titles(t, 'boiler manu')).toEqual([
+      'Boiler manual',
+      'Boilerplate manual',
+    ])
+    await addNote(t, 'Wijnkaart', 'rood')
+    await addNote(t, 'Kaart', 'wijn')
+    await addNote(t, 'Lunch', 'de wijnkaart van Piet')
+    expect(await titles(t, 'kaart')).toEqual(
+      expect.arrayContaining(['Wijnkaart', 'Kaart', 'Lunch']),
+    )
+    expect((await titles(t, 'kaart'))[0]).toBe('Kaart')
+    expect(await titles(t, 'wijn kaart')).toEqual(
+      expect.arrayContaining(['Wijnkaart', 'Kaart', 'Lunch']),
+    )
+    expect(await titles(t, 'kaart rood')).toEqual(['Wijnkaart'])
+  })
+
+  test('finds words with combining marks whole, in Thai and Hindi', async () => {
+    const { t } = await seed()
+    await addNote(t, 'Talen', 'Zij spreekt ภาษาไทย en हिन्दी')
+    await addNote(t, 'Other', 'nothing here')
+    expect(await titles(t, 'ภาษาไทย')).toEqual(['Talen'])
+    expect(await titles(t, 'हिन्दी')).toEqual(['Talen'])
+    expect(await titles(t, 'spreekt हिन्दी')).toEqual(['Talen'])
+  })
+
+  test('finds long words, words past the sixteenth and symbol-only searches', async () => {
+    const { t } = await seed()
+    const long = 'x'.repeat(40)
+    await addNote(t, 'Long', `see ${long}`)
+    await addNote(t, 'Smile', 'a 😀 b')
+    await addNote(t, 'Dash', 'a -- b')
+    expect(await titles(t, long)).toEqual(['Long'])
+    expect(await titles(t, `see ${long.slice(5)}`)).toEqual(['Long'])
+    expect(await titles(t, '😀')).toEqual(['Smile'])
+    expect(await titles(t, '--')).toEqual(['Dash'])
+    await addNote(t, 'Many', 'a1 a2 a3 a4 a5 a6 a7 a8 a9 b1 b2 b3 b4 b5 b6 b7 b8 end')
+    expect(
+      await titles(t, 'a1 a2 a3 a4 a5 a6 a7 a8 a9 b1 b2 b3 b4 b5 b6 b7 b8 end'),
+    ).toEqual(['Many'])
+  })
+
+  test('reads a bounded set: an old note is found by whole word, not inside one', async () => {
+    const { t } = await seed()
+    await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', 'notes-first'))
+        .unique()
+      const user = await ctx.db.query('users').first()
+      const note = { groupId: group!._id, createdBy: user!._id }
+      await ctx.db.insert('notes', {
+        ...note,
+        title: 'Old whole',
+        body: 'kaart',
+        updatedAt: 1,
+      })
+      await ctx.db.insert('notes', {
+        ...note,
+        title: 'Old inside',
+        body: 'wijnkaart',
+        updatedAt: 1,
+      })
+      for (let index = 0; index < 150; index += 1)
+        await ctx.db.insert('notes', {
+          ...note,
+          title: `Filler ${index}`,
+          body: '',
+          updatedAt: 1000 + index,
+        })
+    })
+    expect(await titles(t, 'kaart')).toEqual(['Old whole'])
   })
 
   test('finds letters that change length when lowercased, and ignores words too long to index', async () => {
@@ -244,6 +329,333 @@ describe('searching notes', () => {
     const { t } = await seed()
     await addNote(t, 'Boiler manual')
     expect(await titles(t, 'boiler '.repeat(40))).toEqual(['Boiler manual'])
+  })
+})
+
+describe('notes search over title and body together (APP-701)', () => {
+  /** Fillers with one word each come before the note asked for, and are newer. */
+  async function crowded(filled: boolean, fillers: number) {
+    const { t } = await seed()
+    await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', 'notes-first'))
+        .unique()
+      const user = await ctx.db.query('users').first()
+      const add = async (title: string, body: string, updatedAt: number) =>
+        await ctx.db.insert('notes', {
+          groupId: group!._id,
+          title,
+          body,
+          ...(filled ? { searchText: noteSearchText({ title, body }) } : {}),
+          createdBy: user!._id,
+          updatedAt,
+        })
+      for (let index = 0; index < fillers; index += 1) {
+        await add(`Boiler ${index}`, 'x', 1000 + index)
+        await add(`Filler ${index}`, 'the manual', 1000 + index)
+      }
+      await add('Boiler', 'where the manual is', 1)
+    })
+    return async (query: string) =>
+      (
+        await t
+          .withIdentity(alice)
+          .query(api.notes.searchNotes, { groupSlug: 'notes-first', query })
+      ).map((note) => note.title)
+  }
+
+  test('finds words split over title and body behind 300 notes with one of them', async () => {
+    const titles = await crowded(true, 150)
+    expect(await titles('boiler manual')).toEqual(['Boiler'])
+    expect(await titles('manual boiler')).toEqual(['Boiler'])
+  })
+
+  test('does not read past the results Convex allows one search', async () => {
+    // 1200 candidates; Convex refuses at 1024, and its ranking, which
+    // convex-test has none of, puts the note with both words in front.
+    const titles = await crowded(true, 600)
+    await expect(titles('boiler manual')).resolves.toBeInstanceOf(Array)
+    expect((await titles('boiler')).length).toBeGreaterThanOrEqual(100)
+  })
+
+  test('finds a note without searchText until the backfill has run', async () => {
+    const titles = await crowded(false, 10)
+    expect(await titles('boiler manual')).toEqual(['Boiler'])
+    expect(await titles('where')).toEqual(['Boiler'])
+  })
+
+  test('finds an old note without searchText among filled ones', async () => {
+    const { t, firstNote } = await seed()
+    await t.run(async (ctx) => {
+      const note = (await ctx.db.get(firstNote))!
+      for (let index = 0; index < 120; index += 1)
+        await ctx.db.insert('notes', {
+          groupId: note.groupId,
+          title: `Filler ${index}`,
+          body: '',
+          searchText: `Filler ${index}\n`,
+          createdBy: note.createdBy,
+          updatedAt: 1000,
+        })
+    })
+    const found = await t
+      .withIdentity(alice)
+      .query(api.notes.searchNotes, {
+        groupSlug: 'notes-first',
+        query: 'first household',
+      })
+    expect(found.map((note) => note._id)).toEqual([firstNote])
+  })
+})
+
+describe('notes whose title has the words come first (APP-806)', () => {
+  type Row = {
+    title: string
+    body: string
+    updatedAt: number
+    by?: 'bob'
+    unfilled?: true
+  }
+
+  /** Rows go in as given, so the index reads them in that order. */
+  async function crowded(rows: Row[]) {
+    const { t } = await seed()
+    await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', 'notes-first'))
+        .unique()
+      const alice = await ctx.db.query('users').first()
+      const bob = (await ctx.db.query('users').collect())[1]
+      for (const { title, body, updatedAt, by, unfilled } of rows)
+        await ctx.db.insert('notes', {
+          groupId: group!._id,
+          title,
+          body,
+          ...(unfilled ? {} : { searchText: noteSearchText({ title, body }) }),
+          createdBy: (by === 'bob' ? bob : alice)!._id,
+          updatedAt,
+        })
+    })
+    const asked = t.withIdentity(alice)
+    return {
+      notes: async (query: string) =>
+        (
+          await asked.query(api.notes.searchNotes, {
+            groupSlug: 'notes-first',
+            query,
+          })
+        ).map((note) => note.title),
+      search: async (query: string, createdBy?: 'bob') => {
+        const bob = createdBy
+          ? await t.run(
+              async (ctx) => (await ctx.db.query('users').collect())[1]!._id,
+            )
+          : undefined
+        return (
+          await asked.query(api.search.group, {
+            groupSlug: 'notes-first',
+            query,
+            accepts: ['note'],
+            ...(bob ? { createdBy: bob } : {}),
+          })
+        ).map((result) => result.title)
+      },
+    }
+  }
+
+  const bodyHits = (count: number, body = 'the boiler is in the shed') =>
+    Array.from({ length: count }, (_, index) => ({
+      title: `Shed ${index}`,
+      body,
+      updatedAt: 1000 + index,
+    }))
+
+  test('lists title hits first, then the rest, each in index order', async () => {
+    const { notes } = await crowded([
+      { title: 'Shed', body: 'boiler here', updatedAt: 3 },
+      { title: 'Boiler manual', body: '', updatedAt: 2 },
+      { title: 'Garage', body: 'boiler there', updatedAt: 4 },
+      { title: 'Boilers', body: '', updatedAt: 1 },
+      { title: 'Cellar', body: 'old boiler', updatedAt: 5 },
+    ])
+    expect(await notes('boiler')).toEqual([
+      'Boiler manual',
+      'Boilers',
+      'Shed',
+      'Garage',
+      'Cellar',
+    ])
+    // Every word, in the title: a word in the body only does not count.
+    expect(await notes('boiler manual')).toEqual(['Boiler manual'])
+  })
+
+  test('finds an old note titled Boiler behind 100+ notes that only mention it', async () => {
+    const { notes, search } = await crowded([
+      ...bodyHits(150),
+      // Oldest, the last the index reads, and a long body.
+      { title: 'Boiler', body: `${'servicing '.repeat(500)}boiler`, updatedAt: 1 },
+    ])
+    const found = await notes('boiler')
+    expect(found[0]).toBe('Boiler')
+    expect(found.length).toBeLessThanOrEqual(200)
+    expect((await search('boiler'))[0]).toBe('Boiler')
+  })
+
+  test('reads on past 100 notes with every word, then caps the answer', async () => {
+    const { notes } = await crowded([
+      ...bodyHits(250),
+      { title: 'Boiler', body: '', updatedAt: 1 },
+    ])
+    const found = await notes('boiler')
+    // 100 of the index's matches and the newest 100 notes, none twice.
+    expect(found).toHaveLength(200)
+    expect(found[0]).toBe('Boiler')
+    expect(new Set(found).size).toBe(200)
+  })
+
+  test('the newest notes with every word are still answered behind 100+ index matches', async () => {
+    const { notes, search } = await crowded([
+      ...bodyHits(150),
+      // The newest, and the index's last.
+      { title: 'Fresh', body: 'boiler serviced', updatedAt: 9999, by: 'bob' },
+    ])
+    expect(await notes('boiler')).toContain('Fresh')
+    // A filter on Who runs after the search, so the cap must not drop it.
+    expect(await search('boiler', 'bob')).toEqual(['Fresh'])
+  })
+
+  test('keeps up to 200 title hits, ahead of the body hits that fill the rest', async () => {
+    const { notes } = await crowded([
+      ...Array.from({ length: 150 }, (_, index) => ({
+        title: `Week ${index}`,
+        body: '',
+        updatedAt: index + 1,
+      })),
+      ...bodyHits(100, 'this week'),
+    ])
+    const found = await notes('week')
+    expect(found).toHaveLength(200)
+    expect(found.slice(0, 150).every((title) => title.startsWith('Week'))).toBe(
+      true,
+    )
+  })
+
+  test.each([100, 150, 250])(
+    'the newest note and an unfilled note are still answered behind %i title hits (short notes)',
+    async (titleHits) => {
+      const { notes, search } = await crowded([
+        { title: 'Cellar', body: 'the week', updatedAt: 1, unfilled: true },
+        ...Array.from({ length: titleHits }, (_, index) => ({
+          title: `Week ${index}`,
+          body: '',
+          updatedAt: 10 + index,
+        })),
+        ...bodyHits(150, 'this week'),
+        { title: 'Fresh', body: 'a week', updatedAt: 9999, by: 'bob' },
+      ])
+      const found = await notes('week')
+      expect(found.length).toBeLessThanOrEqual(200)
+      expect(found.slice(0, Math.min(titleHits, 200)).every((title) =>
+        title.startsWith('Week'),
+      )).toBe(true)
+      if (titleHits < 200) {
+        expect(found).toContain('Cellar')
+        expect(found).toContain('Fresh')
+        expect(await search('week', 'bob')).toEqual(['Fresh'])
+      }
+    },
+  )
+
+  const weeks = (count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      title: `Week ${index}`,
+      body: '',
+      updatedAt: 10 + index,
+    }))
+
+  test.each([
+    // The newest note is outside every candidate read, and found by substring.
+    ['by substring only', bodyHits(150, 'this week'), { body: 'midweek' }],
+    // Unfilled, and past the 50 notes each old index reads.
+    ['unfilled', bodyHits(150, 'this week'), { body: 'a week', unfilled: true }],
+    // Past the 4 MiB `search_text` read, at about the 105th: 130 notes of about
+    // 40 000 bytes stored, so 100+ of them are index matches.
+    [
+      'past the byte bound',
+      bodyHits(130, `this week ${'x'.repeat(20_000)}`),
+      { body: 'a week' },
+    ],
+  ] as const)(
+    'the newest note is still answered behind 110 title hits: %s',
+    async (_name, fillers, fresh) => {
+      const { notes, search } = await crowded([
+        ...weeks(110),
+        ...fillers,
+        { title: 'Fresh', updatedAt: 9999, by: 'bob', ...fresh },
+      ])
+      expect(await notes('week')).toContain('Fresh')
+      expect(await search('week', 'bob')).toEqual(['Fresh'])
+    },
+  )
+
+  test.each([
+    [110, 85],
+    [150, 45],
+  ])(
+    'the newest note among the first 100 index matches is kept behind %i title hits (%i body hits before it)',
+    async (titleHits, before) => {
+      const { notes, search } = await crowded([
+        ...weeks(titleHits),
+        ...bodyHits(before, 'this week'),
+        { title: 'Fresh', body: 'a week', updatedAt: 9999, by: 'bob' },
+        ...bodyHits(150 - before, 'this week'),
+      ])
+      expect(await notes('week')).toContain('Fresh')
+      expect(await search('week', 'bob')).toEqual(['Fresh'])
+    },
+  )
+
+  test('an unfilled note is found behind 100+ filled matches', async () => {
+    const { notes } = await crowded([
+      // First in the old indexes, which read 50 notes each.
+      { title: 'Cellar', body: 'the boiler', updatedAt: 1, unfilled: true },
+      ...bodyHits(150),
+    ])
+    expect(await notes('boiler')).toContain('Cellar')
+  })
+
+  test('a title hit found only by substring still comes first', async () => {
+    const { notes } = await crowded([
+      { title: 'Shed', body: 'the wijnkaart', updatedAt: 3 },
+      { title: 'Wijnkaart', body: '', updatedAt: 2 },
+      { title: 'Cellar', body: 'kaart', updatedAt: 1 },
+    ])
+    expect(await notes('kaart')).toEqual(['Wijnkaart', 'Cellar', 'Shed'])
+  })
+
+  test('stops reading at the byte budget: a title hit past it is not found', async () => {
+    // 110 notes of 50 000 characters, about 100 000 bytes as stored with
+    // `searchText`, pass the 4 MiB `search_text` read at about the 42nd, so the
+    // index's 111th, the oldest, is never read. The newest notes are read apart
+    // and stop at 3 MiB, well short of it.
+    const body = `boiler ${'x'.repeat(50_000)}`
+    const { notes } = await crowded([
+      ...bodyHits(110, body),
+      { title: 'Boiler', body: '', updatedAt: 1 },
+    ])
+    const found = await notes('boiler')
+    expect(found.length).toBeLessThanOrEqual(200)
+    expect(found).not.toContain('Boiler')
+  })
+
+  test('short notes of the same count stay within the byte budget, so the title hit is found', async () => {
+    const { notes } = await crowded([
+      ...bodyHits(110, 'boiler x'),
+      { title: 'Boiler', body: '', updatedAt: 1 },
+    ])
+    expect((await notes('boiler'))[0]).toBe('Boiler')
   })
 })
 
@@ -317,6 +729,47 @@ describe('the paged notes list', () => {
     expect((await page(t, 2)).titles).toEqual(['Note 1', 'Note 3'])
   })
 
+  test('pinning or unpinning is not an edit: the note keeps its place and editor (APP-789)', async () => {
+    const { t } = await seed()
+    const [oldest] = await addNotes(t, 3)
+    const as = (identity: typeof alice) => t.withIdentity(identity)
+    await t.run(async (ctx) => {
+      const bobUser = await ctx.db
+        .query('users')
+        .filter((q) => q.eq(q.field('clerkId'), bob.subject))
+        .unique()
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', 'notes-first'))
+        .unique()
+      await seedMember(ctx, group!._id, bobUser!._id, 'member')
+    })
+    for (const pinned of [true, false])
+      await as(bob).mutation(api.notes.update, {
+        groupSlug: 'notes-first',
+        noteId: oldest,
+        pinned,
+      })
+    const after = await page(t, 4)
+    expect(after.titles).toEqual(['Note 3', 'Note 2', 'Note 1', 'First note'])
+    expect(after.page[2]).toMatchObject({
+      pinned: false,
+      updatedAt: 101,
+      updatedByName: 'Alice',
+    })
+    // Saving the same text with a pin change is still no edit.
+    await as(alice).mutation(api.notes.update, {
+      groupSlug: 'notes-first',
+      noteId: oldest,
+      body: 'Body 1',
+      pinned: true,
+    })
+    const [pinnedNote] = await as(alice).query(api.notes.listPinned, {
+      groupSlug: 'notes-first',
+    })
+    expect(pinnedNote).toMatchObject({ title: 'Note 1', updatedAt: 101 })
+  })
+
   test('pinned notes are listed apart, however old, and leave full pages', async () => {
     const { t } = await seed()
     await addNotes(t, 4, [1, 3])
@@ -329,6 +782,80 @@ describe('the paged notes list', () => {
       'First note',
     ])
     expect((await page(t, 2, null, true)).titles).toEqual(['Note 4', 'Note 2'])
+  })
+
+  test('unpinnedOnly pages through every other note once, in order, with no pinned one', async () => {
+    const { t } = await seed()
+    // 9 notes plus the seeded pinned one; 2, 5 and 8 are pinned too.
+    await addNotes(t, 9, [2, 5, 8])
+    const seen: string[] = []
+    let cursor: string | null = null
+    let pages = 0
+    for (;;) {
+      const next = await page(t, 2, cursor, true)
+      pages += 1
+      expect(next.page.every((note) => !note.pinned)).toBe(true)
+      seen.push(...next.titles)
+      if (next.isDone) break
+      cursor = next.continueCursor
+      expect(pages).toBeLessThan(20)
+    }
+    expect(pages).toBeGreaterThan(1)
+    expect(seen).toEqual([
+      'Note 9',
+      'Note 7',
+      'Note 6',
+      'Note 4',
+      'Note 3',
+      'Note 1',
+    ])
+    expect(new Set(seen).size).toBe(seen.length)
+  })
+
+  test("a note another Member edited pages with their name, and reads as theirs only to them", async () => {
+    const { t } = await seed()
+    const [oldest] = await addNotes(t, 3)
+    await t.run(async (ctx) => {
+      const bobUser = await ctx.db
+        .query('users')
+        .filter((q) => q.eq(q.field('clerkId'), bob.subject))
+        .unique()
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', 'notes-first'))
+        .unique()
+      await seedMember(ctx, group!._id, bobUser!._id, 'member')
+    })
+    await t.withIdentity(bob).mutation(api.notes.update, {
+      groupSlug: 'notes-first',
+      noteId: oldest,
+      body: 'Bob was here',
+    })
+    for (const [identity, byMe] of [
+      [alice, false],
+      [bob, true],
+    ] as const) {
+      const first = await t.withIdentity(identity).query(api.notes.listPage, {
+        groupSlug: 'notes-first',
+        paginationOpts: { numItems: 2, cursor: null },
+      })
+      // The edit moved the note to the front; the next page still follows on.
+      expect(first.page.map((note) => note.title)).toEqual(['Note 1', 'Note 3'])
+      expect(first.page[0]).toMatchObject({
+        body: 'Bob was here',
+        updatedByName: 'Bob',
+        updatedByMe: byMe,
+      })
+      expect(first.isDone).toBe(false)
+      const second = await t.withIdentity(identity).query(api.notes.listPage, {
+        groupSlug: 'notes-first',
+        paginationOpts: { numItems: 2, cursor: first.continueCursor },
+      })
+      expect(second.page.map((note) => note.title)).toEqual([
+        'Note 2',
+        'First note',
+      ])
+    }
   })
 
   test('get answers one note, and null for a missing, foreign or malformed id', async () => {

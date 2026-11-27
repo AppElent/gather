@@ -13,8 +13,11 @@
  * session (`notifications.releaseDevice`), so sign-out does not wait for it:
  * it is kept on the phone until the server confirms it, and
  * `PushReleaseRetry` sends it again on the next launch if it did not land.
+ *
+ * Only one session ends (APP-824): Clerk's `signOut` without a `sessionId`
+ * ends every session on the phone.
  */
-import { useAuth } from '@clerk/expo'
+import { useClerk } from '@clerk/expo'
 import { useMutation } from 'convex/react'
 import { useCallback } from 'react'
 
@@ -27,8 +30,9 @@ import {
 } from '../features/notifications/push/push-device'
 import { clearRetainedGroup } from '../group/retainedGroup'
 
-export function useSignOut(): () => void {
-  const { signOut } = useAuth()
+/** What this phone keeps of the account, without ending any session: for a
+ * session that has already ended by itself (APP-771). */
+export function useForgetAccount(): () => void {
   const release = useMutation(api.notifications.releaseDevice)
 
   return useCallback(() => {
@@ -42,6 +46,42 @@ export function useSignOut(): () => void {
       release(registration)
         .then(() => confirmPushRelease(registration))
         .catch(() => {})
-    void signOut()
-  }, [signOut, release])
+  }, [release])
+}
+
+/** Leaves the account and ends the named session, and no other. Callers check
+ * first: Clerk ignores the id and ends the session left when there is one. */
+export function useEndSession(): (sessionId: string) => void {
+  const clerk = useClerk()
+  const forgetAccount = useForgetAccount()
+
+  return useCallback(
+    (sessionId: string) => {
+      forgetAccount()
+      // A failed request can leave Clerk between sessions, which the app shows
+      // as loading for good. The person has left either way; a session that
+      // became current meanwhile is not theirs to end.
+      clerk
+        .signOut({ sessionId })
+        .catch(() => {
+          if (clerk.session === undefined)
+            return clerk.setActive({ session: null })
+        })
+        .catch(() => {})
+    },
+    [clerk, forgetAccount],
+  )
+}
+
+/** Leaves the account and ends the session that is current when it is called. */
+export function useSignOut(): () => void {
+  const clerk = useClerk()
+  const endSession = useEndSession()
+  const forgetAccount = useForgetAccount()
+
+  return useCallback(() => {
+    // Read live. With no session there is none to end, only the phone to clear.
+    if (clerk.session) endSession(clerk.session.id)
+    else forgetAccount()
+  }, [clerk, endSession, forgetAccount])
 }

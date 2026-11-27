@@ -5,15 +5,15 @@
  * them all.
  */
 import { describeClash } from '@gather/core/meal-preferences'
+import { weekdayName } from '@gather/core/week-menu'
+import { draftReason } from '@gather/core/week-menu-plan'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-
 import { fmt, plural, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { MealThumb } from './parts'
 import { PrimaryButton } from './plan-sheet'
-import { weekdayName } from './week'
-import { type Draft, draftReason } from './week-plan'
+import type { Draft } from './week'
 
 /** "Voorstel van Gather", or "Eenvoudig voorstel" when the rules made it. */
 export function ProposalCard({ fallback }: { fallback: boolean }) {

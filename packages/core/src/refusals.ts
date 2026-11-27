@@ -146,7 +146,8 @@ export function readLoyaltyCardRefusal(
  * address" and "an address in another Group" alike, and `houseNotFound` a
  * House link to a House outside the Group (ADR-0009). A meter reading below
  * the one before it is `readingLower` (a new meter is a new channel), one
- * above a later reading `readingHigher` (APP-494).
+ * above a later reading `readingHigher` (APP-494). A reading to delete that
+ * is gone, another Group's or not typed is `readingNotFound` (APP-714).
  */
 export const ENERGY_REFUSAL_CODES = [
   'needsName',
@@ -179,6 +180,13 @@ export const ENERGY_REFUSAL_CODES = [
   // APP-493: the price source.
   'priceKeyNeeded',
   'priceKeyInvalid',
+  // APP-496: solar panels and batteries.
+  'assetNeedsName',
+  'assetInvalid',
+  'assetInFuture',
+  'tooManyAssets',
+  // APP-714: deleting a typed reading.
+  'readingNotFound',
 ] as const
 export type EnergyRefusalCode = (typeof ENERGY_REFUSAL_CODES)[number]
 
@@ -241,6 +249,63 @@ export function readTaskRefusal(error: unknown): TaskRefusalCode | null {
 }
 
 /**
+ * Why a note write was refused (APP-805): its title and body together are over
+ * `NOTE_MAX_CHARS` (`@gather/core/notes`).
+ */
+export const NOTE_REFUSAL_CODES = ['too-long'] as const
+export type NoteRefusalCode = (typeof NOTE_REFUSAL_CODES)[number]
+
+/** Namespaced on the wire, like the calendar's, so kinds cannot collide. */
+export function noteRefusal(code: NoteRefusalCode): { kind: string } {
+  return { kind: `notes:${code}` }
+}
+
+/**
+ * A refused note in the reader's own words: the sentence `sentences` holds for
+ * its kind (`messages.notes.refusals`), or null when the thrown value is not one.
+ */
+export function noteRefusalSentence(
+  error: unknown,
+  sentences: Readonly<Record<`notes:${NoteRefusalCode}`, string>>,
+): string | null {
+  const kind = refusalKind(error)
+  const code = NOTE_REFUSAL_CODES.find((each) => `notes:${each}` === kind)
+  return code === undefined ? null : sentences[`notes:${code}`]
+}
+
+/**
+ * Why a Group's time zone was not changed (APP-475): the caller is not an
+ * admin, or no such IANA zone.
+ */
+export const GROUP_TIME_ZONE_REFUSAL_CODES = [
+  'admin-only',
+  'unknown-zone',
+] as const
+export type GroupTimeZoneRefusalCode =
+  (typeof GROUP_TIME_ZONE_REFUSAL_CODES)[number]
+
+export function groupTimeZoneRefusal(code: GroupTimeZoneRefusalCode): {
+  kind: string
+} {
+  return { kind: `groupTimeZone:${code}` }
+}
+
+/**
+ * A refused time zone in the reader's own words: the sentence `sentences`
+ * holds for its code, or null when the thrown value is not one.
+ */
+export function groupTimeZoneRefusalSentence(
+  error: unknown,
+  sentences: Readonly<Record<GroupTimeZoneRefusalCode, string>>,
+): string | null {
+  const kind = refusalKind(error)
+  const code = GROUP_TIME_ZONE_REFUSAL_CODES.find(
+    (each) => `groupTimeZone:${each}` === kind,
+  )
+  return code === undefined ? null : sentences[code]
+}
+
+/**
  * Why a Group-scoped call was refused at the Group itself (APP-429), before
  * any row was read. `convex/lib/groupAccess.ts` builds them.
  *
@@ -248,8 +313,9 @@ export function readTaskRefusal(error: unknown): TaskRefusalCode | null {
  *   sign-in helpers in `convex/lib/sharing.ts` throw it too (APP-581), so every
  *   signed-out refusal reads the same, Group or not.
  * - `unknown-slug`: no Group has that slug.
- * - `unknown-group`: no Group has that id (APP-581), from the Group mutations
- *   in `convex/groups.ts` that name a Group by id.
+ * - `unknown-group`: no Group has that id (APP-581), from a write that names
+ *   a Group by id: the mutations in `convex/groups.ts`, and
+ *   `integrations.storeConnection` for a Group deleted meanwhile.
  * - `not-a-member`: the Group exists and the caller is not in it.
  *
  * The data also carries the English sentence these refusals threw before they
@@ -289,6 +355,37 @@ export function groupRefusalSentence(
 ): string | null {
   const code = readGroupRefusal(error)
   return code === null ? null : sentences[code]
+}
+
+/**
+ * Why a paired watch's call, or pairing one, was refused (APP-653), for a
+ * reason of its own. A call refused at the key or the Group answers with the
+ * Group refusal above.
+ *
+ * - `bad-request`: the request or the change is not one this API knows.
+ * - `rate-limited`: too many calls; try again after `Retry-After`.
+ * - `not-found`: no such item, task or list in the watch's Group.
+ * - `read-only`: it is on a list Gather cannot write to.
+ * - `key-reused`: the change's key was already used for another one.
+ * - `failed`: the server could not apply the change; it may be sent again.
+ */
+export const WATCH_REFUSAL_CODES = [
+  'bad-request',
+  'rate-limited',
+  'not-found',
+  'read-only',
+  'key-reused',
+  'failed',
+] as const
+export type WatchRefusalCode = (typeof WATCH_REFUSAL_CODES)[number]
+
+export function watchRefusal(code: WatchRefusalCode): { kind: string } {
+  return { kind: `watch:${code}` }
+}
+
+export function readWatchRefusal(error: unknown): WatchRefusalCode | null {
+  const kind = refusalKind(error)
+  return WATCH_REFUSAL_CODES.find((code) => `watch:${code}` === kind) ?? null
 }
 
 /** The `kind` a thrown value carries, whichever vocabulary it comes from. */

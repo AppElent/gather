@@ -1,5 +1,12 @@
-import { describe, expect, test } from 'vitest'
-import { testConvex } from '../../test/convexHarness'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import {
+  alice,
+  seedGroup,
+  seedMember,
+  testConvex,
+  testConvexWithLimits,
+} from '../../test/convexHarness'
+import { api, internal } from '../_generated/api'
 import type { Id } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { deleteStoredFile, replaceStoredFile } from './storedFiles'
@@ -255,5 +262,223 @@ describe('deleting the file a row held', () => {
     })
 
     expect(await exists(next)).toBe(true)
+  })
+})
+
+/** The backend here refuses what Convex would (APP-876). */
+describe('releasing a file beside more rows than one transaction may read', () => {
+  type Storage = Id<'_storage'>
+
+  /** A Group with 20 recipes of 900 kB each, over the 16 MiB one step reads. */
+  async function manyLargeRecipes() {
+    const harness = testConvexWithLimits()
+    const ids = await harness.run(async (ctx) => {
+      const userId = await ctx.db.insert('users', {
+        clerkId: alice.subject,
+        name: alice.name,
+        email: alice.email,
+      })
+      const groupId = await seedGroup(ctx, { name: 'Home', slug: 'home' })
+      await seedMember(ctx, groupId, userId, 'admin')
+      return { userId, groupId }
+    })
+    const recipe = (imageId?: Storage) => ({
+      groupId: ids.groupId,
+      sharedGroupIds: [],
+      createdByUserId: ids.userId,
+      title: 'Large',
+      ingredients: [],
+      steps: ['x'.repeat(900_000)],
+      tags: [],
+      imageId,
+    })
+    for (let page = 0; page < 4; page += 1) {
+      await harness.run(async (ctx) => {
+        for (let row = 0; row < 5; row += 1) {
+          await ctx.db.insert('recipes', recipe())
+        }
+      })
+    }
+    return { harness, ...ids, recipe }
+  }
+
+  const store = (harness: ReturnType<typeof testConvexWithLimits>) =>
+    harness.run(async (ctx) => ctx.storage.store(new Blob(['x'])))
+  const exists = (
+    harness: ReturnType<typeof testConvexWithLimits>,
+    id: Storage,
+  ) => harness.run(async (ctx) => (await ctx.storage.getUrl(id)) !== null)
+
+  test('reading those rows whole is refused', async () => {
+    const { harness } = await manyLargeRecipes()
+    await expect(
+      harness.run(async (ctx) => {
+        await ctx.db.query('recipes').collect()
+      }),
+    ).rejects.toThrow(/bytes/i)
+  })
+
+  describe('by the scheduled release', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    async function release(
+      harness: ReturnType<typeof testConvexWithLimits>,
+      storageIds: Storage[],
+    ) {
+      await harness.mutation(internal.cascade.releaseFiles, { storageIds })
+      await harness.finishAllScheduledFunctions(vi.runAllTimers)
+      const steps = await harness.run((ctx) =>
+        ctx.db.system.query('_scheduled_functions').collect(),
+      )
+      expect(steps.map(({ state }) => state.kind)).toEqual(
+        steps.map(() => 'success'),
+      )
+    }
+
+    test('every file goes, over several steps', async () => {
+      const { harness } = await manyLargeRecipes()
+      const files: Storage[] = []
+      for (let i = 0; i < 25; i += 1) files.push(await store(harness))
+
+      await release(harness, files)
+
+      for (const id of files) expect(await exists(harness, id)).toBe(false)
+    })
+
+    test('files still held by rows of the largest size are kept', async () => {
+      const { harness, recipe } = await manyLargeRecipes()
+      const files: Storage[] = []
+      for (let i = 0; i < 20; i += 1) {
+        const id = await store(harness)
+        files.push(id)
+        await harness.run(async (ctx) => {
+          await ctx.db.insert('recipes', {
+            ...recipe(id),
+            steps: ['x'.repeat(1_040_000)],
+          })
+        })
+      }
+
+      await release(harness, files)
+
+      for (const id of files) expect(await exists(harness, id)).toBe(true)
+    })
+  })
+
+  test('replacing and deleting a photo through its Module', async () => {
+    const { harness } = await manyLargeRecipes()
+    const me = harness.withIdentity(alice)
+    const [front, back, next] = [
+      await store(harness),
+      await store(harness),
+      await store(harness),
+    ]
+    const card = {
+      groupSlug: 'home',
+      storeName: 'Corner shop',
+      cardNumber: '2620187342052',
+      barcodeFormat: 'EAN_13' as const,
+    }
+    const id = await me.mutation(api.loyaltyCards.create, {
+      ...card,
+      frontPhotoId: front,
+      backPhotoId: back,
+    })
+
+    await me.mutation(api.loyaltyCards.update, {
+      ...card,
+      id,
+      frontPhotoId: next,
+    })
+    expect(await exists(harness, front)).toBe(false)
+    expect(await exists(harness, back)).toBe(true)
+
+    await me.mutation(api.loyaltyCards.remove, { groupSlug: 'home', id })
+    expect(await exists(harness, back)).toBe(false)
+    expect(await exists(harness, next)).toBe(false)
+  })
+})
+
+describe('a file held by any photo column is kept', () => {
+  test.each([
+    'babies.photoId',
+    'babyEvents.photoId',
+    'recipes.imageId',
+    'groups.imageId',
+    'tastingSubjects.photoId',
+    'loyaltyCards.frontPhotoId',
+    'loyaltyCards.backPhotoId',
+  ])('%s', async (column) => {
+    const { harness, id, exists } = await storedBlob()
+    const holder = await harness.run(async (ctx) => {
+      const userId = await ctx.db.insert('users', {
+        clerkId: 'clerk_someone',
+        name: 'Someone',
+        email: 'someone@example.com',
+      })
+      const groupId = await seedGroup(ctx, { name: 'Home', slug: 'home' })
+      const baby = { groupId, name: 'Mila', birthDate: '2026-01-01', order: 0 }
+      switch (column) {
+        case 'babies.photoId':
+          return await ctx.db.insert('babies', { ...baby, photoId: id })
+        case 'babyEvents.photoId':
+          return await ctx.db.insert('babyEvents', {
+            babyId: await ctx.db.insert('babies', baby),
+            type: 'note',
+            timestamp: 0,
+            loggedBy: userId,
+            data: {},
+            photoId: id,
+          })
+        case 'recipes.imageId':
+          return await ctx.db.insert('recipes', {
+            groupId,
+            sharedGroupIds: [],
+            createdByUserId: userId,
+            title: 'Soup',
+            ingredients: [],
+            steps: [],
+            tags: [],
+            imageId: id,
+          })
+        case 'groups.imageId':
+          await ctx.db.patch(groupId, { imageId: id })
+          return groupId
+        case 'tastingSubjects.photoId':
+          return await ctx.db.insert('tastingSubjects', {
+            groupId,
+            kind: 'cheese',
+            name: 'Gouda',
+            attributes: {},
+            createdByUserId: userId,
+            photoId: id,
+          })
+        default:
+          return await ctx.db.insert('loyaltyCards', {
+            groupId,
+            storeName: 'Corner shop',
+            cardNumber: '2620187342052',
+            barcodeFormat: 'EAN_13',
+            createdByUserId: userId,
+            [column.split('.')[1]]: id,
+          })
+      }
+    })
+
+    await harness.run(async (ctx) => {
+      await deleteStoredFile(ctx as MutationCtx, id)
+    })
+    expect(await exists(id)).toBe(true)
+
+    await harness.run(async (ctx) => {
+      await ctx.db.delete(holder)
+      await deleteStoredFile(ctx as MutationCtx, id)
+    })
+    expect(await exists(id)).toBe(false)
   })
 })

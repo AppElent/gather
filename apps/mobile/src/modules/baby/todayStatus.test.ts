@@ -11,9 +11,9 @@ import {
 } from './todayStatus'
 
 const UNITS = {
-  minutes: '{minutes}m',
-  hours: '{hours}h',
-  hoursMinutes: '{hours}h {minutes}m',
+  minutes: '{minutes} min',
+  hours: '{hours} h',
+  hoursMinutes: '{hours} h {minutes} min',
   days: '{days}d',
 }
 
@@ -101,7 +101,7 @@ describe('a tile', () => {
     ]
     expect(tileStatus('feeding', events, NOW, t)).toEqual({
       type: 'feeding',
-      headline: '32m ago',
+      headline: '32 min ago',
       detail: '2 today',
     })
   })
@@ -111,6 +111,21 @@ describe('a tile', () => {
       { type: 'temperature', timestamp: at(8, 30), data: { celsius: 37.2 } },
     ]
     expect(tileStatus('temperature', events, NOW, t).headline).toBe('37.2 °C')
+  })
+
+  test("counts today in the Group's zone when given", () => {
+    // 22:30Z on 24 Nov: Tokyo's day started at 15:00Z, Amsterdam's at 23:00Z on 23 Nov.
+    const now = Date.parse('2026-11-24T22:30:00Z')
+    const events: LoggedEvent[] = [
+      { type: 'feeding', timestamp: Date.parse('2026-11-24T10:00:00Z'), data: {} },
+      { type: 'feeding', timestamp: Date.parse('2026-11-24T21:00:00Z'), data: {} },
+    ]
+    expect(tileStatus('feeding', events, now, t, 'Asia/Tokyo').detail).toBe(
+      '1 today',
+    )
+    expect(
+      tileStatus('feeding', events, now, t, 'Europe/Amsterdam').detail,
+    ).toBe('2 today')
   })
 })
 

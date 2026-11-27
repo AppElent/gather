@@ -31,6 +31,11 @@ export interface BreadcrumbsProps {
    * page.
    */
   className?: string
+  /**
+   * The page's `WashHeader` draws the phone's back button (`back`), so the
+   * trail leaves its own out: one way back, not two with the same name.
+   */
+  backInHeader?: boolean
 }
 
 /**
@@ -65,12 +70,16 @@ export function parentCrumb(trail: readonly Crumb[]): Crumb | null {
  * `display: none`, so the reading order is the same and neither is a second
  * definition of where the page sits.
  *
- * The shell's own navigation is untouched by this. The sidebar, the dock and
- * the topbar say which Module you are in; they render above the route and
+ * The shell's own navigation is untouched by this. The sidebar and the tab
+ * bar say which Module you are in; they render above the route and
  * cannot know that this page is a food, or that food's edit form. This is the
  * only thing in the app that does, because the page builds it.
  */
-export function Breadcrumbs({ trail, className = 'mb-4' }: BreadcrumbsProps) {
+export function Breadcrumbs({
+  trail,
+  className = 'mb-4',
+  backInHeader = false,
+}: BreadcrumbsProps) {
   const { shell } = useMessages()
   const { breadcrumbs } = shell
   const parent = parentCrumb(trail)
@@ -81,8 +90,11 @@ export function Breadcrumbs({ trail, className = 'mb-4' }: BreadcrumbsProps) {
   if (trail.length === 0) return null
 
   return (
-    <nav aria-label={breadcrumbs.label} className={className}>
-      {parent?.link && (
+    <nav
+      aria-label={breadcrumbs.label}
+      className={backInHeader ? `hidden md:block ${className}` : className}
+    >
+      {parent?.link && !backInHeader && (
         <Link
           {...parent.link}
           aria-label={fmt(breadcrumbs.backTo, { page: parent.label })}

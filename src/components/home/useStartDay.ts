@@ -1,9 +1,8 @@
-import { localIsoDate } from '@gather/core/civil-date'
+import { dayStartIn, todayIn } from '@gather/core/civil-date'
 import {
   dueTodayTasks,
   overdueTasks,
   railEntries,
-  startOfDay,
 } from '@gather/core/home-today'
 import { pinnedModules } from '@gather/core/pins'
 import { useQueries, useQuery } from 'convex/react'
@@ -27,10 +26,11 @@ import { useMessages } from '../../lib/i18n'
  * Which tasks are overdue or due today, and which entries go on the rail, is
  * decided by `@gather/core/home-today`, the same rules the phone runs.
  */
-export function useStartDay(groupSlug: string) {
+export function useStartDay(groupSlug: string, timeZone: string | undefined) {
   const messages = useMessages()
   const now = useMinuteClock()
-  const dayStart = startOfDay(now)
+  const today = todayIn(timeZone, now)
+  const dayStart = useMemo(() => dayStartIn(timeZone, now), [timeZone, now])
 
   const lists = useQuery(api.taskLists.list, { groupSlug })
   const localLists = useMemo(
@@ -100,10 +100,9 @@ export function useStartDay(groupSlug: string) {
     }
   }, [children, events, dayStart, now, messages])
 
-  const today = localIsoDate(now)
-
   return {
     now,
+    today,
     memberCount: members?.length,
     lists: localLists,
     overdue: overdueTasks(tasks, today),

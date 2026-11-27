@@ -72,6 +72,17 @@ describe('Recent in days', () => {
     ])
   })
 
+  test("splits days at the Group's midnight", () => {
+    const rows = [
+      { id: 'a', doneAt: Date.parse('2026-11-18T10:30:00Z') },
+      { id: 'b', doneAt: Date.parse('2026-11-18T09:30:00Z') },
+    ]
+    expect(recentDays(rows, 'Pacific/Kiritimati').map((d) => d.date)).toEqual([
+      '2026-11-19',
+      '2026-11-18',
+    ])
+  })
+
   test('reaches back at least a week', () => {
     const now = at('2026-11-18T12:00:00')
     expect(recentWeeks([], now)).toBe(1)

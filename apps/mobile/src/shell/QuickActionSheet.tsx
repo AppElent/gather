@@ -85,7 +85,8 @@ export function QuickActionSheet({
   /** A `row` action whose form is open on arrival (`<scheme>://quick?action=`). */
   initialAction?: QuickActionId
   /**
-   * Bumped by each `<scheme>://quick` request. A new one while the sheet is up
+   * Bumped by each quick request. A new one while the sheet is up
+   * (a home-screen action or the control; a system link closes it first)
    * opens `initialAction` in place: remounting the native sheet instead would
    * dismiss it, and iOS drops the new presentation.
    */

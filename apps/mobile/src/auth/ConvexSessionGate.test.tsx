@@ -11,6 +11,9 @@ const harness = vi.hoisted(() => ({
    * while unanswered. */
   viewer: undefined as string | null | undefined,
   provisioningFailed: false,
+  provisioningDeleted: false,
+  /** This phone is running a deletion (`AccountDeleteProvider`). */
+  deleting: false,
   reauthenticate: vi.fn(),
   retryProvisioning: vi.fn(),
   signOut: vi.fn(),
@@ -34,8 +37,13 @@ vi.mock('convex/react', () => ({
 vi.mock('../convex/useEnsureUser', () => ({
   useEnsureUser: () => ({
     failed: harness.provisioningFailed,
+    deleted: harness.provisioningDeleted,
     retry: harness.retryProvisioning,
   }),
+}))
+
+vi.mock('../features/account/delete/account-delete-provider', () => ({
+  useDeletionInProgress: () => harness.deleting,
 }))
 
 // The retention provider is the query module's own suite (`QueryCacheProvider.test.tsx`);
@@ -54,6 +62,14 @@ vi.mock('../components/SessionError', () => ({
       <button type="button" onClick={props.onRetry}>
         Try again
       </button>
+      <button type="button" onClick={props.onSignOut}>
+        Sign out
+      </button>
+    </div>
+  ),
+  AccountBeingDeleted: (props: { onSignOut: () => void }) => (
+    <div>
+      <p>Being deleted</p>
       <button type="button" onClick={props.onSignOut}>
         Sign out
       </button>
@@ -95,6 +111,8 @@ describe('ConvexSessionGate', () => {
     harness.isAuthenticated = true
     harness.viewer = undefined
     harness.provisioningFailed = false
+    harness.provisioningDeleted = false
+    harness.deleting = false
     harness.reauthenticate.mockReset()
     harness.retryProvisioning.mockReset()
     harness.signOut.mockReset()
@@ -142,6 +160,82 @@ describe('ConvexSessionGate', () => {
     harness.provisioningFailed = true
     const { container } = renderGate()
     expect(button(container, 'Try again')).toBeDefined()
+  })
+
+  test('an account another phone is deleting says so and offers Sign out alone, without waiting', async () => {
+    harness.viewer = null
+    harness.provisioningDeleted = true
+    const { container } = renderGate()
+    expect(container.textContent).toContain('Being deleted')
+    expect(button(container, 'Try again')).toBeUndefined()
+
+    await advance(GATE_STUCK_MS)
+    expect(container.textContent).toContain('Being deleted')
+
+    act(() => button(container, 'Sign out')?.click())
+    expect(harness.signOut).toHaveBeenCalledOnce()
+  })
+
+  test('a phone already open when its account starts being deleted asks again and says so, without waiting (APP-949)', async () => {
+    harness.viewer = 'user_A'
+    const { container, rerender } = renderGate()
+    expect(container.textContent).toBe('signed-in tree')
+
+    // Another phone starts the deletion: `users.me` turns null.
+    harness.viewer = null
+    rerender()
+    await advance(0)
+    expect(harness.retryProvisioning).toHaveBeenCalledOnce()
+
+    // The re-run is refused for the deletion.
+    harness.provisioningDeleted = true
+    rerender()
+    expect(container.textContent).toContain('Being deleted')
+    expect(button(container, 'Try again')).toBeUndefined()
+
+    rerender()
+    await advance(1_000)
+    expect(harness.retryProvisioning).toHaveBeenCalledOnce()
+  })
+
+  test('a row that comes back resets the watch, so a later loss asks again', async () => {
+    harness.viewer = 'user_A'
+    const { container, rerender } = renderGate()
+
+    harness.viewer = null
+    rerender()
+    await advance(0)
+    expect(harness.retryProvisioning).toHaveBeenCalledOnce()
+
+    // Gather data only: the retry provisions a fresh account.
+    harness.viewer = 'user_A'
+    rerender()
+    await advance(0)
+    expect(container.textContent).toBe('signed-in tree')
+
+    harness.viewer = null
+    rerender()
+    await advance(0)
+    expect(harness.retryProvisioning).toHaveBeenCalledTimes(2)
+  })
+
+  test('the phone running the deletion does not re-run provisioning', async () => {
+    harness.viewer = 'user_A'
+    const { rerender } = renderGate()
+
+    harness.deleting = true
+    harness.viewer = null
+    rerender()
+    await advance(1_000)
+    expect(harness.retryProvisioning).not.toHaveBeenCalled()
+  })
+
+  test('a first sign-in with no row yet does not re-run provisioning', async () => {
+    harness.viewer = null
+    const { rerender } = renderGate()
+    rerender()
+    await advance(1_000)
+    expect(harness.retryProvisioning).not.toHaveBeenCalled()
   })
 
   test('a gate that closes again later starts a fresh clock', async () => {

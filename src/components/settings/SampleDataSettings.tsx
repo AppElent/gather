@@ -4,11 +4,10 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, plural, useI18n } from '../../lib/i18n'
+import { buttonClass } from '../app/buttons'
 import { useConfirmAction } from '../app/ConfirmAction'
-import { SurfaceCard } from '../app/ShellPrimitives'
+import { SectionLabel } from '../app/InsetList'
 
-const buttonClass =
-  'inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60'
 
 /**
  * Whether this build may offer the sample-data controls.
@@ -73,25 +72,31 @@ export function SampleDataSettings() {
   }
 
   return (
-    <SurfaceCard>
-      <h2 className="m-0 mb-1 text-base font-semibold">{sampleData.title}</h2>
-      <p className="m-0 mb-3 text-sm opacity-70">
+    <section aria-labelledby="sample-data-heading">
+      <SectionLabel id="sample-data-heading">{sampleData.title}</SectionLabel>
+      <div className="rounded-[var(--radius-card)] bg-[var(--surface)] p-4">
+      <p className="m-0 mb-3 text-subhead text-[var(--muted)]">
         {sampleData.descriptionBefore}{' '}
         <strong>{sampleData.descriptionStrong}</strong>
         {sampleData.descriptionAfter}
       </p>
 
       {error && (
-        <p className="mb-3 rounded-md border border-[var(--danger)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--danger)]">
+        <p
+          role="alert"
+          className="mt-0 mb-3 rounded-[var(--radius-control)] bg-[var(--surface-2)] px-3 py-2 text-subhead font-semibold text-[var(--danger)]"
+        >
           {error}
         </p>
       )}
-      {result && <p className="mb-3 text-sm opacity-70">{result}</p>}
+      {result && (
+        <p className="mt-0 mb-3 text-subhead text-[var(--muted)]">{result}</p>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className={buttonClass}
+          className={buttonClass.secondary}
           disabled={busy !== null}
           onClick={() => run('load')}
         >
@@ -99,7 +104,7 @@ export function SampleDataSettings() {
         </button>
         <button
           type="button"
-          className={buttonClass}
+          className={buttonClass.secondary}
           disabled={busy !== null}
           onClick={() =>
             confirm({
@@ -112,7 +117,8 @@ export function SampleDataSettings() {
           {busy === 'reset' ? sampleData.removing : sampleData.remove}
         </button>
       </div>
+      </div>
       {dialog}
-    </SurfaceCard>
+    </section>
   )
 }

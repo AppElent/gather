@@ -56,8 +56,13 @@ export interface QuickAddMember {
 }
 
 export interface QuickAddContext {
-  /** The phone's day, `YYYY-MM-DD`. */
+  /** The day words are read from ("tomorrow"): the Group's, `YYYY-MM-DD`. */
   today: string
+  /**
+   * The phone's own day, where it can differ: a time sets a reminder on the
+   * phone's clock. Left out, it is `today`.
+   */
+  clockDay?: string
   /** The phone's clock, `HH:MM`: decides whether a bare time is today. */
   now: string
   /** The Members a `@name` can be. */
@@ -92,6 +97,13 @@ export interface QuickAdd {
   parts: QuickAddPart[]
   /** The due date: the date typed, or the day a time falls on. */
   dueDate?: string
+  /**
+   * The reminder's day on the phone's clock when it is earlier than `dueDate`
+   * (a bare time added in a Group a day ahead of the phone, so the task is due
+   * on the Group's today rather than immediately overdue, while the reminder
+   * still fires on the phone's upcoming clock).
+   */
+  reminderDate?: string
   /** `HH:MM`, when a time was typed: the task's reminder. */
   time?: string
   repeat?: TaskRepeat
@@ -612,7 +624,21 @@ export function parseQuickAdd(text: string, ctx: QuickAddContext): QuickAdd {
   // tomorrow once a typed time has passed, and for a repeat the first of its
   // days from then on, as the server would pick (`firstDueDate`). "Elke
   // dinsdag om 19:30" on a Saturday is due Tuesday, not today.
-  const first = time && time.time <= ctx.now ? addDays(ctx.today, 1) : ctx.today
+  //
+  // A bare time fires on the phone's clock (`clockDay`), which can be a day
+  // behind the Group's `today`: keep `dueDate` on at least the Group's `today`
+  // so the new task is not overdue at once, and carry `reminderDate` for the
+  // phone's clock day when it differs.
+  const clockStart = ctx.clockDay ?? ctx.today
+  const reminderDay = time
+    ? time.time <= ctx.now
+      ? addDays(clockStart, 1)
+      : clockStart
+    : undefined
+  const first =
+    reminderDay && compareIsoDates(reminderDay, ctx.today) > 0
+      ? reminderDay
+      : ctx.today
   const dueDate =
     date?.date ??
     (repeat
@@ -620,10 +646,20 @@ export function parseQuickAdd(text: string, ctx: QuickAddContext): QuickAdd {
       : time
         ? first
         : undefined)
+  const reminderDate =
+    time &&
+    !date &&
+    !repeat &&
+    reminderDay &&
+    dueDate &&
+    compareIsoDates(reminderDay, dueDate) < 0
+      ? reminderDay
+      : undefined
   return {
     title,
     parts,
     ...(dueDate ? { dueDate } : {}),
+    ...(reminderDate ? { reminderDate } : {}),
     ...(time ? { time: time.time } : {}),
     ...(repeat ? { repeat: anchored(repeat.repeat, dueDate ?? first) } : {}),
     ...(member ? { assigneeId: member.memberId } : {}),

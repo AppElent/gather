@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { en, nl } from './messages'
 import {
+  assignablePeople,
   assigneeUnavailable,
   asTaskListKind,
+  chosenAssignee,
   groupBySection,
   iconChoices,
   normalizeTaskUrl,
@@ -147,20 +149,36 @@ describe('who a task can be given to (APP-302, ADR-0021 capabilities)', () => {
     expect(assigneeUnavailable({ provider: 'local', writable: true })).toBeNull()
   })
 
-  it('turns Todoist off until Gather can write to it, then only for shared projects', () => {
-    // Every linked list today: no provider write path yet.
+  it('takes Members of a shared Todoist project it can write to (APP-405)', () => {
+    const todoist = (
+      assignable?: { shared: boolean; memberIds: string[] },
+      writable = true,
+    ) => assigneeUnavailable({ provider: 'todoist', writable, assignable })
+    const shared = { shared: true, memberIds: ['u1'] }
+    expect(todoist(shared)).toBeNull()
+    expect(todoist(shared, false)).toBe('readOnly')
+    // Who is in it was not read: an older server, or Todoist did not answer.
+    expect(todoist()).toBe('readOnly')
+    expect(todoist({ shared: false, memberIds: [] })).toBe('notShared')
+    expect(todoist({ shared: true, memberIds: [] })).toBe('noMembers')
+  })
+
+  it('offers every Member on a local list, the matched ones on a linked one', () => {
+    const people = [{ id: 'u1' }, { id: 'u2' }]
+    expect(assignablePeople({ provider: 'local' }, people)).toEqual(people)
     expect(
-      assigneeUnavailable({ provider: 'todoist', writable: false, shared: true }),
-    ).toBe('readOnly')
-    expect(
-      assigneeUnavailable({ provider: 'todoist', writable: true, shared: false }),
-    ).toBe('notShared')
-    expect(
-      assigneeUnavailable({ provider: 'todoist', writable: true }),
-    ).toBe('notShared')
-    expect(
-      assigneeUnavailable({ provider: 'todoist', writable: true, shared: true }),
-    ).toBeNull()
+      assignablePeople(
+        { provider: 'todoist', assignable: { shared: true, memberIds: ['u2'] } },
+        people,
+      ),
+    ).toEqual([{ id: 'u2' }])
+    expect(assignablePeople({ provider: 'todoist' }, people)).toEqual([])
+  })
+
+  it('knows a Member, nobody, and someone who is no Member apart', () => {
+    expect(chosenAssignee({ assigneeId: 'u1' })).toBe('u1')
+    expect(chosenAssignee({})).toBeNull()
+    expect(chosenAssignee({ assigneeName: '' })).toBeUndefined()
   })
 
   it('never offers it on Notion, writable or not', () => {
@@ -173,7 +191,12 @@ describe('who a task can be given to (APP-302, ADR-0021 capabilities)', () => {
   })
 
   it('has an explanation in both languages for every reason', () => {
-    for (const reason of ['readOnly', 'notShared', 'unsupported'] as const) {
+    for (const reason of [
+      'readOnly',
+      'notShared',
+      'noMembers',
+      'unsupported',
+    ] as const) {
       expect(en.tasks.assignee.unavailable[reason]).toContain('{provider}')
       expect(nl.tasks.assignee.unavailable[reason]).toContain('{provider}')
     }

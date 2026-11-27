@@ -65,6 +65,7 @@ import {
   appleRevocationReturnUrl,
   revokeAppleSignIn,
 } from '../../lib/auth/appleRevocation'
+import { endSession } from '../../lib/auth/useSignOut'
 import { useI18n } from '../../lib/i18n'
 
 /** What the person chose to delete. */
@@ -262,17 +263,20 @@ export function AccountDeleteProvider({
     leave(SIGNED_OUT_HOME)
   }, [deleteUser, leave])
 
-  // Gather's data is gone and the login stays: sign out of this browser only.
-  // A full load after it either way, so nothing of the old account stays in
-  // memory; if Clerk failed to end the session, the next load starts a fresh,
-  // empty account in it, which is what signing in again would do anyway.
-  const leaveSignedOut = useCallback(() => {
-    setState({ step: 'signingOut' })
-    void clerk
-      .signOut({ redirectUrl: GATHER_DATA_DELETED_HOME })
-      .catch(() => {})
-      .finally(() => leave(GATHER_DATA_DELETED_HOME))
-  }, [clerk, leave])
+  // Gather's data is gone and the login stays: end the session that confirmed,
+  // and no other in this browser (APP-872). A full load after it either way,
+  // so nothing of the old account stays in memory; if Clerk failed to end the
+  // session, the next load starts a fresh, empty account in it, which is what
+  // signing in again would do anyway.
+  const leaveSignedOut = useCallback(
+    (sessionId: string) => {
+      setState({ step: 'signingOut' })
+      void endSession(clerk, sessionId, GATHER_DATA_DELETED_HOME)
+        .catch(() => {})
+        .finally(() => leave(GATHER_DATA_DELETED_HOME))
+    },
+    [clerk, leave],
+  )
 
   const start = useCallback(
     (choice: DeleteChoice) => {
@@ -341,7 +345,7 @@ export function AccountDeleteProvider({
           setState({ step: 'refused', choice, cause })
           return
         }
-        if (choice === 'gatherData') leaveSignedOut()
+        if (choice === 'gatherData') leaveSignedOut(account.sessionId)
         else await deleteLogin()
       })()
     },
@@ -365,9 +369,9 @@ export function AccountDeleteProvider({
     if (state.step === 'stranded') void deleteLogin()
   }, [state.step, deleteLogin])
 
+  // The session whose login is stranded, and no other (APP-872).
   const signOut = useCallback(() => {
-    void clerk
-      .signOut()
+    void endSession(clerk, confirmed.current?.sessionId ?? clerk.session?.id)
       .catch(() => {
         // Leaving reloads the page; Clerk asks again if a session survived.
       })

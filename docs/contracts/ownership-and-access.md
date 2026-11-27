@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing who owns, sees, writes to, or is refused Group content, or how the Current Group is chosen.
-version: 2.1.0
+version: 2.2.0
 status: current
 ---
 
@@ -44,6 +44,10 @@ defined in the [glossary](../../GLOSSARY.md).
   too (APP-620, APP-682). Its data also carries the English
   sentence it threw before the keys, as `message`, so a reader without wording
   for the kind shows what it always showed.
+- **A paired watch is its Member in one Group** (APP-653). Its key is a caller
+  like a signed-in person, held to the Group it was paired with and to that
+  Membership, and refused with the same `groups:` kinds
+  ([watch API](watch-api.md)).
 - **Provenance is permission-checked on read and safe to dangle.** A copied
   or planned recipe keeps what it needs to render when the recipe it points at
   is gone or out of reach.

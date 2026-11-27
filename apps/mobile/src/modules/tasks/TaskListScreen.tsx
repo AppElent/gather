@@ -71,6 +71,7 @@ import {
 import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
 import { AppearanceSheet } from './listFace'
 import { PackingProgress, UncheckAll } from './packing'
+import { providerName } from './providerName'
 import { ReorderMode } from './ReorderMode'
 import { SectionHeading, SectionsSheet } from './sections'
 import { RenameSheet } from './sheets'
@@ -301,7 +302,7 @@ export function TaskList({
   const openTask = (task: Task) =>
     router.push({
       pathname: '/all/tasks/task/[taskId]',
-      params: { taskId: task.id },
+      params: { taskId: task.id, listId: task.listId },
     })
 
   // A local list under Tasks wears its own tile; a list another Module owns
@@ -339,7 +340,7 @@ export function TaskList({
       }
       onOpen={() => openTask(task)}
       menu={{
-        reorder: true,
+        reorder: !linked,
         sections: sectioned,
         onAction: (action) => taskSheets.onAction(task, action),
       }}
@@ -395,13 +396,13 @@ export function TaskList({
                     id: 'reorder',
                     title: t.actions.reorder,
                     image: 'arrow.up.arrow.down',
-                    attributes: { disabled: !list.writable },
+                    attributes: { disabled: !list.writable || linked },
                   },
                   {
                     id: 'rename',
                     title: t.tasks.list.rename,
                     image: 'pencil',
-                    attributes: { disabled: !list.writable },
+                    attributes: { disabled: linked },
                   },
                   ...(linked
                     ? []
@@ -648,7 +649,7 @@ export function TaskList({
                           <Text style={[styles.empty, { color: tokens.muted }]}>
                             {linked && list.sync === 'loading'
                               ? fmt(t.tasks.list.loading, {
-                                  provider: list.provider,
+                                  provider: providerName(list.provider),
                                 })
                               : t.tasks.list.empty}
                           </Text>
@@ -678,7 +679,7 @@ export function TaskList({
                 </>
               )}
 
-              {inPlace && list.writable && tasks.length > 0 ? (
+              {inPlace && list.writable && !linked && tasks.length > 0 ? (
                 <UncheckAll listId={list.id} doneCount={doneCount} />
               ) : null}
             </>
@@ -726,7 +727,7 @@ function syncNotice(
   refreshed: boolean,
   t: Messages,
 ): string | null {
-  const provider = { provider: list.provider }
+  const provider = { provider: providerName(list.provider) }
   if (list.sync === 'reconnect') return fmt(t.tasks.list.reconnect, provider)
   if (list.sync === 'failed') return fmt(t.tasks.list.failed, provider)
   const synced = refreshed && list.sync === 'synced'

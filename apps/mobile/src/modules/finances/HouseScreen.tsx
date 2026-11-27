@@ -102,7 +102,7 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
     ? homeBuyingCosts(house.buyingCosts)
     : null
   const first = house.calculations[0]
-  const totals = first ? calculationTotals(toLoanParts(first.parts)) : null
+  const totals = first ? calculationTotals(toLoanParts(first.parts, today)) : null
   const nextFix = house.calculations
     .flatMap((calculation) => calculation.parts)
     .map((part) => part.fixedUntil)
@@ -201,7 +201,7 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
         <Section title={text.house.calculations} />
         <Card>
           {house.calculations.map((calculation) => {
-            const each = calculationTotals(toLoanParts(calculation.parts))
+            const each = calculationTotals(toLoanParts(calculation.parts, today))
             return (
               <Row
                 key={calculation._id}

@@ -35,6 +35,8 @@ where this study is silent.
 | `Repeat.dc.html` | Repeat sheet | APP-303 |
 | `QuickAdd.dc.html` | Quick add with recognised chips | APP-307 |
 | `quick-add_final/`, `quick-add_final.md` | Keyboard composer for tasks, notes and events (approved 22 Nov 2026; supersedes the §5 layout, keeps its recognition) | APP-587, 588, 589 |
+| `move-to-list_final/`, `move-to-list_final.md` | Move a linked Todoist task to another list on the same connection (approved 24 Nov 2026, option A) | APP-821 |
+| `external-sources_final/`, `external-sources_final.md` | Pick a source when creating a list; link an existing Todoist project or Notion database; land in the list after linking (web, approved 25 Nov 2026, option A) | APP-863 |
 | `canvas.json` | Positions, titles, sticky notes (the brief and rationale) | |
 
 The artboards are a visual reference. Build from this companion and the phone's

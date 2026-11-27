@@ -7,7 +7,8 @@
  * (`ui/composer-drafts.ts`): per account, Group and place, in memory only. The
  * form opens on it next time ([editors](../../../../docs/standards/editors.md)).
  *
- * Only a share keeps it. A close the person chose (Cancel, Close, a swipe) or
+ * Only a share, or a link opened over the form (APP-747), keeps it. Below,
+ * "a share" means either. A close the person chose (Cancel, Close, a swipe) or
  * a save forgets it, as those already do. Nothing is kept while a save is on
  * its way: reopened, it could be sent twice. If that save then fails, the form
  * says so with `failed`, which keeps it.
@@ -37,6 +38,8 @@ export interface TrackOptions {
 }
 
 export interface SheetDraft<T> {
+  /** The draft's key: what a form scopes its own state to (a photo's upload). */
+  scope: string
   /** The draft a share kept, read when the form opened. */
   kept: T | undefined
   /** The form's state now, called on every render. Serialisable values only. */
@@ -97,6 +100,7 @@ export function useSheetDraft<T>(place: string): SheetDraft<T> {
 
   // Plain object, made each render: the hook's state is all in refs.
   return {
+    scope: key,
     kept,
     track(value, options = {}) {
       let dirty = options.dirty

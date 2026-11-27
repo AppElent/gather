@@ -54,6 +54,10 @@ describe('smart list rules (APP-301)', () => {
     expect(
       inSmartList('unassigned', { done: false, assigneeId: 'me' }, plain, scope),
     ).toBe(false)
+    // Someone in Todoist who is no Member, their name known or not (APP-405).
+    expect(
+      inSmartList('unassigned', { done: false, assigneeName: '' }, plain, scope),
+    ).toBe(false)
     for (const kind of ['packing', 'wishlist', 'groceries'] as const) {
       expect(holdsJobs({ kind, grocery: false })).toBe(false)
     }

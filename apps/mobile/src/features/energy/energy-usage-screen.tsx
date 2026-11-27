@@ -43,6 +43,7 @@ import { fmt, useI18n } from '../../i18n'
 import { moduleHref } from '../../modules/moduleDestination'
 import { RADIUS, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, InsetRow } from '../../ui/inset-list'
+import { EnergyChargeCard } from './components/energy-charge-card'
 import { type EnergyFact, EnergyFactGrid } from './components/energy-fact-grid'
 import {
   EnergyChartLegend,
@@ -50,7 +51,6 @@ import {
   energySolarColour,
 } from './components/energy-mirror-chart'
 import { EnergyPeriodStepper } from './components/energy-period-stepper'
-import { EnergySocChart } from './components/energy-soc-chart'
 import { EnergyTotalCard } from './components/energy-total-card'
 import { EnergyYearChart } from './components/energy-year-chart'
 import { daySlots, hourSlots } from './energy-chart-series'
@@ -303,15 +303,6 @@ function DayView({ day, today }: { day: string; today: string }) {
   const sentence = period.hasHourly
     ? hourChartSentence(slots, day, words, locale)
     : ''
-  const soc = period.hasHourly && period.channels.batterySoc
-    ? slots.map(
-        (slot) =>
-          period.hours.find((hour) => hour.hourStart === slot.hourStart)
-            ?.socPercent ?? null,
-      )
-    : null
-  const socKnown = soc?.filter((value): value is number => value !== null) ?? []
-
   return (
     <>
       <EnergyTotalCard
@@ -345,62 +336,16 @@ function DayView({ day, today }: { day: string; today: string }) {
           </Text>
         </View>
       )}
-      {soc && socKnown.length > 0 ? (
-        <SocCard
+      {period.hasHourly && period.channels.batterySoc ? (
+        <EnergyChargeCard
           day={day}
           today={today}
-          percents={soc}
-          low={Math.min(...socKnown)}
-          high={Math.max(...socKnown)}
-          now={socKnown[socKnown.length - 1] ?? null}
+          hours={period.hours}
+          now={Date.now()}
         />
       ) : null}
       {hasData ? <EnergyFactGrid facts={periodFacts(period, locale, words)} /> : null}
     </>
-  )
-}
-
-function SocCard({
-  day,
-  today,
-  percents,
-  low,
-  high,
-  now,
-}: {
-  day: string
-  today: string
-  percents: readonly (number | null)[]
-  low: number
-  high: number
-  now: number | null
-}) {
-  const tokens = useTokens('home')
-  const { t, locale } = useI18n()
-  const words = t.energy
-  const label = fmt(words.usage.socLabel, {
-    date: formatEnergyDate(day, locale, 'dayMonth'),
-    low: Math.round(low),
-    high: Math.round(high),
-  })
-  return (
-    <View
-      testID="energy-usage-soc"
-      style={[styles.card, { backgroundColor: tokens.surface }]}
-    >
-      <View style={styles.head}>
-        <Text style={[TYPE.subhead, styles.flex, { color: tokens.muted }]}>
-          {words.usage.socTitle}
-        </Text>
-        {day === today && now !== null ? (
-          <Text style={[TYPE.footnote, TABULAR, { color: tokens.muted }]}>
-            {fmt(words.usage.socNow, { percent: Math.round(now) })}
-          </Text>
-        ) : null}
-      </View>
-      <EnergySocChart percents={percents} label={label} ticks={HOUR_TICKS} />
-      <Text style={[TYPE.subhead, { color: tokens.ink }]}>{label}</Text>
-    </View>
   )
 }
 

@@ -4,7 +4,7 @@ import type {
   CalendarPeopleFilter,
   CalendarView,
 } from '@gather/core/calendar'
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api, type Id } from '../../convex/api'
@@ -27,8 +27,13 @@ import { useCalendarEditor } from './useCalendarEditor'
 export function ConnectedCalendarScreen() {
   const { group } = useGroup()
   const { t } = useI18n()
-  const [today] = useState(() => localIsoDate())
+  const today = todayIn(group.timeZone)
   const [activeDate, setActiveDate] = useState(today)
+  const [lastToday, setLastToday] = useState(today)
+  if (lastToday !== today) {
+    setLastToday(today)
+    if (activeDate === lastToday) setActiveDate(today)
+  }
   const [filterSheet, setFilterSheet] = useState<'people' | null>(null)
   const [management, setManagement] = useState(false)
   const data = useCalendarData(group.slug, activeDate)

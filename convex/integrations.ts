@@ -4,6 +4,7 @@ import { internal } from './_generated/api'
 import type { ActionCtx } from './_generated/server'
 import {
   action,
+  internalAction,
   internalMutation,
   internalQuery,
   mutation,
@@ -13,10 +14,18 @@ import {
   getGatedIdentity,
   rejectConnectedApps,
 } from './lib/connectedApps'
-import { requireGroupBySlug } from './lib/groupAccess'
+import {
+  getMembership,
+  groupRefusalError,
+  requireGroupBySlug,
+} from './lib/groupAccess'
 import { requireIdentity } from './lib/sharing'
 import { externalProviderValidator } from './lib/taskFields'
 import { getAdapter } from './lib/taskProviders'
+import {
+  revokeAfterCommit,
+  revokeProviderToken,
+} from './lib/taskProviders/revoke'
 import {
   ProviderAuthError,
   type ProviderSource,
@@ -74,6 +83,8 @@ export const disconnect = mutation({
     // Linked lists keep their (now dangling) connectionId — they surface a
     // reconnect prompt until the provider is connected again (spec §5.1/§7).
     await ctx.db.delete(args.connectionId)
+    // Disconnecting has to end the grant at the provider too (APP-909).
+    await revokeAfterCommit(ctx, conn.provider, conn.accessToken)
   },
 })
 
@@ -128,6 +139,15 @@ export const storeConnection = internalMutation({
     connectedBy: v.id('users'),
   },
   handler: async (ctx, args) => {
+    // The Group was authorised before the provider answered, and may have been
+    // deleted since: its token must not outlive it.
+    if (!(await ctx.db.get(args.groupId))) throw groupRefusalError('unknown-group')
+    // The person connecting was a Member when the round trip set out, and may
+    // have left (or deleted their account) while the provider answered: someone
+    // no longer in the Group must not store or replace its token (APP-908).
+    if (!(await getMembership(ctx, args.groupId, args.connectedBy))) {
+      throw groupRefusalError('not-a-member')
+    }
     const existing = await ctx.db
       .query('integrationConnections')
       .withIndex('by_group_provider', (q) =>
@@ -138,6 +158,10 @@ export const storeConnection = internalMutation({
       ? existing._id
       : await ctx.db.insert('integrationConnections', args)
     if (existing) {
+      // The token being replaced is dropped like a disconnected one (APP-909).
+      if (existing.accessToken !== args.accessToken) {
+        await revokeAfterCommit(ctx, existing.provider, existing.accessToken)
+      }
       await ctx.db.patch(existing._id, {
         accessToken: args.accessToken,
         accountLabel: args.accountLabel,
@@ -203,7 +227,9 @@ export const getAuthorizeUrl = action({
     }
     const url = new URL('https://todoist.com/oauth/authorize')
     url.searchParams.set('client_id', requireEnv('TODOIST_CLIENT_ID'))
-    url.searchParams.set('scope', 'data:read')
+    url.searchParams.set('scope', 'data:read_write')
+    // Todoist requires it once its console lists more than one redirect URI.
+    url.searchParams.set('redirect_uri', args.redirectUri)
     url.searchParams.set('state', args.state)
     return url.toString()
   },
@@ -262,6 +288,7 @@ export const completeOAuth = action({
         client_id: requireEnv('TODOIST_CLIENT_ID'),
         client_secret: requireEnv('TODOIST_CLIENT_SECRET'),
         code: args.code,
+        redirect_uri: args.redirectUri,
       })
       const res = await fetch('https://todoist.com/oauth/access_token', {
         method: 'POST',
@@ -276,13 +303,83 @@ export const completeOAuth = action({
       accountLabel = 'Todoist'
     }
 
-    await ctx.runMutation(internal.integrations.storeConnection, {
-      groupId,
-      provider: args.provider,
+    try {
+      await ctx.runMutation(internal.integrations.storeConnection, {
+        groupId,
+        provider: args.provider,
+        accessToken,
+        accountLabel,
+        connectedBy: userId,
+      })
+    } catch (error) {
+      // Refused (the Group went, or the caller left it, while the provider
+      // answered): nothing holds the new token, so it must not stay live at
+      // the provider either (APP-909).
+      // Best effort: the refusal is what the caller sees, whatever happens here.
+      await revokeTokenAt(ctx, args.provider, accessToken).catch(() => {})
+      throw error
+    }
+  },
+})
+
+/** The app's OAuth client for a provider, or nothing when it is not set up. */
+function oauthClient(provider: ExternalProviderId) {
+  const prefix = provider === 'notion' ? 'NOTION' : 'TODOIST'
+  const clientId = process.env[`${prefix}_CLIENT_ID`]
+  const clientSecret = process.env[`${prefix}_CLIENT_SECRET`]
+  return clientId && clientSecret ? { clientId, clientSecret } : null
+}
+
+/**
+ * Whether a connection still holds this token. A provider can hand the same
+ * person the same token again, in another Group or on a reconnect, and revoking
+ * it would end that connection too. The table holds a row per Group and
+ * provider, so the scan stays small.
+ */
+export const isTokenHeld = internalQuery({
+  args: { provider: externalProviderValidator, accessToken: v.string() },
+  handler: async (ctx, args) =>
+    (await ctx.db
+      .query('integrationConnections')
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('provider'), args.provider),
+          q.eq(q.field('accessToken'), args.accessToken),
+        ),
+      )
+      .first()) !== null,
+})
+
+/**
+ * Revoke a token Gather has dropped, best effort (APP-909), unless a
+ * connection still holds it.
+ *
+ * Whatever the provider answers, the row is already gone: a failure is logged
+ * (without the token) and the deletion stands.
+ */
+async function revokeTokenAt(
+  ctx: ActionCtx,
+  provider: ExternalProviderId,
+  accessToken: string,
+) {
+  if (
+    await ctx.runQuery(internal.integrations.isTokenHeld, {
+      provider,
       accessToken,
-      accountLabel,
-      connectedBy: userId,
     })
+  )
+    return
+  const client = oauthClient(provider)
+  const revoked =
+    client !== null && (await revokeProviderToken(provider, accessToken, client))
+  if (!revoked) console.warn(`Could not revoke a dropped ${provider} token`)
+}
+
+/** The scheduled half of `revokeAfterCommit`. */
+export const revokeToken = internalAction({
+  args: { provider: externalProviderValidator, accessToken: v.string() },
+  handler: async (ctx, args) => {
+    await revokeTokenAt(ctx, args.provider, args.accessToken)
   },
 })
 

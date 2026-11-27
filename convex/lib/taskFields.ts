@@ -69,3 +69,51 @@ export const taskReminderValidator = v.object({
   timeZone: v.string(), // IANA
   userId: v.id('users'),
 })
+
+/** One write to a linked list (`taskLists.writeTask`, ADR-0021). */
+export const linkedTaskWriteValidator = v.union(
+  v.object({
+    kind: v.literal('create'),
+    title: v.string(),
+    parentId: v.optional(v.string()),
+    dueDate: v.optional(v.string()),
+    priority: v.optional(taskPriorityValidator),
+    labels: v.optional(v.array(v.string())),
+    /** The same key makes one task, however often it is sent. */
+    requestKey: v.optional(v.string()),
+  }),
+  v.object({
+    kind: v.literal('update'),
+    taskId: v.string(),
+    title: v.optional(v.string()),
+    dueDate: v.optional(v.union(v.string(), v.null())),
+    priority: v.optional(v.union(taskPriorityValidator, v.null())),
+    labels: v.optional(v.array(v.string())),
+    /** A Member who is in the provider's project, or nobody (APP-405). */
+    assigneeId: v.optional(v.union(v.id('users'), v.null())),
+  }),
+  v.object({
+    kind: v.literal('setDone'),
+    taskId: v.string(),
+    done: v.boolean(),
+    /** Completes a recurring task's open subtasks with it. */
+    withSubtasks: v.optional(v.boolean()),
+    /**
+     * With subtasks: sent again after a failure, it moves each recurring
+     * subtask on once.
+     */
+    requestKey: v.optional(v.string()),
+  }),
+  v.object({
+    kind: v.literal('move'),
+    taskId: v.string(),
+    /** The task to go under, or null for the top of the list. */
+    parentId: v.union(v.string(), v.null()),
+  }),
+  v.object({
+    kind: v.literal('moveToList'),
+    taskId: v.string(),
+    /** A linked list of the same connection (APP-821). */
+    listId: v.id('taskLists'),
+  }),
+)

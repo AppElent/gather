@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running gather's checks, starting the web app, or verifying a web change.
-version: 2.0.0
+version: 2.0.1
 ---
 
 # Verify gather
@@ -20,11 +20,13 @@ pnpm verify
 
 `pnpm verify` runs, in order and stopping at the first failure:
 
-1. `pnpm check`: `biome check` plus `scripts/check-mobile-structure.mjs`.
-2. `pnpm typecheck`: the root `tsc` run (web, Convex, core).
+1. `pnpm check`: `biome check`, `scripts/check-mobile-structure.mjs`, and `scripts/check-convex-api.mjs` (fails when `convex/_generated/api.d.ts` misses a module or lists a removed one; regenerate with `convex dev --once` and commit it).
+2. `pnpm typecheck`: the root `tsc` run (web, Convex, core), then
+   `convex/tsconfig.json`, the config `convex deploy` typechecks with (ES2021 `lib`).
 3. `pnpm --filter @gather/mobile typecheck`: the phone app's own `tsconfig`,
    which the root run does not use.
-4. `pnpm test`.
+4. `pnpm --filter @gather/tv typecheck`: the same for the Apple TV app.
+5. `pnpm test`.
 
 It does not build. Always run `pnpm build` after `pnpm verify`, as CI's
 `check` job does. To match CI fully, run the same sequence:

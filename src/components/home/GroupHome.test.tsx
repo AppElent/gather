@@ -202,6 +202,24 @@ describe('an empty day', () => {
 })
 
 describe('the Now card', () => {
+  test("goes by the Group's day, not this device's", () => {
+    vi.setSystemTime(new Date('2026-11-29T10:30:00Z'))
+    state.lists = [HOUSE]
+    state.tasks = {
+      list_house: [task('Due Sunday', 'list_house', { dueDate: '2026-11-29' })],
+    }
+    const { unmount } = renderInGroup(<GroupHome />, {
+      group: { ...HOUSEHOLD, timeZone: 'Pacific/Kiritimati' },
+    })
+    expect(screen.getByTestId('start-now')).toBeDefined()
+    expect(screen.getByText(/Monday.*30 Nov|30 Nov.*Monday|Monday.*Nov.* 30/)).toBeDefined()
+    unmount()
+    renderInGroup(<GroupHome />, {
+      group: { ...HOUSEHOLD, timeZone: 'Europe/Amsterdam' },
+    })
+    expect(screen.queryByTestId('start-now')).toBeNull()
+  })
+
   test('counts the overdue tasks and opens the one list they are on', () => {
     state.lists = [HOUSE, WEEKEND]
     state.tasks = {
@@ -306,6 +324,30 @@ describe('the Today rail', () => {
 
     const rows = [...screen.getByTestId('start-rail').querySelectorAll('li')]
     expect(rows.map((row) => row.dataset.rail)).toEqual(['past', 'now'])
+  })
+
+  test('reads rail clock times and Now in the Group’s time zone', () => {
+    // 22:30Z on 24 Nov is 07:30 on 25 Nov in Asia/Tokyo (UTC+9).
+    vi.setSystemTime(new Date('2026-11-24T22:30:00Z'))
+    state.babies = [{ _id: 'baby_juno', name: 'Juno' }]
+    state.events = {
+      baby_juno: [
+        {
+          _id: 'e1',
+          type: 'note',
+          // 16:05Z is 01:05 on 25 Nov in Tokyo.
+          timestamp: Date.parse('2026-11-24T16:05:00Z'),
+          data: { text: 'Feed' },
+        },
+      ],
+    }
+    renderInGroup(<GroupHome />, {
+      group: { ...HOUSEHOLD, timeZone: 'Asia/Tokyo' },
+    })
+
+    const rows = [...screen.getByTestId('start-rail').querySelectorAll('li')]
+    expect(rows[0].querySelector('time')?.textContent).toBe('01:05')
+    expect(rows[1].textContent).toBe('Now · 07:30')
   })
 
   test('puts upcoming items after the capsule, in ink 600 on their group tile', () => {

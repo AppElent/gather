@@ -22,7 +22,7 @@ export function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
     <div
       role="radiogroup"
       aria-label={viewMode.label}
-      className="flex gap-1 rounded-lg border p-1"
+      className="flex gap-0.5 rounded-[var(--radius-pill)] bg-[var(--surface)] p-0.5"
     >
       {OPTIONS.map(({ mode: optionMode, icon: Icon }) => (
         // biome-ignore lint/a11y/useSemanticElements: custom radio-group widget (WAI-ARIA radio pattern) needs a clickable button, not a native input, to render the icon
@@ -33,9 +33,9 @@ export function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
           aria-checked={mode === optionMode}
           aria-label={viewMode[optionMode]}
           onClick={() => onChange(optionMode)}
-          className={`rounded-md p-1.5 ${mode === optionMode ? 'bg-[var(--surface-2)]' : ''}`}
+          className={`grid size-9 place-items-center rounded-[var(--radius-pill)] ${mode === optionMode ? 'bg-[var(--surface-2)] text-[var(--ink)]' : 'text-[var(--muted)] hover:text-[var(--ink)]'}`}
         >
-          <Icon className="h-4 w-4" />
+          <Icon className="size-4" aria-hidden="true" />
         </button>
       ))}
     </div>

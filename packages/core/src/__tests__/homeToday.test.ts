@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest'
+import { dayStartIn } from '../civilDate'
 
 import {
   clockTime,
   dueTodayTasks,
-  homeBabyLogMessages,
   overdueListCount,
   overdueListId,
   overdueTasks,
   railEntries,
   spelledDate,
-  startOfDay,
 } from '../homeToday'
 import { en, nl } from '../messages'
 
@@ -63,7 +62,7 @@ describe('overdueListId', () => {
 
 describe('railEntries', () => {
   const noon = new Date(2026, 10, 16, 12, 0).getTime()
-  const dayStart = startOfDay(noon)
+  const dayStart = dayStartIn(undefined, noon)
   const at = (h: number, m: number) => new Date(2026, 10, 16, h, m).getTime()
   const children = [
     { _id: 'sanne', name: 'Sanne' },
@@ -127,33 +126,23 @@ describe('railEntries', () => {
   })
 })
 
-describe('homeBabyLogMessages', () => {
-  it('writes durations with spaces in both languages', () => {
-    expect(
-      homeBabyLogMessages(en.baby.log, en.shell.today).status.duration
-        .hoursMinutes,
-    ).toBe('{hours} h {minutes} min')
-    expect(
-      homeBabyLogMessages(nl.baby.log, nl.shell.today).summary
-        .sideMinutes,
-    ).toBe('{side} {minutes} min')
-  })
-
-  it('leaves the shared baby log words alone', () => {
-    homeBabyLogMessages(en.baby.log, en.shell.today)
-    expect(en.baby.log.status.duration.hoursMinutes).toBe('{hours}h {minutes}m')
-  })
-})
-
 describe('clockTime', () => {
   it('is the 24-hour clock with leading zeros', () => {
     expect(clockTime(new Date(2026, 10, 16, 8, 5).getTime())).toBe('08:05')
     expect(clockTime(new Date(2026, 10, 16, 18, 30).getTime())).toBe('18:30')
   })
+
+  it("reads in the Group's zone when given, midnight as 00:xx", () => {
+    // 15:05Z is 00:05 in Tokyo (UTC+9) and 16:05 in Amsterdam (UTC+1).
+    const at = Date.parse('2026-11-16T15:05:00Z')
+    expect(clockTime(at, 'Asia/Tokyo')).toBe('00:05')
+    expect(clockTime(at, 'Europe/Amsterdam')).toBe('16:05')
+    expect(clockTime(at, 'Mars/Olympus')).toBe(clockTime(at))
+  })
 })
 
 describe('spelledDate', () => {
-  const monday = new Date(2026, 10, 16, 9, 0).getTime()
+  const monday = '2026-11-16'
 
   it('spells the date out in English', () => {
     expect(spelledDate(monday, 'en', en.shell.today.date)).toBe(

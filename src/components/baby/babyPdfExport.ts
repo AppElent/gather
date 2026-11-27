@@ -1,9 +1,10 @@
 import { formatAge } from '@gather/core/baby-age'
 import { summarizeBabyEvent } from '@gather/core/baby-events'
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import type { BabyEventType } from '@gather/core/domain'
 import { BABY_EVENT_TYPES } from '@gather/core/domain'
 import type { Messages } from '@gather/core/messages'
+import { runtimeTimeZone } from '@gather/core/time-zones'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { Doc } from '../../../convex/_generated/dataModel'
@@ -17,6 +18,8 @@ export interface BabyPdfExportOptions {
   messages: Messages['baby']['log']
   eventTypes: Record<BabyEventType, string>
   locale: string
+  /** The Group's IANA time zone when set; absent uses this device's calendar. */
+  timeZone?: string
   events: Doc<'babyEvents'>[]
   from: number
   to: number
@@ -38,14 +41,15 @@ const TABLE_STYLES = {
   margin: { left: 14, right: 14 },
 }
 
-function formatDate(ms: number): string {
-  return new Date(ms).toLocaleDateString()
+function formatDate(ms: number, locale: string, zone?: string): string {
+  return new Date(ms).toLocaleDateString(locale, zone ? { timeZone: zone } : undefined)
 }
 
-function formatTime(ms: number): string {
-  return new Date(ms).toLocaleTimeString(undefined, {
+function formatTime(ms: number, locale: string, zone?: string): string {
+  return new Date(ms).toLocaleTimeString(locale, {
     hour: 'numeric',
     minute: '2-digit',
+    ...(zone ? { timeZone: zone } : {}),
   })
 }
 
@@ -80,6 +84,7 @@ function drawHeader(
   to: number,
   m: Messages['baby']['log'],
   locale: string,
+  zone?: string,
 ) {
   doc.setFontSize(16)
   doc.text(fmt(m.pdf.title, { name: baby.name }), 14, 18)
@@ -88,12 +93,16 @@ function drawHeader(
   doc.text(
     fmt(m.pdf.born, {
       date: new Date(`${baby.birthDate}T00:00:00`).toLocaleDateString(locale),
-      age: formatAge(baby.birthDate, m.child.age, locale, to),
+      age: formatAge(baby.birthDate, m.child.age, locale, to, zone),
     }),
     14,
     25,
   )
-  doc.text(`${formatDate(from)} – ${formatDate(to)}`, 14, 31)
+  doc.text(
+    `${formatDate(from, locale, zone)} – ${formatDate(to, locale, zone)}`,
+    14,
+    31,
+  )
   doc.setTextColor(0)
 }
 
@@ -104,6 +113,8 @@ function drawByCategory(
   included: BabyEventType[],
   m: Messages['baby']['log'],
   eventTypes: Record<BabyEventType, string>,
+  locale: string,
+  zone?: string,
 ): boolean {
   let cursorY = 40
   let printedAny = false
@@ -134,8 +145,8 @@ function drawByCategory(
         ],
       ],
       body: rows.map((e) => [
-        formatDate(e.timestamp),
-        formatTime(e.timestamp),
+        formatDate(e.timestamp, locale, zone),
+        formatTime(e.timestamp, locale, zone),
         summarizeBabyEvent(e, m),
         e.notes ?? '',
       ]),
@@ -158,6 +169,8 @@ function drawChronological(
   included: BabyEventType[],
   m: Messages['baby']['log'],
   eventTypes: Record<BabyEventType, string>,
+  locale: string,
+  zone?: string,
 ): boolean {
   const groups = groupEventsByMinute(events, included)
   if (groups.length === 0) return false
@@ -173,8 +186,8 @@ function drawChronological(
       ],
     ],
     body: groups.map((group) => [
-      formatDate(group.minuteMs),
-      formatTime(group.minuteMs),
+      formatDate(group.minuteMs, locale, zone),
+      formatTime(group.minuteMs, locale, zone),
       group.events
         .map((e) => `${eventTypes[e.type]}: ${summarizeBabyEvent(e, m)}`)
         .join('\n'),
@@ -201,6 +214,7 @@ export function exportBabyLogPdf({
   messages: m,
   eventTypes,
   locale,
+  timeZone,
   events,
   from,
   to,
@@ -208,21 +222,22 @@ export function exportBabyLogPdf({
   layout = 'category',
 }: BabyPdfExportOptions) {
   const included = types ?? [...BABY_EVENT_TYPES]
+  const zone = timeZone ? (runtimeTimeZone(timeZone) ?? undefined) : undefined
   const doc = new jsPDF()
 
-  drawHeader(doc, baby, from, to, m, locale)
+  drawHeader(doc, baby, from, to, m, locale, zone)
 
   const printedAny =
     layout === 'chronological'
-      ? drawChronological(doc, events, included, m, eventTypes)
-      : drawByCategory(doc, events, included, m, eventTypes)
+      ? drawChronological(doc, events, included, m, eventTypes, locale, zone)
+      : drawByCategory(doc, events, included, m, eventTypes, locale, zone)
 
   if (!printedAny) {
     doc.setFontSize(11)
     doc.text(m.pdf.empty, 14, 40)
   }
 
-  const dateStamp = localIsoDate(to)
+  const dateStamp = todayIn(timeZone, to)
   const safeName =
     baby.name.trim().replace(/\s+/g, '-').toLowerCase() ||
     m.pdf.fileNameFallback

@@ -2,7 +2,7 @@
 /**
  * What `Field` does for password managers: iOS `passwordRules` on new-password
  * fields, and state kept on the native text when AutoFill sets a credential
- * field without `onChangeText`.
+ * field without `onChangeText`. Also the iOS Done bar on number keypads (APP-731).
  */
 import { act, type ReactNode } from 'react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
@@ -12,17 +12,34 @@ import { CLERK_PASSWORD_RULES, Field } from './field'
 
 type Props = Record<string, unknown> & { children?: ReactNode }
 
-const input = vi.hoisted(() => ({ props: {} as Record<string, unknown> }))
+const input = vi.hoisted(() => ({
+  props: {} as Record<string, unknown>,
+  os: 'ios',
+  dismiss: vi.fn(),
+}))
 
 vi.mock('react-native', async () => {
   const React = await import('react')
   const h = React.createElement
   const box = ({ children }: Props) => h('div', null, children)
   return {
-    Pressable: box,
+    Platform: {
+      get OS() {
+        return input.os
+      },
+    },
+    Keyboard: { dismiss: input.dismiss },
+    InputAccessoryView: ({ nativeID, children }: Props) =>
+      h('div', { 'data-accessory': nativeID }, children),
+    Pressable: ({ testID, onPress, children }: Props) =>
+      h(
+        'button',
+        { 'data-testid': testID, onClick: onPress as () => void },
+        children as ReactNode,
+      ),
     Text: box,
     View: box,
-    StyleSheet: { create: <T,>(styles: T) => styles },
+    StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 0.5 },
     TextInput: React.forwardRef(function TextInput(props: Props, _ref) {
       input.props = props
       return h('input')
@@ -30,12 +47,19 @@ vi.mock('react-native', async () => {
   }
 })
 vi.mock('../i18n', () => ({
-  useI18n: () => ({ t: { fields: { showPassword: '', hidePassword: '' } } }),
+  useI18n: () => ({
+    t: {
+      actions: { done: 'Done', next: 'Next' },
+      fields: { showPassword: '', hidePassword: '' },
+    },
+  }),
 }))
 vi.mock('../theme/icons', () => ({ UI_ICONS: { Eye: () => null, EyeOff: () => null } }))
 vi.mock('../theme/tokens', () => ({
   RADIUS: { card: 0 },
-  TYPE: { body: {}, footnoteStrong: {} },
+  SIZE: { hitMin: 44 },
+  SPACE: { 1: 4, 2: 8, 4: 16 },
+  TYPE: { body: {}, bodyStrong: {}, footnoteStrong: {} },
   useTokens: () => ({}),
 }))
 
@@ -45,8 +69,10 @@ type Handler = (e: ReturnType<typeof event>) => void
 let unmount: (() => void) | undefined
 function render(props: Record<string, unknown>) {
   unmount?.()
-  unmount = mount(<Field label="Field" {...props} />).unmount
+  const m = mount(<Field label="Field" {...props} />)
+  unmount = m.unmount
   return {
+    container: m.container,
     endEditing: (text: string) => (input.props.onEndEditing as Handler)(event(text)),
     submit: (text: string) => (input.props.onSubmitEditing as Handler)(event(text)),
   }
@@ -55,6 +81,8 @@ function render(props: Record<string, unknown>) {
 afterEach(() => {
   unmount?.()
   unmount = undefined
+  input.os = 'ios'
+  input.dismiss.mockClear()
 })
 
 describe('passwordRules', () => {
@@ -113,5 +141,35 @@ describe('native text sync', () => {
     render({ value: 'note', onChangeText, onEndEditing }).endEditing('other')
     expect(onChangeText).not.toHaveBeenCalled()
     expect(onEndEditing).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('Done bar', () => {
+  test('an iOS number keypad has Done and, when given, Next', () => {
+    const onNext = vi.fn()
+    const { container } = render({ keyboardType: 'number-pad', onNext })
+    const id = input.props.inputAccessoryViewID as string
+    expect(container.querySelector(`[data-accessory="${id}"]`)).not.toBeNull()
+    const press = (key: string) =>
+      act(() =>
+        container
+          .querySelector<HTMLButtonElement>(`[data-testid="${id}-${key}"]`)
+          ?.click(),
+      )
+    press('next')
+    expect(onNext).toHaveBeenCalledTimes(1)
+    expect(input.dismiss).not.toHaveBeenCalled()
+    press('done')
+    expect(input.dismiss).toHaveBeenCalledTimes(1)
+  })
+
+  test('Android and text keyboards have none', () => {
+    const text = render({ keyboardType: 'default' })
+    expect(text.container.querySelector('[data-accessory]')).toBeNull()
+    expect(input.props.inputAccessoryViewID).toBeUndefined()
+    input.os = 'android'
+    const android = render({ keyboardType: 'number-pad' })
+    expect(android.container.querySelector('[data-accessory]')).toBeNull()
+    expect(input.props.inputAccessoryViewID).toBeUndefined()
   })
 })

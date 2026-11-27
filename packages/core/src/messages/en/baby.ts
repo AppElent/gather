@@ -20,8 +20,7 @@ export const eventTypes = {
 
 export const log = {
   list: {
-    subtitle:
-      'Temperature, feeding, sleep, growth and more — shared with the group.',
+    count: { one: '{count} child', other: '{count} children' },
     addChild: 'Add child',
     emptyTitle: 'No children yet',
     emptyBody:
@@ -35,7 +34,7 @@ export const log = {
       weeks: { one: '{count} week old', other: '{count} weeks old' },
       months: { one: '{count} month old', other: '{count} months old' },
       years: { one: '{count} year old', other: '{count} years old' },
-      yearsMonths: '{years}y {months}m old',
+      yearsMonths: '{years} yr {months} mo old',
     },
     notFound: 'Child not found.',
     switch: 'Switch child',
@@ -93,10 +92,10 @@ export const log = {
     today: 'Today',
     ago: '{duration} ago',
     duration: {
-      minutes: '{minutes}m',
-      hours: '{hours}h',
-      hoursMinutes: '{hours}h {minutes}m',
-      days: '{days}d',
+      minutes: '{minutes} min',
+      hours: '{hours} h',
+      hoursMinutes: '{hours} h {minutes} min',
+      days: '{days} d',
     },
     countToday: '{count} today',
     never: 'Nothing logged yet',
@@ -302,7 +301,7 @@ export const log = {
   summary: {
     celsiusWithMethod: '{celsius}°C ({method})',
     celsius: '{celsius}°C',
-    sideMinutes: '{side} {minutes}m',
+    sideMinutes: '{side} {minutes} min',
     /**
      * Whole phrases per kind rather than "{kind} diaper": Dutch inflects the
      * adjective ("natte luier"), so a language that composes the two in English
