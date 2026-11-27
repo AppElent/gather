@@ -16,7 +16,8 @@
  * Other event types answer 200 so Clerk does not retry them.
  *
  * The same route's `session.ended`, `session.removed` and `session.revoked`
- * (APP-653) delete the watches paired under that session.
+ * delete the push registration of the phone signed in with that session
+ * (APP-845) and the watches paired under it (APP-653).
  *
  * `/watch/v1/*` (APP-653) is what a paired Apple Watch calls with its key
  * (`lib/watchHttp.ts`, `docs/contracts/watch-api.md`).
@@ -101,7 +102,7 @@ const clerkWebhook = httpAction(async (ctx, request) => {
     const clerkId = event.data?.user_id
     if (typeof sessionId !== 'string' || typeof clerkId !== 'string')
       return new Response('Missing session or user id', { status: 400 })
-    await ctx.runMutation(internal.watch.forgetSessionOf, {
+    await ctx.runMutation(internal.notifications.forgetSessionOf, {
       clerkId,
       sessionId,
     })

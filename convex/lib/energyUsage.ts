@@ -798,12 +798,12 @@ export async function computeEnergyRange(
     }),
   )
 
-  const solarSince = options.solar
-    ? await firstHourOf(
+  const solarSpans = options.solar
+    ? await measuringSpans(
         ctx,
         channels.filter((each) => each.channel.kind === 'solar' && !each.manual),
       )
-    : null
+    : []
   const solarDays = options.solar
     ? days.map((day) =>
         energySolarDay(
@@ -813,7 +813,7 @@ export async function computeEnergyRange(
             hourBuckets,
             energyContractOn(contracts, day),
             prices,
-            solarSince,
+            solarSpans,
           ),
         ),
       )
@@ -834,30 +834,50 @@ export async function firstHourOf(
   ctx: QueryCtx,
   channels: readonly ChannelWithSource[],
 ): Promise<number | null> {
-  const first = await Promise.all(
-    channels.map(({ channel }) =>
-      ctx.db
+  const starts = (await measuringSpans(ctx, channels)).map((each) => each.from)
+  return starts.length ? Math.min(...starts) : null
+}
+
+/**
+ * When each of `channels` measured: from its first hour with a figure until
+ * it retired (APP-922), or on while it is in use. A channel without hours has
+ * none. Reads one hour per channel.
+ */
+async function measuringSpans(
+  ctx: QueryCtx,
+  channels: readonly ChannelWithSource[],
+): Promise<Span[]> {
+  const spans = await Promise.all(
+    channels.map(async ({ channel }) => {
+      const first = await ctx.db
         .query('energyIntervals')
         .withIndex('by_channel_hour', (q) => q.eq('channelId', channel._id))
-        .first(),
-    ),
+        .first()
+      return first
+        ? [
+            {
+              from: first.hourStart,
+              to: channel.retiredAt ?? Number.POSITIVE_INFINITY,
+            },
+          ]
+        : []
+    }),
   )
-  const starts = first.flatMap((each) => (each ? [each.hourStart] : []))
-  return starts.length ? Math.min(...starts) : null
+  return spans.flat()
 }
 
 /**
  * A day's hours as `energySolarDay` reads them, each with its price. An
  * inverter that is off at night reports no figure then: on a day it reported
- * at all, such an hour made nothing. Hours before `solarSince`, when solar
- * was not measured yet, stay unknown.
+ * at all, such an hour made nothing. Hours outside `solarSpans`, before solar
+ * was measured or after its channel retired, stay unknown.
  */
 function solarHours(
   day: string,
   buckets: ReadonlyMap<number, Bucket>,
   contract: Doc<'energyContracts'> | undefined,
   prices: SitePrices,
-  solarSince: number | null,
+  solarSpans: readonly Span[],
 ): EnergySolarHour[] {
   const hours = amsterdamDayHours(day).flatMap((at) => {
     const bucket = buckets.get(at)
@@ -865,7 +885,9 @@ function solarHours(
   })
   const reported = hours.some(({ bucket }) => bucket.solar !== null)
   const off = (at: number) =>
-    reported && solarSince !== null && at >= solarSince ? 0 : null
+    reported && solarSpans.some(({ from, to }) => from <= at && at < to)
+      ? 0
+      : null
   // A split meter counts an hour on the tariff that applied; an hour it
   // counted nothing in has the tariff of the hour before it.
   const tariffs = hours.map(({ bucket }) => hourTariff(bucket))

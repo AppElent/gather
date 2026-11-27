@@ -48,6 +48,7 @@ import type * as lib_connectedApps from "../lib/connectedApps.js";
 import type * as lib_dataExport from "../lib/dataExport.js";
 import type * as lib_displayName from "../lib/displayName.js";
 import type * as lib_energy from "../lib/energy.js";
+import type * as lib_energyAssetLinks from "../lib/energyAssetLinks.js";
 import type * as lib_energyChannelLimit from "../lib/energyChannelLimit.js";
 import type * as lib_energyManual from "../lib/energyManual.js";
 import type * as lib_energyPriceRows from "../lib/energyPriceRows.js";
@@ -191,6 +192,7 @@ declare const fullApi: ApiFromModules<{
   "lib/dataExport": typeof lib_dataExport;
   "lib/displayName": typeof lib_displayName;
   "lib/energy": typeof lib_energy;
+  "lib/energyAssetLinks": typeof lib_energyAssetLinks;
   "lib/energyChannelLimit": typeof lib_energyChannelLimit;
   "lib/energyManual": typeof lib_energyManual;
   "lib/energyPriceRows": typeof lib_energyPriceRows;

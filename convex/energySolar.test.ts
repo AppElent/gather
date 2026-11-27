@@ -116,6 +116,27 @@ describe('a month', () => {
     })
   })
 
+  test('an hour after the solar channel retired is unknown (APP-922)', async () => {
+    const { t, siteId } = await seedHours({ ...FULL, solar: { 12: 3 } })
+    await t.run(async (ctx) => {
+      const channels = await ctx.db
+        .query('energyChannels')
+        .withIndex('by_site', (q) => q.eq('siteId', siteId))
+        .collect()
+      const solar = channels.find((each) => each.kind === 'solar')
+      if (solar) {
+        await ctx.db.patch(solar._id, { retiredAt: amsterdamDayHours(DAY)[15] })
+      }
+    })
+    const month = await t.withIdentity(bob).query(api.energySolar.month, MONTH)
+    // 18:00 came after it retired, so it is left out with its import.
+    expect(month?.days.find((each) => each.day === DAY)).toMatchObject({
+      producedKwh: 3,
+      consumptionKwh: 2,
+      ownKwh: 2,
+    })
+  })
+
   test('a dynamic contract without prices has a battery without a value', async () => {
     const { t } = await seedHours(FULL, DYNAMIC_TERMS)
     const month = await t.withIdentity(bob).query(api.energySolar.month, MONTH)
@@ -199,6 +220,19 @@ describe('a month', () => {
     const { t } = await seedHours({ gridImport: { 3: 1 } })
     const month = await t.withIdentity(bob).query(api.energySolar.month, MONTH)
     expect(month).toMatchObject({ status: 'noAssets', days: [] })
+  })
+
+  test('a charge level alone is a battery to show (APP-922)', async () => {
+    const { t } = await seedHours({ gridImport: { 3: 1 }, batterySoc: { 3: 60 } })
+    const month = await t.withIdentity(bob).query(api.energySolar.month, MONTH)
+    expect(month).toMatchObject({
+      status: 'ok',
+      solar: false,
+      battery: false,
+      batterySoc: true,
+      firstDay: null,
+    })
+    expect(month?.days).toHaveLength(20)
   })
 
   test('is for members of the Group', async () => {
@@ -368,6 +402,51 @@ describe('assets', () => {
       // What was measured stays.
       expect((await ctx.db.query('energyIntervals').collect()).length).toBe(15)
     })
+  })
+
+  test('ties each channel to the one asset of its kind (APP-922)', async () => {
+    const { t, siteId } = await seedHours({ ...FULL, batterySoc: { 3: 50 } })
+    const links = () =>
+      t.run(async (ctx) =>
+        Object.fromEntries(
+          (
+            await ctx.db
+              .query('energyChannels')
+              .withIndex('by_site', (q) => q.eq('siteId', siteId))
+              .collect()
+          ).map((each) => [each.kind, each.assetId ?? null]),
+        ),
+      )
+    const BATTERY = { kind: 'battery' as const, name: 'Accu', capacityKwh: 10 }
+    const roof = await save(t)
+    const battery = await t
+      .withIdentity(bob)
+      .mutation(api.energyAssets.save, { ...HOME, asset: BATTERY, today: DAY })
+    expect(await links()).toEqual({
+      gridImport: null,
+      gridExport: null,
+      solar: roof,
+      batteryCharge: battery,
+      batteryDischarge: battery,
+      batterySoc: battery,
+    })
+    // A second roof: nobody said which panels the channel measures, so it
+    // keeps the first. Without that one, it is the second's.
+    const shed = await save(t, { asset: { ...ROOF, name: 'Schuur' } })
+    expect((await links()).solar).toBe(roof)
+    await t.withIdentity(bob).mutation(api.energyAssets.remove, {
+      ...HOME,
+      assetId: roof,
+    })
+    expect((await links()).solar).toBe(shed)
+    // A battery that turns out to be panels no longer holds the battery.
+    await t.withIdentity(bob).mutation(api.energyAssets.save, {
+      ...HOME,
+      assetId: battery,
+      asset: { ...ROOF, name: 'Carport' },
+      today: DAY,
+    })
+    expect(await links()).toMatchObject({ solar: shed, batteryCharge: null })
   })
 
   test('clearing a field clears it', async () => {

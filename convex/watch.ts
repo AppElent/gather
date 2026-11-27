@@ -156,7 +156,8 @@ export const revoke = mutation({
 /**
  * Sign out on this phone: the watches it paired lose their keys. Called before
  * Clerk ends the session. A sign-out that never gets here is caught by Clerk's
- * session webhook (`forgetSessionOf`) and `notifications.forgetEndedSessions`.
+ * session webhook (`notifications.forgetSessionOf`) and
+ * `notifications.forgetEndedSessions`.
  */
 export const forgetSession = mutation({
   args: { sessionId: v.string() },
@@ -173,26 +174,7 @@ export const forgetSession = mutation({
   },
 })
 
-// -- The webhook and the routes -----------------------------------------------
-
-/** A Clerk session that is over, from `POST /clerk/webhook`. */
-export const forgetSessionOf = internalMutation({
-  args: { clerkId: v.string(), sessionId: v.string() },
-  returns: v.null(),
-  handler: async (ctx, { clerkId, sessionId }) => {
-    const users = await ctx.db
-      .query('users')
-      .withIndex('by_clerkId', (q) => q.eq('clerkId', clerkId))
-      .collect()
-    for (const user of users)
-      await deleteWatchDevices(
-        ctx,
-        user._id,
-        (device) => device.sessionId === sessionId,
-      )
-    return null
-  },
-})
+// -- The routes ---------------------------------------------------------------
 
 /**
  * Let one request in, or say why not: the key and the Membership, then the

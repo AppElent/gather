@@ -12,6 +12,7 @@ import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import { type MutationCtx, mutation } from './_generated/server'
 import { energyAssetTermsValidator } from './lib/energy'
+import { linkChannelsToAssets } from './lib/energyAssetLinks'
 import { primarySiteOf, siteAssets } from './lib/energyUsage'
 import { requireGroupBySlug } from './lib/groupAccess'
 
@@ -51,40 +52,38 @@ export const save = mutation({
     if ('problem' in checked) {
       throw new ConvexError(energyRefusal(checked.problem))
     }
-    if (args.assetId) {
-      const asset = await ownAsset(ctx, site, args.assetId)
+    let assetId = args.assetId
+    if (assetId) {
+      const asset = await ownAsset(ctx, site, assetId)
       await ctx.db.patch(asset._id, checked.asset)
-      return asset._id
+    } else {
+      const assets = await siteAssets(ctx, site._id)
+      if (assets.length >= ENERGY_ASSET_LIMITS.perSite) {
+        throw new ConvexError(energyRefusal('tooManyAssets'))
+      }
+      assetId = await ctx.db.insert('energyAssets', {
+        groupId: site.groupId,
+        siteId: site._id,
+        ...checked.asset,
+      })
     }
-    const assets = await siteAssets(ctx, site._id)
-    if (assets.length >= ENERGY_ASSET_LIMITS.perSite) {
-      throw new ConvexError(energyRefusal('tooManyAssets'))
-    }
-    return ctx.db.insert('energyAssets', {
-      groupId: site.groupId,
-      siteId: site._id,
-      ...checked.asset,
-    })
+    await linkChannelsToAssets(ctx, site._id)
+    return assetId
   },
 })
 
-/** Remove panels or a battery. What was measured stays with its channels. */
+/**
+ * Remove panels or a battery. What was measured stays with its channels,
+ * which move to the one asset of that kind left, if there is one.
+ */
 export const remove = mutation({
   args: { groupSlug: v.string(), assetId: v.id('energyAssets') },
   returns: v.null(),
   handler: async (ctx, args) => {
     const site = await siteOf(ctx, args.groupSlug)
     const asset = await ownAsset(ctx, site, args.assetId)
-    const channels = await ctx.db
-      .query('energyChannels')
-      .withIndex('by_site', (q) => q.eq('siteId', site._id))
-      .collect()
-    await Promise.all(
-      channels
-        .filter((channel) => channel.assetId === asset._id)
-        .map((channel) => ctx.db.patch(channel._id, { assetId: undefined })),
-    )
     await ctx.db.delete(asset._id)
+    await linkChannelsToAssets(ctx, site._id)
     return null
   },
 })

@@ -345,7 +345,7 @@ describe('what ends a key', () => {
     const { t } = await setup()
     await pair(t)
     await pair(t, { as: bob, installId: 'watch-install-2' })
-    await t.mutation(internal.watch.forgetSessionOf, {
+    await t.mutation(internal.notifications.forgetSessionOf, {
       clerkId: alice.subject,
       sessionId: SESSION,
     })
