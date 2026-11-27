@@ -439,6 +439,10 @@ export function Note({ noteId }: { noteId: string }) {
       const untouched = opening || drafts.current[field] === now[field]
       if (untouched && each.over.includes(now[field])) {
         restored.current = { ...restored.current, [field]: each }
+        // Held from now, not from the typing pause: a save of the other field
+        // in that pause takes it along, or keeps it on the phone (APP-968).
+        held.current = { ...held.current, [field]: each.text }
+        heldOver.current = { ...heldOver.current, [field]: each.over }
         ;(field === 'title' ? changeTitle : changeBody)(each.text)
       } else clashes[field] = each
     }
