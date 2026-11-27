@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Energie: open ontwerpen, telefoon</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+a{text-decoration:none;color:inherit}
+svg{flex:none}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: {{outerBg}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: {{c.ink}}">
+  <sc-if value="{{asSheet}}" hint-placeholder-val="{{ false }}">
+    <div aria-hidden="true" style="position: absolute; left: 10px; right: 10px; top: 46px; height: 40px; border-radius: 14px 14px 0 0; background: {{c.behind}}"></div>
+  </sc-if>
+  <div style="position: absolute; left: 0; right: 0; top: {{frameTop}}px; bottom: 0; border-radius: {{frameRadius}}; background: {{c.ground}}; overflow: hidden">
+    <sc-if value="{{asPage}}" hint-placeholder-val="{{ true }}"><div style="height: 54px"></div></sc-if>
+    <!-- Bar -->
+    <div style="height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: relative">
+      <sc-if value="{{asPage}}" hint-placeholder-val="{{ true }}">
+        <button aria-label="{{t.back}}" style="width: 44px; height: 44px; border-radius: 999px; background: {{c.glass}}; border: 0.5px solid {{c.hair}}; display: flex; align-items: center; justify-content: center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+        </button>
+      </sc-if>
+      <sc-if value="{{asSheet}}" hint-placeholder-val="{{ false }}">
+        <button style="height: 44px; padding: 0 14px; border-radius: 999px; background: {{c.glass}}; border: 0.5px solid {{c.hair}}; font-size: 17px">{{t.cancel}}</button>
+      </sc-if>
+      <span style="position: absolute; left: 100px; right: 100px; text-align: center; font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{barTitle}}</span>
+      <sc-if value="{{hasAction}}" hint-placeholder-val="{{ false }}">
+        <button style="height: 44px; padding: 0 16px; border-radius: 999px; background: {{actionBg}}; color: {{actionFg}}; font-size: 17px; font-weight: 600">{{actionLabel}}</button>
+      </sc-if>
+      <sc-if value="{{noAction}}" hint-placeholder-val="{{ true }}"><span style="width: 44px"></span></sc-if>
+    </div>
+
+    <div style="padding: 4px 16px 60px; display: flex; flex-direction: column; gap: 16px">
+      <sc-if value="{{hasBig}}" hint-placeholder-val="{{ false }}">
+        <h1 style="margin: 0; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 34px; line-height: 40px; font-weight: 700">{{bigTitle}}</h1>
+      </sc-if>
+      <sc-for list="{{blocks}}" as="b" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <!-- Callout -->
+          <sc-if value="{{b.isCallout}}" hint-placeholder-val="{{ false }}">
+            <div role="note" style="display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: {{b.bg}}">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{b.fg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{b.icon}}"></path></svg>
+              <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 17px; font-weight: 600">{{b.title}}</span><span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">{{b.text}}</span></span>
+            </div>
+          </sc-if>
+          <!-- Field -->
+          <sc-if value="{{b.isField}}" hint-placeholder-val="{{ false }}">
+            <label for="{{b.id}}" style="padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{b.label}}</label>
+            <div style="display: flex; align-items: center; height: 48px; border-radius: 12px; background: {{c.surface}}; border: 1.5px solid {{b.ring}}; padding: 0 14px; gap: 8px">
+              <input id="{{b.id}}" value="{{b.value}}" inputmode="{{b.mode}}" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 17px; color: {{c.ink}}; outline: none; font-variant-numeric: tabular-nums">
+              <sc-if value="{{b.hasUnit}}" hint-placeholder-val="{{ false }}"><span style="font-size: 15px; color: {{c.muted}}">{{b.unit}}</span></sc-if>
+            </div>
+            <sc-if value="{{b.hasHint}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{b.hintColor}}">{{b.hint}}</p></sc-if>
+          </sc-if>
+          <!-- Segmented -->
+          <sc-if value="{{b.isSeg}}" hint-placeholder-val="{{ false }}">
+            <h2 style="margin: 0; padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{b.head}}</h2>
+            <div role="radiogroup" aria-label="{{b.head}}" style="display: grid; grid-template-columns: repeat({{b.n}}, minmax(0, 1fr)); gap: 2px; padding: 2px; border-radius: 12px; background: {{c.surface2}}">
+              <sc-for list="{{b.opts}}" as="o" hint-placeholder-count="3">
+                <button role="radio" aria-checked="{{o.on}}" style="height: 36px; border-radius: 10px; text-align: center; font-size: 15px; font-weight: 600; background: {{o.bg}}; box-shadow: {{o.shadow}}">{{o.label}}</button>
+              </sc-for>
+            </div>
+            <sc-if value="{{b.hasFoot}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{b.foot}}</p></sc-if>
+          </sc-if>
+          <!-- Chips -->
+          <sc-if value="{{b.isChips}}" hint-placeholder-val="{{ false }}">
+            <h2 style="margin: 0; padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{b.head}}</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px">
+              <sc-for list="{{b.chips}}" as="ch" hint-placeholder-count="5">
+                <button aria-pressed="{{ch.on}}" style="height: 36px; padding: 0 14px; border-radius: 999px; background: {{ch.bg}}; color: {{ch.fg}}; border: 0.5px solid {{c.hair}}; font-size: 15px; font-weight: 600">{{ch.label}}</button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <!-- Section -->
+          <sc-if value="{{b.isSection}}" hint-placeholder-val="{{ true }}">
+            <sc-if value="{{b.hasHead}}" hint-placeholder-val="{{ false }}"><h2 style="margin: 0; padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{b.head}}</h2></sc-if>
+            <div style="background: {{c.surface}}; border-radius: 16px; overflow: hidden">
+              <sc-for list="{{b.rows}}" as="r" hint-placeholder-count="3">
+                <div style="display: flex; align-items: center; gap: 12px; min-height: {{r.h}}px; padding: 8px 14px; box-sizing: border-box; border-top: {{r.line}}; background: {{r.bg}}">
+                  <sc-if value="{{r.hasRadio}}" hint-placeholder-val="{{ false }}">
+                    <span role="radio" aria-checked="{{r.radioOn}}" aria-label="{{r.title}}" style="width: 22px; height: 22px; border-radius: 999px; box-sizing: border-box; border: 2px solid {{r.radioRing}}; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 999px; background: {{r.radioDot}}"></span></span>
+                  </sc-if>
+                  <sc-if value="{{r.hasTile}}" hint-placeholder-val="{{ false }}">
+                    <span aria-hidden="true" style="width: 34px; height: 34px; border-radius: 10px; background: {{r.tile}}; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{r.tileFg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.icon}}"></path></svg></span>
+                  </sc-if>
+                  <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+                    <span style="font-size: 17px; line-height: 22px; font-weight: {{r.weight}}; color: {{r.fg}}">{{r.title}}</span>
+                    <sc-if value="{{r.hasSub}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; line-height: 18px; color: {{r.subColor}}">{{r.sub}}</span></sc-if>
+                  </div>
+                  <sc-if value="{{r.hasValue}}" hint-placeholder-val="{{ false }}"><span style="font-size: 17px; color: {{r.valueColor}}; font-variant-numeric: tabular-nums; white-space: nowrap">{{r.value}}</span></sc-if>
+                  <sc-if value="{{r.hasSwitch}}" hint-placeholder-val="{{ false }}">
+                    <span role="switch" aria-checked="{{r.switchOn}}" aria-label="{{r.title}}" style="width: 51px; height: 31px; border-radius: 999px; background: {{r.switchBg}}; position: relative"><span style="position: absolute; top: 2px; left: {{r.knob}}px; width: 27px; height: 27px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 2px 4px rgba(0,0,0,.2)"></span></span>
+                  </sc-if>
+                  <sc-if value="{{r.isMenu}}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="{{c.ink}}"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg></span></sc-if>
+                  <sc-if value="{{r.chev}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{b.hasFoot}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{b.footColor}}">{{b.foot}}</p></sc-if>
+          </sc-if>
+          <!-- Button -->
+          <sc-if value="{{b.isButton}}" hint-placeholder-val="{{ false }}">
+            <button style="height: 50px; border-radius: 14px; background: {{b.bg}}; color: {{b.fg}}; text-align: center; font-size: 17px; font-weight: {{b.weight}}">{{b.label}}</button>
+            <sc-if value="{{b.hasFoot}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{b.foot}}</p></sc-if>
+          </sc-if>
+          <!-- Pair code -->
+          <sc-if value="{{b.isPair}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 28px 16px; border-radius: 20px; background: {{c.surface}}">
+              <div aria-hidden="true" style="width: 120px; height: 120px; border-radius: 28px; background: {{c.wash}}; display: flex; align-items: center; justify-content: center; position: relative">
+                <span style="width: 64px; height: 84px; border-radius: 12px; background: {{c.surface}}; border: 2px solid {{c.accentText}}; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 999px; background: {{c.accent}}; box-shadow: 0 0 0 6px {{c.wash}}"></span></span>
+              </div>
+              <span style="font-size: 20px; font-weight: 700; text-align: center">{{b.title}}</span>
+              <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}; text-align: center">{{b.text}}</span>
+              <span role="timer" style="font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; color: {{c.accentText}}">{{b.timer}}</span>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- Confirmation -->
+  <sc-if value="{{hasConfirm}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,.4)"></div>
+    <div role="alertdialog" aria-label="{{confirm.title}}" style="position: absolute; left: 10px; right: 10px; bottom: 34px; display: flex; flex-direction: column; gap: 8px">
+      <div style="border-radius: 14px; overflow: hidden; background: {{c.menu}}">
+        <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 17px; font-weight: 700; text-align: center">{{confirm.title}}</span>
+          <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}; text-align: center">{{confirm.msg}}</span>
+          <ul style="margin: 4px 0 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 4px; font-size: 15px; line-height: 20px">
+            <sc-for list="{{confirm.items}}" as="it" hint-placeholder-count="4"><li>{{it}}</li></sc-for>
+          </ul>
+        </div>
+        <button style="display: block; width: 100%; min-height: 56px; border-top: 0.5px solid {{c.hair}}; text-align: center; font-size: 19px; font-weight: 600; color: {{c.danger}}">{{confirm.action}}</button>
+      </div>
+      <button style="min-height: 56px; border-radius: 14px; background: {{c.menuSolid}}; text-align: center; font-size: 19px; font-weight: 600; color: {{c.accentText}}">{{t.cancel}}</button>
+    </div>
+  </sc-if>
+
+  <!-- Push banner -->
+  <sc-if value="{{hasPush}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; left: 10px; right: 10px; top: 54px; display: flex; gap: 12px; padding: 12px 14px; border-radius: 22px; background: {{c.banner}}; box-shadow: 0 12px 32px rgba(0,0,0,.28)">
+      <span aria-hidden="true" style="width: 38px; height: 38px; border-radius: 10px; background: {{c.accent}}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.onAccent}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"></path></svg></span>
+      <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px">
+        <span style="display: flex; justify-content: space-between; font-size: 13px; color: {{c.muted}}"><span>GATHER · {{t.energy}}</span><span>{{push.time}}</span></span>
+        <span style="font-size: 15px; font-weight: 700">{{push.title}}</span>
+        <span style="font-size: 15px; line-height: 20px">{{push.text}}</span>
+      </span>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["address","addressRemove","haList","haAdd","haNoDash","swapMenu","swapForm","swapDone","hwFind","hwPair","hwSource","pushSettings","pushBanner","contract"],"default":"address"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lang":{"editor":"enum","options":["nl","en"],"default":"nl"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const screen = this.props.screen ?? 'address';
+    const dark = (this.props.theme ?? 'light') === 'dark';
+    const en = (this.props.lang ?? 'nl') === 'en';
+    const L = (nl, e) => (en ? e : nl);
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#2E3331', danger: '#F0917F', dangerWash: '#3A1E19',
+      glass: 'rgba(44,46,45,.78)', accent: '#D99B2B', onAccent: '#2B1F06', accentText: '#F2C060', wash: '#2E2611', menu: 'rgba(44,46,45,.98)', menuSolid: '#2C2E2D',
+      switchOff: '#3A3F3D', behind: '#262A28', scrimBg: '#050606', banner: 'rgba(44,46,45,.96)', homeScreen: '#1C2A3A'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', muted: '#5E6764', hair: '#DFE2DE', danger: '#A4372C', dangerWash: '#F8E3DF',
+      glass: 'rgba(255,255,255,.78)', accent: '#F2B233', onAccent: '#2B1F06', accentText: '#8A5C08', wash: '#FBEBC6', menu: 'rgba(249,249,248,.98)', menuSolid: '#FFFFFF',
+      switchOff: '#C9CDC8', behind: '#C9CDC8', scrimBg: '#8E918D', banner: 'rgba(250,250,249,.96)', homeScreen: '#8FA6BF'
+    };
+    const icons = {
+      bolt: 'M13 2L4 14h7l-1 8 9-12h-7z', home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z', meter: 'M4 4h16v16H4zM8 9h8M8 13h3M12 17h.01',
+      ha: 'M12 3 3 11h2v9h14v-9h2zM12 11v5M9.5 13.5 12 16l2.5-2.5', plus: 'M12 5v14M5 12h14', info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01',
+      warn: 'M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z', wifi: 'M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 19.5h.01M2 9a15 15 0 0 1 20 0',
+      sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2', battery: 'M3 8h15v8H3zM21 11v2M6 11v2M9 11v2', plug: 'M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4',
+      swap: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3', bell: 'M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0'
+    };
+    const t = { back: L('Terug', 'Back'), cancel: L('Annuleer', 'Cancel'), energy: L('ENERGIE', 'ENERGY') };
+    const line = (i) => (i === 0 ? '0' : '0.5px solid ' + c.hair);
+    const row = (o) => ({ title: o.title, hasSub: !!o.sub, sub: o.sub ?? '', subColor: o.subColor ?? c.muted, weight: o.weight ?? 400, fg: o.fg ?? c.ink, h: o.h ?? 52, bg: o.bg ?? 'transparent',
+      hasTile: !!o.icon, icon: o.icon ?? '', tile: o.tile ?? c.wash, tileFg: o.tileFg ?? c.accentText,
+      hasValue: o.value !== undefined, value: o.value ?? '', valueColor: o.valueColor ?? c.muted,
+      hasSwitch: o.switch !== undefined, switchOn: o.switch ? 'true' : 'false', switchBg: o.switch ? '#34C759' : c.switchOff, knob: o.switch ? 22 : 2,
+      hasRadio: o.radio !== undefined, radioOn: o.radio ? 'true' : 'false', radioRing: o.radio ? c.accent : c.muted, radioDot: o.radio ? c.accent : 'transparent',
+      isMenu: !!o.menu, chev: !!o.chev });
+    const section = (head, rows, foot, footColor) => ({ isSection: true, hasHead: !!head, head: head ?? '', rows: rows.map((r, i) => ({ ...row(r), line: line(i) })), hasFoot: !!foot, foot: foot ?? '', footColor: footColor ?? c.muted });
+    const field = (id, label, value, o = {}) => ({ isField: true, id, label, value, mode: o.mode ?? 'text', hasUnit: !!o.unit, unit: o.unit ?? '', hasHint: !!o.hint, hint: o.hint ?? '', hintColor: o.hintColor ?? c.muted, ring: o.focus ? c.accent : 'transparent' });
+    const seg = (head, opts, on, foot) => ({ isSeg: true, head, n: opts.length, hasFoot: !!foot, foot: foot ?? '', opts: opts.map((label, i) => ({ label, on: i === on ? 'true' : 'false', bg: i === on ? c.surface : 'transparent', shadow: i === on ? '0 1px 3px rgba(0,0,0,.14)' : 'none' })) });
+    const chips = (head, list, on) => ({ isChips: true, head, chips: list.map((label, i) => ({ label, on: i === on ? 'true' : 'false', bg: i === on ? c.accent : c.surface, fg: i === on ? c.onAccent : c.ink })) });
+    const callout = (title, text, tone) => ({ isCallout: true, title, text, bg: tone === 'warn' ? c.dangerWash : c.wash, fg: tone === 'warn' ? c.danger : c.accentText, icon: tone === 'warn' ? icons.warn : icons.info });
+    const button = (label, o = {}) => ({ isButton: true, label, bg: o.bg ?? c.accent, fg: o.fg ?? c.onAccent, weight: o.weight ?? 700, hasFoot: !!o.foot, foot: o.foot ?? '' });
+
+    let asSheet = false, barTitle = '', hasBig = false, bigTitle = '', blocks = [], action = null, confirm = null, push = null, outerBg = c.ground;
+    const save = { label: L('Bewaar', 'Save'), bg: c.accent, fg: c.onAccent };
+
+    if (screen === 'address' || screen === 'addressRemove') {
+      barTitle = L('Adres', 'Address'); action = save;
+      blocks = [
+        field('name', L('NAAM', 'NAME'), 'Thuis', { focus: screen === 'address', hint: L('Zo heet het adres in Energie, bijvoorbeeld Thuis of Vakantiehuis.', 'What Energy calls this address, for example Home or Holiday home.') }),
+        section(L('HUIS', 'HOUSE'), [{ title: L('Gekoppeld huis', 'Linked house'), value: 'Kerkstraat 12', chev: true }], L('Uit Financiën › Huizen. Optioneel; koppelt de energiekosten aan dat huis.', 'From Finances › Houses. Optional; links the energy costs to that house.')),
+        section(null, [{ title: L('Adres verwijderen', 'Remove address'), fg: c.danger }], L('Je groep heeft één adres. Meer adressen komen later.', 'Your group has one address. More addresses come later.'))
+      ];
+      if (screen === 'addressRemove') confirm = {
+        title: L('Thuis verwijderen?', 'Remove Thuis?'),
+        msg: L('Dit wist voor iedereen in Familie Jansen alle energiedata van dit adres. Dat kan niet ongedaan worden gemaakt.', 'This deletes all energy data of this address for everyone in Familie Jansen. It cannot be undone.'),
+        items: [L('2 bronnen (Home Assistant, Meterstanden)', '2 sources (Home Assistant, Meter readings)'), L('7 kanalen met 41.280 uurwaarden en 96 meterstanden', '7 channels with 41,280 hourly values and 96 meter readings'), L('3 contracten en de prijsbron', '3 contracts and the price source'), L('Zonnepanelen en batterij', 'Solar panels and battery')],
+        action: L('Verwijder Thuis en de data', 'Remove Thuis and its data') };
+    } else if (screen === 'haList' || screen === 'haNoDash') {
+      barTitle = 'Home Assistant'; action = save;
+      if (screen === 'haList') {
+        blocks = [
+          section(L('UIT JE ENERGIE-DASHBOARD', 'FROM YOUR ENERGY DASHBOARD'), [
+            { title: L('Stroom afname · normaal', 'Electricity import · normal'), sub: 'sensor.p1_import_t2 · kWh', switch: true, icon: icons.bolt },
+            { title: L('Stroom afname · laag', 'Electricity import · low'), sub: 'sensor.p1_import_t1 · kWh', switch: true, icon: icons.bolt },
+            { title: L('Teruglevering · normaal', 'Export · normal'), sub: 'sensor.p1_export_t2 · kWh', switch: true, icon: icons.bolt },
+            { title: L('Zon', 'Solar'), sub: 'sensor.inverter_energy · kWh', switch: true, icon: icons.sun },
+            { title: L('Gas', 'Gas'), sub: 'sensor.p1_gas · m³', switch: false, icon: icons.meter }
+          ]),
+          section(L('ZELF TOEGEVOEGD', 'ADDED BY YOU'), [
+            { title: L('Batterij · laadstand', 'Battery · state of charge'), sub: 'sensor.marstek_soc · %', switch: true, icon: icons.battery },
+            { title: L('Statistiek toevoegen…', 'Add statistic…'), fg: c.accentText, icon: icons.plus, chev: true }
+          ], L('Voor statistieken die niet op het Energie-dashboard van Home Assistant staan.', 'For statistics that are not on Home Assistant’s Energy dashboard.'))
+        ];
+      } else {
+        blocks = [
+          callout(L('Geen Energie-dashboard gevonden', 'No Energy dashboard found'), L('Home Assistant heeft geen Energie-dashboard ingesteld, dus Gather kan niets voorstellen. Voeg de statistieken zelf toe.', 'Home Assistant has no Energy dashboard set up, so Gather cannot propose anything. Add the statistics yourself.')),
+          section(L('KANALEN', 'CHANNELS'), [{ title: L('Statistiek toevoegen…', 'Add statistic…'), fg: c.accentText, icon: icons.plus, chev: true }], L('Begin met stroom afname; teruglevering, zon, gas en de batterij kunnen erbij.', 'Start with electricity import; export, solar, gas and the battery can follow.'))
+        ];
+      }
+    } else if (screen === 'haAdd') {
+      asSheet = true; barTitle = L('Statistiek toevoegen', 'Add statistic'); action = { label: L('Voeg toe', 'Add'), bg: c.accent, fg: c.onAccent };
+      blocks = [
+        chips(L('SOORT', 'KIND'), [L('Stroom afname', 'Electricity import'), L('Teruglevering', 'Export'), L('Zon', 'Solar'), 'Gas', L('Batterij laden', 'Battery charge'), L('Batterij ontladen', 'Battery discharge'), L('Batterij laadstand', 'Battery state of charge')], 6),
+        seg(L('TARIEF', 'TARIFF'), [L('Totaal', 'Total'), L('Laag', 'Low'), L('Normaal', 'Normal')], 0, L('Alleen voor stroom. Totaal en laag/normaal mengen kan niet.', 'Electricity only. Total and low/normal cannot be mixed.')),
+        field('stat', L('STATISTIEK', 'STATISTIC'), 'soc', { focus: true }),
+        section(null, [
+          { title: 'sensor.marstek_soc', sub: L('Marstek laadstand · % · gemeten', 'Marstek state of charge · % · measured'), radio: true, bg: c.wash },
+          { title: 'sensor.phone_battery_level', sub: L('% · gemeten', '% · measured'), radio: false },
+          { title: 'sensor.marstek_energy_in', sub: L('kWh · totaal · past niet bij laadstand', 'kWh · total · does not fit state of charge'), radio: false, fg: c.muted, subColor: c.danger }
+        ], L('Alleen statistieken die bij de soort passen en nog niet gebruikt zijn, kun je kiezen.', 'You can only pick statistics that fit the kind and are not used yet.'))
+      ];
+    } else if (screen === 'swapMenu' || screen === 'swapDone') {
+      barTitle = L('Bronnen', 'Sources');
+      const rows = screen === 'swapMenu' ? [
+        { title: L('Stroom · normaal', 'Electricity · normal'), sub: L('Laatste stand 12.406 kWh · 1 nov', 'Last reading 12,406 kWh · 1 Nov'), menu: true, icon: icons.bolt },
+        { title: L('Stroom · laag', 'Electricity · low'), sub: L('Laatste stand 9.881 kWh · 1 nov', 'Last reading 9,881 kWh · 1 Nov'), menu: true, icon: icons.bolt },
+        { title: 'Gas', sub: L('Laatste stand 4.120 m³ · 1 nov', 'Last reading 4,120 m³ · 1 Nov'), menu: true, icon: icons.meter }
+      ] : [
+        { title: L('Stroom · normaal', 'Electricity · normal'), sub: L('Nieuwe meter sinds 14 nov · 2 kWh', 'New meter since 14 Nov · 2 kWh'), menu: true, icon: icons.bolt },
+        { title: L('Stroom · laag', 'Electricity · low'), sub: L('Nieuwe meter sinds 14 nov · 0 kWh', 'New meter since 14 Nov · 0 kWh'), menu: true, icon: icons.bolt },
+        { title: 'Gas', sub: L('Laatste stand 4.120 m³ · 1 nov', 'Last reading 4,120 m³ · 1 Nov'), menu: true, icon: icons.meter }
+      ];
+      blocks = [
+        section(L('HOME ASSISTANT', 'HOME ASSISTANT'), [{ title: 'Home Assistant', sub: L('Losgekoppeld op 10 nov', 'Disconnected on 10 Nov'), icon: icons.ha, chev: true }]),
+        section(L('METERSTANDEN', 'METER READINGS'), rows)
+      ];
+      if (screen === 'swapDone') blocks.push(section(L('VERVANGEN METERS', 'REPLACED METERS'), [
+        { title: L('Stroom · normaal (oude meter)', 'Electricity · normal (old meter)'), sub: L('Vervangen op 14 nov · 48 standen blijven bewaard', 'Replaced on 14 Nov · 48 readings kept'), fg: c.muted, icon: icons.swap, tile: c.surface2, tileFg: c.muted, chev: true },
+        { title: L('Stroom · laag (oude meter)', 'Electricity · low (old meter)'), sub: L('Vervangen op 14 nov · 48 standen blijven bewaard', 'Replaced on 14 Nov · 48 readings kept'), fg: c.muted, icon: icons.swap, tile: c.surface2, tileFg: c.muted, chev: true }
+      ], L('Oude meters tellen mee in je historie en komen niet terug als je Home Assistant weer koppelt of loskoppelt.', 'Old meters count in your history and do not come back when you connect or disconnect Home Assistant.')));
+      if (screen === 'swapMenu') confirm = null;
+      if (screen === 'swapMenu') blocks.push({ isCallout: true, title: L('⋯ › Meter vervangen', '⋯ › Replace meter'), text: L('Op elk kanaal met meterstanden. Kies het bij Stroom · normaal; laag en normaal vervang je samen als de netbeheerder de hele meter wisselt.', 'On every meter-reading channel. Pick it on Electricity · normal; low and normal are replaced together when the grid operator swaps the whole meter.'), bg: c.wash, fg: c.accentText, icon: icons.swap });
+    } else if (screen === 'swapForm') {
+      asSheet = true; barTitle = L('Meter vervangen', 'Replace meter'); action = { label: L('Vervang', 'Replace'), bg: c.accent, fg: c.onAccent };
+      blocks = [
+        section(L('WELKE KANALEN', 'WHICH CHANNELS'), [
+          { title: L('Stroom · normaal', 'Electricity · normal'), switch: true }, { title: L('Stroom · laag', 'Electricity · low'), switch: true }, { title: 'Gas', switch: false }
+        ], L('Laag en normaal staan samen aan: ze zitten in dezelfde meter.', 'Low and normal are on together: they are in the same meter.')),
+        field('date', L('VERVANGEN OP', 'REPLACED ON'), L('za 14 nov 2026', 'Sat 14 Nov 2026')),
+        field('oldN', L('LAATSTE STAND OUDE METER · NORMAAL', 'LAST READING OLD METER · NORMAL'), '12.431', { unit: 'kWh', mode: 'decimal', hint: L('Optioneel, staat op het briefje van de monteur. Hoger dan 12.406 kWh (1 nov).', 'Optional, on the engineer’s note. Higher than 12,406 kWh (1 Nov).') }),
+        field('newN', L('EERSTE STAND NIEUWE METER · NORMAAL', 'FIRST READING NEW METER · NORMAL'), '0', { unit: 'kWh', mode: 'decimal', focus: true, hint: L('Mag lager zijn dan de oude meter: het is een nieuw kanaal.', 'May be lower than the old meter: it is a new channel.') })
+      ];
+    } else if (screen === 'hwFind') {
+      asSheet = true; barTitle = 'HomeWizard'; action = { label: L('Koppel', 'Pair'), bg: c.accent, fg: c.onAccent };
+      blocks = [
+        callout(L('Alleen thuis, met de app open', 'Only at home, with the app open'), L('HomeWizard praat alleen met je thuisnetwerk. Gather leest de meters als iemand de app thuis opent; totalen kloppen altijd, alleen het detail per uur kan ontbreken.', 'HomeWizard only talks to your home network. Gather reads the meters when someone opens the app at home; totals are always right, only the hourly detail may be missing.')),
+        section(L('GEVONDEN OP DIT NETWERK', 'FOUND ON THIS NETWORK'), [
+          { title: 'P1-meter', sub: 'HWE-P1 · 192.168.1.42', switch: true, icon: icons.meter },
+          { title: L('kWh-meter warmtepomp', 'kWh meter heat pump'), sub: 'HWE-KWH1 · 192.168.1.57', switch: true, icon: icons.plug },
+          { title: L('Plug-In Battery', 'Plug-In Battery'), sub: 'HWE-BAT · 192.168.1.61', switch: false, icon: icons.battery }
+        ], L('Zoeken gebruikt de toestemming Lokaal netwerk van iOS. Niet gevonden? Zet in de HomeWizard-app de lokale API aan.', 'Searching uses the iOS Local Network permission. Not found? Switch on the local API in the HomeWizard app.'))
+      ];
+    } else if (screen === 'hwPair') {
+      asSheet = true; barTitle = 'HomeWizard';
+      blocks = [{ isPair: true, title: L('Druk op de knop van je P1-meter', 'Press the button on your P1 meter'), text: L('Eén keer, om deze telefoon toe te laten. Daarna kunnen ook andere telefoons in je groep lezen zodra ze thuis zijn.', 'Once, to allow this phone. After that other phones in your group can read too when they are at home.'), timer: '0:24' },
+        button(L('Opnieuw zoeken', 'Search again'), { bg: c.surface, fg: c.accentText, weight: 600 })];
+    } else if (screen === 'hwSource') {
+      barTitle = L('Bronnen', 'Sources');
+      blocks = [
+        section('HOMEWIZARD', [
+          { title: 'HomeWizard', sub: L('Laatst gelezen 18:02 op iPhone van Bram · thuis', 'Last read 18:02 on Bram’s iPhone · at home'), icon: icons.wifi, chev: true, h: 64 },
+          { title: L('Stroom afname', 'Electricity import'), sub: 'P1 · kWh', icon: icons.bolt }, { title: L('Teruglevering', 'Export'), sub: 'P1 · kWh', icon: icons.bolt },
+          { title: 'Gas', sub: 'P1 · m³', icon: icons.meter }, { title: L('Warmtepomp', 'Heat pump'), sub: 'kWh-meter · kWh', icon: icons.plug }
+        ], L('Gather leest alleen als iemand de app thuis opent. Was niemand thuis, dan vult de volgende lezing de dag als één blok aan.', 'Gather only reads when someone opens the app at home. If nobody was home, the next read fills the day as one block.'))
+      ];
+    } else if (screen === 'pushSettings' || screen === 'pushBanner') {
+      barTitle = L('Energie-instellingen', 'Energy settings');
+      blocks = [
+        section(L('MELDINGEN', 'NOTIFICATIONS'), [
+          { title: L('Goedkoopste uren morgen', 'Cheapest hours tomorrow'), switch: true, icon: icons.bell },
+          { title: L('Ook negatieve prijzen', 'Also negative prices'), sub: L('Noemt de uren onder nul', 'Names the hours below zero'), switch: true }
+        ]),
+        seg(L('BLOK VAN', 'BLOCK OF'), [L('1 uur', '1 hour'), L('2 uur', '2 hours'), L('3 uur', '3 hours'), L('4 uur', '4 hours')], 2,
+          L('Eén melding per dag, kort nadat de prijzen van morgen binnen zijn (meestal rond 14:00). Komen ze niet, dan krijg je niets. Alleen voor jou.', 'One notification a day, shortly after tomorrow’s prices arrive (usually around 14:00). If they don’t arrive, you get nothing. Only for you.'))
+      ];
+      if (screen === 'pushBanner') {
+        outerBg = c.homeScreen; blocks = []; barTitle = '';
+        push = { time: L('14:06', '14:06'), title: L('Morgen goedkoopst: 12:00–15:00', 'Cheapest tomorrow: 12:00–15:00'), text: L('Gemiddeld € 0,08 per kWh. 13:00–15:00 onder nul. Tik voor de prijzen.', 'Average €0.08 per kWh. 13:00–15:00 below zero. Tap for the prices.') };
+      }
+    } else if (screen === 'contract') {
+      barTitle = L('Contract', 'Contract'); action = save;
+      blocks = [
+        section(null, [{ title: L('Leverancier', 'Supplier'), value: 'Zonneplan' }, { title: L('Soort', 'Kind'), value: L('Dynamisch', 'Dynamic') }, { title: L('Geldig vanaf', 'Valid from'), value: L('1 jan 2026', '1 Jan 2026'), chev: true }]),
+        field('credit', L('TERUGLEVERVERGOEDING', 'EXPORT CREDIT'), '0,0700', { unit: L('€ per kWh', '€ per kWh'), mode: 'decimal', hint: L('Wat je leverancier je per teruggeleverde kWh betaalt, boven op de beursprijs. Vaak 0.', 'What your supplier pays you per exported kWh, on top of the market price. Often 0.') }),
+        field('charge', L('TERUGLEVERKOSTEN', 'EXPORT CHARGE'), '0,1150', { unit: L('€ per kWh', '€ per kWh'), mode: 'decimal', focus: true, hint: L('Wat je leverancier per teruggeleverde kWh rekent. Telt ook mee met salderen.', 'What your supplier charges per exported kWh. Also counts with net metering.') }),
+        section(null, [{ title: L('Salderen', 'Net metering'), switch: true }], L('Tot 1 januari 2027.', 'Until 1 January 2027.'))
+      ];
+    }
+    return {
+      c, t, asSheet, asPage: !asSheet, frameTop: asSheet ? 56 : 0, frameRadius: asSheet ? '14px 14px 0 0' : '0', outerBg: asSheet ? c.scrimBg : outerBg,
+      barTitle, hasAction: !!action, noAction: !action, actionLabel: action?.label ?? '', actionBg: action?.bg ?? '', actionFg: action?.fg ?? '',
+      hasBig, bigTitle, blocks, hasConfirm: !!confirm, confirm: confirm ?? { title: '', msg: '', items: [], action: '' }, hasPush: !!push, push: push ?? { time: '', title: '', text: '' }
+    };
+  }
+}
+</script>
+</body>
+</html>

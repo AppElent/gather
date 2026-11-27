@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Energie: open ontwerpen, web</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; position: relative; overflow: hidden; background: {{c.ground}}; color: {{c.ink}}; font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; display: grid; grid-template-columns: 240px 360px 1fr">
+  <nav aria-label="Gather" style="border-right: 1px solid {{c.hair}}; padding: 20px 12px; display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 18px; font-weight: 700; padding: 0 10px 14px">Gather</span>
+    <sc-for list="{{nav}}" as="n" hint-placeholder-count="6">
+      <a href="#" style="display: block; padding: 9px 10px; border-radius: 8px; font-size: 14px; font-weight: {{n.w}}; background: {{n.bg}}; color: {{n.fg}}; text-decoration: none">{{n.label}}</a>
+    </sc-for>
+  </nav>
+  <section aria-label="{{t.sources}}" style="border-right: 1px solid {{c.hair}}; padding: 20px 16px; display: flex; flex-direction: column; gap: 14px">
+    <h1 style="margin: 0; font-size: 22px; font-weight: 700">{{t.sources}}</h1>
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: {{c.muted}}">{{g.head}}</h2>
+        <div style="border: 1px solid {{c.hair}}; border-radius: 10px; overflow: hidden; background: {{c.surface}}">
+          <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-top: {{r.line}}; background: {{r.bg}}">
+              <span style="display: flex; flex-direction: column"><span style="font-size: 14px; font-weight: 500; color: {{r.fg}}">{{r.title}}</span><span style="font-size: 12px; color: {{c.muted}}">{{r.sub}}</span></span>
+              <sc-if value="{{r.menu}}" hint-placeholder-val="{{ false }}"><button aria-label="{{t.more}}" style="width: 32px; height: 32px; border-radius: 8px; text-align: center; background: {{c.surface2}}">⋯</button></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </section>
+  <main style="padding: 20px 24px; display: flex; flex-direction: column; gap: 10px">
+    <h2 style="margin: 0; font-size: 18px; font-weight: 700">{{panelTitle}}</h2>
+    <p style="margin: 0; font-size: 14px; color: {{c.muted}}; max-width: 520px">{{panelText}}</p>
+  </main>
+
+  <div style="position: absolute; inset: 0; background: rgba(0,0,0,.36)"></div>
+  <div role="dialog" aria-label="{{d.title}}" style="position: absolute; left: 50%; top: 80px; width: 520px; margin-left: -260px; border-radius: 14px; background: {{c.surface}}; box-shadow: 0 20px 60px rgba(0,0,0,.3); display: flex; flex-direction: column">
+    <div style="padding: 18px 20px 6px; display: flex; justify-content: space-between; align-items: center">
+      <span style="font-size: 18px; font-weight: 700">{{d.title}}</span>
+      <button aria-label="{{t.close}}" style="width: 32px; height: 32px; border-radius: 8px; text-align: center; font-size: 18px">×</button>
+    </div>
+    <div style="padding: 8px 20px 16px; display: flex; flex-direction: column; gap: 14px">
+      <sc-for list="{{d.fields}}" as="f" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="{{f.id}}" style="font-size: 12px; font-weight: 600; color: {{c.muted}}">{{f.label}}</label>
+          <sc-if value="{{f.isChips}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-wrap: wrap; gap: 6px">
+              <sc-for list="{{f.chips}}" as="ch" hint-placeholder-count="4"><button id="{{ch.id}}" aria-pressed="{{ch.on}}" style="height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid {{c.hair}}; font-size: 13px; font-weight: 600; background: {{ch.bg}}; color: {{ch.fg}}">{{ch.label}}</button></sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{f.isInput}}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 8px; border: 1.5px solid {{f.ring}}; background: {{c.surface}}">
+              <input id="{{f.id}}" value="{{f.value}}" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 14px; color: {{c.ink}}; outline: none">
+              <span style="font-size: 13px; color: {{c.muted}}">{{f.unit}}</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{f.hasHint}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: {{c.muted}}">{{f.hint}}</span></sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{d.hasList}}" hint-placeholder-val="{{ false }}">
+        <div role="radiogroup" aria-label="{{d.listHead}}" style="border: 1px solid {{c.hair}}; border-radius: 10px; overflow: hidden">
+          <sc-for list="{{d.list}}" as="o" hint-placeholder-count="3">
+            <label style="display: flex; gap: 10px; align-items: center; padding: 9px 12px; border-top: {{o.line}}; background: {{o.bg}}; cursor: pointer">
+              <input type="radio" name="stat" checked="{{o.on}}" disabled="{{o.off}}">
+              <span style="display: flex; flex-direction: column"><span style="font-size: 14px; font-family: ui-monospace, Menlo, monospace; color: {{o.fg}}">{{o.title}}</span><span style="font-size: 12px; color: {{o.subColor}}">{{o.sub}}</span></span>
+            </label>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+    <div style="padding: 12px 20px 18px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid {{c.hair}}">
+      <button style="height: 38px; padding: 0 16px; border-radius: 8px; background: {{c.surface2}}; font-size: 14px; font-weight: 600">{{t.cancel}}</button>
+      <button style="height: 38px; padding: 0 16px; border-radius: 8px; background: {{c.accent}}; color: {{c.onAccent}}; font-size: 14px; font-weight: 700">{{d.action}}</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["haAdd","swap"],"default":"haAdd"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lang":{"editor":"enum","options":["nl","en"],"default":"nl"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const screen = this.props.screen ?? 'haAdd';
+    const dark = (this.props.theme ?? 'light') === 'dark';
+    const en = (this.props.lang ?? 'nl') === 'en';
+    const L = (nl, e) => (en ? e : nl);
+    const c = dark ? { ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#2E3331', accent: '#D99B2B', onAccent: '#2B1F06', accentText: '#F2C060', wash: '#2E2611', danger: '#F0917F' }
+      : { ground: '#F7F8F6', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', muted: '#5E6764', hair: '#DFE2DE', accent: '#F2B233', onAccent: '#2B1F06', accentText: '#8A5C08', wash: '#FBEBC6', danger: '#A4372C' };
+    const t = { sources: L('Bronnen', 'Sources'), more: L('Meer', 'More'), close: L('Sluit', 'Close'), cancel: L('Annuleer', 'Cancel') };
+    const nav = [L('Vandaag', 'Today'), L('Agenda', 'Calendar'), L('Boodschappen', 'Groceries'), L('Kosten delen', 'Shared costs'), L('Energie', 'Energy'), L('Instellingen', 'Settings')]
+      .map((label) => { const on = label === L('Energie', 'Energy'); return { label, w: on ? 700 : 500, bg: on ? c.wash : 'transparent', fg: on ? c.accentText : c.ink }; });
+    const rowsOf = (list) => list.map((r, i) => ({ fg: c.ink, bg: 'transparent', menu: false, ...r, line: i === 0 ? '0' : '1px solid ' + c.hair }));
+    const chip = (label, on, i) => ({ id: 'k' + i, label, on: on ? 'true' : 'false', bg: on ? c.accent : c.surface, fg: on ? c.onAccent : c.ink });
+    const input = (id, label, value, unit, hint, focus) => ({ isInput: true, isChips: false, id, label, value, unit: unit ?? '', hasHint: !!hint, hint: hint ?? '', ring: focus ? c.accent : c.hair, chips: [] });
+    let groups, d, panelTitle, panelText;
+    if (screen === 'haAdd') {
+      groups = [{ head: 'HOME ASSISTANT', rows: rowsOf([{ title: L('Stroom afname · normaal', 'Electricity import · normal'), sub: 'sensor.p1_import_t2' }, { title: L('Zon', 'Solar'), sub: 'sensor.inverter_energy' }, { title: L('Statistiek toevoegen…', 'Add statistic…'), sub: L('Buiten het Energie-dashboard', 'Outside the Energy dashboard'), fg: c.accentText, bg: c.wash }]) }];
+      panelTitle = 'Home Assistant'; panelText = L('Verbonden sinds 20 nov · elk uur bijgewerkt, laatst 18:00.', 'Connected since 20 Nov · updated hourly, last at 18:00.');
+      d = { title: L('Statistiek toevoegen', 'Add statistic'), action: L('Voeg toe', 'Add'), listHead: L('Statistiek', 'Statistic'), hasList: true,
+        fields: [{ isChips: true, isInput: false, id: 'kind', label: L('SOORT', 'KIND'), hasHint: false, hint: '', ring: c.hair, value: '', unit: '',
+          chips: [L('Stroom afname', 'Electricity import'), L('Teruglevering', 'Export'), L('Zon', 'Solar'), 'Gas', L('Batterij laden', 'Battery charge'), L('Batterij ontladen', 'Battery discharge'), L('Batterij laadstand', 'Battery state of charge')].map((x, i) => chip(x, i === 6, i)) },
+          input('q', L('ZOEK STATISTIEK', 'SEARCH STATISTIC'), 'soc', '', L('Alleen statistieken die bij de soort passen.', 'Only statistics that fit the kind.'), true)],
+        list: [{ title: 'sensor.marstek_soc', sub: L('% · gemeten', '% · measured'), on: true }, { title: 'sensor.phone_battery_level', sub: L('% · gemeten', '% · measured'), on: false }, { title: 'sensor.marstek_energy_in', sub: L('kWh · past niet bij laadstand', 'kWh · does not fit state of charge'), on: false, off: true }]
+          .map((o, i) => ({ title: o.title, sub: o.sub, on: o.on ? 'true' : null, off: o.off ? 'true' : null, fg: o.off ? c.muted : c.ink, subColor: o.off ? c.danger : c.muted, bg: o.on ? c.wash : 'transparent', line: i === 0 ? '0' : '1px solid ' + c.hair })) };
+    } else {
+      groups = [{ head: L('METERSTANDEN', 'METER READINGS'), rows: rowsOf([{ title: L('Stroom · normaal', 'Electricity · normal'), sub: L('Laatste stand 12.406 kWh · 1 nov', 'Last reading 12,406 kWh · 1 Nov'), menu: true, bg: c.wash }, { title: L('Stroom · laag', 'Electricity · low'), sub: L('Laatste stand 9.881 kWh · 1 nov', 'Last reading 9,881 kWh · 1 Nov'), menu: true }, { title: 'Gas', sub: L('Laatste stand 4.120 m³ · 1 nov', 'Last reading 4,120 m³ · 1 Nov'), menu: true }]) }];
+      panelTitle = L('Stroom · normaal', 'Electricity · normal'); panelText = L('48 meterstanden sinds jan 2025.', '48 meter readings since Jan 2025.');
+      d = { title: L('Meter vervangen', 'Replace meter'), action: L('Vervang', 'Replace'), hasList: false, listHead: '', list: [],
+        fields: [{ isChips: true, isInput: false, id: 'ch', label: L('WELKE KANALEN', 'WHICH CHANNELS'), hasHint: true, hint: L('Laag en normaal samen: ze zitten in dezelfde meter.', 'Low and normal together: they are in the same meter.'), ring: c.hair, value: '', unit: '',
+          chips: [L('Stroom · normaal', 'Electricity · normal'), L('Stroom · laag', 'Electricity · low'), 'Gas'].map((x, i) => chip(x, i < 2, i)) },
+          input('date', L('VERVANGEN OP', 'REPLACED ON'), L('za 14 nov 2026', 'Sat 14 Nov 2026')),
+          input('old', L('LAATSTE STAND OUDE METER · NORMAAL (OPTIONEEL)', 'LAST READING OLD METER · NORMAL (OPTIONAL)'), '12.431', 'kWh', L('Hoger dan 12.406 kWh (1 nov).', 'Higher than 12,406 kWh (1 Nov).')),
+          input('new', L('EERSTE STAND NIEUWE METER · NORMAAL', 'FIRST READING NEW METER · NORMAL'), '0', 'kWh', L('Mag lager zijn: het is een nieuw kanaal.', 'May be lower: it is a new channel.'), true)] };
+    }
+    return { c, t, nav, groups, d, panelTitle, panelText };
+  }
+}
+</script>
+</body>
+</html>
