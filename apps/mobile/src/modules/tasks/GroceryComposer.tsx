@@ -73,7 +73,7 @@ import {
   withAmount,
   withLine,
 } from './groceryDraft'
-import { groceryListsOf } from './groceryList'
+import { groceryListsOf, onShoppingList } from './groceryList'
 import { TASK_ICONS } from './icons'
 import { QuickAddInput } from './QuickAddParts'
 import { quickAddTarget } from './quickAdd'
@@ -302,7 +302,7 @@ function GroceryComposerCard({
   const target = offered
     ? quickAddTarget(offered, draft.listId ?? openedOn)
     : undefined
-  const { tasks } = useTaskList(target?._id ?? openedOn)
+  const { tasks, today } = useTaskList(target?._id ?? openedOn)
   // What Undo would take back may be on a list the chip has left since.
   const undoListId = added.at(-1)?.listId ?? target?._id ?? openedOn
   const undoList = useTaskList(undoListId)
@@ -893,7 +893,9 @@ function GroceryComposerCard({
             listId={target._id}
             line={item.title}
             amount={amount}
-            tasks={tasks}
+            // A repeating item waiting for its next date is not on the list
+            // (APP-520): typing its name adds a row that shows now.
+            tasks={tasks.filter((task) => onShoppingList(task, today))}
             onPick={pick}
           />
         ) : null

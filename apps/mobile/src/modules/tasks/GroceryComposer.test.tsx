@@ -198,7 +198,10 @@ vi.mock('./quickAdd', () => ({
   quickAddTarget: (lists: { _id: string }[], id: string) =>
     lists.find((list) => list._id === id) ?? lists[0],
 }))
-vi.mock('./groceryList', () => ({ groceryListsOf: (lists: unknown) => lists }))
+vi.mock('./groceryList', () => ({
+  groceryListsOf: (lists: unknown) => lists,
+  onShoppingList: (task: { done: boolean }) => !task.done,
+}))
 /** Made by the first add that asks for it, as the server reports it. */
 const addedStaple = () => {
   if (!state.stapleId) return undefined
