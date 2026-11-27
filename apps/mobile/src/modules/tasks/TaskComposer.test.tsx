@@ -113,8 +113,9 @@ vi.mock('./completeTask', () => ({ useCompleteTask: vi.fn() }))
 vi.mock('./components', () => ({ Checkbox: () => null }))
 vi.mock('./icons', () => ({ TASK_ICONS: {} }))
 vi.mock('./taskMenu', () => ({ taskMenuActions: vi.fn() }))
-vi.mock('./store', () => ({
+vi.mock('./store', async () => ({
   LinkedWriteError: class extends Error {},
+  useGroupToday: (await import('@gather/core/civil-date')).todayIn,
   useTaskLists: () => [],
   useTaskActions: () => ({
     addTask: (...args: unknown[]) => {
