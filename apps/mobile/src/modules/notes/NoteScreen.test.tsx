@@ -602,6 +602,31 @@ test('a late refusal does not write over the field the reopened screen holds', a
   again.unmount()
 })
 
+// APP-968: put back on opening, it is held before the typing pause ends.
+test('a save of the other field in the typing pause keeps the text put back', async () => {
+  state.editNote.mockRejectedValue({ data: noteRefusal('too-long') })
+  const view = open({ title: 'T', body: 'b' })
+  const id = state.note.id as string
+  await type(view, 'note-title', 'kt')
+  await type(view, 'note-body', 'kb')
+  view.unmount()
+  state.editNote.mockReset().mockResolvedValue(undefined)
+  const again = mount(<Note noteId={id} />)
+  expect(find(again, 'note-title')?.value).toBe('kt')
+  expect(find(again, 'note-body')?.value).toBe('kb')
+  // The title is saved before the body's pause ends; the save lands.
+  await blur(again, 'note-title')
+  for (const [, patch] of state.editNote.mock.calls)
+    state.note = { ...state.note, ...patch }
+  // A quit right then: the body's text comes back on the next open.
+  forgetHeldMemoryForTests()
+  const third = mount(<Note noteId={id} />)
+  expect(find(third, 'note-title')?.value).toBe('kt')
+  expect(find(third, 'note-body')?.value).toBe('kb')
+  third.unmount()
+  again.unmount()
+})
+
 describe('another Member saved while this person was writing (APP-347)', () => {
   const theirs = {
     title: 'T',
