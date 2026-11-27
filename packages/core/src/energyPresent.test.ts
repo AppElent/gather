@@ -2,12 +2,17 @@ import { describe, expect, test } from 'vitest'
 import {
   compareYears,
   distinctPeakOf,
+  energyChannelRows,
   energyHomeHasProblem,
+  energyHomeSourceLine,
   energyHomeSources,
+  energySourceLine,
+  energyStaleStatistics,
   highestCostDay,
   highestUsageSlot,
   signedDifference,
 } from './energyPresent'
+import { en } from './messages/en'
 
 const kwh = (size: number) => `${size.toFixed(0)} kWh`
 
@@ -53,6 +58,52 @@ describe('energyHomeSources', () => {
   test('a refused token is a problem, a first sync is not', () => {
     expect(energyHomeHasProblem([ha({ status: 'needsReconnect' })])).toBe(true)
     expect(energyHomeHasProblem([ha({ status: 'syncing' })])).toBe(false)
+  })
+})
+
+describe('a sensor that stopped reporting (APP-728)', () => {
+  const NOW = Date.UTC(2026, 10, 20, 9, 25)
+  const source = {
+    kind: 'homeAssistant',
+    label: 'Home Assistant',
+    status: 'ok' as const,
+    lastSyncedAt: Date.UTC(2026, 10, 20, 9, 5),
+    lastError: 'statisticStale|sensor.p1_import',
+    channelCount: 2,
+  }
+
+  test('Sources says it in danger words while the source reads on', () => {
+    expect(energySourceLine(source, NOW, en.energy, 'en')).toEqual({
+      text: 'A sensor stopped reporting to Home Assistant: sensor.p1_import. Last updated 10:05.',
+      problem: true,
+    })
+    expect(energyStaleStatistics(source)).toEqual(['sensor.p1_import'])
+  })
+
+  test('Home and a source in error are not told', () => {
+    expect(energyHomeSourceLine(source, NOW, en.energy, 'en')).toBe(
+      'Home Assistant · updated 10:05',
+    )
+    expect(energyHomeHasProblem([source])).toBe(false)
+    expect(energyStaleStatistics({ ...source, status: 'error' })).toEqual([])
+  })
+
+  test('only the channel whose statistic stopped is flagged', () => {
+    const rows = energyChannelRows(
+      [
+        { sourceId: 's', kind: 'gridImport', statisticId: 'sensor.p1_import' },
+        { sourceId: 's', kind: 'batteryCharge', statisticId: 'sensor.charge' },
+        { sourceId: 's', kind: 'batteryDischarge', statisticId: 'sensor.out' },
+        { sourceId: 's', kind: 'gas', statisticId: 'sensor.gas' },
+      ],
+      en.energy,
+      ['sensor.p1_import', 'sensor.out'],
+    )
+    expect(rows.map((each) => [each.key, each.stale])).toEqual([
+      ['s:gridImport', true],
+      ['s:batteryCharge', true],
+      ['s:gas', false],
+    ])
   })
 })
 

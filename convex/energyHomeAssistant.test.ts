@@ -571,6 +571,44 @@ describe('the hourly sync', () => {
     expect(stored.filter((each) => each.hourStart === THIS_HOUR)).toHaveLength(1)
   })
 
+  test('a sensor that stopped reporting is named per kind; the source stays ok', async () => {
+    const seeded = await seed()
+    fake.sums[IMPORT.statisticId] = counter(THIS_HOUR - 4 * HOUR, 4, 1)
+    fake.sums[GAS.statisticId] = counter(THIS_HOUR - 4 * HOUR, 4, 0.2)
+    await connect(seeded, [IMPORT, GAS], true)
+    const [source] = await rows(seeded.t, 'energySources')
+    const sourceId = source?._id as Id<'energySources'>
+    expect(source?.lastError).toBeUndefined()
+
+    // Seven hours on: the grid meter has gone quiet, the gas meter idles.
+    vi.setSystemTime(NOW + 7 * HOUR)
+    await seeded.t.action(internal.energyHomeAssistant.syncSource, { sourceId })
+    expect((await rows(seeded.t, 'energySources'))[0]).toMatchObject({
+      status: 'ok',
+      lastError: 'statisticStale|sensor.zonneplan_import',
+      lastSyncedAt: expect.closeTo(NOW + 7 * HOUR, -3),
+    })
+
+    // Two days on, gas has been quiet too long as well.
+    vi.setSystemTime(NOW + 49 * HOUR)
+    await seeded.t.action(internal.energyHomeAssistant.syncSource, { sourceId })
+    expect((await rows(seeded.t, 'energySources'))[0]?.lastError).toBe(
+      'statisticStale|sensor.zonneplan_import,sensor.p1_gas',
+    )
+
+    // Both report again; the flag goes.
+    for (const [id, step] of [
+      [IMPORT.statisticId, 1],
+      [GAS.statisticId, 0.2],
+    ] as const) {
+      fake.sums[id]?.set(THIS_HOUR + 47 * HOUR, 100 * step)
+    }
+    await seeded.t.action(internal.energyHomeAssistant.syncSource, { sourceId })
+    const [after] = await rows(seeded.t, 'energySources')
+    expect(after?.status).toBe('ok')
+    expect(after?.lastError).toBeUndefined()
+  })
+
   test('a refused command during sync records syncFailed, not notHomeAssistant', async () => {
     const { t, sourceId } = await connected()
     fake.refuseCommand['recorder/statistics_during_period'] = 'home_assistant_error'

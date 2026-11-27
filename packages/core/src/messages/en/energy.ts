@@ -367,7 +367,12 @@ export const energy = {
       statisticMissing: 'A sensor no longer exists in Home Assistant: {statistics}.',
       disconnected: 'Disconnected.',
       syncFailed: 'Updating went wrong. Gather tries again every hour.',
+      statisticStale: 'A sensor stopped reporting to Home Assistant: {statistics}.',
     },
+    /** Under a channel whose sensor stopped reporting (APP-728). */
+    channelStale: 'Stopped reporting',
+    /** The phone's channel row: its source, then that it stopped. */
+    channelStaleSub: '{source} · stopped reporting',
     /** Home's second line: the source and what is wrong with it. */
     homeProblem: '{source}: {line}',
     homeConnected: '{source} · updated {when}',

@@ -15,6 +15,7 @@ import {
   ENERGY_CHANNEL_ORDER,
   energyChannelsOverlap,
   energyProposals,
+  energyStatisticStale,
   haStatisticFits,
   hourlyAmountsFromSums,
   hourlyLevels,
@@ -334,6 +335,7 @@ export const syncSource = internalAction({
       options: {
         retry?: { historyFrom: number; attempt: number; historyFor: string[] }
         done?: boolean
+        stale?: string[]
       } = {},
     ) =>
       ctx.runMutation(internal.energySources.finishSync, {
@@ -342,6 +344,7 @@ export const syncSource = internalAction({
         secret: plan.secret,
         problem,
         missing,
+        ...(options.stale?.length ? { stale: options.stale } : {}),
         ...(args.importId ? { importId: args.importId } : {}),
         ...(retryId ? { retryId } : {}),
         ...(options.retry ? { retry: options.retry } : {}),
@@ -360,7 +363,8 @@ export const syncSource = internalAction({
         ]),
       )
       const missing: string[] = []
-      const channels: (Plan & { baseline: number | null })[] = []
+      const channels: (Plan & { baseline: number | null; newest: number })[] =
+        []
       for (const channel of plan.channels) {
         const statistic = known.get(channel.statisticId)
         if (!statistic || !haStatisticFits(statistic, channel.kind)) {
@@ -383,6 +387,8 @@ export const syncSource = internalAction({
           baseline:
             args.sums?.find((each) => each.statisticId === channel.statisticId)
               ?.sum ?? null,
+          // The last stored hour, until Home Assistant answers a newer one.
+          newest: channel.from,
         })
       }
 
@@ -442,6 +448,7 @@ export const syncSource = internalAction({
             channel.baseline = read.baseline
           }
           for (const hour of amounts) {
+            channel.newest = Math.max(channel.newest, hour.hourStart)
             write.push({ channel, hour })
             if (write.length >= ROWS_PER_WRITE && !(await flush())) return null
           }
@@ -490,7 +497,13 @@ export const syncSource = internalAction({
         args.historyFrom !== undefined &&
         (args.historyFor === undefined ||
           nextHistoryFor.length < args.historyFor.length)
+      // A sensor that stopped reporting keeps its statistic, so it is not
+      // missing; the source stays `ok` and says so (APP-728).
+      const stale = channels
+        .filter((each) => energyStatisticStale(each.kind, each.newest, end))
+        .map((each) => each.statisticId)
       await finish(missing.length ? 'statisticMissing' : null, missing, {
+        stale,
         done: missing.length === 0 && !incomplete && allMissing.length === 0,
         retry:
           narrowed && args.historyFrom !== undefined
