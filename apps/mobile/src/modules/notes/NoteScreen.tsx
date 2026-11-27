@@ -125,6 +125,8 @@ export function Note({ noteId }: { noteId: string }) {
   /** The note loaded and its kept text was read: leaving may write it back. */
   const ready = useRef(false)
   const [refused, setRefused] = useState<string | null>(null)
+  /** The text a late refusal's sentence is about: saved, the sentence goes. */
+  const refusedFor = useRef<Partial<NoteText>>({})
   /** The saved version this screen's text is typed on (APP-347). */
   const baseRef = useRef<NoteBase | null>(null)
   /** Another Member's save this screen's text met, until the person chooses. */
@@ -264,6 +266,7 @@ export function Note({ noteId }: { noteId: string }) {
           baseRef.current = { ...saved, ...patch, updatedAt: result.updatedAt }
         landed(patch)
         if (mounted.current) {
+          cleared(patch)
           if (holdsText(key)) keepHeld()
         } else
           for (const each of FIELDS) {
@@ -289,6 +292,7 @@ export function Note({ noteId }: { noteId: string }) {
       else {
         if (patch.title !== undefined) title.hold(patch.title)
         if (patch.body !== undefined) body.hold(patch.body)
+        refusedFor.current = {}
         setRefused(sentence ?? t.notes.notSaved)
       }
       if (sentence === null) reportError(error)
@@ -412,6 +416,18 @@ export function Note({ noteId }: { noteId: string }) {
     inFlight.current = rest
   }
 
+  /** `patch` was saved: a late refusal of that text no longer holds (APP-969). */
+  function cleared(patch: Partial<NoteText>) {
+    const about = refusedFor.current
+    if (Object.keys(about).length === 0) return
+    const rest = { ...about }
+    for (const each of FIELDS)
+      if (patch[each] !== undefined && rest[each] === patch[each])
+        delete rest[each]
+    refusedFor.current = rest
+    if (Object.keys(rest).length === 0) setRefused(null)
+  }
+
   const keep = useRef(keepHeld)
   keep.current = keepHeld
   // Declared after the two fields, so their last save has run when it cleans up.
@@ -467,7 +483,15 @@ export function Note({ noteId }: { noteId: string }) {
       clash.current = { ...clash.current, ...clashes }
       setClashed(clash.current)
     }
-    if (sentence) setRefused(sentence)
+    if (sentence) {
+      const about: Partial<NoteText> = {}
+      for (const field of FIELDS) {
+        const each = kept[field]
+        if (each && each.text !== now[field]) about[field] = each.text
+      }
+      refusedFor.current = about
+      setRefused(sentence)
+    }
   }
   useEffect(() => {
     if (!loaded) return
