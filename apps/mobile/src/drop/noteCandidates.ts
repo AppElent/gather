@@ -20,12 +20,12 @@ export interface PickableNote {
  * once, then the server's matches from the whole Group. `undefined` while there
  * is nothing to show yet and an answer is still coming.
  */
-export function pickableNotes(
+export function pickableNotes<Note extends PickableNote>(
   query: string,
-  recent: PickableNote[] | undefined,
-  found: PickableNote[] | undefined,
+  recent: Note[] | undefined,
+  found: Note[] | undefined,
   untitled: string,
-): PickableNote[] | undefined {
+): Note[] | undefined {
   const needle = query.trim().toLowerCase()
   if (!needle) return recent
   const searching = asksServer(query)
