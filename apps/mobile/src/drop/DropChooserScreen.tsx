@@ -170,7 +170,7 @@ export function DropChooserScreen() {
       // A target that has not written yet keeps the Drop and keeps this screen
       // underneath it. See the note at the top.
       if (chosen.keepsDrop) {
-        openInGroup(named._id, () => router.push(href))
+        openInGroup(named._id, () => router.push(href, { withAnchor: true }))
         return
       }
 
@@ -179,7 +179,7 @@ export function DropChooserScreen() {
       openInGroup(named._id, () => {
         clear()
         router.dismissTo('/home')
-        router.push(href)
+        router.push(href, { withAnchor: true })
       })
     } catch (error) {
       haptics.actionFailed()
