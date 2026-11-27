@@ -218,6 +218,39 @@ describe('adding', () => {
     )
   })
 
+  test('reads a repeat as the task field does, on its own chip (APP-993)', async () => {
+    renderInGroup(<GroceriesPage />)
+    type('2 pak koffie elke 2 weken')
+    const recognised = screen.getByTestId('grocery-recognised')
+    expect(within(recognised).getByText('Koffie')).toBeTruthy()
+    expect(within(recognised).getByTestId('grocery-repeat').textContent).toMatch(
+      /^Every 2 weeks/,
+    )
+    fireEvent.submit(input())
+    await waitFor(() => expect(callsOf('tasks:add')).toHaveLength(1))
+    const added = callsOf('tasks:add')[0]!
+    expect(added).toMatchObject({
+      title: 'Koffie',
+      quantity: 2,
+      unit: 'pak',
+      repeat: { mode: 'fixed', unit: 'week', every: 2 },
+    })
+    // On the list from today.
+    expect(added.dueDate).toBe(added.today)
+  })
+
+  test('a repeat chip’s × leaves its words in the name', async () => {
+    renderInGroup(<GroceriesPage />)
+    type('thee elke week')
+    fireEvent.click(screen.getByRole('button', { name: /^Remove Every week/ }))
+    expect(screen.queryByTestId('grocery-repeat')).toBeNull()
+    fireEvent.submit(input())
+    await waitFor(() =>
+      expect(callsOf('tasks:add')[0]).toMatchObject({ title: 'Thee elke week' }),
+    )
+    expect(callsOf('tasks:add')[0]!.repeat).toBeUndefined()
+  })
+
   test('a failed add puts the line back', async () => {
     state.fail.add('tasks:add')
     renderInGroup(<GroceriesPage />)

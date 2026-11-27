@@ -30,6 +30,7 @@ export {
   groceryKey,
 } from './normalise'
 export * from './parse'
+export * from './repeat'
 export type {
   GroceryAisleContext,
   GroceryAisleSource,
