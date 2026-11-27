@@ -1185,6 +1185,11 @@ export default defineSchema({
   })
     .index('by_group', ['groupId'])
     .index('by_site', ['siteId'])
+    /**
+     * A site's typed-readings source alone, so reading it never subscribes to
+     * the Home Assistant source every hourly sync patches (APP-921).
+     */
+    .index('by_site_kind', ['siteId', 'kind'])
     .index('by_kind_status', ['kind', 'status']),
 
   /** One meter or sensor of a site, supplied by exactly one source. */
