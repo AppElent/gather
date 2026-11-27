@@ -200,7 +200,7 @@ vi.mock('./store', () => ({
     setListAppearance: async () => {},
   }),
   useTaskLists: () => state.lists,
-  useTasksOf: () => ({ tasks: [] }),
+  useTasksOf: () => ({ tasks: [], today: '2026-11-27' }),
 }))
 
 const sampleTask: Task = {

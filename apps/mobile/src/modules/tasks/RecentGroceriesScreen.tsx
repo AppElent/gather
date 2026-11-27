@@ -7,7 +7,6 @@
  * Recent is no table of its own: it is the checked items of the Group's
  * grocery lists (`tasks.recentGroceries`).
  */
-import { todayIn } from '@gather/core/civil-date'
 import { groceryKey, parseGroceryLine } from '@gather/core/groceries'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
@@ -25,7 +24,12 @@ import { washScreenOptions } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
 import { WashHeader } from '../../ui/wash-header'
 import { useGroceryAmountText } from './GroceryFields'
-import { aisleOf, recentDays, recentWeeks } from './groceryList'
+import {
+  aisleOf,
+  onShoppingList,
+  recentDays,
+  recentWeeks,
+} from './groceryList'
 import { useRecentGroceries, useTaskActions, useTaskList } from './store'
 
 type RecentRow = NonNullable<ReturnType<typeof useRecentGroceries>>[number]
@@ -39,7 +43,7 @@ export function RecentGroceries({ listId }: { listId: string }) {
   const { t, locale } = useI18n()
   const r = t.tasks.grocery.recent
   const recent = useRecentGroceries()
-  const { tasks } = useTaskList(listId)
+  const { tasks, today } = useTaskList(listId)
   const actions = useTaskActions()
   const { group } = useGroup()
   // Rows put back from here stay, marked as on the list, until the screen
@@ -49,7 +53,9 @@ export function RecentGroceries({ listId }: { listId: string }) {
   const [kept, setKept] = useState<ReadonlyMap<string, RecentRow>>(new Map())
 
   const onList = new Set(
-    tasks.filter((task) => !task.done).map((task) => keyOf(task.title)),
+    tasks
+      .filter((task) => onShoppingList(task, today))
+      .map((task) => keyOf(task.title)),
   )
   const live = recent ?? []
   const liveIds = new Set(live.map((row) => row._id))
@@ -73,7 +79,6 @@ export function RecentGroceries({ listId }: { listId: string }) {
     })
   }
 
-  const today = todayIn(group.timeZone, now)
   const dayLabel = (date: string) => {
     const day = new Date(`${date}T12:00:00`)
     const long = day.toLocaleDateString(locale, {

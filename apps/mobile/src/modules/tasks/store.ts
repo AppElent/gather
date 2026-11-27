@@ -428,7 +428,9 @@ export function useGroupLabels(): readonly string[] {
  * counts). `lists` must be memoised by the caller, as `useQueries` needs.
  */
 export function useTasksOf(lists: readonly ListRow[]) {
-  return useListsOf(lists)
+  const { group } = useGroup()
+  const state = useListsOf(lists)
+  return { today: todayIn(group.timeZone), ...state }
 }
 
 /**

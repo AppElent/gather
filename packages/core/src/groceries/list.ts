@@ -112,11 +112,17 @@ export function onShoppingList(
 
 /** How many open items each aisle holds, for the Aisles screen. */
 export function aisleCounts(
-  tasks: readonly { category?: string; done: boolean }[],
+  tasks: readonly {
+    category?: string
+    done: boolean
+    repeat?: unknown
+    dueDate?: string
+  }[],
+  today: string,
 ): Partial<Record<GroceryAisle, number>> {
   const counts: Partial<Record<GroceryAisle, number>> = {}
   for (const task of tasks) {
-    if (task.done) continue
+    if (!onShoppingList(task, today)) continue
     const aisle = aisleOf(task)
     counts[aisle] = (counts[aisle] ?? 0) + 1
   }

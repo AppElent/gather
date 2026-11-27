@@ -50,7 +50,7 @@ interface DragHandlers {
 }
 
 export function AisleOrderScreen({ listId }: { listId: string }) {
-  const { list, tasks } = useTaskList(listId)
+  const { list, tasks, today } = useTaskList(listId)
   const tokens = useTokens()
   if (!list) return <View style={{ flex: 1, backgroundColor: tokens.ground }} />
   return (
@@ -59,6 +59,7 @@ export function AisleOrderScreen({ listId }: { listId: string }) {
       name={list.name}
       saved={list.aisleOrder}
       tasks={tasks}
+      today={today}
     />
   )
 }
@@ -68,11 +69,13 @@ function AisleOrderEditor({
   name,
   saved,
   tasks,
+  today,
 }: {
   listId: string
   name: string
   saved: readonly GroceryAisle[] | null
-  tasks: readonly { category?: string; done: boolean }[]
+  tasks: readonly Parameters<typeof aisleCounts>[0][number][]
+  today: string
 }) {
   const tokens = useTokens('kitchen')
   const insets = useSafeAreaInsets()
@@ -81,7 +84,7 @@ function AisleOrderEditor({
   const words = t.tasks.grocery.aisleOrder
   const aisleNames = t.tasks.grocery.aisles
   const actions = useTaskActions()
-  const counts = useMemo(() => aisleCounts(tasks), [tasks])
+  const counts = useMemo(() => aisleCounts(tasks, today), [tasks, today])
 
   const [order, setOrder] = useState<GroceryAisle[]>(() => aisleOrder(saved))
   const [saving, setSaving] = useState(false)

@@ -20,6 +20,7 @@ import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/token
 import { InsetList, useInsetSeparator } from '../../ui/inset-list'
 import { ModuleTile } from '../../ui/module-tile'
 import { radioProps } from '../../ui/radio-props'
+import { onShoppingList } from './groceryList'
 import { useTasksOf } from './store'
 
 type ListRow = FunctionReturnType<typeof api.taskLists.list>[number]
@@ -91,9 +92,11 @@ export function GroceryListsSheet({
     () => lists.filter((list) => list.provider === 'local'),
     [lists],
   )
-  const { tasks } = useTasksOf(local)
+  const { tasks, today } = useTasksOf(local)
   const open = (listId: string) =>
-    tasks.filter((task) => task.listId === listId && !task.done).length
+    tasks.filter(
+      (task) => task.listId === listId && onShoppingList(task, today),
+    ).length
   const selected = lists.find((list) => list._id === selectedId)
 
   return (

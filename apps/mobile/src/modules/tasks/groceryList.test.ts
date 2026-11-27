@@ -113,13 +113,31 @@ describe('a list of its own aisle order (APP-313)', () => {
 
   test('counts only what is still to get, per aisle', () => {
     expect(
-      aisleCounts([
-        { category: 'produce', done: false },
-        { category: 'produce', done: false },
-        { category: 'produce', done: true },
-        { category: 'drinks', done: false },
-      ]),
+      aisleCounts(
+        [
+          { category: 'produce', done: false },
+          { category: 'produce', done: false },
+          { category: 'produce', done: true },
+          { category: 'drinks', done: false },
+        ],
+        '2026-11-27',
+      ),
     ).toEqual({ produce: 2, drinks: 1 })
+  })
+
+  test('leaves out a repeating item that waits for its next date (APP-992)', () => {
+    const repeat = { mode: 'afterDone', every: 1, unit: 'week' }
+    expect(
+      aisleCounts(
+        [
+          { category: 'produce', done: false },
+          { category: 'produce', done: false, repeat, dueDate: '2026-12-04' },
+          { category: 'drinks', done: false, repeat, dueDate: '2026-12-04' },
+          { category: 'bakery', done: false, repeat, dueDate: '2026-11-27' },
+        ],
+        '2026-11-27',
+      ),
+    ).toEqual({ produce: 1, bakery: 1 })
   })
 })
 
