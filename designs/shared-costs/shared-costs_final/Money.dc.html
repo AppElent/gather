@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Kosten delen, telefoon</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+a{text-decoration:none;color:inherit}
+svg{flex:none}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: {{c.ground}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: {{c.ink}}">
+  <div style="height: 54px"></div>
+
+  <!-- Bar -->
+  <div style="height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: relative">
+    <sc-if value="{{isModal}}" hint-placeholder-val="{{ false }}">
+      <button style="min-width: 44px; height: 44px; padding: 0 14px; border-radius: 999px; background: {{c.glass}}; border: 0.5px solid {{c.hair}}; display: flex; align-items: center; font-size: 17px">{{t.cancel}}</button>
+    </sc-if>
+    <sc-if value="{{isPush}}" hint-placeholder-val="{{ true }}">
+      <button aria-label="{{t.back}}" style="width: 44px; height: 44px; border-radius: 999px; background: {{c.glass}}; border: 0.5px solid {{c.hair}}; display: flex; align-items: center; justify-content: center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+      </button>
+    </sc-if>
+    <span style="position: absolute; left: 100px; right: 100px; text-align: center; font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{barTitle}}</span>
+    <div style="display: flex; gap: 8px">
+      <sc-for list="{{barButtons}}" as="bb" hint-placeholder-count="1">
+        <button aria-label="{{bb.label}}" style="min-width: 44px; height: 44px; padding: 0 {{bb.pad}}px; box-sizing: border-box; border-radius: 999px; background: {{bb.bg}}; border: 0.5px solid {{c.hair}}; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; color: {{bb.fg}}">
+          <sc-if value="{{bb.hasIcon}}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{bb.fg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{bb.icon}}"></path></svg></sc-if>
+          <sc-if value="{{bb.hasText}}" hint-placeholder-val="{{ false }}"><span>{{bb.text}}</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="padding: 4px 16px 120px; display: flex; flex-direction: column; gap: 16px">
+    <sc-if value="{{hasBig}}" hint-placeholder-val="{{ false }}">
+      <h1 style="margin: 0; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 34px; line-height: 40px; font-weight: 700">{{bigTitle}}</h1>
+    </sc-if>
+
+    <sc-for list="{{blocks}}" as="b" hint-placeholder-count="3">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+
+        <!-- Hero: own balance -->
+        <sc-if value="{{b.isHero}}" hint-placeholder-val="{{ false }}">
+          <div style="background: {{b.bg}}; border-radius: 20px; padding: 16px 18px; display: flex; align-items: center; gap: 12px">
+            <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 15px; color: {{b.labelColor}}">{{b.label}}</span>
+              <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 34px; line-height: 40px; font-weight: 700; font-variant-numeric: tabular-nums; color: {{b.amountColor}}">{{b.amount}}</span>
+              <span style="font-size: 13px; color: {{b.labelColor}}">{{b.sub}}</span>
+            </div>
+            <sc-if value="{{b.hasBtn}}" hint-placeholder-val="{{ false }}">
+              <button style="height: 44px; padding: 0 18px; border-radius: 999px; background: {{c.accent}}; color: {{c.onAccent}}; font-size: 17px; font-weight: 700">{{b.btn}}</button>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- Balances per participant -->
+        <sc-if value="{{b.isBalances}}" hint-placeholder-val="{{ false }}">
+          <h2 style="margin: 0; padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{b.head}}</h2>
+          <div style="background: {{c.surface}}; border-radius: 16px; padding: 6px 14px">
+            <sc-for list="{{b.rows}}" as="r" hint-placeholder-count="4">
+              <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 92px; align-items: center; gap: 10px; min-height: 44px; border-top: {{r.line}}">
+                <span style="display: flex; flex-direction: column; font-size: 15px; font-weight: 600">{{r.name}}<sc-if value="{{r.hasTag}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; font-weight: 400; color: {{c.muted}}">{{r.tag}}</span></sc-if></span>
+                <div aria-hidden="true" style="height: 10px; position: relative">
+                  <span style="position: absolute; left: 50%; top: -6px; bottom: -6px; width: 1px; background: {{c.hairStrong}}"></span>
+                  <span style="position: absolute; top: 0; bottom: 0; left: {{r.barLeft}}; width: {{r.barW}}; border-radius: 4px; background: {{r.barColor}}"></span>
+                </div>
+                <span style="text-align: right; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; color: {{r.color}}">{{r.amount}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{b.hasFoot}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{b.foot}}</p></sc-if>
+        </sc-if>
+
+        <!-- Section of rows -->
+        <sc-if value="{{b.isSection}}" hint-placeholder-val="{{ true }}">
+          <sc-if value="{{b.hasHead}}" hint-placeholder-val="{{ false }}"><h2 style="margin: 0; padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{b.head}}</h2></sc-if>
+          <div style="background: {{c.surface}}; border-radius: 16px; overflow: hidden">
+            <sc-for list="{{b.rows}}" as="r" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 12px; min-height: {{r.h}}px; padding: 8px 14px; box-sizing: border-box; border-top: {{r.line}}">
+                <sc-if value="{{r.hasTile}}" hint-placeholder-val="{{ false }}">
+                  <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: {{r.tile}}; display: flex; align-items: center; justify-content: center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{r.tileFg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.icon}}"></path></svg>
+                  </span>
+                </sc-if>
+                <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+                  <span style="font-size: 17px; line-height: 22px; font-weight: {{r.weight}}; color: {{r.fg}}">{{r.title}}</span>
+                  <sc-if value="{{r.hasSub}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; line-height: 18px; color: {{r.subColor}}">{{r.sub}}</span></sc-if>
+                  <sc-if value="{{r.hasBadge}}" hint-placeholder-val="{{ false }}"><span style="align-self: flex-start; margin-top: 3px; padding: 2px 8px; border-radius: 999px; background: {{c.wash}}; color: {{c.accentText}}; font-size: 12px; font-weight: 600">{{r.badge}}</span></sc-if>
+                </div>
+                <sc-if value="{{r.hasValue}}" hint-placeholder-val="{{ false }}"><span style="font-size: 17px; font-variant-numeric: tabular-nums; font-weight: {{r.valueWeight}}; color: {{r.valueColor}}; white-space: nowrap">{{r.value}}</span></sc-if>
+                <sc-if value="{{r.hasSwitch}}" hint-placeholder-val="{{ false }}">
+                  <span role="switch" aria-checked="{{r.switchOn}}" aria-label="{{r.title}}" style="width: 51px; height: 31px; border-radius: 999px; background: {{r.switchBg}}; position: relative"><span style="position: absolute; top: 2px; left: {{r.knob}}px; width: 27px; height: 27px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 2px 4px rgba(0,0,0,.2)"></span></span>
+                </sc-if>
+                <sc-if value="{{r.chev}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{b.hasFoot}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{b.foot}}</p></sc-if>
+        </sc-if>
+
+        <!-- Amount entry -->
+        <sc-if value="{{b.isAmount}}" hint-placeholder-val="{{ false }}">
+          <div style="background: {{c.surface}}; border-radius: 20px; padding: 14px 18px 16px; display: flex; flex-direction: column; align-items: center; gap: 4px">
+            <label for="amount" style="font-size: 13px; color: {{c.muted}}">{{b.label}}</label>
+            <input id="amount" value="{{b.value}}" inputmode="decimal" style="width: 100%; border: 0; background: transparent; text-align: center; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; color: {{c.ink}}; outline: none">
+          </div>
+        </sc-if>
+
+        <!-- Receipt -->
+        <sc-if value="{{b.isReceipt}}" hint-placeholder-val="{{ false }}">
+          <div style="background: {{c.surface}}; border-radius: 16px; padding: 10px; display: flex; align-items: center; gap: 12px">
+            <div role="img" aria-label="{{b.alt}}" style="width: 64px; height: 84px; border-radius: 10px; background: {{c.paper}}; border: 0.5px solid {{c.hair}}; display: flex; flex-direction: column; gap: 5px; padding: 10px 8px; box-sizing: border-box">
+              <span style="height: 4px; width: 70%; background: {{c.paperInk}}; border-radius: 2px"></span><span style="height: 3px; width: 90%; background: {{c.paperInk}}; opacity: .5; border-radius: 2px"></span><span style="height: 3px; width: 80%; background: {{c.paperInk}}; opacity: .5; border-radius: 2px"></span><span style="height: 3px; width: 85%; background: {{c.paperInk}}; opacity: .5; border-radius: 2px"></span><span style="margin-top: auto; height: 4px; width: 50%; align-self: flex-end; background: {{c.paperInk}}; border-radius: 2px"></span>
+            </div>
+            <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 17px; font-weight: 600">{{b.title}}</span>
+              <span style="font-size: 13px; color: {{c.muted}}">{{b.sub}}</span>
+            </div>
+            <button style="height: 40px; padding: 0 14px; border-radius: 999px; background: {{c.wash}}; color: {{c.accentText}}; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.accentText}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg>{{b.btn}}
+            </button>
+          </div>
+        </sc-if>
+
+        <!-- Segmented -->
+        <sc-if value="{{b.isSeg}}" hint-placeholder-val="{{ false }}">
+          <h2 style="margin: 0; padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{b.head}}</h2>
+          <div role="radiogroup" aria-label="{{b.head}}" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 2px; border-radius: 12px; background: {{c.surface2}}">
+            <sc-for list="{{b.opts}}" as="o" hint-placeholder-count="3">
+              <button role="radio" aria-checked="{{o.on}}" style="height: 36px; border-radius: 10px; text-align: center; font-size: 15px; font-weight: 600; background: {{o.bg}}; box-shadow: {{o.shadow}}">{{o.label}}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- Split rows -->
+        <sc-if value="{{b.isSplit}}" hint-placeholder-val="{{ false }}">
+          <div style="background: {{c.surface}}; border-radius: 16px; overflow: hidden">
+            <sc-for list="{{b.rows}}" as="r" hint-placeholder-count="4">
+              <div style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 14px; box-sizing: border-box; border-top: {{r.line}}">
+                <span role="checkbox" aria-checked="{{r.onStr}}" aria-label="{{r.name}}" style="width: 24px; height: 24px; border-radius: 999px; box-sizing: border-box; border: 2px solid {{r.ring}}; background: {{r.fill}}; display: flex; align-items: center; justify-content: center">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{c.onAccent}}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+                </span>
+                <span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-size: 17px; color: {{r.fg}}">{{r.name}}</span><sc-if value="{{r.hasTag}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: {{c.muted}}">{{r.tag}}</span></sc-if></span>
+                <sc-if value="{{r.isShares}}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; align-items: center; border-radius: 10px; background: {{c.surface2}}">
+                    <button aria-label="{{r.minus}}" style="width: 36px; height: 36px; text-align: center; font-size: 20px">−</button>
+                    <span style="width: 34px; text-align: center; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums">{{r.shares}}</span>
+                    <button aria-label="{{r.plus}}" style="width: 36px; height: 36px; text-align: center; font-size: 20px">+</button>
+                  </div>
+                </sc-if>
+                <sc-if value="{{r.isExact}}" hint-placeholder-val="{{ false }}">
+                  <input aria-label="{{r.name}}" value="{{r.amount}}" inputmode="decimal" style="width: 96px; height: 36px; box-sizing: border-box; border-radius: 10px; border: 1.5px solid {{r.inputRing}}; background: {{c.surface2}}; padding: 0 10px; text-align: right; font: inherit; font-size: 17px; font-variant-numeric: tabular-nums; color: {{c.ink}}">
+                </sc-if>
+                <sc-if value="{{r.showAmount}}" hint-placeholder-val="{{ true }}"><span style="width: 84px; text-align: right; font-size: 17px; font-variant-numeric: tabular-nums; color: {{r.amountColor}}">{{r.amount}}</span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <div role="status" style="display: flex; align-items: center; gap: 8px; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{b.statusColor}}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{b.statusColor}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{b.statusIcon}}"></path></svg>
+            <span>{{b.status}}</span>
+          </div>
+        </sc-if>
+
+        <!-- Category chips -->
+        <sc-if value="{{b.isChips}}" hint-placeholder-val="{{ false }}">
+          <h2 style="margin: 0; padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{b.head}}</h2>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <sc-for list="{{b.chips}}" as="ch" hint-placeholder-count="5">
+              <button aria-pressed="{{ch.on}}" style="height: 36px; padding: 0 14px; border-radius: 999px; background: {{ch.bg}}; color: {{ch.fg}}; border: 0.5px solid {{c.hair}}; font-size: 15px; font-weight: 600">{{ch.label}}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- Transfers -->
+        <sc-if value="{{b.isTransfers}}" hint-placeholder-val="{{ false }}">
+          <h2 style="margin: 0; padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{b.head}}</h2>
+          <div style="background: {{c.surface}}; border-radius: 16px; overflow: hidden">
+            <sc-for list="{{b.rows}}" as="r" hint-placeholder-count="3">
+              <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-top: {{r.line}}">
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <span style="font-size: 17px; font-weight: 600; color: {{r.fg}}">{{r.from}}</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="{{t.to}}" role="img"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+                  <span style="flex-grow: 1; font-size: 17px; font-weight: 600; color: {{r.fg}}">{{r.to}}</span>
+                  <span style="font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; color: {{r.fg}}; text-decoration: {{r.strike}}">{{r.amount}}</span>
+                </div>
+                <sc-if value="{{r.hasSub}}" hint-placeholder-val="{{ false }}"><span style="margin-top: -6px; font-size: 13px; color: {{c.muted}}">{{r.sub}}</span></sc-if>
+                <sc-if value="{{r.hasActions}}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; gap: 8px">
+                    <sc-if value="{{r.hasPay}}" hint-placeholder-val="{{ false }}">
+                      <a href="#" style="flex: 1; height: 40px; border-radius: 999px; background: {{c.accent}}; color: {{c.onAccent}}; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px">{{r.pay}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.onAccent}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"></path></svg></a>
+                    </sc-if>
+                    <button style="flex: 1; height: 40px; border-radius: 999px; background: {{c.surface2}}; text-align: center; font-size: 15px; font-weight: 700">{{r.paid}}</button>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{b.hasFoot}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{b.foot}}</p></sc-if>
+        </sc-if>
+
+        <!-- Button -->
+        <sc-if value="{{b.isButton}}" hint-placeholder-val="{{ false }}">
+          <button style="height: 50px; border-radius: 14px; background: {{b.bg}}; color: {{b.fg}}; text-align: center; font-size: 17px; font-weight: 700">{{b.label}}</button>
+          <sc-if value="{{b.hasFoot}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}; text-align: center">{{b.foot}}</p></sc-if>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Floating add -->
+  <sc-if value="{{hasFab}}" hint-placeholder-val="{{ false }}">
+    <button aria-label="{{t.addExpense}}" style="position: absolute; right: 20px; bottom: 40px; width: 60px; height: 60px; border-radius: 999px; background: {{c.accent}}; box-shadow: 0 8px 20px rgba(0,0,0,.22); display: flex; align-items: center; justify-content: center">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="{{c.onAccent}}" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+    </button>
+  </sc-if>
+
+  <!-- Toast -->
+  <sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; left: 16px; right: 16px; bottom: 40px; display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 18px; border-radius: 16px; background: {{c.toast}}; color: {{c.toastFg}}; box-shadow: 0 8px 24px rgba(0,0,0,.2)">
+      <span style="flex-grow: 1; font-size: 15px">{{toast.text}}</span>
+      <button style="min-height: 36px; padding: 0 10px; font-size: 15px; font-weight: 700; color: {{c.toastAction}}">{{toast.action}}</button>
+    </div>
+  </sc-if>
+
+  <!-- Sheet -->
+  <sc-if value="{{hasSheet}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,.32)"></div>
+    <div role="dialog" aria-label="{{sheet.title}}" style="position: absolute; left: 0; right: 0; bottom: 0; border-radius: 28px 28px 0 0; background: {{c.ground}}; padding: 8px 16px 34px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px">
+      <span aria-hidden="true" style="align-self: center; width: 36px; height: 5px; border-radius: 999px; background: {{c.hairStrong}}"></span>
+      <div style="display: flex; flex-direction: column; gap: 2px; padding: 0 4px">
+        <span style="font-size: 20px; font-weight: 700">{{sheet.title}}</span>
+        <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">{{sheet.sub}}</span>
+      </div>
+      <sc-if value="{{sheet.hasField}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="sheetField" style="padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{sheet.fieldLabel}}</label>
+          <input id="sheetField" value="{{sheet.fieldValue}}" style="height: 48px; box-sizing: border-box; border-radius: 12px; border: 1.5px solid {{c.accent}}; background: {{c.surface}}; padding: 0 14px; font: inherit; font-size: 17px; color: {{c.ink}}">
+        </div>
+      </sc-if>
+      <div style="background: {{c.surface}}; border-radius: 16px; overflow: hidden">
+        <sc-for list="{{sheet.rows}}" as="r" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; box-sizing: border-box; border-top: {{r.line}}">
+            <sc-if value="{{r.hasCheck}}" hint-placeholder-val="{{ false }}">
+              <span role="checkbox" aria-checked="true" aria-label="{{r.label}}" style="width: 24px; height: 24px; border-radius: 7px; background: {{c.accent}}; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{c.onAccent}}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+            </sc-if>
+            <span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-size: 13px; color: {{c.muted}}">{{r.label}}</span><span style="font-size: 17px; font-weight: 600">{{r.value}}</span></span>
+            <sc-if value="{{r.hasSwitch}}" hint-placeholder-val="{{ false }}">
+              <span role="switch" aria-checked="{{r.switchOn}}" aria-label="{{r.value}}" style="width: 51px; height: 31px; border-radius: 999px; background: {{r.switchBg}}; position: relative"><span style="position: absolute; top: 2px; left: {{r.knob}}px; width: 27px; height: 27px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 2px 4px rgba(0,0,0,.2)"></span></span>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{sheet.note}}</p>
+      <div style="display: flex; gap: 10px">
+        <button style="flex: 1; height: 50px; border-radius: 14px; background: {{c.surface2}}; text-align: center; font-size: 17px; font-weight: 700">{{sheet.secondary}}</button>
+        <button style="flex: 1; height: 50px; border-radius: 14px; background: {{c.accent}}; color: {{c.onAccent}}; text-align: center; font-size: 17px; font-weight: 700">{{sheet.primary}}</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["pots","pot","expense","expenseExact","history","settle","settled","zero","payLink","receipt","receiptRead","recurring","auto"],"default":"pot"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lang":{"editor":"enum","options":["nl","en"],"default":"nl"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const screen = this.props.screen ?? 'pot';
+    const dark = (this.props.theme ?? 'light') === 'dark';
+    const en = (this.props.lang ?? 'nl') === 'en';
+    const L = (nl, e) => (en ? e : nl);
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#2E3331', hairStrong: '#3A3F3D', danger: '#F0917F',
+      glass: 'rgba(44,46,45,.78)', accent: '#2F6BD8', onAccent: '#FFFFFF', accentText: '#8FB4F5', wash: '#16223A', heroBg: '#16223A', heroLabel: '#C9D7F2',
+      paper: '#E9E6DE', paperInk: '#5E6764', toast: '#F1F3F1', toastFg: '#0F1110', toastAction: '#2459BD', ok: '#7FCB9A', switchOff: '#3A3F3D',
+      tiles: { stay: '#3A2F14', food: '#3A2219', groc: '#133230', ride: '#16223A', fun: '#2E2238', home: '#2E2611' }, tileFgs: { stay: '#F2C060', food: '#F0A27F', groc: '#6FD6CD', ride: '#8FB4F5', fun: '#D2A8F0', home: '#F2C060' }
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', muted: '#5E6764', hair: '#DFE2DE', hairStrong: '#C9CDC8', danger: '#A4372C',
+      glass: 'rgba(255,255,255,.78)', accent: '#2F6BD8', onAccent: '#FFFFFF', accentText: '#2459BD', wash: '#E1EAFB', heroBg: '#E1EAFB', heroLabel: '#2B4A80',
+      paper: '#FFFFFF', paperInk: '#5E6764', toast: '#1A1F1D', toastFg: '#FFFFFF', toastAction: '#8FB4F5', ok: '#2E7D4F', switchOff: '#C9CDC8',
+      tiles: { stay: '#FBEBC6', food: '#FBE1D6', groc: '#DDEFEC', ride: '#E1EAFB', fun: '#EFE3FA', home: '#FBEBC6' }, tileFgs: { stay: '#8A5C08', food: '#A4472C', groc: '#0B7C75', ride: '#2459BD', fun: '#6B3FA0', home: '#8A5C08' }
+    };
+    const icons = {
+      stay: 'M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6', food: 'M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 0-3 2.5-3 6h3v12', groc: 'M3 4h2l2.4 11h10.2L20 8H6.2M9 20h.01M17 20h.01',
+      ride: 'M5.5 17.5a3.5 3.5 0 1 0 0-.01M18.5 17.5a3.5 3.5 0 1 0 0-.01M5.5 17.5L9 9h6l3.5 8.5M9 9l3 8.5M14 6h3', fun: 'M12 3l2.6 5.6L20 9.3l-4 4 1 5.7-5-2.8-5 2.8 1-5.7-4-4 5.4-.7z',
+      home: 'M13 2L4 14h7l-1 8 9-12h-7z', clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2', more: 'M5 12h.01M12 12h.01M19 12h.01', plus: 'M12 5v14M5 12h14',
+      pot: 'M4 9h16l-1.5 10a2 2 0 0 1-2 1.7h-9a2 2 0 0 1-2-1.7zM8 9V7a4 4 0 0 1 8 0v2', calc: 'M5 3h14v18H5zM8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01',
+      saved: 'M6 3h12v18l-6-4-6 4z', ok: 'M4 12l5 5L20 6', warn: 'M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+      edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4', person: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0', link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5',
+      repeat: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3', lock: 'M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4'
+    };
+    const t = { back: L('Terug', 'Back'), cancel: L('Annuleer', 'Cancel'), to: L('aan', 'to'), addExpense: L('Uitgave toevoegen', 'Add expense') };
+    const eur = (cents, sign) => {
+      const a = Math.abs(cents); const e = Math.floor(a / 100); const ct = String(a % 100).padStart(2, '0');
+      const grp = String(e).replace(/\B(?=(\d{3})+(?!\d))/g, en ? ',' : '.');
+      const body = en ? '€' + grp + '.' + ct : '€ ' + grp + ',' + ct;
+      if (!sign) return (cents < 0 ? '−' : '') + body;
+      return (cents > 0 ? '+' : cents < 0 ? '−' : '') + body;
+    };
+    const line = (i) => (i === 0 ? '0' : '0.5px solid ' + c.hair);
+
+    // ---- Pot maths: the same rules the build gets (rounding cents to the payer, fewest transfers) ----
+    const people = [
+      { id: 'anne', name: 'Anne' }, { id: 'bram', name: L('Bram (jij)', 'Bram (you)'), short: 'Bram', me: true },
+      { id: 'sam', name: 'Sam' }, { id: 'noor', name: 'Noor', guest: true }
+    ];
+    const nameOf = (id) => { const p = people.find((x) => x.id === id); return p.short ?? p.name; };
+    const split = (amount, payer, mode, parts) => {
+      const out = {};
+      if (mode === 'exact') { Object.assign(out, parts); return out; }
+      const weights = mode === 'equal' ? Object.fromEntries(parts.map((p) => [p, 1])) : parts;
+      const total = Object.values(weights).reduce((s, w) => s + w, 0);
+      let given = 0;
+      for (const [id, w] of Object.entries(weights)) { out[id] = Math.floor((amount * w) / total); given += out[id]; }
+      out[payer] = (out[payer] ?? 0) + (amount - given);
+      return out;
+    };
+    const texel = [
+      { id: 'e1', title: L('Huisje, 3 nachten', 'Cottage, 3 nights'), cat: 'stay', payer: 'anne', amount: 48000, mode: 'equal', parts: ['anne', 'bram', 'sam', 'noor'], date: L('vr 13 nov', 'Fri 13 Nov') },
+      { id: 'e2', title: L('Boodschappen AH', 'Groceries AH'), cat: 'groc', payer: 'bram', amount: 12640, mode: 'shares', parts: { anne: 2, bram: 1, sam: 1 }, date: L('za 14 nov', 'Sat 14 Nov') },
+      { id: 'e3', title: L('Fietshuur', 'Bike hire'), cat: 'ride', payer: 'sam', amount: 9600, mode: 'exact', parts: { anne: 3600, bram: 2400, sam: 2400, noor: 1200 }, date: L('za 14 nov', 'Sat 14 Nov') },
+      { id: 'e4', title: L('Diner Paal 17', 'Dinner Paal 17'), cat: 'food', payer: 'noor', amount: 18400, mode: 'equal', parts: ['anne', 'bram', 'sam', 'noor'], date: L('zo 15 nov', 'Sun 15 Nov') }
+    ];
+    const balancesOf = (expenses, settlements = []) => {
+      const bal = Object.fromEntries(people.map((p) => [p.id, 0]));
+      for (const e of expenses) { bal[e.payer] += e.amount; const owed = split(e.amount, e.payer, e.mode, e.parts); for (const [id, v] of Object.entries(owed)) bal[id] -= v; }
+      for (const s of settlements) { bal[s.from] += s.amount; bal[s.to] -= s.amount; }
+      return bal;
+    };
+    const fewest = (bal) => {
+      const debt = Object.entries(bal).filter(([, v]) => v < 0).map(([id, v]) => ({ id, v: -v })).sort((a, b) => b.v - a.v);
+      const cred = Object.entries(bal).filter(([, v]) => v > 0).map(([id, v]) => ({ id, v })).sort((a, b) => b.v - a.v);
+      const out = [];
+      while (debt.length && cred.length) {
+        const d = debt[0], k = cred[0], amt = Math.min(d.v, k.v);
+        out.push({ from: d.id, to: k.id, amount: amt }); d.v -= amt; k.v -= amt;
+        if (!d.v) debt.shift(); if (!k.v) cred.shift();
+        debt.sort((a, b) => b.v - a.v); cred.sort((a, b) => b.v - a.v);
+      }
+      return out;
+    };
+    const modeText = (e) => e.mode === 'equal' ? L('gelijk over ' + e.parts.length, 'equally over ' + e.parts.length)
+      : e.mode === 'shares' ? L('naar delen ', 'by shares ') + Object.values(e.parts).join(':') : L('exacte bedragen', 'exact amounts');
+    const balanceBlock = (bal, foot) => {
+      const max = Math.max(...Object.values(bal).map(Math.abs), 1);
+      return { isBalances: true, head: L('SALDO PER PERSOON', 'BALANCE PER PERSON'), hasFoot: !!foot, foot: foot ?? '', rows: people.map((p, i) => {
+        const v = bal[p.id]; const w = (Math.abs(v) / max) * 50;
+        return { name: p.short ?? p.name, hasTag: !!(p.guest || p.me), tag: p.guest ? L('gast', 'guest') : L('jij', 'you'), amount: eur(v, true), color: v > 0 ? c.accentText : v < 0 ? c.danger : c.muted,
+          barLeft: v >= 0 ? '50%' : (50 - w) + '%', barW: w + '%', barColor: v >= 0 ? c.accent : c.danger, line: line(i) };
+      }) };
+    };
+    const row = (o) => ({ title: o.title, hasSub: !!o.sub, sub: o.sub ?? '', subColor: o.subColor ?? c.muted, weight: o.weight ?? 400, fg: o.fg ?? c.ink, h: o.h ?? 52,
+      hasTile: !!o.tile, tile: o.tile ? c.tiles[o.tile] ?? c.surface2 : '', tileFg: o.tile ? c.tileFgs[o.tile] ?? c.ink : '', icon: o.icon ?? (o.tile ? icons[o.tile] : ''),
+      hasValue: o.value !== undefined, value: o.value ?? '', valueColor: o.valueColor ?? c.ink, valueWeight: o.valueWeight ?? 400, hasBadge: !!o.badge, badge: o.badge ?? '',
+      hasSwitch: o.switch !== undefined, switchOn: o.switch ? 'true' : 'false', switchBg: o.switch ? c.accent : c.switchOff, knob: o.switch ? 22 : 2, chev: !!o.chev });
+    const section = (head, rows, foot) => ({ isSection: true, hasHead: !!head, head: head ?? '', rows: rows.map((r, i) => ({ ...row(r), line: line(i) })), hasFoot: !!foot, foot: foot ?? '' });
+    const expenseRows = (list) => list.map((e) => ({ title: e.title, sub: L(nameOf(e.payer) + ' betaalde · ', nameOf(e.payer) + ' paid · ') + (e.auto ? e.autoText : modeText(e)), tile: e.cat, value: eur(e.amount), valueWeight: 600, h: 64, badge: e.auto ? L('Automatisch', 'Automatic') : undefined }));
+    const hero = (label, cents, sub, btn) => ({ isHero: true, bg: c.heroBg, label, labelColor: c.heroLabel, amount: eur(Math.abs(cents)), amountColor: cents < 0 ? c.danger : c.accentText, sub, hasBtn: !!btn, btn: btn ?? '' });
+    const bb = (o) => ({ label: o.label, hasIcon: !!o.icon, icon: o.icon ?? '', hasText: !!o.text, text: o.text ?? '', bg: o.bg ?? c.glass, fg: o.fg ?? c.ink, pad: o.text ? 14 : 0 });
+    const save = bb({ label: L('Bewaar', 'Save'), text: L('Bewaar', 'Save'), bg: c.accent, fg: c.onAccent });
+    const seg = (head, opts, on) => ({ isSeg: true, head, opts: opts.map((label, i) => ({ label, on: i === on ? 'true' : 'false', bg: i === on ? c.surface : 'transparent', shadow: i === on ? '0 1px 3px rgba(0,0,0,.14)' : 'none' })) });
+    const chips = (on) => ({ isChips: true, head: L('CATEGORIE', 'CATEGORY'), chips: [L('Eten en drinken', 'Food and drink'), L('Boodschappen', 'Groceries'), L('Vervoer', 'Transport'), L('Verblijf', 'Stay'), L('Uitjes', 'Outings'), L('Overig', 'Other')]
+      .map((label, i) => ({ label, on: i === on ? 'true' : 'false', bg: i === on ? c.accent : c.surface, fg: i === on ? c.onAccent : c.ink })) });
+
+    const bal = balancesOf(texel);
+    const total = texel.reduce((s, e) => s + e.amount, 0);
+    let isPush = true, isModal = false, barTitle = '', barButtons = [], hasBig = false, bigTitle = '', blocks = [], hasFab = false, toast = null, sheet = null;
+
+    const expenseEditor = (mode) => {
+      isPush = false; isModal = true; barTitle = L('Uitgave', 'Expense'); barButtons = [save];
+      const e = texel[1];
+      const amountBlock = { isAmount: true, label: L('Bedrag', 'Amount'), value: eur(e.amount) };
+      const details = section(null, [
+        { title: L('Omschrijving', 'Description'), value: e.title, valueColor: c.ink }, { title: L('Datum', 'Date'), value: e.date, valueColor: c.accentText, chev: true },
+        { title: L('Betaald door', 'Paid by'), value: 'Bram (' + L('jij', 'you') + ')', valueColor: c.accentText, chev: true }
+      ]);
+      let splitRows, status, statusColor = c.ok, statusIcon = icons.ok;
+      if (mode === 'exact') {
+        const ex = { anne: 6000, bram: 3200, sam: 3000, noor: 0 };
+        const sum = Object.values(ex).reduce((s, v) => s + v, 0); const left = e.amount - sum;
+        splitRows = people.map((p, i) => ({ name: p.short ?? p.name, hasTag: !!p.guest, tag: L('gast', 'guest'), onStr: ex[p.id] ? 'true' : 'false', ring: ex[p.id] ? c.accent : c.muted, fill: ex[p.id] ? c.accent : 'transparent', fg: ex[p.id] ? c.ink : c.muted,
+          isShares: false, isExact: !!ex[p.id], showAmount: !ex[p.id], amount: ex[p.id] ? eur(ex[p.id]) : '—', amountColor: c.muted, inputRing: p.id === 'sam' ? c.accent : 'transparent', line: line(i), minus: '', plus: '', shares: '' }));
+        status = L('Nog ' + eur(left) + ' te verdelen. Bewaren kan pas als het klopt.', eur(left) + ' still to split. You can save once it adds up.'); statusColor = c.danger; statusIcon = icons.warn;
+      } else {
+        const owed = split(e.amount, e.payer, 'shares', e.parts);
+        splitRows = people.map((p, i) => { const on = !!e.parts[p.id]; return { name: p.short ?? p.name, hasTag: !!p.guest, tag: L('gast', 'guest'), onStr: on ? 'true' : 'false', ring: on ? c.accent : c.muted, fill: on ? c.accent : 'transparent', fg: on ? c.ink : c.muted,
+          isShares: on, isExact: false, showAmount: true, shares: String(e.parts[p.id] ?? 0), minus: L('Minder delen voor ', 'Fewer shares for ') + p.name, plus: L('Meer delen voor ', 'More shares for ') + p.name,
+          amount: on ? eur(owed[p.id]) : '—', amountColor: on ? c.ink : c.muted, inputRing: 'transparent', line: line(i) }; });
+        status = L('Klopt: ' + eur(e.amount) + ' verdeeld over 4 delen. Afrondingscenten gaan naar wie betaalde.', 'Adds up: ' + eur(e.amount) + ' split over 4 shares. Rounding cents go to the payer.');
+      }
+      const splitBlock = { isSplit: true, rows: splitRows, status, statusColor, statusIcon };
+      return { amountBlock, details, splitBlock, segOn: mode === 'exact' ? 2 : 1 };
+    };
+
+    if (screen === 'pots') {
+      isPush = true; hasBig = true; bigTitle = L('Kosten delen', 'Shared costs');
+      barButtons = [bb({ label: L('Nieuwe pot', 'New pot'), icon: icons.plus })];
+      blocks = [
+        section(L('OPEN', 'OPEN'), [
+          { title: L('Weekend Texel', 'Texel weekend'), sub: L('4 personen · 4 uitgaven · ', '4 people · 4 expenses · ') + eur(total), tile: 'ride', icon: icons.pot, value: eur(bal.bram, true), valueColor: c.danger, valueWeight: 600, chev: true, h: 64, weight: 600 },
+          { title: L('Huishouden', 'Household'), sub: L('Anne en jij · 2 automatisch', 'Anne and you · 2 automatic'), tile: 'home', icon: icons.pot, value: eur(4210, true), valueColor: c.accentText, valueWeight: 600, chev: true, h: 64, weight: 600 }
+        ], L('Rechts staat wat jij nog krijgt (+) of betaalt (−).', 'On the right: what you are still owed (+) or owe (−).')),
+        section(L('GESLOTEN', 'CLOSED'), [
+          { title: L('Skiën 2026', 'Skiing 2026'), sub: L('Gesloten op 3 mrt · iedereen op nul', 'Closed on 3 Mar · everyone at zero'), tile: 'fun', icon: icons.lock, value: eur(0), valueColor: c.muted, chev: true, h: 64, fg: c.muted }
+        ]),
+        section(L('SNEL REKENEN', 'QUICK MATHS'), [
+          { title: L('Eenmalig verdelen', 'Split once'), sub: L('Rekenen zonder pot, zoals nu', 'Maths without a pot, as today'), tile: 'ride', icon: icons.calc, chev: true },
+          { title: L('Bewaarde verdelingen', 'Saved splits'), tile: 'ride', icon: icons.saved, value: '2', valueColor: c.muted, chev: true }
+        ])
+      ];
+    } else if (screen === 'pot') {
+      barTitle = L('Weekend Texel', 'Texel weekend');
+      barButtons = [bb({ label: L('Geschiedenis', 'History'), icon: icons.clock }), bb({ label: L('Meer', 'More'), icon: icons.more })];
+      hasFab = true;
+      blocks = [
+        hero(L('Jij betaalt nog', 'You still owe'), bal.bram, L('Totaal ' + eur(total) + ' · 4 uitgaven', 'Total ' + eur(total) + ' · 4 expenses'), L('Afrekenen', 'Settle up')),
+        balanceBlock(bal, L('Saldo = betaald min aandeel. Iedereen in de pot ziet dit live.', 'Balance = paid minus share. Everyone in the pot sees this live.')),
+        section(L('UITGAVEN', 'EXPENSES'), expenseRows(texel.slice().reverse()).map((r, i) => ({ ...r, sub: texel.slice().reverse()[i].date + ' · ' + r.sub })))
+      ];
+    } else if (screen === 'expense' || screen === 'expenseExact') {
+      const ed = expenseEditor(screen === 'expenseExact' ? 'exact' : 'shares');
+      blocks = [ed.amountBlock, ed.details, chips(1), seg(L('VERDELEN', 'SPLIT'), [L('Gelijk', 'Equally'), L('Naar delen', 'By shares'), L('Bedragen', 'Amounts')], ed.segOn), ed.splitBlock];
+    } else if (screen === 'receipt' || screen === 'receiptRead') {
+      const ed = expenseEditor('shares');
+      blocks = [ed.amountBlock, { isReceipt: true, alt: L('Foto van de bon', 'Photo of the receipt'), title: L('Bon', 'Receipt'), sub: L('Toegevoegd · tik om groot te zien', 'Added · tap to view large'), btn: L('Bon lezen', 'Read receipt') }, ed.details, chips(1)];
+      if (screen === 'receiptRead') {
+        sheet = { title: L('Dit staat op de bon', 'This is on the receipt'), sub: L('Kies wat je overneemt. Je kunt alles daarna nog aanpassen.', 'Pick what to use. You can still change everything afterwards.'),
+          hasField: false, fieldLabel: '', fieldValue: '',
+          rows: [
+            { label: L('Bedrag', 'Amount'), value: eur(12640), hasCheck: true }, { label: L('Datum', 'Date'), value: L('za 14 nov 2026', 'Sat 14 Nov 2026'), hasCheck: true },
+            { label: L('Winkel, als omschrijving', 'Shop, as description'), value: 'Albert Heijn Den Burg', hasCheck: true }
+          ].map((r, i) => ({ ...r, hasSwitch: false, switchOn: 'false', switchBg: '', knob: 2, line: line(i) })),
+          note: L('Gelezen met AI: telt als 1 AI-verzoek deze maand (nog 23). Controleer het bedrag voor je bewaart.', 'Read with AI: counts as 1 AI request this month (23 left). Check the amount before you save.'),
+          secondary: L('Zelf invullen', 'Fill in myself'), primary: L('Overnemen', 'Use these') };
+      }
+    } else if (screen === 'history') {
+      barTitle = L('Geschiedenis', 'History');
+      blocks = [section(null, [
+        { title: L('Bram wijzigde Boodschappen AH', 'Bram changed Groceries AH'), sub: L(eur(11820) + ' → ' + eur(12640) + ' · vandaag 09:14', eur(11820) + ' → ' + eur(12640) + ' · today 09:14'), icon: icons.edit, tile: 'ride', h: 64 },
+        { title: L('Noor voegde Diner Paal 17 toe', 'Noor added Dinner Paal 17'), sub: L('via Anne · zo 15 nov 22:40', 'via Anne · Sun 15 Nov 22:40'), icon: icons.plus, tile: 'ride', h: 64 },
+        { title: L('Sam verwijderde Parkeren', 'Sam deleted Parking'), sub: L(eur(1250) + ' · za 14 nov 18:03', eur(1250) + ' · Sat 14 Nov 18:03'), icon: icons.warn, tile: 'food', h: 64 },
+        { title: L('Anne zette Noor erbij als gast', 'Anne added Noor as a guest'), sub: L('vr 13 nov 16:20', 'Fri 13 Nov 16:20'), icon: icons.person, tile: 'ride', h: 64 },
+        { title: L('Anne maakte de pot', 'Anne created the pot'), sub: L('vr 13 nov 16:18', 'Fri 13 Nov 16:18'), icon: icons.pot, tile: 'ride', h: 64 }
+      ], L('Een gast heeft geen account: een Lid voegt namens Noor toe, en de regel noemt wie.', 'A guest has no account: a Member adds on Noor’s behalf, and the line names who.'))];
+    } else if (screen === 'settle' || screen === 'settled' || screen === 'payLink') {
+      barTitle = L('Afrekenen', 'Settle up');
+      const done = screen === 'settled' ? [{ from: 'bram', to: 'anne', amount: 0 }] : [];
+      const plan = fewest(bal);
+      if (done.length) done[0].amount = plan.find((p) => p.from === 'bram').amount;
+      const now = balancesOf(texel, done);
+      const open = fewest(now);
+      const tr = (p, i) => {
+        const mine = p.from === 'bram'; const hasLink = p.to === 'anne';
+        return { from: nameOf(p.from), to: nameOf(p.to), amount: eur(p.amount), fg: c.ink, strike: 'none', line: line(i), hasActions: true,
+          hasSub: mine || !hasLink, sub: hasLink ? L('Anne heeft een Tikkie-link', 'Anne has a Tikkie link') : L('Noor heeft nog geen betaallink', 'Noor has no payment link yet'),
+          hasPay: mine && hasLink, pay: L('Betaal', 'Pay'), paid: L('Betaald', 'Mark paid') };
+      };
+      blocks = [hero(L('Nog te verrekenen', 'Left to settle'), open.reduce((s, p) => s + p.amount, 0), L(open.length + ' overboekingen en iedereen staat op nul', open.length + ' transfers and everyone is at zero'))];
+      blocks.push({ isTransfers: true, head: L('ZO KOM JE OP NUL', 'HOW TO GET TO ZERO'), rows: open.map(tr), hasFoot: true, foot: L('Zo min mogelijk overboekingen. ‘Betaald’ bewaart een verrekening; die kun je ongedaan maken.', 'As few transfers as possible. ‘Mark paid’ saves a settlement; you can undo it.') });
+      if (done.length) blocks.push({ isTransfers: true, head: L('VERREKEND', 'SETTLED'), hasFoot: false, foot: '', rows: done.map((p, i) => ({ from: nameOf(p.from), to: nameOf(p.to), amount: eur(p.amount), fg: c.muted, strike: 'none', line: line(i), hasActions: false, hasSub: true, sub: L('vandaag 14:31 · door jou', 'today 14:31 · by you'), hasPay: false, pay: '', paid: '' })) });
+      blocks.push(section(L('BETAALLINKS', 'PAYMENT LINKS'), [
+        { title: 'Anne', sub: 'tikkie.me/pay/…4F2A', tile: 'ride', icon: icons.link, chev: true },
+        { title: 'Noor', sub: L('Geen link', 'No link'), tile: 'ride', icon: icons.link, value: L('Toevoegen', 'Add'), valueColor: c.accentText, chev: true }
+      ], L('Betaal opent de link in je bank-app. Gather betaalt zelf niets.', 'Pay opens the link in your bank app. Gather pays nothing itself.')));
+      if (screen === 'settled') toast = { text: L('Bram → Anne ' + eur(done[0].amount) + ' verrekend', 'Bram → Anne ' + eur(done[0].amount) + ' settled'), action: L('Ongedaan maken', 'Undo') };
+      if (screen === 'payLink') sheet = { title: L('Betaallink voor Noor', 'Payment link for Noor'), sub: L('Plak een Tikkie- of betaalverzoek-link. Wie Noor moet betalen, ziet een knop Betaal.', 'Paste a Tikkie or payment-request link. Whoever owes Noor sees a Pay button.'),
+        hasField: true, fieldLabel: L('LINK', 'LINK'), fieldValue: 'https://tikkie.me/pay/Noor/7Hk2',
+        rows: [{ label: L('Waar', 'Where'), value: L('Ook in andere potten', 'Also in other pots'), hasCheck: false, hasSwitch: true, switchOn: 'false', switchBg: c.switchOff, knob: 2, line: '0' }],
+        note: L('Alleen https-links. Zonder schakelaar geldt de link alleen in Weekend Texel; aan = ook in andere potten van Familie Jansen (voor een Lid, niet voor een gast).', 'https links only. Off: the link only applies in Texel weekend; on: also in other pots of Familie Jansen (for a Member, not a guest).'),
+        secondary: L('Annuleer', 'Cancel'), primary: L('Bewaar', 'Save') };
+    } else if (screen === 'zero') {
+      barTitle = L('Weekend Texel', 'Texel weekend');
+      barButtons = [bb({ label: L('Geschiedenis', 'History'), icon: icons.clock }), bb({ label: L('Meer', 'More'), icon: icons.more })];
+      const zero = Object.fromEntries(people.map((p) => [p.id, 0]));
+      blocks = [
+        { isHero: true, bg: c.heroBg, label: L('Iedereen staat op nul', 'Everyone is at zero'), labelColor: c.heroLabel, amount: eur(0), amountColor: c.accentText, sub: L('3 verrekeningen · laatste vandaag 18:02', '3 settlements · last today 18:02'), hasBtn: false, btn: '' },
+        balanceBlock(zero),
+        { isButton: true, label: L('Pot sluiten', 'Close pot'), bg: c.accent, fg: c.onAccent, hasFoot: true, foot: L('Een gesloten pot staat onder Gesloten en kun je altijd heropenen.', 'A closed pot moves to Closed and can always be reopened.') }
+      ];
+    } else if (screen === 'recurring') {
+      barTitle = L('Energie', 'Energy');
+      blocks = [
+        section(null, [
+          { title: L('Bedrag', 'Amount'), value: eur(14800) + L(' per maand', ' a month') }, { title: L('Categorie', 'Category'), value: L('Nutsvoorzieningen', 'Utilities'), chev: true },
+          { title: L('Verdeling', 'Split'), value: 'Anne 50% · Bram 50%', chev: true }
+        ]),
+        section(L('IN EEN POT', 'IN A POT'), [
+          { title: L('Pot', 'Pot'), value: L('Huishouden', 'Household'), valueColor: c.accentText, chev: true },
+          { title: L('Betaald door', 'Paid by'), value: 'Anne', valueColor: c.accentText, chev: true }
+        ], L('Elke maand op de 1e komt er een automatische uitgave van ' + eur(14800) + ' in Huishouden, verdeeld zoals hierboven. Volgende: 1 dec. Ontkoppelen stopt nieuwe uitgaven; eerdere blijven staan.', 'On the 1st of every month an automatic expense of ' + eur(14800) + ' lands in Household, split as above. Next: 1 Dec. Unlinking stops new expenses; earlier ones stay.')),
+        { isButton: true, label: L('Ontkoppelen van Huishouden', 'Unlink from Household'), bg: c.surface, fg: c.danger, hasFoot: false, foot: '' }
+      ];
+    } else if (screen === 'auto') {
+      barTitle = L('Huishouden', 'Household');
+      barButtons = [bb({ label: L('Geschiedenis', 'History'), icon: icons.clock }), bb({ label: L('Meer', 'More'), icon: icons.more })];
+      hasFab = true;
+      const home = [
+        { title: L('Energie · november', 'Energy · November'), cat: 'home', payer: 'anne', amount: 14800, auto: true, autoText: L('50/50 uit vaste last', '50/50 from standing cost') },
+        { title: L('Internet · november', 'Internet · November'), cat: 'home', payer: 'bram', amount: 4500, auto: true, autoText: L('60/40 uit vaste last', '60/40 from standing cost') },
+        { title: L('Boodschappen', 'Groceries'), cat: 'groc', payer: 'bram', amount: 17820, mode: 'equal', parts: ['anne', 'bram'] }
+      ];
+      blocks = [
+        { isHero: true, bg: c.heroBg, label: L('Jij krijgt nog', 'You are owed'), labelColor: c.heroLabel, amount: eur(4210), amountColor: c.accentText, sub: L('Anne en jij · november', 'Anne and you · November'), hasBtn: true, btn: L('Afrekenen', 'Settle up') },
+        section(L('NOVEMBER', 'NOVEMBER'), expenseRows(home), L('Automatisch = geboekt uit een vaste last op de 1e. Aanpassen kan hier; de vaste last blijft zoals hij is.', 'Automatic = posted from a standing cost on the 1st. You can edit it here; the standing cost stays as it is.'))
+      ];
+    }
+    if (!barButtons.length && isPush) barButtons = [];
+    return {
+      c, t, isPush, isModal, barTitle, barButtons, hasBig, bigTitle, blocks, hasFab,
+      hasToast: !!toast, toast: toast ?? { text: '', action: '' },
+      hasSheet: !!sheet, sheet: sheet ?? { title: '', sub: '', hasField: false, fieldLabel: '', fieldValue: '', rows: [], note: '', secondary: '', primary: '' }
+    };
+  }
+}
+</script>
+</body>
+</html>

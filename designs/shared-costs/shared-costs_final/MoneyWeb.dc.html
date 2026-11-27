@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Kosten delen, web</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit}
+a{text-decoration:none;color:inherit}
+svg{flex:none}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; position: relative; overflow: hidden; display: flex; background: {{c.ground}}; color: {{c.ink}}; font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif">
+  <!-- Sidebar -->
+  <nav aria-label="{{t.pots}}" style="width: 256px; flex: none; box-sizing: border-box; padding: 20px 12px; border-right: 1px solid {{c.hair}}; background: {{c.side}}; display: flex; flex-direction: column; gap: 18px">
+    <span style="padding: 0 8px; font-size: 20px; font-weight: 700">{{t.title}}</span>
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="padding: 0 8px 4px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: {{c.muted}}">{{g.head}}</span>
+        <sc-for list="{{g.items}}" as="it" hint-placeholder-count="2">
+          <a href="#" aria-current="{{it.current}}" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 8px; border-radius: 8px; background: {{it.bg}}; font-size: 14px; font-weight: {{it.weight}}; color: {{it.fg}}">
+            <span style="flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{it.label}}</span>
+            <span style="font-size: 13px; font-variant-numeric: tabular-nums; color: {{it.valueColor}}">{{it.value}}</span>
+          </a>
+        </sc-for>
+      </div>
+    </sc-for>
+  </nav>
+
+  <!-- Main -->
+  <main style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+    <header style="height: 72px; flex: none; box-sizing: border-box; padding: 0 28px; border-bottom: 1px solid {{c.hair}}; display: flex; align-items: center; gap: 10px">
+      <div style="flex-grow: 1; display: flex; flex-direction: column">
+        <h1 style="margin: 0; font-size: 22px; font-weight: 700">{{t.pot}}</h1>
+        <span style="font-size: 13px; color: {{c.muted}}">{{t.potSub}}</span>
+      </div>
+      <button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid {{c.hair}}; background: {{c.surface}}; font-size: 14px; font-weight: 600">{{t.history}}</button>
+      <button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid {{c.hair}}; background: {{c.surface}}; font-size: 14px; font-weight: 600">{{t.settle}}</button>
+      <button style="height: 36px; padding: 0 14px; border-radius: 8px; background: {{c.accent}}; color: {{c.onAccent}}; font-size: 14px; font-weight: 700">{{t.add}}</button>
+    </header>
+    <div style="flex-grow: 1; display: flex; gap: 24px; padding: 24px 28px; min-height: 0">
+      <section aria-label="{{t.expenses}}" style="flex-grow: 1; min-width: 0; background: {{c.surface}}; border: 1px solid {{c.hair}}; border-radius: 12px; overflow: hidden; align-self: flex-start">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px">
+          <thead>
+            <tr style="text-align: left; color: {{c.muted}}; font-size: 12px">
+              <th style="padding: 12px 16px; font-weight: 600">{{t.date}}</th><th style="padding: 12px 8px; font-weight: 600">{{t.desc}}</th><th style="padding: 12px 8px; font-weight: 600">{{t.paidBy}}</th><th style="padding: 12px 8px; font-weight: 600">{{t.split}}</th><th style="padding: 12px 16px; font-weight: 600; text-align: right">{{t.amount}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+              <tr style="border-top: 1px solid {{c.hair}}">
+                <td style="padding: 14px 16px; color: {{c.muted}}; white-space: nowrap">{{r.date}}</td>
+                <td style="padding: 14px 8px; font-weight: 600">{{r.title}}<span style="display: block; font-weight: 400; font-size: 12px; color: {{c.muted}}">{{r.cat}}</span></td>
+                <td style="padding: 14px 8px">{{r.payer}}</td>
+                <td style="padding: 14px 8px; color: {{c.muted}}">{{r.mode}}</td>
+                <td style="padding: 14px 16px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{r.amount}}</td>
+              </tr>
+            </sc-for>
+            <tr style="border-top: 1px solid {{c.hair}}; background: {{c.surface2}}">
+              <td colspan="4" style="padding: 12px 16px; font-weight: 600">{{t.total}}</td>
+              <td style="padding: 12px 16px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums">{{totalText}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <aside aria-label="{{t.balances}}" style="width: 340px; flex: none; display: flex; flex-direction: column; gap: 16px">
+        <div style="background: {{c.wash}}; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13px; color: {{c.washLabel}}">{{t.youOwe}}</span>
+          <span style="font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; color: {{c.danger}}">{{meText}}</span>
+        </div>
+        <div style="background: {{c.surface}}; border: 1px solid {{c.hair}}; border-radius: 12px; padding: 8px 16px">
+          <sc-for list="{{bal}}" as="b" hint-placeholder-count="4">
+            <div style="display: grid; grid-template-columns: 80px minmax(0, 1fr) 86px; align-items: center; gap: 10px; height: 44px; border-top: {{b.line}}">
+              <span style="font-size: 14px; font-weight: 600">{{b.name}}</span>
+              <div aria-hidden="true" style="height: 8px; position: relative"><span style="position: absolute; left: 50%; top: -6px; bottom: -6px; width: 1px; background: {{c.hair}}"></span><span style="position: absolute; top: 0; bottom: 0; left: {{b.left}}; width: {{b.w}}; border-radius: 4px; background: {{b.bar}}"></span></div>
+              <span style="text-align: right; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: {{b.color}}">{{b.amount}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin: 0; font-size: 12px; line-height: 17px; color: {{c.muted}}">{{t.balanceNote}}</p>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Settle dialog -->
+  <sc-if value="{{showSettle}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,.36)"></div>
+    <div role="dialog" aria-label="{{t.settle}}" style="position: absolute; left: 50%; top: 110px; width: 520px; margin-left: -260px; background: {{c.surface}}; border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.3); padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 20px; font-weight: 700">{{t.settle}}</span>
+        <span style="font-size: 14px; color: {{c.muted}}">{{t.settleSub}}</span>
+      </div>
+      <div style="border: 1px solid {{c.hair}}; border-radius: 12px; overflow: hidden">
+        <sc-for list="{{transfers}}" as="x" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 8px 14px; border-top: {{x.line}}">
+            <span style="flex-grow: 1; font-size: 15px; font-weight: 600">{{x.text}}<span style="display: block; font-size: 12px; font-weight: 400; color: {{c.muted}}">{{x.sub}}</span></span>
+            <span style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{x.amount}}</span>
+            <sc-if value="{{x.hasPay}}" hint-placeholder-val="{{ false }}"><a href="#" style="height: 34px; padding: 0 12px; border-radius: 8px; background: {{c.accent}}; color: {{c.onAccent}}; font-size: 13px; font-weight: 700; display: flex; align-items: center">{{t.pay}}</a></sc-if>
+            <button style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid {{c.hair}}; font-size: 13px; font-weight: 600">{{t.markPaid}}</button>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin: 0; font-size: 12px; line-height: 17px; color: {{c.muted}}">{{t.settleNote}}</p>
+      <div style="display: flex; justify-content: flex-end"><button style="height: 36px; padding: 0 16px; border-radius: 8px; background: {{c.surface2}}; font-size: 14px; font-weight: 600">{{t.close}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["pot","settle"],"default":"pot"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lang":{"editor":"enum","options":["nl","en"],"default":"nl"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const screen = this.props.screen ?? 'pot';
+    const dark = (this.props.theme ?? 'light') === 'dark';
+    const en = (this.props.lang ?? 'nl') === 'en';
+    const L = (nl, e) => (en ? e : nl);
+    const c = dark
+      ? { ground: '#0F1110', side: '#151817', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#2E3331', danger: '#F0917F', accent: '#2F6BD8', onAccent: '#FFFFFF', accentText: '#8FB4F5', wash: '#16223A', washLabel: '#C9D7F2', sel: '#16223A' }
+      : { ground: '#F2F3F1', side: '#F7F8F6', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', muted: '#5E6764', hair: '#DFE2DE', danger: '#A4372C', accent: '#2F6BD8', onAccent: '#FFFFFF', accentText: '#2459BD', wash: '#E1EAFB', washLabel: '#2B4A80', sel: '#E1EAFB' };
+    const eur = (cents, sign) => {
+      const a = Math.abs(cents); const e = Math.floor(a / 100); const ct = String(a % 100).padStart(2, '0');
+      const grp = String(e).replace(/\B(?=(\d{3})+(?!\d))/g, en ? ',' : '.');
+      const body = en ? '€' + grp + '.' + ct : '€ ' + grp + ',' + ct;
+      return (sign ? (cents > 0 ? '+' : cents < 0 ? '−' : '') : cents < 0 ? '−' : '') + body;
+    };
+    const people = ['Anne', 'Bram', 'Sam', 'Noor'];
+    const balances = { Anne: 21480, Bram: -9520, Sam: -12560, Noor: 600 };
+    const max = 21480;
+    const bal = people.map((p, i) => { const v = balances[p]; const w = (Math.abs(v) / max) * 50; return { name: p === 'Bram' ? L('Bram (jij)', 'Bram (you)') : p === 'Noor' ? L('Noor (gast)', 'Noor (guest)') : p, amount: eur(v, true), color: v > 0 ? c.accentText : c.danger, left: v >= 0 ? '50%' : (50 - w) + '%', w: w + '%', bar: v >= 0 ? c.accent : c.danger, line: i ? '1px solid ' + c.hair : '0' }; });
+    const rows = [
+      { date: L('zo 15 nov', 'Sun 15 Nov'), title: L('Diner Paal 17', 'Dinner Paal 17'), cat: L('Eten en drinken', 'Food and drink'), payer: L('Noor (gast)', 'Noor (guest)'), mode: L('Gelijk over 4', 'Equally over 4'), amount: eur(18400) },
+      { date: L('za 14 nov', 'Sat 14 Nov'), title: L('Fietshuur', 'Bike hire'), cat: L('Vervoer', 'Transport'), payer: 'Sam', mode: L('Exacte bedragen', 'Exact amounts'), amount: eur(9600) },
+      { date: L('za 14 nov', 'Sat 14 Nov'), title: L('Boodschappen AH', 'Groceries AH'), cat: L('Boodschappen · bon', 'Groceries · receipt'), payer: 'Bram', mode: L('Naar delen 2:1:1', 'By shares 2:1:1'), amount: eur(12640) },
+      { date: L('vr 13 nov', 'Fri 13 Nov'), title: L('Huisje, 3 nachten', 'Cottage, 3 nights'), cat: L('Verblijf', 'Stay'), payer: 'Anne', mode: L('Gelijk over 4', 'Equally over 4'), amount: eur(48000) }
+    ];
+    const item = (label, value, o = {}) => ({ label, value, current: o.cur ? 'page' : 'false', bg: o.cur ? c.sel : 'transparent', fg: o.muted ? c.muted : c.ink, weight: o.cur ? 700 : 500, valueColor: o.vc ?? c.muted });
+    const groups = [
+      { head: L('OPEN', 'OPEN'), items: [item(L('Weekend Texel', 'Texel weekend'), eur(-9520, true), { cur: true, vc: c.danger }), item(L('Huishouden', 'Household'), eur(4210, true), { vc: c.accentText })] },
+      { head: L('GESLOTEN', 'CLOSED'), items: [item(L('Skiën 2026', 'Skiing 2026'), eur(0), { muted: true })] },
+      { head: L('SNEL REKENEN', 'QUICK MATHS'), items: [item(L('Eenmalig verdelen', 'Split once'), ''), item(L('Bewaarde verdelingen', 'Saved splits'), '2')] }
+    ];
+    const transfers = [
+      { text: 'Sam → Anne', sub: L('Anne heeft een Tikkie-link', 'Anne has a Tikkie link'), amount: eur(12560), hasPay: false },
+      { text: L('Bram (jij) → Anne', 'Bram (you) → Anne'), sub: L('Betaal opent de Tikkie-link', 'Pay opens the Tikkie link'), amount: eur(8920), hasPay: true },
+      { text: L('Bram (jij) → Noor', 'Bram (you) → Noor'), sub: L('Noor heeft nog geen betaallink', 'Noor has no payment link yet'), amount: eur(600), hasPay: false }
+    ].map((x, i) => ({ ...x, line: i ? '1px solid ' + c.hair : '0' }));
+    const t = {
+      title: L('Kosten delen', 'Shared costs'), pots: L('Potten', 'Pots'), pot: L('Weekend Texel', 'Texel weekend'), potSub: L('Anne, Bram (jij), Sam, Noor (gast) · 4 uitgaven', 'Anne, Bram (you), Sam, Noor (guest) · 4 expenses'),
+      history: L('Geschiedenis', 'History'), settle: L('Afrekenen', 'Settle up'), add: L('+ Uitgave', '+ Expense'), expenses: L('Uitgaven', 'Expenses'), balances: L('Saldo', 'Balances'),
+      date: L('DATUM', 'DATE'), desc: L('OMSCHRIJVING', 'DESCRIPTION'), paidBy: L('BETAALD DOOR', 'PAID BY'), split: L('VERDELING', 'SPLIT'), amount: L('BEDRAG', 'AMOUNT'), total: L('Totaal', 'Total'),
+      youOwe: L('Jij betaalt nog', 'You still owe'), balanceNote: L('Saldo = betaald min aandeel. Iedereen in de pot ziet dit live.', 'Balance = paid minus share. Everyone in the pot sees this live.'),
+      settleSub: L('3 overboekingen en iedereen staat op nul.', '3 transfers and everyone is at zero.'), pay: L('Betaal', 'Pay'), markPaid: L('Betaald', 'Mark paid'), close: L('Sluiten', 'Close'),
+      settleNote: L('Zo min mogelijk overboekingen. ‘Betaald’ bewaart een verrekening die je ongedaan kunt maken. Gather betaalt zelf niets.', 'As few transfers as possible. ‘Mark paid’ saves a settlement you can undo. Gather pays nothing itself.')
+    };
+    return { c, t, groups, rows, bal, totalText: eur(88640), meText: eur(9520), showSettle: screen === 'settle', transfers };
+  }
+}
+</script>
+</body>
+</html>
