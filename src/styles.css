@@ -88,6 +88,11 @@
   --on-accent: var(--on-ink);
   --accent-text: var(--ink);
 
+  /* Solar in Energy's charts and legends, as on the phone
+     (`energySolarColour`): the Home group's text in light, its fill in dark,
+     where the fill still reaches 3:1 on ground and surface (APP-742). */
+  --energy-solar: var(--home-text);
+
   /* The edge of an unfocused field or control on `surface`, `surface-2` or
      `ground`: 3:1 (WCAG 1.4.11), which `--hair` (about 1.3:1) is not. A
      focused field takes `ink`. */
@@ -114,6 +119,7 @@
   --home-on: #2b1f06;
   --home-text: #f2c060;
   --home-wash: #2e2611;
+  --energy-solar: var(--home-fill);
   --tasting-fill: #b4487f;
   --tasting-on: #ffffff;
   --tasting-text: #e59ac0;
@@ -145,6 +151,7 @@
     --home-on: #2b1f06;
     --home-text: #f2c060;
     --home-wash: #2e2611;
+    --energy-solar: var(--home-fill);
     --tasting-fill: #b4487f;
     --tasting-on: #ffffff;
     --tasting-text: #e59ac0;

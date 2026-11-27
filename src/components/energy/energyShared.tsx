@@ -29,9 +29,9 @@ import type { Crumb } from '../app/Breadcrumbs'
  * (`designs/energy/README.md` section 11).
  *
  * Colours are the web palette's own tokens: ink is `--ink`, last year is
- * `--muted`, the baseline is `--hair`, and solar takes
- * `--home-text`, Energy's group colour at the strength a graphic needs on
- * `surface` (3:1); `--home-fill` is too light for that in the light scheme.
+ * `--muted`, the baseline is `--hair`, and solar takes `--energy-solar`,
+ * Energy's group colour as the phone draws it: the Home text in light (the
+ * fill is too faint on `surface` there) and the Home fill in dark (APP-742).
  */
 
 /**
@@ -396,7 +396,7 @@ function Legend({
 }) {
   const swatch = {
     ink: 'bg-[var(--ink)]',
-    solar: 'bg-[var(--home-text)]',
+    solar: 'bg-[var(--energy-solar)]',
     muted: 'bg-[var(--muted)]',
     future: FUTURE_BAR,
     outline: 'border-2 border-[var(--ink)]',
@@ -491,7 +491,7 @@ export function MirrorBars({
           {slots.map((slot) => (
             <span
               key={slot.key}
-              className="min-w-0 flex-1 rounded-b-[3px] bg-[var(--home-text)]"
+              className="min-w-0 flex-1 rounded-b-[3px] bg-[var(--energy-solar)]"
               style={{
                 height: slot.future
                   ? 0

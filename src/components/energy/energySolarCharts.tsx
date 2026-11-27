@@ -32,7 +32,7 @@ export type EnergyAssetRow = {
 
 const STRIP = {
   charging: 'bg-[var(--ink)]',
-  discharging: 'bg-[var(--home-text)]',
+  discharging: 'bg-[var(--energy-solar)]',
   idle: 'bg-[var(--surface-2)]',
   future: FUTURE_BAR,
   unknown: '',
@@ -201,7 +201,7 @@ export function SolarBars({
           <span
             key={bar.key}
             data-bar={bar.future ? 'future' : 'up'}
-            className={`min-w-0 flex-1 rounded-t-[3px] ${bar.future ? FUTURE_BAR : 'bg-[var(--home-text)]'}`}
+            className={`min-w-0 flex-1 rounded-t-[3px] ${bar.future ? FUTURE_BAR : 'bg-[var(--energy-solar)]'}`}
             style={{ height: bar.future ? 4 : scale(bar.height) }}
           />
         ))}
