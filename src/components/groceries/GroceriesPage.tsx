@@ -1,4 +1,3 @@
-import { todayIn } from '@gather/core/civil-date'
 import {
   formatGroceryAmount,
   isDefaultAisleOrder,
@@ -34,6 +33,7 @@ import type { Doc, Id } from '../../../convex/_generated/dataModel'
 import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, plural, useI18n } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
+import { useDayIn } from '../../lib/useDayIn'
 import { buttonClass } from '../app/buttons'
 import { CompletedSection } from '../app/CompletedSection'
 import { useConfirmAction } from '../app/ConfirmAction'
@@ -98,7 +98,8 @@ export function GroceriesPage({
   const errorText = useErrorMessage()
 
   const allLists = useQuery(api.taskLists.list, { groupSlug })
-  const openCounts = useQuery(api.tasks.openCounts, { groupSlug })
+  const today = useDayIn(group.timeZone)
+  const openCounts = useQuery(api.tasks.openCounts, { groupSlug, today })
   const staples = useQuery(api.groceryStaples.list, { groupSlug })
 
   const toggleDone = useMutation(api.tasks.toggleDone)
@@ -170,8 +171,7 @@ export function GroceriesPage({
   }, [openCounts])
 
   // A repeating item checked off waits off the list for its next due date
-  // (APP-520); the hour clock moves the day on while the page is open.
-  const today = todayIn(group.timeZone, hour)
+  // (APP-520); `today` moves on at the Group's midnight while the page is open.
   const openTasks = useMemo(
     () => (tasks ?? []).filter((task) => onShoppingList(task, today)),
     [tasks, today],

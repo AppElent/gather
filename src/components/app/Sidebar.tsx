@@ -6,6 +6,7 @@ import { api } from '../../../convex/_generated/api'
 import type { NavItem } from '../../lib/appNavigation'
 import { useMessages } from '../../lib/i18n'
 import { linkTo, ROUTES } from '../../lib/links'
+import { useDayIn } from '../../lib/useDayIn'
 import { AccountMenu } from './AccountMenu'
 import { AddMenu } from './AddMenu'
 import { GroupSwitcher } from './GroupSwitcher'
@@ -186,9 +187,10 @@ function Row({
 function useOpenCounts(items: readonly NavItem[]): Record<string, number> {
   const { current } = useCurrentGroup()
   const tasksPinned = items.some((item) => item.id === 'tasks')
+  const today = useDayIn(current?.timeZone)
   const tasks = useQuery(
     api.tasks.openCounts,
-    current && tasksPinned ? { groupSlug: current.slug } : 'skip',
+    current && tasksPinned ? { groupSlug: current.slug, today } : 'skip',
   )
   if (!tasks) return {}
   return { tasks: tasks.reduce((sum, list) => sum + list.open, 0) }

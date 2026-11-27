@@ -1,3 +1,4 @@
+import { addDays } from '@gather/core/civil-date'
 import { describe, expect, test } from 'vitest'
 import {
   alice,
@@ -154,6 +155,38 @@ describe('tasks.openCounts', () => {
     expect(await count(groceries)).toBe(1)
     // A repeating chore on a list of tasks still counts as open.
     expect(await count(house)).toBe(4)
+  })
+
+  test("the caller's day decides, so a waiting item comes back at midnight (APP-991)", async () => {
+    const { t, groceries } = await seed()
+    const as = t.withIdentity(alice)
+    const today = new Date().toISOString().slice(0, 10)
+    const tomorrow = addDays(today, 1)
+    await t.run(async (ctx) => {
+      const createdBy = (await ctx.db.query('users').first())!._id
+      await ctx.db.insert('tasks', {
+        listId: groceries,
+        title: 'Coffee',
+        done: false,
+        createdBy,
+        order: 100,
+        dueDate: tomorrow,
+        repeat: { mode: 'afterDone', every: 1, unit: 'week' },
+      })
+    })
+    const count = async (day?: string) =>
+      (
+        await as.query(api.tasks.openCounts, {
+          groupSlug: JANSEN,
+          ...(day === undefined ? {} : { today: day }),
+        })
+      ).find((row) => row.listId === groceries)?.open
+    // Coffee waits for tomorrow: only Milk.
+    expect(await count(today)).toBe(1)
+    // The same rows, asked with tomorrow's day: Coffee is back.
+    expect(await count(tomorrow)).toBe(2)
+    // A day that is nobody's today is ignored for the Group's own.
+    expect(await count('not-a-day')).toBe(await count())
   })
 
   test('a packing list says how much is packed', async () => {

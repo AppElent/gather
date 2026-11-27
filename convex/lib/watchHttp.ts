@@ -94,7 +94,10 @@ export const read = (module: 'modules' | 'groceries' | 'today' | 'cards') =>
         })),
       })
     }
-    const answer = await ctx.runQuery(internal.watchReads[module], { keyHash })
+    const answer = await ctx.runQuery(internal.watchReads[module], {
+      keyHash,
+      now: Date.now(),
+    })
     return answer.ok ? json(200, answer.data) : groupRefused(answer.reason)
   })
 
