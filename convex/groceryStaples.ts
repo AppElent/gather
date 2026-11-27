@@ -118,8 +118,9 @@ export const add = mutation({
 
 /**
  * Running low, or back in stock. Running low puts the staple on the Group's
- * grocery list (once, bringing a waiting repeating copy forward); back in stock leaves the list alone, since someone may
- * be buying it right now. Answers whether it is on the list.
+ * grocery list (once, bringing a waiting repeating copy forward); back in
+ * stock leaves the list alone, since someone may be buying it right now.
+ * Answers whether it is on the list.
  */
 export const setLow = mutation({
   args: { groupSlug: v.string(), id: v.id('groceryStaples'), low: v.boolean() },
