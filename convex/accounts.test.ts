@@ -625,7 +625,12 @@ describe('deleting a Group from the app', () => {
     await signUp(t, asAlice)
     const alice = await userId(t, asAlice)
     const home = await soloGroup(t, alice)
-    const other = await t.run(async (ctx) => {
+    const { other, third } = await t.run(async (ctx) => {
+      const third = await seedGroup(ctx, {
+        name: 'Third',
+        slug: 'third',
+        inviteCode: 'jkl012',
+      })
       const groupId = await seedGroup(ctx, {
         name: 'Book club',
         slug: 'book-club',
@@ -634,7 +639,7 @@ describe('deleting a Group from the app', () => {
       await seedMember(ctx, groupId, alice, 'admin')
       const recipeId = await ctx.db.insert('recipes', {
         groupId,
-        sharedGroupIds: [home],
+        sharedGroupIds: [home, third],
         createdByUserId: alice,
         title: 'Borrowed',
         ingredients: [],
@@ -642,7 +647,8 @@ describe('deleting a Group from the app', () => {
         tags: [],
       })
       await ctx.db.insert('recipeShares', { recipeId, groupId: home })
-      return groupId
+      await ctx.db.insert('recipeShares', { recipeId, groupId: third })
+      return { other: groupId, third }
     })
 
     await t
@@ -654,7 +660,11 @@ describe('deleting a Group from the app', () => {
       async (ctx) => (await ctx.db.query('recipes').collect())[0],
     )
     expect(recipe?.groupId).toBe(other)
-    expect(recipe?.sharedGroupIds).toEqual([])
+    expect(recipe?.sharedGroupIds).toEqual([third])
+    const shares = await t.run(
+      async (ctx) => await ctx.db.query('recipeShares').collect(),
+    )
+    expect(shares.map((share) => share.groupId)).toEqual([third])
   })
 })
 
