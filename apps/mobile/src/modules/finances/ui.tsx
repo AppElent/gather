@@ -464,7 +464,7 @@ export function Field({
   suffix?: string
 }) {
   const tokens = useMoneyTokens()
-  const { inputAccessoryViewID, accessory } = useKeyboardDoneBar({
+  const { inputAccessoryViewID, accessory, inputKey } = useKeyboardDoneBar({
     keyboardType,
   })
   return (
@@ -476,6 +476,7 @@ export function Field({
         ) : null}
         {accessory}
         <TextInput
+          key={inputKey}
           accessibilityLabel={label}
           value={value}
           onChangeText={onChangeText}

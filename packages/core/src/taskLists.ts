@@ -248,25 +248,63 @@ export const ASSIGNEE_SUPPORT = {
  * `tasks.assignee.unavailable`.
  *
  * - `readOnly`: the provider could hold an assignee but Gather cannot write
- *   to this list (every linked list today: ADR-0021 has no provider write
- *   path yet).
+ *   to this list, or could not read who is in it.
  * - `notShared`: a Todoist project nobody else is in has no one to give a
  *   task to.
+ * - `noMembers`: no Member was recognised among the project's people.
  * - `unsupported`: the provider has no responsible person at all.
  */
-export type AssigneeUnavailable = 'readOnly' | 'notShared' | 'unsupported'
+export type AssigneeUnavailable =
+  | 'readOnly'
+  | 'notShared'
+  | 'noMembers'
+  | 'unsupported'
+
+/** Whom a linked list's tasks can be given to (APP-405). */
+export interface Assignable {
+  /** Whether the provider source is shared. */
+  shared: boolean
+  /** The Members who are in it. */
+  memberIds: readonly string[]
+}
 
 export function assigneeUnavailable(list: {
   provider: TaskProviderId
   writable: boolean
-  /** Whether the provider source is shared; only Todoist reads it. */
-  shared?: boolean
+  assignable?: Assignable
 }): AssigneeUnavailable | null {
   const support = ASSIGNEE_SUPPORT[list.provider]
   if (support === 'none') return 'unsupported'
   if (!list.writable) return 'readOnly'
-  if (support === 'sharedProjects' && !list.shared) return 'notShared'
+  if (support === 'sharedProjects') {
+    if (!list.assignable) return 'readOnly'
+    if (!list.assignable.shared) return 'notShared'
+    if (list.assignable.memberIds.length === 0) return 'noMembers'
+  }
   return null
+}
+
+/** The Members a list's tasks can be given to. */
+export function assignablePeople<T extends { id: string }>(
+  list: { provider: TaskProviderId; assignable?: Assignable },
+  people: readonly T[],
+): readonly T[] {
+  return list.provider === 'local'
+    ? people
+    : people.filter((each) => list.assignable?.memberIds.includes(each.id))
+}
+
+/**
+ * Which choice of a Who menu is the task's: a Member, `null` for nobody, or
+ * `undefined` for someone who is no Member, which none of the choices is.
+ */
+export function chosenAssignee(task: {
+  assigneeId?: string
+  assigneeName?: string
+}): string | null | undefined {
+  return (
+    task.assigneeId ?? (task.assigneeName === undefined ? null : undefined)
+  )
 }
 
 /**

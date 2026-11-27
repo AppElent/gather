@@ -3,8 +3,9 @@
  * (`/open-notification`, from `PushTapLinks`).
  *
  * It is a route only while the handoff runs. After validating the link
- * against the live membership answer, it replaces itself with a tabbed
- * destination; the Group then lives solely in `GroupProvider` (ADR-0031).
+ * against the live membership answer, it goes back to the tabs underneath, at
+ * the record: replacing itself would stack a second tabs layout (APP-775). The
+ * Group then lives solely in `GroupProvider` (ADR-0031).
  */
 import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -26,14 +27,14 @@ export function GroupLinkHandoff() {
     // was already in.
     if (!target) {
       clearPendingGroupLink()
-      router.replace('/home')
+      router.dismissTo('/home')
       return
     }
     openInGroup(target.groupId, () => {
       clearPendingGroupLink()
       // With its stack's anchor beneath it (the All index), so a record
       // opened by a link or a push tap has a back button (APP-454).
-      router.replace(target.href, { withAnchor: true })
+      router.dismissTo(target.href, { withAnchor: true })
     })
   }, [target, openInGroup])
 

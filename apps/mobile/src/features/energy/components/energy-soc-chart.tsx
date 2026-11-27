@@ -2,37 +2,40 @@
  * The battery's state of charge over a day (designs/energy, section 11): a
  * 2.5 pt `ink` line over a light Home `fill` area, with gridlines at 0, 50
  * and 100 %. Hours without a figure break nothing: the line joins the hours
- * that have one. One VoiceOver element with the range as its label.
+ * that have one. Under it, a strip of one cell per hour says what the battery did
+ * (designs/energy 1.4). One VoiceOver element with the answer as its label.
  */
+import type { EnergyBatteryStrip } from '@gather/core/energy-present'
 import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Line, Polygon, Polyline } from 'react-native-svg'
 
 import { SPACE, TABULAR, TYPE, useTokens } from '../../../theme/tokens'
-import { EnergyChartTicks } from './energy-mirror-chart'
+import { EnergyChartTicks, energySolarColour } from './energy-mirror-chart'
 
 const WIDTH = 240
 const HEIGHT = 100
 
 export function EnergySocChart({
   percents,
+  strip = [],
   label,
   ticks,
   testID,
 }: {
   /** One per hour of the day; null where the hour has no figure. */
   percents: readonly (number | null)[]
+  strip?: EnergyBatteryStrip['cells']
   label: string
   ticks: readonly string[]
   testID?: string
 }) {
   const tokens = useTokens()
   const home = tokens.tintOf('home')
-  const step = percents.length > 1 ? WIDTH / (percents.length - 1) : WIDTH
   const points = percents
     .map((percent, index) =>
       percent === null
         ? null
-        : { x: index * step, y: HEIGHT - (Math.min(100, Math.max(0, percent)) / 100) * HEIGHT },
+        : { x: ((index + 0.5) / percents.length) * WIDTH, y: HEIGHT - (Math.min(100, Math.max(0, percent)) / 100) * HEIGHT },
     )
     .filter((point): point is { x: number; y: number } => point !== null)
   const line = points.map((point) => `${point.x},${point.y}`).join(' ')
@@ -95,6 +98,35 @@ export function EnergySocChart({
               />
             ) : null}
           </Svg>
+          {strip.length > 0 ? (
+            <View style={styles.strip}>
+              {strip.map((cell) => (
+                <View
+                  key={cell.key}
+                  testID={`energy-strip-${cell.mode}`}
+                  style={[
+                    styles.cell,
+                    cell.mode === 'future'
+                      ? {
+                          borderWidth: 1,
+                          borderStyle: 'dashed',
+                          borderColor: tokens.hairStrong,
+                        }
+                      : {
+                          backgroundColor:
+                            cell.mode === 'charging'
+                              ? tokens.ink
+                              : cell.mode === 'discharging'
+                                ? energySolarColour(tokens)
+                                : cell.mode === 'idle'
+                                  ? tokens.surface2
+                                  : undefined,
+                        },
+                  ]}
+                />
+              ))}
+            </View>
+          ) : null}
           <EnergyChartTicks ticks={ticks} />
         </View>
       </View>
@@ -106,4 +138,6 @@ const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', gap: SPACE[2] },
   axis: { height: HEIGHT, justifyContent: 'space-between', alignItems: 'flex-end' },
   plot: { flex: 1 },
+  strip: { flexDirection: 'row', gap: 2, marginTop: SPACE[1] },
+  cell: { flex: 1, height: 8, borderRadius: 2 },
 })

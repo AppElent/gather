@@ -77,6 +77,10 @@ async function seed() {
       steps: [],
       tags: [],
     })
+    await ctx.db.insert('recipeShares', {
+      recipeId: sharedWithClub,
+      groupId: cookingClub,
+    })
     const clubOnly = await ctx.db.insert('recipes', {
       groupId: cookingClub,
       sharedGroupIds: [],
@@ -178,6 +182,20 @@ describe("a Group's collection is the Group's, not the caller's", () => {
 })
 
 describe('recipes.list', () => {
+  test('reads shared-in recipes through their share rows, and a row that outlived its Share shows nothing', async () => {
+    const { t, ids } = await seed()
+    await t.run(async (ctx) => {
+      await ctx.db.insert('recipeShares', {
+        recipeId: ids.roast,
+        groupId: ids.cookingClub,
+      })
+    })
+    const club = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+    expect(titles(club)).toEqual(['Club sourdough', 'Pasta for a crowd'])
+  })
+
   test('every Member of a Group sees the same recipes', async () => {
     const { t } = await seed()
 

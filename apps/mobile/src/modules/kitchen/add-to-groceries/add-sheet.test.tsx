@@ -5,9 +5,10 @@
  * - Editing an ingredient uses `usePrompt` on iOS and `EditLineModal` on
  *   Android, registered with `openSheets` so a share never blocks (APP-713).
  */
+
+import { weekGroceryLines } from '@gather/core/week-menu-groceries'
 import { act, createElement, type ReactNode, useEffect } from 'react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-
 import {
   closeOpenSheets,
   hasOpenPrompts,
@@ -15,7 +16,6 @@ import {
 } from '../../../components/openSheets'
 import { mount, settle } from '../../../testing/dom'
 import { forgetDrafts } from '../../../ui/composer-drafts'
-import { weekGroceryLines } from '../meal-planner/week-groceries'
 import { AddToGroceriesSheet } from './add-sheet'
 
 type Props = Record<string, unknown> & { children?: ReactNode }
@@ -189,8 +189,8 @@ vi.mock('../../tasks/store', () => ({
 vi.mock('../in-stock/use-in-stock', () => ({
   useInStock: () => (state.realPick ? () => false : []),
 }))
-vi.mock('./pick', async () => {
-  const actual = await vi.importActual<typeof import('./pick')>('./pick')
+vi.mock('@gather/core/grocery-pick', async () => {
+  const actual = await vi.importActual<typeof import('@gather/core/grocery-pick')>('@gather/core/grocery-pick')
   return {
   editedRead: (text: string) =>
     state.realPick

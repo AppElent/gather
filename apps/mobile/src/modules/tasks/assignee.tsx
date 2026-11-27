@@ -10,9 +10,12 @@
 
 import { MenuView } from '@expo/ui/community/menu'
 import { initialsForPeople } from '@gather/core/calendar'
-import type { TaskProviderId } from '@gather/core/domain'
 import { readTaskRefusal } from '@gather/core/refusals'
-import { assigneeUnavailable } from '@gather/core/task-lists'
+import {
+  assignablePeople,
+  assigneeUnavailable,
+  chosenAssignee,
+} from '@gather/core/task-lists'
 import { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
@@ -24,8 +27,10 @@ import { fmt, useI18n } from '../../i18n'
 import { showAlert } from '../../observability/native-presentation'
 import { UI_ICONS } from '../../theme/icons'
 import { SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
+import { providerName } from './providerName'
 import { useTaskActions } from './store'
 import type { Task, TaskList } from './types'
+import { useWriteFailed } from './writeFailed'
 
 export interface TaskPerson {
   id: string
@@ -74,13 +79,6 @@ export function AssigneeCoin({ initial }: { initial: string }) {
   )
 }
 
-/** A brand name, as the provider writes it. Not translated. */
-const PROVIDER_NAMES: Record<TaskProviderId, string> = {
-  local: 'Gather',
-  notion: 'Notion',
-  todoist: 'Todoist',
-}
-
 /**
  * The task screen's Who row: a native menu of the Group's current Members
  * and Nobody, showing the chosen Member's coin and name. On a list whose
@@ -92,9 +90,14 @@ export function AssigneeRow({ task, list }: { task: Task; list?: TaskList }) {
   const words = t.tasks.assignee
   const actions = useTaskActions()
   const { people, byId } = useTaskPeople()
+  const writeFailed = useWriteFailed()
   const unavailable = list ? assigneeUnavailable(list) : 'readOnly'
+  const current = chosenAssignee(task)
   const assignee = task.assigneeId ? byId.get(task.assigneeId) : undefined
-  const value = assignee?.name ?? words.nobody
+  const value =
+    assignee?.name ??
+    // Someone in Todoist who is no Member here.
+    (current === undefined ? task.assigneeName || words.someone : words.nobody)
   const NOBODY = '__nobody__'
   // The card's other rows run edge to edge (the task screen's PropertyRow),
   // so the wrapper, menu or not, carries the line, under any reason too.
@@ -145,7 +148,7 @@ export function AssigneeRow({ task, list }: { task: Task; list?: TaskList }) {
         {row}
         <Text style={[styles.reason, { color: tokens.muted }]}>
           {fmt(words.unavailable[unavailable], {
-            provider: PROVIDER_NAMES[list?.provider ?? 'local'],
+            provider: providerName(list?.provider ?? 'local'),
           })}
         </Text>
       </View>
@@ -156,25 +159,26 @@ export function AssigneeRow({ task, list }: { task: Task; list?: TaskList }) {
     <MenuView
       style={edge}
       actions={[
-        ...people.map((person) => ({
+        ...(list ? assignablePeople(list, people) : []).map((person) => ({
           id: person.id,
           title: person.name,
           state:
-            person.id === task.assigneeId ? ('on' as const) : ('off' as const),
+            person.id === current ? ('on' as const) : ('off' as const),
         })),
         {
           id: NOBODY,
           title: words.nobody,
-          state: task.assigneeId ? ('off' as const) : ('on' as const),
+          state: current === null ? ('on' as const) : ('off' as const),
         },
       ]}
       onPressAction={(event) => {
         const chosen = event.nativeEvent.event
         const next = chosen === NOBODY ? null : chosen
-        if (next === (task.assigneeId ?? null)) return
+        if (next === current) return
         haptics.selectionChanged()
-        actions.setAssignee(task.id, next).catch((error: unknown) => {
-          haptics.actionFailed()
+        actions.setAssignee(task, next).catch((error: unknown) => {
+          // A linked write says why; any other only plays the haptic.
+          writeFailed(error)
           // The one refusal the person did not cause: the Member left the
           // Group after this screen drew the menu. Anything else is a write
           // that did not land, which the unchanged row already shows.

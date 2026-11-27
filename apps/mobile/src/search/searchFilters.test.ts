@@ -1,19 +1,20 @@
+import { localIsoDate } from '@gather/core/civil-date'
+import { dayOf, inWhen } from '@gather/core/search-filters'
 import { TASTING_KIND_SPECS, type TastingKind } from '@gather/core/tastings'
 import { describe, expect, it } from 'vitest'
 
 import {
   applyFilters,
-  dayOf,
   type FilterableRecord,
   groupByModule,
   initialFilters,
-  inWhen,
   moduleFilters,
   moduleOf,
   narrowed,
   type SearchModuleId,
   searchKindOf,
   searchModuleOfKind,
+  serverFilters,
   typesFor,
   withModule,
 } from './searchFilters'
@@ -74,10 +75,10 @@ describe('the Module’s own filters', () => {
 
 describe('When', () => {
   it('uses an event’s date, a task’s due date, and otherwise the day it was added', () => {
-    expect(dayOf(records[4])).toBe('2026-11-30')
-    expect(dayOf(records[0])).toBe(TODAY)
-    expect(dayOf(records[1])).toBe('2026-10-02')
-    expect(dayOf({ type: 'note' })).toBeNull()
+    expect(dayOf(records[4], localIsoDate)).toBe('2026-11-30')
+    expect(dayOf(records[0], localIsoDate)).toBe(TODAY)
+    expect(dayOf(records[1], localIsoDate)).toBe('2026-10-02')
+    expect(dayOf({ type: 'note' }, localIsoDate)).toBeNull()
   })
 
   it('nests today in this week in this month, with Earlier before the month', () => {
@@ -117,6 +118,32 @@ describe('applyFilters', () => {
   it('says whether anything past the Module narrows', () => {
     expect(narrowed(initialFilters('tasks'))).toBe(false)
     expect(narrowed({ ...initialFilters(), when: 'today' })).toBe(true)
+  })
+
+  it("reads creationTime in the Group's zone for When filters", () => {
+    // 22:00Z on 24 Nov is 24 Nov in Amsterdam, 25 Nov in Tokyo.
+    const lateNote: FilterableRecord & { id: string } = {
+      id: 'late-note',
+      type: 'note',
+      creationTime: Date.parse('2026-11-24T22:00:00Z'),
+    }
+    const todayOnly = { ...initialFilters(), when: 'today' as const }
+    expect(ids(applyFilters([lateNote], todayOnly, '2026-11-25', 'Asia/Tokyo'))).toEqual([
+      'late-note',
+    ])
+    expect(
+      ids(applyFilters([lateNote], todayOnly, '2026-11-25', 'Europe/Amsterdam')),
+    ).toEqual([])
+  })
+})
+
+describe('serverFilters', () => {
+  it('sends each set filter, and the day and zone only with When', () => {
+    const send = (filters: Partial<ReturnType<typeof initialFilters>>) =>
+      serverFilters({ ...initialFilters('tasks'), ...filters }, TODAY, 'Europe/Amsterdam')
+    expect(send({})).toBeNull()
+    expect(send({ who: 'sam', status: 'done' })).toEqual({ createdBy: 'sam', status: 'done' })
+    expect(send({ when: 'week' })).toEqual({ when: 'week', today: TODAY, timeZone: 'Europe/Amsterdam' })
   })
 })
 

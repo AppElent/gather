@@ -70,7 +70,7 @@ export default function Home() {
   const tasksTile = moduleTile('tasks')
 
   const byline = [
-    spelledDate(today.now, locale, words.date),
+    spelledDate(today.today, locale, words.date),
     today.memberCount === undefined
       ? null
       : plural(locale, today.memberCount, words.members),
@@ -175,12 +175,14 @@ export default function Home() {
               testID="home-rail"
               items={today.rail.map((entry) => ({
                 id: entry.id,
-                time: clockTime(entry.timestamp),
+                time: clockTime(entry.timestamp, group.timeZone),
                 group: 'home',
                 glyph: EVENT_ICONS[entry.type],
                 title: entry.line,
               }))}
-              now={fmt(words.now, { time: clockTime(today.now) })}
+              now={fmt(words.now, {
+                time: clockTime(today.now, group.timeZone),
+              })}
             />
           </View>
         ) : null}
@@ -208,7 +210,7 @@ export default function Home() {
                       router.push(
                         {
                           pathname: '/all/tasks/task/[taskId]',
-                          params: { taskId: task.id },
+                          params: { taskId: task.id, listId: task.listId },
                         },
                         { withAnchor: true },
                       )

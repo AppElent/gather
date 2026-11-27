@@ -13,6 +13,7 @@ import {
   compareIsoDates,
   daysBetween,
   isIsoDate,
+  isoDateIn,
 } from '@gather/core/civil-date'
 import {
   firstScheduledDate,
@@ -28,11 +29,15 @@ import { shiftedReminder, syncSend } from './taskReminders'
 
 /**
  * The completer's calendar day. A phone sends its own; anything else (an
- * installed app from before repeats, the web, an agent) gets the day in the
- * Netherlands. A sent day more than one day from UTC's is no device's today
- * and is ignored rather than trusted.
+ * installed app from before repeats, the web, an agent) gets the Group's day,
+ * or the one in the Netherlands when the Group has no zone. A sent day more
+ * than one day from UTC's is nobody's today and is ignored.
  */
-export function completionDay(sent: string | undefined, now = Date.now()) {
+export function completionDay(
+  sent: string | undefined,
+  timeZone?: string,
+  now = Date.now(),
+) {
   if (sent && isIsoDate(sent)) {
     const utc = new Date(now).toISOString().slice(0, 10)
     if (
@@ -40,6 +45,14 @@ export function completionDay(sent: string | undefined, now = Date.now()) {
       compareIsoDates(sent, addDays(utc, 1)) <= 0
     ) {
       return sent
+    }
+  }
+  if (timeZone !== undefined) {
+    try {
+      return isoDateIn(timeZone)(now)
+    } catch {
+      // A stored zone this runtime cannot parse falls back to the Dutch day,
+      // not the server's own UTC calendar.
     }
   }
   return amsterdamIsoDate(now)

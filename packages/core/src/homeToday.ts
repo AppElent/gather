@@ -11,9 +11,11 @@
  * them are in the past, so the rail has no upcoming section.
  */
 import { summarizeBabyEvent } from './babyEvents'
+import { localMidnight } from './civilDate'
 import type { BabyEventType } from './domain'
 import { fmt } from './i18n'
 import type { Messages } from './messages'
+import { resolveRuntimeZone } from './zoneAliases'
 
 type BabyLogMessages = Parameters<typeof summarizeBabyEvent>[1]
 type TodayWords = Messages['shell']['today']
@@ -97,7 +99,6 @@ export function railEntries(
     words: TodayWords
   },
 ): RailEntry[] {
-  const messages = homeBabyLogMessages(babyLog, words)
   const entries: RailEntry[] = []
   for (const child of children) {
     const rows = events[child._id]
@@ -109,7 +110,7 @@ export function railEntries(
         type: row.type,
         timestamp: row.timestamp,
         line: fmt(words.entry, {
-          summary: summarizeBabyEvent(row, messages),
+          summary: summarizeBabyEvent(row, babyLog),
           child: child.name,
         }),
       })
@@ -118,32 +119,42 @@ export function railEntries(
   return entries.sort((a, b) => a.timestamp - b.timestamp)
 }
 
-/**
- * The baby log's words with Home's durations: "2 h 10 min" rather than the
- * shared "2h 10m", which the web also prints and is not changed here.
- */
-export function homeBabyLogMessages(
-  babyLog: BabyLogMessages,
-  words: TodayWords,
-): BabyLogMessages {
-  return {
-    ...babyLog,
-    status: { ...babyLog.status, duration: words.duration },
-    summary: { ...babyLog.summary, sideMinutes: words.sideMinutes },
-  }
-}
-
-/** Midnight local time on the day `now` falls in. */
-export function startOfDay(now: number): number {
-  const date = new Date(now)
-  date.setHours(0, 0, 0, 0)
-  return date.getTime()
-}
-
-/** `HH:MM` on the 24-hour clock, in local time. */
-export function clockTime(ms: number): string {
-  const date = new Date(ms)
+/** `HH:MM` on the 24-hour clock, in `timeZone` or local time when absent. */
+export function clockTime(ms: number, timeZone?: string): string {
   const pad = (n: number) => String(n).padStart(2, '0')
+  if (timeZone !== undefined) {
+    const runtime = resolveRuntimeZone(timeZone)
+    if (runtime !== null) {
+      try {
+        const parts = new Intl.DateTimeFormat('en-GB', {
+          timeZone: runtime,
+          hourCycle: 'h23',
+          hour: '2-digit',
+          minute: '2-digit',
+        }).formatToParts(ms)
+        const rawHour = Number(
+          parts.find((part) => part.type === 'hour')?.value,
+        )
+        const hour = rawHour === 24 ? 0 : rawHour
+        const minute = Number(
+          parts.find((part) => part.type === 'minute')?.value,
+        )
+        if (
+          Number.isInteger(hour) &&
+          hour >= 0 &&
+          hour < 24 &&
+          Number.isInteger(minute) &&
+          minute >= 0 &&
+          minute < 60
+        ) {
+          return `${pad(hour)}:${pad(minute)}`
+        }
+      } catch {
+        // Not a zone here: this device's clock, below.
+      }
+    }
+  }
+  const date = new Date(ms)
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
@@ -153,11 +164,11 @@ export function clockTime(ms: number): string {
  * line.
  */
 export function spelledDate(
-  now: number,
+  day: string,
   locale: string,
   template: string,
 ): string {
-  const date = new Date(now)
+  const date = localMidnight(day)
   const text = fmt(template, {
     weekday: date.toLocaleDateString(locale, { weekday: 'long' }),
     day: date.getDate(),

@@ -9,7 +9,11 @@
  * Best effort in both directions, like the rest of `localPreference.ts`: an
  * unreadable value is "nothing hidden", which is what a fresh install shows.
  */
-import { isSmartListId, type SmartListId } from '@gather/core/smart-lists'
+import {
+  parseHiddenSmartLists,
+  type SmartListId,
+  toggledSmartLists,
+} from '@gather/core/smart-lists'
 import { useCallback, useSyncExternalStore } from 'react'
 
 import {
@@ -17,27 +21,6 @@ import {
   readPreference,
   writePreference,
 } from './localPreference'
-
-/** The stored value as smart list ids, dropping anything this build does not know. */
-export function parseHiddenSmartLists(raw: string | null): SmartListId[] {
-  if (!raw) return []
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed.filter(isSmartListId) : []
-  } catch {
-    return []
-  }
-}
-
-/** The ids with `id` hidden if it was shown, and shown if it was hidden. */
-export function toggledSmartLists(
-  current: readonly SmartListId[],
-  id: SmartListId,
-): SmartListId[] {
-  return current.includes(id)
-    ? current.filter((each) => each !== id)
-    : [...current, id]
-}
 
 /**
  * One copy for the whole app: the Tasks index and the Tasks settings page

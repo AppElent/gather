@@ -3,18 +3,23 @@
  * The Drop chooser's destination list and group sheet announce their options
  * through `radioProps` on iOS and Android (APP-697).
  */
+import { noteRefusal } from '@gather/core/refusals'
 import { createElement, type ReactNode } from 'react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
 import type { Id } from '../convex/api'
 import { en } from '../i18n/messages/en'
-import { mount } from '../testing/dom'
+import { mount, settle } from '../testing/dom'
 import { DropChooserScreen } from './DropChooserScreen'
 import { DropGroupSheet } from './DropGroupSheet'
 
 const state = vi.hoisted(() => ({
   os: 'ios' as 'ios' | 'android',
   hasDrop: true,
+  params: {} as { url?: string; text?: string },
+  offered: [] as unknown[],
+  dismissedTo: [] as unknown[],
+  commit: async (): Promise<unknown> => ({ ok: true, href: '/home' }),
 }))
 
 vi.mock('react-native', async () => {
@@ -83,8 +88,11 @@ vi.mock('react-native', async () => {
 vi.mock('expo-image', () => ({ Image: () => null }))
 vi.mock('expo-router', () => ({
   Stack: Object.assign(() => null, { Screen: () => null }),
-  useLocalSearchParams: () => ({}),
-  useRouter: () => ({ push: () => {}, replace: () => {}, dismissTo: () => {} }),
+  useLocalSearchParams: () => state.params,
+  useRouter: () => ({
+    push: () => {},
+    dismissTo: (href: unknown) => state.dismissedTo.push(href),
+  }),
 }))
 vi.mock('../components/NativeSheet', () => ({
   NativeSheet: ({ children }: { children: ReactNode }) =>
@@ -140,22 +148,73 @@ vi.mock('./DropProvider', () => ({
           },
         }
       : null,
-    offer: () => {},
+    offer: (drop: unknown) => state.offered.push(drop),
     clear: () => {},
   }),
 }))
 vi.mock('./useDropCommit', () => ({
-  useDropCommit: () => async () => ({ ok: true, href: '/home' }),
+  useDropCommit: () => () => state.commit(),
 }))
 
 beforeEach(() => {
   state.os = 'ios'
   state.hasDrop = true
+  state.params = {}
+  state.offered = []
+  state.dismissedTo = []
 })
 
 afterEach(() => {
   state.os = 'ios'
   state.hasDrop = true
+  state.params = {}
+  state.offered = []
+  state.dismissedTo = []
+})
+
+test('without a Drop it goes back to the tabs, and stacks no second one (APP-775)', () => {
+  state.hasDrop = false
+  state.dismissedTo = []
+  mount(createElement(DropChooserScreen)).unmount()
+  expect(state.dismissedTo).toEqual(['/home'])
+})
+
+test('a harness drop link replaces an already pending Drop, and a second one replaces it too (APP-840)', () => {
+  state.hasDrop = true
+  state.params = { text: 'Buy stroopwafels' }
+  const view = mount(createElement(DropChooserScreen))
+  expect(state.offered).toEqual([{ kind: 'text', text: 'Buy stroopwafels' }])
+  expect(state.dismissedTo).toEqual([])
+
+  state.params = { text: 'Buy milk' }
+  view.rerender(createElement(DropChooserScreen))
+  expect(state.offered).toEqual([
+    { kind: 'text', text: 'Buy stroopwafels' },
+    { kind: 'text', text: 'Buy milk' },
+  ])
+  view.unmount()
+})
+
+test('a harness drop link dismisses once cleared without re-offering the same seed (APP-840)', () => {
+  state.hasDrop = false
+  state.params = { text: 'Buy stroopwafels' }
+  const view = mount(createElement(DropChooserScreen))
+  expect(state.offered).toEqual([{ kind: 'text', text: 'Buy stroopwafels' }])
+  expect(state.dismissedTo).toEqual([])
+
+  // Re-render while still waiting for offer() to commit does not dismiss.
+  view.rerender(createElement(DropChooserScreen))
+  expect(state.offered).toHaveLength(1)
+  expect(state.dismissedTo).toEqual([])
+
+  // Once delivered and later cleared, the chooser dismisses without re-offering.
+  state.hasDrop = true
+  view.rerender(createElement(DropChooserScreen))
+  state.hasDrop = false
+  view.rerender(createElement(DropChooserScreen))
+  expect(state.offered).toHaveLength(1)
+  expect(state.dismissedTo).toEqual(['/home'])
+  view.unmount()
 })
 
 test('DropChooserScreen keeps an automatically inset ScrollView both with and without a drop', () => {
@@ -229,3 +288,21 @@ for (const os of ['ios', 'android'] as const) {
     view.unmount()
   })
 }
+
+test.each([
+  ['a note with no room', { data: noteRefusal('too-long') }, en.notes.refusals['notes:too-long']],
+  ['any other failure', new Error('offline'), en.drop.failed],
+])('%s is said, with the Drop still there (APP-805)', async (_, error, sentence) => {
+  const before = state.commit
+  state.commit = () => Promise.reject(error)
+  const view = mount(createElement(DropChooserScreen))
+  const save = [...view.container.querySelectorAll('button')].find((button) =>
+    [en.common.actions.save, en.drop.continue].includes(button.textContent ?? ''),
+  )
+  save?.click()
+  await settle()
+  expect(view.container.textContent).toContain(sentence)
+  expect(view.container.textContent).toContain('Pasta')
+  view.unmount()
+  state.commit = before
+})

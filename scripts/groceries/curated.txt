@@ -53,6 +53,12 @@ breakfast: senseo, senseo pads, ontbijtkoek repen
 pasta_world: babi pangang, babi pangang saus, kipsatésaus, kipsaté saus
 snacks: tuc, cereal bars, cereal repen, mueslirepen
 
+# APP-750, Dutch brands the AI fallback put in the wrong aisle. Croma is a
+# training-row miss; Sorbo is in no eval set. The other two reported lines,
+# Andy and verse jus, are holdout rows, so they stay out of this file.
+household: sorbo
+tins_sauces: croma
+
 # Stray words and brand fragments the open data turned into terms, found in
 # training-row misses: "kapper bellen" is not cheese.
 drop: bel, mur, rebel, pick up

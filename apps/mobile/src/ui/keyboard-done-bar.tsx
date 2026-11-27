@@ -10,6 +10,12 @@
  * mounts must already have its bar) and pass `inputAccessoryViewID` to it.
  * Each field mounts its own, because React Native gives a bar to the first
  * field that names it and to no other.
+ *
+ * Also pass `key={inputKey}` to the `TextInput`: iOS ties a bar to a field only
+ * as it mounts, so a field whose `keyboardType` changes in place must remount
+ * (APP-739). A remount drops focus; a field that is focused then re-focuses
+ * through its `autoFocus`, and one without it has to be tapped again, which is
+ * rare because the type changes with a sheet or step, not mid-typing.
  */
 import { type ReactNode, useId } from 'react'
 import {
@@ -94,16 +100,25 @@ export function useKeyboardDoneBar({
   /** A stable id (such as the field's testID); one is generated otherwise. */
   id?: string
   onNext?: () => void
-}): { inputAccessoryViewID: string | undefined; accessory: ReactNode } {
+}): {
+  inputAccessoryViewID: string | undefined
+  accessory: ReactNode
+  /** A `key` for the `TextInput` that follows `keyboardType`. */
+  inputKey: string
+} {
   const ownId = useId().replaceAll(':', '')
   const needsBar =
     Platform.OS === 'ios' &&
     (keyboardType === 'decimal-pad' || keyboardType === 'number-pad')
-  if (!needsBar) return { inputAccessoryViewID: undefined, accessory: null }
+  const inputKey = `keyboard-${keyboardType ?? 'default'}`
+  if (!needsBar) {
+    return { inputAccessoryViewID: undefined, accessory: null, inputKey }
+  }
   const nativeID = id ?? `keyboard-done-${ownId}`
   return {
     inputAccessoryViewID: nativeID,
     accessory: <KeyboardDoneBar nativeID={nativeID} onNext={onNext} />,
+    inputKey,
   }
 }
 

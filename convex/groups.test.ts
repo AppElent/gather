@@ -199,6 +199,59 @@ describe('an ordinary Group', () => {
     expect(unchanged?.name).toBe('Jansen Household')
   })
 
+  test('its time zone is set and cleared by an admin (APP-475)', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const zone = async () =>
+      (await groupsOf(t, asBob)).find((g) => g._id === groupId)?.timeZone
+    const set = (timeZone: string | null) =>
+      t
+        .withIdentity(asAlice)
+        .mutation(api.groups.setTimeZone, { groupId, timeZone })
+
+    expect(await zone()).toBeUndefined()
+    await set('Europe/Amsterdam')
+    expect(await zone()).toBe('Europe/Amsterdam')
+    for (const unknown of ['Mars/Olympus', '', '+01:00', '-01:00', '\u221201:00'])
+      await expect(set(unknown)).rejects.toThrow('groupTimeZone:unknown-zone')
+    expect(await zone()).toBe('Europe/Amsterdam')
+    await set('asia/TOKYO')
+    expect(await zone()).toBe('Asia/Tokyo')
+    // ICU's older name is stored as IANA's.
+    await set('Asia/Calcutta')
+    expect(await zone()).toBe('Asia/Kolkata')
+    await t.run((ctx) => ctx.db.patch(groupId, { timeZone: 'Asia/Calcutta' }))
+    expect(await zone()).toBe('Asia/Kolkata')
+    await set(null)
+    expect(await zone()).toBeUndefined()
+  })
+
+  test('its time zone is not set by a plain member, a non-member or nobody', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const args = { groupId, timeZone: 'Europe/Amsterdam' }
+
+    await expect(
+      t.withIdentity(asBob).mutation(api.groups.setTimeZone, args),
+    ).rejects.toThrow('groupTimeZone:admin-only')
+    await expect(
+      t
+        .withIdentity({ subject: 'clerk_nobody', name: 'Nobody' })
+        .mutation(api.groups.setTimeZone, args),
+    ).rejects.toThrow('groups:not-signed-in')
+    await expect(t.mutation(api.groups.setTimeZone, args)).rejects.toThrow(
+      'groups:not-signed-in',
+    )
+    const other = await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.createGroup, { name: 'Alice only' })
+    await expect(
+      t
+        .withIdentity(asBob)
+        .mutation(api.groups.setTimeZone, { ...args, groupId: other }),
+    ).rejects.toThrow('groups:not-a-member')
+  })
+
   test('renaming back to the same name keeps the slug it already had', async () => {
     const t = testConvex()
     const groupId = await household(t)
@@ -529,6 +582,35 @@ describe('an ordinary Group', () => {
         role: 'member',
       }),
     ).rejects.toThrow(/somebody else an admin/i)
+  })
+
+  test('will not let an admin step down while the only other admin is being deleted', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const alice = await t.withIdentity(asAlice).query(api.users.me, {})
+    const bob = await t.withIdentity(asBob).query(api.users.me, {})
+    const bobId = bob?._id ?? ('' as never)
+    await t.withIdentity(asAlice).mutation(api.groups.setMemberRole, {
+      groupId,
+      userId: bobId,
+      role: 'admin',
+    })
+    // Bob's account deletion is queued: he is on his way out (APP-882).
+    await t.run((ctx) => ctx.db.patch(bobId, { deletedAt: Date.now() }))
+
+    await expect(
+      t.withIdentity(asAlice).mutation(api.groups.setMemberRole, {
+        groupId,
+        userId: alice?._id ?? ('' as never),
+        role: 'member',
+      }),
+    ).rejects.toThrow(/somebody else an admin/i)
+    // Alice stays the admin, and may still demote the admin who is leaving.
+    await t.withIdentity(asAlice).mutation(api.groups.setMemberRole, {
+      groupId,
+      userId: bobId,
+      role: 'member',
+    })
   })
 
   test('does not let a plain member appoint themselves', async () => {

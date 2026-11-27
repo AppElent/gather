@@ -1,17 +1,14 @@
 /**
  * The photo row of a log entry, for logging one and for editing one.
  *
- * Only Memory offers a photo today. The control is general — `photoId` is on
- * the event, not inside a Memory's payload — so the day a rash photo belongs
- * on a Note, that is one more type in `OFFERS_PHOTO`.
+ * `offersPhoto` decides which types show it.
  */
+import { offersPhoto } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
 import { useMutation } from 'convex/react'
 import { PhotoField, type PhotoFieldProps } from '../../components/PhotoField'
 import { api } from '../../convex/api'
 import { fmt, useI18n } from '../../i18n'
-
-const OFFERS_PHOTO: readonly BabyEventType[] = ['memory']
 
 export function EntryPhotoField({
   type,
@@ -28,11 +25,11 @@ export function EntryPhotoField({
   disabled: boolean
 } & Pick<
   PhotoFieldProps,
-  'initialPreview' | 'onPreviewChange' | 'onBusyChange'
+  'initialPreview' | 'onPreviewChange' | 'onBusyChange' | 'uploadScope'
 >) {
   const { t } = useI18n()
   const generateUploadUrl = useMutation(api.babies.generateUploadUrl)
-  if (!OFFERS_PHOTO.includes(type)) return null
+  if (!offersPhoto(type)) return null
   const text = t.baby.log.entry
   return (
     <PhotoField

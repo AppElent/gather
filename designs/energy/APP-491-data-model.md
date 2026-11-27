@@ -70,7 +70,7 @@ Index `by_site_validFrom`: the contract that applies on a day.
 | `lastError` | `v.string()` | no | Shown to members |
 | `connectedByUserId` | `v.id('users')` | yes | Who connected it |
 
-Indexes `by_site`, `by_kind_status` (the sync cron picks due sources).
+Indexes `by_site`, `by_site_kind` (a month reads only the manual source, APP-921), `by_kind_status` (the sync cron picks due sources).
 
 ## energyChannels
 

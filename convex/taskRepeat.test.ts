@@ -356,6 +356,50 @@ describe('every completion path', () => {
     expect((await taskRow(t, taskId))?.dueDate).toBe('2026-11-21')
   })
 
+  test('with a zone on the Group, its day, not the Dutch one', async () => {
+    const { t, listId } = await seed()
+    await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', JANSEN))
+        .unique()
+      if (group) await ctx.db.patch(group._id, { timeZone: 'Pacific/Kiritimati' })
+    })
+    const taskId = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId,
+      groupSlug: JANSEN,
+      title: 'Kliko',
+      repeat: { mode: 'afterDone', unit: 'day', every: 1 },
+    })
+    // Midnight on the 20th in Kiritimati (UTC+14).
+    await t
+      .withIdentity(alice)
+      .mutation(api.tasks.toggleDone, { taskId, groupSlug: JANSEN })
+    expect((await taskRow(t, taskId))?.dueDate).toBe('2026-11-21')
+  })
+
+  test('a stored zone the server cannot parse falls back to the Dutch day, not UTC', async () => {
+    const { t, listId } = await seed()
+    vi.setSystemTime(Date.UTC(2026, 10, 19, 23, 30)) // 19th in UTC, 20th in Amsterdam
+    await t.run(async (ctx) => {
+      const group = await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', JANSEN))
+        .unique()
+      if (group) await ctx.db.patch(group._id, { timeZone: 'Mars/Olympus' })
+    })
+    const taskId = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId,
+      groupSlug: JANSEN,
+      title: 'Kliko',
+      repeat: { mode: 'afterDone', unit: 'day', every: 1 },
+    })
+    await t
+      .withIdentity(alice)
+      .mutation(api.tasks.toggleDone, { taskId, groupSlug: JANSEN })
+    expect((await taskRow(t, taskId))?.dueDate).toBe('2026-11-21')
+  })
+
   test('a day far from the server’s is ignored', async () => {
     const { t, listId } = await seed()
     const taskId = await t.withIdentity(alice).mutation(api.tasks.add, {

@@ -1,97 +1,18 @@
 import { v } from 'convex/values'
-import type { Doc, Id } from './_generated/dataModel'
-import { mutation, type QueryCtx, query } from './_generated/server'
+import { mutation, query } from './_generated/server'
 import * as calendar from './calendar'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
-import { recipesVisibleIn } from './lib/recipeShares'
-
-/**
- * A Group's planned dinners, by `by_group_date` when a range is given, with a
- * live Recipe's fields over the stored ones. Only the dinner slot: phones from
- * before meal slots (ADR-0027) show one meal per day and would draw a lunch as
- * that day's dinner.
- *
- * A live Recipe is the source of truth while it remains visible. The stored
- * fields are deliberately a fallback for a deleted/unshared Recipe, so a past
- * plan remains readable (ADR-0027).
- */
-async function dinnersIn(
-  ctx: QueryCtx,
-  groupId: Id<'groups'>,
-  range: DateRange,
-  visibleRecipes: ReadonlyMap<Id<'recipes'>, Doc<'recipes'>>,
-) {
-  const dinners = await ctx.db
-    .query('plannedDinners')
-    .withIndex('by_group_date', (q) => {
-      const group = q.eq('groupId', groupId)
-      if (range.from && range.to)
-        return group.gte('date', range.from).lte('date', range.to)
-      if (range.from) return group.gte('date', range.from)
-      if (range.to) return group.lte('date', range.to)
-      return group
-    })
-    .collect()
-  return dinners
-    .filter((dinner) => dinner.slot === 'dinner')
-    .map((dinner) => {
-      const recipe = dinner.recipeId
-        ? visibleRecipes.get(dinner.recipeId)
-        : undefined
-      return recipe
-        ? { ...dinner, title: recipe.title, prepMinutes: recipe.prepMinutes }
-        : dinner
-    })
-}
-
-/** The fields a dinner picker shows for a Recipe. */
-function recipeCandidates(recipes: readonly Doc<'recipes'>[]) {
-  return recipes.map((recipe) => ({
-    _id: recipe._id,
-    title: recipe.title,
-    prepMinutes: recipe.prepMinutes,
-  }))
-}
-
-interface DateRange {
-  from?: string
-  to?: string
-}
-
-async function plannerData(
-  ctx: QueryCtx,
-  groupId: Id<'groups'>,
-  range: DateRange,
-) {
-  const [mealEntries, recipes] = await Promise.all([
-    ctx.db
-      .query('mealEntries')
-      .withIndex('by_group', (q) => q.eq('groupId', groupId))
-      .collect(),
-    recipesVisibleIn(ctx, groupId),
-  ])
-  const byId = new Map(recipes.map((recipe) => [recipe._id, recipe]))
-  return {
-    mealEntries,
-    dinners: await dinnersIn(ctx, groupId, range, byId),
-    recipes: recipeCandidates(recipes),
-  }
-}
-
-async function pantryOf(ctx: QueryCtx, groupId: Id<'groups'>) {
-  const pantry = await ctx.db
-    .query('pantryEntries')
-    .withIndex('by_group', (q) => q.eq('groupId', groupId))
-    .collect()
-  return pantry.sort((a, b) => a.title.localeCompare(b.title))
-}
 
 /** The Pantry, alphabetical. */
 export const pantry = query({
   args: { groupSlug: v.string() },
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    return await pantryOf(ctx, group._id)
+    const pantry = await ctx.db
+      .query('pantryEntries')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    return pantry.sort((a, b) => a.title.localeCompare(b.title))
   },
 })
 
@@ -101,62 +22,6 @@ export const groceries = query({
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     return { groceryListId: group.groceryListId ?? null }
-  },
-})
-
-/**
- * Everything the kitchen screens once read in one query. Installed phones call
- * it until the OTA that calls `mealPlan`, `pantry` and `groceries` has reached
- * them (docs/migrations/README.md); same arguments and result shape, but read
- * by index.
- */
-export const overview = query({
-  args: {
-    groupSlug: v.string(),
-    from: v.optional(v.string()),
-    to: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const { group, membership } = await requireGroupBySlug(
-      ctx,
-      args.groupSlug,
-    )
-    const range = { from: args.from, to: args.to }
-    const [planned, pantry, calendars] = await Promise.all([
-      plannerData(ctx, group._id, range),
-      pantryOf(ctx, group._id),
-      ctx.db
-        .query('calendars')
-        .withIndex('by_group', (q) => q.eq('groupId', group._id))
-        .collect(),
-    ])
-    const events = (
-      await Promise.all(
-        calendars.map((calendar) =>
-          ctx.db
-            .query('calendarEvents')
-            .withIndex('by_calendar_date', (q) => {
-              const own = q.eq('calendarId', calendar._id)
-              if (range.from && range.to)
-                return own.gte('date', range.from).lte('date', range.to)
-              if (range.from) return own.gte('date', range.from)
-              if (range.to) return own.lte('date', range.to)
-              return own
-            })
-            .collect(),
-        ),
-      )
-    ).flat()
-    return {
-      groceryListId: group.groceryListId ?? null,
-      mealEntries: planned.mealEntries,
-      dinners: planned.dinners,
-      pantry,
-      recipes: planned.recipes,
-      calendars,
-      hiddenCalendarIds: membership?.hiddenCalendarIds ?? [],
-      events,
-    }
   },
 })
 

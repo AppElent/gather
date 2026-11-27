@@ -16,7 +16,7 @@ jobs:
     permissions: { contents: read }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
@@ -26,9 +26,10 @@ jobs:
       # Toolkit conformance (docs/standards/baseline.md): fails on any warning, so
       # new drift blocks the PR.
       - run: node scripts/check-project.mjs --strict
-      # The local gate (docs/runbooks/verification.md): check, root typecheck,
-      # the phone app's own typecheck, and every Vitest project. Running the
-      # same script keeps "green locally" and "green in CI" the same thing.
+      # The local gate (docs/runbooks/verification.md): check, root and
+      # Convex typecheck, the phone and TV apps' own typechecks, and every Vitest
+      # project.
+      # Running the same script keeps "green locally" and "green in CI" the same thing.
       - run: pnpm verify
       # Build catches bundling/plugin/SSR-compile breakage that typecheck + tests
       # miss. preview.yml builds only for labelled PRs, so this keeps the build

@@ -89,6 +89,7 @@ async function household(t: Harness): Promise<Household> {
       slug: 'household',
       inviteCode: 'invite-household',
       imageId: groupPhoto,
+      timeZone: 'Europe/Amsterdam',
     })
     const allotment = await ctx.db.insert('groups', {
       name: 'Allotment',
@@ -261,6 +262,7 @@ async function household(t: Harness): Promise<Household> {
       groupId: household,
       title: 'Wifi',
       body: 'hunter2',
+      searchText: 'Wifi\nhunter2',
       createdBy: bob,
       updatedAt: 0,
     })
@@ -442,6 +444,8 @@ async function household(t: Harness): Promise<Household> {
       slot: 'dinner',
       quickMeal: 'Tosti',
       source: 'fallback',
+      wishes: ['moreVeg'],
+      wish: 'iets met pompoen',
       createdBy: alice,
       expiresAt: 0,
     })
@@ -560,6 +564,7 @@ describe('what the file contains', () => {
       { table: 'appleSignInLinks', reason: 'bookkeeping' },
       { table: 'idempotencyKeys', reason: 'bookkeeping' },
       { table: 'pushDevices', reason: 'bookkeeping' },
+      { table: 'watchDevices', reason: 'bookkeeping' },
       { table: 'scheduledNotifications', reason: 'bookkeeping' },
       { table: 'groceryCategoryCache', reason: 'reference-data' },
       { table: 'groceryAiUsage', reason: 'bookkeeping' },
@@ -624,6 +629,14 @@ describe('what the file contains', () => {
     ])
   })
 
+  test('a week plan proposal, with the wishes it was made with', async () => {
+    const t = testConvex()
+    const { data } = await exported(t)
+    expect(groupOf(data, 'household').mealPlanDrafts).toMatchObject([
+      { wishes: ['moreVeg'], wish: 'iets met pompoen' },
+    ])
+  })
+
   test('the person’s own records', async () => {
     const t = testConvex()
     const { data } = await exported(t)
@@ -652,6 +665,7 @@ describe('what the file contains', () => {
     expect(household.groups[0].imageUrl).toEqual(
       expect.stringContaining('http'),
     )
+    expect(household.groups[0].timeZone).toBe('Europe/Amsterdam')
     const [card] = household.loyaltyCards
     // The Group's arrangement travels with the card (APP-440).
     expect(card.order).toBe(0)
@@ -752,6 +766,10 @@ describe('what the file holds back', () => {
     const { data, text } = await exported(t)
     expect(text).not.toContain('Gouda')
     expect(text).not.toContain('Kruidvat')
+    const [wifi] = groupOf(data, 'household').notes
+    expect(wifi).toMatchObject({ title: 'Wifi', body: 'hunter2' })
+    expect(wifi).not.toHaveProperty('searchText')
+    expect(data.omittedFields.notes).toEqual(['searchText'])
     expect(groupOf(data, 'household').babies[0]).not.toHaveProperty(
       'trackedTypes',
     )

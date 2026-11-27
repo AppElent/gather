@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Todoist-taak naar een andere lijst</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.85}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+button:disabled{cursor:default}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: {{c.ground}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: {{c.ink}}">
+
+  <div style="background: {{c.homeWash}}; padding: 54px 16px 18px 16px; display: flex; flex-direction: column; gap: 6px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <a href="#" aria-label="Terug naar Taken" style="height: 44px; padding: 0 16px 0 8px; border-radius: 999px; display: flex; align-items: center; gap: 2px; text-decoration: none; color: {{c.ink}}; background: {{c.glass}}; box-shadow: {{c.glassShadow}}">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+        <span style="font-size: 17px; line-height: 22px">Taken</span>
+      </a>
+      <button aria-label="Lijstmenu" style="width: 44px; height: 44px; border-radius: 999px; background: {{c.glass}}; box-shadow: {{c.glassShadow}}; display: flex; align-items: center; justify-content: center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="1.7"></circle><circle cx="19" cy="12" r="1.7"></circle><circle cx="5" cy="12" r="1.7"></circle></svg>
+      </button>
+    </div>
+    <h1 style="margin: 4px 4px 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 34px; line-height: 41px; font-weight: 700">Huishouden</h1>
+    <span style="margin: 0 4px; font-size: 15px; line-height: 20px; color: {{c.muted}}; display: flex; align-items: center; gap: 6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+      Gekoppeld aan Todoist · {{count}} open
+    </span>
+  </div>
+
+  <div style="padding: 16px 16px 0 16px">
+    <div style="background: {{c.surface}}; border-radius: 22px">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 12px; padding-left: {{r.indent}}px; background: {{r.bg}}; border-radius: {{r.radius}}">
+          <span aria-hidden="true" style="width: 24px; height: 24px; flex: 0 0 24px; border-radius: 999px; border: 2px solid {{c.muted}}; box-sizing: border-box"></span>
+          <div style="flex-grow: 1; min-width: 0; min-height: 56px; padding: 8px 14px 8px 0; box-sizing: border-box; border-top: {{r.sep}}; display: flex; flex-direction: column; justify-content: center">
+            <span style="font-size: 17px; line-height: 22px">{{r.title}}</span>
+            <sc-if value="{{r.hasMeta}}" hint-placeholder-val="{{ true }}">
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{r.meta}}</span>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <sc-if value="{{showMenu}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: {{c.dim}}"></div>
+    <div style="position: absolute; left: 16px; right: 16px; top: 212px; background: {{c.surface}}; border-radius: 16px; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.25)">
+      <span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 999px; border: 2px solid {{c.muted}}; box-sizing: border-box"></span>
+      <div style="display: flex; flex-direction: column">
+        <span style="font-size: 17px; line-height: 22px">Dakgoot schoonmaken</span>
+        <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">za 29 nov · 2 subtaken</span>
+      </div>
+    </div>
+    <div role="menu" aria-label="Taakmenu" style="position: absolute; left: 16px; top: 280px; width: 262px; background: {{c.menu}}; border-radius: 18px; box-shadow: 0 12px 40px rgba(0,0,0,0.22); padding: 6px 0; display: flex; flex-direction: column">
+      <sc-for list="{{menuItems}}" as="m" hint-placeholder-count="6">
+        <button role="menuitem" onClick="{{m.pick}}" style="min-height: 44px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 17px; background: {{m.bg}}; border-top: {{m.sep}}">
+          <span style="font-weight: {{m.weight}}">{{m.label}}</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.icon}}"></path></svg>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{showSheet}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; inset: 0; background: {{c.dim}}"></div>
+    <div role="dialog" aria-label="Verplaatsen naar lijst" style="position: absolute; left: 0; right: 0; bottom: 0; top: 150px; background: {{c.sheet}}; border-radius: 28px 28px 0 0; display: flex; flex-direction: column; overflow: hidden">
+      <div style="display: flex; justify-content: center; padding-top: 8px"><span style="width: 36px; height: 5px; border-radius: 3px; background: {{c.hair}}"></span></div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px 4px 16px">
+        <button onClick="{{close}}" style="height: 44px; padding: 0 4px; font-size: 17px; color: {{c.homeText}}">Annuleren</button>
+        <span style="font-size: 17px; font-weight: 600">Verplaatsen naar</span>
+        <span style="width: 76px"></span>
+      </div>
+      <span style="padding: 0 20px 10px 20px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Dakgoot schoonmaken, met 2 subtaken</span>
+
+      <div style="flex-grow: 1; overflow-y: auto; padding: 0 16px 34px 16px; display: flex; flex-direction: column; gap: 6px">
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+          <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 10px">
+            <span style="padding: 0 16px; font-size: 13px; line-height: 18px; text-transform: uppercase; letter-spacing: 0.02em; color: {{c.muted}}">{{g.title}}</span>
+            <div style="background: {{c.surface}}; border-radius: 14px">
+              <sc-for list="{{g.lists}}" as="l" hint-placeholder-count="3">
+                <button onClick="{{l.pick}}" disabled="{{l.disabled}}" aria-disabled="{{l.disabled}}" aria-label="{{l.a11y}}" style="width: 100%; min-height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 16px; box-sizing: border-box; border-top: {{l.sep}}; opacity: {{l.opacity}}">
+                  <span aria-hidden="true" style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 8px; background: {{l.tile}}; display: flex; align-items: center; justify-content: center">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{l.tileOn}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{l.icon}}"></path></svg>
+                  </span>
+                  <span style="flex-grow: 1; font-size: 17px; line-height: 22px">{{l.name}}</span>
+                  <sc-if value="{{l.hasTag}}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size: 13px; line-height: 18px; padding: 2px 8px; border-radius: 999px; background: {{c.surface2}}; color: {{c.muted}}">{{l.tag}}</span>
+                  </sc-if>
+                  <sc-if value="{{l.current}}" hint-placeholder-val="{{ false }}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                  </sc-if>
+                </button>
+              </sc-for>
+            </div>
+            <sc-if value="{{g.hasFoot}}" hint-placeholder-val="{{ true }}">
+              <span style="padding: 0 16px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{g.foot}}</span>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{showConfirm}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: {{c.dim}}"></div>
+    <div role="dialog" aria-label="{{confirm.title}}" style="position: absolute; left: 0; right: 0; bottom: 0; background: {{c.sheet}}; border-radius: 28px 28px 0 0; padding: 8px 16px 34px 16px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 3px; background: {{c.hair}}"></span></div>
+      <h2 style="margin: 6px 4px 0 4px; font-size: 22px; line-height: 28px; font-weight: 700">{{confirm.title}}</h2>
+      <span style="margin: 0 4px; font-size: 15px; line-height: 20px; color: {{c.muted}}">{{confirm.body}}</span>
+      <div style="background: {{c.surface}}; border-radius: 14px; padding: 4px 0">
+        <sc-for list="{{confirm.lines}}" as="x" hint-placeholder-count="4">
+          <div style="min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-top: {{x.sep}}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{x.color}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{x.icon}}"></path></svg>
+            <span style="font-size: 15px; line-height: 20px"><span style="font-weight: 600">{{x.head}}</span> {{x.text}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{confirm.hasToggle}}" hint-placeholder-val="{{ false }}">
+        <div style="background: {{c.surface}}; border-radius: 14px; min-height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; gap: 12px">
+          <label for="close-original" style="font-size: 17px; line-height: 22px">Origineel in Todoist afvinken</label>
+          <button id="close-original" role="switch" aria-checked="{{closeOriginal}}" onClick="{{toggleClose}}" style="width: 51px; height: 31px; flex: 0 0 51px; border-radius: 999px; background: {{switchBg}}; position: relative">
+            <span style="position: absolute; top: 2px; left: {{knobLeft}}px; width: 27px; height: 27px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,0.2)"></span>
+          </button>
+        </div>
+      </sc-if>
+      <div style="display: flex; gap: 10px">
+        <button onClick="{{backToSheet}}" style="flex: 1 1 0; height: 50px; border-radius: 14px; background: {{c.surface2}}; font-size: 17px; font-weight: 600; text-align: center">Annuleren</button>
+        <button onClick="{{doConfirm}}" style="flex: 1 1 0; height: 50px; border-radius: 14px; background: {{confirm.fill}}; color: {{confirm.on}}; font-size: 17px; font-weight: 600; text-align: center">{{confirm.action}}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{showToast}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; left: 16px; right: 16px; bottom: 42px; min-height: 52px; border-radius: 16px; background: {{c.toast}}; color: {{c.toastOn}}; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.25)">
+      <span style="font-size: 15px; line-height: 20px">{{toast}}</span>
+      <button onClick="{{undo}}" style="height: 44px; padding: 0 10px; font-size: 15px; font-weight: 600; color: {{c.toastAccent}}">Ongedaan maken</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["menu","sheetA","sheetB","confirmB","confirmC","done"],"default":"sheetA"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const st = this.state || {};
+    const set = (o) => this.setState(Object.assign({}, this.state || {}, o));
+    const dark = (p.theme || 'light') === 'dark';
+    const screen = st.screen || p.screen || 'sheetA';
+    const option = screen === 'sheetB' || screen === 'confirmB' ? 'B' : screen === 'confirmC' ? 'C' : (st.option || 'A');
+
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', sheet: '#151817', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#3A403D', danger: '#F0917F', dangerFill: '#B4483A',
+      homeFill: '#D99B2B', homeOn: '#2B1F06', homeText: '#F2C060', homeWash: '#2E2611',
+      glass: 'rgba(44,46,45,0.55)', glassShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 8px 24px rgba(0,0,0,0.45)',
+      menu: '#2A2E2C', dim: 'rgba(0,0,0,0.5)', pick: 'rgba(217,155,43,0.22)', ok: '#7FCB9A',
+      toast: '#F1F3F1', toastOn: '#1A1F1D', toastAccent: '#8A5C08',
+      todoist: '#E0574A', gather: '#D99B2B', notion: '#C9CFCC'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', sheet: '#F2F3F1', ink: '#1A1F1D', muted: '#5E6764', hair: '#D5D9D4', danger: '#A4372C', dangerFill: '#A4372C',
+      homeFill: '#F2B233', homeOn: '#2B1F06', homeText: '#8A5C08', homeWash: '#FBEBC6',
+      glass: 'rgba(255,255,255,0.62)', glassShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 8px 24px rgba(16,32,30,0.14)',
+      menu: '#FBFBFA', dim: 'rgba(26,31,29,0.32)', pick: '#FBEBC6', ok: '#1F7A45',
+      toast: '#1A1F1D', toastOn: '#F1F3F1', toastAccent: '#F2C060',
+      todoist: '#C5372B', gather: '#F2B233', notion: '#3B4240'
+    };
+    const ic = {
+      list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+      inbox: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
+      home: 'M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10',
+      brief: 'M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16M4 6h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z',
+      hammer: 'M15 12l-8.5 8.5a2.12 2.12 0 1 1-3-3L12 9M17.64 15 22 10.64M20.91 11.7l-1.25-1.25a2.4 2.4 0 0 1-.7-1.7V7.86L16.27 5.2a5.5 5.5 0 0 0-3.89-1.62H9l.92.82A6.18 6.18 0 0 1 12 9.02V10.5l2 2h1.17a2.4 2.4 0 0 1 1.7.7l1.25 1.25',
+      broom: 'M19.36 2.72 20.78 4.14M15.06 7.03a4 4 0 0 0-5.66 0L4 12.42l7.58 7.58 5.39-5.39a4 4 0 0 0 0-5.66zM4 12.42 2 22l9.58-2',
+      bag: 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0',
+      lock: 'M5 11h14v11H5zM7 11V7a5 5 0 0 1 10 0v4',
+      cal: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+      flag: 'M4 22V4M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1',
+      tag: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l8.59-8.59a1 1 0 0 0 0-1.41zM7 7h.01',
+      under: 'M15 10l5 5-5 5M4 4v7a4 4 0 0 0 4 4h12',
+      tray: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
+      ext: 'M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6',
+      check: 'M20 6 9 17l-5-5',
+      x: 'M18 6 6 18M6 6l12 12',
+      warn: 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01'
+    };
+
+    const taskRows = [
+      { title: 'Dakgoot schoonmaken', meta: 'za 29 nov · 2 subtaken', indent: 14 },
+      { title: 'Ladder lenen bij buren', meta: '', indent: 50 },
+      { title: 'Afvoer doorspuiten', meta: '', indent: 50 },
+      { title: 'Rookmelders testen', meta: 'elke maand · 1 dec', indent: 14 },
+      { title: 'Winterbanden ophalen', meta: 'p2', indent: 14 },
+      { title: 'Filter afzuigkap', meta: '', indent: 14 }
+    ];
+    const moved = st.screen ? st.moved : p.screen === 'done';
+    const shown = moved ? taskRows.slice(3) : taskRows;
+    const rows = shown.map((r, i) => ({
+      title: r.title, meta: r.meta, hasMeta: Boolean(r.meta), indent: r.indent,
+      sep: i === 0 || r.indent > 14 ? '0' : '1px solid ' + c.hair,
+      bg: 'transparent', radius: '0'
+    }));
+
+    const go = (s, extra) => () => set(Object.assign({ screen: s }, extra || {}));
+    const menuDefs = [
+      ['Datum', ic.cal], ['Prioriteit', ic.flag], ['Labels', ic.tag], ['Onder een taak plaatsen…', ic.under],
+      ['Verplaatsen naar lijst…', ic.tray, true], ['Openen in Todoist', ic.ext]
+    ];
+    const menuItems = menuDefs.map((m, i) => ({
+      label: m[0], icon: m[1], weight: m[2] ? 600 : 400, bg: m[2] ? c.pick : 'transparent',
+      sep: i === 4 || i === 5 ? '1px solid ' + c.hair : '0',
+      pick: m[2] ? go(option === 'B' ? 'sheetB' : 'sheetA') : () => {}
+    }));
+
+    const toDone = (name) => () => set({ screen: 'done', moved: true, toast: 'Verplaatst naar ' + name });
+    const tile = (bg, on) => ({ tile: bg, tileOn: on });
+    const todoistLists = [
+      { name: 'Inbox', icon: ic.inbox },
+      { name: 'Huishouden', icon: ic.home, current: true },
+      { name: 'Werk', icon: ic.brief },
+      { name: 'Verbouwing', icon: ic.hammer }
+    ];
+    const gatherLists = [
+      { name: 'Klusjes', icon: ic.broom },
+      { name: 'Boodschappen', icon: ic.bag }
+    ];
+    const notionLists = [{ name: 'Projecten', icon: ic.lock }];
+
+    const mk = (l, i, src, enabled, tag, pick) => Object.assign({
+      name: l.name, icon: l.icon, current: Boolean(l.current),
+      disabled: !enabled || Boolean(l.current), opacity: enabled || l.current ? 1 : 0.45,
+      sep: i === 0 ? '0' : '1px solid ' + c.hair,
+      hasTag: Boolean(tag), tag: tag || '',
+      a11y: l.name + (l.current ? ', huidige lijst' : '') + (!enabled ? ', kan niet: andere bron' : '') + (tag ? ', ' + tag : ''),
+      pick: enabled && !l.current ? pick : () => {}
+    }, src === 'todoist' ? tile(c.todoist, '#FFFFFF') : src === 'gather' ? tile(c.gather, '#2B1F06') : tile(c.surface2, c.muted));
+
+    const groups = option === 'A' ? [
+      { title: 'Todoist · Eric', lists: todoistLists.map((l, i) => mk(l, i, 'todoist', true, '', toDone(l.name))),
+        hasFoot: true, foot: 'Subtaken, opmerkingen, herhaling en herinneringen gaan mee. De sectie niet: in de nieuwe lijst staat hij zonder sectie.' },
+      { title: 'Andere bron', lists: gatherLists.map((l, i) => mk(l, i, 'gather', false)).concat(notionLists.map((l) => mk(l, 1, 'notion', false))),
+        hasFoot: true, foot: 'Een taak blijft in de bron waar hij staat. Naar een Gather- of Notion-lijst verplaatsen kan niet.' }
+    ] : [
+      { title: 'Todoist · Eric', lists: todoistLists.map((l, i) => mk(l, i, 'todoist', true, '', toDone(l.name))),
+        hasFoot: true, foot: 'Verplaatsen: alles gaat mee, behalve de sectie.' },
+      { title: 'Gather', lists: gatherLists.map((l, i) => mk(l, i, 'gather', true, 'Kopie', go('confirmB', { target: l.name }))),
+        hasFoot: true, foot: 'Gather maakt een kopie. Het origineel blijft in Todoist, tenzij je het afvinkt.' },
+      { title: 'Notion', lists: notionLists.map((l, i) => mk(l, i, 'notion', false)),
+        hasFoot: true, foot: 'Alleen lezen: Gather schrijft niet naar Notion.' }
+    ];
+
+    const target = st.target || 'Klusjes';
+    const closeOriginal = Boolean(st.closeOriginal);
+    const line = (ok, head, text, i) => ({ icon: ok ? ic.check : ic.x, color: ok ? c.ok : c.muted, head, text, sep: i === 0 ? '0' : '1px solid ' + c.hair });
+    const confirm = screen === 'confirmC' ? {
+      title: 'Naar ' + target + ' verplaatsen?',
+      body: 'Gather maakt de taak in ' + target + ' en verwijdert hem daarna uit Todoist. Dat kan niet ongedaan worden.',
+      lines: [
+        line(true, 'Gaat mee:', 'titel, datum, prioriteit, labels, 2 subtaken', 0),
+        line(false, 'Gaat verloren:', 'opmerkingen, herinneringen, wie', 1),
+        line(false, 'Eerst:', 'Todoist opnieuw verbinden (toestemming om te verwijderen)', 2)
+      ],
+      hasToggle: false, action: 'Verplaatsen', fill: c.dangerFill, on: '#FFFFFF'
+    } : {
+      title: 'Kopie in ' + target + ' maken?',
+      body: 'De kopie is een gewone Gather-taak. Het origineel in Todoist blijft zoals het is.',
+      lines: [
+        line(true, 'Gaat mee:', 'titel, datum, prioriteit, labels, 2 subtaken', 0),
+        line(false, 'Blijft in Todoist:', 'opmerkingen, herinneringen, wie', 1)
+      ],
+      hasToggle: true, action: 'Kopiëren', fill: c.homeFill, on: c.homeOn
+    };
+
+    const count = moved ? 3 : 6;
+    return {
+      c, rows, menuItems, groups, confirm, count,
+      showMenu: screen === 'menu',
+      showSheet: screen === 'sheetA' || screen === 'sheetB',
+      showConfirm: screen === 'confirmB' || screen === 'confirmC',
+      showToast: screen === 'done',
+      toast: st.toast || 'Verplaatst naar Werk',
+      closeOriginal: closeOriginal ? 'true' : 'false',
+      switchBg: closeOriginal ? c.ok : c.hair,
+      knobLeft: closeOriginal ? 22 : 2,
+      toggleClose: () => set({ closeOriginal: !closeOriginal }),
+      close: () => set({ screen: 'list' }),
+      backToSheet: () => set({ screen: screen === 'confirmC' ? 'list' : 'sheetB' }),
+      doConfirm: () => set({ screen: 'done', moved: screen === 'confirmC' || closeOriginal, toast: screen === 'confirmC' ? 'Verplaatst naar ' + target : 'Kopie gemaakt in ' + target }),
+      undo: () => set({ screen: 'list', moved: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

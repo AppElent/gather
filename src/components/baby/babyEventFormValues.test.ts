@@ -1,8 +1,13 @@
 import { isValidEventData } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
 import { beforeEach, describe, expect, test } from 'vitest'
-import type { Doc } from '../../../convex/_generated/dataModel'
-import { buildEventInput, initialEventValues } from './babyEventFormValues'
+import type { Doc, Id } from '../../../convex/_generated/dataModel'
+import {
+  buildEventInput,
+  entryPhotoUrl,
+  initialEventValues,
+  newEntryPhotoId,
+} from './babyEventFormValues'
 
 const START = new Date('2026-07-25T09:00:00').getTime()
 
@@ -196,5 +201,27 @@ describe('buildEventInput — other types', () => {
     expect(buildEventInput('note', { milestone: false }, START).data).toEqual({
       milestone: undefined,
     })
+  })
+})
+
+describe('the photo of an entry', () => {
+  const chosen = 'photo1' as Id<'_storage'>
+
+  test('an untouched edit keeps showing the stored photo', () => {
+    expect(entryPhotoUrl(undefined, 'https://x/old')).toBe('https://x/old')
+  })
+
+  test('removing hides the stored photo', () => {
+    expect(entryPhotoUrl(null, 'https://x/old')).toBeNull()
+  })
+
+  test('an entry without a photo shows none', () => {
+    expect(entryPhotoUrl(undefined, undefined)).toBeNull()
+  })
+
+  test('a new entry carries the chosen photo, and none when removed', () => {
+    expect(newEntryPhotoId(chosen)).toBe(chosen)
+    expect(newEntryPhotoId(null)).toBeUndefined()
+    expect(newEntryPhotoId(undefined)).toBeUndefined()
   })
 })

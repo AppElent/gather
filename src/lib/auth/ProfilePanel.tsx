@@ -1,4 +1,4 @@
-import { useClerk, useUser } from '@clerk/react'
+import { useUser } from '@clerk/react'
 import { useEffect, useState } from 'react'
 import { AppearanceSettings } from './AppearanceSettings'
 import { AuthButton } from './AuthButton'
@@ -6,10 +6,11 @@ import { AuthError } from './AuthError'
 import { AuthField } from './AuthField'
 import { clerkErrorMessage } from './core'
 import { UsernameHint } from './UsernameHint'
+import { useSignOut } from './useSignOut'
 
 export function ProfilePanel() {
   const { isLoaded, user } = useUser()
-  const { signOut } = useClerk()
+  const signOut = useSignOut()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
@@ -126,7 +127,7 @@ export function ProfilePanel() {
       <section className="rm-panel p-4">
         <p className="rm-label">Session</p>
         <div className="mt-3">
-          <AuthButton type="button" variant="ghost" onClick={() => signOut()}>
+          <AuthButton type="button" variant="ghost" onClick={() => void signOut()}>
             Sign out
           </AuthButton>
         </div>

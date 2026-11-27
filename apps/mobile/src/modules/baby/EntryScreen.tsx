@@ -21,6 +21,7 @@
  */
 import { missingRequiredField } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
+import { runtimeTimeZone } from '@gather/core/time-zones'
 import { useMutation } from 'convex/react'
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
@@ -106,6 +107,9 @@ export function EntryScreen() {
   const Icon = EVENT_ICONS[type]
   const labels = t.baby.log.fields as Record<string, string>
   const when = new Date(entry.timestamp)
+  const zone = log.timeZone
+    ? (runtimeTimeZone(log.timeZone) ?? undefined)
+    : undefined
 
   function beginEditing() {
     if (!entry) return
@@ -254,11 +258,13 @@ export function EntryScreen() {
                 weekday: 'long',
                 day: 'numeric',
                 month: 'long',
+                ...(zone ? { timeZone: zone } : {}),
               })}
               {' · '}
               {when.toLocaleTimeString(locale, {
                 hour: '2-digit',
                 minute: '2-digit',
+                ...(zone ? { timeZone: zone } : {}),
               })}
             </Text>
           </View>
@@ -270,6 +276,7 @@ export function EntryScreen() {
               value={draftTime}
               onChange={setTimestamp}
               now={entry.timestamp}
+              timeZone={log.timeZone}
               open={whenOpen}
               onToggle={() => setWhenOpen((was) => !was)}
             />

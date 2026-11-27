@@ -1,3 +1,4 @@
+import { todayIn } from '@gather/core/civil-date'
 import { z } from 'zod'
 import { api } from '../../../../convex/_generated/api'
 import { MCP_SCOPES } from '../auth'
@@ -80,7 +81,10 @@ export const viewTools = [
     },
     async run({ groupId, weekStart }, context): Promise<WeekAgendaResult> {
       const group = await groupOf(context, groupId)
-      const today = context.now().toISOString().slice(0, 10)
+      // A Group without a zone falls back to UTC on the server; pass that same
+      // zone to the view so its week and Today badge never disagree.
+      const timeZone = group.timeZone ?? 'UTC'
+      const today = todayIn(timeZone, context.now())
       const monday = mondayOf(weekStart ?? today)
       const sunday = shiftDay(monday, 7)
       const events: Event[] = []
@@ -114,6 +118,7 @@ export const viewTools = [
         nextWeekStart: sunday,
         isCurrentWeek: mondayOf(today) === monday,
         today,
+        timeZone,
         days,
         truncated: events.length >= WEEK_EVENTS,
       }
@@ -147,6 +152,7 @@ export const viewTools = [
         groupName: group.name,
         listId,
         listName: list.name,
+        timeZone: group.timeZone,
         canWrite: scoped && list.writable,
         readOnlyReason: !list.writable
           ? 'external'

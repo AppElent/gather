@@ -15,11 +15,13 @@ import { en } from '../../i18n/messages/en'
 import { mount, settle } from '../../testing/dom'
 import { EnergyScreen } from './energy-screen'
 import {
+  batteryHours,
   byTestId,
   callsTo,
   energyState,
   priceView,
   resetEnergyState,
+  solarMonth,
   usagePeriod,
 } from './energy-test-mocks'
 
@@ -285,4 +287,31 @@ test('a price fetch that failed is said on its row, and there are no cards', () 
     'EnergyZero has not given all prices yet.',
   )
   view.unmount()
+})
+
+test('a battery shows its state on the home, and a site without one does not', () => {
+  energyState.queries['energy:overview'] = withAddress
+  energyState.queries['energyReadings:form'] = { channels: [meter], lastReadingAt: null }
+  const now = Date.now()
+  const view = mount(createElement(EnergyScreen))
+  expect(byTestId('energy-battery-card')).toBeNull()
+  view.unmount()
+
+  const period = {
+    days: ['2026-11-23'],
+    lastDay: '2026-11-23',
+    hasHourly: true,
+    channels: { battery: true, batterySoc: true },
+    hours: batteryHours(now),
+  }
+  energyState.queries['energyUsage:month'] = usagePeriod(period)
+  energyState.queries['energyUsage:day'] = usagePeriod(period)
+  energyState.queries['energySolar:month'] = solarMonth()
+  const battery = mount(createElement(EnergyScreen))
+  const card = byTestId('energy-battery-card')
+  expect(card?.textContent).toContain('Around 13:00: idle')
+  expect(card?.textContent).toContain('Earned €0.59 today')
+  card?.click()
+  expect(energyState.pushes).toEqual(['/all/energy/solar'])
+  battery.unmount()
 })

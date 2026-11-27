@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { alice, bob, carol } from '../test/convexHarness'
 import {
+  FIXED_TERMS,
   HOME,
+  insertContract,
   insertManualMeters,
+  insertReading,
   insertSite,
   noonOn,
   seedEnergyGroups,
@@ -408,5 +411,196 @@ describe('form', () => {
       t.withIdentity(carol).query(api.energyReadings.form, args),
     ).rejects.toThrow()
     await expect(t.query(api.energyReadings.form, args)).rejects.toThrow()
+  })
+})
+
+describe('recent', () => {
+  test('lists the typed readings newest first, only of typed meters', async () => {
+    const { t, homeId, siteId, aliceId, importT1, gas } = await seedMeters()
+    const as = t.withIdentity(bob)
+    await as.mutation(api.energyReadings.save, {
+      ...HOME,
+      day: '2026-11-01',
+      readings: [
+        { channelId: importT1, value: 1000 },
+        { channelId: gas, value: 300 },
+      ],
+    })
+    await as.mutation(api.energyReadings.save, {
+      ...HOME,
+      day: '2026-11-10',
+      readings: [{ channelId: importT1, value: 1050 }],
+    })
+    // A connected source's channel is never listed.
+    await t.run(async (ctx) => {
+      const sourceId = await ctx.db.insert('energySources', {
+        groupId: homeId,
+        siteId,
+        kind: 'homeAssistant',
+        label: 'Home Assistant',
+        status: 'ok',
+        connectedByUserId: aliceId,
+      })
+      const hourly = await ctx.db.insert('energyChannels', {
+        groupId: homeId,
+        siteId,
+        sourceId,
+        kind: 'solar',
+        unit: 'kWh',
+      })
+      await insertReading(ctx, homeId, hourly, '2026-11-15', 5)
+    })
+    const recent = await as.query(api.energyReadings.recent, HOME)
+    expect(
+      recent.map(({ kind, tariff, unit, value, at }) => ({
+        kind,
+        tariff,
+        unit,
+        value,
+        at,
+      })),
+    ).toEqual([
+      { kind: 'gridImport', tariff: 't1', unit: 'kWh', value: 1050, at: noonOn('2026-11-10') },
+      { kind: 'gridImport', tariff: 't1', unit: 'kWh', value: 1000, at: noonOn('2026-11-01') },
+      { kind: 'gas', tariff: undefined, unit: 'm3', value: 300, at: noonOn('2026-11-01') },
+    ])
+  })
+
+  test("leaves out a retired meter's readings", async () => {
+    const { t, importT1, gas } = await seedMeters()
+    const as = t.withIdentity(bob)
+    await as.mutation(api.energyReadings.save, {
+      ...HOME,
+      day: '2026-11-01',
+      readings: [
+        { channelId: importT1, value: 1000 },
+        { channelId: gas, value: 300 },
+      ],
+    })
+    await t.run((ctx) => ctx.db.patch(gas, { retiredAt: NOW }))
+    const recent = await as.query(api.energyReadings.recent, HOME)
+    expect(recent.map(({ kind, value }) => ({ kind, value }))).toEqual([
+      { kind: 'gridImport', value: 1000 },
+    ])
+  })
+
+  test('is empty without an address, and refused outside the Group', async () => {
+    const empty = await seedEnergyGroups()
+    expect(
+      await empty.t.withIdentity(bob).query(api.energyReadings.recent, HOME),
+    ).toEqual([])
+    const { t } = await seedMeters()
+    await expect(
+      t.withIdentity(carol).query(api.energyReadings.recent, HOME),
+    ).rejects.toThrow('groups:not-a-member')
+    await expect(t.query(api.energyReadings.recent, HOME)).rejects.toThrow()
+  })
+})
+
+describe('remove', () => {
+  async function seedRead() {
+    const seeded = await seedMeters()
+    const ids = await seeded.t.run(async (ctx) => ({
+      first: await insertReading(ctx, seeded.homeId, seeded.importT1, '2026-11-01', 1000),
+      middle: await insertReading(ctx, seeded.homeId, seeded.importT1, '2026-11-06', 1010),
+      last: await insertReading(ctx, seeded.homeId, seeded.importT1, '2026-11-11', 1040),
+    }))
+    return { ...seeded, ...ids }
+  }
+
+  const rows = (t: Awaited<ReturnType<typeof seedRead>>['t']) =>
+    t.run((ctx) => ctx.db.query('energyReadings').collect())
+
+  test('a Member deletes one typed reading, and only that one', async () => {
+    const { t, first, middle, last } = await seedRead()
+    await t
+      .withIdentity(bob)
+      .mutation(api.energyReadings.remove, { ...HOME, readingId: middle })
+    expect((await rows(t)).map((row) => row._id)).toEqual([first, last])
+  })
+
+  test('usage and costs for the days around it are worked out again', async () => {
+    const { t, homeId, siteId, middle } = await seedRead()
+    await t.run((ctx) => insertContract(ctx, homeId, siteId, FIXED_TERMS))
+    const month = { ...HOME, month: '2026-11', today: '2026-11-20' }
+    const as = t.withIdentity(bob)
+    const dayOf = async (day: string) =>
+      (await as.query(api.energyUsage.month, month))?.days.find(
+        (each) => each.day === day,
+      )
+
+    // 10 kWh over the five days to the 6th, 30 over the five after it.
+    const before = await dayOf('2026-11-03')
+    expect(before?.importKwh).toBeCloseTo(2)
+    const beforeCost = before?.cost?.importCents
+    expect((await dayOf('2026-11-08'))?.importKwh).toBeCloseTo(6)
+
+    await as.mutation(api.energyReadings.remove, { ...HOME, readingId: middle })
+
+    // Now 40 kWh spread evenly over the ten days, either side of the 6th.
+    const after = await dayOf('2026-11-03')
+    expect(after?.importKwh).toBeCloseTo(4)
+    expect((await dayOf('2026-11-08'))?.importKwh).toBeCloseTo(4)
+    expect(after?.cost?.importCents).toBeGreaterThan(beforeCost ?? Infinity)
+  })
+
+  test('refuses outside the Group, and signed out, and deletes nothing', async () => {
+    const { t, middle } = await seedRead()
+    const args = { ...HOME, readingId: middle }
+    await expect(
+      t.withIdentity(carol).mutation(api.energyReadings.remove, args),
+    ).rejects.toThrow('groups:not-a-member')
+    // Carol's own Group cannot reach it either: not found, like a missing one.
+    await expect(
+      t
+        .withIdentity(carol)
+        .mutation(api.energyReadings.remove, { groupSlug: 'other', readingId: middle }),
+    ).rejects.toThrow('energy:readingNotFound')
+    await expect(t.mutation(api.energyReadings.remove, args)).rejects.toThrow()
+    expect(await rows(t)).toHaveLength(3)
+  })
+
+  test('refuses an unknown id, and an imported reading, as not found', async () => {
+    const { t, homeId, siteId, aliceId, middle } = await seedRead()
+    const imported = await t.run(async (ctx) => {
+      const sourceId = await ctx.db.insert('energySources', {
+        groupId: homeId,
+        siteId,
+        kind: 'homeAssistant',
+        label: 'Home Assistant',
+        status: 'ok',
+        connectedByUserId: aliceId,
+      })
+      const channelId = await ctx.db.insert('energyChannels', {
+        groupId: homeId,
+        siteId,
+        sourceId,
+        kind: 'solar',
+        unit: 'kWh',
+      })
+      return insertReading(ctx, homeId, channelId, '2026-11-15', 5)
+    })
+    const as = t.withIdentity(bob)
+    await as.mutation(api.energyReadings.remove, { ...HOME, readingId: middle })
+    // Deleted once, it is gone: asking again is not found.
+    await expect(
+      as.mutation(api.energyReadings.remove, { ...HOME, readingId: middle }),
+    ).rejects.toThrow('energy:readingNotFound')
+    await expect(
+      as.mutation(api.energyReadings.remove, { ...HOME, readingId: imported }),
+    ).rejects.toThrow('energy:readingNotFound')
+    expect(await rows(t)).toHaveLength(3)
+  })
+
+  test("refuses a retired meter's reading as not found, and deletes nothing", async () => {
+    // A retired meter can come back; deleting its readings would change past usage.
+    const { t, importT1, middle } = await seedRead()
+    await t.run((ctx) => ctx.db.patch(importT1, { retiredAt: NOW }))
+    await expect(
+      t
+        .withIdentity(bob)
+        .mutation(api.energyReadings.remove, { ...HOME, readingId: middle }),
+    ).rejects.toThrow('energy:readingNotFound')
+    expect(await rows(t)).toHaveLength(3)
   })
 })

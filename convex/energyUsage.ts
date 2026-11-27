@@ -12,6 +12,7 @@
  */
 import { isIsoDate } from '@gather/core/civil-date'
 import {
+  amsterdamDayOf,
   energyContractOn,
   energyMonthDays,
   isEnergyMonth,
@@ -35,6 +36,7 @@ import {
   hasHourlySource,
   primarySiteOf,
   siteChannels,
+  siteContracts,
   sumCosts,
 } from './lib/energyUsage'
 import { requireGroupBySlug } from './lib/groupAccess'
@@ -212,28 +214,33 @@ export const day = query({
     if (!site) return null
     const channels = await siteChannels(ctx, site._id)
     const hourly = hasHourlySource(channels)
-    const range = await computeEnergyRange(ctx, site, channels, [args.day], {
-      hourly,
-      net: false,
-    })
+    const contract =
+      energyContractOn(await siteContracts(ctx, site._id), args.day) ?? null
+    // Net metering is settled over the month, which holds the day too: read
+    // instead of it, so a day never reads more than a month does.
+    const netted =
+      args.day <= args.today &&
+      contract !== null &&
+      netMeteringOn(contract, args.day)
+    const range = await computeEnergyRange(
+      ctx,
+      site,
+      channels,
+      netted
+        ? energyMonthDays(args.day.slice(0, 7)).filter(
+            (each) => each <= args.today,
+          )
+        : [args.day],
+      { hourly },
+    )
+    range.days = range.days.filter((each) => each.day === args.day)
+    range.hours = range.hours.filter(
+      ({ hourStart }) => amsterdamDayOf(hourStart) === args.day,
+    )
     // A day still to come has nothing in it, as in `month`.
     if (args.day > args.today) {
       range.days = [emptyDay(args.day)]
       range.hours = range.hours.map(({ hourStart }) => emptyHour(hourStart))
-    }
-    const contract = energyContractOn(range.contracts, args.day) ?? null
-    const own = range.days[0]
-    if (
-      own?.costStatus === 'ok' &&
-      contract &&
-      netMeteringOn(contract, args.day)
-    ) {
-      const monthSoFar = energyMonthDays(args.day.slice(0, 7)).filter(
-        (each) => each <= args.today,
-      )
-      const month = await computeEnergyRange(ctx, site, channels, monthSoFar)
-      own.cost =
-        month.days.find((each) => each.day === args.day)?.cost ?? own.cost
     }
     return {
       siteName: site.name,

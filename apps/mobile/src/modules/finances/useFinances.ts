@@ -7,7 +7,7 @@
  * this Module still takes a `groupSlug`, because a write happens at the address
  * that names its Group (ADR-0007).
  */
-import { localIsoDate } from '@gather/core/civil-date'
+import { todayIn } from '@gather/core/civil-date'
 import { useMemo } from 'react'
 import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'
@@ -21,7 +21,10 @@ export function useFinances() {
 
   const currency = HOME_CURRENCY
 
-  const format = useMemo(() => formatters(locale, HOME_CURRENCY), [locale])
+  const format = useMemo(
+    () => formatters(locale, HOME_CURRENCY, group.timeZone),
+    [locale, group.timeZone],
+  )
 
   return {
     groupSlug,
@@ -31,6 +34,6 @@ export function useFinances() {
     format,
     text: t.finances,
     /** Read once per render rather than per row: every screen dates from it. */
-    today: localIsoDate(),
+    today: todayIn(group.timeZone),
   }
 }

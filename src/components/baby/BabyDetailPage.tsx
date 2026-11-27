@@ -30,7 +30,7 @@ export interface BabyDetailPageProps {
  * it from a Group of their own.
  */
 export function BabyDetailPage({ babyId }: BabyDetailPageProps) {
-  const { slug: groupSlug } = useRequiredCurrentGroup()
+  const { slug: groupSlug, timeZone } = useRequiredCurrentGroup()
   const id = babyId as Id<'babies'>
   const baby = useQuery(api.babies.get, { id, groupSlug })
   const babies = useQuery(api.babies.list, { groupSlug })
@@ -136,7 +136,7 @@ export function BabyDetailPage({ babyId }: BabyDetailPageProps) {
           <div>
             <h1 className="m-0 text-2xl font-bold">{baby.name}</h1>
             <p className="m-0 text-sm text-[var(--muted)]">
-              {formatAge(baby.birthDate, child.age, locale)}
+              {formatAge(baby.birthDate, child.age, locale, undefined, timeZone)}
             </p>
           </div>
         </div>
@@ -155,6 +155,7 @@ export function BabyDetailPage({ babyId }: BabyDetailPageProps) {
         <ExportPdfPanel
           babyId={id}
           groupSlug={groupSlug}
+          timeZone={timeZone}
           babyName={baby.name}
           babyBirthDate={baby.birthDate}
           onClose={() => setExportOpen(false)}
@@ -164,6 +165,7 @@ export function BabyDetailPage({ babyId }: BabyDetailPageProps) {
       <QuickLogButtons
         babyId={id}
         groupSlug={groupSlug}
+        timeZone={timeZone}
         untrackedTypes={baby.untrackedTypes}
         barOrder={baby.barOrder}
       />
@@ -175,7 +177,11 @@ export function BabyDetailPage({ babyId }: BabyDetailPageProps) {
               <h2 className="m-0 mb-2 text-sm font-semibold">
                 {child.temperatureTrend}
               </h2>
-              <TrendChart points={temperaturePoints} unit="°C" />
+              <TrendChart
+                points={temperaturePoints}
+                unit="°C"
+                timeZone={timeZone}
+              />
             </SurfaceCard>
           )}
           {weightPoints.length > 0 && (
@@ -183,7 +189,7 @@ export function BabyDetailPage({ babyId }: BabyDetailPageProps) {
               <h2 className="m-0 mb-2 text-sm font-semibold">
                 {child.weightTrend}
               </h2>
-              <TrendChart points={weightPoints} unit="kg" />
+              <TrendChart points={weightPoints} unit="kg" timeZone={timeZone} />
             </SurfaceCard>
           )}
         </div>
@@ -192,7 +198,12 @@ export function BabyDetailPage({ babyId }: BabyDetailPageProps) {
       {events === undefined ? (
         <div className="h-40 animate-pulse rounded-[var(--radius-control)] border border-[var(--hair)] bg-[var(--surface-2)]" />
       ) : (
-        <Timeline babyId={id} groupSlug={groupSlug} events={events} />
+        <Timeline
+          babyId={id}
+          groupSlug={groupSlug}
+          timeZone={timeZone}
+          events={events}
+        />
       )}
     </div>
   )

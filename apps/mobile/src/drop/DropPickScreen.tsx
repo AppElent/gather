@@ -22,10 +22,13 @@
  * blank page with no name and no way out.
  */
 
+import { noteRefusalSentence } from '@gather/core/refusals'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useHeaderHeight } from 'expo-router/react-navigation'
 import { useState } from 'react'
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -54,12 +57,14 @@ import {
   type DropTargetId,
   dropTargetById,
 } from './dropTargets'
-import { asksServer, pickableNotes } from './noteCandidates'
+import { asksServer, bodyExcerpt, pickableNotes } from './noteCandidates'
 import { type DropPicked, useDropCommit } from './useDropCommit'
 
 /** One row of whatever stage two is listing. */
 interface Candidate extends DropPicked {
   label: string
+  /** Why a note matched, when only its body did: the text around the hit. */
+  detail?: string
   /** A list Gather may read but never write to (ADR-0021). */
   readOnly?: boolean
 }
@@ -68,6 +73,10 @@ export function DropPickScreen() {
   const tokens = useTokens()
   const router = useRouter()
   const { t } = useI18n()
+  // The header is see-through and iOS draws a plain view under it, so the
+  // search field starts below the header (the chooser's scroll view insets
+  // itself). Android lays the content out below the header already.
+  const headerHeight = useHeaderHeight()
   const { group, groups } = useGroup()
   const openInGroup = useOpenInGroup()
   const { pending, clear } = useDrop()
@@ -83,7 +92,7 @@ export function DropPickScreen() {
 
   const [query, setQuery] = useState('')
   const [saving, setSaving] = useState<string | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<string | null>(null)
 
   const target = knownTarget(targetId)
   const drop = pending?.drop ?? null
@@ -119,7 +128,7 @@ export function DropPickScreen() {
   async function save(candidate: Candidate) {
     if (!asking || !drop) return
     setSaving(candidate.id)
-    setFailed(false)
+    setFailed(null)
     try {
       const result = await commit({
         target: asking,
@@ -129,7 +138,7 @@ export function DropPickScreen() {
       })
       if (result.ok !== true) {
         haptics.actionFailed()
-        setFailed(true)
+        setFailed(text.failed)
         return
       }
       haptics.itemSaved()
@@ -140,11 +149,13 @@ export function DropPickScreen() {
         router.dismissTo('/home')
         router.push(href)
       })
-    } catch {
+    } catch (error) {
       // Back is still the chooser and the Drop is still pending, so recovery
       // needs nothing of its own — see the chooser's note.
       haptics.actionFailed()
-      setFailed(true)
+      setFailed(
+        noteRefusalSentence(error, t.notes.refusals) ?? text.failed,
+      )
     } finally {
       setSaving(null)
     }
@@ -166,7 +177,15 @@ export function DropPickScreen() {
           title: ask ? text.pick[ask] : text.title,
         }}
       />
-      <View style={[styles.root, { backgroundColor: tokens.ground }]}>
+      <View
+        style={[
+          styles.root,
+          {
+            backgroundColor: tokens.ground,
+            paddingTop: styles.root.padding + (Platform.OS === 'ios' ? headerHeight : 0),
+          },
+        ]}
+      >
         {!asking || !drop ? (
           // A stale address, or a Drop that was answered elsewhere. Named by
           // the header above, and one Back from the chooser.
@@ -208,7 +227,11 @@ export function DropPickScreen() {
                     <Pressable
                       key={candidate.id}
                       accessibilityRole="button"
-                      accessibilityLabel={candidate.label}
+                      accessibilityLabel={
+                        candidate.detail
+                          ? `${candidate.label}, ${candidate.detail}`
+                          : candidate.label
+                      }
                       accessibilityState={{
                         disabled: Boolean(candidate.readOnly),
                       }}
@@ -223,11 +246,21 @@ export function DropPickScreen() {
                         pressed && !candidate.readOnly && styles.pressed,
                       ]}
                     >
-                      <Text
-                        style={[styles.rowLabel, { color: tokens.ink }]}
-                      >
-                        {candidate.label}
-                      </Text>
+                      <View style={styles.rowText}>
+                        <Text
+                          style={[styles.rowLabel, { color: tokens.ink }]}
+                        >
+                          {candidate.label}
+                        </Text>
+                        {candidate.detail ? (
+                          <Text
+                            numberOfLines={2}
+                            style={[styles.rowNote, { color: tokens.muted }]}
+                          >
+                            {candidate.detail}
+                          </Text>
+                        ) : null}
+                      </View>
                       {saving === candidate.id ? (
                         <ActivityIndicator color={tokens.muted} />
                       ) : candidate.readOnly ? (
@@ -243,7 +276,7 @@ export function DropPickScreen() {
 
             {failed ? (
               <Text style={[styles.problem, { color: tokens.danger }]}>
-                {text.failed}
+                {failed}
               </Text>
             ) : null}
           </>
@@ -324,6 +357,7 @@ function useCandidates(
     )?.map((note) => ({
       id: note._id,
       label: note.title || t.notes.untitled,
+      detail: bodyExcerpt(note, query, t.notes.untitled) ?? undefined,
       // Carried so the commit appends to what is on screen rather than reading
       // the note back to learn what somebody just pointed at.
       body: note.body,
@@ -386,6 +420,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
+  rowText: { flexShrink: 1, gap: 2 },
   rowLabel: { ...TYPE.body, flexShrink: 1 },
   rowNote: { ...TYPE.footnote },
   disabled: { opacity: 0.5 },

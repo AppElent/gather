@@ -394,6 +394,29 @@ export const finances = {
       'A saved split keeps the figures that produced it. Duplicate it to change anything.',
     notice:
       'Gather does not keep this. Settle it between yourselves — no balances, no history.',
+    /** The web's own words (APP-329). */
+    web: {
+      newSplit: 'New split',
+      summary: 'Calculator',
+      summaryScope: 'nothing is kept unless you choose',
+      /** `{total}` across one person. */
+      barSubOne: '{total} across 1 person',
+      payer: 'Who paid',
+      /** The amount box of one person, in a custom split. */
+      amountOf: 'Amount for {name}',
+      removePayment: 'Remove {amount} from {name}',
+      eachPays: 'Each person’s part',
+      loading: 'Loading shared costs',
+      loadErrorTitle: 'Shared costs could not be loaded',
+      loadErrorBody: 'Check your connection and try again.',
+      saveError: 'The split was not saved. Try again.',
+      missingTitle: 'Not found',
+      missingBody: 'This split is not in this group.',
+      toCalculator: 'Back to Shared costs',
+      replaceTitle: 'Replace what you have filled in?',
+      replaceBody: 'The calculation on this page has not been saved.',
+      replace: 'Replace',
+    },
   },
 
   portfolio: {

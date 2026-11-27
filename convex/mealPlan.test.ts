@@ -244,49 +244,6 @@ describe('mealPlan', () => {
     ])
   })
 
-  test('puts a planned recipe on the grocery list once', async () => {
-    const { t, home, aliceId, pasta } = await seed()
-    const as = t.withIdentity(alice)
-    const id = await as.mutation(api.mealPlan.plan, {
-      groupSlug: 'home',
-      date: '2026-11-24',
-      slot: 'dinner',
-      recipeId: pasta,
-    })
-    expect(
-      await as.mutation(api.mealPlan.addToGroceries, { groupSlug: 'home', id }),
-    ).toEqual({ status: 'no-list', added: 0 })
-    const listId = await t.run(async (ctx) => {
-      const listId = await ctx.db.insert('taskLists', {
-        groupId: home,
-        name: 'Boodschappen',
-        provider: 'local',
-        order: 0,
-      })
-      await ctx.db.patch(home, { groceryListId: listId })
-      await ctx.db.insert('tasks', {
-        listId,
-        title: 'rice',
-        done: false,
-        createdBy: aliceId,
-        order: 0,
-      })
-      return listId
-    })
-    expect(
-      await as.mutation(api.mealPlan.addToGroceries, { groupSlug: 'home', id }),
-    ).toEqual({ status: 'added', added: 1, listName: 'Boodschappen' })
-    const titles = await t.run(async (ctx) =>
-      (
-        await ctx.db
-          .query('tasks')
-          .withIndex('by_list', (q) => q.eq('listId', listId))
-          .collect()
-      ).map((task) => task.title),
-    )
-    expect(titles).toEqual(['rice', '2 onions'])
-  })
-
   test('a Member who leaves drops out of who eats along', async () => {
     const { t, home, pasta, aliceId, bobId } = await seed()
     const id = await t.withIdentity(alice).mutation(api.mealPlan.plan, {

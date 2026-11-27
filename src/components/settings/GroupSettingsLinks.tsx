@@ -1,9 +1,8 @@
-import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
-import { SurfaceCard } from '../app/ShellPrimitives'
+import { InsetList, InsetRow, SectionFooter, SectionLabel } from '../app/InsetList'
 import { useCurrentGroup } from '../app/useCurrentGroup'
 
 /**
@@ -20,35 +19,28 @@ export function GroupSettingsLinks() {
   const { setCurrentGroup } = useCurrentGroup()
 
   return (
-    <SurfaceCard>
-      <h2 className="m-0 mb-1 text-base font-semibold">
+    <section aria-labelledby="group-settings-heading">
+      <SectionLabel id="group-settings-heading">
         {groupSettings.title}
-      </h2>
-      <p className="m-0 mb-3 text-sm text-[var(--muted)]">
-        {groupSettings.description}
-      </p>
+      </SectionLabel>
       {groups === undefined ? (
-        <p className="m-0 text-sm text-[var(--muted)]">
+        <p className="m-0 rounded-[var(--radius-card)] bg-[var(--surface)] px-4 py-3.5 text-subhead text-[var(--muted)]">
           {messages.common.errors.loading}
         </p>
       ) : (
-        <ul className="m-0 grid list-none gap-2 p-0">
+        <InsetList>
           {groups.map((group) => (
-            <li key={group._id}>
-              <Link
-                {...linkTo('groupSettings')}
-                onClick={() => setCurrentGroup(group._id)}
-                className="flex min-h-9 items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--hair)] px-3 py-2 text-sm font-semibold no-underline"
-              >
-                {group.name}
-                <span className="text-xs font-normal text-[var(--muted)]">
-                  {groupSettings.open}
-                </span>
-              </Link>
-            </li>
+            <InsetRow
+              key={group._id}
+              title={group.name}
+              link={linkTo('groupSettings')}
+              onLinkClick={() => setCurrentGroup(group._id)}
+              trailing={<span className="text-footnote">{groupSettings.open}</span>}
+            />
           ))}
-        </ul>
+        </InsetList>
       )}
-    </SurfaceCard>
+      <SectionFooter>{groupSettings.description}</SectionFooter>
+    </section>
   )
 }

@@ -6,12 +6,8 @@
  * typed: no network and no AI, so it works offline. A chip's × dismisses that
  * recognition; its words stay in the title as plain text.
  */
-import { localIsoDate } from '@gather/core/civil-date'
-import {
-  parseQuickAdd,
-  type QuickAdd,
-  type QuickAddKind,
-} from '@gather/core/task-quick-add'
+import { localIsoDate, todayIn } from '@gather/core/civil-date'
+import type { QuickAdd, QuickAddKind } from '@gather/core/task-quick-add'
 import { type ComponentRef, type Ref, useMemo, useState } from 'react'
 import {
   Pressable,
@@ -22,10 +18,12 @@ import {
   View,
 } from 'react-native'
 
+import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { type ModuleGroup, TYPE, useTokens } from '../../theme/tokens'
 import { useTaskPeople } from './assignee'
+import { parseOnly } from './composerDraft'
 import { TASK_ICONS } from './icons'
 import { quickAddChipLabel } from './quickAdd'
 
@@ -39,21 +37,25 @@ const pad = (value: number) => String(value).padStart(2, '0')
 export function useQuickAddLine(
   recognise = true,
   initial?: { line: string; dismissed: readonly string[] },
+  /** The only details to read, where the list cannot hold the others. */
+  kinds?: readonly QuickAddKind[],
 ) {
   const { people } = useTaskPeople()
   const [line, setLine] = useState(initial?.line ?? '')
   const [dismissed, setDismissed] = useState<readonly string[]>(
     initial?.dismissed ?? [],
   )
+  const { group } = useGroup()
   const at = new Date()
-  const today = localIsoDate(at)
+  const today = todayIn(group.timeZone, at)
+  const clockDay = localIsoDate(at)
   const now = `${pad(at.getHours())}:${pad(at.getMinutes())}`
   const parsed = useMemo(
     (): QuickAdd =>
       recognise
-        ? parseQuickAdd(line, { today, now, members: people, dismissed })
+        ? parseOnly(line, { today, clockDay, now, members: people, dismissed }, kinds)
         : { title: line.trim(), parts: [], labels: [] },
-    [recognise, line, today, now, people, dismissed],
+    [recognise, line, today, clockDay, now, people, dismissed, kinds],
   )
   return {
     line,

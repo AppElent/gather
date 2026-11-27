@@ -11,8 +11,15 @@ const backend = vi.hoisted(() => ({
   ensureUser: vi.fn<(args: { name?: string }) => Promise<unknown>>(),
 }))
 
+const clerk = vi.hoisted(() => ({
+  user: { fullName: 'Sanne Bos', firstName: 'Sanne' } as {
+    fullName: string | null
+    firstName: string | null
+  },
+}))
+
 vi.mock('@clerk/expo', () => ({
-  useUser: () => ({ user: { fullName: 'Sanne Bos', firstName: 'Sanne' } }),
+  useUser: () => ({ user: clerk.user }),
 }))
 
 vi.mock('convex/react', () => ({
@@ -20,12 +27,14 @@ vi.mock('convex/react', () => ({
   useMutation: () => backend.ensureUser,
 }))
 
+const result = { current: undefined as unknown as Provisioning }
+
+function Probe() {
+  result.current = useEnsureUser()
+  return null
+}
+
 function renderHook() {
-  const result = { current: undefined as unknown as Provisioning }
-  function Probe() {
-    result.current = useEnsureUser()
-    return null
-  }
   const view = mount(<Probe />)
   return { result, view }
 }
@@ -33,6 +42,7 @@ function renderHook() {
 describe('useEnsureUser', () => {
   afterEach(() => {
     backend.ensureUser.mockReset()
+    clerk.user = { fullName: 'Sanne Bos', firstName: 'Sanne' }
     document.body.innerHTML = ''
   })
 
@@ -51,6 +61,19 @@ describe('useEnsureUser', () => {
     expect(backend.ensureUser).toHaveBeenCalledWith({ name: 'Sanne Bos' })
   })
 
+  test('sends the new name again when the name in Clerk changes (APP-678)', async () => {
+    backend.ensureUser.mockResolvedValue('user-id')
+    const { view } = renderHook()
+    await settle()
+    expect(backend.ensureUser).toHaveBeenCalledOnce()
+
+    clerk.user = { fullName: 'Sanne de Boer', firstName: 'Sanne' }
+    view.rerender(<Probe />)
+    await settle()
+    expect(backend.ensureUser).toHaveBeenCalledTimes(2)
+    expect(backend.ensureUser).toHaveBeenLastCalledWith({ name: 'Sanne de Boer' })
+  })
+
   test('reports a refused provisioning instead of swallowing it, and retry runs it again', async () => {
     backend.ensureUser.mockRejectedValueOnce(new Error('Server Error'))
     const { result } = renderHook()
@@ -65,10 +88,25 @@ describe('useEnsureUser', () => {
     expect(result.current.failed).toBe(false)
   })
 
-  test('does not report an account mid-deletion as a failure: that screen is already signing out', async () => {
+  test('reports an account mid-deletion as deleted, not as a failure to retry', async () => {
     backend.ensureUser.mockRejectedValue(new ConvexError(ACCOUNT_DELETED))
     const { result } = renderHook()
     await settle()
     expect(result.current.failed).toBe(false)
+    expect(result.current.deleted).toBe(true)
+  })
+
+  test('a new attempt, such as for another account, starts without the deleted refusal', async () => {
+    backend.ensureUser.mockRejectedValue(new ConvexError(ACCOUNT_DELETED))
+    const { result, view } = renderHook()
+    await settle()
+    expect(result.current.deleted).toBe(true)
+
+    backend.ensureUser.mockReturnValue(new Promise(() => {}))
+    clerk.user = { fullName: 'Ravi Kapoor', firstName: 'Ravi' }
+    view.rerender(<Probe />)
+    await settle()
+    expect(backend.ensureUser).toHaveBeenCalledTimes(2)
+    expect(result.current.deleted).toBe(false)
   })
 })

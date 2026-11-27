@@ -103,6 +103,9 @@ vi.mock('../theme/tokens', () => {
   const any = new Proxy({}, { get: () => ({}) })
   return { RADIUS: any, TYPE: any, useTokens: () => ({}) }
 })
+vi.mock('../ui/keyboard-done-bar', () => ({
+  useKeyboardDoneBar: () => ({ accessory: null }),
+}))
 vi.mock('../theme/icons', () => ({
   UI_ICONS: new Proxy({}, { get: () => () => null }),
 }))

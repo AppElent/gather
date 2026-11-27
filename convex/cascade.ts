@@ -1,35 +1,38 @@
 /**
  * The scheduled half of destroying things.
  *
- * Two jobs that cannot run inside the mutation that starts them, for the same
- * reason in both cases: a Convex mutation is one bounded transaction, and
- * neither of these has a bound a person's household is guaranteed to fit
- * inside.
+ * Jobs that cannot run inside the mutation that starts them, all for the same
+ * reason: a Convex mutation is one bounded transaction, and none of these has
+ * a bound a person's household is guaranteed to fit inside.
  *
- * Neither is callable from a client. Every entry point into them has already
+ * None is callable from a client. Every entry point into them has already
  * resolved who is asking and refused whoever may not — nothing here re-checks,
  * because nothing here has anyone to check against by the time it runs.
  */
 
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
-import type { Id } from './_generated/dataModel'
+import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation } from './_generated/server'
 import { writePauseMs } from './lib/energyWritePace'
-import { destroyGroup, detachFromGroup } from './lib/groupCascade'
-import { deletePushData } from './lib/notifications'
+import {
+  destroyGroup,
+  detachFromGroup,
+  purgeChildrenPage,
+  purgeGroupPage,
+} from './lib/groupCascade'
+import { cancelJob } from './lib/notifications'
+import { drain, newPurgePage, pauseMs } from './lib/purgePage'
 import { deleteStoredFile } from './lib/storedFiles'
 
 /**
  * How many blobs one step releases.
  *
- * `deleteStoredFile` asks whether any row in any photo-holding table still
- * points at the blob before it goes, so each of these scans all of those tables.
- * Twenty stays comfortably inside a transaction, and a household with hundreds
- * of photos simply takes more steps rather than failing.
+ * Releasing one reads at most one row still pointing at it. A row is at most
+ * 1 MiB, so ten stay inside a transaction's 16 MiB whatever those rows hold.
  */
-const FILES_PER_STEP = 20
+const FILES_PER_STEP = 10
 
 export const releaseFiles = internalMutation({
   args: { storageIds: v.array(v.id('_storage')) },
@@ -74,6 +77,52 @@ export const purgeEnergyRows = internalMutation({
   },
 })
 
+/** Delete the rest of a destroyed Group's rows, a page per step (APP-842). */
+export const purgeGroup = internalMutation({
+  args: {
+    groupId: v.id('groups'),
+    storageIds: v.array(v.id('_storage')),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await purgeGroupPage(ctx, args.groupId, args.storageIds)
+    return null
+  },
+})
+
+/**
+ * Delete the rest of a deleted list's tasks, calendar's events or child's log,
+ * a page per step (APP-878).
+ */
+export const purgeChildren = internalMutation({
+  args: {
+    parent: v.union(
+      v.object({ table: v.literal('taskLists'), id: v.id('taskLists') }),
+      v.object({ table: v.literal('calendars'), id: v.id('calendars') }),
+      v.object({ table: v.literal('babies'), id: v.id('babies') }),
+    ),
+    storageIds: v.array(v.id('_storage')),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await purgeChildrenPage(ctx, args.parent, args.storageIds)
+    return null
+  },
+})
+
+/**
+ * Nothing schedules this any more: it finishes the steps a Group deleted before
+ * APP-842 was deployed still had queued (docs/migrations/README.md).
+ */
+export const purgeNotes = internalMutation({
+  args: { groupId: v.id('groups') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await purgeGroupPage(ctx, args.groupId, [])
+    return null
+  },
+})
+
 /** Delete the account prices of a feed that is gone, a page per step. */
 export const purgeAccountPrices = internalMutation({
   args: { feedId: v.id('energyPriceFeeds') },
@@ -94,7 +143,9 @@ export const purgeAccountPrices = internalMutation({
 })
 
 /**
- * Delete a person's account, one Group per step, then the person.
+ * Delete a person's account, one Group per step, then the person
+ * (`finishAccount`). A step that failed is run again with its own arguments:
+ * without its `groupIds`, the solo Groups in them are left, not destroyed.
  *
  * The order is the whole design. Their Groups go first — one per invocation,
  * so no single household can be too large — and the `users` row goes *last*,
@@ -127,10 +178,14 @@ export const purgeAccount = internalMutation({
 })
 
 /**
- * Everything of theirs that is not a Group's, and then the row itself.
+ * Everything of theirs that is not a Group's, and then the row itself, in
+ * steps: a page of their own rows each (`purgePage.ts`), then one shared Group
+ * each (APP-843). Every step looks from the start and only one that leaves
+ * nothing deletes the `users` row, so after a failed step the next run goes on
+ * from there.
  *
- * The AI usage counter, retry receipts, push phones and queued push
- * notifications belong to the person rather than to a Group and are reached
+ * Watches, push phones, queued push notifications, the AI usage counter and
+ * retry receipts belong to the person rather than to a Group and are reached
  * by index. What is left in the Groups they shared is deliberately
  * *not* deleted: `createdBy` and its siblings are attribution and never conferred
  * access, so a dangling one costs nothing and the household keeps what it was
@@ -142,29 +197,132 @@ async function finishAccount(
   ctx: MutationCtx,
   userId: Id<'users'>,
 ) {
-  const usage = await ctx.db
-    .query('aiUsage')
-    .withIndex('by_user_and_day', (q) => q.eq('userId', userId))
-    .collect()
-  for (const row of usage) await ctx.db.delete(row._id)
-  const receipts = await ctx.db
-    .query('idempotencyKeys')
-    .withIndex('by_user_and_key', (q) => q.eq('userId', userId))
-    .collect()
-  for (const row of receipts) await ctx.db.delete(row._id)
-  // Their phones and queued push notifications (APP-298).
-  await deletePushData(ctx, userId)
+  const page = newPurgePage()
+  // Their watches' keys first (APP-653): they are credentials.
+  const empty =
+    (await drain(
+      ctx,
+      page,
+      'watchDevices',
+      ctx.db
+        .query('watchDevices')
+        .withIndex('by_user', (q) => q.eq('userId', userId)),
+    )) &&
+    (await drain(
+      ctx,
+      page,
+      'pushDevices',
+      ctx.db
+        .query('pushDevices')
+        .withIndex('by_user', (q) => q.eq('userId', userId)),
+    )) &&
+    (await drain(
+      ctx,
+      page,
+      'scheduledNotifications',
+      ctx.db
+        .query('scheduledNotifications')
+        .withIndex('by_user_and_key', (q) => q.eq('userId', userId)),
+      async (send) => {
+        await cancelJob(ctx, send.jobId)
+        return true
+      },
+    )) &&
+    (await drain(
+      ctx,
+      page,
+      'aiUsage',
+      ctx.db
+        .query('aiUsage')
+        .withIndex('by_user_and_day', (q) => q.eq('userId', userId)),
+    )) &&
+    (await drain(
+      ctx,
+      page,
+      'idempotencyKeys',
+      ctx.db
+        .query('idempotencyKeys')
+        .withIndex('by_user_and_key', (q) => q.eq('userId', userId)),
+    ))
+  if (!empty) {
+    await ctx.scheduler.runAfter(
+      pauseMs(page),
+      internal.cascade.purgeAccount,
+      { userId, groupIds: [] },
+    )
+    return
+  }
 
-  // Whatever memberships are left are the shared Groups — the solo ones went
-  // with their Group.
-  const memberships = await ctx.db
+  // Whatever memberships are left were shared Groups when the purge began —
+  // the solo ones went with their Group. Who else is in one is read again
+  // here, not taken from then (APP-882): when everybody else in it is gone or
+  // being deleted too, or it was made after the purge began (by a request
+  // already in flight; the account is refused since), leaving it would
+  // strand a Group with no Members, so it is destroyed instead. Whichever
+  // purge gets there first does that; the others find the membership gone.
+  const membership = await ctx.db
     .query('memberships')
     .withIndex('by_user', (q) => q.eq('userId', userId))
-    .collect()
-  for (const membership of memberships) {
-    await detachFromGroup(ctx, userId, membership.groupId)
-    await ctx.db.delete(membership._id)
+    .first()
+  if (membership) {
+    const staying = await othersStaying(ctx, membership)
+    if (staying.length > 0) {
+      await keepAnAdmin(ctx, membership, staying)
+      await detachFromGroup(ctx, userId, membership.groupId)
+      await ctx.db.delete(membership._id)
+    } else {
+      await destroyGroup(ctx, membership.groupId)
+      // A Group already gone, or one whose memberships wait for a later page.
+      if (await ctx.db.get(membership._id)) await ctx.db.delete(membership._id)
+    }
+    await ctx.scheduler.runAfter(0, internal.cascade.purgeAccount, {
+      userId,
+      groupIds: [],
+    })
+    return
   }
 
   await ctx.db.delete(userId)
+}
+
+/**
+ * The other Members staying in this Member's Group: memberships whose user is
+ * neither gone nor being deleted, oldest first. The same count as
+ * `groups.exitsFor`. None when the Group itself is gone.
+ */
+async function othersStaying(
+  ctx: MutationCtx,
+  membership: Doc<'memberships'>,
+): Promise<Doc<'memberships'>[]> {
+  if (!(await ctx.db.get(membership.groupId))) return []
+  const members = await ctx.db
+    .query('memberships')
+    .withIndex('by_group', (q) => q.eq('groupId', membership.groupId))
+    .collect()
+  const staying: Doc<'memberships'>[] = []
+  for (const other of members) {
+    if (other._id === membership._id) continue
+    const user = await ctx.db.get(other.userId)
+    if (user && !user.deletedAt) staying.push(other)
+  }
+  return staying.sort((a, b) => a._creationTime - b._creationTime)
+}
+
+/**
+ * Hand the admin role on when the person going is the Group's only admin
+ * (APP-938). `leaveGroup` holds that door shut (`only-admin`), because nobody
+ * left could rename, delete or administer the Group; deleting an account
+ * cannot be refused for it, so the longest-standing Member staying becomes
+ * admin instead. An admin who is being deleted too does not count, the same
+ * as in `groups.exitsFor`.
+ */
+async function keepAnAdmin(
+  ctx: MutationCtx,
+  membership: Doc<'memberships'>,
+  staying: Doc<'memberships'>[],
+) {
+  if (membership.role !== 'admin') return
+  if (staying.some((other) => other.role === 'admin')) return
+  const [longest] = staying
+  if (longest) await ctx.db.patch(longest._id, { role: 'admin' })
 }

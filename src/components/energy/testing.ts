@@ -1,6 +1,7 @@
 import { amsterdamDayHours, energyMonthDays } from '@gather/core/energy'
 import type { EnergyPriceDay, EnergyPriceView } from '@gather/core/energy-present'
 import type { EnergyPeriod } from './energyShared'
+import type { EnergyAssetRow, EnergySolarMonth } from './energySolarCharts'
 
 /**
  * Builders for the Energy page tests: a period as `energyUsage.month` and
@@ -151,4 +152,72 @@ export function priceView(overrides: Partial<EnergyPriceView> = {}): EnergyPrice
     tomorrow: priceDay('2026-11-21', { 13: 0.1, 14: 0.1, 15: 0.1, 18: 0.5 }),
     ...overrides,
   }
+}
+
+/**
+ * 20 November by the hour, up to 18:00: charged 2:00 to 4:00, sun at noon,
+ * discharged 17:00 and 18:00, and 64% full.
+ */
+export function batteryDay(): EnergyPeriod {
+  const channels = {
+    ...CHANNELS,
+    solar: true,
+    battery: true,
+    batterySoc: true,
+  }
+  return {
+    ...monthPeriod('2026-11', '2026-11-20'),
+    hasHourly: true,
+    channels,
+    days: [day('2026-11-20', { solarKwh: 3 })],
+    hours: amsterdamDayHours('2026-11-20').map((hourStart, index) => ({
+      hourStart,
+      hasData: index < 19,
+      importKwh: 0.3,
+      exportKwh: 0,
+      solarKwh: index < 19 ? (index === 12 ? 0.95 : 0.1) : null,
+      batteryChargeKwh: index < 19 ? (index === 2 || index === 3 ? 2.4 : 0) : null,
+      batteryDischargeKwh:
+        index < 19 ? (index === 17 || index === 18 ? 1.5 : 0) : null,
+      consumptionKwh: 0.3,
+      socPercent: index < 19 ? (index === 18 ? 64 : 30 + index * 2) : null,
+    })),
+  }
+}
+
+/** A month of solar and a battery, with one day's figures on `today`. */
+export function solarMonth(
+  overrides: Partial<Omit<EnergySolarMonth, 'assets'>> & {
+    assets?: EnergyAssetRow[]
+  } = {},
+): EnergySolarMonth {
+  return {
+    siteName: 'Thuis',
+    status: 'ok',
+    solar: true,
+    battery: true,
+    batterySoc: true,
+    firstDay: '2026-11-20',
+    assets: [],
+    days: [
+      {
+        day: '2026-11-20',
+        producedKwh: 6,
+        selfUsedKwh: 4,
+        returnedKwh: 2,
+        selfUsedEur: 1.2,
+        consumptionKwh: 20,
+        ownKwh: 6.2,
+        battery: {
+          chargeKwh: 4.8,
+          dischargeKwh: 3,
+          chargeEur: 0.96,
+          dischargeEur: 1.55,
+        },
+        solarEur: 1.4,
+        batteryEur: 0.59,
+      },
+    ],
+    ...overrides,
+  } as EnergySolarMonth
 }

@@ -7,17 +7,19 @@
  * as arguments (ADR-0011's third rule), so the web's PDF export and a Node test
  * can both call it with no React tree.
  */
+import {
+  type CivilDateParts,
+  daysBetween,
+  parseIsoDate,
+  todayIn,
+} from './civilDate'
 import { fmt, plural } from './i18n'
 import type { Messages } from './messages'
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000
-
 /** Whole months between `birth` and `now` (0 if `now` is before `birth`). */
-function monthsBetween(birth: Date, now: Date): number {
-  let months =
-    (now.getFullYear() - birth.getFullYear()) * 12 +
-    (now.getMonth() - birth.getMonth())
-  if (now.getDate() < birth.getDate()) months--
+function monthsBetween(birth: CivilDateParts, now: CivilDateParts): number {
+  let months = (now.year - birth.year) * 12 + (now.month - birth.month)
+  if (now.day < birth.day) months--
   return Math.max(0, months)
 }
 
@@ -29,17 +31,21 @@ export type AgeMessages = Messages['baby']['log']['child']['age']
  *
  * The words and the locale come in as arguments: this is a plain function the
  * PDF export calls too, and English's one/other plural is not every language's
- * (ADR-0011).
+ * (ADR-0011). When `timeZone` is given (a Group's zone), "today" is read in
+ * that zone rather than the device's.
  */
 export function formatAge(
   birthDate: string,
   m: AgeMessages,
   locale: string,
   atMs: number = Date.now(),
+  timeZone?: string,
 ): string {
-  const birth = new Date(`${birthDate}T00:00:00`)
-  const now = new Date(atMs)
-  const days = Math.max(0, Math.floor((atMs - birth.getTime()) / MS_PER_DAY))
+  const birth = parseIsoDate(birthDate)
+  const today = todayIn(timeZone, atMs)
+  const now = parseIsoDate(today)
+  if (!birth || !now) return plural(locale, 0, m.days)
+  const days = Math.max(0, Math.floor(daysBetween(birthDate, today)))
   if (days < 14) return plural(locale, days, m.days)
   if (days < 60) return plural(locale, Math.floor(days / 7), m.weeks)
   const months = monthsBetween(birth, now)

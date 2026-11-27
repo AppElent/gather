@@ -633,6 +633,328 @@ describe('the hourly sync', () => {
   })
 })
 
+describe('the daily lookback for corrections', () => {
+  /** A statistic that grows by `index + 1` hundredths, so no two hours agree. */
+  const growing = (hours: number) => {
+    const sums = new Map<number, number>()
+    let sum = 100
+    for (let index = 0; index < hours; index += 1) {
+      sum += (index + 1) / 100
+      sums.set(THIS_HOUR - (hours - index) * HOUR, sum)
+    }
+    return sums
+  }
+  async function connected(sums: Map<number, number>) {
+    const seeded = await seed()
+    fake.sums[IMPORT.statisticId] = sums
+    await connect(seeded, [IMPORT], true)
+    const [source] = await rows(seeded.t, 'energySources')
+    fake.received.length = 0
+    const sourceId = source?._id as Id<'energySources'>
+    return {
+      ...seeded,
+      sourceId,
+      lookback: () =>
+        seeded.t.action(internal.energyHomeAssistant.lookbackSource, {
+          sourceId,
+        }),
+    }
+  }
+  /** Every sum from `at` on, as Home Assistant's own adjustment changes them. */
+  const adjust = (at: number, by: number) => {
+    const sums = fake.sums[IMPORT.statisticId] ?? new Map<number, number>()
+    for (const [hour, sum] of sums) if (hour >= at) sums.set(hour, sum + by)
+  }
+  const amounts = async (t: Seeded['t']) =>
+    new Map(
+      (await rows(t, 'energyIntervals')).map((each) => [
+        each.hourStart,
+        each.amount,
+      ]),
+    )
+
+  test('an edited hour updates its stored row and no other', async () => {
+    const { t, sourceId, lookback } = await connected(growing(300))
+    const before = await rows(t, 'energyIntervals')
+    const at = THIS_HOUR - 5 * DAY
+    adjust(at, -0.75)
+    // The hourly sync does not see it.
+    await t.action(internal.energyHomeAssistant.syncSource, { sourceId })
+    expect(await rows(t, 'energyIntervals')).toEqual(before)
+    await lookback()
+    const after = await rows(t, 'energyIntervals')
+    expect(after).toEqual(
+      before.map((each) =>
+        each.hourStart === at
+          ? { ...each, amount: expect.closeTo(each.amount - 0.75, 6) }
+          : each,
+      ),
+    )
+    // Again: the same rows.
+    await lookback()
+    expect(await rows(t, 'energyIntervals')).toEqual(after)
+  })
+
+  test('unchanged hours write nothing, and one question reads eight days', async () => {
+    const { t, sourceId, lookback } = await connected(growing(300))
+    const before = await rows(t, 'energyIntervals')
+    const source = await rows(t, 'energySources')
+    vi.setSystemTime(NOW + 10 * 60_000)
+    paced.length = 0
+    await lookback()
+    expect(paced).toEqual([191])
+    const asked = fake.received.filter((each) => 'start_time' in each)
+    expect(asked).toHaveLength(1)
+    expect(asked[0]).toMatchObject({
+      start_time: new Date(THIS_HOUR - 8 * DAY).toISOString(),
+      end_time: new Date(THIS_HOUR).toISOString(),
+    })
+    expect(await rows(t, 'energyIntervals')).toEqual(before)
+    expect(await rows(t, 'energySources')).toEqual(source)
+    // Equal rows could also have been patched to the same value.
+    const [channel] = await rows(t, 'energyChannels')
+    expect(
+      await t.mutation(internal.energySources.storeCorrections, {
+        sourceId,
+        baseUrl: ADDRESS,
+        channelId: channel?._id as Id<'energyChannels'>,
+        statisticId: IMPORT.statisticId,
+        hours: before.map(({ hourStart, amount }) => ({
+          hourStart,
+          amount,
+          after: hourStart - HOUR,
+        })),
+      }),
+    ).toBe(0)
+  })
+
+  test('hours filled in late take their share from the catch-up row', async () => {
+    const whole = growing(300)
+    const sums = new Map(whole)
+    for (let hour = 50; hour < 60; hour += 1) sums.delete(THIS_HOUR - hour * HOUR)
+    const { t, lookback } = await connected(sums)
+    const before = await rows(t, 'energyIntervals')
+    fake.sums[IMPORT.statisticId] = whole
+    await lookback()
+    const after = await rows(t, 'energyIntervals')
+    const total = (of: typeof after) => of.reduce((sum, each) => sum + each.amount, 0)
+    expect(after).toHaveLength(before.length + 10)
+    expect(new Set(after.map((each) => each.hourStart)).size).toBe(after.length)
+    expect(total(after)).toBeCloseTo(total(before), 5)
+    expect((await amounts(t)).get(THIS_HOUR - 49 * HOUR)).toBeCloseTo(2.52, 6)
+  })
+
+  test('an outage across the start of the window is never filled in half', async () => {
+    const whole = growing(400)
+    const sums = new Map(whole)
+    for (let hour = 185; hour < 250; hour += 1) sums.delete(THIS_HOUR - hour * HOUR)
+    const { t, lookback } = await connected(sums)
+    const before = await rows(t, 'energyIntervals')
+    fake.sums[IMPORT.statisticId] = whole
+    await lookback()
+    // The catch-up row keeps the whole, so nothing is lost or counted twice.
+    expect(await rows(t, 'energyIntervals')).toEqual(before)
+  })
+
+  test('another sensor’s past does not replace the earlier one’s hours', async () => {
+    const seeded = await connected(growing(300))
+    const other = 'sensor.p1_import_tariff_1'
+    const sums = new Map<number, number>()
+    let sum = 0
+    for (let hour = 300; hour > 0; hour -= 1) {
+      sum += 0.001 * hour + 7
+      sums.set(THIS_HOUR - hour * HOUR, sum)
+    }
+    fake.sums[other] = sums
+    await connect(seeded, [{ ...IMPORT, statisticId: other }])
+    const before = await rows(seeded.t, 'energyIntervals')
+    await seeded.lookback()
+    expect(await rows(seeded.t, 'energyIntervals')).toEqual(before)
+    // Its own hours are corrected, two days on; the earlier one's still not.
+    for (let hour = 0; hour < 48; hour += 1) {
+      sum += 7 + 0.01 * hour
+      sums.set(THIS_HOUR + hour * HOUR, sum)
+    }
+    vi.setSystemTime(NOW + 2 * DAY)
+    await seeded.t.action(internal.energyHomeAssistant.syncSource, {
+      sourceId: seeded.sourceId,
+    })
+    const at = THIS_HOUR + 30 * HOUR
+    for (const [hour, value] of sums) if (hour >= at) sums.set(hour, value + 1)
+    const synced = await rows(seeded.t, 'energyIntervals')
+    await seeded.lookback()
+    expect(await rows(seeded.t, 'energyIntervals')).toEqual(
+      synced.map((each) =>
+        each.hourStart === at
+          ? { ...each, amount: expect.closeTo(each.amount + 1, 6) }
+          : each,
+      ),
+    )
+  })
+
+  test('a sensor that is given back leaves the hours of the one between', async () => {
+    const { t, lookback } = await connected(growing(300))
+    // Three days of another sensor, while this one stood still.
+    await t.run(async (ctx) => {
+      for (const each of await ctx.db.query('energyIntervals').collect()) {
+        const ago = (THIS_HOUR - each.hourStart) / HOUR
+        if (ago > 48 && ago <= 120) {
+          await ctx.db.patch(each._id, { amount: 10 + ago / 10 })
+        }
+      }
+    })
+    const before = await rows(t, 'energyIntervals')
+    await lookback()
+    expect(await rows(t, 'energyIntervals')).toEqual(before)
+  })
+
+  test.each([
+    ['zeros', true],
+    ['no hours at all', false],
+  ])('nor when its nights have %s', async (_, zeros) => {
+    // Eight hours a day, never two the same.
+    const sums = new Map<number, number>()
+    let sum = 100
+    for (let hour = 300; hour > 0; hour -= 1) {
+      const day = hour % 24 < 8
+      if (day) sum += (400 - hour) / 100
+      if (day || zeros) sums.set(THIS_HOUR - hour * HOUR, sum)
+    }
+    const { t, lookback } = await connected(sums)
+    // Three days of another sensor: 24 hours that differ, over 56 in all.
+    let differing = 0
+    await t.run(async (ctx) => {
+      for (const each of await ctx.db.query('energyIntervals').collect()) {
+        const ago = (THIS_HOUR - each.hourStart) / HOUR
+        if (ago >= 48 && ago < 120 && each.amount > 0) {
+          differing += 1
+          await ctx.db.patch(each._id, { amount: each.amount + 7 })
+        }
+      }
+    })
+    expect(differing).toBe(24)
+    const before = await rows(t, 'energyIntervals')
+    await lookback()
+    expect(await rows(t, 'energyIntervals')).toEqual(before)
+  })
+
+  test.each([
+    [24, true],
+    [25, false],
+  ])('a run of %i hours is written: %s', async (length, written) => {
+    const { t, lookback } = await connected(growing(300))
+    const before = await rows(t, 'energyIntervals')
+    const inside = (at: number) =>
+      at >= THIS_HOUR - 100 * HOUR && at < THIS_HOUR - (100 - length) * HOUR
+    await t.run(async (ctx) => {
+      for (const each of await ctx.db.query('energyIntervals').collect()) {
+        if (inside(each.hourStart)) {
+          await ctx.db.patch(each._id, { amount: each.amount + 7 })
+        }
+      }
+    })
+    const changed = await rows(t, 'energyIntervals')
+    await lookback()
+    expect(await rows(t, 'energyIntervals')).toEqual(written ? before : changed)
+  })
+
+  test('a full battery does not make two sensors the same', async () => {
+    const seeded = await seed()
+    const id = 'sensor.battery_soc'
+    fake.statistics.push({
+      statistic_id: id,
+      has_sum: false,
+      has_mean: true,
+      statistics_unit_of_measurement: '%',
+    })
+    const levels = new Map<number, number>()
+    for (let hour = 60; hour > 0; hour -= 1) {
+      levels.set(THIS_HOUR - hour * HOUR, 100)
+    }
+    levels.set(THIS_HOUR - 30 * HOUR, 80)
+    fake.means[id] = levels
+    await connect(seeded, [{ kind: 'batterySoc', statisticId: id }], true)
+    const before = await rows(seeded.t, 'energyIntervals')
+    levels.set(THIS_HOUR - 30 * HOUR, 60)
+    const [source] = await rows(seeded.t, 'energySources')
+    await seeded.t.action(internal.energyHomeAssistant.lookbackSource, {
+      sourceId: source?._id as Id<'energySources'>,
+    })
+    expect(await rows(seeded.t, 'energyIntervals')).toEqual(before)
+  })
+
+  test('a correction at the newest hour waits until hours follow it', async () => {
+    const { t, sourceId, lookback } = await connected(growing(300))
+    const at = THIS_HOUR - HOUR
+    const was = (await amounts(t)).get(at) ?? 0
+    adjust(at, 2)
+    await lookback()
+    expect((await amounts(t)).get(at)).toBe(was)
+    const sums = fake.sums[IMPORT.statisticId] as Map<number, number>
+    let sum = sums.get(at) as number
+    for (let hour = 0; hour < 24; hour += 1) {
+      sum += 5 + hour / 100
+      sums.set(THIS_HOUR + hour * HOUR, sum)
+    }
+    vi.setSystemTime(NOW + DAY)
+    await t.action(internal.energyHomeAssistant.syncSource, { sourceId })
+    await lookback()
+    expect((await amounts(t)).get(at)).toBeCloseTo(was + 2, 6)
+  })
+
+  test('zeros alone do not make two sensors the same', async () => {
+    const solar = { kind: 'solar', statisticId: 'sensor.solar_total' } as const
+    const seeded = await seed()
+    fake.sums[solar.statisticId] = counter(THIS_HOUR - 100 * HOUR, 100, 0, 5)
+    await connect(seeded, [solar], true)
+    const before = await rows(seeded.t, 'energyIntervals')
+    fake.sums[solar.statisticId]?.set(THIS_HOUR - HOUR, 9)
+    const [source] = await rows(seeded.t, 'energySources')
+    await seeded.t.action(internal.energyHomeAssistant.lookbackSource, {
+      sourceId: source?._id as Id<'energySources'>,
+    })
+    expect(await rows(seeded.t, 'energyIntervals')).toEqual(before)
+  })
+
+  test('hours Home Assistant lost are not counted twice', async () => {
+    const { t, lookback } = await connected(growing(300))
+    const before = await rows(t, 'energyIntervals')
+    for (let hour = 20; hour < 60; hour += 1) {
+      fake.sums[IMPORT.statisticId]?.delete(THIS_HOUR - hour * HOUR)
+    }
+    await lookback()
+    expect(await rows(t, 'energyIntervals')).toEqual(before)
+  })
+
+  test('the daily cron looks back once per source; a failure leaves its state', async () => {
+    const { t } = await connected(growing(300))
+    const at = THIS_HOUR - 2 * DAY
+    const was = (await amounts(t)).get(at) ?? 0
+    adjust(at, 4)
+    const source = await rows(t, 'energySources')
+    const url = target.url
+    target.url = `ws://127.0.0.1:${await closedPort()}/api/websocket`
+    await t.mutation(internal.energySources.startSyncs, { lookback: true })
+    await settle(t)
+    expect(await rows(t, 'energySources')).toEqual(source)
+    target.url = url
+    const connections = fake.connections
+    await t.mutation(internal.energySources.startSyncs, { lookback: true })
+    await settle(t)
+    expect(fake.connections).toBe(connections + 1)
+    expect((await amounts(t)).get(at)).toBeCloseTo(was + 4, 6)
+    // A refused token is not tried.
+    await t.run(async (ctx) => {
+      for (const each of await ctx.db.query('energySources').collect()) {
+        await ctx.db.patch(each._id, { status: 'needsReconnect' })
+      }
+    })
+    await t.mutation(internal.energySources.startSyncs, { lookback: true })
+    await settle(t)
+    expect(fake.connections).toBe(connections + 1)
+  })
+})
+
 describe('the channels saved', () => {
   test.each([
     ['none', [], 'pickChannel'],
@@ -1361,33 +1683,131 @@ describe('an import and the connection it belongs to', () => {
     expect(await imports(seeded.t)).toEqual([])
   })
 
-  test('retired channels with hours count toward the limit', async () => {
-    const seeded = await seed()
-    const save = (kind: 'solar' | 'gridImport') =>
-      seeded.as.mutation(internal.energySources.saveConnection, {
-        ...HOME,
-        baseUrl: ADDRESS,
-        secret: TOKEN,
-        storedToken: false,
-        channels: Array.from({ length: 20 }, (_, index) => ({
-          kind,
-          statisticId: `sensor.${kind}_${index}`,
-        })),
-      })
-    await save('solar')
-    await save('gridImport')
-    await save('solar')
-    await seeded.t.run(async (ctx) => {
+  /** Connect twenty channels of one kind, and no others. */
+  const saveTwenty = (
+    seeded: Seeded,
+    kind: 'solar' | 'gridImport',
+    historyFrom?: number,
+  ) =>
+    seeded.as.mutation(internal.energySources.saveConnection, {
+      ...HOME,
+      baseUrl: ADDRESS,
+      secret: TOKEN,
+      storedToken: false,
+      historyFrom,
+      channels: Array.from({ length: 20 }, (_, index) => ({
+        kind,
+        statisticId: `sensor.${kind}_${index}`,
+      })),
+    })
+  /** An hour for every channel of a kind. */
+  const storeHour = (
+    seeded: Seeded,
+    kind: 'solar' | 'gridImport',
+    hourStart: number,
+  ) =>
+    seeded.t.run(async (ctx) => {
       for (const channel of await ctx.db.query('energyChannels').collect()) {
+        if (channel.kind !== kind) continue
         await ctx.db.insert('energyIntervals', {
           groupId: seeded.homeId,
           channelId: channel._id,
-          hourStart: THIS_HOUR,
+          hourStart,
           amount: 1,
           estimated: false,
         })
       }
     })
-    expect((await refusalOf(save('gridImport'))).code).toBe('tooManyChannels')
+
+  test('retired channels with hours in the same month count toward the limit', async () => {
+    const seeded = await seed()
+    await saveTwenty(seeded, 'solar')
+    await storeHour(seeded, 'solar', THIS_HOUR)
+    expect((await refusalOf(saveTwenty(seeded, 'gridImport'))).code).toBe(
+      'tooManyChannels',
+    )
+    // Refused as a whole: nothing was retired.
+    expect(
+      (await rows(seeded.t, 'energyChannels')).every(
+        (each) => each.kind === 'solar' && each.retiredAt === undefined,
+      ),
+    ).toBe(true)
+  })
+
+  test('retired channels without hours do not count', async () => {
+    const seeded = await seed()
+    await saveTwenty(seeded, 'solar')
+    await saveTwenty(seeded, 'gridImport')
+    expect(await rows(seeded.t, 'energyChannels')).toHaveLength(40)
+  })
+
+  test('retired channels whose hours no channel in use can reach do not count', async () => {
+    const seeded = await seed()
+    await saveTwenty(seeded, 'solar')
+    await storeHour(seeded, 'solar', THIS_HOUR)
+    // An import reaches 365 + 15 + 1 days back, and 31 more are one month.
+    vi.setSystemTime(THIS_HOUR + 412 * DAY)
+    expect((await refusalOf(saveTwenty(seeded, 'gridImport'))).code).toBe(
+      'tooManyChannels',
+    )
+    vi.setSystemTime(THIS_HOUR + 413 * DAY)
+    await saveTwenty(seeded, 'gridImport')
+    // Not again in reverse: solar would fill the hours since its last one.
+    await storeHour(seeded, 'gridImport', THIS_HOUR + 412 * DAY)
+    expect((await refusalOf(saveTwenty(seeded, 'solar'))).code).toBe(
+      'tooManyChannels',
+    )
+  })
+
+  test('retired channels of months that differ count once between them', async () => {
+    const seeded = await seed()
+    await saveTwenty(seeded, 'solar')
+    await saveTwenty(seeded, 'gridImport')
+    await storeHour(seeded, 'solar', THIS_HOUR - 3000 * DAY)
+    await storeHour(seeded, 'gridImport', THIS_HOUR - 2960 * DAY)
+    const saveGas = () =>
+      seeded.as.mutation(internal.energySources.saveConnection, {
+        ...HOME,
+        baseUrl: ADDRESS,
+        secret: TOKEN,
+        storedToken: false,
+        channels: [GAS],
+      })
+    await saveGas()
+    // Within a month of each other, long ago: that month is too much.
+    await storeHour(seeded, 'solar', THIS_HOUR - 2990 * DAY)
+    expect((await refusalOf(saveGas())).code).toBe('tooManyChannels')
+  })
+
+  test('hours a pending import wrote count while it may still run, and for a month after', async () => {
+    const seeded = await seed()
+    const asked = THIS_HOUR
+    // Asked now, the import reads a year back; its oldest hour is stored.
+    await saveTwenty(seeded, 'solar', asked - 365 * DAY)
+    await storeHour(seeded, 'solar', asked - 365 * DAY)
+    expect(await imports(seeded.t)).toHaveLength(1)
+
+    // 14 days on it is still inside `IMPORT_MS` (15 days) and still pending.
+    vi.setSystemTime(asked + 14 * DAY)
+    expect(await imports(seeded.t)).toHaveLength(1)
+    expect((await refusalOf(saveTwenty(seeded, 'gridImport'))).code).toBe(
+      'tooManyChannels',
+    )
+    // Refused as a whole: the import's channels were not retired.
+    expect(
+      (await rows(seeded.t, 'energyChannels')).every(
+        (each) => each.kind === 'solar' && each.retiredAt === undefined,
+      ),
+    ).toBe(true)
+
+    // A channel in use may be given hours from a year and 16 days back, and the
+    // hour stored spans one more: a month later neither reaches the other.
+    vi.setSystemTime(asked + 47 * DAY + HOUR)
+    expect((await refusalOf(saveTwenty(seeded, 'gridImport'))).code).toBe(
+      'tooManyChannels',
+    )
+    vi.setSystemTime(asked + 47 * DAY + 2 * HOUR)
+    await saveTwenty(seeded, 'gridImport')
+    expect(await rows(seeded.t, 'energyChannels')).toHaveLength(40)
   })
 })

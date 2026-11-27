@@ -132,6 +132,7 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   // A phone's push token and the sends queued for it: delivery plumbing, and
   // the token is a credential for reaching that phone (APP-298).
   pushDevices: { exclude: 'bookkeeping' },
+  watchDevices: { exclude: 'bookkeeping' },
   scheduledNotifications: { exclude: 'bookkeeping' },
   // Shared across every Group and keyed by a product name only: nobody's.
   groceryCategoryCache: { exclude: 'reference-data' },
@@ -169,7 +170,8 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   // Who completed a repeating task and when (APP-303); names, never ids.
   taskCompletions: { scope: 'group', index: 'by_group' },
   groceryCategoryOverrides: { scope: 'group', index: 'by_group_and_name' },
-  notes: { scope: 'group', index: 'by_group' },
+  // Derived: title and body again, for the search index.
+  notes: { scope: 'group', index: 'by_group', omit: ['searchText'] },
   calendars: { scope: 'group', index: 'by_group' },
   calendarEvents: {
     scope: 'group',

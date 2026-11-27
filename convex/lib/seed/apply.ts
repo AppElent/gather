@@ -6,6 +6,7 @@ import type { MutationCtx } from '../../_generated/server'
 import { stapleKey } from '../groceryStaples'
 import { destroyGroup } from '../groupCascade'
 import { allocateGroupSlug } from '../groupSlugs'
+import { insertNote } from '../noteSearch'
 import { getUserByClerkId } from '../sharing'
 import { auxListNames } from '../taskLists'
 import { RETAILER_CATALOG, type RetailerCatalogEntry } from './retailerCatalog'
@@ -297,8 +298,12 @@ export async function resetSample(ctx: MutationCtx) {
     const groupId = ctx.db.normalizeId('groups', id)
     if (groupId) await destroyGroup(ctx, groupId)
   }
+  // Only the housemates. What else is recorded is the Group's own content, and
+  // deleting a parent here would strand children the cascade still has to
+  // reach through it.
   for (const id of recorded) {
-    if (await alive(id)) await ctx.db.delete(id)
+    const userId = ctx.db.normalizeId('users', id)
+    if (userId && (await alive(userId))) await ctx.db.delete(userId)
   }
 
   // What a deleted housemate leaves behind outside the Sample Group.
@@ -567,7 +572,7 @@ export async function applySample(
   // --- Notes ----------------------------------------------------------------
   for (const note of SAMPLE_NOTES) {
     rec.track(
-      await ctx.db.insert('notes', {
+      await insertNote(ctx, {
         groupId,
         title: note.title,
         body: note.body,

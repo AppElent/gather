@@ -1,19 +1,23 @@
 import { AI_LIMIT_KIND } from '@gather/core/ai-limit'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, ShoppingCart, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useErrorMessage } from '../../lib/errorMessage'
-import { fmt, useMessages } from '../../lib/i18n'
+import { fmt, plural, useI18n } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
+import { buttonClass } from '../app/buttons'
 import { useConfirmAction } from '../app/ConfirmAction'
+import { InsetList, InsetRow, SectionLabel } from '../app/InsetList'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { WashHeader } from '../app/WashHeader'
+import { RecipeToGroceriesDialog } from '../groceries/AddToGroceriesDialog'
 import { NutritionPanel } from './NutritionPanel'
 import { RecipeSharingPanel } from './RecipeSharingPanel'
-import { RecipeThumbnail } from './RecipeThumbnail'
+import { RECIPES_ICON } from './RecipeThumbnail'
 
 export interface RecipeDetailPageProps {
   recipeId: string
@@ -41,7 +45,9 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
   const setNutrition = useMutation(api.recipes.setNutrition)
   const [estimating, setEstimating] = useState(false)
-  const messages = useMessages()
+  const [groceriesOpen, setGroceriesOpen] = useState(false)
+  const [addedToList, setAddedToList] = useState<string | null>(null)
+  const { locale, messages } = useI18n()
   const errorText = useErrorMessage()
   const { detail, form } = messages.recipes
 
@@ -55,108 +61,133 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
 
   if (recipe === undefined)
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-3xl">
         <Breadcrumbs trail={trail} />
-        <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+        <p className="text-sm text-[var(--muted)]">
+          {messages.common.errors.loading}
+        </p>
       </div>
     )
   if (recipe === null)
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-3xl">
         <Breadcrumbs trail={trail} />
-        <p className="text-sm opacity-60">{detail.notFound}</p>
+        <p className="text-sm text-[var(--muted)]">{detail.notFound}</p>
       </div>
     )
 
+  const confirmDelete = () =>
+    confirm({
+      title: detail.deleteTitle,
+      body: fmt(detail.deleteBody, { title: recipe.title }),
+      confirmLabel: messages.common.actions.delete,
+      errorFallback: detail.deleteFailed,
+      run: async () => {
+        await remove({ id: recipe._id })
+        await navigate(linkTo('recipes'))
+      },
+    })
+
   return (
-    <article className="mx-auto max-w-2xl">
-      <Breadcrumbs trail={trail} />
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{recipe.title}</h1>
-          {recipe.rating != null && (
-            <p className="text-sm opacity-60">{'★'.repeat(recipe.rating)}</p>
-          )}
-        </div>
-        {/* A recipe reaches a Group it was only shared into as something to
-            read: writing follows the home Group. Showing the buttons anyway
-            would offer an action that can only fail on click. */}
-        {recipe.canEdit && (
-          <div className="flex gap-2">
-            <Link
-              {...linkTo('editRecipe', { recipeId: recipeId })}
-              aria-label={messages.common.actions.edit}
-              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border no-underline lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
-            >
-              <Pencil className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden lg:inline">
-                {messages.common.actions.edit}
-              </span>
-            </Link>
+    <article className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-5">
+      <Breadcrumbs trail={trail} className="-mb-2" backInHeader />
+      <WashHeader
+        group="kitchen"
+        icon={RECIPES_ICON}
+        title={recipe.title}
+        summary={{
+          count:
+            recipe.rating != null
+              ? plural(locale, recipe.rating, messages.recipes.rating.stars)
+              : plural(locale, recipe.ingredients.length, detail.ingredientCount),
+          // Who to ask about it. Resolved by `recipes.get`, and absent once that
+          // person's row has gone.
+          scope: recipe.addedByName
+            ? fmt(detail.addedBy, { name: recipe.addedByName })
+            : undefined,
+        }}
+        back={{
+          label: messages.modules.byId.recipes.label,
+          link: linkTo('recipes'),
+        }}
+        // A recipe reaches a Group it was only shared into as something to
+        // read: writing follows the home Group. Offering Edit anyway would be
+        // an action that can only fail on click.
+        extra={
+          recipe.ingredients.length > 0 ? (
             <button
               type="button"
-              aria-label={messages.common.actions.delete}
-              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
-              onClick={() =>
-                confirm({
-                  title: detail.deleteTitle,
-                  body: fmt(detail.deleteBody, { title: recipe.title }),
-                  confirmLabel: messages.common.actions.delete,
-                  errorFallback: detail.deleteFailed,
-                  run: async () => {
-                    await remove({ id: recipe._id })
-                    await navigate(linkTo('recipes'))
-                  },
-                })
-              }
+              aria-label={messages.tasks.grocery.addLines.title}
+              onClick={() => setGroceriesOpen(true)}
+              className={`${buttonClass.onWash} max-lg:w-[var(--size-control-min)] max-lg:px-0`}
             >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              <ShoppingCart className="size-[18px]" aria-hidden="true" />
               <span className="hidden lg:inline">
-                {messages.common.actions.delete}
+                {messages.tasks.grocery.addLines.title}
               </span>
             </button>
-          </div>
-        )}
-      </div>
+          ) : undefined
+        }
+        primary={
+          recipe.canEdit
+            ? {
+                label: messages.common.actions.edit,
+                link: linkTo('editRecipe', { recipeId }),
+                icon: <Pencil className="size-[18px]" aria-hidden="true" />,
+              }
+            : undefined
+        }
+      />
+
+      {addedToList ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-card)] bg-[var(--surface)] px-4 py-3 text-subhead text-[var(--ink)]"
+        >
+          <span>
+            {fmt(messages.tasks.grocery.web.addedFromRecipe, {
+              list: addedToList,
+            })}
+          </span>
+          <Link {...linkTo('groceries')} className={buttonClass.small}>
+            {messages.tasks.grocery.web.viewGroceries}
+          </Link>
+        </div>
+      ) : null}
 
       {error && (
-        <p className="mb-4 rounded-md border border-[var(--danger)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--danger)]">
+        <p
+          role="alert"
+          className="m-0 rounded-[var(--radius-control)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold text-[var(--danger)]"
+        >
           {error}
         </p>
       )}
 
-      <RecipeThumbnail
-        src={recipe.imageUrl}
-        className="mb-4 h-64 w-full"
-        glyphClassName="text-6xl"
-      />
-      {recipe.description && (
-        <p className="mb-4 opacity-80">{recipe.description}</p>
-      )}
-      {/*
-        Attribution: who to ask about this recipe, and nothing more. The name is
-        resolved by `recipes.get`, so reading a recipe never turns into reading
-        the `users` table; if that person's row has gone the line is simply not
-        there, which is a better answer than an empty "Added by".
-      */}
-      {recipe.addedByName && (
-        <p className="mb-4 text-xs opacity-60">
-          {fmt(detail.addedBy, { name: recipe.addedByName })}
-        </p>
-      )}
-      {recipe.sourceUrl && (
-        <p className="mb-4 text-xs opacity-60">
-          {detail.importedFrom}{' '}
-          <a
-            href={recipe.sourceUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="underline"
-          >
-            {new URL(recipe.sourceUrl).hostname.replace(/^www\./, '')}
-          </a>
-        </p>
-      )}
+      {/* No photo, no picture: the header's tile already says what this is. */}
+      {recipe.imageUrl ? (
+        <img
+          src={recipe.imageUrl}
+          alt=""
+          className="h-64 w-full rounded-[var(--radius-card)] object-cover lg:h-80"
+        />
+      ) : null}
+      {recipe.description || recipe.sourceUrl ? (
+        <div className="grid gap-2">
+          {recipe.description && (
+            <p className="m-0 text-body">{recipe.description}</p>
+          )}
+          {recipe.sourceUrl && (
+            <p className="m-0 text-footnote text-[var(--muted)]">
+              {detail.importedFrom}{' '}
+              <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">
+                {new URL(recipe.sourceUrl).hostname.replace(/^www\./, '')}
+              </a>
+            </p>
+          )}
+        </div>
+      ) : null}
 
       {/*
         Offered to anyone who can change this recipe — which is every Member of
@@ -165,14 +196,14 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
         and the prompt to re-estimate stays out of the way.
       */}
       {recipe.nutritionStale && recipe.canEdit && (
-        <div className="mb-4 rounded-md border border-[var(--hair)] bg-[var(--home-wash)] px-3 py-2 text-sm text-[var(--ink)]">
-          <p className="mb-2">{detail.staleNutrition}</p>
-          <div className="flex gap-2">
+        <div className="grid gap-3 rounded-[var(--radius-card)] bg-[var(--surface)] p-4 text-subhead">
+          <p className="m-0">{detail.staleNutrition}</p>
+          <div className="flex flex-wrap gap-2">
             {aiConfigured && (
               <button
                 type="button"
                 disabled={estimating}
-                className="rounded border border-[var(--muted)] px-2 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                className={buttonClass.secondary}
                 onClick={async () => {
                   setEstimating(true)
                   setError(null)
@@ -203,9 +234,9 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
             <Link
               {...linkTo('editRecipe', { recipeId: recipeId })}
               aria-label={detail.editManually}
-              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border border-[var(--muted)] no-underline lg:gap-1 lg:px-2 lg:py-1 lg:text-xs lg:font-medium"
+              className={`${buttonClass.secondary} max-lg:w-[var(--size-control-min)] max-lg:px-0`}
             >
-              <Pencil className="h-4 w-4" aria-hidden="true" />
+              <Pencil className="size-4" aria-hidden="true" />
               <span className="hidden lg:inline">{detail.editManually}</span>
             </Link>
           </div>
@@ -235,19 +266,64 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
         />
       )}
 
-      <h2 className="mb-2 font-medium">{form.ingredients}</h2>
-      <ul className="mb-4 list-disc pl-5 text-sm">
-        {recipe.ingredients.map((i, idx) => (
-          <li key={idx}>{i}</li>
-        ))}
-      </ul>
+      {recipe.ingredients.length > 0 ? (
+        <section>
+          <SectionLabel>{form.ingredients}</SectionLabel>
+          <InsetList>
+            {recipe.ingredients.map((ingredient, index) => (
+              <InsetRow key={index} title={ingredient} />
+            ))}
+          </InsetList>
+        </section>
+      ) : null}
 
-      <h2 className="mb-2 font-medium">{form.steps}</h2>
-      <ol className="list-decimal space-y-1 pl-5 text-sm">
-        {recipe.steps.map((s, idx) => (
-          <li key={idx}>{s}</li>
-        ))}
-      </ol>
+      {recipe.steps.length > 0 ? (
+        <section>
+          <SectionLabel>{form.steps}</SectionLabel>
+          <InsetList>
+            {recipe.steps.map((step, index) => (
+              <InsetRow
+                key={index}
+                leading={
+                  <span
+                    aria-hidden="true"
+                    className="grid size-7 place-items-center rounded-[var(--radius-pill)] bg-[var(--surface-2)] font-rounded text-footnote font-bold tabular-nums"
+                  >
+                    {index + 1}
+                  </span>
+                }
+                title={
+                  <>
+                    <span className="sr-only">{index + 1}. </span>
+                    {step}
+                  </>
+                }
+              />
+            ))}
+          </InsetList>
+        </section>
+      ) : null}
+
+      {recipe.canEdit ? (
+        <div>
+          <button
+            type="button"
+            className={buttonClass.danger}
+            onClick={confirmDelete}
+          >
+            <Trash2 className="size-4" aria-hidden="true" />
+            {messages.common.actions.delete}
+          </button>
+        </div>
+      ) : null}
+
+      {groceriesOpen ? (
+        <RecipeToGroceriesDialog
+          recipe={recipe}
+          onAdded={(listName) => setAddedToList(listName)}
+          onClose={() => setGroceriesOpen(false)}
+        />
+      ) : null}
 
       {dialog}
     </article>

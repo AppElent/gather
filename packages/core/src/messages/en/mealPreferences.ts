@@ -5,7 +5,6 @@
  * read the same tree.
  */
 export const mealPreferences = {
-  title: 'Meal preferences',
   subhead:
     'For all of {group}. Gather uses this when you choose yourself, in Plan my week and in Something else.',
   closing:

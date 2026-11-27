@@ -19,8 +19,10 @@ function SettingsPage() {
   const { settings } = useMessages()
 
   return (
-    <div className="mx-auto grid max-w-2xl gap-4">
-      <h1 className="m-0 mb-4 text-xl font-bold">{settings.title}</h1>
+    <div className="mx-auto grid max-w-2xl gap-6">
+      <h1 className="m-0 font-rounded text-large-title font-bold">
+        {settings.title}
+      </h1>
       {/* Language above appearance: it is the setting that changes the words
           of every other setting on this page, including its own. */}
       <LanguageSettings />

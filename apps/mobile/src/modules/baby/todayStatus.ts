@@ -16,6 +16,7 @@ import {
   type DurationUnits,
   shortDuration,
 } from '@gather/core/baby-events'
+import { dayStartIn } from '@gather/core/civil-date'
 import type { BabyEventType } from '@gather/core/domain'
 
 export interface LoggedEvent {
@@ -33,11 +34,9 @@ export interface TileStatus {
   detail: string | null
 }
 
-/** Midnight local time on the day `now` falls in. */
-export function startOfDay(now: number): number {
-  const date = new Date(now)
-  date.setHours(0, 0, 0, 0)
-  return date.getTime()
+/** Start of the day `now` falls in, in `timeZone` or local time when absent. */
+export function startOfDay(now: number, timeZone?: string): number {
+  return dayStartIn(timeZone, now)
 }
 
 function todaysOf(
@@ -104,8 +103,9 @@ export function tileStatus(
   events: readonly LoggedEvent[],
   now: number,
   t: StatusMessages,
+  timeZone?: string,
 ): TileStatus {
-  const dayStart = startOfDay(now)
+  const dayStart = startOfDay(now, timeZone)
   const latest = latestOf(events, type)
   const todayCount = todaysOf(events, type, dayStart).length
 

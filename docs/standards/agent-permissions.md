@@ -2,7 +2,7 @@
 type: standard
 kind: capability
 description: Read when changing a project's `.claude/settings.json` or hooks, adding an allow rule, when an agent command is blocked by the deny list, or before driving a simulator or emulator.
-version: 1.6.0
+version: 1.8.0
 applies_to: [web, mobile, backend]
 ---
 
@@ -56,12 +56,20 @@ Remote Control and T3 sessions on the Mac run in auto mode, often from `~/Develo
 `autoMode` is only read from user settings (`~/.claude/settings.json`) or managed settings, never from a project's `.claude/settings.json`. Eric's user settings carry the entries in [`auto-mode.json`](agent-permissions/auto-mode.json) (approved by Eric, APP-229):
 
 - **environment** names what is trusted and why: the AppElent GitHub repositories, `~/Developer` with its worktrees and agent folders, the services we use (GitHub, Convex, Expo/EAS, Linear, Sentry, Clerk, Cloudflare, Notion, UptimeRobot) and their domains. It also names what is sensitive: production targets and the secret files on the deny list.
-- **allow** marks routine work as expected: pushing branches and pull requests in any AppElent repository, worktree cleanup, development and preview releases (including the golf-app dev-only `convex dev --once` path above), Linear and Sentry tracking, and simulator testing.
-- **hard_deny** repeats the never-do list for sessions where the project deny list does not load: production deploys, store submissions and production OTA outside the gated job, and reading secrets.
+- **allow** marks routine work as expected: pushing branches and pull requests in any AppElent repository, worktree cleanup, development and preview releases (including the golf-app dev-only `convex dev --once` path above), Linear and Sentry tracking one issue at a time, and simulator testing in `.dev` builds. Each entry names what it leaves out (APP-444, after `claude auto-mode critique`): merging a pull request, `git worktree remove --force` and glob deletes, bulk changes in Linear and Sentry, `simctl delete all`, `erase all` and `delete unavailable`, and data in the `.preview` app, which runs on production data.
+- **hard_deny** repeats the never-do list for sessions where the project deny list does not load: production deploys (every `convex deploy`, since with no flags it targets production), store submissions and production OTA outside the gated job (also `eas update --auto` or without an explicit `--channel`), and reading secrets.
 
-Every list starts with `"$defaults"`, so the built-in rules stay. Change the entries in `auto-mode.json` first, then Eric runs `pnpm auto-mode diff` and `pnpm auto-mode apply` in `~/Developer/developer-home`; `apply` backs up the file and only adds entries. An agent does not edit Eric's user settings itself: the classifier blocks that as undermining oversight, also after a card approval. Check the result with `claude auto-mode config` and `claude auto-mode critique`.
+Every list starts with `"$defaults"`, so the built-in rules stay. Change the entries in `auto-mode.json` first, then Eric runs `pnpm auto-mode diff` and `pnpm auto-mode apply` in `~/Developer/developer-home`; `apply` backs up the file, adds missing entries and removes the old wordings listed under `retired`. Rewording an entry therefore means moving its old text to `retired` in the same change; `apply` only adds the text it does not know. An agent does not edit Eric's user settings itself: the classifier blocks that as undermining oversight, also after a card approval. Check the result with `claude auto-mode config` and `claude auto-mode critique`.
 
 These entries do not loosen the deny list or the guard hooks.
+
+### Store builds on the Mac
+
+Eric approved (25 Nov 2026, APP-865) that an agent runs a store build after his go for that build: `pnpm builds build <app> <profile> ios`, with or without `--submit`, in `~/Developer/developer-home`. The builds tool loads the app's secrets from Infisical without printing them and checks Convex drift, and `--submit` uploads to TestFlight. Releasing in App Store Connect and sending a build to App Review stay with Eric.
+
+- developer-home's `.claude/settings.json` lists every allowed command in full, one rule per app (workouts, golf-app, gather, games) and profile (production, preview, preview-internal), with and without `--submit` and `caffeinate -i`. A `*` in a Bash rule also matches spaces and flags, so the rules use no wildcard: `--allow-convex-drift`, `--from` and passthrough arguments after `--` (which reach `eas build` inside the tool, where the guard hook cannot see them) still prompt.
+- The `allow` entry in `auto-mode.json` names the same command for sessions that start elsewhere, and the store-submission `hard_deny` entry makes the builds tool its only exception. `auto-mode.json` lists reworded entries under `retired`, and `pnpm auto-mode apply` removes those from Eric's settings.
+- Start a Remote Control session for a store build in `~/Developer/developer-home`, so the project allow rules load.
 
 ## Implementation
 

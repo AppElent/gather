@@ -99,8 +99,12 @@ export function isSessionOpen(
  *   (`ConvexAuthRecovery`) is an optimisation on top; this is the guarantee.
  *   A provisioning refusal is the one cause known early enough to skip the
  *   wait.
+ * - **deleted** — the account is being deleted, usually from another phone
+ *   (APP-939). Sign out is the only way on: trying again would be refused
+ *   the same way. Known as early as a provisioning refusal, and wins over
+ *   `stuck`, because it is the one cause the screen can name.
  */
-export type ClosedGateView = 'quiet' | 'pending' | 'recover'
+export type ClosedGateView = 'quiet' | 'pending' | 'recover' | 'deleted'
 
 export interface ClosedGateInput {
   /** `PENDING_REVEAL_MS` has passed since the gate closed. */
@@ -110,13 +114,18 @@ export interface ClosedGateInput {
   /** Convex is authenticated, `users.me` answered `null`, and `ensureUser`
    * was refused. */
   provisioningRefused: boolean
+  /** Convex is authenticated, `users.me` answered `null`, and `ensureUser`
+   * said the account is being deleted. */
+  accountDeleted: boolean
 }
 
 export function closedGateView({
   revealed,
   stuck,
   provisioningRefused,
+  accountDeleted,
 }: ClosedGateInput): ClosedGateView {
+  if (accountDeleted) return 'deleted'
   if (stuck || provisioningRefused) return 'recover'
   return revealed ? 'pending' : 'quiet'
 }

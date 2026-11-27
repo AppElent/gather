@@ -29,12 +29,39 @@ export function isSmartListId(value: unknown): value is SmartListId {
   return (SMART_LISTS as readonly unknown[]).includes(value)
 }
 
+/**
+ * The smart lists a device hides from its Tasks index, as it stored them: a
+ * JSON array of ids, dropping anything this build does not know. Unreadable is
+ * "nothing hidden", which is what a fresh device shows.
+ */
+export function parseHiddenSmartLists(raw: string | null): SmartListId[] {
+  if (!raw) return []
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter(isSmartListId) : []
+  } catch {
+    return []
+  }
+}
+
+/** The ids with `id` hidden if it was shown, and shown if it was hidden. */
+export function toggledSmartLists(
+  current: readonly SmartListId[],
+  id: SmartListId,
+): SmartListId[] {
+  return current.includes(id)
+    ? current.filter((each) => each !== id)
+    : [...current, id]
+}
+
 /** What a rule reads of a task. */
 export interface SmartTask {
   done: boolean
   /** ISO date, YYYY-MM-DD. */
   dueDate?: string
   assigneeId?: string
+  /** Someone has it who is no Member (a linked task). */
+  assigneeName?: string
 }
 
 /** Who is asking, on which day, and whether the task's list holds jobs. */
@@ -84,7 +111,9 @@ export function inSmartList(
     case 'mine':
       return scope.me !== null && task.assigneeId === scope.me
     case 'unassigned':
-      return !task.assigneeId && holdsJobs(list)
+      return (
+        !task.assigneeId && task.assigneeName === undefined && holdsJobs(list)
+      )
   }
 }
 

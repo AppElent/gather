@@ -14,11 +14,9 @@ import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, type Messages, useMessages } from '../../lib/i18n'
 import { hrefTo } from '../../lib/links'
 import { PROVIDER_LABELS, useConnectProvider } from '../../lib/oauth'
-import { SurfaceCard } from '../app/ShellPrimitives'
 
 type Step =
   | { kind: 'provider' }
-  | { kind: 'local-name' }
   | { kind: 'source'; provider: ExternalProviderId; sources: ProviderSource[] }
   | {
       kind: 'notion-mapping'
@@ -27,9 +25,7 @@ type Step =
     }
 
 const buttonClass =
-  'inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold'
-const inputClass =
-  'min-h-9 rounded-[var(--radius-control)] border border-[var(--hair)] bg-transparent px-2 text-sm'
+  'inline-flex min-h-[var(--size-control-min)] items-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-subhead font-semibold'
 
 export interface AddListFlowProps {
   /** The Group the list is being added to. */
@@ -106,16 +102,6 @@ export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
     })
   }
 
-  async function createLocal(e: React.FormEvent) {
-    e.preventDefault()
-    const trimmed = name.trim()
-    if (!trimmed) return
-    await run(async () => {
-      await createList({ name: trimmed, provider: 'local', groupSlug })
-      onDone()
-    })
-  }
-
   async function createNotion(
     source: ProviderSource,
     mapping: PropertyMapping,
@@ -138,28 +124,11 @@ export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
   }
 
   return (
-    <SurfaceCard>
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="m-0 text-base font-semibold">{addList.title}</h3>
-        <button
-          type="button"
-          className="text-sm text-[var(--muted)]"
-          onClick={onDone}
-        >
-          {messages.common.actions.cancel}
-        </button>
-      </div>
-      {error && <p className="m-0 mb-2 text-sm text-[var(--danger)]">{error}</p>}
+    <div>
+      {error && <p className="m-0 mb-2 text-subhead text-[var(--danger)]">{error}</p>}
 
       {step.kind === 'provider' && (
         <div className="grid gap-2">
-          <button
-            type="button"
-            className={buttonClass}
-            onClick={() => setStep({ kind: 'local-name' })}
-          >
-            {addList.local}
-          </button>
           {EXTERNAL_PROVIDER_IDS.map((provider) =>
             connectionFor(provider) ? (
               <button
@@ -169,7 +138,7 @@ export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
                 disabled={busy}
                 onClick={() => void pickExternal(provider)}
               >
-                {fmt(addList.mirror, {
+                {fmt(provider === 'todoist' ? addList.linked : addList.mirror, {
                   provider: PROVIDER_LABELS[provider],
                 })}
               </button>
@@ -190,30 +159,15 @@ export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
         </div>
       )}
 
-      {step.kind === 'local-name' && (
-        <form onSubmit={(e) => void createLocal(e)} className="flex gap-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={addList.listName}
-            aria-label={addList.listName}
-            className={`${inputClass} flex-1`}
-          />
-          <button type="submit" className={buttonClass} disabled={busy}>
-            {addList.create}
-          </button>
-        </form>
-      )}
-
       {step.kind === 'source' && (
         <div className="grid gap-2">
-          <p className="m-0 text-sm text-[var(--muted)]">
+          <p className="m-0 text-subhead text-[var(--muted)]">
             {step.provider === 'notion'
               ? addList.pickNotion
               : addList.pickTodoist}
           </p>
           {step.sources.length === 0 && (
-            <p className="m-0 text-sm text-[var(--muted)]">
+            <p className="m-0 text-subhead text-[var(--muted)]">
               {step.provider === 'notion'
                 ? addList.nothingFoundNotion
                 : addList.nothingFoundTodoist}
@@ -244,12 +198,12 @@ export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
           onSubmit={(mapping) => void createNotion(step.source, mapping)}
         />
       )}
-    </SurfaceCard>
+    </div>
   )
 }
 
 const selectClass =
-  'min-h-9 rounded-[var(--radius-control)] border border-[var(--hair)] bg-transparent px-2 text-sm'
+  'min-h-9 rounded-[var(--radius-control)] border border-[var(--hair)] bg-transparent px-2 text-subhead'
 
 function MappingSelect({
   label,
@@ -267,7 +221,7 @@ function MappingSelect({
   notMapped: string
 }) {
   return (
-    <label className="grid gap-1 text-sm">
+    <label className="grid gap-1 text-subhead">
       {label}
       <select
         value={value}
@@ -335,8 +289,8 @@ function NotionMappingForm({
 
   return (
     <form onSubmit={submit} className="grid gap-3">
-      <p className="m-0 text-sm text-[var(--muted)]">{text.intro}</p>
-      <label className="grid gap-1 text-sm">
+      <p className="m-0 text-subhead text-[var(--muted)]">{text.intro}</p>
+      <label className="grid gap-1 text-subhead">
         {listNameLabel}
         <input
           value={name}
@@ -385,7 +339,7 @@ function NotionMappingForm({
       <button
         type="submit"
         disabled={busy || !title || !done}
-        className="inline-flex min-h-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-sm font-semibold"
+        className="inline-flex min-h-[var(--size-control-min)] items-center justify-center rounded-[var(--radius-control)] border border-[var(--hair)] px-3 text-subhead font-semibold"
       >
         {text.create}
       </button>

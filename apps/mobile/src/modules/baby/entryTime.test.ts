@@ -78,4 +78,23 @@ describe('which day a moment is on', () => {
       daysApart(at('2026-08-20T09:00:00'), at('2026-08-20T03:00:00')),
     ).toBe(0)
   })
+
+  test("uses the Group's zone for day boundaries and day stepping", () => {
+    // 22:30Z on 24 Nov is 25 Nov 07:30 in Tokyo, 24 Nov 23:30 in Amsterdam.
+    // 14:00Z on 24 Nov is 24 Nov 23:00 in Tokyo, 24 Nov 15:00 in Amsterdam.
+    const now = Date.parse('2026-11-24T22:30:00Z')
+    const earlier = Date.parse('2026-11-24T14:00:00Z')
+    expect(isSameDay(now, earlier, 'Europe/Amsterdam')).toBe(true)
+    expect(isSameDay(now, earlier, 'Asia/Tokyo')).toBe(false)
+    expect(daysApart(now, earlier, 'Europe/Amsterdam')).toBe(0)
+    expect(daysApart(now, earlier, 'Asia/Tokyo')).toBe(-1)
+    const stepped = shiftDays(now, -1, 'Asia/Tokyo')
+    expect(partsOf(stepped, 'Asia/Tokyo')).toMatchObject({
+      year: 2026,
+      month: 10,
+      day: 24,
+      hour: 7,
+      minute: 30,
+    })
+  })
 })

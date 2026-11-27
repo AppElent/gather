@@ -1,13 +1,14 @@
-import { Show, useClerk, useUser } from '@clerk/react'
+import { Show, useUser } from '@clerk/react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { useAuthConfig } from './AuthConfigProvider'
+import { useSignOut } from './useSignOut'
 import { cn } from './utils'
 
 // Disclosure pattern: a toggle button that reveals account links/actions.
 // Escape, outside clicks, and focus leaving close it; Escape refocuses the trigger.
 export default function HeaderUser() {
   const { user } = useUser()
-  const { signOut } = useClerk()
+  const signOut = useSignOut()
   const config = useAuthConfig()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -83,7 +84,7 @@ export default function HeaderUser() {
             </a>
             <button
               type="button"
-              onClick={() => signOut()}
+              onClick={() => void signOut()}
               className="block w-full rounded px-3 py-2 text-left text-sm text-[var(--auth-fg)] hover:bg-[var(--auth-hover-bg)]"
             >
               Sign out

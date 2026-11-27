@@ -38,7 +38,18 @@ const state = vi.hoisted(() => ({
       order: 1,
       sections: [],
     },
+    ...['Errands', 'Garden'].map((name, at) => ({
+      _id: `l${at + 3}`,
+      name,
+      provider: 'todoist' as const,
+      writable: false,
+      capabilities: { write: true },
+      connectionId: 'c1',
+      order: at + 2,
+      sections: [],
+    })),
   ],
+  moved: [] as unknown[],
 }))
 
 vi.mock('react-native', async () => {
@@ -91,6 +102,7 @@ vi.mock('react-native', async () => {
     Text: dom('span'),
     Pressable: dom('button'),
     TextInput: dom('input'),
+    useWindowDimensions: () => ({ height: 800, width: 400 }),
     StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 1 },
   }
 })
@@ -107,12 +119,22 @@ vi.mock('../../components/NativeSheet', () => ({
   NativeSheet: ({ children }: { children: ReactNode }) =>
     createElement('div', null, children),
 }))
+vi.mock('../../convex/api', () => ({
+  api: { integrations: { listConnections: 'listConnections' } },
+}))
+vi.mock('../../convex/queries', () => ({
+  useQuery: (_: unknown, args: unknown) =>
+    args === 'skip'
+      ? undefined
+      : [{ _id: 'c1', provider: 'todoist', connectedByName: 'Eric' }],
+}))
 vi.mock('../../feedback/confirmDestructive', () => ({
   confirmDestructive: () => {},
 }))
 vi.mock('../../feedback/haptics', () => ({
   haptics: new Proxy({}, { get: () => () => {} }),
 }))
+vi.mock('../../group/GroupProvider', () => ({ useGroup: () => ({ group: {} }) }))
 vi.mock('../../i18n', async () => {
   const { en: messages } = await import('../../i18n/messages/en')
   const { fmt, plural } = await import('@gather/core/i18n')
@@ -159,12 +181,21 @@ vi.mock('./icons', () => ({
   TASK_ICONS: new Proxy({}, { get: () => () => null }),
   TASK_LIST_GLYPHS: new Proxy({}, { get: () => () => null }),
 }))
+vi.mock('./writeFailed', () => ({ useWriteFailed: () => () => {} }))
 vi.mock('./store', () => ({
+  announceMove: ({ taskId, listName }: { taskId: string; listName: string }) => {
+    const [, listId] = state.moved.pop() as [string, string]
+    state.moved.push([taskId, listId, listName])
+  },
   useGroupLabels: () => [],
   useTaskActions: () => ({
     createList: async () => 'new-id',
-    setPriority: () => {},
+    setPriority: async () => {},
     moveTask: async () => {},
+    moveToLinkedList: async (task: Task, listId: string) => {
+      state.moved.push([task.id, listId])
+      return async () => {}
+    },
     setTaskSection: async () => {},
     setListAppearance: async () => {},
   }),
@@ -338,11 +369,20 @@ for (const os of ['ios', 'android'] as const) {
       createElement(MoveToListSheet, { task: sampleTask, onClose: () => {} }),
     )
     const current = view.container.querySelector('[data-testid="move-l1"]')
-    const readonly = view.container.querySelector('[data-testid="move-l2"]')
+    const elsewhere = view.container.querySelector('[data-testid="move-l2"]')
     expectRadio(current, true, os)
-    expect(current?.getAttribute('aria-disabled')).toBe('false')
-    expectRadio(readonly, false, os)
-    expect(readonly?.getAttribute('aria-disabled')).toBe('true')
+    expect(current?.getAttribute('aria-disabled')).toBe('true')
+    expectRadio(elsewhere, false, os)
+    expect(elsewhere?.getAttribute('aria-disabled')).toBe('true')
+    expect(elsewhere?.getAttribute('aria-label')).toBe(
+      'Notion, not possible: other source',
+    )
+    // Writable in its provider, and still not a local task's to go to.
+    expect(
+      view.container
+        .querySelector('[data-testid="move-l3"]')
+        ?.getAttribute('aria-disabled'),
+    ).toBe('true')
     view.unmount()
   })
 
@@ -364,3 +404,21 @@ for (const os of ['ios', 'android'] as const) {
     view.unmount()
   })
 }
+
+test('a linked task moves to a list of its connection, and nowhere else', async () => {
+  const view = mount(
+    createElement(MoveToListSheet, {
+      task: { ...sampleTask, listId: 'l3', linked: true },
+      onClose: () => {},
+    }),
+  )
+  const button = (id: string) =>
+    view.container.querySelector<HTMLButtonElement>(`[data-testid="move-${id}"]`)
+  expect(view.container.textContent).toContain('Todoist · Eric')
+  for (const id of ['l1', 'l2']) expect(button(id)?.disabled).toBe(true)
+  button('l4')?.click()
+  await vi.waitFor(() =>
+    expect(state.moved).toEqual([['t1', 'l4', 'Garden']]),
+  )
+  view.unmount()
+})

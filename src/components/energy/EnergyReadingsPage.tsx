@@ -7,13 +7,16 @@ import {
   energyChannelName,
   formatEnergyNumber,
 } from '@gather/core/energy-present'
+import { readEnergyRefusal } from '@gather/core/refusals'
 import { useMutation, useQuery } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
+import { Trash2 } from 'lucide-react'
 import { type FormEvent, useId, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, type Messages, useI18n } from '../../lib/i18n'
 import { Breadcrumbs } from '../app/Breadcrumbs'
+import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import {
@@ -27,6 +30,7 @@ import {
 
 type ReadingForm = NonNullable<FunctionReturnType<typeof api.energyReadings.form>>
 type Channel = ReadingForm['channels'][number]
+type RecentReading = FunctionReturnType<typeof api.energyReadings.recent>[number]
 
 /** As many decimals as the meter gave, at most three: 24.219,8 or 8.123,456. */
 function readingNumber(value: number, locale: string): string {
@@ -40,7 +44,8 @@ function readingNumber(value: number, locale: string): string {
  * One cumulative reading per meter for a day. A reading lower than the one
  * before it is refused inline, before anything is sent, because a meter only
  * counts up: a new meter is a new channel under Sources. A site without typed
- * meters first says which ones it reads.
+ * meters first says which ones it reads. Below the form, the readings typed
+ * lately, each with a Delete that asks first (APP-714).
  */
 export function EnergyReadingsPage() {
   const group = useRequiredCurrentGroup()
@@ -58,7 +63,7 @@ export function EnergyReadingsPage() {
   return (
     <div className="mx-auto grid max-w-3xl gap-4">
       <Breadcrumbs trail={energyTrail(messages, copy.title)} className="mb-0" />
-      <h2 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h2>
+      <h1 className="m-0 font-rounded text-2xl font-bold">{copy.title}</h1>
       {showDate ? (
         <SurfaceCard className="grid gap-2">
           <label
@@ -90,15 +95,97 @@ export function EnergyReadingsPage() {
       ) : form.channels.length === 0 ? (
         <SetupMeters groupSlug={group.slug} measured={form.measured} />
       ) : (
-        <ReadingsForm
-          // A new day starts from empty fields.
-          key={day}
-          groupSlug={group.slug}
-          form={form}
-          day={day}
-        />
+        <>
+          <ReadingsForm
+            // A new day starts from empty fields.
+            key={day}
+            groupSlug={group.slug}
+            form={form}
+            day={day}
+          />
+          <RecentReadings groupSlug={group.slug} />
+        </>
       )}
     </div>
+  )
+}
+
+/**
+ * The readings typed lately, newest first. Deleting one asks first, names
+ * the reading, and says usage and costs are worked out again without it.
+ */
+function RecentReadings({ groupSlug }: { groupSlug: string }) {
+  const { messages, locale } = useI18n()
+  const copy = messages.energy.readings
+  const recent = useQuery(api.energyReadings.recent, { groupSlug })
+  const remove = useMutation(api.energyReadings.remove)
+  const { confirm, dialog } = useConfirmAction()
+  if (!recent || recent.length === 0) return null
+
+  const describe = (reading: RecentReading) => ({
+    channel: energyChannelName(reading, messages.energy),
+    value: readingNumber(reading.value, locale),
+    unit: messages.energy.units[reading.unit],
+    date: readingDate(reading.at, locale),
+  })
+
+  return (
+    <section aria-labelledby="energy-recent-readings">
+      <SurfaceCard className="grid gap-2">
+        <h2
+          id="energy-recent-readings"
+          className="m-0 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
+        >
+          {copy.recentHeading}
+        </h2>
+        <ul className="m-0 grid list-none divide-y divide-[var(--hair)] p-0">
+          {recent.map((reading) => {
+            const words = describe(reading)
+            return (
+              <li
+                key={reading._id}
+                className="flex min-h-[var(--size-row-min)] items-center gap-3 py-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="m-0 text-sm font-semibold">{words.channel}</p>
+                  <p className="m-0 text-sm text-[var(--muted)]">
+                    {fmt(copy.recentRow, words)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label={fmt(copy.deleteReading, words)}
+                  className="grid min-h-9 min-w-9 shrink-0 place-items-center rounded-[var(--radius-control)] text-[var(--danger)]"
+                  onClick={() =>
+                    confirm({
+                      title: copy.deleteTitle,
+                      body: fmt(copy.deleteBody, words),
+                      confirmLabel: messages.common.actions.delete,
+                      errorFallback: copy.deleteFailed,
+                      run: async () => {
+                        try {
+                          await remove({ groupSlug, readingId: reading._id })
+                        } catch (caught) {
+                          // A keyed refusal reads in words; anything else
+                          // falls back to `deleteFailed`.
+                          const code = readEnergyRefusal(caught)
+                          throw code
+                            ? new Error(messages.energy.refusals[code])
+                            : caught
+                        }
+                      },
+                    })
+                  }
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </SurfaceCard>
+      {dialog}
+    </section>
   )
 }
 

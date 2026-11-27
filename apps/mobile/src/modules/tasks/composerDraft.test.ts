@@ -66,6 +66,25 @@ describe('the task a draft saves', () => {
     expect(task.reminder).toEqual({ date: '2026-11-19', time: '14:30' })
   })
 
+  test('in a Group a day ahead, a bare time stays due on Group today while reminding on the phone’s day', () => {
+    const line = 'Pills at 22:00'
+    const parsed = parseQuickAdd(line, {
+      today: '2026-11-19',
+      clockDay: '2026-11-18',
+      now: '21:00',
+    })
+    const task = composedTask(drafted(line), parsed)
+    expect(task.dueDate).toBe('2026-11-19')
+    expect(task.reminder).toEqual({ date: '2026-11-18', time: '22:00' })
+    // Tapping a different date moves the reminder onto that picked date.
+    const moved = composedTask(
+      drafted(line, { choices: { dueDate: '2026-11-25', labels: [] } }),
+      parsed,
+    )
+    expect(moved.dueDate).toBe('2026-11-25')
+    expect(moved.reminder).toEqual({ date: '2026-11-25', time: '22:00' })
+  })
+
   test('labels picked and typed are both kept, once', () => {
     const line = 'Weed #garden'
     const task = composedTask(

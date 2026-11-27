@@ -89,7 +89,7 @@ vi.mock('../../../ui/inset-list', () => ({
   InsetRow: () => null,
 }))
 vi.mock('./parts', () => ({ Coin: () => null }))
-vi.mock('./week', () => ({
+vi.mock('@gather/core/week-menu', () => ({
   awayAt: () => new Map(),
   clock: () => '',
   daySlots: () => ['dinner'],

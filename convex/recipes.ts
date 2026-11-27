@@ -16,7 +16,11 @@ import {
   nutritionValidator,
 } from './lib/nutrition'
 import { recipeFields } from './lib/recipeFields'
-import { dropRecipeShares, setSharedGroups } from './lib/recipeShares'
+import {
+  dropRecipeShares,
+  recipesSharedInto,
+  setSharedGroups,
+} from './lib/recipeShares'
 import { requireCurrentUser } from './lib/sharing'
 import {
   deleteStoredFile,
@@ -48,24 +52,15 @@ export const list = query({
   handler: async (ctx, args) => {
     const { user, group } = await requireGroupBySlug(ctx, args.groupSlug)
 
-    // The Group's own recipes come off `by_group` exactly. The ones shared
-    // *into* it cannot: `sharedGroupIds` is an array, and a Convex index keys
-    // on a field's value rather than on membership of one, so there is nothing
-    // to look those up by and they are found by reading every recipe.
-    //
-    // Be clear about what the index buys, because it is not what it looks like:
-    // the scan below is still a scan, so this query costs one either way. What
-    // the index does is take the Group's own recipes out of it and leave the
-    // remaining half in one marked place, so that when a scan stops being
-    // affordable there is a single thing to replace (a row per shared Group,
-    // indexed, is the obvious replacement) rather than a filter to unpick.
-    const own = await ctx.db
-      .query('recipes')
-      .withIndex('by_group', (q) => q.eq('groupId', group._id))
-      .collect()
-    const sharedIn = (await ctx.db.query('recipes').collect()).filter(
-      (r) => r.groupId !== group._id && r.sharedGroupIds.includes(group._id),
-    )
+    // Both halves are read by index: the Group's own recipes by `by_group`,
+    // the ones shared into it through `recipeShares`.
+    const [own, sharedIn] = await Promise.all([
+      ctx.db
+        .query('recipes')
+        .withIndex('by_group', (q) => q.eq('groupId', group._id))
+        .collect(),
+      recipesSharedInto(ctx, group._id),
+    ])
 
     // Where a shared-in recipe actually lives, and whether the caller may
     // change it — resolved here rather than left for the client to work out.
