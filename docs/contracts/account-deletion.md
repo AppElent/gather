@@ -31,6 +31,14 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
 - **Work that outlives its authorisation must recheck its Group** when it
   writes: an action or scheduled run may finish after the deletion.
   `storeConnection` and `takeBudget` refuse a Group that is gone (APP-877).
+- **A dropped Todoist or Notion token is revoked at the provider** (APP-909):
+  on disconnect, on a reconnect that replaces it, with its Group, and when a
+  connect is refused after the provider answered. `revokeAfterCommit` schedules
+  `integrations.revokeToken`, so the revoke goes only if the deletion commits.
+  It is best effort: a failed revoke is logged without the token and the
+  deletion stands. A token another connection still holds (a provider can
+  issue the same one twice) is left alone. The token stays in the scheduled
+  job's arguments until Convex prunes completed jobs.
 - The files of the deleted rows travel along and are released after the last
   page, ten per step, when no row of the Group can keep one. A step that failed
   for good is run again by hand with its own arguments, which hold their ids.
