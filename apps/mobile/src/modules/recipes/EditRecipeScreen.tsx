@@ -18,12 +18,7 @@ import {
 import { useAction, useMutation } from 'convex/react'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import {
-  KeyboardAvoidingView,
-  ScrollView,
-  StyleSheet,
-  Text,
-} from 'react-native'
+import { ScrollView, StyleSheet, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { api, type Id } from '../../convex/api'
@@ -127,51 +122,50 @@ export function EditRecipeScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: text.edit.title }} />
-      <KeyboardAvoidingView
+      {/* The scroll view is the root, with no keyboard wrapper around it:
+          iOS collapses the large title only while it tracks the screen's
+          first scroll view (APP-971, as APP-963 found on New recipe). */}
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        automaticallyAdjustKeyboardInsets
         style={[styles.fill, { backgroundColor: tokens.ground }]}
-        behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + 32 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={{ backgroundColor: tokens.ground }}
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: insets.bottom + 32 },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-        >
-          <RecipeFields
-            values={values}
-            onChange={setValues}
-            photoUrl={recipe.imageUrl}
-            photoId={photoId}
-            onPhotoChange={setPhotoId}
-            generateUploadUrl={generateUploadUrl}
-            onEstimate={
-              aiConfigured ? (args) => estimateNutrition(args) : undefined
-            }
-            disabled={saving}
-          />
+        <RecipeFields
+          values={values}
+          onChange={setValues}
+          photoUrl={recipe.imageUrl}
+          photoId={photoId}
+          onPhotoChange={setPhotoId}
+          generateUploadUrl={generateUploadUrl}
+          onEstimate={
+            aiConfigured ? (args) => estimateNutrition(args) : undefined
+          }
+          disabled={saving}
+        />
 
-          {problem ? (
-            <Text style={[styles.problem, { color: tokens.muted }]}>
-              {text.form[problem]}
-            </Text>
-          ) : null}
-          {saveProblem ? (
-            <Text style={[styles.problem, { color: tokens.danger }]}>
-              {saveProblem}
-            </Text>
-          ) : null}
+        {problem ? (
+          <Text style={[styles.problem, { color: tokens.muted }]}>
+            {text.form[problem]}
+          </Text>
+        ) : null}
+        {saveProblem ? (
+          <Text style={[styles.problem, { color: tokens.danger }]}>
+            {saveProblem}
+          </Text>
+        ) : null}
 
-          <SaveRecipeButton
-            disabled={Boolean(problem)}
-            saving={saving}
-            onPress={save}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <SaveRecipeButton
+          disabled={Boolean(problem)}
+          saving={saving}
+          onPress={save}
+        />
+      </ScrollView>
     </>
   )
 }
