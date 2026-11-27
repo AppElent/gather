@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest'
+import { describe, expect, onTestFinished, test, vi } from 'vitest'
 import { alice, bob, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
@@ -297,6 +297,12 @@ describe('staples', () => {
   })
 
   test('a repeating grocery item checked off restocks and moves on (APP-303)', async () => {
+    // The server trusts a sent `today` only within a day of its own clock.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(Date.UTC(2026, 10, 20, 11))
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
     const { t, as, groceries } = await seed()
     const id = await addStaple(as, 'Koffie')
     await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true })
