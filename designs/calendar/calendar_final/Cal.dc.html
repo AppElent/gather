@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Agenda, telefoon</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+a{text-decoration:none;color:inherit}
+svg{flex:none}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: {{c.ground}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: {{c.ink}}">
+
+  <div style="height: 54px"></div>
+
+  <!-- Root bar (approved APP-627 A) -->
+  <sc-if value="{{hdrRoot}}" hint-placeholder-val="{{ true }}">
+    <div>
+      <div style="height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: relative">
+        <button aria-label="{{t.back}}" style="width: 44px; height: 44px; border-radius: 999px; background: {{c.glass}}; border: 0.5px solid {{c.hair}}; display: flex; align-items: center; justify-content: center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+        </button>
+        <span style="position: absolute; left: 80px; right: 120px; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600">{{t.month}}</span>
+        <div style="display: flex; gap: 8px">
+          <button aria-label="{{t.search}}" style="width: 44px; height: 44px; border-radius: 999px; background: {{c.glass}}; border: 0.5px solid {{c.hair}}; display: flex; align-items: center; justify-content: center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          </button>
+          <button aria-label="{{t.settings}}" style="width: 44px; height: 44px; border-radius: 999px; background: {{c.glass}}; border: 0.5px solid {{c.hair}}; display: flex; align-items: center; justify-content: center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2.5v3M12 18.5v3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M2.5 12h3M18.5 12h3M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"></path></svg>
+          </button>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 6px 16px 8px">
+        <button style="min-height: 36px; padding: 0 14px; border-radius: 999px; background: {{c.surface}}; border: 1px solid {{c.hair}}; font-size: 15px; font-weight: 600; color: {{c.accentText}}">{{t.today}}</button>
+        <div role="radiogroup" aria-label="{{t.view}}" style="flex-grow: 1; display: flex; height: 36px; padding: 2px; box-sizing: border-box; border-radius: 999px; background: {{c.surface2}}">
+          <sc-for list="{{views}}" as="v" hint-placeholder-count="3">
+            <button role="radio" aria-checked="{{v.on}}" style="flex: 1; border-radius: 999px; text-align: center; font-size: 14px; font-weight: 600; background: {{v.bg}}; color: {{v.fg}}; box-shadow: {{v.shadow}}">{{v.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Modal editor bar -->
+  <sc-if value="{{hdrModal}}" hint-placeholder-val="{{ false }}">
+    <div style="height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px">
+      <button style="min-height: 44px; font-size: 17px; color: {{c.accentText}}">{{t.cancel}}</button>
+      <span style="font-size: 17px; font-weight: 600">{{modalTitle}}</span>
+      <button aria-disabled="{{saveOff}}" style="min-height: 44px; font-size: 17px; font-weight: 700; color: {{saveColor}}">{{t.save}}</button>
+    </div>
+  </sc-if>
+
+  <!-- Pushed screen bar -->
+  <sc-if value="{{hdrPush}}" hint-placeholder-val="{{ false }}">
+    <div style="height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: relative">
+      <button aria-label="{{t.back}}" style="width: 44px; height: 44px; border-radius: 999px; background: {{c.glass}}; border: 0.5px solid {{c.hair}}; display: flex; align-items: center; justify-content: center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+      </button>
+      <span style="position: absolute; left: 80px; right: 80px; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600">{{pushTitle}}</span>
+      <sc-if value="{{hasPushAction}}" hint-placeholder-val="{{ false }}">
+        <button style="min-height: 44px; padding: 0 4px; font-size: 17px; color: {{c.accentText}}">{{pushAction}}</button>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- Body blocks -->
+  <div style="display: flex; flex-direction: column; gap: 18px; padding: 4px 16px 120px">
+    <sc-for list="{{blocks}}" as="b" hint-placeholder-count="3">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+
+        <sc-if value="{{b.isTitle}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <h1 style="margin: 0; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: {{b.size}}px; line-height: 1.2; font-weight: 700">{{b.text}}</h1>
+            <sc-if value="{{b.hasSub}}" hint-placeholder-val="{{ false }}"><span style="font-size: 15px; color: {{c.muted}}">{{b.sub}}</span></sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{b.isCallout}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; background: {{b.bg}}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{b.fg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{b.icon}}"></path></svg>
+            <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1">
+              <span style="font-size: 15px; line-height: 20px; font-weight: 600; color: {{c.ink}}">{{b.text}}</span>
+              <sc-if value="{{b.hasSub}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{b.sub}}</span></sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{b.isField}}" hint-placeholder-val="{{ false }}">
+          <label style="display: flex; flex-direction: column; gap: 6px">
+            <span style="padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{b.label}}</span>
+            <span style="min-height: 48px; padding: 12px 14px; box-sizing: border-box; border-radius: 14px; background: {{c.surface}}; border: 1px solid {{c.hairStrong}}; font-size: 17px; color: {{b.fg}}; word-break: break-all">{{b.value}}</span>
+            <sc-if value="{{b.hasHint}}" hint-placeholder-val="{{ false }}"><span style="padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{b.hint}}</span></sc-if>
+          </label>
+        </sc-if>
+
+        <sc-if value="{{b.isSeg}}" hint-placeholder-val="{{ false }}">
+          <div role="radiogroup" aria-label="{{b.label}}" style="display: flex; height: 36px; padding: 2px; box-sizing: border-box; border-radius: 999px; background: {{c.surface2}}">
+            <sc-for list="{{b.items}}" as="v" hint-placeholder-count="4">
+              <button role="radio" aria-checked="{{v.on}}" style="flex: 1; border-radius: 999px; text-align: center; font-size: 14px; font-weight: 600; background: {{v.bg}}; color: {{v.fg}}; box-shadow: {{v.shadow}}">{{v.label}}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{b.isChips}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <sc-if value="{{b.hasHead}}" hint-placeholder-val="{{ false }}"><h2 style="margin: 0; padding: 0 4px; font-size: 13px; font-weight: 600; color: {{c.muted}}">{{b.head}}</h2></sc-if>
+            <div style="display: flex; justify-content: space-between; padding: 10px 12px; border-radius: 16px; background: {{c.surface}}">
+              <sc-for list="{{b.items}}" as="ch" hint-placeholder-count="7">
+                <button aria-pressed="{{ch.on}}" aria-label="{{ch.aria}}" style="width: 40px; height: 40px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; background: {{ch.bg}}; color: {{ch.fg}}; box-shadow: {{ch.ring}}">{{ch.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{b.isSection}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <sc-if value="{{b.hasHead}}" hint-placeholder-val="{{ false }}"><h2 style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">{{b.head}}</h2></sc-if>
+            <div style="background: {{c.surface}}; border-radius: 16px; overflow: hidden">
+              <sc-for list="{{b.rows}}" as="r" hint-placeholder-count="3">
+                <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 9px 14px; box-sizing: border-box; border-top: {{r.line}}">
+                  <sc-if value="{{r.hasDot}}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 999px; background: {{r.dot}}"></span></sc-if>
+                  <sc-if value="{{r.hasIcon}}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{r.iconColor}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.icon}}"></path></svg></sc-if>
+                  <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+                    <span style="font-size: {{r.size}}px; line-height: 22px; font-weight: {{r.weight}}; color: {{r.labelColor}}">{{r.label}}</span>
+                    <sc-if value="{{r.hasSub}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; line-height: 18px; color: {{r.subColor}}">{{r.sub}}</span></sc-if>
+                  </div>
+                  <sc-if value="{{r.hasValue}}" hint-placeholder-val="{{ false }}"><span style="font-size: 17px; line-height: 22px; text-align: right; color: {{r.valueColor}}; font-variant-numeric: tabular-nums">{{r.value}}</span></sc-if>
+                  <sc-if value="{{r.isToggle}}" hint-placeholder-val="{{ false }}">
+                    <span role="switch" aria-checked="{{r.on}}" aria-label="{{r.label}}" style="width: 51px; height: 31px; border-radius: 999px; background: {{r.track}}; position: relative; display: block; flex: none">
+                      <span aria-hidden="true" style="position: absolute; top: 2px; left: {{r.knob}}px; width: 27px; height: 27px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 2px 4px rgba(0,0,0,.2)"></span>
+                    </span>
+                  </sc-if>
+                  <sc-if value="{{r.isCheck}}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.accentText}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-label="{{t.chosen}}" role="img"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+                  <sc-if value="{{r.chev}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{b.hasFoot}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{b.foot}}</p></sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{b.isMonth}}" hint-placeholder-val="{{ false }}">
+          <div style="margin: 0 -12px">
+            <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding-bottom: 4px">
+              <sc-for list="{{b.wd}}" as="w" hint-placeholder-count="7"><span style="text-align: center; font-size: 11px; font-weight: 600; color: {{c.muted}}">{{w}}</span></sc-for>
+            </div>
+            <sc-for list="{{b.weeks}}" as="wk" hint-placeholder-count="6">
+              <div style="position: relative; height: 64px; border-top: 0.5px solid {{c.hair}}">
+                <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); height: 100%">
+                  <sc-for list="{{wk.days}}" as="d" hint-placeholder-count="7">
+                    <div style="display: flex; flex-direction: column; align-items: center; padding-top: 3px; gap: 2px">
+                      <span style="width: 26px; height: 26px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: {{d.weight}}; background: {{d.bg}}; color: {{d.fg}}">{{d.n}}</span>
+                      <div style="display: flex; gap: 3px; margin-top: {{d.dotTop}}px">
+                        <sc-for list="{{d.dots}}" as="dot" hint-placeholder-count="1"><span aria-hidden="true" style="width: 5px; height: 5px; border-radius: 999px; background: {{dot.color}}; box-shadow: {{dot.ring}}"></span></sc-for>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <sc-for list="{{wk.bars}}" as="bar" hint-placeholder-count="1">
+                  <span style="position: absolute; top: {{bar.top}}px; left: calc({{bar.l}} * 100% / 7 + {{bar.padL}}px); width: calc({{bar.w}} * 100% / 7 - {{bar.padW}}px); height: 14px; border-radius: {{bar.radius}}; background: {{bar.bg}}; color: {{bar.fg}}; font-size: 10px; line-height: 14px; font-weight: 600; padding: 0 5px; box-sizing: border-box; white-space: nowrap; overflow: hidden">{{bar.label}}</span>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{b.isAgenda}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 14px">
+            <sc-for list="{{b.groups}}" as="g" hint-placeholder-count="2">
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <h2 style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{g.headColor}}">{{g.head}}</h2>
+                <sc-if value="{{g.hasLine}}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; align-items: center; gap: 8px; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenText}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{icons.fork}}"></path></svg>
+                    <span>{{g.line}}</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{g.hasRows}}" hint-placeholder-val="{{ true }}">
+                  <div style="background: {{c.surface}}; border-radius: 16px; overflow: hidden">
+                    <sc-for list="{{g.rows}}" as="e" hint-placeholder-count="2">
+                      <div style="display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 8px 14px; box-sizing: border-box; border-top: {{e.line}}">
+                        <span aria-hidden="true" style="width: 4px; align-self: stretch; border-radius: 2px; background: {{e.color}}"></span>
+                        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                          <div style="display: flex; align-items: center; gap: 6px">
+                            <span style="font-size: 17px; line-height: 22px">{{e.title}}</span>
+                            <sc-if value="{{e.repeat}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="{{t.repeats}}"><path d="{{icons.repeat}}"></path></svg></sc-if>
+                            <sc-if value="{{e.linked}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="{{t.subscribed}}"><path d="{{icons.link}}"></path></svg></sc-if>
+                          </div>
+                          <div style="display: flex; align-items: center; gap: 6px">
+                            <sc-if value="{{e.hasBadge}}" hint-placeholder-val="{{ false }}"><span style="padding: 1px 7px; border-radius: 999px; background: {{c.homeWash}}; color: {{c.ink}}; font-size: 12px; line-height: 16px; font-weight: 600">{{e.badge}}</span></sc-if>
+                            <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{e.meta}}</span>
+                          </div>
+                        </div>
+                        <span style="font-size: 15px; color: {{c.muted}}; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap">{{e.time}}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{g.hasExtras}}" hint-placeholder-val="{{ false }}">
+                  <div style="background: {{c.surface2}}; border-radius: 14px; overflow: hidden">
+                    <sc-for list="{{g.extras}}" as="x" hint-placeholder-count="2">
+                      <div style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 14px; box-sizing: border-box; border-top: {{x.line}}">
+                        <sc-if value="{{x.isMeal}}" hint-placeholder-val="{{ false }}">
+                          <span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 7px; background: {{c.kitchenFill}}; display: flex; align-items: center; justify-content: center">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{icons.fork}}"></path></svg>
+                          </span>
+                        </sc-if>
+                        <sc-if value="{{x.isTask}}" hint-placeholder-val="{{ false }}">
+                          <button role="checkbox" aria-checked="false" aria-label="{{x.title}}" style="width: 24px; height: 24px; border-radius: 999px; border: 2px solid {{c.muted}}; box-sizing: border-box"></button>
+                        </sc-if>
+                        <span style="flex-grow: 1; font-size: 15px; line-height: 20px">{{x.title}}</span>
+                        <span style="font-size: 13px; color: {{c.muted}}">{{x.meta}}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{b.isButton}}" hint-placeholder-val="{{ false }}">
+          <button style="min-height: 50px; border-radius: 999px; text-align: center; font-size: 17px; font-weight: 700; background: {{c.fab}}; color: {{c.fabOn}}">{{b.text}}</button>
+        </sc-if>
+
+        <sc-if value="{{b.isNote}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{b.text}}</p>
+        </sc-if>
+
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{showFab}}" hint-placeholder-val="{{ false }}">
+    <button aria-label="{{t.add}}" style="position: absolute; right: 20px; bottom: 104px; width: 56px; height: 56px; border-radius: 999px; background: {{c.fab}}; box-shadow: 0 6px 20px rgba(0,0,0,.18); display: flex; align-items: center; justify-content: center">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{c.fabOn}}" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+    </button>
+  </sc-if>
+
+  <!-- Tab bar -->
+  <sc-if value="{{showTabs}}" hint-placeholder-val="{{ true }}">
+    <nav aria-label="{{t.tabs}}" style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; background: {{c.glassBar}}; border-top: 0.5px solid {{c.hair}}; display: flex; justify-content: space-around; padding-top: 8px; box-sizing: border-box">
+      <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="5">
+        <a href="#" aria-label="{{tab.label}}" style="width: 64px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: {{tab.color}}; font-size: 10px; line-height: 12px; font-weight: 600">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{tab.color}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{tab.icon}}"></path></svg>
+          <span>{{tab.label}}</span>
+        </a>
+      </sc-for>
+    </nav>
+  </sc-if>
+
+  <!-- Bottom sheet -->
+  <sc-if value="{{hasSheet}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,.32)"></div>
+    <div role="dialog" aria-label="{{sheet.title}}" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 640px; border-radius: 28px 28px 0 0; background: {{c.ground}}; padding: 8px 16px 34px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px">
+      <span aria-hidden="true" style="align-self: center; width: 36px; height: 5px; border-radius: 999px; background: {{c.hairStrong}}"></span>
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <span style="width: 72px; font-size: 17px; color: {{c.accentText}}">{{sheet.left}}</span>
+        <span style="font-size: 17px; font-weight: 600">{{sheet.title}}</span>
+        <span style="width: 72px; text-align: right; font-size: 17px; font-weight: 700; color: {{c.accentText}}">{{sheet.right}}</span>
+      </div>
+      <div style="background: {{c.surface}}; border-radius: 16px; overflow: hidden">
+        <sc-for list="{{sheet.rows}}" as="r" hint-placeholder-count="5">
+          <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 9px 14px; box-sizing: border-box; border-top: {{r.line}}">
+            <div style="flex-grow: 1; display: flex; flex-direction: column">
+              <span style="font-size: 17px; line-height: 22px; color: {{c.ink}}">{{r.label}}</span>
+              <sc-if value="{{r.hasSub}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{r.sub}}</span></sc-if>
+            </div>
+            <sc-if value="{{r.isCheck}}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.accentText}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="{{t.chosen}}"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+            <sc-if value="{{r.chev}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{sheet.hasFoot}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{sheet.foot}}</p></sc-if>
+    </div>
+  </sc-if>
+
+  <!-- Action sheet -->
+  <sc-if value="{{hasAction}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,.32)"></div>
+    <div role="alertdialog" aria-label="{{action.title}}" style="position: absolute; left: 10px; right: 10px; bottom: 34px; display: flex; flex-direction: column; gap: 8px">
+      <div style="border-radius: 14px; overflow: hidden; background: {{c.menu}}">
+        <div style="padding: 14px 16px; text-align: center; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13px; font-weight: 600; color: {{c.muted}}">{{action.title}}</span>
+          <span style="font-size: 13px; color: {{c.muted}}">{{action.msg}}</span>
+        </div>
+        <sc-for list="{{action.items}}" as="a" hint-placeholder-count="3">
+          <button style="display: block; width: 100%; min-height: 56px; border-top: 0.5px solid {{c.hair}}; text-align: center; font-size: 19px; color: {{a.color}}">{{a.label}}</button>
+        </sc-for>
+      </div>
+      <button style="min-height: 56px; border-radius: 14px; background: {{c.menuSolid}}; text-align: center; font-size: 19px; font-weight: 600; color: {{c.accentText}}">{{t.cancel}}</button>
+    </div>
+  </sc-if>
+
+  <!-- Notification banners -->
+  <sc-if value="{{hasBanners}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 8px; right: 8px; top: 10px; display: flex; flex-direction: column; gap: 8px">
+      <sc-for list="{{banners}}" as="n" hint-placeholder-count="2">
+        <div role="status" style="display: flex; gap: 12px; padding: 12px 14px; border-radius: 22px; background: {{c.banner}}; box-shadow: 0 8px 28px rgba(0,0,0,.22)">
+          <span aria-hidden="true" style="width: 38px; height: 38px; border-radius: 9px; background: {{c.fab}}; display: flex; align-items: center; justify-content: center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.fabOn}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{n.icon}}"></path></svg>
+          </span>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; color: {{c.muted}}"><span>Gather</span><span>{{n.when}}</span></div>
+            <span style="font-size: 15px; line-height: 20px; font-weight: 600">{{n.title}}</span>
+            <span style="font-size: 15px; line-height: 20px">{{n.body}}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["repeat","repeatCustom","scopeEdit","scopeDelete","month","agenda","dates","subscribe","calendars","readonly","reminder","notifSettings","banners","overlay","overlaySettings","overlayB"],"default":"repeat"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lang":{"editor":"enum","options":["nl","en"],"default":"nl"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const screen = this.props.screen ?? 'repeat';
+    const dark = (this.props.theme ?? 'light') === 'dark';
+    const en = (this.props.lang ?? 'nl') === 'en';
+    const L = (nl, e) => (en ? e : nl);
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', muted: '#A0A8A4', hair: '#2E3331', hairStrong: '#3A3F3D', danger: '#F0917F',
+      glass: 'rgba(44,46,45,.78)', glassBar: 'rgba(27,30,29,.94)', menu: 'rgba(44,46,45,.98)', menuSolid: '#2C2E2D', banner: 'rgba(44,46,45,.98)',
+      accentText: '#F2C060', fab: '#D99B2B', fabOn: '#2B1F06', homeWash: '#2E2611', kitchenFill: '#0B7C75', kitchenText: '#6FD6CD', track: '#30D158', trackOff: '#3A3F3D',
+      today: '#D99B2B', todayOn: '#2B1F06', cal1: '#D99B2B', cal2: '#4FB3AC', cal3: '#B28BF0', cal4: '#8FB4F5', barFg: '#F1F3F1', onCal: '#0F1110'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', muted: '#5E6764', hair: '#DFE2DE', hairStrong: '#C9CDC8', danger: '#A4372C',
+      glass: 'rgba(255,255,255,.78)', glassBar: 'rgba(255,255,255,.94)', menu: 'rgba(249,249,248,.98)', menuSolid: '#FFFFFF', banner: 'rgba(255,255,255,.98)',
+      accentText: '#8A5C08', fab: '#F2B233', fabOn: '#2B1F06', homeWash: '#FBEBC6', kitchenFill: '#0B7C75', kitchenText: '#0B7C75', track: '#34C759', trackOff: '#E3E5E2',
+      today: '#1A1F1D', todayOn: '#FFFFFF', cal1: '#D99B2B', cal2: '#0B7C75', cal3: '#7B4FC9', cal4: '#2459BD', barFg: '#1A1F1D', onCal: '#FFFFFF'
+    };
+    const icons = {
+      repeat: 'M17 2l3 3-3 3M3 11V9a4 4 0 0 1 4-4h13M7 22l-3-3 3-3M21 13v2a4 4 0 0 1-4 4H4',
+      link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5',
+      fork: 'M7 2v8a2 2 0 0 0 2 2v10M11 2v8M7 6h4M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4v11',
+      bell: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0',
+      person: 'M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM19 8v6M22 11h-6',
+      info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01',
+      alert: 'M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01',
+      check: 'M22 11.1V12a10 10 0 1 1-5.9-9.1M22 4L12 14l-3-3',
+      lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
+      plus: 'M12 5v14M5 12h14',
+      cal: 'M4 5h16v16H4zM4 10h16M9 3v4M15 3v4'
+    };
+    const t = {
+      back: L('Terug', 'Back'), search: L('Zoeken in Agenda', 'Search Calendar'), settings: L('Instellingen van Agenda', 'Calendar settings'),
+      today: L('Vandaag', 'Today'), view: L('Weergave', 'View'), cancel: L('Annuleer', 'Cancel'), save: L('Bewaar', 'Save'), add: L('Afspraak toevoegen', 'Add event'),
+      chosen: L('Gekozen', 'Selected'), repeats: L('Herhaalt', 'Repeats'), subscribed: L('Uit een abonnement', 'From a subscription'), tabs: L('Tabbladen', 'Tabs'),
+      month: L('November 2026', 'November 2026')
+    };
+    const line = (i) => (i === 0 ? '0' : '0.5px solid ' + c.hair);
+    const lines = (rows) => rows.map((r, i) => ({ ...r, line: line(i) }));
+    const row = (label, o = {}) => ({
+      label, size: o.size ?? 17, weight: o.weight ?? 400, labelColor: o.labelColor ?? c.ink,
+      hasSub: !!o.sub, sub: o.sub ?? '', subColor: o.subColor ?? c.muted,
+      hasValue: o.value !== undefined, value: o.value ?? '', valueColor: o.valueColor ?? c.muted,
+      isToggle: o.toggle !== undefined, on: o.toggle ? 'true' : 'false', track: o.toggle ? c.track : c.trackOff, knob: o.toggle ? 22 : 2,
+      isCheck: !!o.check, chev: !!o.chev, hasDot: !!o.dot, dot: o.dot ?? '', hasIcon: !!o.icon, icon: o.icon ?? '', iconColor: o.iconColor ?? c.muted
+    });
+    const section = (head, rows, foot) => ({ isSection: true, hasHead: !!head, head: head ?? '', rows: lines(rows), hasFoot: !!foot, foot: foot ?? '' });
+    const title = (text, sub, size) => ({ isTitle: true, text, hasSub: !!sub, sub: sub ?? '', size: size ?? 34 });
+    const note = (text) => ({ isNote: true, text });
+    const callout = (text, sub, tone) => ({ isCallout: true, text, hasSub: !!sub, sub: sub ?? '', bg: tone === 'danger' ? (dark ? '#3A1F1B' : '#F7E3E0') : tone === 'ok' ? (dark ? '#133230' : '#DDEFEC') : c.homeWash, fg: tone === 'danger' ? c.danger : tone === 'ok' ? c.kitchenText : c.accentText, icon: tone === 'danger' ? icons.alert : tone === 'ok' ? icons.check : (tone === 'lock' ? icons.lock : icons.info) });
+    const field = (label, value, hint, ph) => ({ isField: true, label, value, fg: ph ? c.muted : c.ink, hasHint: !!hint, hint: hint ?? '' });
+    const seg = (label, items, on) => ({ isSeg: true, label, items: items.map((x, i) => ({ label: x, on: i === on ? 'true' : 'false', bg: i === on ? c.surface : 'transparent', fg: i === on ? c.ink : c.muted, shadow: i === on ? '0 1px 3px rgba(0,0,0,.12)' : 'none' })) });
+    const chips = (head, items) => ({ isChips: true, hasHead: !!head, head: head ?? '', items });
+    const button = (text) => ({ isButton: true, text });
+
+    const wdShort = en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['M', 'D', 'W', 'D', 'V', 'Z', 'Z'];
+    const wdLong = en ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] : ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+
+    // Events used across screens
+    const ev = (title, meta, time, color, o = {}) => ({ title, meta, time, color, repeat: !!o.repeat, linked: !!o.linked, hasBadge: !!o.badge, badge: o.badge ?? '' });
+    const meal = (title, meta) => ({ isMeal: true, isTask: false, title, meta });
+    const task = (title, meta) => ({ isMeal: false, isTask: true, title, meta });
+    const group = (head, rows, o = {}) => ({ head, headColor: o.today ? c.accentText : c.muted, rows: lines(rows), hasRows: rows.length > 0, hasExtras: !!(o.extras && o.extras.length), extras: lines(o.extras ?? []), hasLine: !!o.line, line: o.line ?? '' });
+
+    const gThu = group(L('DONDERDAG 26 NOVEMBER', 'THURSDAY 26 NOVEMBER'), [
+      ev(L('Opa en oma logeren', 'Grandparents staying over'), L('Gezin', 'Family'), L('Hele dag', 'All day'), c.cal1, { badge: L('Dag 4 van 5', 'Day 4 of 5') }),
+      ev(L('Nachtdienst Anne', 'Night shift Anne'), L('Werk · tot vr 06:00', 'Work · until Fri 06:00'), '22:00 →', c.cal3)
+    ]);
+    const gFri = (extra) => group(L('VANDAAG · VRIJDAG 27 NOVEMBER', 'TODAY · FRIDAY 27 NOVEMBER'), [
+      ev(L('Opa en oma logeren', 'Grandparents staying over'), L('Gezin', 'Family'), L('Hele dag', 'All day'), c.cal1, { badge: L('Dag 5 van 5', 'Day 5 of 5') }),
+      ev(L('Nachtdienst Anne', 'Night shift Anne'), L('Werk · begon do 22:00', 'Work · started Thu 22:00'), '→ 06:00', c.cal3)
+    ], { today: true, ...extra });
+    const gSat = (extra) => group(L('ZATERDAG 28 NOVEMBER', 'SATURDAY 28 NOVEMBER'), [
+      ev(L('Zwemles Sam', 'Swimming lesson Sam'), L('Gezin · Sam', 'Family · Sam'), '09:30', c.cal1, { repeat: true }),
+      ev(L('Uitwedstrijd JO11', 'Away match U11'), 'VV Noordster', '10:15', c.cal4, { linked: true })
+    ], extra);
+    const gSun = (extra) => group(L('ZONDAG 29 NOVEMBER', 'SUNDAY 29 NOVEMBER'), [], extra);
+
+    // Month grid, Mon-start, 26 Oct to 6 Dec 2026
+    const monthBlock = (opts = {}) => {
+      const weeks = [];
+      const startDays = [26, 2, 9, 16, 23, 30];
+      for (let w = 0; w < 6; w++) {
+        const days = [];
+        for (let i = 0; i < 7; i++) {
+          let n = startDays[w] + i; let inMonth = true;
+          if (w === 0) { if (n > 31) { n -= 31; inMonth = true; } else { inMonth = false; } }
+          if (w === 5) { if (n > 30) { n -= 30; inMonth = false; } }
+          const isToday = inMonth && n === 27;
+          const dots = [];
+          if (inMonth && [3, 17].includes(n)) dots.push({ color: c.cal2, ring: 'none' });
+          if (inMonth && [7, 14, 21, 28].includes(n)) dots.push({ color: c.cal1, ring: 'none' });
+          if (inMonth && n === 18) dots.push({ color: c.cal4, ring: 'none' });
+          if (inMonth && n === 30) dots.push({ color: c.cal1, ring: 'none' });
+          if (opts.overlay && inMonth && n >= 23 && n <= 29) dots.push({ color: c.kitchenText, ring: 'none' });
+          days.push({ n: String(n), bg: isToday ? c.today : 'transparent', fg: isToday ? c.todayOn : (inMonth ? c.ink : c.muted), weight: isToday ? 700 : 500, dots, dotTop: 0 });
+        }
+        const bars = [];
+        const bar = (l, wdt, label, color, contL, contR, top) => ({ l, w: wdt, label, top: top ?? 33, bg: color, fg: c.onCal, padL: contL ? 0 : 2, padW: (contL ? 0 : 2) + (contR ? 0 : 2), radius: (contL ? '0' : '7px') + ' ' + (contR ? '0 0' : '7px 7px') + ' ' + (contL ? '0' : '7px') });
+        if (w === 2) bars.push(bar(4, 3, L('Weekend Texel', 'Weekend Texel'), c.cal1, false, false));
+        if (w === 4) { bars.push(bar(0, 5, L('Opa en oma logeren', 'Grandparents staying'), c.cal1, false, false)); bars.push(bar(3, 2, L('Nachtdienst', 'Night shift'), c.cal3, false, false, 49)); }
+        weeks.push({ days: days.map((d) => ({ ...d, dotTop: (w === 2 && ['13', '14', '15'].includes(d.n)) || (w === 4 && ['23', '24', '25', '26', '27'].includes(d.n)) ? 16 : 0 })), bars });
+      }
+      return { isMonth: true, wd: wdShort, weeks };
+    };
+
+    const editorRows = (o = {}) => [
+      section(null, [row(o.title ?? L('Zwemles Sam', 'Swimming lesson Sam'), { size: 20, weight: 600 }), row(L('Sportfondsenbad', 'Sports centre pool'), { labelColor: c.muted })]),
+      section(null, [
+        row(L('Hele dag', 'All day'), { toggle: false }),
+        row(L('Begint', 'Starts'), { value: o.starts ?? L('za 28 nov · 09:30', 'Sat 28 Nov · 09:30') }),
+        row(L('Eindigt', 'Ends'), { value: o.ends ?? '10:15' })
+      ]),
+      section(null, [row(L('Herhalen', 'Repeat'), { value: o.repeat ?? L('Elke week', 'Weekly'), chev: true })]),
+      section(null, [row(L('Agenda', 'Calendar'), { value: L('Gezin', 'Family'), dot: c.cal1, chev: true }), row(L('Wie', 'Who'), { value: 'Sam', chev: true })]),
+      section(null, [row(L('Herinnering', 'Reminder'), { value: o.reminder ?? L('15 min vooraf', '15 min before'), chev: true })])
+    ];
+
+    const tabIcons = { home: 'M3 11l9-8 9 8M5 10v10h14V10', grid: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z', plus: 'M12 5v14M5 12h14', search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-3.5-3.5', gear: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1' };
+    const tabsFor = (sel) => [[L('Home', 'Home'), tabIcons.home], [L('Alles', 'All'), tabIcons.grid], [L('Nieuw', 'New'), tabIcons.plus], [L('Zoeken', 'Search'), tabIcons.search], [L('Instellingen', 'Settings'), tabIcons.gear]].map(([label, icon], i) => ({ label, icon, color: i === sel ? c.ink : c.muted }));
+
+    let hdr = 'root', viewOn = 2, blocks = [], sheet = null, action = null, banners = null, showTabs = true, showFab = false, pushTitle = '', pushAction = '', modalTitle = L('Afspraak', 'Event'), saveOff = false, tabSel = 1;
+
+    if (screen === 'repeat') {
+      hdr = 'modal'; showTabs = false; blocks = editorRows();
+      sheet = { title: L('Herhalen', 'Repeat'), left: '', right: L('Klaar', 'Done'), rows: lines([
+        row(L('Nooit', 'Never')), row(L('Elke dag', 'Every day')),
+        row(L('Elke week', 'Every week'), { sub: L('op zaterdag', 'on Saturday'), check: true }),
+        row(L('Elke 2 weken', 'Every 2 weeks'), { sub: L('op zaterdag', 'on Saturday') }),
+        row(L('Elke maand', 'Every month'), { sub: L('op de 4e zaterdag', 'on the 4th Saturday') }),
+        row(L('Elk jaar', 'Every year'), { sub: L('op 28 november', 'on 28 November') }),
+        row(L('Aangepast…', 'Custom…'), { chev: true })
+      ]), hasFoot: true, foot: L('Volgende keren: za 5 dec, za 12 dec, za 19 dec.', 'Next: Sat 5 Dec, Sat 12 Dec, Sat 19 Dec.') };
+    } else if (screen === 'repeatCustom') {
+      hdr = 'push'; showTabs = false; pushTitle = L('Aangepast', 'Custom'); pushAction = L('Klaar', 'Done');
+      blocks = [
+        title(L('Huur', 'Rent'), L('Herhalen', 'Repeat'), 28),
+        seg(L('Eenheid', 'Unit'), [L('Dag', 'Day'), L('Week', 'Week'), L('Maand', 'Month'), L('Jaar', 'Year')], 2),
+        section(null, [row(L('Elke', 'Every'), { value: L('1 maand', '1 month'), chev: true })]),
+        section(L('OP', 'ON'), [
+          row(L('Op dag 30', 'On day 30'), { sub: L('Slaat maanden zonder 30e over (februari)', 'Skips months without a 30th (February)') }),
+          row(L('Op de laatste maandag', 'On the last Monday')),
+          row(L('Op de laatste dag', 'On the last day'), { check: true, sub: L('30 nov, 31 dec, 28 feb …', '30 Nov, 31 Dec, 28 Feb …') })
+        ]),
+        section(L('EINDIGT', 'ENDS'), [
+          row(L('Nooit', 'Never'), { check: true }),
+          row(L('Op datum', 'On date'), { value: '—' }),
+          row(L('Na een aantal keer', 'After a number of times'), { value: '—' })
+        ]),
+        note(L('Elke maand op de laatste dag, zonder einde. Volgende: ma 30 nov, do 31 dec, zo 31 jan.', 'Monthly on the last day, no end. Next: Mon 30 Nov, Thu 31 Dec, Sun 31 Jan.'))
+      ];
+    } else if (screen === 'scopeEdit') {
+      hdr = 'modal'; showTabs = false; blocks = editorRows({ starts: L('za 5 dec · 09:45', 'Sat 5 Dec · 09:45'), ends: '10:30' });
+      action = { title: L('Dit is een herhalende afspraak', 'This is a repeating event'), msg: L('Wijziging bewaren voor…', 'Save changes for…'), items: [
+        { label: L('Alleen deze afspraak', 'This event only'), color: c.accentText },
+        { label: L('Deze en volgende', 'This and following events'), color: c.accentText },
+        { label: L('Alle afspraken in de reeks', 'All events in the series'), color: c.accentText }
+      ] };
+    } else if (screen === 'scopeDelete') {
+      hdr = 'push'; showTabs = false; pushTitle = ''; pushAction = L('Wijzig', 'Edit');
+      blocks = [
+        title(L('Zwemles Sam', 'Swimming lesson Sam'), L('za 5 december · 09:30 – 10:15', 'Sat 5 December · 09:30 – 10:15'), 28),
+        section(null, [
+          row(L('Elke week op zaterdag', 'Weekly on Saturday'), { icon: icons.repeat }),
+          row(L('Sportfondsenbad', 'Sports centre pool'), { icon: 'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z' }),
+          row(L('Gezin · Sam', 'Family · Sam'), { dot: c.cal1 }),
+          row(L('15 min vooraf', '15 min before'), { icon: icons.bell })
+        ]),
+        section(null, [row(L('Verwijder afspraak', 'Delete event'), { labelColor: c.danger })])
+      ];
+      action = { title: L('Afspraak verwijderen', 'Delete event'), msg: L('Dit is een herhalende afspraak.', 'This is a repeating event.'), items: [
+        { label: L('Alleen deze verwijderen', 'Delete this event only'), color: c.danger },
+        { label: L('Deze en volgende verwijderen', 'Delete this and following'), color: c.danger },
+        { label: L('Hele reeks verwijderen', 'Delete the whole series'), color: c.danger }
+      ] };
+    } else if (screen === 'month') {
+      viewOn = 0; showFab = true;
+      blocks = [monthBlock(), { isAgenda: true, groups: [gFri()] }];
+    } else if (screen === 'agenda') {
+      viewOn = 2; showFab = true;
+      blocks = [{ isAgenda: true, groups: [gThu, gFri(), gSat()] }];
+    } else if (screen === 'dates') {
+      hdr = 'modal'; showTabs = false; modalTitle = L('Nieuwe afspraak', 'New event'); saveOff = true;
+      blocks = [
+        section(null, [row(L('Nachtdienst Anne', 'Night shift Anne'), { size: 20, weight: 600 }), row(L('Locatie', 'Location'), { labelColor: c.muted })]),
+        section(null, [
+          row(L('Hele dag', 'All day'), { toggle: false }),
+          row(L('Begint', 'Starts'), { value: L('do 26 nov · 22:00', 'Thu 26 Nov · 22:00') }),
+          row(L('Eindigt', 'Ends'), { value: L('do 26 nov · 06:00', 'Thu 26 Nov · 06:00'), valueColor: c.danger, sub: L('Einde ligt vóór het begin', 'Ends before it starts'), subColor: c.danger }),
+          row(L('Zet einde op vr 27 nov · 06:00', 'Set end to Fri 27 Nov · 06:00'), { labelColor: c.accentText, weight: 600 })
+        ], L('Een afspraak die na middernacht doorloopt staat op beide dagen.', 'An event that runs past midnight shows on both days.')),
+        section(null, [row(L('Herhalen', 'Repeat'), { value: L('Nooit', 'Never'), chev: true })]),
+        section(null, [row(L('Agenda', 'Calendar'), { value: L('Werk', 'Work'), dot: c.cal3, chev: true }), row(L('Wie', 'Who'), { value: 'Anne', chev: true })])
+      ];
+    } else if (screen === 'subscribe') {
+      hdr = 'push'; showTabs = false; pushTitle = L('Agenda’s', 'Calendars');
+      const colors = [c.cal1, c.cal2, c.cal3, c.cal4, c.danger, c.muted];
+      blocks = [
+        title(L('Abonneren op een link', 'Subscribe to a link'), L('School, club of een werkagenda. Alleen lezen.', 'School, club or a work calendar. Read-only.'), 28),
+        field(L('Link', 'Link'), 'webcal://schoolvakanties.nl/noord/2026.ics', L('Begint met https:// of webcal://', 'Starts with https:// or webcal://')),
+        field(L('Naam', 'Name'), L('Schoolvakanties', 'School holidays')),
+        chips(L('KLEUR', 'COLOUR'), colors.map((col, i) => ({ label: '', aria: L('Kleur ', 'Colour ') + (i + 1), on: i === 3 ? 'true' : 'false', bg: col, fg: c.ink, ring: i === 3 ? '0 0 0 3px ' + c.surface + ', 0 0 0 5px ' + c.ink : 'none' }))),
+        callout(L('32 afspraken gevonden', '32 events found'), L('21 dec 2026 t/m 18 jul 2027 · laatst gecontroleerd zojuist', '21 Dec 2026 to 18 Jul 2027 · checked just now'), 'ok'),
+        note(L('Gather ververst elk uur en als je de agenda omlaag trekt. Iedereen in Familie Jansen ziet de afspraken; de link zelf zie alleen jij.', 'Gather refreshes every hour and when you pull down. Everyone in Familie Jansen sees the events; only you see the link.')),
+        button(L('Abonneren', 'Subscribe'))
+      ];
+    } else if (screen === 'calendars') {
+      hdr = 'push'; showTabs = false; pushTitle = '';
+      blocks = [
+        title(L('Agenda’s', 'Calendars')),
+        section(L('AGENDA’S', 'CALENDARS'), [row(L('Gezin', 'Family'), { dot: c.cal1, chev: true }), row('Eric', { dot: c.cal2, chev: true }), row(L('Werk', 'Work'), { dot: c.cal3, chev: true })]),
+        section(L('ABONNEMENTEN', 'SUBSCRIPTIONS'), [
+          row(L('Schoolvakanties', 'School holidays'), { dot: c.cal4, sub: L('Bijgewerkt 14:02 · alleen lezen', 'Updated 14:02 · read-only'), chev: true }),
+          row('VV Noordster JO11', { dot: c.cal1, sub: L('Bijwerken mislukt · laatst 09:00', 'Couldn’t update · last 09:00'), subColor: c.danger, value: L('Opnieuw', 'Retry'), valueColor: c.accentText })
+        ], L('Lukt bijwerken niet, dan blijven de laatste afspraken staan.', 'If an update fails, the last events stay.')),
+        section(null, [row(L('Nieuwe agenda', 'New calendar'), { icon: icons.plus, iconColor: c.accentText, labelColor: c.accentText }), row(L('Abonneren op een link', 'Subscribe to a link'), { icon: icons.link, iconColor: c.accentText, labelColor: c.accentText })])
+      ];
+    } else if (screen === 'readonly') {
+      hdr = 'push'; showTabs = false; pushTitle = '';
+      blocks = [
+        callout(L('Uit Schoolvakanties · alleen lezen', 'From School holidays · read-only'), L('Bijgewerkt vandaag 14:02. Wijzigen kan alleen bij de bron.', 'Updated today 14:02. Change it at the source.'), 'lock'),
+        title(L('Studiedag', 'Teacher training day'), L('woensdag 18 november · hele dag', 'Wednesday 18 November · all day'), 28),
+        section(null, [row(L('Schoolvakanties', 'School holidays'), { dot: c.cal4 }), row(L('Basisschool De Linde', 'De Linde primary school'), { icon: icons.info })]),
+        section(L('VOOR JOU', 'FOR YOU'), [row(L('Herinnering', 'Reminder'), { value: L('Om 08:00 op de dag', 'At 08:00 on the day'), chev: true })], L('Je herinnering geldt alleen voor jou.', 'Your reminder is only for you.'))
+      ];
+    } else if (screen === 'reminder') {
+      hdr = 'modal'; showTabs = false; blocks = editorRows();
+      sheet = { title: L('Herinnering', 'Reminder'), left: '', right: L('Klaar', 'Done'), rows: lines([
+        row(L('Geen', 'None')), row(L('Op het moment zelf', 'At time of event')), row(L('5 min vooraf', '5 min before')),
+        row(L('15 min vooraf', '15 min before'), { sub: L('Je standaard', 'Your default'), check: true }),
+        row(L('30 min vooraf', '30 min before')), row(L('1 uur vooraf', '1 hour before')), row(L('1 dag vooraf', '1 day before'))
+      ]), hasFoot: true, foot: L('Alleen voor jou. Sam krijgt zijn eigen standaard, omdat hij erbij staat.', 'Only for you. Sam gets his own default, because he is on the event.') };
+    } else if (screen === 'notifSettings') {
+      hdr = 'push'; showTabs = false; pushTitle = '';
+      blocks = [
+        title(L('Meldingen', 'Notifications')),
+        section(L('TAKEN', 'TASKS'), [row(L('Herinneringen', 'Reminders'), { toggle: true }), row(L('Als iemand je een taak geeft', 'When someone assigns you'), { toggle: true })]),
+        section(L('AFSPRAKEN', 'EVENTS'), [
+          row(L('Standaardherinnering', 'Default reminder'), { value: L('15 min vooraf', '15 min before'), chev: true }),
+          row(L('Herinneringen', 'Reminders'), { toggle: true }),
+          row(L('Als iemand je toevoegt', 'When someone adds you'), { toggle: true })
+        ], L('Afspraken van een hele dag krijgen geen herinnering, tenzij je er zelf een kiest. Geldt in al je groepen.', 'All-day events get no reminder unless you set one. Applies in all your groups.')),
+        section(L('DEZE GROEP', 'THIS GROUP'), [row(L('Familie Jansen stil', 'Mute Familie Jansen'), { toggle: false })])
+      ];
+    } else if (screen === 'banners') {
+      viewOn = 2;
+      blocks = [{ isAgenda: true, groups: [gSat()] }];
+      banners = [
+        { when: L('nu', 'now'), icon: icons.bell, title: L('Zwemles Sam · over 15 min', 'Swimming lesson Sam · in 15 min'), body: L('09:30 · Sportfondsenbad', '09:30 · Sports centre pool') },
+        { when: L('2 min geleden', '2 min ago'), icon: icons.person, title: L('Anne heeft je toegevoegd', 'Anne added you'), body: L('Ouderavond · do 3 dec 19:30', 'Parents’ evening · Thu 3 Dec 19:30') }
+      ];
+    } else if (screen === 'overlay') {
+      viewOn = 2; showFab = true;
+      blocks = [{ isAgenda: true, groups: [
+        gFri({ extras: [meal(L('Diner · Stamppot boerenkool', 'Dinner · Kale stamppot'), L('Maaltijden', 'Meals')), task(L('Groene container buiten', 'Green bin out'), L('Taken', 'Tasks'))] }),
+        gSat({ extras: [meal(L('Diner · Pizza', 'Dinner · Pizza'), L('Maaltijden', 'Meals')), task(L('Cadeau oma kopen', 'Buy gift for grandma'), L('Taken', 'Tasks'))] }),
+        gSun({ extras: [meal(L('Diner · Lasagne', 'Dinner · Lasagne'), L('Maaltijden', 'Meals'))] })
+      ] }];
+    } else if (screen === 'overlayB') {
+      viewOn = 2; showFab = true;
+      blocks = [{ isAgenda: true, groups: [
+        gFri({ line: L('Diner: stamppot boerenkool · 1 taak', 'Dinner: kale stamppot · 1 task') }),
+        gSat({ line: L('Diner: pizza · 1 taak', 'Dinner: pizza · 1 task') }),
+        gSun({ line: L('Diner: lasagne', 'Dinner: lasagne') })
+      ] }];
+    } else if (screen === 'overlaySettings') {
+      hdr = 'push'; showTabs = false; pushTitle = '';
+      blocks = [
+        title(L('Agenda-instellingen', 'Calendar settings')),
+        section(L('WEERGAVE', 'VIEW'), [row(L('Opent in', 'Opens in'), { value: L('Agenda', 'Agenda'), chev: true })]),
+        section(L('OOK TONEN', 'ALSO SHOW'), [
+          row(L('Maaltijden', 'Meals'), { sub: L('Wat er gepland is voor het diner', 'What’s planned for dinner'), toggle: true }),
+          row(L('Taken die vervallen', 'Tasks due'), { sub: L('Af te vinken vanuit de agenda', 'Check off from the calendar'), toggle: true })
+        ], L('Alleen voor jou, in Familie Jansen. Tik op een maaltijd of taak om hem in zijn eigen module te openen.', 'Only for you, in Familie Jansen. Tap a meal or task to open it in its own module.')),
+        section(L('AGENDA’S', 'CALENDARS'), [row(L('Gezin', 'Family'), { dot: c.cal1, toggle: true }), row('Eric', { dot: c.cal2, toggle: true }), row(L('Schoolvakanties', 'School holidays'), { dot: c.cal4, toggle: true })]),
+        section(L('PERSONEN', 'PEOPLE'), [row(L('Afspraken van', 'Events of'), { value: L('Iedereen', 'Everyone'), chev: true })])
+      ];
+    }
+
+    const viewDefs = [L('Maand', 'Month'), L('Week', 'Week'), L('Agenda', 'Agenda')];
+    const views = viewDefs.map((label, i) => ({ label, on: i === viewOn ? 'true' : 'false', bg: i === viewOn ? c.surface : 'transparent', fg: i === viewOn ? c.ink : c.muted, shadow: i === viewOn ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }));
+
+    const fill = (b) => ({ isTitle: false, isCallout: false, isField: false, isSeg: false, isChips: false, isSection: false, isMonth: false, isAgenda: false, isButton: false, isNote: false, ...b });
+
+    return {
+      c, t, icons, views, blocks: blocks.map(fill), tabs: tabsFor(tabSel),
+      hdrRoot: hdr === 'root', hdrModal: hdr === 'modal', hdrPush: hdr === 'push',
+      modalTitle, saveOff: saveOff ? 'true' : 'false', saveColor: saveOff ? c.muted : c.accentText,
+      pushTitle, hasPushAction: !!pushAction, pushAction,
+      showTabs, showFab,
+      hasSheet: !!sheet, sheet: sheet ?? { title: '', left: '', right: '', rows: [], hasFoot: false, foot: '' },
+      hasAction: !!action, action: action ?? { title: '', msg: '', items: [] },
+      hasBanners: !!banners, banners: banners ?? []
+    };
+  }
+}
+</script>
+</body>
+</html>
