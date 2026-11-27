@@ -29,10 +29,12 @@
  *
  * One that `keepsDrop` writes nothing here — today only `recipe-import`, whose
  * importer reads the page on its own screen and can fail there. It is pushed
- * *on top of* this chooser with the Drop still pending, so Back returns to a
- * live list of somewhere else to put the link, and its own successful save
- * clears the Drop. Every other destination has already written by the time it
- * navigates, and a failure never leaves this screen at all.
+ * *on top of* this chooser with the Drop still pending, in its tab over the
+ * tab's root so a reselect of the tab still pops there (APP-963). Back returns
+ * to a live list of somewhere else to put the link (`useBackToChooser`,
+ * APP-972), and its own successful save clears the Drop. Every other
+ * destination has already written by the time it navigates, and a failure
+ * never leaves this screen at all.
  */
 import { moduleById } from '@gather/core/modules'
 import { noteRefusalSentence } from '@gather/core/refusals'

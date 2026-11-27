@@ -58,6 +58,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { useDrop } from '../../drop/DropProvider'
+import { useBackToChooser } from '../../drop/useBackToChooser'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
@@ -101,6 +102,7 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
   // still fail to read, and Back must find the chooser with the Drop pending.
   const { pending: pendingDrop, clear: clearDrop } = useDrop()
   const finishesDrop = Boolean(dropped.link && pendingDrop)
+  const leaveDrop = useBackToChooser(finishesDrop)
 
   const create = useMutation(api.recipes.create)
   const generateUploadUrl = useMutation(api.recipes.generateUploadUrl)
@@ -202,6 +204,9 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
       if (finishesDrop) {
         // The save is the Drop's commit, finished the way every other target
         // finishes one: clear it, leave the chooser, open what was made.
+        // `leaveDrop` first goes back down to the chooser, so `/home` below is
+        // the tabs under it, not the tab layout this form opened as (APP-972).
+        leaveDrop()
         clearDrop()
         router.dismissTo('/home')
         router.push(moduleHref('/all/recipes/recipe', { recipeId: id }), {
