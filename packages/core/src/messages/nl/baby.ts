@@ -113,6 +113,10 @@ export const log = {
     countOf: '{count} van {total}',
     orderHint:
       'Deze volgorde is de volgorde waarin het logboek ze aanbiedt. Zet wat je het meest gebruikt bovenaan.',
+    orderTitle: 'Volgorde op de logbalk',
+    moveUp: '{type} omhoog',
+    moveDown: '{type} omlaag',
+    moved: '{type} verplaatst naar positie {position} van {total}',
     arrangeHint: 'Sleep om te ordenen',
   },
 
