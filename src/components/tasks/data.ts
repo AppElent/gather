@@ -5,7 +5,6 @@
  * open, then when someone asks).
  */
 import { initialsForPeople } from '@gather/core/calendar'
-import { todayIn } from '@gather/core/civil-date'
 import {
   ensureExternalLists,
   externalSnapshot,
@@ -35,6 +34,7 @@ import {
 } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { useDayIn } from '../../lib/useDayIn'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 
 export type TaskListRow = FunctionReturnType<typeof api.taskLists.list>[number]
@@ -50,10 +50,13 @@ function useExternal() {
   )
 }
 
-/** The Current Group's calendar day: its time zone decides, never the browser's. */
+/**
+ * The Current Group's calendar day: its time zone decides, never the
+ * browser's. It moves on at the Group's midnight while the page is open.
+ */
 export function useGroupToday(): string {
   const { timeZone } = useRequiredCurrentGroup()
-  return todayIn(timeZone)
+  return useDayIn(timeZone)
 }
 
 /** The Current Group's lists, without their tasks. */
@@ -212,7 +215,8 @@ export function useTaskOf(
 export function useTaskIndex() {
   const { slug: groupSlug } = useRequiredCurrentGroup()
   const lists = useTaskLists()
-  const answer = useQuery(api.tasks.openCounts, { groupSlug })
+  const today = useGroupToday()
+  const answer = useQuery(api.tasks.openCounts, { groupSlug, today })
   const { linked } = useLinkedLists(lists ?? NO_LISTS)
   return useMemo(
     () => ({

@@ -301,6 +301,23 @@ function useListsOf(lists: readonly ListRow[]) {
   return { ...mergeTasks(lists, local, linked), refresh }
 }
 
+function everyMinute(onChange: () => void) {
+  const timer = setInterval(onChange, 60_000)
+  return () => clearInterval(timer)
+}
+
+/**
+ * The Current Group's calendar day, moving on at its midnight while a screen
+ * stays open (APP-991): a repeating grocery item waiting for today comes back
+ * without anything else changing. Checked each minute; a screen re-renders
+ * only when the day itself changes.
+ */
+export function useGroupToday(): string {
+  const { group } = useGroup()
+  const today = () => todayIn(group.timeZone)
+  return useSyncExternalStore(everyMinute, today, today)
+}
+
 /**
  * The Current Group's lists as names and settings, without their tasks: no
  * task subscription and no provider fetch. `undefined` until Convex answers.
@@ -312,10 +329,10 @@ export function useTaskLists(): readonly ListRow[] | undefined {
 
 /** Every list in the Current Group, and every task on them. */
 export function useTaskState() {
-  const { group } = useGroup()
+  const today = useGroupToday()
   const lists = useTaskLists()
   const state = useListsOf(lists ?? NO_LISTS)
-  return { today: todayIn(group.timeZone), ...state }
+  return { today, ...state }
 }
 
 /**
@@ -324,14 +341,14 @@ export function useTaskState() {
  * holds (ADR-0021 keeps a provider fetch behind opening its list).
  */
 export function useLocalTaskState() {
-  const { group } = useGroup()
+  const today = useGroupToday()
   const lists = useTaskLists()
   const local = useMemo(
     () => (lists ?? NO_LISTS).filter((list) => list.provider === 'local'),
     [lists],
   )
   const state = useListsOf(local)
-  return { today: todayIn(group.timeZone), loaded: lists !== undefined, ...state }
+  return { today, loaded: lists !== undefined, ...state }
 }
 
 /**
@@ -339,7 +356,7 @@ export function useLocalTaskState() {
  * the Group's lists or asking any other provider.
  */
 export function useTaskList(listId: string) {
-  const { group } = useGroup()
+  const today = useGroupToday()
   const lists = useTaskLists()
   const only = useMemo(
     () => (lists ?? NO_LISTS).filter((list) => list._id === listId),
@@ -347,7 +364,7 @@ export function useTaskList(listId: string) {
   )
   const state = useListsOf(only)
   return {
-    today: todayIn(group.timeZone),
+    today,
     list: state.lists[0],
     tasks: [...state.tasks].sort((a, b) => a.order - b.order),
     refresh: () => state.refresh(listId),
@@ -367,6 +384,7 @@ export function useTaskList(listId: string) {
  */
 export function useTaskOf(taskId: string, openedFrom?: string) {
   const { group } = useGroup()
+  const today = useGroupToday()
   const lists = useTaskLists()
   const linked = useSyncExternalStore(subscribeExternal, externalSnapshot)
   const opened = lists?.find(
@@ -394,7 +412,7 @@ export function useTaskOf(taskId: string, openedFrom?: string) {
     last.current = undefined
   }
   return {
-    today: todayIn(group.timeZone),
+    today,
     lists: state.lists,
     tasks: state.tasks,
     task: found ?? last.current,
@@ -428,9 +446,9 @@ export function useGroupLabels(): readonly string[] {
  * counts). `lists` must be memoised by the caller, as `useQueries` needs.
  */
 export function useTasksOf(lists: readonly ListRow[]) {
-  const { group } = useGroup()
+  const today = useGroupToday()
   const state = useListsOf(lists)
-  return { today: todayIn(group.timeZone), ...state }
+  return { today, ...state }
 }
 
 /**
@@ -441,7 +459,13 @@ export function useTasksOf(lists: readonly ListRow[]) {
 export function useTaskIndex() {
   const { group } = useGroup()
   const lists = useTaskLists()
-  const answer = useQuery(api.tasks.openCounts, { groupSlug: group.slug })
+  // The day travels with the question, so a cached answer is asked again at
+  // the Group's midnight (APP-991).
+  const today = useGroupToday()
+  const answer = useQuery(api.tasks.openCounts, {
+    groupSlug: group.slug,
+    today,
+  })
   const { linked } = useLinkedLists(lists ?? NO_LISTS)
   return useMemo(
     () => indexModel(lists, answer, linked),
@@ -455,7 +479,7 @@ export function useTaskIndex() {
  */
 export function useSmartLists(): SmartLists {
   const { group } = useGroup()
-  const today = todayIn(group.timeZone)
+  const today = useGroupToday()
   const lists = useTaskLists()
   const answer = useQuery(api.tasks.smartLists, {
     groupSlug: group.slug,

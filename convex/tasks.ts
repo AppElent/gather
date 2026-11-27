@@ -197,12 +197,16 @@ export const smartLists = query({
  * its checked items in place and shows how much is packed, so it also reads
  * its (small, reset) rows for `done` and `total`. A linked list has no rows in
  * Convex and is absent; the phone counts those from the provider.
+ *
+ * `today` is the caller's day, so a cached answer is asked again at the
+ * Group's midnight and a waiting repeating item is counted then (APP-991);
+ * an installed app that sends none gets the Group's day when it asks.
  */
 export const openCounts = query({
-  args: { groupSlug: v.string() },
+  args: { groupSlug: v.string(), today: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const today = completionDay(undefined, group.timeZone)
+    const today = completionDay(args.today, group.timeZone)
     const lists = await ctx.db
       .query('taskLists')
       .withIndex('by_group', (q) => q.eq('groupId', group._id))

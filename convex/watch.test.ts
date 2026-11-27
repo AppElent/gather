@@ -13,6 +13,7 @@ import {
 import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { MCP_WRITE_SCOPE } from './lib/connectedApps'
+import { completionDay } from './lib/taskRepeat'
 import { watchBarcode } from './lib/watchBarcodes'
 import { bearerKey, hashWatchKey, newWatchKey } from './lib/watchKeys'
 import { MAX_CHANGES } from './lib/watchRateLimits'
@@ -404,7 +405,10 @@ describe('what ends a key', () => {
     // The query and the write check it themselves, not only the door.
     const keyHash = await hashWatchKey(key)
     expect(
-      await t.query(internal.watchReads.groceries, { keyHash }),
+      await t.query(internal.watchReads.groceries, {
+        keyHash,
+        now: Date.now(),
+      }),
     ).toMatchObject({ ok: false, reason: 'not-a-member' })
     expect(
       await t.mutation(internal.watchChanges.apply, {
@@ -580,6 +584,42 @@ describe('reading', () => {
     expect(await (await get(t, 'modules', key)).json()).toMatchObject({
       modules: [{ id: 'groceries', open: 2 }, {}, {}],
     })
+  })
+
+  test('a waiting item is back once the moment asked is its day (APP-991)', async () => {
+    const { t, home, groceries } = await setup()
+    const now = Date.now()
+    const later = now + 24 * 3_600_000
+    const zone = (await t.run((ctx) => ctx.db.get(home)))?.timeZone
+    const repeat = { mode: 'afterDone', every: 1, unit: 'week' } as const
+    await task(t, groceries, 'melk')
+    await task(t, groceries, 'koffie', {
+      repeat,
+      dueDate: completionDay(undefined, zone, later),
+    })
+    const { key } = await pair(t)
+    const keyHash = await hashWatchKey(key)
+    const read = async (at: number) => {
+      const answer = await t.query(internal.watchReads.groceries, {
+        keyHash,
+        now: at,
+      })
+      if (!answer.ok) throw new Error(answer.reason)
+      return answer.data.sections.flatMap((s) => s.items.map((i) => i.title))
+    }
+    const open = async (at: number) => {
+      const answer = await t.query(internal.watchReads.modules, {
+        keyHash,
+        now: at,
+      })
+      if (!answer.ok) throw new Error(answer.reason)
+      return answer.data.modules[0]
+    }
+    expect(await read(now)).toEqual(['melk'])
+    expect(await open(now)).toMatchObject({ id: 'groceries', open: 1 })
+    // The same rows, asked a day later: koffie is due and back.
+    expect(await read(later)).toEqual(['melk', 'koffie'])
+    expect(await open(later)).toMatchObject({ id: 'groceries', open: 2 })
   })
 
   test("falls back to the Group's list, and to none", async () => {

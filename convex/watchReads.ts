@@ -40,6 +40,13 @@ export const WATCH_ROWS = 200
 
 const args = { keyHash: v.string() }
 
+/**
+ * A read that depends on the day also takes the moment it was asked, from the
+ * HTTP action: `Date.now()` inside a cached query would keep yesterday's
+ * answer past midnight until the rows change (APP-991).
+ */
+const dayArgs = { keyHash: v.string(), now: v.number() }
+
 /** The version of each Module's answer; it moves when a shape changes. */
 export const WATCH_MODULES = { groceries: 1, today: 1, cards: 1 } as const
 
@@ -147,12 +154,12 @@ async function tasksDue(ctx: QueryCtx, caller: WatchCaller, today: string) {
 
 /** What each Module holds, for the watch's start list. */
 export const modules = internalQuery({
-  args,
-  handler: async (ctx, { keyHash }) => {
+  args: dayArgs,
+  handler: async (ctx, { keyHash, now }) => {
     const caller = await resolveWatch(ctx, keyHash)
     if (!caller.ok) return caller
     const list = await watchGroceryList(ctx, caller)
-    const today = completionDay(undefined, caller.group.timeZone)
+    const today = completionDay(undefined, caller.group.timeZone, now)
     const cards = await ctx.db
       .query('loyaltyCards')
       .withIndex('by_group', (q) => q.eq('groupId', caller.group._id))
@@ -187,12 +194,12 @@ export const modules = internalQuery({
 
 /** The watch's grocery list: open items by aisle, then what is in the basket. */
 export const groceries = internalQuery({
-  args,
-  handler: async (ctx, { keyHash }) => {
+  args: dayArgs,
+  handler: async (ctx, { keyHash, now }) => {
     const caller = await resolveWatch(ctx, keyHash)
     if (!caller.ok) return caller
     const list = await watchGroceryList(ctx, caller)
-    const today = completionDay(undefined, caller.group.timeZone)
+    const today = completionDay(undefined, caller.group.timeZone, now)
     const open = list ? await onGroceryList(ctx, list, today) : []
     open.sort((a, b) => a.order - b.order)
     const checked = list ? await checkedGroceries(ctx, list) : []
@@ -220,12 +227,12 @@ export const groceries = internalQuery({
 
 /** Today: appointments, then tasks, then meals; and tomorrow's first. */
 export const today = internalQuery({
-  args,
-  handler: async (ctx, { keyHash }) => {
+  args: dayArgs,
+  handler: async (ctx, { keyHash, now }) => {
     const caller = await resolveWatch(ctx, keyHash)
     if (!caller.ok) return caller
     const { group } = caller
-    const date = completionDay(undefined, group.timeZone)
+    const date = completionDay(undefined, group.timeZone, now)
     const due = await tasksDue(ctx, caller, date)
     const meals = await Promise.all(
       (
