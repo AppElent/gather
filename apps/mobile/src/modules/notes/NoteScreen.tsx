@@ -357,16 +357,26 @@ export function Note({ noteId }: { noteId: string }) {
     save('title', drafts.current.title)
     save('body', drafts.current.body)
   }
-  /** Drops this screen's unsaved text; the note shows their version. */
-  function keepTheirs() {
+  /**
+   * Drops this screen's unsaved text in the fields they changed; the note shows
+   * their version there. A field they left alone keeps this screen's text, and
+   * it is saved over their version (APP-997). `everything` drops both.
+   */
+  function keepTheirs({ everything = false } = {}) {
     const open = conflictRef.current
     if (!open) return
     resolved(open.theirs)
+    const mine = drafts.current
     held.current = {}
     heldOver.current = {}
-    title.discard()
-    body.discard()
+    const kept: (keyof NoteText)[] = []
+    for (const field of FIELDS) {
+      if (everything || open.theirs[field] !== open.from[field])
+        (field === 'title' ? title : body).discard()
+      else kept.push(field)
+    }
     keepHeld()
+    for (const field of kept) save(field, mine[field])
   }
   /** This screen's text becomes a note of its own; this one keeps theirs. */
   function copyMine() {
@@ -375,7 +385,7 @@ export function Note({ noteId }: { noteId: string }) {
     actions.copyNote(drafts.current).then(
       (id) => {
         setCopying(false)
-        keepTheirs()
+        keepTheirs({ everything: true })
         router.replace(pathname.replace(/[^/]+$/, id) as Href)
       },
       (error: unknown) => {
@@ -733,7 +743,7 @@ export function Note({ noteId }: { noteId: string }) {
           theirs={conflict.theirs}
           busy={copying}
           onKeepMine={keepMine}
-          onKeepTheirs={keepTheirs}
+          onKeepTheirs={() => keepTheirs()}
           onCopyMine={copyMine}
           onClose={() => setSheetOpen(false)}
         />

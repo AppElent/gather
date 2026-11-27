@@ -699,6 +699,29 @@ describe('another Member saved while this person was writing (APP-347)', () => {
     expect(readHeld(`u1:g1:notes:${id}`)).toBeUndefined()
   })
 
+  // APP-997: only the field they changed is theirs.
+  test('Keep theirs saves this text in the field they left alone', async () => {
+    const view = open({ title: 'T', body: 'b' })
+    const id = state.note.id as string
+    await conflictOn(view, 'note-body', 'mine')
+    await type(view, 'note-title', 'My title')
+    expect(state.editNote).toHaveBeenCalledTimes(1)
+    state.editNote.mockResolvedValueOnce({ status: 'saved', updatedAt: 6 })
+    await tap(view, 'note-conflict-keep-theirs')
+    expect(state.editNote).toHaveBeenCalledTimes(2)
+    expect(state.editNote).toHaveBeenLastCalledWith(
+      id,
+      { title: 'My title' },
+      5,
+    )
+    expect(find(view, 'note-title')?.value).toBe('My title')
+    expect(find(view, 'note-body')?.value).toBe('theirs')
+    expect(find(view, 'sheet')).toBeNull()
+    view.unmount()
+    expect(state.editNote).toHaveBeenCalledTimes(2)
+    expect(readHeld(`u1:g1:notes:${id}`)).toBeUndefined()
+  })
+
   test('Copy mine makes a note of this text and opens it; this one keeps theirs', async () => {
     const view = open({ title: 'T', body: 'b' })
     await conflictOn(view, 'note-body', 'mine')
