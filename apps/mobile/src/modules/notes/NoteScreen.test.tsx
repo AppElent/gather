@@ -579,6 +579,29 @@ test('a late refusal keeps what the reopened screen held meanwhile', async () =>
   again.unmount()
 })
 
+// APP-967: the reopened screen's text for a field wins over a late refusal's.
+test('a late refusal does not write over the field the reopened screen holds', async () => {
+  const answer = deferred()
+  state.editNote.mockReturnValueOnce(answer.promise)
+  const view = open({ title: 'T', body: 'b' })
+  const id = state.note.id as string
+  await type(view, 'note-body', 'c')
+  view.unmount()
+  const again = mount(<Note noteId={id} />)
+  await type(again, 'note-body', full)
+  answer.reject({ data: noteRefusal('too-long') })
+  await settle()
+  // The late text is offered, as before; the screen's own text stays.
+  expect(find(again, 'note-body')?.value).toBe(full)
+  expect(find(again, 'note-clash')).not.toBeNull()
+  // A quit now, before the screen keeps again: its text comes back.
+  forgetHeldMemoryForTests()
+  const third = mount(<Note noteId={id} />)
+  expect(find(third, 'note-body')?.value).toBe(full)
+  third.unmount()
+  again.unmount()
+})
+
 describe('another Member saved while this person was writing (APP-347)', () => {
   const theirs = {
     title: 'T',
