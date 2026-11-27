@@ -782,6 +782,33 @@ describe('another Member saved while this person was writing (APP-347)', () => {
     expect(readHeld(`u1:g1:notes:${id}`)?.body?.text).toBe('mine, more')
   })
 
+  // APP-998: a later save that fails does not hold its text over typing since.
+  test('a save that fails after a conflict keeps the text typed while the sheet is open', async () => {
+    let first = (_value: unknown) => {}
+    let second = (_error: unknown) => {}
+    state.editNote
+      .mockReturnValueOnce(new Promise((resolve) => (first = resolve)))
+      .mockReturnValueOnce(new Promise((_, reject) => (second = reject)))
+    const view = open({ title: 'T', body: 'b' })
+    const id = state.note.id as string
+    await type(view, 'note-body', 'mine')
+    await type(view, 'note-body', 'mine, more')
+    first({ status: 'conflict', note: theirs })
+    await settle()
+    await type(view, 'note-body', 'typed with the sheet open')
+    second(new Error('offline'))
+    await settle()
+    expect(find(view, 'note-body')?.value).toBe('typed with the sheet open')
+    expect(readHeld(`u1:g1:notes:${id}`)?.body?.text).toBe(
+      'typed with the sheet open',
+    )
+    view.unmount()
+    expect(state.editNote).toHaveBeenCalledTimes(2)
+    expect(readHeld(`u1:g1:notes:${id}`)?.body?.text).toBe(
+      'typed with the sheet open',
+    )
+  })
+
   test('the autosave line says saving, then saved', async () => {
     const answer = deferred()
     state.editNote.mockReturnValueOnce(answer.promise)
