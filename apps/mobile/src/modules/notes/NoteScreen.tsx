@@ -243,8 +243,11 @@ export function Note({ noteId }: { noteId: string }) {
         if (result?.status === 'conflict') {
           settled()
           const theirs = result.note
+          // This screen's own save may have landed since this one was sent.
+          const now = baseRef.current
+          const typedOn = now && now.updatedAt > from.updatedAt ? now : from
           // They changed the other field only: sent again from their version.
-          if (!overlaps(patch, from, theirs)) {
+          if (!overlaps(patch, typedOn, theirs)) {
             baseRef.current = {
               title: theirs.title,
               body: theirs.body,
@@ -278,7 +281,9 @@ export function Note({ noteId }: { noteId: string }) {
       // and on this phone for the next open (APP-829).
       // Closed since: `announceHeld` writes it, into what a reopened screen
       // may have kept meanwhile, rather than this screen's copy over it.
-      holdText(patch, saved, base, { merge: true, write: mounted.current })
+      holdText({ ...held.current, ...patch }, saved, base, {
+        write: mounted.current,
+      })
       if (!mounted.current)
         announceHeld(key, heldNote(), sentence, session.current)
       else {
@@ -305,7 +310,16 @@ export function Note({ noteId }: { noteId: string }) {
   ) {
     landed(patch)
     sent.current = {}
-    holdText(patch, saved, base, { merge: true, write: mounted.current })
+    // Answers come in the order sent, so this text is newer than what an
+    // earlier answer held; but text held as the field shows it was typed since.
+    const latest = { ...held.current, ...patch }
+    for (const field of FIELDS)
+      if (
+        held.current[field] !== undefined &&
+        held.current[field] === drafts.current[field]
+      )
+        latest[field] = held.current[field]
+    holdText(latest, saved, base, { write: mounted.current })
     if (!mounted.current) {
       announceHeld(
         key,

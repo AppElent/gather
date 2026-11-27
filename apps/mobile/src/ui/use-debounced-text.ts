@@ -64,6 +64,7 @@ export function useDebouncedText(
     (next: string) => {
       setDraft(next)
       pending.current = next
+      held.current = null
       refused.current = null
       if (timer.current) clearTimeout(timer.current)
       if (!onBlurOnly) timer.current = setTimeout(flush, IDLE)
@@ -121,9 +122,13 @@ export function useDebouncedText(
     timer.current = null
   }, [])
 
+  /** Pending because a save was refused, not typed: a later refusal replaces it. */
+  const held = useRef<string | null>(null)
   /** A save of `text` was refused: unsaved again, unless typed in since. */
   const hold = useCallback((text: string) => {
-    if (pending.current === null) pending.current = text
+    if (pending.current !== null && pending.current !== held.current) return
+    pending.current = text
+    held.current = text
   }, [])
 
   return { draft, change, flush, blur, keep, reset, discard, settle, hold }

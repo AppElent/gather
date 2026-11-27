@@ -689,6 +689,28 @@ describe('another Member saved while this person was writing (APP-347)', () => {
     view.unmount()
   })
 
+  // Review round 1: the later of two refused saves is the text kept.
+  test('two saves in flight that both conflict keep the later text', async () => {
+    let first = (_value: unknown) => {}
+    let second = (_value: unknown) => {}
+    state.editNote
+      .mockReturnValueOnce(new Promise((resolve) => (first = resolve)))
+      .mockReturnValueOnce(new Promise((resolve) => (second = resolve)))
+    const view = open({ title: 'T', body: 'b' })
+    const id = state.note.id as string
+    await type(view, 'note-body', 'mine')
+    await type(view, 'note-body', 'mine, more')
+    first({ status: 'conflict', note: theirs })
+    await settle()
+    second({ status: 'conflict', note: theirs })
+    await settle()
+    expect(find(view, 'note-body')?.value).toBe('mine, more')
+    // Kept on the phone already, before any flush on leaving.
+    expect(readHeld(`u1:g1:notes:${id}`)?.body?.text).toBe('mine, more')
+    view.unmount()
+    expect(readHeld(`u1:g1:notes:${id}`)?.body?.text).toBe('mine, more')
+  })
+
   test('the autosave line says saving, then saved', async () => {
     const answer = deferred()
     state.editNote.mockReturnValueOnce(answer.promise)
