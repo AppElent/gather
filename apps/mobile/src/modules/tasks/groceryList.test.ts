@@ -9,9 +9,11 @@ import {
   checkedOncePerName,
   groceryListsOf,
   inCheckedSection,
+  onShoppingList,
   openGroceryList,
   recentDays,
   recentWeeks,
+  waitsToRepeat,
 } from './groceryList'
 import {
   committed,
@@ -118,6 +120,38 @@ describe('a list of its own aisle order (APP-313)', () => {
         { category: 'drinks', done: false },
       ]),
     ).toEqual({ produce: 2, drinks: 1 })
+  })
+})
+
+describe('a repeating item checked off (APP-520)', () => {
+  const repeat = { mode: 'afterDone', every: 1, unit: 'week' }
+  const today = '2026-11-27'
+
+  test('waits off the list until its next due date', () => {
+    const moved = { done: false, repeat, dueDate: '2026-12-04' }
+    expect(waitsToRepeat(moved, today)).toBe(true)
+    expect(onShoppingList(moved, today)).toBe(false)
+  })
+
+  test('is back on the list the day it is due, and after', () => {
+    for (const dueDate of ['2026-11-27', '2026-11-20']) {
+      expect(onShoppingList({ done: false, repeat, dueDate }, today)).toBe(true)
+    }
+    expect(
+      onShoppingList({ done: false, repeat, dueDate: '2026-12-04' }, '2026-12-04'),
+    ).toBe(true)
+  })
+
+  test('an item that does not repeat stays on the list whatever its date', () => {
+    expect(onShoppingList({ done: false, dueDate: '2026-12-04' }, today)).toBe(
+      true,
+    )
+    expect(onShoppingList({ done: false }, today)).toBe(true)
+    expect(onShoppingList({ done: true }, today)).toBe(false)
+  })
+
+  test('a repeating item without a date is on the list', () => {
+    expect(onShoppingList({ done: false, repeat }, today)).toBe(true)
   })
 })
 

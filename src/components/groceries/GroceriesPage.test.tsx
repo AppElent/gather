@@ -148,6 +148,20 @@ describe('the list', () => {
     expect(screen.getByText('(1)')).toBeTruthy()
   })
 
+  test('a repeating item checked off waits off the list for its next date (APP-520)', () => {
+    const repeat = { mode: 'afterDone', every: 1, unit: 'week' }
+    state.queries['tasks:listByList'] = () => [
+      SOAP,
+      MILK,
+      task('t4', 'Koffie', { repeat, dueDate: '2999-01-01' }),
+      task('t5', 'Thee', { repeat, dueDate: '2020-01-01' }),
+    ]
+    renderInGroup(<GroceriesPage />)
+    expect(screen.getByText('3 items on Supermarkt')).toBeTruthy()
+    expect(screen.queryByRole('checkbox', { name: 'Check Koffie' })).toBeNull()
+    expect(screen.getByRole('checkbox', { name: 'Check Thee' })).toBeTruthy()
+  })
+
   test('checks an item, and says so when that fails', async () => {
     state.fail.add('tasks:toggleDone')
     renderInGroup(<GroceriesPage />)

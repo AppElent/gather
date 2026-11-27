@@ -17,6 +17,7 @@ import {
   aisleSections,
   checkedOncePerName,
   inCheckedSection,
+  onShoppingList,
 } from '@gather/core/grocery-list'
 import { compareLoyaltyCards } from '@gather/core/loyalty-cards'
 import { MEAL_SLOTS } from '@gather/core/meal-planner'
@@ -49,6 +50,20 @@ async function openGroceries(ctx: QueryCtx, list: Doc<'taskLists'>) {
       q.eq('listId', list._id).eq('done', false),
     )
     .take(OPEN_ITEMS_SCAN_LIMIT)
+}
+
+/**
+ * The open items the grocery list shows: a repeating item checked off waits
+ * for its next due date off the list (APP-520).
+ */
+async function onGroceryList(
+  ctx: QueryCtx,
+  list: Doc<'taskLists'>,
+  today: string,
+) {
+  return (await openGroceries(ctx, list)).filter((task) =>
+    onShoppingList(task, today),
+  )
 }
 
 async function checkedGroceries(ctx: QueryCtx, list: Doc<'taskLists'>) {
@@ -151,7 +166,7 @@ export const modules = internalQuery({
           {
             id: 'groceries' as const,
             version: WATCH_MODULES.groceries,
-            open: list ? (await openGroceries(ctx, list)).length : 0,
+            open: list ? (await onGroceryList(ctx, list, today)).length : 0,
           },
           {
             id: 'today' as const,
@@ -177,7 +192,8 @@ export const groceries = internalQuery({
     const caller = await resolveWatch(ctx, keyHash)
     if (!caller.ok) return caller
     const list = await watchGroceryList(ctx, caller)
-    const open = list ? await openGroceries(ctx, list) : []
+    const today = completionDay(undefined, caller.group.timeZone)
+    const open = list ? await onGroceryList(ctx, list, today) : []
     open.sort((a, b) => a.order - b.order)
     const checked = list ? await checkedGroceries(ctx, list) : []
     const item = (task: Doc<'tasks'>) => ({

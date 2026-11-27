@@ -15,10 +15,11 @@
  * moment they were checked (`restockCheckedStaples`).
  */
 import { Stack, useIsFocused, useRouter } from 'expo-router'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import type { Id } from '../../convex/api'
 import { haptics } from '../../feedback/haptics'
 import { fmt, plural, useI18n } from '../../i18n'
 import { useHideTabBarWhile } from '../../shell/tabBarVisibility'
@@ -29,14 +30,15 @@ import { useKeepAwakeWhile } from '../../ui/use-keep-awake-while'
 import { moduleHref } from '../moduleDestination'
 import { useCompleteTask } from './completeTask'
 import { useGroceryAmountText } from './GroceryFields'
-import { aisleSections, inCheckedSection } from './groceryList'
+import { aisleSections, inCheckedSection, waitsToRepeat } from './groceryList'
 import {
   SHOPPING_IDLE_MS,
   shoppingIds,
   shoppingProgress,
+  shoppingRows,
   useIdleTimeout,
 } from './shopping'
-import { useTaskActions, useTaskList } from './store'
+import { onOccurrenceCompleted, useTaskActions, useTaskList } from './store'
 import type { Task } from './types'
 
 const AWAKE_TAG = 'groceries-shopping'
@@ -47,7 +49,7 @@ export function ShoppingScreen({ listId }: { listId: string }) {
   const router = useRouter()
   const { t, locale } = useI18n()
   const words = t.tasks.grocery.shopping
-  const { list, tasks } = useTaskList(listId)
+  const { list, tasks, today } = useTaskList(listId)
   const actions = useTaskActions()
   const completeTask = useCompleteTask()
   const amountText = useGroceryAmountText()
@@ -59,8 +61,30 @@ export function ShoppingScreen({ listId }: { listId: string }) {
   // only count once Convex has answered, as `useLingering` waits for.
   const ready = list?.sync === 'live' || list?.sync === 'synced'
   const shown = useRef<ReadonlySet<string>>(new Set())
-  if (ready) shown.current = shoppingIds(shown.current, tasks)
-  const rows = tasks.filter((task) => shown.current.has(task.id))
+  if (ready) shown.current = shoppingIds(shown.current, tasks, today)
+  const rows = shoppingRows(shown.current, tasks, today)
+  // A repeating item checked here moves on to its next due date and stays
+  // open (APP-520); it is drawn checked, and taking the check back undoes
+  // that completion, which is kept here by item.
+  const completions = useRef(new Map<string, Id<'taskCompletions'>>())
+  useEffect(
+    () =>
+      onOccurrenceCompleted((done) => {
+        completions.current.set(done.taskId, done.completionId)
+      }),
+    [],
+  )
+  const waiting = (task: Task) =>
+    tasks.some((each) => each.id === task.id && waitsToRepeat(each, today))
+  const uncomplete = (task: Task) => {
+    const completionId = completions.current.get(task.id)
+    if (!completionId) {
+      haptics.actionFailed()
+      return
+    }
+    completions.current.delete(task.id)
+    actions.undoCompletion(completionId).catch(() => haptics.actionFailed())
+  }
   const sections = aisleSections(rows, list?.aisleOrder)
   const { done, total } = shoppingProgress(rows)
 
@@ -77,6 +101,12 @@ export function ShoppingScreen({ listId }: { listId: string }) {
 
   const toggle = (task: Task) => {
     touch()
+    if (waiting(task)) {
+      haptics.selectionChanged()
+      if (last?.id === task.id) setLast(null)
+      uncomplete(task)
+      return
+    }
     if (task.done) {
       // Unchecking has no buzz of its own in `useCompleteTask`: a tick here
       // says the tap landed, the same as checking does.
@@ -97,6 +127,10 @@ export function ShoppingScreen({ listId }: { listId: string }) {
     if (!task) return
     setLast(null)
     haptics.selectionChanged()
+    if (waiting(task)) {
+      uncomplete(task)
+      return
+    }
     actions
       .setDoneInList(listId, false, [task.id])
       .catch(() => haptics.actionFailed())

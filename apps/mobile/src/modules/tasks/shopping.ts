@@ -9,20 +9,48 @@
 import { useEffect, useRef } from 'react'
 import { AppState } from 'react-native'
 
+import { onShoppingList, waitsToRepeat } from './groceryList'
+
 /** How long shopping mode waits for a tap before it ends by itself. */
 export const SHOPPING_IDLE_MS = 30 * 60_000
 
+type ShoppingTask = {
+  id: string
+  done: boolean
+  repeat?: unknown
+  dueDate?: string
+}
+
 /**
  * The ids shopping mode shows: those it already showed, and every item now
- * open. Nothing leaves while the mode lasts, so a check never moves a row.
+ * on the list (a repeating one waiting for its next due date is not).
+ * Nothing leaves while the mode lasts, so a check never moves a row.
  */
 export function shoppingIds(
   shown: ReadonlySet<string>,
-  tasks: readonly { id: string; done: boolean }[],
+  tasks: readonly ShoppingTask[],
+  today: string,
 ): ReadonlySet<string> {
-  const fresh = tasks.filter((task) => !task.done && !shown.has(task.id))
+  const fresh = tasks.filter(
+    (task) => onShoppingList(task, today) && !shown.has(task.id),
+  )
   if (fresh.length === 0) return shown
   return new Set([...shown, ...fresh.map((task) => task.id)])
+}
+
+/**
+ * The rows shopping mode draws, in the order given. A repeating item checked
+ * off stays open on its next due date (APP-520), so it is drawn checked here
+ * until that day, as any other checked row stays in place.
+ */
+export function shoppingRows<T extends ShoppingTask>(
+  shown: ReadonlySet<string>,
+  tasks: readonly T[],
+  today: string,
+): T[] {
+  return tasks
+    .filter((task) => shown.has(task.id))
+    .map((task) => (waitsToRepeat(task, today) ? { ...task, done: true } : task))
 }
 
 /** How far along the shop is: checked rows of all rows shown. */

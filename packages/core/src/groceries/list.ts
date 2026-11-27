@@ -4,7 +4,7 @@
  * order, Recent in days, newest first, and which of a Group's grocery lists
  * the Groceries Module opens.
  */
-import { dayIn } from '../civilDate'
+import { compareIsoDates, dayIn } from '../civilDate'
 import {
   aisleOrder,
   type GroceryAisle,
@@ -80,6 +80,34 @@ export function inCheckedSection(
 ): boolean {
   if (!task.done) return false
   return checkedClearedAt === null || (task.doneAt ?? 0) > checkedClearedAt
+}
+
+/**
+ * Whether a repeating item waits off the list for its next due date
+ * (APP-520). Checking one moves its due date on and keeps it open, as a
+ * repeating task does; on a grocery list it then leaves the open items until
+ * that day, rather than coming straight back as if the check did nothing.
+ * `today` is the Group's calendar day, `YYYY-MM-DD`.
+ */
+export function waitsToRepeat(
+  task: { done: boolean; repeat?: unknown; dueDate?: string },
+  today: string,
+): boolean {
+  return (
+    !task.done &&
+    task.repeat !== undefined &&
+    task.repeat !== null &&
+    task.dueDate !== undefined &&
+    compareIsoDates(task.dueDate, today) > 0
+  )
+}
+
+/** Whether an item stands among a grocery list's open items today. */
+export function onShoppingList(
+  task: { done: boolean; repeat?: unknown; dueDate?: string },
+  today: string,
+): boolean {
+  return !task.done && !waitsToRepeat(task, today)
 }
 
 /** How many open items each aisle holds, for the Aisles screen. */

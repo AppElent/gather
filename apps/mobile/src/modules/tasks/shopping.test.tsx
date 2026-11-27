@@ -6,8 +6,11 @@ import {
   SHOPPING_IDLE_MS,
   shoppingIds,
   shoppingProgress,
+  shoppingRows,
   useIdleTimeout,
 } from './shopping'
+
+const TODAY = '2026-11-27'
 
 const state = vi.hoisted(() => ({
   listener: null as null | ((state: string) => void),
@@ -32,22 +35,41 @@ test('shows what was open when shopping began, not what was checked before', () 
   const shown = shoppingIds(new Set(), [
     { id: 'melk', done: false },
     { id: 'brood', done: true },
-  ])
+  ], TODAY)
   expect([...shown]).toEqual(['melk'])
 })
 
 test('a checked row stays, and an item added or put back joins', () => {
-  const start = shoppingIds(new Set(), [{ id: 'melk', done: false }])
-  const later = shoppingIds(start, [
-    { id: 'melk', done: true },
-    { id: 'kaas', done: false },
-  ])
+  const start = shoppingIds(new Set(), [{ id: 'melk', done: false }], TODAY)
+  const later = shoppingIds(
+    start,
+    [
+      { id: 'melk', done: true },
+      { id: 'kaas', done: false },
+    ],
+    TODAY,
+  )
   expect([...later]).toEqual(['melk', 'kaas'])
 })
 
 test('nothing new keeps the same set', () => {
-  const start = shoppingIds(new Set(), [{ id: 'melk', done: false }])
-  expect(shoppingIds(start, [{ id: 'melk', done: true }])).toBe(start)
+  const start = shoppingIds(new Set(), [{ id: 'melk', done: false }], TODAY)
+  expect(shoppingIds(start, [{ id: 'melk', done: true }], TODAY)).toBe(start)
+})
+
+test('a repeating item checked off stays, drawn checked, until its date (APP-520)', () => {
+  const repeat = { mode: 'afterDone', every: 1, unit: 'week' }
+  const due = { id: 'koffie', done: false, repeat, dueDate: TODAY }
+  const start = shoppingIds(new Set(), [due], TODAY)
+  expect([...start]).toEqual(['koffie'])
+  // Checked: it moved on a week and is still open.
+  const moved = { ...due, dueDate: '2026-12-04' }
+  expect(shoppingIds(start, [moved], TODAY)).toBe(start)
+  expect(shoppingRows(start, [moved], TODAY)).toEqual([
+    { ...moved, done: true },
+  ])
+  // One that already waits when shopping begins is not shown at all.
+  expect([...shoppingIds(new Set(), [moved], TODAY)]).toEqual([])
 })
 
 test('progress counts the checked rows of all rows shown', () => {

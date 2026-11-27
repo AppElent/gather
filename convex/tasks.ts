@@ -10,6 +10,7 @@ import {
   isGroceryQuantity,
   roundGroceryQuantity,
 } from '@gather/core/groceries'
+import { onShoppingList } from '@gather/core/grocery-list'
 import { taskRefusal } from '@gather/core/refusals'
 import { inAnySmartList } from '@gather/core/smart-lists'
 import { reorderedSubtasks, subtaskProgress } from '@gather/core/subtasks'
@@ -201,6 +202,7 @@ export const openCounts = query({
   args: { groupSlug: v.string() },
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const today = completionDay(undefined, group.timeZone)
     const lists = await ctx.db
       .query('taskLists')
       .withIndex('by_group', (q) => q.eq('groupId', group._id))
@@ -230,9 +232,14 @@ export const openCounts = query({
               q.eq('listId', list._id).eq('done', false),
             )
             .collect()
+          // A grocery list's repeating item checked off waits for its next
+          // due date off the list (APP-520), so it is not counted as open.
+          const onList = isGroceryList(group, list)
+            ? open.filter((task) => onShoppingList(task, today))
+            : open
           return {
             listId: list._id,
-            open: open.filter((task) => !task.parentTaskId).length,
+            open: onList.filter((task) => !task.parentTaskId).length,
           }
         }),
     )

@@ -67,6 +67,7 @@ import {
   aisleArrangement,
   checkedOncePerName,
   inCheckedSection,
+  onShoppingList,
 } from './groceryList'
 import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
 import { AppearanceSheet } from './listFace'
@@ -196,7 +197,9 @@ export function TaskList({
       ).length
     : 0
   const openCount = grocery
-    ? tasks.filter((task) => !task.done || lingering.has(task.id)).length
+    ? tasks.filter(
+        (task) => onShoppingList(task, today) || lingering.has(task.id),
+      ).length
     : active.length
   // Each section is its own labelled inset list (APP-357), "No section"
   // first; a list without sections is one unlabelled list, as before. A
@@ -617,6 +620,7 @@ export function TaskList({
                 <GroceryListBody
                   list={list}
                   tasks={tasks}
+                  today={today}
                   row={row}
                   lingering={lingering}
                   empty={
