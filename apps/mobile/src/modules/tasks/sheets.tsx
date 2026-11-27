@@ -18,7 +18,6 @@ import {
   localMidnight,
   monthGrid,
   monthStart,
-  todayIn,
 } from '@gather/core/civil-date'
 import { moveTargets, possibleParents } from '@gather/core/linked-tasks'
 import { listFace } from '@gather/core/task-model'
@@ -55,6 +54,7 @@ import { providerName } from './providerName'
 import {
   announceMove,
   useGroupLabels,
+  useGroupToday,
   useTaskActions,
   useTaskLists,
 } from './store'
@@ -84,8 +84,7 @@ export function DueDateSheet({
   const { t, locale } = useI18n()
   const actions = useTaskActions()
   const writeFailed = useWriteFailed()
-  const { group } = useGroup()
-  const today = todayIn(group.timeZone)
+  const today = useGroupToday()
   const [month, setMonth] = useState(() => monthStart(task.dueDate ?? today))
 
   const grid = monthGrid(month)

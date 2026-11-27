@@ -1,4 +1,4 @@
-import { localIsoDate, todayIn } from '@gather/core/civil-date'
+import { localIsoDate } from '@gather/core/civil-date'
 import type { TaskList } from '@gather/core/task-model'
 import type { QuickAdd as ParsedLine } from '@gather/core/task-quick-add'
 import {
@@ -9,6 +9,7 @@ import {
 import { Plus, X } from 'lucide-react'
 import { type FormEvent, type RefObject, useId, useRef, useState } from 'react'
 import { fmt, useI18n } from '../../lib/i18n'
+import { useDayIn } from '../../lib/useDayIn'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { useTaskPeople } from './data'
 import { useWorkspace } from './TasksWorkspace'
@@ -38,6 +39,9 @@ export function QuickAdd({
   const { locale, messages: t } = useI18n()
   const words = t.tasks.web.add
   const { timeZone } = useRequiredCurrentGroup()
+  // Re-renders at the Group's midnight, so the chips read the new day on a
+  // field left open (APP-1001).
+  const today = useDayIn(timeZone)
   const { actions, show, fail } = useWorkspace()
   const { people } = useTaskPeople()
   const ownRef = useRef<HTMLInputElement>(null)
@@ -54,7 +58,6 @@ export function QuickAdd({
   if (!list) return null
   const linked = list.provider !== 'local'
   const at = new Date()
-  const today = todayIn(timeZone, at)
   const parsed = parseOnly(
     line,
     {

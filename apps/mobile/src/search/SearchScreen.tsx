@@ -7,7 +7,6 @@
  * the keyboard dance and Dynamic Type are not.
  */
 
-import { todayIn } from '@gather/core/civil-date'
 import { STATUS_VALUES, WHEN_VALUES } from '@gather/core/search-filters'
 import { deviceTimeZone } from '@gather/core/time-zones'
 import {
@@ -33,6 +32,7 @@ import { useQuery } from '../convex/queries'
 import { useGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
 import { moduleShown } from '../modules/buildModules'
+import { useGroupToday } from '../modules/tasks/store'
 import { useHideTabBarWhile } from '../shell/tabBarVisibility'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
@@ -177,7 +177,7 @@ export function SearchScreen({
   const trimmed = text.trim()
   const ready = trimmed.length >= MINIMUM_QUERY
   const settled = debounced.trim() === trimmed
-  const today = todayIn(group.timeZone)
+  const today = useGroupToday()
   const results = useGroupSearch(
     ready && settled
       ? {

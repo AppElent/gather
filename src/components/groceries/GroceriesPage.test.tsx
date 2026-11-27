@@ -1,4 +1,10 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { renderInGroup, TEST_GROUP } from '../app/testing'
@@ -378,6 +384,32 @@ test('Recent puts an item back and marks what is already open', async () => {
     }),
   )
   expect(screen.queryByRole('button', { name: /melk/ })).toBeNull()
+})
+
+test('Recent left open moves its Today label on at the Group midnight (APP-1001)', () => {
+  vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+  // 23:59 in Amsterdam on Friday 27 November.
+  vi.setSystemTime(new Date('2026-11-27T22:59:00Z'))
+  try {
+    state.queries['tasks:recentGroceries'] = [
+      { _id: 't3', title: 'Brood', doneAt: Date.now(), category: 'bakery' },
+    ]
+    renderInGroup(
+      <RecentPanel
+        groupSlug="jansen-household"
+        timeZone="Europe/Amsterdam"
+        listId={'l1' as never}
+        openTitles={[]}
+        mode="page"
+      />,
+    )
+    expect(screen.getByText(/^Today · /)).toBeTruthy()
+    act(() => vi.advanceTimersByTime(90_000))
+    expect(screen.queryByText(/^Today · /)).toBeNull()
+    expect(screen.getByText('Friday, November 27')).toBeTruthy()
+  } finally {
+    vi.useRealTimers()
+  }
 })
 
 describe('settings', () => {

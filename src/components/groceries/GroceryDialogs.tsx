@@ -1,4 +1,3 @@
-import { todayIn } from '@gather/core/civil-date'
 import {
   aisleOrder,
   GROCERY_AISLES,
@@ -13,6 +12,7 @@ import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
 import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useI18n } from '../../lib/i18n'
+import { useDayIn } from '../../lib/useDayIn'
 import { buttonClass } from '../app/buttons'
 import { Dialog } from '../app/Dialog'
 import { InsetList, InsetRow } from '../app/InsetList'
@@ -47,7 +47,7 @@ export function AisleOrderDialog({
   const words = g.aisleOrder
   const setAisleOrder = useMutation(api.taskLists.setAisleOrder)
 
-  const today = todayIn(timeZone)
+  const today = useDayIn(timeZone)
   const counts = useMemo(() => aisleCounts(tasks, today), [tasks, today])
   const [order, setOrder] = useState<GroceryAisle[]>(() =>
     aisleOrder(savedOrder),
