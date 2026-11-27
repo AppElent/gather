@@ -787,6 +787,17 @@ export function useTaskActions() {
     /** Puts the previous date back and forgets the completion. */
     undoCompletion: (completionId: Id<'taskCompletions'>) =>
       undoCompletion({ completionId, groupSlug }),
+    /**
+     * The task's latest completion as the server has it, by whoever made it:
+     * the one `undoCompletion` can take back. Null when it has none.
+     */
+    latestCompletion: async (taskId: string) => {
+      const [latest] = await convex.query(api.tasks.completions, {
+        taskId: taskId as Id<'tasks'>,
+        groupSlug,
+      })
+      return latest?._id ?? null
+    },
     /** A rule, or null for no repeat; the server anchors it on the date. */
     setRepeat: (id: string, repeat: TaskRepeat | null) =>
       patch(id, { repeat, today: todayIn(group.timeZone) }),
