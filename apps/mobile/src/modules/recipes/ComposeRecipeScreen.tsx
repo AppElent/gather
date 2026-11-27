@@ -47,7 +47,6 @@ import { useAction, useMutation } from 'convex/react'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
-  KeyboardAvoidingView,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -205,7 +204,9 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
         // finishes one: clear it, leave the chooser, open what was made.
         clearDrop()
         router.dismissTo('/home')
-        router.push(moduleHref('/all/recipes/recipe', { recipeId: id }))
+        router.push(moduleHref('/all/recipes/recipe', { recipeId: id }), {
+          withAnchor: true,
+        })
         return
       }
       // Land on the recipe, with the collection underneath it — never with
@@ -236,139 +237,140 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
             mode === 'import' ? text.create.chooseImport : text.create.title,
         }}
       />
-      <KeyboardAvoidingView
+      {/* The scroll view is the screen's root, with no keyboard wrapper
+          around it: iOS collapses the large title only while it tracks the
+          screen's first scroll view, and a `KeyboardAvoidingView` in between
+          left the title expanded (APP-963). The keyboard is kept off the form
+          by the scroll view's own insets instead. */}
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        automaticallyAdjustKeyboardInsets
         // Solid, or the collection behind shows through above the keyboard.
         style={[styles.fill, { backgroundColor: tokens.ground }]}
-        behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + 32 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={{ backgroundColor: tokens.ground }}
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: insets.bottom + 32 },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-        >
-          {mode === 'import' ? (
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: tokens.muted }]}>
-                {text.create.linkLabel}
-              </Text>
-              <View style={styles.linkRow}>
-                <TextInput
-                  value={link}
-                  onChangeText={setLink}
-                  // A Drop brought its own link. Opening the keyboard over an
-                  // import that is already running would be answering a
-                  // question nobody asked.
-                  autoFocus={!dropped.link}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="url"
-                  inputMode="url"
-                  returnKeyType="go"
-                  onSubmitEditing={runImport}
-                  editable={!importing}
-                  placeholder={text.create.importPlaceholder}
-                  placeholderTextColor={tokens.muted}
-                  testID="recipe-import-url"
-                  style={[
-                    styles.input,
-                    styles.linkInput,
-                    {
-                      color: tokens.ink,
-                      backgroundColor: tokens.surface,
-                      borderColor: tokens.hair,
-                    },
-                  ]}
-                />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={text.create.import}
-                  testID="recipe-import-run"
-                  disabled={importing || !link.trim()}
-                  onPress={runImport}
-                  style={({ pressed }) => [
-                    styles.importButton,
-                    { backgroundColor: tokens.accent },
-                    (pressed || importing || !link.trim()) && styles.pressed,
-                  ]}
-                >
-                  <Text
-                    style={[styles.importLabel, { color: tokens.onAccent }]}
-                  >
-                    {importing ? text.create.importing : text.create.import}
-                  </Text>
-                </Pressable>
-              </View>
-              {importProblem ? (
+        {mode === 'import' ? (
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: tokens.muted }]}>
+              {text.create.linkLabel}
+            </Text>
+            <View style={styles.linkRow}>
+              <TextInput
+                value={link}
+                onChangeText={setLink}
+                // A Drop brought its own link. Opening the keyboard over an
+                // import that is already running would be answering a
+                // question nobody asked.
+                autoFocus={!dropped.link}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                inputMode="url"
+                returnKeyType="go"
+                onSubmitEditing={runImport}
+                editable={!importing}
+                placeholder={text.create.importPlaceholder}
+                placeholderTextColor={tokens.muted}
+                testID="recipe-import-url"
+                style={[
+                  styles.input,
+                  styles.linkInput,
+                  {
+                    color: tokens.ink,
+                    backgroundColor: tokens.surface,
+                    borderColor: tokens.hair,
+                  },
+                ]}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={text.create.import}
+                testID="recipe-import-run"
+                disabled={importing || !link.trim()}
+                onPress={runImport}
+                style={({ pressed }) => [
+                  styles.importButton,
+                  { backgroundColor: tokens.accent },
+                  (pressed || importing || !link.trim()) && styles.pressed,
+                ]}
+              >
                 <Text
-                  testID="recipe-import-problem"
-                  style={[styles.problem, { color: tokens.danger }]}
+                  style={[styles.importLabel, { color: tokens.onAccent }]}
                 >
-                  {importProblem}
+                  {importing ? text.create.importing : text.create.import}
                 </Text>
-              ) : null}
-              {imported && !importProblem ? (
-                <Text
-                  testID="recipe-import-done"
-                  style={[styles.note, { color: tokens.muted }]}
-                >
-                  {text.create.review}
-                </Text>
-              ) : null}
+              </Pressable>
             </View>
-          ) : null}
+            {importProblem ? (
+              <Text
+                testID="recipe-import-problem"
+                style={[styles.problem, { color: tokens.danger }]}
+              >
+                {importProblem}
+              </Text>
+            ) : null}
+            {imported && !importProblem ? (
+              <Text
+                testID="recipe-import-done"
+                style={[styles.note, { color: tokens.muted }]}
+              >
+                {text.create.review}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
-          <RecipeFields
-            values={values}
-            onChange={(next) => {
-              setTouched(true)
-              setValues(next)
-            }}
-            photoUrl={photoUrl}
-            photoId={photoId}
-            onPhotoChange={(id) => {
-              setPhotoId(id)
-              if (id === null) setPhotoUrl(null)
-            }}
-            generateUploadUrl={generateUploadUrl}
-            onEstimate={
-              aiConfigured ? (args) => estimateNutrition(args) : undefined
-            }
-            disabled={saving || importing}
-          />
+        <RecipeFields
+          values={values}
+          onChange={(next) => {
+            setTouched(true)
+            setValues(next)
+          }}
+          photoUrl={photoUrl}
+          photoId={photoId}
+          onPhotoChange={(id) => {
+            setPhotoId(id)
+            if (id === null) setPhotoUrl(null)
+          }}
+          generateUploadUrl={generateUploadUrl}
+          onEstimate={
+            aiConfigured ? (args) => estimateNutrition(args) : undefined
+          }
+          disabled={saving || importing}
+        />
 
-          {/* The Group a save lands in, named on the screen that does it —
-              the same job the web's destination notice does, for an ambient
-              Group that has no URL to give it away (ADR-0015). */}
-          <Text
-            testID="recipe-destination"
-            style={[styles.note, { color: tokens.muted }]}
-          >
-            {fmt(text.form.destination, { group: groupName })}
+        {/* The Group a save lands in, named on the screen that does it —
+            the same job the web's destination notice does, for an ambient
+            Group that has no URL to give it away (ADR-0015). */}
+        <Text
+          testID="recipe-destination"
+          style={[styles.note, { color: tokens.muted }]}
+        >
+          {fmt(text.form.destination, { group: groupName })}
+        </Text>
+
+        {problem && touched ? (
+          <Text style={[styles.problem, { color: tokens.muted }]}>
+            {text.form[problem]}
           </Text>
+        ) : null}
+        {saveProblem ? (
+          <Text style={[styles.problem, { color: tokens.danger }]}>
+            {saveProblem}
+          </Text>
+        ) : null}
 
-          {problem && touched ? (
-            <Text style={[styles.problem, { color: tokens.muted }]}>
-              {text.form[problem]}
-            </Text>
-          ) : null}
-          {saveProblem ? (
-            <Text style={[styles.problem, { color: tokens.danger }]}>
-              {saveProblem}
-            </Text>
-          ) : null}
-
-          <SaveRecipeButton
-            disabled={Boolean(problem)}
-            saving={saving}
-            onPress={save}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <SaveRecipeButton
+          disabled={Boolean(problem)}
+          saving={saving}
+          onPress={save}
+        />
+      </ScrollView>
     </>
   )
 }
