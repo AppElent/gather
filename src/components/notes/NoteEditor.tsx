@@ -1,5 +1,5 @@
 import { Pin, Trash2, X } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useI18n } from '../../lib/i18n'
 import { buttonClass } from '../app/buttons'
@@ -9,8 +9,11 @@ import {
   changeDraft,
   discardDraft,
   flushDraft,
+  keepMineDraft,
   type NoteFields,
+  type NoteText,
   retryDraft,
+  type TheirNote,
   useNoteDraft,
 } from './noteDrafts'
 import { noteWhen } from './noteText'
@@ -31,18 +34,21 @@ export function NoteEditor({
   onTogglePin,
   onDelete,
   onClose,
+  onOpen,
 }: {
   note: Note
   onTogglePin: () => void
   onDelete: () => void
   /** Only where the panel replaced the list (below `lg`). */
   onClose?: () => void
+  /** Opens another note: the copy made from a conflict. */
+  onOpen: (noteId: string) => void
 }) {
   const { locale, messages } = useI18n()
   const words = messages.notes
   const errorText = useErrorMessage()
   const { timeZone } = useRequiredCurrentGroup()
-  const { save } = useNoteActions()
+  const { save, copy } = useNoteActions()
   const key = useDraftKey()(note._id)
   const draft = useNoteDraft(key)
   const titleRef = useRef<HTMLInputElement>(null)
@@ -51,7 +57,12 @@ export function NoteEditor({
   const title = draft?.fields.title ?? note.title
   const body = draft?.fields.body ?? note.body
   const change = (fields: NoteFields) =>
-    changeDraft(key, fields, (changes) => save(note._id, changes))
+    changeDraft(
+      key,
+      fields,
+      (changes, baseUpdatedAt) => save(note._id, changes, baseUpdatedAt),
+      { title: note.title, body: note.body, updatedAt: note.updatedAt },
+    )
 
   // Leaving mid-sentence keeps the sentence.
   useEffect(() => () => flushDraft(key), [key])
@@ -75,9 +86,10 @@ export function NoteEditor({
       ? fmt(words.web.edited, { when })
       : fmt(words.web.editedBy, { when, name: note.updatedByName })
   const failed = draft?.state === 'failed'
+  const theirs = draft?.state === 'conflict' ? draft.theirs : undefined
   const status = !draft
     ? words.web.saved
-    : failed
+    : failed || theirs
       ? words.web.notSaved
       : messages.common.actions.saving
   const pinLabel = note.pinned ? words.unpin : words.pin
@@ -94,7 +106,9 @@ export function NoteEditor({
           <span
             role="status"
             data-testid="note-status"
-            className={failed ? 'font-semibold text-[var(--danger)]' : ''}
+            className={
+              failed || theirs ? 'font-semibold text-[var(--danger)]' : ''
+            }
           >
             {status}
           </span>
@@ -168,6 +182,20 @@ export function NoteEditor({
         </div>
       ) : null}
 
+      {theirs ? (
+        <NoteConflict
+          mine={{ title, body }}
+          theirs={theirs}
+          onKeepMine={() => keepMineDraft(key)}
+          onKeepTheirs={() => discardDraft(key)}
+          onCopyMine={async (idempotencyKey) => {
+            const id = await copy({ title, body }, idempotencyKey)
+            discardDraft(key)
+            onOpen(id)
+          }}
+        />
+      ) : null}
+
       <input
         ref={titleRef}
         type="text"
@@ -193,6 +221,146 @@ export function NoteEditor({
         onBlur={() => flushDraft(key)}
         className={`${FIELD} field-sizing-content min-h-[320px] max-w-[680px] flex-1 resize-none text-[17px] leading-[26px]`}
       />
+    </div>
+  )
+}
+
+/**
+ * Another Member saved this note while this person was typing (APP-994), as
+ * the phone's `NoteConflictSheet` shows it. Nothing was overwritten: both
+ * versions are shown, and nothing more is sent until the person chooses.
+ */
+function NoteConflict({
+  mine,
+  theirs,
+  onKeepMine,
+  onKeepTheirs,
+  onCopyMine,
+}: {
+  mine: NoteText
+  theirs: TheirNote
+  onKeepMine: () => void
+  onKeepTheirs: () => void
+  onCopyMine: (idempotencyKey: string) => Promise<void>
+}) {
+  const { messages } = useI18n()
+  const words = messages.notes.web.conflict
+  const errorText = useErrorMessage()
+  const [copying, setCopying] = useState(false)
+  const [copyError, setCopyError] = useState<string | null>(null)
+  // Kept until a copy succeeds, so a retry answers with the same note.
+  const copyKey = useRef<string | null>(null)
+
+  const copyMine = async () => {
+    copyKey.current ??= `web-note-copy-${crypto.randomUUID()}`
+    setCopying(true)
+    setCopyError(null)
+    try {
+      await onCopyMine(copyKey.current)
+    } catch (caught) {
+      setCopying(false)
+      setCopyError(
+        fmt(words.copyFailed, {
+          reason: errorText(
+            caught,
+            messages.common.errors.didNotWork,
+            messages.notes.refusals,
+          ),
+        }),
+      )
+    }
+  }
+
+  return (
+    <section
+      role="alert"
+      aria-labelledby="note-conflict-title"
+      data-testid="note-conflict"
+      className="grid gap-3 rounded-[var(--radius-control)] bg-[var(--surface-2)] p-3"
+    >
+      <div className="grid gap-1">
+        <h2
+          id="note-conflict-title"
+          className="m-0 text-body font-semibold text-[var(--ink)]"
+        >
+          {words.title}
+        </h2>
+        <p className="m-0 text-subhead text-[var(--muted)]">
+          {theirs.updatedByName === null
+            ? words.changedBySomeone
+            : fmt(words.changedBy, { name: theirs.updatedByName })}
+        </p>
+      </div>
+      <div className="grid gap-2 md:grid-cols-2">
+        <ConflictVersion
+          testId="note-conflict-theirs"
+          label={words.theirs}
+          text={theirs}
+        />
+        <ConflictVersion
+          testId="note-conflict-mine"
+          label={words.mine}
+          text={mine}
+        />
+      </div>
+      {copyError ? (
+        <p className="m-0 text-subhead text-[var(--danger)]">{copyError}</p>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={copying}
+          onClick={onKeepMine}
+          className={buttonClass.primary}
+        >
+          {words.keepMine}
+        </button>
+        <button
+          type="button"
+          disabled={copying}
+          onClick={onKeepTheirs}
+          className={buttonClass.onWash}
+        >
+          {words.keepTheirs}
+        </button>
+        <button
+          type="button"
+          disabled={copying}
+          aria-busy={copying}
+          onClick={() => void copyMine()}
+          className={buttonClass.onWash}
+        >
+          {copying ? messages.common.actions.working : words.copyMine}
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function ConflictVersion({
+  testId,
+  label,
+  text,
+}: {
+  testId: string
+  label: string
+  text: NoteText
+}) {
+  const { messages } = useI18n()
+  return (
+    <div
+      data-testid={testId}
+      className="grid min-w-0 content-start gap-1 rounded-[var(--radius-control)] bg-[var(--surface)] p-3"
+    >
+      <p className={`m-0 font-semibold ${LABEL}`}>{label}</p>
+      <p className="m-0 font-semibold break-words text-[var(--ink)]">
+        {text.title || messages.notes.untitled}
+      </p>
+      {text.body ? (
+        <p className="m-0 max-h-60 overflow-y-auto break-words whitespace-pre-wrap text-subhead text-[var(--ink)]">
+          {text.body}
+        </p>
+      ) : null}
     </div>
   )
 }

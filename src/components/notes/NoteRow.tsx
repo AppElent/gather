@@ -25,7 +25,9 @@ export function NoteRow({
   const { locale, messages } = useI18n()
   const words = messages.notes
   const { timeZone } = useRequiredCurrentGroup()
-  const failed = useNoteDraft(useDraftKey()(note._id))?.state === 'failed'
+  const state = useNoteDraft(useDraftKey()(note._id))?.state
+  // A conflict is text not saved too, until the person chooses (APP-994).
+  const failed = state === 'failed' || state === 'conflict'
   const title = note.title.trim() || words.untitled
 
   return (

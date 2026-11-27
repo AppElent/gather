@@ -135,23 +135,37 @@ export const noteTools = [
     name: 'update_note',
     title: 'Update note',
     description:
-      "Change a note's title, body, or pinned state. The body you pass replaces the whole body.",
+      "Change a note's title, body, or pinned state. The body you pass replaces the whole body. When someone else changed the note after the version you read, nothing is written and the error names their version: read it again and decide.",
     access: 'write',
     annotations: { idempotentHint: true },
     input: {
       groupId,
       noteId: z.string().min(1),
+      // Required (APP-994): an edit without it overwrites a housemate's.
+      baseUpdatedAt: z
+        .iso.datetime()
+        .describe(
+          'The updatedAt of the note as you last read it from list_notes: the version your change is based on. Not checked for a change of pinned only.',
+        ),
       title: title.optional(),
       body: body.optional(),
       pinned: z.boolean().optional(),
     },
-    async run({ groupId, noteId, ...changes }, context) {
-      await context.backend.mutation(api.notes.update, {
+    async run({ groupId, noteId, baseUpdatedAt, ...changes }, context) {
+      const result = await context.backend.mutation(api.notes.update, {
         groupSlug: await groupSlug(context, groupId),
         noteId: asId<'notes'>(noteId),
         ...changes,
+        baseUpdatedAt: Date.parse(baseUpdatedAt),
       })
-      return { noteId, updated: true }
+      if (result.status === 'conflict') {
+        const newer = isoDate(result.note.updatedAt)
+        const who = result.note.updatedByName ?? 'Someone else'
+        throw new ToolInputError(
+          `Not saved: ${who} changed this note after the version you read. The note is now the version of ${newer}. Read it again with list_notes, then send your change with baseUpdatedAt ${newer} if it should still apply.`,
+        )
+      }
+      return { noteId, updated: true, updatedAt: isoDate(result.updatedAt) }
     },
   }),
 ]

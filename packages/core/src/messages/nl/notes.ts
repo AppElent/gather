@@ -41,6 +41,19 @@ export const notes = {
     loadErrorTitle: 'Notities konden niet worden geladen',
     loadErrorBody: 'Controleer je verbinding en probeer het opnieuw.',
     createFailed: 'De notitie kon niet worden gemaakt. Probeer het opnieuw.',
+    conflict: {
+      title: 'Deze notitie is veranderd',
+      changedBy:
+        '{name} heeft haar aangepast terwijl jij schreef. Er is niets overschreven.',
+      changedBySomeone:
+        'Iemand anders heeft haar aangepast terwijl jij schreef. Er is niets overschreven.',
+      theirs: 'Hun versie',
+      mine: 'Jouw versie',
+      keepMine: 'Mijn versie houden',
+      keepTheirs: 'Hun versie houden',
+      copyMine: 'Mijn versie naar een nieuwe notitie',
+      copyFailed: 'Je versie kon niet worden gekopieerd. Ze staat er nog. {reason}',
+    },
   },
   length: '{count} van {max} tekens',
   refusals: {

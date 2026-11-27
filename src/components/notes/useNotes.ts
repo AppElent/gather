@@ -90,8 +90,12 @@ export function useNoteActions() {
       createKey.current = null
       return id
     },
-    save: (noteId: Id<'notes'>, fields: NoteFields) =>
-      update({ noteId, groupSlug, ...fields }),
+    /** Saves typed text over `baseUpdatedAt`, or answers the newer version. */
+    save: (noteId: Id<'notes'>, fields: NoteFields, baseUpdatedAt: number) =>
+      update({ noteId, groupSlug, ...fields, baseUpdatedAt }),
+    /** A note of its own for text that met another Member's edit. */
+    copy: (fields: { title: string; body: string }, idempotencyKey: string) =>
+      create({ groupSlug, ...fields, idempotencyKey }),
     togglePin: (note: Pick<Note, '_id' | 'pinned'>) =>
       update({ noteId: note._id, groupSlug, pinned: !note.pinned }),
     remove: (noteId: Id<'notes'>) =>

@@ -48,6 +48,7 @@ export function NotePage({ noteId }: { noteId: string }) {
             note={note}
             onTogglePin={() => void commands.togglePin(note)}
             onDelete={() => commands.confirmDelete(note, back)}
+            onOpen={(id) => void navigate(linkTo('note', { noteId: id }))}
           />
         ) : (
           <NoteNotice

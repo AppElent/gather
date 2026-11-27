@@ -15,6 +15,8 @@ const state = vi.hoisted(() => ({
   calls: [] as [string, Record<string, unknown>][],
   fail: new Set<string>(),
   refuse: null as { kind: string } | null,
+  /** What a mutation answers, when not `new-id`. */
+  answers: {} as Record<string, (args: Record<string, unknown>) => unknown>,
   navigated: [] as unknown[],
   desktop: true,
   page: {} as Record<string, unknown>,
@@ -41,7 +43,8 @@ vi.mock('convex/react', () => ({
     state.calls.push([name, args])
     if (state.refuse) throw new ConvexError(state.refuse)
     if (state.fail.has(name)) throw new Error('nope')
-    return 'new-id'
+    const answer = state.answers[name]
+    return answer ? answer(args) : 'new-id'
   },
 }))
 
@@ -88,6 +91,7 @@ beforeEach(() => {
   state.calls = []
   state.fail = new Set()
   state.refuse = null
+  state.answers = {}
   state.navigated = []
   state.desktop = true
   window.matchMedia = ((query: string) => ({
@@ -245,7 +249,12 @@ describe('the note', () => {
       expect(state.calls).toEqual([])
       await act(() => vi.advanceTimersByTimeAsync(IDLE))
       expect(callsOf('notes:update')).toEqual([
-        { noteId: 'n1', groupSlug: 'jansen-household', body: 'new text' },
+        {
+          noteId: 'n1',
+          groupSlug: 'jansen-household',
+          body: 'new text',
+          baseUpdatedAt: WIFI.updatedAt,
+        },
       ])
       expect(screen.getByTestId('note-status')).toHaveTextContent('Saved')
     } finally {
@@ -322,6 +331,119 @@ describe('the note', () => {
     state.queries['notes:get'] = { ...WIFI, body: 'theirs again' }
     rerender(<NotesPage noteId="n1" />)
     expect(body()).toHaveValue('mine')
+  })
+
+  describe('saved by another Member meanwhile (APP-994)', () => {
+    const THEIRS = {
+      title: 'Wifi',
+      body: 'theirs',
+      updatedAt: WIFI.updatedAt + 5,
+      updatedByName: 'Sam',
+    }
+    /** Types over the note, and the server answers with Sam's newer version. */
+    async function meetConflict() {
+      state.answers['notes:update'] = ({ baseUpdatedAt }) =>
+        baseUpdatedAt === WIFI.updatedAt
+          ? { status: 'conflict', note: THEIRS }
+          : { status: 'saved', updatedAt: THEIRS.updatedAt + 1 }
+      const view = renderInGroup(<NotesPage noteId="n1" />)
+      fireEvent.change(body(), { target: { value: 'mine' } })
+      fireEvent.blur(body())
+      const conflict = await screen.findByTestId('note-conflict')
+      // The query now has their version; the field keeps the typed text.
+      state.queries['notes:get'] = { ...WIFI, ...THEIRS }
+      view.rerender(<NotesPage noteId="n1" />)
+      return within(conflict)
+    }
+
+    test('shows both versions, says nothing was overwritten, and sends nothing more', async () => {
+      const conflict = await meetConflict()
+      expect(
+        conflict.getByText(
+          'Sam changed it while you were writing. Nothing was overwritten.',
+        ),
+      ).toBeInTheDocument()
+      expect(screen.getByTestId('note-conflict-theirs')).toHaveTextContent(
+        'Their versionWifitheirs',
+      )
+      expect(screen.getByTestId('note-conflict-mine')).toHaveTextContent(
+        'Your versionWifimine',
+      )
+      expect(screen.getByTestId('note-status')).toHaveTextContent('Not saved')
+      expect(body()).toHaveValue('mine')
+      fireEvent.change(body(), { target: { value: 'mine too' } })
+      fireEvent.blur(body())
+      await new Promise((resolve) => setTimeout(resolve, IDLE + 50))
+      expect(callsOf('notes:update')).toHaveLength(1)
+    })
+
+    test('the list row says the text is not saved, after the note is closed', async () => {
+      await meetConflict()
+      // On lg+ a closed note's panel goes; its row stays.
+      const view = renderInGroup(<NotesPage />)
+      expect(
+        within(view.container).getByText('Not saved · Wifi body'),
+      ).toBeInTheDocument()
+    })
+
+    test('Keep mine saves the text over their version', async () => {
+      const conflict = await meetConflict()
+      fireEvent.click(conflict.getByRole('button', { name: 'Keep mine' }))
+      await waitFor(() =>
+        expect(screen.queryByTestId('note-conflict')).toBeNull(),
+      )
+      expect(callsOf('notes:update').at(-1)).toEqual({
+        noteId: 'n1',
+        groupSlug: 'jansen-household',
+        body: 'mine',
+        baseUpdatedAt: THEIRS.updatedAt,
+      })
+      expect(screen.getByTestId('note-status')).toHaveTextContent('Saved')
+    })
+
+    test('Keep theirs drops the text and shows their version', async () => {
+      const conflict = await meetConflict()
+      fireEvent.click(conflict.getByRole('button', { name: 'Keep theirs' }))
+      expect(screen.queryByTestId('note-conflict')).toBeNull()
+      expect(body()).toHaveValue('theirs')
+      expect(callsOf('notes:update')).toHaveLength(1)
+    })
+
+    test('Copy mine to a new note makes it and opens it, leaving theirs', async () => {
+      const conflict = await meetConflict()
+      fireEvent.click(
+        conflict.getByRole('button', { name: 'Copy mine to a new note' }),
+      )
+      await waitFor(() =>
+        expect(state.navigated).toEqual([
+          expect.objectContaining({ search: { note: 'new-id' } }),
+        ]),
+      )
+      expect(callsOf('notes:create')).toEqual([
+        expect.objectContaining({
+          groupSlug: 'jansen-household',
+          title: 'Wifi',
+          body: 'mine',
+        }),
+      ])
+      expect(body()).toHaveValue('theirs')
+      expect(callsOf('notes:update')).toHaveLength(1)
+    })
+
+    test('a failed copy is said, and the text stays', async () => {
+      const conflict = await meetConflict()
+      state.fail.add('notes:create')
+      fireEvent.click(
+        conflict.getByRole('button', { name: 'Copy mine to a new note' }),
+      )
+      expect(
+        await conflict.findByText(
+          'Your version could not be copied. It is still here. nope',
+        ),
+      ).toBeInTheDocument()
+      expect(body()).toHaveValue('mine')
+      expect(state.navigated).toEqual([])
+    })
   })
 
   test('delete asks, deletes and closes', async () => {
