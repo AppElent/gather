@@ -121,6 +121,10 @@ export const log = {
     countOf: '{count} of {total}',
     orderHint:
       'The order here is the order the log offers them in. Move the ones you use most to the top.',
+    orderTitle: 'Order on the log bar',
+    moveUp: 'Move {type} up',
+    moveDown: 'Move {type} down',
+    moved: '{type} moved to position {position} of {total}',
     arrangeHint: 'Drag to rearrange',
   },
 

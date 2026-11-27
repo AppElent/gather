@@ -114,6 +114,28 @@ export function babyBarSlots(
 }
 
 /**
+ * What to store when a screen that does not draw the shortcuts saves an order.
+ *
+ * The web arranges only the event types (its quick-log has nowhere to put a
+ * to-do), but `barOrder` holds the phone's whole bar. Each shortcut keeps the
+ * slot it holds today and the event types fill the other slots in their new
+ * order, so a web save never moves, adds or removes the to-do or the question.
+ *
+ * `eventOrder` is the tracked types in the order the screen shows them; the
+ * stored order is reconciled against it first, so a type just turned off falls
+ * out and one just turned on gets a slot.
+ */
+export function arrangeBarEvents(
+  stored: readonly BabyBarSlot[] | undefined,
+  eventOrder: readonly BabyEventType[],
+): BabyBarSlot[] {
+  const queue = [...eventOrder]
+  return babyBarSlots(eventOrder, stored).map((slot) =>
+    isBabyBarShortcut(slot) ? slot : (queue.shift() as BabyEventType),
+  )
+}
+
+/**
  * The offered event types, in the household's own order.
  *
  * The bar is the phone's shape, but the *arrangement* is the household's
