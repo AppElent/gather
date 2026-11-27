@@ -584,6 +584,35 @@ describe('an ordinary Group', () => {
     ).rejects.toThrow(/somebody else an admin/i)
   })
 
+  test('will not let an admin step down while the only other admin is being deleted', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const alice = await t.withIdentity(asAlice).query(api.users.me, {})
+    const bob = await t.withIdentity(asBob).query(api.users.me, {})
+    const bobId = bob?._id ?? ('' as never)
+    await t.withIdentity(asAlice).mutation(api.groups.setMemberRole, {
+      groupId,
+      userId: bobId,
+      role: 'admin',
+    })
+    // Bob's account deletion is queued: he is on his way out (APP-882).
+    await t.run((ctx) => ctx.db.patch(bobId, { deletedAt: Date.now() }))
+
+    await expect(
+      t.withIdentity(asAlice).mutation(api.groups.setMemberRole, {
+        groupId,
+        userId: alice?._id ?? ('' as never),
+        role: 'member',
+      }),
+    ).rejects.toThrow(/somebody else an admin/i)
+    // Alice stays the admin, and may still demote the admin who is leaving.
+    await t.withIdentity(asAlice).mutation(api.groups.setMemberRole, {
+      groupId,
+      userId: bobId,
+      role: 'member',
+    })
+  })
+
   test('does not let a plain member appoint themselves', async () => {
     const t = testConvex()
     const groupId = await household(t)

@@ -48,6 +48,7 @@ import {
   firstAccountPrice,
   type MarketPriceProvider,
   marketPrices,
+  newestPriceAt,
   priceFeedOf,
 } from './lib/energyPriceRows'
 import { primarySiteOf } from './lib/energyUsage'
@@ -175,7 +176,9 @@ export const view = query({
       hasKey: Boolean(own?.secret),
       status: own?.status ?? ('ok' as const),
       lastError: own?.lastError ?? null,
-      lastFetchedAt: own ? (own.lastFetchedAt ?? null) : (newest?._creationTime ?? null),
+      lastFetchedAt: own
+        ? await lastGoodFetch(ctx, own)
+        : (newest?._creationTime ?? null),
       contract: contract
         ? { kind: contract.kind, supplierName: contract.supplierName ?? null }
         : null,
@@ -184,6 +187,17 @@ export const view = query({
     }
   },
 })
+
+/**
+ * A feed's last good fetch. The feed row holds it only from its first good
+ * fetch after a key is saved, and again when a fetch starts failing; while
+ * fetches go well, the newest price it stored says when (APP-960).
+ */
+async function lastGoodFetch(ctx: QueryCtx, feed: Doc<'energyPriceFeeds'>) {
+  if (feed.lastFetchedAt === undefined) return null
+  if (feed.status !== 'ok') return feed.lastFetchedAt
+  return Math.max(feed.lastFetchedAt, (await newestPriceAt(ctx, feed)) ?? 0)
+}
 
 async function priceDay(
   ctx: QueryCtx,
@@ -555,7 +569,8 @@ export const finishFetch = internalMutation({
   handler: async (ctx, args) => {
     const feed = await ctx.db.get(args.feedId)
     if (!feed || feed.secret !== args.secret) return null
-    await ctx.db.patch(feed._id, outcome(args.problem))
+    const change = await outcome(ctx, feed, args.problem)
+    if (change) await ctx.db.patch(feed._id, change)
     return null
   },
 })
@@ -575,7 +590,8 @@ export const finishMarketFetch = internalMutation({
       .paginate({ numItems: FEEDS_PER_STEP, cursor: args.cursor ?? null })
     for (const feed of page.page) {
       if (feed.secret && feed.status !== 'needsKey') {
-        await ctx.db.patch(feed._id, outcome(args.problem))
+        const change = await outcome(ctx, feed, args.problem)
+        if (change) await ctx.db.patch(feed._id, change)
       }
     }
     if (!page.isDone) {
@@ -589,18 +605,40 @@ export const finishMarketFetch = internalMutation({
   },
 })
 
-/** The last good time stays when a fetch fails. */
-function outcome(problem: typeof problemValidator.type | null) {
+/**
+ * What a fetch changes on its feed, or null when nothing. Every month query
+ * reads the feed rows (`priceFeedsOf`), so a write on each good fetch would
+ * re-run them all, past months too (APP-960). A good fetch writes only the
+ * first time after a key is saved, or when it ends a failure; a failure keeps
+ * the last good time, which it writes down once from the newest stored price.
+ */
+async function outcome(
+  ctx: QueryCtx,
+  feed: Doc<'energyPriceFeeds'>,
+  problem: typeof problemValidator.type | null,
+): Promise<Partial<Doc<'energyPriceFeeds'>> | null> {
   if (problem === null) {
+    if (
+      feed.status === 'ok' &&
+      feed.lastError === undefined &&
+      feed.lastFetchedAt !== undefined
+    ) {
+      return null
+    }
     return {
       status: 'ok' as const,
       lastError: undefined,
-      lastFetchedAt: Date.now(),
+      lastFetchedAt: feed.lastFetchedAt ?? Date.now(),
     }
   }
+  const status =
+    problem === 'keyRejected' ? ('needsKey' as const) : ('error' as const)
+  if (feed.status === status && feed.lastError === problem) return null
   return {
-    status:
-      problem === 'keyRejected' ? ('needsKey' as const) : ('error' as const),
+    status,
     lastError: problem,
+    ...(feed.status === 'ok' && feed.lastFetchedAt !== undefined
+      ? { lastFetchedAt: await lastGoodFetch(ctx, feed) ?? feed.lastFetchedAt }
+      : {}),
   }
 }
