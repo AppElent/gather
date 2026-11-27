@@ -188,7 +188,13 @@ export const get = query({
 export const picker = query({
   args: { groupSlug: v.string() },
   returns: v.array(
-    v.object({ _id: v.id('notes'), title: v.string(), body: v.string() }),
+    v.object({
+      _id: v.id('notes'),
+      title: v.string(),
+      body: v.string(),
+      // The version `body` is, so an append can send it as its base (APP-999).
+      updatedAt: v.number(),
+    }),
   ),
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
@@ -196,7 +202,12 @@ export const picker = query({
       count: PICKER_NOTES,
       bytes: READ_BYTES,
     })
-    return notes.map(({ _id, title, body }) => ({ _id, title, body }))
+    return notes.map(({ _id, title, body, updatedAt }) => ({
+      _id,
+      title,
+      body,
+      updatedAt,
+    }))
   },
 })
 
@@ -267,7 +278,8 @@ export const create = mutation({
  * caller's own later edits never conflict: its saves overlap while it types.
  * Left out, the last write wins, as before: installed phones from before
  * APP-347 send none (`docs/migrations/README.md`). The web's note editor and
- * MCP `update_note` send it (APP-994).
+ * MCP `update_note` send it (APP-994), and so does the phone's Drop append
+ * (APP-999).
  */
 export const update = mutation({
   args: {

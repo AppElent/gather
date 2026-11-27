@@ -361,6 +361,7 @@ function useCandidates(
       // Carried so the commit appends to what is on screen rather than reading
       // the note back to learn what somebody just pointed at.
       body: note.body,
+      updatedAt: note.updatedAt,
     }))
   }
   if (picks === 'task-list') {

@@ -54,7 +54,8 @@ import {
   readPreference,
   writePreference,
 } from '../prefs/localPreference'
-import { appendedBody, type Drop, dropBody, dropTitle } from './drop'
+import { appendToNote } from './appendToNote'
+import { type Drop, dropBody, dropTitle } from './drop'
 import type { DropTarget } from './dropTargets'
 
 /**
@@ -69,6 +70,8 @@ export interface DropPicked {
   id: string
   name?: string
   body?: string
+  /** The note version `body` came from, so an append cannot overwrite a newer one. */
+  updatedAt?: number
   /** Whether the target already holds a photo, so replacing one can ask first. */
   hasPhoto?: boolean
 }
@@ -200,11 +203,12 @@ export function useDropCommit() {
 
         case 'note-append': {
           if (!pick) throw new Error('Appending needs a note')
-          await updateNote({
-            groupSlug,
-            noteId: pick.id as Id<'notes'>,
-            body: appendedBody(pick.body ?? '', appendedText(drop)),
-          })
+          await appendToNote(
+            (args) =>
+              updateNote({ groupSlug, noteId: pick.id as Id<'notes'>, ...args }),
+            { body: pick.body ?? '', updatedAt: pick.updatedAt },
+            appendedText(drop),
+          )
           return { ok: true, href: target.route({ id: pick.id }) }
         }
 
