@@ -4,7 +4,8 @@
  *
  * Computed from hours, never from typed readings: a site without them gets
  * `noHourly` and no figures. Payback adds up the months the client asks for
- * one by one, so no query reads a year of hours (`convex/energyUsage.ts`).
+ * one by one (`paybackMonth`), so no query reads a year of hours
+ * (`convex/energyUsage.ts`).
  *
  * Group-scoped like every Energy function (ADR-0031). `today` is the caller's
  * Amsterdam day.
@@ -12,13 +13,15 @@
 import { isIsoDate } from '@gather/core/civil-date'
 import {
   amsterdamDayOf,
+  type EnergyPaybackDay,
   energyMonthDays,
+  energyPaybackDayOf,
   isEnergyMonth,
 } from '@gather/core/energy'
 import { energyRefusal } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import type { Doc } from './_generated/dataModel'
-import { query } from './_generated/server'
+import { type QueryCtx, query } from './_generated/server'
 import { energyAssetTermsValidator } from './lib/energy'
 import {
   computeEnergyRange,
@@ -50,6 +53,15 @@ const solarDayValidator = v.object({
   /** What the roof and the battery earned; null without a price or a figure. */
   solarEur: nullableNumber,
   batteryEur: nullableNumber,
+})
+
+const paybackDayValidator = v.object({
+  day: v.string(),
+  solarEur: nullableNumber,
+  batteryEur: nullableNumber,
+  /** Whether solar, or the battery, had figures that day. */
+  solarMeasured: v.boolean(),
+  batteryMeasured: v.boolean(),
 })
 
 const overviewValidator = v.union(
@@ -124,34 +136,77 @@ export const month = query({
         ['solar', 'batteryCharge', 'batteryDischarge'].includes(channel.kind),
       ),
     )
-    const range = await computeEnergyRange(
-      ctx,
-      site,
-      channels,
-      energyMonthDays(args.month).filter((day) => day <= args.today),
-      { solar: true },
-    )
     return {
       ...base,
       firstDay: first === null ? null : amsterdamDayOf(first),
-      days: range.solarDays.map((day, index) => {
-        const { battery: each } = day
-        return {
-          ...day,
-          solarEur: solarEur(
-            day,
-            range.days[index]?.exportKwh ?? 0,
-            range.exportCents[index] ?? null,
-          ),
-          batteryEur:
-            each && each.chargeEur !== null && each.dischargeEur !== null
-              ? each.dischargeEur - each.chargeEur
-              : null,
-        }
-      }),
+      days: await solarDays(ctx, site, channels, args.month, args.today),
     }
   },
 })
+
+/**
+ * What one past month adds to payback, day by day up to `today` (APP-962).
+ *
+ * `month` without the site's assets or its first measured hour, so editing an
+ * asset leaves every open past month be. `null` without a site.
+ */
+export const paybackMonth = query({
+  args: { groupSlug: v.string(), month: v.string(), today: v.string() },
+  returns: v.union(v.null(), v.array(paybackDayValidator)),
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    if (!isEnergyMonth(args.month) || !isIsoDate(args.today)) {
+      throw new ConvexError(energyRefusal('notFound'))
+    }
+    const site = await primarySiteOf(ctx, group._id)
+    if (!site) return null
+    return await paybackDaysOf(ctx, site, args.month, args.today)
+  },
+})
+
+/** `paybackMonth`'s days, from the site's channels and hours alone. */
+export async function paybackDaysOf(
+  ctx: QueryCtx,
+  site: Doc<'energySites'>,
+  month: string,
+  today: string,
+): Promise<EnergyPaybackDay[]> {
+  const channels = await siteChannels(ctx, site._id)
+  const days = await solarDays(ctx, site, channels, month, today)
+  return days.map(energyPaybackDayOf)
+}
+
+/** A month's solar days up to `today`, each with what it earned. */
+async function solarDays(
+  ctx: QueryCtx,
+  site: Doc<'energySites'>,
+  channels: Awaited<ReturnType<typeof siteChannels>>,
+  month: string,
+  today: string,
+) {
+  const range = await computeEnergyRange(
+    ctx,
+    site,
+    channels,
+    energyMonthDays(month).filter((day) => day <= today),
+    { solar: true },
+  )
+  return range.solarDays.map((day, index) => {
+    const { battery: each } = day
+    return {
+      ...day,
+      solarEur: solarEur(
+        day,
+        range.days[index]?.exportKwh ?? 0,
+        range.exportCents[index] ?? null,
+      ),
+      batteryEur:
+        each && each.chargeEur !== null && each.dischargeEur !== null
+          ? each.dischargeEur - each.chargeEur
+          : null,
+    }
+  })
+}
 
 /**
  * What the roof earned on a day: the grid power it saved, and its share of

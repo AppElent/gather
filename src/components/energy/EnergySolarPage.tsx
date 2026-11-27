@@ -416,13 +416,7 @@ function Assets({
   const payback = useEnergyPaybackDays(groupSlug, data, today)
   const all = data.assets.map((each) => each.asset)
   const anyPrice = all.some((asset) => asset.purchaseCents !== undefined)
-  const days = (payback?.days ?? []).map((day) => ({
-    day: day.day,
-    solarEur: day.solarEur,
-    batteryEur: day.batteryEur,
-    solarMeasured: day.selfUsedKwh !== null,
-    batteryMeasured: day.battery !== null,
-  }))
+  const days = payback?.days ?? []
   return (
     <section aria-labelledby="solar-assets" className="grid gap-2">
       <h2 id="solar-assets" className="m-0 text-base font-semibold">

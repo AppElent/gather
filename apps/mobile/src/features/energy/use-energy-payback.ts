@@ -1,11 +1,15 @@
 /**
- * Every day since an asset could first have paid itself back, one
- * `energySolar.month` answer per month, because no query reads a year of
- * hours. `null` while a month is still loading.
+ * Every day since an asset could first have paid itself back: this month from
+ * the screen's own `energySolar.month`, each month before it from one
+ * `energySolar.paybackMonth`, because no query reads a year of hours. Those
+ * read no assets, so editing one leaves the past months be (APP-962). `null`
+ * while a month is still loading.
  */
 import {
   type EnergyPaybackDay,
+  energyMonthOf,
   energyMonthToday,
+  energyPaybackDayOf,
   energyPaybackMonths,
 } from '@gather/core/energy'
 import type { FunctionReturnType } from 'convex/server'
@@ -18,23 +22,26 @@ export type EnergySolarMonth = NonNullable<
   FunctionReturnType<typeof api.energySolar.month>
 >
 
+/** `solar` is this month's answer, up to `today`. */
 export function useEnergyPaybackDays(
   groupSlug: string,
   solar: EnergySolarMonth,
   today: string,
 ): { days: EnergyPaybackDay[]; partial: boolean } | null {
-  const months = energyPaybackMonths(
+  const all = energyPaybackMonths(
     solar.assets.map((each) => each.asset),
     solar.firstDay,
     today,
-  ).join(',')
+  )
+  const thisMonth = all.includes(energyMonthOf(today))
+  const months = all.filter((month) => month !== energyMonthOf(today)).join(',')
   const requests = useMemo(
     () =>
       Object.fromEntries(
         (months ? months.split(',') : []).map((month) => [
           month,
           {
-            query: api.energySolar.month,
+            query: api.energySolar.paybackMonth,
             args: { groupSlug, month, today: energyMonthToday(month, today) },
           },
         ]),
@@ -42,24 +49,19 @@ export function useEnergyPaybackDays(
     [groupSlug, months, today],
   )
   const answers = Object.values(useQueries(requests)) as (
-    | EnergySolarMonth
+    | EnergyPaybackDay[]
     | null
     | undefined
     | Error
   )[]
   if (answers.some((answer) => answer === undefined)) return null
   return {
-    days: answers.flatMap((answer) =>
-      answer instanceof Error || !answer
-        ? []
-        : answer.days.map((day) => ({
-            day: day.day,
-            solarEur: day.solarEur,
-            batteryEur: day.batteryEur,
-            solarMeasured: day.selfUsedKwh !== null,
-            batteryMeasured: day.battery !== null,
-          })),
-    ),
+    days: [
+      ...answers.flatMap((answer) =>
+        answer instanceof Error || !answer ? [] : answer,
+      ),
+      ...(thisMonth ? solar.days.map(energyPaybackDayOf) : []),
+    ],
     partial: answers.some((answer) => answer instanceof Error || answer === null),
   }
 }

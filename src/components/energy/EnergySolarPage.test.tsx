@@ -20,13 +20,15 @@ const state = vi.hoisted(() => ({
 vi.mock('convex/react', () => ({
   useQuery: (name: string) =>
     name === 'energySolar:month' ? state.solar : state.day,
-  useQueries: (queries: Record<string, { args: { month: string } }>) =>
+  useQueries: (
+    queries: Record<string, { query: string; args: { month: string } }>,
+  ) =>
     Object.fromEntries(
       Object.entries(queries).map(([key, entry]) => [
         key,
-        entry.args.month in state.months
-          ? state.months[entry.args.month]
-          : state.solar,
+        entry.query !== 'energySolar:paybackMonth'
+          ? new Error(`${entry.query} is not payback's`)
+          : (state.months[entry.args.month] ?? []),
       ]),
     ),
   useMutation: (name: string) => async (args: unknown) => {
@@ -42,7 +44,10 @@ vi.mock('@tanstack/react-router', () => ({
 
 vi.mock('../../../convex/_generated/api', () => ({
   api: {
-    energySolar: { month: 'energySolar:month' },
+    energySolar: {
+      month: 'energySolar:month',
+      paybackMonth: 'energySolar:paybackMonth',
+    },
     energyUsage: { day: 'energyUsage:day' },
     energyAssets: { save: 'energyAssets:save', remove: 'energyAssets:remove' },
   },
@@ -198,16 +203,17 @@ describe('EnergySolarPage', () => {
       assets: [ROOF, BATTERY],
       firstDay: '2026-10-31',
     })
-    const october = solarMonth()
+    // A past month comes from the lighter query, which reads no assets (APP-962).
     state.months = {
-      '2026-10': {
-        ...october,
-        days: october.days.map((day) => ({
-          ...day,
+      '2026-10': [
+        {
           day: '2026-10-31',
           solarEur: 100,
-        })),
-      },
+          batteryEur: 0,
+          solarMeasured: true,
+          batteryMeasured: true,
+        },
+      ],
     }
     renderInGroup(<EnergySolarPage />)
     const roof = screen.getByRole('button', { name: /Roof/ })
