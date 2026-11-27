@@ -4,6 +4,7 @@ import {
   energyProposals,
   energyReadingOverdue,
   energySourceProblemValue,
+  energyStatisticStale,
   hourlyAmountsFromSums,
   hourlyLevels,
   readEnergySourceProblem,
@@ -255,6 +256,21 @@ describe('channels, problems and overdue meters', () => {
     ).toEqual({ problem: 'statisticMissing', statistics: ['sensor.a', 'sensor.b'] })
     expect(readEnergySourceProblem(undefined)).toBeNull()
     expect(readEnergySourceProblem('something new')?.problem).toBe('unreachable')
+  })
+  test('a statistic goes stale after its kind’s quiet hours', () => {
+    const now = 100 * 24 * HOUR
+    for (const [kind, hours] of [
+      ['gridImport', 6],
+      ['gas', 48],
+      ['solar', 72],
+      ['batteryCharge', 72],
+      ['batterySoc', 72],
+    ] as const) {
+      expect(energyStatisticStale(kind, now - hours * HOUR, now)).toBe(false)
+      expect(energyStatisticStale(kind, now - hours * HOUR - 1, now)).toBe(true)
+    }
+    // A solar inverter asleep through a winter night is not flagged.
+    expect(energyStatisticStale('solar', now - 16 * HOUR, now)).toBe(false)
   })
   test('a typed meter is overdue after two weeks', () => {
     const now = 100 * 24 * HOUR

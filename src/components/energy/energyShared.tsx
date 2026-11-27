@@ -343,17 +343,24 @@ export function ValueRow({
   label,
   sub,
   value,
+  danger = false,
 }: {
   label: string
   sub?: string
   value: string
+  /** Says `sub` in `danger` words. */
+  danger?: boolean
 }) {
   return (
     <div className="flex min-h-14 items-center justify-between gap-3 px-4 py-2">
       <span className="grid min-w-0">
         <span className="text-base">{label}</span>
         {sub ? (
-          <span className="text-sm text-[var(--muted)]">{sub}</span>
+          <span
+            className={`text-sm ${danger ? 'font-semibold text-[var(--danger)]' : 'text-[var(--muted)]'}`}
+          >
+            {sub}
+          </span>
         ) : null}
       </span>
       <span className="shrink-0 text-base font-semibold tabular-nums">
