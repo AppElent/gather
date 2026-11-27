@@ -1,4 +1,4 @@
-import { amsterdamDayHours } from '@gather/core/energy'
+import { amsterdamDayHours, energyMonthDays } from '@gather/core/energy'
 import { describe, expect, test } from 'vitest'
 import { alice, bob, carol } from '../test/convexHarness'
 import {
@@ -13,6 +13,8 @@ import {
 } from '../test/energyUsageFixture'
 import { api } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
+import type { QueryCtx } from './_generated/server'
+import { computeEnergyRange, siteChannels } from './lib/energyUsage'
 
 /** Solar and battery (APP-496), from hourly intervals when they are read. */
 
@@ -210,6 +212,116 @@ describe('a month', () => {
         .withIdentity(carol)
         .query(api.energySolar.month, { ...MONTH, ...OTHER }),
     ).toBeNull()
+  })
+})
+
+describe('payback', () => {
+  type Range = {
+    table: string
+    index: string
+    ops: [string, string][]
+    order: 'asc' | 'desc'
+  }
+
+  /** Each index range a read asks for, with its bounds and its order. */
+  function recordingReads(ctx: QueryCtx) {
+    const ranges: Range[] = []
+    const query = ctx.db.query.bind(ctx.db)
+    const db = new Proxy(ctx.db, {
+      get(target, key, receiver) {
+        if (key !== 'query') return Reflect.get(target, key, receiver)
+        return (table: 'energySources') => {
+          const builder = query(table)
+          return new Proxy(builder, {
+            get(inner, name, innerReceiver) {
+              if (name !== 'withIndex') {
+                return Reflect.get(inner, name, innerReceiver)
+              }
+              return (index: string, range: (q: unknown) => unknown) => {
+                const read: Range = { table, index, ops: [], order: 'asc' }
+                ranges.push(read)
+                // Run the range once against a recorder, then for real.
+                type Bounds = { [op: string]: (field: string) => Bounds }
+                const recorder: Bounds = new Proxy(
+                  {},
+                  {
+                    get: (_, op: string) => (field: string) => {
+                      read.ops.push([op, field])
+                      return recorder
+                    },
+                  },
+                )
+                range(recorder)
+                const ordered = Reflect.apply(builder.withIndex, builder, [
+                  index,
+                  range,
+                ])
+                return new Proxy(ordered, {
+                  get(at, op, opReceiver) {
+                    if (op !== 'order') return Reflect.get(at, op, opReceiver)
+                    return (order: 'asc' | 'desc') => {
+                      read.order = order
+                      return at.order(order)
+                    }
+                  },
+                })
+              }
+            },
+          })
+        }
+      },
+    })
+    return { ctx: { ...ctx, db } as QueryCtx, ranges }
+  }
+
+  /** A newer row may land in this range: an hourly sync re-runs the read. */
+  const reachesNewest = ({ ops, order }: Range) =>
+    order === 'desc' && !ops.some(([op]) => op === 'lt' || op === 'lte')
+
+  test('an hourly sync leaves a past month be (APP-921)', async () => {
+    const { t, homeId, aliceId, siteId } = await seedHours(FULL)
+    await t.run(async (ctx) => {
+      await insertManualMeters(ctx, homeId, siteId, aliceId)
+      const site = await ctx.db.get(siteId)
+      if (!site) throw new Error('no site')
+      const { ctx: recorded, ranges } = recordingReads(ctx)
+      const channels = await siteChannels(recorded, siteId)
+      await computeEnergyRange(
+        recorded,
+        site,
+        channels,
+        energyMonthDays('2026-11'),
+        { solar: true },
+      )
+      // The source a sync patches is never read, nor a channel's newest hour.
+      expect(ranges.filter((each) => each.table === 'energySources')).toEqual([
+        {
+          table: 'energySources',
+          index: 'by_site_kind',
+          ops: [
+            ['eq', 'siteId'],
+            ['eq', 'kind'],
+          ],
+          order: 'asc',
+        },
+      ])
+      expect(
+        ranges.filter(
+          (each) => each.table === 'energyIntervals' && reachesNewest(each),
+        ),
+      ).toEqual([])
+      // Typed meters still count as typed, and the rest as measured.
+      const sources = await ctx.db
+        .query('energySources')
+        .withIndex('by_site', (q) => q.eq('siteId', siteId))
+        .collect()
+      const kindOf = new Map(sources.map((each) => [each._id, each.kind]))
+      for (const { channel, manual } of channels) {
+        expect(manual).toBe(kindOf.get(channel.sourceId) === 'manual')
+      }
+      expect(channels.filter((each) => each.manual)).toHaveLength(4)
+      expect(channels.filter((each) => !each.manual)).toHaveLength(5)
+    })
   })
 })
 
