@@ -344,10 +344,10 @@ export const setMemberRole = mutation({
 
     // Demoting the last admin leaves the Group with nobody who can undo it —
     // the same hole `leaveGroup` refuses, reached by standing still instead of
-    // walking out.
+    // walking out. Only a live admin counts, by the same rule as `exitsFor`.
     if (isAdmin(target) && args.role === 'member') {
-      const admins = await adminsOf(ctx, group._id)
-      if (admins.length <= 1) {
+      const others = await liveOthersIn(ctx, target)
+      if (!others.some(isAdmin)) {
         throw new ConvexError(
           'Make somebody else an admin first — a group cannot be left without one',
         )
@@ -358,13 +358,27 @@ export const setMemberRole = mutation({
   },
 })
 
-/** Every membership in a Group that carries admin rights. */
-async function adminsOf(ctx: QueryCtx, groupId: Id<'groups'>) {
+/**
+ * The other memberships in this membership's Group that belong to somebody
+ * still there. A membership whose user record is gone is nobody (APP-362), and
+ * a Member whose account is being deleted is on their way out (APP-882).
+ */
+async function liveOthersIn(
+  ctx: QueryCtx,
+  membership: Doc<'memberships'>,
+): Promise<Doc<'memberships'>[]> {
   const memberships = await ctx.db
     .query('memberships')
-    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .withIndex('by_group', (q) => q.eq('groupId', membership.groupId))
     .collect()
-  return memberships.filter(isAdmin)
+  const others: Doc<'memberships'>[] = []
+  for (const other of memberships) {
+    if (other._id === membership._id) continue
+    const user = await ctx.db.get(other.userId)
+    if (user === null || user.deletedAt) continue
+    others.push(other)
+  }
+  return others
 }
 
 /**
@@ -408,17 +422,7 @@ async function exitsFor(
   ctx: QueryCtx,
   membership: Doc<'memberships'>,
 ): Promise<{ leave: LeaveStatus; canDelete: boolean }> {
-  const memberships = await ctx.db
-    .query('memberships')
-    .withIndex('by_group', (q) => q.eq('groupId', membership.groupId))
-    .collect()
-  const others: Doc<'memberships'>[] = []
-  for (const other of memberships) {
-    if (other._id === membership._id) continue
-    const user = await ctx.db.get(other.userId)
-    if (user === null || user.deletedAt) continue
-    others.push(other)
-  }
+  const others = await liveOthersIn(ctx, membership)
   if (others.length === 0) return { leave: 'last-member', canDelete: true }
   const leave =
     isAdmin(membership) && !others.some(isAdmin) ? 'only-admin' : 'allowed'
