@@ -409,6 +409,66 @@ export const deleteFinanceSettings = internalMutation({
 })
 
 /**
+ * Gives an admin back to every Group that has live Members and no live admin
+ * (APP-944). Before APP-938, deleting the account of a shared Group's only
+ * admin left the rest of the Group with nobody who could rename, delete or
+ * hand it on, and `keepAnAdmin` in `cascade.ts` only acts while a purge runs.
+ * The longest-standing live Member (oldest membership) becomes admin, the
+ * same choice `keepAnAdmin` makes. Live means the user record exists and is
+ * not being deleted, as in `groups.liveOthersIn`. A Group with no live Member
+ * is left alone: nobody is there to administer it.
+ *
+ * One page of Groups per call. Dry by default, so a dry run is the read-only
+ * check for whether any such Group exists. Run with `{ apply: true }`, passing
+ * back `cursor` while `more` is true, then a dry run from the start must report
+ * `adminless` empty on every page. Ids only in the answer, no names.
+ * **End condition:** the dev and production results are recorded in
+ * docs/migrations/README.md; then delete this and its test.
+ */
+const ADMINLESS_GROUPS_BATCH = 100
+
+export const repairAdminlessGroups = internalMutation({
+  args: {
+    apply: v.optional(v.boolean()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const page = await ctx.db
+      .query('groups')
+      .paginate({ numItems: ADMINLESS_GROUPS_BATCH, cursor: args.cursor ?? null })
+    const adminless: {
+      groupId: Id<'groups'>
+      membershipId: Id<'memberships'>
+    }[] = []
+    for (const group of page.page) {
+      const memberships = await ctx.db
+        .query('memberships')
+        .withIndex('by_group', (q) => q.eq('groupId', group._id))
+        .collect()
+      const live: Doc<'memberships'>[] = []
+      for (const membership of memberships) {
+        const user = await ctx.db.get(membership.userId)
+        if (user && !user.deletedAt) live.push(membership)
+      }
+      if (live.length === 0) continue
+      if (live.some((membership) => membership.role === 'admin')) continue
+      const [longest] = live.sort((a, b) => a._creationTime - b._creationTime)
+      adminless.push({ groupId: group._id, membershipId: longest._id })
+      if (apply) await ctx.db.patch(longest._id, { role: 'admin' })
+    }
+    return {
+      apply,
+      scanned: page.page.length,
+      adminless,
+      promoted: apply ? adminless.length : 0,
+      more: !page.isDone,
+      cursor: page.continueCursor,
+    }
+  },
+})
+
+/**
  * The tables the Nutrition Module kept, which left the schema with it
  * (ADR-0041). Child rows first, so an interrupted run never leaves a Combo's
  * items without the Combo they would be found through.
