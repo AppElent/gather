@@ -111,3 +111,64 @@ export function useIdleTimeout(
   }).current
   return touch
 }
+
+/**
+ * Taking back a repeating item's check (APP-520, APP-990). The mode draws an
+ * item waiting for its next date as checked, and a tap on it undoes the
+ * completion that sent it there, whoever made it:
+ *
+ * - the completion this phone heard of, when it made the check itself;
+ * - otherwise the latest one the server has, so a check by another Member,
+ *   or one whose id was lost, can be taken back too;
+ * - a check still on its way is waited for first, so a quick second tap
+ *   undoes it rather than failing;
+ * - an undo that failed is forgotten, and the next tap asks the server again.
+ *
+ * `undo` resolves false when there was nothing to undo or the write failed.
+ * A second tap while an undo is on its way joins it.
+ */
+export function completionUndo<CompletionId>(server: {
+  latest: (taskId: string) => Promise<CompletionId | null>
+  undo: (completionId: CompletionId) => Promise<unknown>
+}) {
+  const heard = new Map<string, CompletionId>()
+  const checking = new Map<string, Promise<boolean>>()
+  const undoing = new Map<string, Promise<boolean>>()
+
+  const run = async (taskId: string) => {
+    // A check that failed made no completion: an older one is not the one
+    // this tap meant to take back.
+    if ((await checking.get(taskId)) === false) return false
+    const completionId = heard.get(taskId) ?? (await server.latest(taskId))
+    if (completionId === null) return false
+    try {
+      await server.undo(completionId)
+      return true
+    } finally {
+      if (heard.get(taskId) === completionId) heard.delete(taskId)
+    }
+  }
+
+  return {
+    heard(taskId: string, completionId: CompletionId) {
+      heard.set(taskId, completionId)
+    },
+    /** A check on its way; `landed` resolves whether the server took it. */
+    checking(taskId: string, landed: Promise<boolean>) {
+      const settled = landed.catch(() => false)
+      checking.set(taskId, settled)
+      void settled.then(() => {
+        if (checking.get(taskId) === settled) checking.delete(taskId)
+      })
+    },
+    undo(taskId: string): Promise<boolean> {
+      const current = undoing.get(taskId)
+      if (current) return current
+      const next = run(taskId)
+        .catch(() => false)
+        .finally(() => undoing.delete(taskId))
+      undoing.set(taskId, next)
+      return next
+    },
+  }
+}

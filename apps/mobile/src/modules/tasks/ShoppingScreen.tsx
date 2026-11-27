@@ -32,6 +32,7 @@ import { useCompleteTask } from './completeTask'
 import { useGroceryAmountText } from './GroceryFields'
 import { aisleSections, inCheckedSection, waitsToRepeat } from './groceryList'
 import {
+  completionUndo,
   SHOPPING_IDLE_MS,
   shoppingIds,
   shoppingProgress,
@@ -65,25 +66,28 @@ export function ShoppingScreen({ listId }: { listId: string }) {
   const rows = shoppingRows(shown.current, tasks, today)
   // A repeating item checked here moves on to its next due date and stays
   // open (APP-520); it is drawn checked, and taking the check back undoes
-  // that completion, which is kept here by item.
-  const completions = useRef(new Map<string, Id<'taskCompletions'>>())
+  // its latest completion (`completionUndo`, APP-990).
+  const server = useRef(actions)
+  server.current = actions
+  const [completions] = useState(() =>
+    completionUndo<Id<'taskCompletions'>>({
+      latest: (taskId) => server.current.latestCompletion(taskId),
+      undo: (completionId) => server.current.undoCompletion(completionId),
+    }),
+  )
   useEffect(
     () =>
       onOccurrenceCompleted((done) => {
-        completions.current.set(done.taskId, done.completionId)
+        completions.heard(done.taskId, done.completionId)
       }),
-    [],
+    [completions],
   )
   const waiting = (task: Task) =>
     tasks.some((each) => each.id === task.id && waitsToRepeat(each, today))
   const uncomplete = (task: Task) => {
-    const completionId = completions.current.get(task.id)
-    if (!completionId) {
-      haptics.actionFailed()
-      return
-    }
-    completions.current.delete(task.id)
-    actions.undoCompletion(completionId).catch(() => haptics.actionFailed())
+    void completions.undo(task.id).then((ok) => {
+      if (!ok) haptics.actionFailed()
+    })
   }
   const sections = aisleSections(rows, list?.aisleOrder)
   const { done, total } = shoppingProgress(rows)
@@ -116,9 +120,17 @@ export function ShoppingScreen({ listId }: { listId: string }) {
       setLast(task)
     }
     // A check the server refused leaves the row open: no pill for it.
-    completeTask(task, (ok) => {
-      if (!ok) setLast((current) => (current?.id === task.id ? null : current))
+    const landed = new Promise<boolean>((resolve) => {
+      completeTask(task, (ok) => {
+        resolve(ok)
+        if (!ok) setLast((current) => (current?.id === task.id ? null : current))
+      })
     })
+    // A repeating item's check waits to repeat at once on this phone; a tap
+    // taking it back before the server answered waits for that answer.
+    if (task.repeat && !task.done && !task.pending) {
+      completions.checking(task.id, landed)
+    }
   }
 
   const undo = () => {

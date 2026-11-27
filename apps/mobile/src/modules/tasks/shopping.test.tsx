@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
 import { mount } from '../../testing/dom'
 import {
+  completionUndo,
   SHOPPING_IDLE_MS,
   shoppingIds,
   shoppingProgress,
@@ -121,4 +122,78 @@ test('waits only while the mode is showing', () => {
   mount(<Idle active={false} onIdle={onIdle} probe={{}} />)
   vi.advanceTimersByTime(SHOPPING_IDLE_MS * 2)
   expect(onIdle).not.toHaveBeenCalled()
+})
+
+function server(latest: string | null = null) {
+  return {
+    latest: vi.fn(async (_taskId: string) => latest),
+    undo: vi.fn(async (_completionId: string) => null as unknown),
+  }
+}
+
+test('takes back the check this phone made, by the completion it heard of', async () => {
+  const backend = server('older')
+  const undo = completionUndo(backend)
+  undo.heard('melk', 'mine')
+  await expect(undo.undo('melk')).resolves.toBe(true)
+  expect(backend.undo).toHaveBeenCalledWith('mine')
+  expect(backend.latest).not.toHaveBeenCalled()
+})
+
+test("takes back another Member's check by the server's latest completion", async () => {
+  const backend = server('theirs')
+  const undo = completionUndo(backend)
+  await expect(undo.undo('melk')).resolves.toBe(true)
+  expect(backend.latest).toHaveBeenCalledWith('melk')
+  expect(backend.undo).toHaveBeenCalledWith('theirs')
+})
+
+test('fails when the server has no completion to take back', async () => {
+  const backend = server(null)
+  const undo = completionUndo(backend)
+  await expect(undo.undo('melk')).resolves.toBe(false)
+  expect(backend.undo).not.toHaveBeenCalled()
+})
+
+test('a second tap before the check landed waits for it, then undoes it', async () => {
+  const backend = server('older')
+  const undo = completionUndo(backend)
+  let land!: (ok: boolean) => void
+  undo.checking('melk', new Promise<boolean>((resolve) => (land = resolve)))
+  const tapped = undo.undo('melk')
+  await Promise.resolve()
+  expect(backend.undo).not.toHaveBeenCalled()
+  // The check's answer names its completion before it settles.
+  undo.heard('melk', 'mine')
+  land(true)
+  await expect(tapped).resolves.toBe(true)
+  expect(backend.undo).toHaveBeenCalledWith('mine')
+})
+
+test('a second tap on a check that failed undoes nothing older', async () => {
+  const backend = server('last-week')
+  const undo = completionUndo(backend)
+  undo.checking('melk', Promise.resolve(false))
+  await expect(undo.undo('melk')).resolves.toBe(false)
+  expect(backend.undo).not.toHaveBeenCalled()
+})
+
+test('an undo that failed can be tried again', async () => {
+  const backend = server('mine')
+  backend.undo.mockRejectedValueOnce(new Error('offline'))
+  const undo = completionUndo(backend)
+  undo.heard('melk', 'mine')
+  await expect(undo.undo('melk')).resolves.toBe(false)
+  await expect(undo.undo('melk')).resolves.toBe(true)
+  expect(backend.undo).toHaveBeenCalledTimes(2)
+  expect(backend.undo).toHaveBeenLastCalledWith('mine')
+})
+
+test('a tap while an undo is on its way joins it', async () => {
+  const backend = server('mine')
+  const undo = completionUndo(backend)
+  const first = undo.undo('melk')
+  const second = undo.undo('melk')
+  await expect(Promise.all([first, second])).resolves.toEqual([true, true])
+  expect(backend.undo).toHaveBeenCalledTimes(1)
 })
