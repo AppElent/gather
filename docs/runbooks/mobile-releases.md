@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when publishing an over-the-air update, making a store or internal build, or rolling an update back.
-version: 2.1.0
+version: 2.2.0
 ---
 
 # Mobile releases
@@ -126,6 +126,24 @@ pnpm exec eas update:list --branch preview
 pnpm exec eas branch:view preview
 ```
 
+Adoption — how many phones run an update rather than the bundle their build
+shipped with — is in EAS update insights, per channel and runtime version or
+per update group:
+
+```
+pnpm exec eas channel:insights --channel production --runtime-version <fingerprint>
+pnpm exec eas update:insights <group-id>
+```
+
+`<fingerprint>` is the installed build's full runtime version, as
+`eas build:list` shows it, or the `production` row of
+`node apps/mobile/scripts/fingerprint.mjs` run at that build's `v` tag (the
+daily summary prints only a 12-character prefix, which matches nothing);
+`<group-id>` comes from `update:list --branch production`. An expand/contract step that waits for "every installed build
+runs the new code" reads these before its contract step. Agents cannot run the
+production ones (the agent deny list blocks production EAS commands); Eric or
+the manager reads them.
+
 An update is downloaded in the background on the launch after it is published,
 and runs on the launch after that. There is no prompt and no spinner: the app
 has no update UI, by decision — [the mobile design system](../../apps/mobile/DESIGN_SYSTEM.md#feedback) asks for silence,
@@ -173,6 +191,12 @@ A channel is baked into a binary at build time and cannot be changed
 afterwards. A build made without one — every gather binary produced before this
 was set up — can never receive an update at all.
 
+The `production` channel and branch exist on EAS (since 25 Nov 2026), and the
+`production` profile builds onto them. Until the first `production` store
+build finishes, nothing on the channel has a fingerprint, so the daily job
+skips every run with "a store build is due". That first store build is what
+starts production updates; nothing else needs setting up.
+
 
 ## Store builds and versions
 
@@ -188,6 +212,12 @@ changelog, and builds and submits only after the owner's yes.
    `PATCH` for a hotfix build. Build numbers stay with EAS
    (`appVersionSource: remote`, `autoIncrement`); never set them by hand.
 3. Build and submit (`deploy:prod` from `apps/mobile`, or the hub's builds
-   tool), then tag the commit `v<version>` and push the tag.
+   tool), then tag the commit `v<version>` and push the tag. Also move
+   `ota-production-ios` (and `ota-production-android` once Android is back)
+   and the channel tag `ota-production` to that commit:
+   `for t in ota-production-ios ota-production; do git tag -f $t v<version>^{} && git push -f origin refs/tags/$t; done`. The daily job publishes the newest commit
+   that soaked 24 hours, which can be older than the build; the tag makes its
+   gate refuse a commit that does not descend from the build, so a new build
+   never gets older JavaScript over the air.
 4. The changelog is the merged PR titles since the previous `v` tag; it goes on
    the decision card and in the GitHub release.
