@@ -641,7 +641,7 @@ export const SAMPLE_KITCHEN = {
   ],
   dinners: [
     { recipe: 'shakshuka', daysAhead: 0 },
-    { meal: 'Penne carbonara', daysAhead: 1, quickLimit: 20 as const },
+    { meal: 'Penne carbonara', daysAhead: 1 },
   ],
   // In stock (APP-314): what the house always wants, all in stock.
   staples: [

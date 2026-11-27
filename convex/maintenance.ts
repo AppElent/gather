@@ -78,47 +78,6 @@ export const removePersonalGroupSemantics = internalMutation({
 })
 
 /**
- * Gives every Planned meal from before meal slots (APP-317, ADR-0027) its
- * slot: each was a day's one dinner, so it becomes `dinner`. Reads already
- * treat a missing slot as dinner, so the app is right before and after this
- * runs; it exists so the schema can later make `slot` required.
- *
- * Pages through `plannedDinners` by `cursor`. Dry unless `{ apply: true }`;
- * run it until `more` is false, then run the dry pass again from the start
- * and confirm every page reports `missing` zero.
- */
-const MEAL_SLOTS_BATCH = 200
-
-export const backfillMealSlots = internalMutation({
-  args: {
-    apply: v.optional(v.boolean()),
-    cursor: v.optional(v.union(v.string(), v.null())),
-    // Rows per call, at most the default; tests use a small one to page.
-    batch: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const apply = args.apply ?? false
-    const numItems = Math.max(
-      1,
-      Math.min(MEAL_SLOTS_BATCH, Math.floor(args.batch ?? MEAL_SLOTS_BATCH)),
-    )
-    const page = await ctx.db
-      .query('plannedDinners')
-      .paginate({ numItems, cursor: args.cursor ?? null })
-    const missing = page.page.filter((meal) => meal.slot === undefined)
-    if (apply)
-      for (const meal of missing) await ctx.db.patch(meal._id, { slot: 'dinner' })
-    return {
-      apply,
-      scanned: page.page.length,
-      missing: missing.length,
-      more: !page.isDone,
-      cursor: page.continueCursor,
-    }
-  },
-})
-
-/**
  * Makes every Group's grocery list a list of kind `groceries` (APP-313). A
  * Group used to name its one grocery list in `groups.groceryListId`, whatever
  * the list's kind; now every list of kind `groceries` is a grocery list, one

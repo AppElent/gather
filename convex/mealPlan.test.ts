@@ -7,7 +7,7 @@ import {
   seedMember,
   testConvex,
 } from '../test/convexHarness'
-import { api, internal } from './_generated/api'
+import { api } from './_generated/api'
 import { CONNECTED_APP_REFUSED } from './lib/connectedApps'
 
 async function seed() {
@@ -94,18 +94,29 @@ describe('mealPlan', () => {
   })
 
   test('refuses a second meal in a taken slot unless it replaces', async () => {
-    const { t, pasta, tacos } = await seed()
+    const { t, pasta, tacos, aliceId } = await seed()
     const as = t.withIdentity(alice)
     const plan = { groupSlug: 'home', date: '2026-11-24', slot: 'dinner' as const }
-    await as.mutation(api.mealPlan.plan, { ...plan, recipeId: pasta, servings: 4 })
+    await as.mutation(api.mealPlan.plan, {
+      ...plan,
+      recipeId: pasta,
+      servings: 4,
+      note: 'Extra voor lunch',
+      eaterIds: [aliceId],
+    })
     await expect(
       as.mutation(api.mealPlan.plan, { ...plan, recipeId: tacos }),
     ).rejects.toThrow('That slot already has a meal')
     await as.mutation(api.mealPlan.plan, { ...plan, recipeId: tacos, replace: true })
     const week = await as.query(api.mealPlan.week, WEEK)
     expect(week.meals).toHaveLength(1)
-    // The evening's servings stay with the replacement.
-    expect(week.meals[0]).toMatchObject({ title: 'Tacos', servings: 4 })
+    // The evening's servings, note and eaters stay with the replacement.
+    expect(week.meals[0]).toMatchObject({
+      title: 'Tacos',
+      servings: 4,
+      note: 'Extra voor lunch',
+      eaterIds: [aliceId],
+    })
   })
 
   test('refuses a recipe from another Group, a stranger, and eaters who are not Members', async () => {
@@ -300,67 +311,7 @@ describe('mealPlan.weekIngredients', () => {
   })
 })
 
-describe('phones from before meal slots', () => {
-  test('setDinner, clearDinner and planner act on the dinner slot only', async () => {
-    const { t, pasta, tacos, toast } = await seed()
-    const as = t.withIdentity(alice)
-    await as.mutation(api.mealPlan.plan, {
-      groupSlug: 'home',
-      date: '2026-11-28',
-      slot: 'lunch',
-      mealEntryId: toast,
-    })
-    // A day with a lunch: `.unique()` on the day would have thrown here.
-    await as.mutation(api.kitchen.setDinner, {
-      groupSlug: 'home',
-      date: '2026-11-28',
-      title: 'ignored',
-      recipeId: pasta,
-    })
-    await as.mutation(api.kitchen.setDinner, {
-      groupSlug: 'home',
-      date: '2026-11-28',
-      title: 'ignored',
-      recipeId: tacos,
-      quickLimit: 30,
-    })
-    let planner = await as.query(api.kitchen.planner, WEEK)
-    expect(planner.dinners.map((d) => [d.title, d.slot])).toEqual([
-      ['Tacos', 'dinner'],
-    ])
-    await as.mutation(api.kitchen.clearDinner, {
-      groupSlug: 'home',
-      date: '2026-11-28',
-    })
-    planner = await as.query(api.kitchen.planner, WEEK)
-    expect(planner.dinners).toHaveLength(0)
-    const week = await as.query(api.mealPlan.week, WEEK)
-    expect(week.meals.map((m) => m.slot)).toEqual(['lunch'])
-  })
-
-  test('a row without a slot reads as dinner everywhere', async () => {
-    const { t, home, pasta } = await seed()
-    await t.run(async (ctx) =>
-      ctx.db.insert('plannedDinners', {
-        groupId: home,
-        date: '2026-11-23',
-        recipeId: pasta,
-        title: 'Pasta pesto',
-        prepMinutes: 25,
-      }),
-    )
-    const as = t.withIdentity(alice)
-    expect((await as.query(api.mealPlan.week, WEEK)).meals[0].slot).toBe('dinner')
-    expect((await as.query(api.kitchen.planner, WEEK)).dinners).toHaveLength(1)
-    await expect(
-      as.mutation(api.mealPlan.plan, {
-        groupSlug: 'home',
-        date: '2026-11-23',
-        slot: 'dinner',
-        recipeId: pasta,
-      }),
-    ).rejects.toThrow('That slot already has a meal')
-  })
+describe('moving and replacing meals', () => {
   test('refuses another Group’s meal to move, and a backwards or long range', async () => {
     const { t, pasta } = await seed()
     const id = await t.withIdentity(alice).mutation(api.mealPlan.plan, {
@@ -384,34 +335,6 @@ describe('phones from before meal slots', () => {
     await expect(
       as.query(api.mealPlan.week, { groupSlug: 'home', from: '2026-11-01', to: '2026-12-03' }),
     ).rejects.toThrow('At most 31 days at once')
-  })
-
-  test('an old phone’s setDinner swaps the dinner and keeps its servings, note and eaters', async () => {
-    const { t, pasta, tacos, aliceId } = await seed()
-    const as = t.withIdentity(alice)
-    const id = await as.mutation(api.mealPlan.plan, {
-      groupSlug: 'home',
-      date: '2026-11-24',
-      slot: 'dinner',
-      recipeId: pasta,
-      servings: 6,
-      note: 'Extra voor lunch',
-      eaterIds: [aliceId],
-    })
-    await as.mutation(api.kitchen.setDinner, {
-      groupSlug: 'home',
-      date: '2026-11-24',
-      title: 'Tacos',
-      recipeId: tacos,
-    })
-    const meal = await t.run(async (ctx) => await ctx.db.get(id))
-    expect(meal).toMatchObject({
-      title: 'Tacos',
-      slot: 'dinner',
-      servings: 6,
-      note: 'Extra voor lunch',
-      eaterIds: [aliceId],
-    })
   })
 
   test('Something else replaces the meal it names, even after a swap moved it', async () => {
@@ -654,77 +577,5 @@ describe('phones from before meal slots', () => {
     await as.mutation(api.mealPlan.plan, { ...at, slot: 'breakfast', mealEntryId: toast })
     const week = await as.query(api.mealPlan.week, WEEK)
     expect(week.meals.map((m) => m.slot)).toEqual(['breakfast', 'lunch', 'dinner'])
-  })
-})
-
-describe('backfillMealSlots', () => {
-  test('dry by default, then gives every old row the dinner slot once', async () => {
-    const { t, home, pasta, toast } = await seed()
-    await t.run(async (ctx) => {
-      for (const date of ['2026-11-01', '2026-11-02'])
-        await ctx.db.insert('plannedDinners', {
-          groupId: home,
-          date,
-          recipeId: pasta,
-          title: 'Pasta pesto',
-          quickLimit: 20,
-        })
-      await ctx.db.insert('plannedDinners', {
-        groupId: home,
-        date: '2026-11-02',
-        slot: 'lunch',
-        mealEntryId: toast,
-        title: 'Toast',
-      })
-    })
-    const slots = () =>
-      t.run(async (ctx) =>
-        (await ctx.db.query('plannedDinners').collect()).map(
-          (row) => row.slot ?? null,
-        ),
-      )
-    expect(
-      await t.mutation(internal.maintenance.backfillMealSlots, {}),
-    ).toMatchObject({ apply: false, scanned: 3, missing: 2, more: false })
-    expect(await slots()).toEqual([null, null, 'lunch'])
-    await t.mutation(internal.maintenance.backfillMealSlots, { apply: true })
-    expect(await slots()).toEqual(['dinner', 'dinner', 'lunch'])
-    expect(
-      await t.mutation(internal.maintenance.backfillMealSlots, {}),
-    ).toMatchObject({ missing: 0, more: false })
-    // The legacy field stays readable.
-    const legacy = await t.run(async (ctx) =>
-      (await ctx.db.query('plannedDinners').collect()).map(
-        (r) => r.quickLimit ?? null,
-      ),
-    )
-    expect(legacy).toEqual([20, 20, null])
-  })
-
-  test('pages by cursor until more is false', async () => {
-    const { t, home, pasta } = await seed()
-    await t.run(async (ctx) => {
-      for (const date of ['2026-11-01', '2026-11-02', '2026-11-03'])
-        await ctx.db.insert('plannedDinners', {
-          groupId: home,
-          date,
-          recipeId: pasta,
-          title: 'Pasta pesto',
-        })
-    })
-    const first = await t.mutation(internal.maintenance.backfillMealSlots, {
-      apply: true,
-      batch: 2,
-    })
-    expect(first).toMatchObject({ scanned: 2, missing: 2, more: true })
-    const second = await t.mutation(internal.maintenance.backfillMealSlots, {
-      apply: true,
-      batch: 2,
-      cursor: first.cursor,
-    })
-    expect(second).toMatchObject({ scanned: 1, missing: 1, more: false })
-    expect(
-      await t.mutation(internal.maintenance.backfillMealSlots, {}),
-    ).toMatchObject({ scanned: 3, missing: 0, more: false })
   })
 })

@@ -31,16 +31,9 @@ export function randomDinner(
   return pool[Math.floor(random() * pool.length)]
 }
 
-/**
- * A meal moment, in the order a day shows them. A Planned meal without a
- * stored slot was planned before slots existed and is a dinner (ADR-0027).
- */
+/** A meal moment, in the order a day shows them (ADR-0027). */
 export const MEAL_SLOTS = ['breakfast', 'lunch', 'dinner'] as const
 export type MealSlot = (typeof MEAL_SLOTS)[number]
-
-export function slotOf(meal: { slot?: MealSlot }): MealSlot {
-  return meal.slot ?? 'dinner'
-}
 
 /** The picker's time chips: "up to 20 / 30 / 60 minutes". */
 export const PICK_TIME_LIMITS = [20, 30, 60] as const
@@ -150,7 +143,7 @@ export interface SlotAddress {
  * What moving a meal to another day or slot does: nothing when it is already
  * there, a swap when the place holds another meal, a move into an empty one.
  */
-export function planMove<T extends { id: string; date: string; slot?: MealSlot }>(
+export function planMove<T extends { id: string; date: string; slot: MealSlot }>(
   meals: readonly T[],
   mealId: string,
   to: SlotAddress,
@@ -161,10 +154,10 @@ export function planMove<T extends { id: string; date: string; slot?: MealSlot }
   | { kind: 'missing' } {
   const meal = meals.find((row) => row.id === mealId)
   if (!meal) return { kind: 'missing' }
-  if (meal.date === to.date && slotOf(meal) === to.slot) return { kind: 'stay' }
+  if (meal.date === to.date && meal.slot === to.slot) return { kind: 'stay' }
   const other = meals.find(
     (row) =>
-      row.id !== mealId && row.date === to.date && slotOf(row) === to.slot,
+      row.id !== mealId && row.date === to.date && row.slot === to.slot,
   )
   return other ? { kind: 'swap', meal, other } : { kind: 'move', meal }
 }

@@ -1,7 +1,7 @@
 import { WEEK_PLAN_WISHES } from '@gather/core/week-plan'
 import { v } from 'convex/values'
 
-/** The minutes a quick dinner is planned against (phones from before slots). */
+/** The minutes a quick dinner is planned against (legacy, from phones before slots). */
 export const quickLimitValidator = v.union(
   v.literal(10),
   v.literal(20),
