@@ -1,3 +1,4 @@
+import { todayIn } from '@gather/core/civil-date'
 import {
   aisleOrder,
   GROCERY_AISLES,
@@ -16,6 +17,7 @@ import { buttonClass } from '../app/buttons'
 import { Dialog } from '../app/Dialog'
 import { InsetList, InsetRow } from '../app/InsetList'
 import { ModuleTile } from '../app/ModuleTile'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { inputClass } from '../recipes/fields'
 import { moveItem } from './groceryList'
 
@@ -36,15 +38,17 @@ export function AisleOrderDialog({
   listId: Id<'taskLists'>
   listName: string
   savedOrder: readonly string[] | null
-  tasks: readonly Pick<Doc<'tasks'>, 'category' | 'done'>[]
+  tasks: readonly Pick<Doc<'tasks'>, 'category' | 'done' | 'repeat' | 'dueDate'>[]
   onClose: () => void
 }) {
   const { messages } = useI18n()
+  const { timeZone } = useRequiredCurrentGroup()
   const g = messages.tasks.grocery
   const words = g.aisleOrder
   const setAisleOrder = useMutation(api.taskLists.setAisleOrder)
 
-  const counts = useMemo(() => aisleCounts(tasks), [tasks])
+  const today = todayIn(timeZone)
+  const counts = useMemo(() => aisleCounts(tasks, today), [tasks, today])
   const [order, setOrder] = useState<GroceryAisle[]>(() =>
     aisleOrder(savedOrder),
   )

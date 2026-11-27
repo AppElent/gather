@@ -1,5 +1,7 @@
+import { todayIn } from '@gather/core/civil-date'
 import {
   groceryListsOf,
+  onShoppingList,
   openGroceryList,
   recentWeeks,
 } from '@gather/core/grocery-list'
@@ -43,9 +45,13 @@ export function GroceriesRecentPage({ listId }: { listId?: string }) {
       ? { listId: activeList._id, groupSlug }
       : 'skip',
   )
+  const today = todayIn(timeZone)
   const openTitles = useMemo(
-    () => (tasks ?? []).filter((task) => !task.done).map((task) => task.title),
-    [tasks],
+    () =>
+      (tasks ?? [])
+        .filter((task) => onShoppingList(task, today))
+        .map((task) => task.title),
+    [tasks, today],
   )
 
   const trail: Crumb[] = [
