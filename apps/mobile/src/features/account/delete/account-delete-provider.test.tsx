@@ -496,7 +496,7 @@ describe('a session that changes after the confirmation (APP-396)', () => {
   ]
 
   // Nobody is signed in at this moment, and somebody is about to be.
-  const arrivals: [string, () => void][] = [
+  const switches: [string, () => void][] = [
     [
       'Clerk switching sessions',
       () => {
@@ -513,12 +513,25 @@ describe('a session that changes after the confirmation (APP-396)', () => {
         state.signedInSessions = []
       },
     ],
+  ]
+
+  // Nobody is active, and Clerk holds a second session it has not activated
+  // (APP-873), with the confirmed one still listed or already gone.
+  const unactivated: [string, () => void][] = [
     [
       'a second session Clerk has not activated yet',
       () => {
         state.user = null
         state.sessionId = null
         state.signedInSessions = ['sess_1', 'sess_2']
+      },
+    ],
+    [
+      'a second session Clerk has not activated yet, the confirmed one gone',
+      () => {
+        state.user = null
+        state.sessionId = null
+        state.signedInSessions = ['sess_2']
       },
     ],
   ]
@@ -650,7 +663,7 @@ describe('a session that changes after the confirmation (APP-396)', () => {
     expect(state.order).toEqual([])
   })
 
-  test.each([...changes.slice(0, 2), ...arrivals])(
+  test.each([...changes.slice(0, 2), ...switches])(
     '%s during the gatherData purge: nobody is signed out or told, and the app is given back (APP-746)',
     async (_, change) => {
       const purge = deferred()
@@ -695,7 +708,43 @@ describe('a session that changes after the confirmation (APP-396)', () => {
     },
   )
 
-  test.each([...changes.slice(0, 2), ...arrivals])(
+  test.each(unactivated)(
+    '%s during the gatherData purge: this phone forgets the account, and nobody is signed out or told (APP-873)',
+    async (_, change) => {
+      const purge = deferred()
+      state.purge = () => purge.promise
+      view = render()
+      act(() => deletion.start('gatherData'))
+      await settle()
+
+      change()
+      purge.resolve()
+      await settle()
+      expect(state.order).toEqual(['purge', 'forget'])
+      expect(state.endedSessions).toEqual([])
+      expect(view.container.textContent).toBe('delete screen: idle')
+    },
+  )
+
+  test.each(unactivated)(
+    '%s while Clerk deletes the login: this phone forgets the account, and no session is ended (APP-873)',
+    async (_, change) => {
+      const clerkDelete = deferred()
+      state.user = { ...person('user_alex'), delete: () => clerkDelete.promise }
+      view = render()
+      act(() => deletion.start('wholeAccount'))
+      await settle()
+
+      change()
+      clerkDelete.resolve()
+      await settle()
+      expect(state.order.filter((step) => step === 'forget')).toHaveLength(1)
+      expect(state.endedSessions).toEqual([])
+      expect(view.container.textContent).toBe('delete screen: idle')
+    },
+  )
+
+  test.each([...changes.slice(0, 2), ...switches])(
     '%s while Clerk deletes the login: the new session is not signed out (APP-746)',
     async (_, change) => {
       const clerkDelete = deferred()
@@ -709,6 +758,7 @@ describe('a session that changes after the confirmation (APP-396)', () => {
       clerkDelete.resolve()
       await settle()
       expect(state.signedOut).toBe(0)
+      expect(state.order).not.toContain('forget')
       expect(view.container.textContent).toBe('delete screen: idle')
     },
   )
