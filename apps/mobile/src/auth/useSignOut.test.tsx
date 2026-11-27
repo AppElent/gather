@@ -23,6 +23,11 @@ import {
   rememberRegisteredPush,
 } from '../features/notifications/push/push-device'
 import { readRetainedGroup, writeRetainedGroup } from '../group/retainedGroup'
+import {
+  readHeld,
+  setHeldStoreForTests,
+  writeHeld,
+} from '../modules/notes/heldText'
 import { mount, settle } from '../testing/dom'
 import { useEndSession, useForgetAccount, useSignOut } from './useSignOut'
 
@@ -115,6 +120,8 @@ beforeEach(() => {
   state.activated = []
   state.sessionId = 'sess_1'
   setStoreForTests(store as never)
+  setHeldStoreForTests(store as never)
+  writeHeld('user_alex:group_1:notes:n1', { body: { text: 'mine', over: [''] } })
   writeRetainedGroup('group_1')
   recordOpenCard({ cardId: 'card_1', groupId: 'group_1', groupSlug: 'home' })
   confirmAccount('user_alex')
@@ -126,12 +133,14 @@ afterEach(() => {
   view?.unmount()
   view = undefined
   setStoreForTests(undefined)
+  setHeldStoreForTests(undefined)
 })
 
 test.each(['useForgetAccount', 'useSignOut'] as const)(
-  '%s clears the retained Group, the open card and the saved query copy, and releases the push registration',
+  '%s clears the retained Group, the open card, the saved query copy and kept note text, and releases the push registration',
   async (hook) => {
     expect(readRetainedGroup()).toBe('group_1')
+    expect(readHeld('user_alex:group_1:notes:n1')).toBeDefined()
     expect(readOpenCard()?.cardId).toBe('card_1')
     expect(state.map.has(entry)).toBe(true)
     expect(registeredPush()).toEqual(registration)
@@ -140,6 +149,7 @@ test.each(['useForgetAccount', 'useSignOut'] as const)(
 
     // Everything goes at once; the release stays until the server confirms.
     expect([...state.map.keys()]).toEqual([RELEASE_KEY])
+    expect(readHeld('user_alex:group_1:notes:n1')).toBeUndefined()
     expect(pendingPushRelease()).toEqual(registration)
     expect(state.released).toEqual([
       ['notifications:releaseDevice', registration],

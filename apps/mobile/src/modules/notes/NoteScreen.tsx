@@ -35,11 +35,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
+import { reportError } from '../../observability/report'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
-import { draftKey, keepDraft, keptDraft } from '../../ui/composer-drafts'
+import { draftKey } from '../../ui/composer-drafts'
 import { useDebouncedText } from '../../ui/use-debounced-text'
+import {
+  announceHeld,
+  forgetHeldField,
+  type HeldNote,
+  heldSession,
+  holdsText,
+  onHeld,
+  readHeld,
+  writeHeld,
+} from './heldText'
 import { confirmDeleteNote } from './notesActions'
 import { type NoteText, noteWhen, preview, unsavedText } from './noteText'
 import { useNote, useNoteActions } from './store'
@@ -47,11 +58,7 @@ import { useNote, useNoteActions } from './store'
 /** From here on the note says how full it is. */
 const COUNT_FROM = NOTE_MAX_CHARS * 0.95
 
-/** Refused text kept for a reopen, and the note it was written over. */
-interface HeldDraft {
-  text: Partial<NoteText>
-  over: NoteText
-}
+const FIELDS = ['title', 'body'] as const
 
 /** Drawn, not wired. The letters are the affordance, not an icon set. */
 const FORMATS = ['B', 'I', 'H', '•', '1.', '☑'] as const
@@ -82,11 +89,19 @@ export function Note({ noteId }: { noteId: string }) {
   )
   const body = useDebouncedText(note?.body ?? '', (next) => save('body', next))
 
-  // Text the note has no room for (APP-805): on screen, not saved. It goes with
-  // the next edit that makes it fit, and is kept for when the note is reopened.
+  // Text the note has no room for (APP-805), or whose save failed (APP-829):
+  // on screen, not saved. It goes with the next edit that makes it fit, and is
+  // kept on this phone until then, past leaving and past a quit (`heldText`).
   const held = useRef<Partial<NoteText>>({})
-  /** What the held text was written over. */
-  const heldOver = useRef<NoteText | null>(null)
+  /** The saved texts each held field was written over: the note's and the sent. */
+  const heldOver = useRef<Partial<Record<keyof NoteText, string[]>>>({})
+  /** Kept text put back on opening, with what it may go back over. */
+  const restored = useRef<HeldNote>({})
+  /** Sent and not yet answered: kept if the screen closes before it lands. */
+  const inFlight = useRef<HeldNote>({})
+  /** Kept text not put back, because its field changed since. */
+  const clash = useRef<HeldNote>({})
+  const [clashed, setClashed] = useState<HeldNote>({})
   /** Sent, and not yet in `note`: the next save is compared with it too. */
   const sent = useRef<Partial<NoteText>>({})
   const seen = useRef(note)
@@ -99,49 +114,127 @@ export function Note({ noteId }: { noteId: string }) {
     seen.current = note
   }
   const mounted = useRef(false)
+  /** The note loaded and its kept text was read: leaving may write it back. */
+  const ready = useRef(false)
   const [refused, setRefused] = useState<string | null>(null)
 
   const { userId } = useAuth()
   const { group } = useGroup()
   const key = draftKey(userId, group._id, `notes:${noteId}`)
+  /** After a sign-out, what this screen still writes is dropped. */
+  const session = useRef(heldSession())
 
-  function holdText(patch: Partial<NoteText>, over: NoteText) {
-    if (Object.keys(held.current).length === 0) heldOver.current = over
-    held.current = patch
+  function heldNote(): HeldNote {
+    const out: HeldNote = { ...clash.current, ...inFlight.current }
+    for (const field of FIELDS) {
+      const text = held.current[field]
+      if (text !== undefined)
+        out[field] = { text, over: heldOver.current[field] ?? [] }
+    }
+    return out
   }
   function keepHeld() {
-    keepDraft<HeldDraft>(
-      key,
-      Object.keys(held.current).length > 0 && heldOver.current
-        ? { text: held.current, over: heldOver.current }
-        : undefined,
-    )
+    writeHeld(key, heldNote(), session.current)
+  }
+  /** `patch` is unsaved; `saved` and `base` are what it was written over. */
+  function holdText(
+    patch: Partial<NoteText>,
+    saved: NoteText,
+    base: NoteText,
+    { merge = false, write = true } = {},
+  ) {
+    const next = merge ? { ...patch, ...held.current } : patch
+    const over: Partial<Record<keyof NoteText, string[]>> = {}
+    for (const field of FIELDS) {
+      if (next[field] === undefined) continue
+      const text = next[field]
+      const was =
+        held.current[field] === text ? (heldOver.current[field] ?? []) : []
+      // Put back on opening and held again: it still goes over what it did.
+      const kept =
+        restored.current[field]?.text === text
+          ? restored.current[field].over
+          : []
+      over[field] = [
+        ...new Set([...was, ...kept, saved[field], base[field]]),
+      ]
+    }
+    held.current = next
+    heldOver.current = over
+    if (write) keepHeld()
   }
 
   function save(field: keyof NoteText, next: string) {
     if (!note) return
-    const saved = { title: note.title, body: note.body, ...sent.current }
+    const base = { title: note.title, body: note.body }
+    const saved = { ...base, ...sent.current }
     const patch = unsavedText(saved, { ...held.current, [field]: next })
     if (Object.keys(patch).length > 0 && isNoteTooLong({ ...saved, ...patch })) {
-      holdText(patch, saved)
+      holdText(patch, saved, base)
       return false
     }
+    const wasHeld = Object.keys(held.current).length > 0
     held.current = {}
-    if (Object.keys(patch).length === 0) return
+    heldOver.current = {}
+    // Nothing unsaved: what this phone kept goes.
+    if (Object.keys(patch).length === 0) return keepHeld()
+    // With a save on its way, it goes when that lands: a close or a quit
+    // before then still has it.
+    for (const each of FIELDS) {
+      const text = patch[each]
+      if (text === undefined) continue
+      const kept =
+        restored.current[each]?.text === text ? restored.current[each].over : []
+      inFlight.current = {
+        ...inFlight.current,
+        [each]: { text, over: [...new Set([...kept, saved[each], base[each]])] },
+      }
+    }
+    if (wasHeld) keepHeld()
     sent.current = { ...sent.current, ...patch }
     // The held text of the other field went along: it is no longer unsaved.
     if (patch.title !== undefined) title.settle(patch.title)
     if (patch.body !== undefined) body.settle(patch.body)
-    actions.editNote(note.id, patch).catch((error: unknown) => {
+    actions.editNote(note.id, patch).then(
+      () => {
+        landed(patch)
+        if (mounted.current) {
+          if (holdsText(key)) keepHeld()
+        } else
+          for (const each of FIELDS) {
+            const text = patch[each]
+            if (text !== undefined)
+              forgetHeldField(key, each, text, session.current)
+          }
+      },
+      (error: unknown) => {
+      landed(patch)
       sent.current = {}
       const sentence = noteRefusalSentence(error, t.notes.refusals)
-      if (sentence === null) throw error
-      holdText(patch, saved)
-      if (!mounted.current) return keepHeld()
-      if (patch.title !== undefined) title.hold(patch.title)
-      if (patch.body !== undefined) body.hold(patch.body)
-      setRefused(sentence)
-    })
+      // Refused or failed, the text stays: on screen to send again on leaving,
+      // and on this phone for the next open (APP-829).
+      // Closed since: `announceHeld` writes it, into what a reopened screen
+      // may have kept meanwhile, rather than this screen's copy over it.
+      holdText(patch, saved, base, { merge: true, write: mounted.current })
+      if (!mounted.current)
+        announceHeld(key, heldNote(), sentence, session.current)
+      else {
+        if (patch.title !== undefined) title.hold(patch.title)
+        if (patch.body !== undefined) body.hold(patch.body)
+        setRefused(sentence ?? t.notes.notSaved)
+      }
+      if (sentence === null) reportError(error)
+      },
+    )
+  }
+
+  /** `patch` was answered: no longer in flight, unless sent again since. */
+  function landed(patch: Partial<NoteText>) {
+    const rest = { ...inFlight.current }
+    for (const each of FIELDS)
+      if (patch[each] !== undefined && rest[each]?.text === patch[each])
+        delete rest[each]
+    inFlight.current = rest
   }
 
   const keep = useRef(keepHeld)
@@ -151,25 +244,69 @@ export function Note({ noteId }: { noteId: string }) {
     mounted.current = true
     return () => {
       mounted.current = false
-      keep.current()
+      // Left before the note loaded: what is kept was never read, so stays.
+      if (ready.current) keep.current()
     }
   }, [])
   const loaded = note != null
   const latestNote = useRef(note)
   latestNote.current = note
+  const drafts = useRef({ title: title.draft, body: body.draft })
+  drafts.current = { title: title.draft, body: body.draft }
   const { change: changeTitle } = title
   const { change: changeBody } = body
-  useEffect(() => {
+
+  /** Puts kept text back where its field is as it was left; the rest clashes. */
+  const restore = useRef(
+    (_kept: HeldNote, _sentence: string | null, _opening = false) => {},
+  )
+  restore.current = (kept, sentence, opening = false) => {
     const now = latestNote.current
-    if (!loaded || !now) return
-    const kept = keptDraft<HeldDraft>(key)
-    if (!kept) return
-    // A field someone else has changed since stays theirs.
-    const { text, over } = kept
-    if (text.title !== undefined && now.title === over.title)
-      changeTitle(text.title)
-    if (text.body !== undefined && now.body === over.body) changeBody(text.body)
-  }, [loaded, key, changeTitle, changeBody])
+    if (!now) return
+    const clashes: HeldNote = {}
+    for (const field of FIELDS) {
+      const each = kept[field]
+      // Saved already, or on screen already: nothing to put back or offer.
+      if (!each || each.text === now[field] || drafts.current[field] === each.text)
+        continue
+      // A field someone else has changed since stays theirs, and so does one
+      // typed in on this screen; the kept text is offered instead. On opening
+      // nothing was typed: the field may not show the note yet.
+      const untouched = opening || drafts.current[field] === now[field]
+      if (untouched && each.over.includes(now[field])) {
+        restored.current = { ...restored.current, [field]: each }
+        ;(field === 'title' ? changeTitle : changeBody)(each.text)
+      } else clashes[field] = each
+    }
+    if (Object.keys(clashes).length > 0) {
+      clash.current = { ...clash.current, ...clashes }
+      setClashed(clash.current)
+    }
+    if (sentence) setRefused(sentence)
+  }
+  useEffect(() => {
+    if (!loaded) return
+    ready.current = true
+    const kept = readHeld(key)
+    if (kept) restore.current(kept, null, true)
+    return onHeld(key, (each, sentence) => restore.current(each, sentence))
+  }, [loaded, key])
+
+  function putBack() {
+    const kept = clash.current
+    clash.current = {}
+    setClashed({})
+    setRefused(null)
+    // Typed back in: it saves, or is held again, as any edit is.
+    restored.current = { ...restored.current, ...kept }
+    if (kept.title) changeTitle(kept.title.text)
+    if (kept.body) changeBody(kept.body.text)
+  }
+  function discardKept() {
+    clash.current = {}
+    setClashed({})
+    keepHeld()
+  }
 
   if (!note) return <View style={{ flex: 1, backgroundColor: tokens.ground }} />
 
@@ -303,6 +440,45 @@ export function Note({ noteId }: { noteId: string }) {
           </Text>
         </ScrollView>
 
+        {clashed.title || clashed.body ? (
+          <View
+            style={[
+              styles.room,
+              { backgroundColor: tokens.surface, borderTopColor: tokens.hair },
+            ]}
+          >
+            <Text
+              testID="note-clash"
+              accessibilityLiveRegion="polite"
+              style={[styles.roomText, { color: tokens.ink }]}
+            >
+              {t.notes.keptNotPutBack}
+            </Text>
+            <View style={styles.clashActions}>
+              <Pressable
+                testID="note-put-back"
+                accessibilityRole="button"
+                onPress={putBack}
+                style={styles.clashAction}
+              >
+                <Text style={[styles.clashActionText, { color: tokens.accent }]}>
+                  {t.notes.putBack}
+                </Text>
+              </Pressable>
+              <Pressable
+                testID="note-discard-kept"
+                accessibilityRole="button"
+                onPress={discardKept}
+                style={styles.clashAction}
+              >
+                <Text style={[styles.clashActionText, { color: tokens.danger }]}>
+                  {t.notes.discardKept}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
         {problem || length >= COUNT_FROM ? (
           <View
             style={[
@@ -395,6 +571,9 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   roomText: { ...TYPE.footnote },
+  clashActions: { flexDirection: 'row', gap: 16 },
+  clashAction: { minHeight: 44, justifyContent: 'center' },
+  clashActionText: { ...TYPE.footnoteStrong },
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',

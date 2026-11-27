@@ -10,7 +10,8 @@
  * The internal ones are `notify`, `schedule` and `cancel`, thin wrappers over
  * `lib/notifications.ts` for callers that are already scheduled work. A
  * mutation that causes a notification calls the helpers directly instead, so
- * the notification is queued in its own transaction.
+ * the notification is queued in its own transaction. `forgetSessionOf` is
+ * the Clerk webhook's: a session that ended anywhere drops its phones.
  *
  * Delivery is Expo's push service. `sendPush` posts the messages and reads
  * the tickets back; an install Expo says is gone (`DeviceNotRegistered`) is
@@ -218,6 +219,37 @@ export const forgetEndedSessions = mutation({
         !active.has(watch.sessionId) &&
         (ended.has(watch.sessionId) || watch.createdAt < settled),
     )
+    return null
+  },
+})
+
+/**
+ * A Clerk session that is over, from `POST /clerk/webhook`: wherever it was
+ * ended (the account portal too), the phones registered under it get no more
+ * pushes and the watches it paired lose their keys. A phone registered since
+ * under another session stays.
+ */
+export const forgetSessionOf = internalMutation({
+  args: { clerkId: v.string(), sessionId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { clerkId, sessionId }) => {
+    const users = await ctx.db
+      .query('users')
+      .withIndex('by_clerkId', (q) => q.eq('clerkId', clerkId))
+      .collect()
+    for (const user of users) {
+      const phones = await ctx.db
+        .query('pushDevices')
+        .withIndex('by_user', (q) => q.eq('userId', user._id))
+        .collect()
+      for (const phone of phones)
+        if (phone.sessionId === sessionId) await ctx.db.delete(phone._id)
+      await deleteWatchDevices(
+        ctx,
+        user._id,
+        (watch) => watch.sessionId === sessionId,
+      )
+    }
     return null
   },
 })

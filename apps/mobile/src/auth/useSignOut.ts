@@ -29,6 +29,7 @@ import {
   moveRegistrationToRelease,
 } from '../features/notifications/push/push-device'
 import { clearRetainedGroup } from '../group/retainedGroup'
+import { forgetHeldNotes } from '../modules/notes/heldText'
 
 /** What this phone keeps of the account, without ending any session: for a
  * session that has already ended by itself (APP-771). */
@@ -41,6 +42,8 @@ export function useForgetAccount(): () => void {
     // The saved query copy and the confirmed-account marker (APP-143), before
     // the session ends, so a relaunch offline shows nothing of this account.
     clearLastKnown()
+    // A note's unsaved text kept on this phone (APP-829).
+    forgetHeldNotes()
     const registration = moveRegistrationToRelease()
     if (registration)
       release(registration)

@@ -341,18 +341,26 @@ describe('POST /clerk/webhook Apple links (APP-388)', () => {
   })
 })
 
-describe('session events (APP-653)', () => {
+describe('session events (APP-653, APP-845)', () => {
   const sessionEvent = (type: string, data: Record<string, unknown>) =>
     JSON.stringify({ type, object: 'event', data })
 
-  async function pairedWatch(t: Harness) {
+  async function signedInPhones(t: Harness) {
     await household(t)
     await t.run(async (ctx) => {
       const user = (await ctx.db.query('users').collect()).find(
         (u) => u.clerkId === alice.subject,
       )!
       const group = (await ctx.db.query('groups').collect())[0]!
-      for (const sessionId of ['sess_one', 'sess_two'])
+      for (const sessionId of ['sess_one', 'sess_two']) {
+        await ctx.db.insert('pushDevices', {
+          userId: user._id,
+          token: `ExponentPushToken[${sessionId}]`,
+          platform: 'ios',
+          locale: 'en',
+          sessionId,
+          updatedAt: 1,
+        })
         await ctx.db.insert('watchDevices', {
           userId: user._id,
           groupId: group._id,
@@ -361,31 +369,48 @@ describe('session events (APP-653)', () => {
           sessionId,
           createdAt: 1,
         })
+      }
+      // Registered by a build that did not name its session yet.
+      await ctx.db.insert('pushDevices', {
+        userId: user._id,
+        token: 'ExponentPushToken[old]',
+        platform: 'ios',
+        locale: 'en',
+        updatedAt: 1,
+      })
     })
   }
 
   const sessions = (t: Harness) =>
-    t.run(async (ctx) =>
-      (await ctx.db.query('watchDevices').collect()).map((w) => w.sessionId),
-    )
+    t.run(async (ctx) => ({
+      phones: (await ctx.db.query('pushDevices').collect()).map(
+        (p) => p.sessionId ?? null,
+      ),
+      watches: (await ctx.db.query('watchDevices').collect()).map(
+        (w) => w.sessionId,
+      ),
+    }))
 
   test.each(['session.ended', 'session.removed', 'session.revoked'])(
-    '%s deletes the watches paired under it',
+    '%s forgets its phone and the watches paired under it',
     async (type) => {
       const t = testConvex()
-      await pairedWatch(t)
+      await signedInPhones(t)
       const body = sessionEvent(type, {
         id: 'sess_one',
         user_id: alice.subject,
       })
       expect((await post(t, body, signed(body))).status).toBe(200)
-      expect(await sessions(t)).toEqual(['sess_two'])
+      expect(await sessions(t)).toEqual({
+        phones: ['sess_two', null],
+        watches: ['sess_two'],
+      })
     },
   )
 
   test('does nothing unsigned, for another login, or without the ids', async () => {
     const t = testConvex()
-    await pairedWatch(t)
+    await signedInPhones(t)
     const body = sessionEvent('session.ended', {
       id: 'sess_one',
       user_id: alice.subject,
@@ -398,6 +423,9 @@ describe('session events (APP-653)', () => {
     expect((await post(t, other, signed(other))).status).toBe(200)
     const bare = sessionEvent('session.ended', { id: 'sess_one' })
     expect((await post(t, bare, signed(bare))).status).toBe(400)
-    expect(await sessions(t)).toEqual(['sess_one', 'sess_two'])
+    expect(await sessions(t)).toEqual({
+      phones: ['sess_one', 'sess_two', null],
+      watches: ['sess_one', 'sess_two'],
+    })
   })
 })

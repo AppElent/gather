@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when uploading, preparing, replacing, or deleting a photo or any Convex stored file.
-version: 2.1.0
+version: 2.2.0
 status: current
 ---
 
@@ -41,7 +41,8 @@ no blob outlives the last row that points at it.
   ([mobile bindings](../../apps/mobile/CODING_STANDARDS.md#bindings)).
 - **Group deletion carries storage ids through its steps** rather than deleting
   inline; `cascade.releaseFiles` lets them go after the last page
-  ([account deletion](account-deletion.md)).
+  ([account deletion](account-deletion.md)). Deleting one child does the same
+  with its log's photos (APP-878).
 
 ## Out of scope
 
