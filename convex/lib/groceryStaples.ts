@@ -6,12 +6,15 @@
  *   on a grocery list has, so "Melk" the staple and "Melk" with 2 `pak` on the
  *   list are one thing;
  * - running low puts it on the Group's grocery list, unless it is already
- *   open there;
+ *   on the list today. A repeating item with its key that waits for its next
+ *   date (APP-520) is brought forward to today instead of added twice
+ *   (APP-989);
  * - checking an item off on a grocery list puts a running-low staple with the
  *   same key back in stock. That runs inside the task mutations, so installed
  *   apps that know nothing of staples restock them too.
  */
 
+import { onShoppingList, waitsToRepeat } from '@gather/core/grocery-list'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import {
@@ -19,6 +22,8 @@ import {
   isGroceryList,
   OPEN_ITEMS_SCAN_LIMIT,
 } from './groceryCategories'
+import { shiftSubtaskDates } from './subtasks'
+import { completionDay, movedDays, moveReminder } from './taskRepeat'
 
 /** The longest staple name a Member may type. */
 export const STAPLE_NAME_MAX = 200
@@ -41,21 +46,40 @@ export async function findStaple(
 }
 
 /**
- * The keys of the open items on a list. Reads at most `OPEN_ITEMS_SCAN_LIMIT`
- * open items, far beyond any real shopping list, so the read stays bounded
+ * The open items on a list. Reads at most `OPEN_ITEMS_SCAN_LIMIT` open items,
+ * far beyond any real shopping list, so the read stays bounded
  * (`docs/standards/convex.md`, APP-428).
  */
-export async function openKeysOn(
-  ctx: QueryCtx,
-  listId: Id<'taskLists'>,
-): Promise<Set<string>> {
-  const items = await ctx.db
+async function openItemsOn(ctx: QueryCtx, listId: Id<'taskLists'>) {
+  return await ctx.db
     .query('tasks')
     .withIndex('by_list_and_done', (q) =>
       q.eq('listId', listId).eq('done', false),
     )
     .take(OPEN_ITEMS_SCAN_LIMIT)
-  return new Set(items.map((item) => groceryTitleKey(item.title)))
+}
+
+/**
+ * The keys of the items on a grocery list today. A repeating item that waits
+ * off the list for its next date (APP-520) is not among them: nobody sees it
+ * there (APP-989). `today` is the Group's calendar day.
+ */
+export async function openKeysOn(
+  ctx: QueryCtx,
+  listId: Id<'taskLists'>,
+  today: string,
+): Promise<Set<string>> {
+  const items = await openItemsOn(ctx, listId)
+  return new Set(
+    items
+      .filter((item) => onShoppingList(item, today))
+      .map((item) => groceryTitleKey(item.title)),
+  )
+}
+
+/** The Group's calendar day, as the server knows it. */
+export function groupToday(group: Doc<'groups'>): string {
+  return completionDay(undefined, group.timeZone)
 }
 
 /**
@@ -74,8 +98,11 @@ export async function writableGroceryList(
 }
 
 /**
- * Put a staple on the Group's grocery list, at the end, unless an open item
- * with its key is already there. Answers whether it is on the list now.
+ * Put a staple on the Group's grocery list, at the end, unless an item with
+ * its key is on the list today. A repeating item with its key that waits for
+ * its next date is brought forward to today, so the list shows the one item
+ * rather than a second copy (APP-989); its reminder and dated subtasks move
+ * with it, as when it is completed. Answers whether it is on the list now.
  */
 export async function putStapleOnList(
   ctx: MutationCtx,
@@ -85,7 +112,23 @@ export async function putStapleOnList(
 ): Promise<boolean> {
   const list = await writableGroceryList(ctx, group)
   if (!list) return false
-  if ((await openKeysOn(ctx, list._id)).has(staple.key)) return true
+  const today = groupToday(group)
+  const same = (await openItemsOn(ctx, list._id)).filter(
+    (item) => groceryTitleKey(item.title) === staple.key,
+  )
+  if (same.some((item) => onShoppingList(item, today))) return true
+  const waiting = same.find((item) => waitsToRepeat(item, today))
+  if (waiting) {
+    await ctx.db.patch(waiting._id, { dueDate: today })
+    await moveReminder(ctx, waiting, group._id, today)
+    await shiftSubtaskDates(
+      ctx,
+      waiting._id,
+      group._id,
+      movedDays(waiting.dueDate, today),
+    )
+    return true
+  }
   const last = await ctx.db
     .query('tasks')
     .withIndex('by_list_and_order', (q) => q.eq('listId', list._id))

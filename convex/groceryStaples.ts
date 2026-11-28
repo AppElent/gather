@@ -11,6 +11,7 @@ import { mutation, query } from './_generated/server'
 import { recentListItems, recogniseGroceryTitle } from './lib/groceryCategories'
 import {
   findStaple,
+  groupToday,
   openKeysOn,
   putStapleOnList,
   STAPLE_NAME_MAX,
@@ -23,7 +24,8 @@ const NOT_FOUND = 'Staple not found'
 
 /**
  * The Group's staples in walking order (aisle, then name), the grocery list
- * running low puts them on, and for each whether it is open on that list now.
+ * running low puts them on, and for each whether it is on that list today: a
+ * repeating item waiting for its next date is not (APP-989).
  */
 export const list = query({
   args: { groupSlug: v.string() },
@@ -36,7 +38,9 @@ export const list = query({
         .collect(),
       writableGroceryList(ctx, group),
     ])
-    const open = list ? await openKeysOn(ctx, list._id) : new Set<string>()
+    const open = list
+      ? await openKeysOn(ctx, list._id, groupToday(group))
+      : new Set<string>()
     const rank = (aisle: string) =>
       (GROCERY_AISLES as readonly string[]).indexOf(aisle)
     return {
@@ -114,8 +118,9 @@ export const add = mutation({
 
 /**
  * Running low, or back in stock. Running low puts the staple on the Group's
- * grocery list (once); back in stock leaves the list alone, since someone may
- * be buying it right now. Answers whether it is on the list.
+ * grocery list (once, bringing a waiting repeating copy forward); back in
+ * stock leaves the list alone, since someone may be buying it right now.
+ * Answers whether it is on the list.
  */
 export const setLow = mutation({
   args: { groupSlug: v.string(), id: v.id('groceryStaples'), low: v.boolean() },
