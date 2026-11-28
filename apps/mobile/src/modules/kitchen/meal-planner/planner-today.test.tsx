@@ -118,6 +118,7 @@ vi.mock('./proposal', () => ({
 }))
 vi.mock('./proposal-bar', () => ({
   slotKey: () => '',
+  toastClearance: () => 0,
   useProposalBar: () => ({}),
 }))
 vi.mock('./swap-sheet', () => ({ SwapSheet: nothing }))

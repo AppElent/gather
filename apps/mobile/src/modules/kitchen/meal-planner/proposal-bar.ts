@@ -20,6 +20,15 @@ export function slotKey(meal: { date: string; slot: string }) {
   return `${meal.date}|${meal.slot}`
 }
 
+/**
+ * How far the screen's toast rises so it sits above the bar, which floats
+ * `gap` over the safe area (APP-1002): on a short phone the toast otherwise
+ * covers Weggooien and Neem alle over. Nothing until the bar has a height.
+ */
+export function toastClearance(showBar: boolean, barHeight: number, gap: number) {
+  return showBar && barHeight > 0 ? gap + barHeight : 0
+}
+
 export function useProposalBar(
   weekStart: string,
   drafts: readonly { source: 'ai' | 'rules' | 'fallback' }[],

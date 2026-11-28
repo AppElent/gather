@@ -63,7 +63,7 @@ import { EmptyThumb, GroceriesPill, MealThumb, MemberCoins } from './parts'
 import { PickSheet } from './pick-sheet'
 import { type PlanOutcome, PlanSheet } from './plan-sheet'
 import { DraftCard, ProposalBar, ProposalCard } from './proposal'
-import { slotKey, useProposalBar } from './proposal-bar'
+import { slotKey, toastClearance, useProposalBar } from './proposal-bar'
 import { SwapSheet } from './swap-sheet'
 import { useGroupWeek } from './use-group-week'
 import type { Draft, PlannedMeal, WeekData } from './week'
@@ -74,6 +74,9 @@ const PREFERENCES_PATH: ModulePath = '/all/meal-planner/settings'
 
 /** The width iOS keeps for its back swipe at the left edge. */
 const EDGE_SWIPE = 24
+
+/** How far the proposal bar floats over the safe area. */
+const PROPOSAL_BAR_GAP = SPACE[3]
 
 type Sheet =
   | { kind: 'meal'; id: Id<'plannedDinners'> }
@@ -120,7 +123,6 @@ export function MealPlannerScreen() {
   const tile = moduleTile('meal-planner')
   const [weekStart, setWeekStart] = useGroupWeek()
   const [sheet, setSheet] = useState<Sheet | null>(null)
-  const { show: showToast, toast } = useUndoToast()
   const from = weekStart
   const to = addDays(weekStart, 6)
   const data = useQuery(api.mealPlan.week, {
@@ -146,6 +148,10 @@ export function MealPlannerScreen() {
     startAccept,
     close: closeProposal,
   } = useProposalBar(weekStart, drafts)
+  const [barHeight, setBarHeight] = useState(0)
+  const { show: showToast, toast } = useUndoToast(
+    toastClearance(showBar, barHeight, PROPOSAL_BAR_GAP),
+  )
   const [regenerating, setRegenerating] = useState<string | null>(null)
   const [accepting, setAccepting] = useState(false)
   const days = useMemo(
@@ -607,7 +613,8 @@ export function MealPlannerScreen() {
       {showBar ? (
         <ProposalBar
           pending={drafts.length}
-          bottom={insets.bottom + SPACE[3]}
+          bottom={insets.bottom + PROPOSAL_BAR_GAP}
+          onHeight={setBarHeight}
           busy={accepting}
           onDiscard={onDiscard}
           onAcceptAll={onAcceptAll}
