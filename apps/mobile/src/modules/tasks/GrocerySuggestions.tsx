@@ -36,6 +36,7 @@ import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { useGroceryAmountText } from './GroceryFields'
 import type { GroceryAmountPick } from './groceryDraft'
+import { onShoppingList, waitsToRepeat } from './groceryList'
 import { useGroceryHabits, useTaskActions } from './store'
 import type { Task, TaskList } from './types'
 
@@ -242,13 +243,16 @@ export function SuggestionStrip({
  * first. A tap is the completed name: with the amount typed, or else the
  * usual amount from history. When the name is already open on the list, the
  * typed amount is added to that item where the units add up, and otherwise
- * nothing changes: no second row (APP-427). The composer saves what is picked.
+ * nothing changes: no second row (APP-427). A repeating item waiting off the
+ * list for its next date is picked the same way, and the composer brings it
+ * forward to today (APP-1000). The composer saves what is picked.
  */
 export function GroceryCompletions({
   listId,
   line,
   amount: typedAmount,
   tasks,
+  today,
   onPick,
 }: {
   listId: string
@@ -256,8 +260,10 @@ export function GroceryCompletions({
   line: string
   /** The amount typed or tapped for it. */
   amount?: GroceryAmountPick
-  /** The list's items, to say a name is already open on it. */
+  /** The list's items, waiting repeating ones too. */
   tasks: readonly Task[]
+  /** The Group's calendar day, to tell a waiting item from an open one. */
+  today: string
   onPick: (pick: GroceryPick) => void
 }) {
   const tokens = useTokens('kitchen')
@@ -274,10 +280,15 @@ export function GroceryCompletions({
   )
   if (completions.length === 0) return null
 
+  const named = (key: string, task: Task) =>
+    groceryKey(parseGroceryLine(task.title).name) === key
+  /** The item with this name on the list today. */
   const openNamed = (key: string) =>
-    tasks.find(
-      (task) => !task.done && groceryKey(parseGroceryLine(task.title).name) === key,
-    )
+    tasks.find((task) => onShoppingList(task, today) && named(key, task))
+  /** The item a pick adds to: on the list, or else waiting off it. */
+  const existingNamed = (key: string) =>
+    openNamed(key) ??
+    tasks.find((task) => waitsToRepeat(task, today) && named(key, task))
 
   /**
    * What a tap does to an item already open: its amount grows to `to`, or,
@@ -329,13 +340,16 @@ export function GroceryCompletions({
     <View testID="grocery-completions">
       {completions.map((completion, index) => {
         const item = itemOf(completion)
-        const open = openNamed(item.key)
+        const open = existingNamed(item.key)
         const merged = open ? mergeInto(open) : null
-        // Onto an open item only what is typed is added: `+2 pak`.
+        // Onto an open item only what is typed is added: `+2 pak`. A waiting
+        // one comes back with its own amount.
         const amount = open
           ? merged && typedAmount
             ? `+${amountText(typedAmount.quantity, typedAmount.unit) ?? '1'}`
-            : null
+            : openNamed(item.key)
+              ? null
+              : amountText(open.quantity, open.unit)
           : amountText(item.quantity, item.unit)
         const span = typedSpan(item.title, line)
         return (

@@ -294,6 +294,48 @@ describe('adding', () => {
     )
     expect(callsOf('tasks:add')).toEqual([])
   })
+
+  test('a suggestion for a waiting repeating item brings it forward, no second copy (APP-1000)', async () => {
+    const repeat = { mode: 'fixed', every: 1, unit: 'week' }
+    state.queries['tasks:listByList'] = () => [
+      SOAP,
+      task('t1', 'Melk', { quantity: 2, unit: 'pak', repeat, dueDate: '2999-01-01' }),
+    ]
+    renderInGroup(<GroceriesPage />)
+    type('3 pak mel')
+    const option = screen.getByRole('option', { name: /Melk/ })
+    // Not on the list, so not said to be.
+    expect(option.textContent).not.toMatch(/already on the list/)
+    expect(option.textContent).toMatch(/\+3 packs/)
+    fireEvent.keyDown(input(), { key: 'ArrowDown' })
+    fireEvent.submit(input())
+    await waitFor(() =>
+      expect(callsOf('tasks:update')[0]).toMatchObject({
+        taskId: 't1',
+        quantity: 5,
+        unit: 'pak',
+      }),
+    )
+    expect(callsOf('tasks:bringForward')).toEqual([
+      { taskId: 't1', groupSlug: TEST_GROUP.slug },
+    ])
+    // Forward before the amount is added.
+    const order = state.calls.map(([name]) => name)
+    expect(order.indexOf('tasks:bringForward')).toBeLessThan(
+      order.indexOf('tasks:update'),
+    )
+    expect(callsOf('tasks:add')).toEqual([])
+  })
+
+  test('a suggestion for an item on the list does not move it', async () => {
+    renderInGroup(<GroceriesPage />)
+    type('mel')
+    fireEvent.keyDown(input(), { key: 'ArrowDown' })
+    fireEvent.submit(input())
+    await waitFor(() => expect(input().value).toBe(''))
+    expect(callsOf('tasks:bringForward')).toEqual([])
+    expect(callsOf('tasks:add')).toEqual([])
+  })
 })
 
 describe('the item editor', () => {

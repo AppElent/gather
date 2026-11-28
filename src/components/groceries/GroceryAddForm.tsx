@@ -15,7 +15,11 @@ import {
   readGroceryRepeat,
   typedSpan,
 } from '@gather/core/groceries'
-import { stockKey } from '@gather/core/grocery-list'
+import {
+  onShoppingList,
+  stockKey,
+  waitsToRepeat,
+} from '@gather/core/grocery-list'
 import { describeRepeat } from '@gather/core/task-repeat'
 import { useMutation } from 'convex/react'
 import { BookOpen, ChevronDown, Clock, Plus, Repeat, X } from 'lucide-react'
@@ -40,6 +44,7 @@ import { useRecognisedAisle } from './useRecipeLines'
 export interface GroceryAddFormProps {
   groupSlug: string
   listId: Id<'taskLists'>
+  /** The list's items, waiting repeating ones too. */
   tasks: readonly Doc<'tasks'>[]
   habits: readonly GroceryHabit[]
 }
@@ -48,7 +53,9 @@ export interface GroceryAddFormProps {
  * Top-of-list inline grocery add form (APP-316, `designs/groceries/web.md`):
  * local amount/unit/aisle recognition chips, clickable aisle override menu,
  * history and dictionary autocomplete with keyboard navigation. A suggestion
- * for an item already open adds the typed amount to it. A repeat is read as
+ * for an item already open adds the typed amount to it; one for a repeating
+ * item waiting for its next date brings that item forward to today first
+ * (APP-1000). A repeat is read as
  * the task field reads it ("koffie elke week", APP-993): its chip's × leaves
  * the words in the name.
  */
@@ -62,6 +69,7 @@ export function GroceryAddForm({
   const g = messages.tasks.grocery
   const addTask = useMutation(api.tasks.add)
   const updateTask = useMutation(api.tasks.update)
+  const bringForward = useMutation(api.tasks.bringForward)
   const errorText = useErrorMessage()
 
   const { timeZone } = useRequiredCurrentGroup()
@@ -113,9 +121,20 @@ export function GroceryAddForm({
       : words[cadence.unit]
   }
 
+  /** The item with this name on the list today. */
   const openNamed = (key: string) =>
     tasks.find(
-      (task) => !task.done && stockKey(task.title) === key,
+      (task) => onShoppingList(task, today) && stockKey(task.title) === key,
+    )
+  /**
+   * The item a pick adds to: the one on the list, or else a repeating one
+   * waiting off it for its next date, which the pick brings forward
+   * (APP-1000) rather than adding a second copy.
+   */
+  const existingNamed = (key: string) =>
+    openNamed(key) ??
+    tasks.find(
+      (task) => waitsToRepeat(task, today) && stockKey(task.title) === key,
     )
 
   const typedParsed = useMemo(() => parseGroceryLine(trimmed), [trimmed])
@@ -156,6 +175,8 @@ export function GroceryAddForm({
     try {
       let taskId = item.open?._id
       if (item.open) {
+        if (waitsToRepeat(item.open, today))
+          await bringForward({ taskId: item.open._id, groupSlug })
         if (item.mergeAmount) {
           await updateTask({
             taskId: item.open._id,
@@ -209,7 +230,7 @@ export function GroceryAddForm({
 
   const pickCompletion = (completion: GroceryCompletion) => {
     const item = itemOfCompletion(completion)
-    const open = openNamed(item.key)
+    const open = existingNamed(item.key)
     const merged =
       open && typedAmount
         ? addGroceryAmounts(
@@ -411,7 +432,8 @@ export function GroceryAddForm({
         >
           {completions.map((completion, index) => {
             const item = itemOfCompletion(completion)
-            const open = openNamed(item.key)
+            const open = existingNamed(item.key)
+            const onList = openNamed(item.key)
             const merged =
               open && typedAmount
                 ? addGroceryAmounts(
@@ -434,20 +456,23 @@ export function GroceryAddForm({
                   : completion.habit.category
                     ? `${g.suggestions.history} · ${g.aisles[completion.habit.category]}`
                     : g.suggestions.history
-            const openAmount = open
-              ? amountText(open.quantity, open.unit)
+            const openAmount = onList
+              ? amountText(onList.quantity, onList.unit)
               : null
-            const subtitle = open
+            const subtitle = onList
               ? `${base} · ${
                   openAmount
                     ? fmt(g.suggestions.onListAmount, { amount: openAmount })
                     : g.suggestions.onList
                 }`
               : base
+            // A waiting item comes back with its own amount.
             const trailingAmount = open
               ? merged && typedAmount
                 ? `+${amountText(typedAmount.quantity, typedAmount.unit) ?? '1'}`
-                : null
+                : onList
+                  ? null
+                  : amountText(open.quantity, open.unit)
               : amountText(item.quantity, item.unit)
             const span = typedSpan(item.title, typed)
             const active = index === activeIndex

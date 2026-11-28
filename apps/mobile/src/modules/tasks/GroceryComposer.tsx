@@ -81,7 +81,7 @@ import {
   withoutRepeat,
   withRepeat,
 } from './groceryDraft'
-import { groceryListsOf, onShoppingList } from './groceryList'
+import { groceryListsOf, waitsToRepeat } from './groceryList'
 import { TASK_ICONS } from './icons'
 import { QuickAddInput } from './QuickAddParts'
 import { quickAddTarget } from './quickAdd'
@@ -437,6 +437,11 @@ function GroceryComposerCard({
             staple?: AddedStaple['id']
           } = {}
           let undone = false
+          // Waiting off the list for its next date: back on it today, rather
+          // than a second copy (APP-1000).
+          const forward = waitsToRepeat(item, today)
+            ? await actions.bringForward(item.id)
+            : false
           if (pick.merged)
             did.amount = await actions.addAmount(item.id, {
               quantity: saving.quantity,
@@ -474,8 +479,9 @@ function GroceryComposerCard({
           const asked = Number(Boolean(saving.note)) + Number(saving.staple)
           const failed = await details(saving)
           const missed = Number(Boolean(failed.note)) + Number(failed.staple)
-          if (!merged && asked === 0) return { taskId: item.id, already: true }
-          if (!merged && missed === asked) throw new Error('Nothing saved')
+          if (!merged && asked === 0)
+            return forward ? { taskId: item.id } : { taskId: item.id, already: true }
+          if (!merged && !forward && missed === asked) throw new Error('Nothing saved')
           return {
             taskId: item.id,
             ...(missed ? { retry: retryOf(failed) } : {}),
@@ -943,8 +949,9 @@ function GroceryComposerCard({
             line={item.title}
             amount={amount}
             // A repeating item waiting for its next date is not on the list
-            // (APP-520): typing its name adds a row that shows now.
-            tasks={tasks.filter((task) => onShoppingList(task, today))}
+            // (APP-520): picking its name brings it forward (APP-1000).
+            tasks={tasks}
+            today={today}
             onPick={pick}
           />
         ) : null

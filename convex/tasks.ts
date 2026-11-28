@@ -41,7 +41,11 @@ import {
   groceryAmountValidator,
   groceryUnitValidator,
 } from './lib/groceryFields'
-import { restockCheckedStaples } from './lib/groceryStaples'
+import {
+  bringForward as bringItemForward,
+  groupToday,
+  restockCheckedStaples,
+} from './lib/groceryStaples'
 import {
   findInGroup,
   requireGroupBySlug,
@@ -935,6 +939,27 @@ export const addAmount = mutation({
       from: { quantity: task.quantity ?? null, unit: task.unit ?? null },
       to: { quantity: to.quantity ?? null, unit: to.unit ?? null },
     }
+  },
+})
+
+/**
+ * Adding a grocery item again that waits off the list for its next date
+ * (APP-520) brings it forward to today instead of making a second copy
+ * (APP-1000), as running low does for a staple (APP-989). Answers whether it
+ * moved: an item on the list today is left as it is.
+ */
+export const bringForward = mutation({
+  args: { taskId: v.id('tasks'), groupSlug: v.string() },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const { task, group, doc: list } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
+    if (!isGroceryList(group, list))
+      throw new ConvexError(taskRefusal('not-grocery-list'))
+    return await bringItemForward(ctx, group, task, groupToday(group))
   },
 })
 

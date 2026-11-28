@@ -113,6 +113,7 @@ async function pick(line: string, tasks: Task[]) {
       line={title}
       amount={Object.keys(amount).length ? amount : undefined}
       tasks={tasks}
+      today="2026-11-20"
       onPick={onPick}
     />,
   )
@@ -152,9 +153,39 @@ test('without a typed amount the open item stays as it is', async () => {
   expect(picked[0].merged).toBeUndefined()
 })
 
+test('a repeating item waiting for its next date is picked to come forward, not said to be on the list (APP-1000)', async () => {
+  const waiting: Task = {
+    ...openMelk,
+    repeat: { mode: 'fixed', unit: 'week', every: 1 },
+    dueDate: '2026-11-27',
+  }
+  const typed = await pick('2 pak me', [waiting])
+  expect(typed.text).toContain('+2 packs')
+  expect(typed.text).not.toContain('already on the list')
+  expect(typed.picked[0]).toMatchObject({
+    open: { id: 'open-melk' },
+    merged: { quantity: 3, unit: 'pak' },
+  })
+  const untyped = await pick('me', [waiting])
+  // Its own amount, as it comes back.
+  expect(untyped.text).toContain('1 pack')
+  expect(untyped.picked[0]).toMatchObject({ open: { id: 'open-melk' } })
+})
+
+test('a checked item is not picked onto', async () => {
+  const { picked } = await pick('me', [{ ...openMelk, done: true }])
+  expect(picked[0].open).toBeUndefined()
+})
+
 test('the typed part of the name is its own text, for the 600 weight', async () => {
   const view = mount(
-    <GroceryCompletions listId="list" line="me" tasks={[]} onPick={() => {}} />,
+    <GroceryCompletions
+      listId="list"
+      line="me"
+      tasks={[]}
+      today="2026-11-20"
+      onPick={() => {}}
+    />,
   )
   await settle()
   const row = view.container.querySelector('[data-testid="completion-melk"]')
