@@ -270,6 +270,28 @@ describe('a repeating parent', () => {
     expect(await doneOf(t, subtasks)).toEqual([false, false, false])
   })
 
+  // Neither app asks "Only this" here (APP-940, contracts/tasks.md): every
+  // occurrence starts with its subtasks open, however the last one ended.
+  test('every next occurrence starts with its subtasks open', async () => {
+    const { t, as, attic, subtasks } = await repeating()
+    const complete = () =>
+      as.mutation(api.tasks.toggleDone, {
+        taskId: attic,
+        groupSlug: JANSEN,
+        today: TODAY,
+      })
+    expect((await complete())?.dueDate).toBe('2026-11-28')
+    // This week's occurrence: one step done, then the parent again.
+    await as.mutation(api.tasks.toggleDone, {
+      taskId: subtasks[2],
+      groupSlug: JANSEN,
+    })
+    expect(await doneOf(t, subtasks)).toEqual([false, false, true])
+    expect((await complete())?.dueDate).toBe('2026-12-05')
+    expect(await doneOf(t, subtasks)).toEqual([false, false, false])
+    expect(await row(t, attic)).toMatchObject({ done: false })
+  })
+
   test('undo of the completion checks the same subtasks again', async () => {
     const { t, as, attic, subtasks } = await repeating()
     const done = await as.mutation(api.tasks.toggleDone, {
