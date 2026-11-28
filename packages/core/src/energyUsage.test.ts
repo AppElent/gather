@@ -20,6 +20,7 @@ import {
   energyCostPeriod,
   energyDayCost,
   energyDayFixedCost,
+  energyMonthCost,
   energyMonthDays,
   energyNetMetering,
   energyReadingMoment,
@@ -533,5 +534,29 @@ describe('energyCostPeriod', () => {
   test('is nothing when no day carries a cost', () => {
     expect(energyCostPeriod([unpriced('2026-11-01')])).toBeNull()
     expect(energyCostPeriod([])).toBeNull()
+  })
+})
+
+describe('energyMonthCost', () => {
+  const fixed = { ...ZERO_ENERGY_COST, fixedCents: 1500, totalCents: 1500 }
+
+  test('a priced month is a figure like any other', () => {
+    expect(energyMonthCost({ costStatus: 'ok', cost: fixed })).toEqual({
+      cents: 1500,
+      fixedOnly: false,
+    })
+  })
+
+  test('a month without priced usage keeps its fixed costs (APP-741)', () => {
+    for (const costStatus of ['noData', 'noPrices', 'noContract'] as const) {
+      expect(energyMonthCost({ costStatus, cost: fixed })).toEqual({
+        cents: 1500,
+        fixedOnly: true,
+      })
+    }
+  })
+
+  test('no cost at all is no figure', () => {
+    expect(energyMonthCost({ costStatus: 'noData', cost: null })).toBeNull()
   })
 })

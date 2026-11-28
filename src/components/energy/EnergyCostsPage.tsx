@@ -2,6 +2,7 @@ import {
   addEnergyMonths,
   energyCostDays,
   energyCostPeriod,
+  energyMonthCost,
   forecastMonthCents,
   netMeteringPossibleIn,
 } from '@gather/core/energy'
@@ -53,7 +54,8 @@ type Method = 'with' | 'without'
  * Before 2027 a contract with net metering can show the month with or
  * without it; from 2027 the choice is gone and every cost is without. A month
  * whose costs cannot be worked out says why in words, never with a number
- * that is not one.
+ * that is not one. A month whose usage has no price still shows the fixed
+ * costs of its elapsed days, saying it holds only those (APP-741).
  */
 export function EnergyCostsPage() {
   const group = useRequiredCurrentGroup()
@@ -210,6 +212,8 @@ function MonthCosts({
   const monthWord = formatEnergyDate(month, locale, 'month')
   const cost = costOf(period, method)
   const status = totals.costStatus
+  // A month without priced usage still shows its fixed costs (APP-741).
+  const figure = energyMonthCost({ costStatus: status, cost })
   // Fixed costs run per elapsed day, so the total covers the days that carry a
   // cost (to today, or the month's end), not only the days a reading reaches.
   const covered = energyCostPeriod(period.days)
@@ -226,7 +230,7 @@ function MonthCosts({
   return (
     <>
       <section aria-label={copy.totalLabel} className={WASH}>
-        {missing || !cost ? (
+        {!figure ? (
           <p className="m-0 text-base">{missing ?? copy.noContract}</p>
         ) : (
           <>
@@ -239,19 +243,28 @@ function MonthCosts({
               </span>
             ) : null}
             <span className={NUMERAL}>
-              {formatEnergyEuro(cost.totalCents, locale)}
+              {formatEnergyEuro(figure.cents, locale)}
             </span>
-            <p className="m-0 text-sm">
-              {nowNote(
-                period,
-                previous,
-                month,
-                thisMonth,
-                method,
-                messages,
-                locale,
-              )}
-            </p>
+            {figure.fixedOnly ? (
+              <>
+                <p className="m-0 text-sm text-[var(--muted)]">
+                  {copy.fixedOnly}
+                </p>
+                {missing ? <p className="m-0 text-sm">{missing}</p> : null}
+              </>
+            ) : (
+              <p className="m-0 text-sm">
+                {nowNote(
+                  period,
+                  previous,
+                  month,
+                  thisMonth,
+                  method,
+                  messages,
+                  locale,
+                )}
+              </p>
+            )}
           </>
         )}
         {status === 'ok' && totals.costMissingDays > 0 ? (

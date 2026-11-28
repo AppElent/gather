@@ -574,3 +574,19 @@ export function forecastMonthCents(
   const used = cost.totalCents - fixed
   return Math.round((used / pricedDays + fixed / costDays) * days)
 }
+
+/**
+ * A month's cost figure, for its headline and its bar in the year chart, or
+ * null when it has none. A month whose usage carries no price (none yet, no
+ * contract, prices not in) still has the fixed costs and tax credit of its
+ * elapsed days (APP-635), so it gets that figure, marked `fixedOnly` (APP-741).
+ */
+export function energyMonthCost(
+  totals: {
+    costStatus: 'ok' | 'noData' | 'noContract' | 'noPrices'
+    cost: Pick<EnergyCost, 'totalCents'> | null
+  },
+): { cents: number; fixedOnly: boolean } | null {
+  if (!totals.cost) return null
+  return { cents: totals.cost.totalCents, fixedOnly: totals.costStatus !== 'ok' }
+}

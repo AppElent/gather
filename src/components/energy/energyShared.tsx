@@ -1,6 +1,7 @@
 import { amsterdamIsoDate } from '@gather/core/civil-date'
 import {
   amsterdamDayOf,
+  energyMonthCost,
   energyMonthOf,
   energyYearMonths,
 } from '@gather/core/energy'
@@ -640,10 +641,14 @@ export function monthFigure(
   unit: 'kwh' | 'euro',
   withoutNet = false,
 ): number | null {
-  if (!period || period.totals.daysWithData === 0) return null
-  if (unit === 'kwh') return period.totals.consumptionKwh
-  if (period.totals.costStatus !== 'ok') return null
+  if (!period) return null
+  if (unit === 'kwh') {
+    return period.totals.daysWithData === 0 ? null : period.totals.consumptionKwh
+  }
+  // A month with only fixed costs gets its bar too (APP-741).
   const cost = withoutNet ? period.totals.costWithoutNet : period.totals.cost
-  return cost ? cost.totalCents : null
+  return (
+    energyMonthCost({ costStatus: period.totals.costStatus, cost })?.cents ?? null
+  )
 }
 

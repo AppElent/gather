@@ -5,7 +5,11 @@
  * changes with the Group, the year or the day, so `useQueries` keeps the
  * subscriptions open.
  */
-import { energyMonthOf, energyYearMonths } from '@gather/core/energy'
+import {
+  energyMonthCost,
+  energyMonthOf,
+  energyYearMonths,
+} from '@gather/core/energy'
 import { useMemo } from 'react'
 
 import { api } from '../../convex/api'
@@ -24,7 +28,10 @@ type MonthAnswer = {
 export interface EnergyYearSeries {
   /** Each month's kWh; null for a month without usage. */
   kwh: { previous: (number | null)[]; current: (number | null)[] }
-  /** Each month's cents, with net metering where the month had it. */
+  /**
+   * Each month's cents, with net metering where the month had it; a month
+   * without priced usage counts its fixed costs.
+   */
   cents: { previous: (number | null)[]; current: (number | null)[] }
   /** The same, always without net metering. */
   centsWithoutNet: { previous: (number | null)[]; current: (number | null)[] }
@@ -65,7 +72,6 @@ export function useEnergyYear(
       list.map((month) => {
         const answer = answers[month]
         if (!answer || answer instanceof Error) return null
-        if (answer.totals.daysWithData === 0) return null
         return pick(answer.totals)
       })
     const previous = energyYearMonths(year - 1)
@@ -76,14 +82,21 @@ export function useEnergyYear(
     const thisMonth = energyMonthOf(today)
     const running = current.indexOf(thisMonth)
     return {
-      kwh: series((totals) => totals.consumptionKwh),
-      cents: series((totals) =>
-        totals.costStatus === 'ok' ? (totals.cost?.totalCents ?? null) : null,
+      kwh: series((totals) =>
+        totals.daysWithData === 0 ? null : totals.consumptionKwh,
       ),
-      centsWithoutNet: series((totals) =>
-        totals.costStatus === 'ok'
-          ? (totals.costWithoutNet?.totalCents ?? null)
-          : null,
+      // A month with only fixed costs gets its bar too (APP-741).
+      cents: series(
+        (totals) =>
+          energyMonthCost({ costStatus: totals.costStatus, cost: totals.cost })
+            ?.cents ?? null,
+      ),
+      centsWithoutNet: series(
+        (totals) =>
+          energyMonthCost({
+            costStatus: totals.costStatus,
+            cost: totals.costWithoutNet,
+          })?.cents ?? null,
       ),
       runningIndex: running >= 0 ? running : null,
       loading: months.some((month) => answers[month] === undefined),

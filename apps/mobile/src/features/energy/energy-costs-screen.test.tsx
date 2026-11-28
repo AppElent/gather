@@ -136,7 +136,7 @@ test('without prices for a dynamic contract, the month says so instead of an amo
   view.unmount()
 })
 
-test('a month without priced usage lists only its fixed costs', () => {
+test('a month without priced usage shows its fixed costs as the total (APP-741)', () => {
   answerMonth(
     '2026-11',
     usagePeriod({
@@ -148,11 +148,46 @@ test('a month without priced usage lists only its fixed costs', () => {
     }),
   )
   const view = mount(createElement(EnergyCostsScreen))
-  expect(byTestId('energy-costs-total-value')).toBeNull()
+  expect(byTestId('energy-costs-total-value')?.textContent).toBe(
+    formatEnergyEuro(3000, 'en'),
+  )
+  const total = byTestId('energy-costs-total')?.textContent
+  expect(total).toContain(en.energy.costs.fixedOnly)
+  expect(total).toContain('No usage in November yet.')
   const lines = byTestId('energy-costs-lines')?.textContent
   expect(lines).toContain(en.energy.costs.lineFixed)
   expect(lines).toContain(en.energy.costs.lineCredit)
   expect(lines).not.toContain(en.energy.costs.lineImport)
+  view.unmount()
+})
+
+test('a month with only fixed costs gets its bar in the year chart (APP-741)', () => {
+  const months: Record<string, unknown> = {
+    '2026-11': usagePeriod({
+      days: energyMonthDays('2026-11'),
+      lastDay: '2026-11-22',
+      cost: 3000,
+    }),
+    '2026-10': usagePeriod({
+      days: energyMonthDays('2026-10'),
+      lastDay: '2026-09-30',
+      costStatus: 'noData',
+      cost: 1550,
+      costWithoutNet: 1550,
+    }),
+    '2025-10': usagePeriod({
+      days: energyMonthDays('2025-10'),
+      lastDay: '2025-10-31',
+      cost: 9300,
+      costWithoutNet: 9300,
+    }),
+  }
+  energyState.queries['energyUsage:month'] = (args: { month: string }) =>
+    months[args.month] ?? null
+  const view = mount(createElement(EnergyCostsScreen))
+  expect(document.body.textContent).toContain(
+    `October to October: ${formatEnergyEuro(1550, 'en')}, last year ${formatEnergyEuro(9300, 'en')}.`,
+  )
   view.unmount()
 })
 
