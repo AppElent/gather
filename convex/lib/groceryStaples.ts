@@ -98,6 +98,31 @@ export async function writableGroceryList(
 }
 
 /**
+ * Bring a repeating grocery item that waits off the list for its next date
+ * (APP-520) forward to `today`, the Group's calendar day, so the list shows
+ * it again. Its reminder and dated subtasks move with it, as when it is
+ * completed; its repeat keeps its schedule. An item on the list today is left
+ * as it is. Answers whether it moved.
+ */
+export async function bringForward(
+  ctx: MutationCtx,
+  group: Doc<'groups'>,
+  item: Doc<'tasks'>,
+  today: string,
+): Promise<boolean> {
+  if (!waitsToRepeat(item, today)) return false
+  await ctx.db.patch(item._id, { dueDate: today })
+  await moveReminder(ctx, item, group._id, today)
+  await shiftSubtaskDates(
+    ctx,
+    item._id,
+    group._id,
+    movedDays(item.dueDate, today),
+  )
+  return true
+}
+
+/**
  * Put a staple on the Group's grocery list, at the end, unless an item with
  * its key is on the list today. A repeating item with its key that waits for
  * its next date is brought forward to today, so the list shows the one item
@@ -119,14 +144,7 @@ export async function putStapleOnList(
   if (same.some((item) => onShoppingList(item, today))) return true
   const waiting = same.find((item) => waitsToRepeat(item, today))
   if (waiting) {
-    await ctx.db.patch(waiting._id, { dueDate: today })
-    await moveReminder(ctx, waiting, group._id, today)
-    await shiftSubtaskDates(
-      ctx,
-      waiting._id,
-      group._id,
-      movedDays(waiting.dueDate, today),
-    )
+    await bringForward(ctx, group, waiting, today)
     return true
   }
   const last = await ctx.db

@@ -564,6 +564,7 @@ export function useTaskActions() {
   )
   const update = useMutation(api.tasks.update)
   const addAmount = useMutation(api.tasks.addAmount)
+  const bringForward = useMutation(api.tasks.bringForward)
   const addStapleRow = useMutation(api.groceryStaples.add)
   const removeStaple = useMutation(api.groceryStaples.remove)
   const remove = useMutation(api.tasks.remove)
@@ -953,6 +954,12 @@ export function useTaskActions() {
         ...(more.quantity !== undefined ? { quantity: more.quantity } : {}),
         ...(more.unit !== undefined ? { unit: more.unit } : {}),
       }),
+    /**
+     * A repeating grocery item waiting for its next date, back on the list
+     * today (APP-1000). Answers whether it moved.
+     */
+    bringForward: (id: string) =>
+      bringForward({ taskId: id as Id<'tasks'>, groupSlug }),
     /** A reminder for the caller at this wall clock, or none (APP-305). */
     setReminder: (id: string, clock: ReminderClock | null) =>
       setReminder({ taskId: id as Id<'tasks'>, groupSlug, reminder: clock }),

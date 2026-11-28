@@ -604,7 +604,7 @@ export function GroceriesPage({
         <GroceryAddForm
           groupSlug={groupSlug}
           listId={activeList._id}
-          tasks={openTasks}
+          tasks={tasks ?? []}
           habits={habitsData?.habits ?? []}
         />
       ) : (

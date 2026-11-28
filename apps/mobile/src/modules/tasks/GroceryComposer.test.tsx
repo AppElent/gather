@@ -31,6 +31,7 @@ const state = vi.hoisted(() => ({
   deleted: [] as string[],
   staplesRemoved: [] as string[],
   amounts: [] as unknown[][],
+  forwarded: [] as string[],
   notes: [] as unknown[][],
   alerts: [] as { title: string; buttons: AlertButton[] }[],
   fresh: [] as string[],
@@ -201,6 +202,8 @@ vi.mock('./quickAdd', () => ({
 vi.mock('./groceryList', () => ({
   groceryListsOf: (lists: unknown) => lists,
   onShoppingList: (task: { done: boolean }) => !task.done,
+  waitsToRepeat: (task: { done: boolean; repeat?: unknown; dueDate?: string }, today: string) =>
+    !task.done && task.repeat !== undefined && (task.dueDate ?? '') > today,
 }))
 /** Made by the first add that asks for it, as the server reports it. */
 const addedStaple = () => {
@@ -239,6 +242,10 @@ vi.mock('./store', () => ({
     deleteTask: async (id: string) => {
       if (state.undoFails) throw new Error('offline')
       state.deleted.push(id)
+    },
+    bringForward: async (id: string) => {
+      state.forwarded.push(id)
+      return true
     },
     // The server's side: what the item has when the write runs.
     addAmount: async (id: string, more: { quantity?: number }) => {
@@ -282,6 +289,7 @@ beforeEach(() => {
     deleted: [],
     staplesRemoved: [],
     amounts: [],
+    forwarded: [],
     notes: [],
     alerts: [],
     fresh: [],
@@ -697,6 +705,54 @@ test('a completion that is open and has nothing to add says so, without undo', a
   await settle()
   expect(find('grocery-status')).not.toBeNull()
   expect(find('grocery-undo')).toBeNull()
+})
+
+test('a completion waiting for its next date comes forward, and is not said to be on the list (APP-1000)', async () => {
+  const item = {
+    id: 'waiting',
+    listId,
+    title: 'Melk',
+    done: false,
+    repeat: { mode: 'fixed', unit: 'week', every: 1 },
+    dueDate: '2026-12-04',
+  }
+  state.tasks = [item]
+  const { type, find } = open()
+  type('me')
+  // The completions see it, to pick onto it.
+  expect(state.completions!.tasks).toEqual([item])
+  const onPick = state.completions!.onPick as (pick: unknown) => void
+  await act(async () => onPick({ title: 'melk', open: item }))
+  await settle()
+  expect(state.forwarded).toEqual(['waiting'])
+  expect(state.adds).toEqual([])
+  expect(find('grocery-status')).toBeNull()
+})
+
+test('a waiting completion with an amount comes forward, then gets the amount', async () => {
+  const item = {
+    ...melk(),
+    done: false,
+    repeat: { mode: 'fixed', unit: 'week', every: 1 },
+    dueDate: '2026-12-04',
+  }
+  state.tasks = [item]
+  const { type } = open()
+  type('2 pak me')
+  const onPick = state.completions!.onPick as (pick: unknown) => void
+  await act(async () =>
+    onPick({
+      title: 'melk',
+      quantity: 2,
+      unit: 'pak',
+      open: item,
+      merged: { quantity: 3, unit: 'pak' },
+    }),
+  )
+  await settle()
+  expect(state.forwarded).toEqual(['open'])
+  expect(state.amounts).toEqual([['open', 3, 'pak']])
+  expect(state.adds).toEqual([])
 })
 
 test('the card has one size', () => {
