@@ -73,6 +73,33 @@ export function energyReadingOverdue(
   )
 }
 
+/**
+ * How long a Home Assistant statistic may go without a new hour before
+ * Sources says its sensor stopped reporting (APP-728). Home Assistant writes
+ * an hour for every sensor that has a state, even one that stands still, so a
+ * gap means the sensor is unavailable. A grid meter always has a state; solar
+ * inverters, batteries and what they export sleep at night and in winter, and
+ * a gas meter may report only when gas flows.
+ */
+export const ENERGY_STALE_HOURS: Record<EnergyChannelKind, number> = {
+  gridImport: 6,
+  gridExport: 72,
+  solar: 72,
+  batteryCharge: 72,
+  batteryDischarge: 72,
+  batterySoc: 72,
+  gas: 48,
+}
+
+/** Whether a channel's newest hour is older than its kind allows. */
+export function energyStatisticStale(
+  kind: EnergyChannelKind,
+  lastHourStart: number,
+  now: number,
+): boolean {
+  return now - lastHourStart > ENERGY_STALE_HOURS[kind] * HOUR_MS
+}
+
 // -- Errors ---------------------------------------------------------------------
 
 /**
@@ -99,6 +126,13 @@ export const ENERGY_SOURCE_PROBLEMS = [
   'enelogicUnreachable',
   /** One or more chosen measuring points or registers are gone. */
   'enelogicMissing',
+  /**
+   * One or more chosen statistics stopped getting new hours
+   * (`ENERGY_STALE_HOURS`). Stored while the source stays `ok`, so the other
+   * channels keep reading; builds from before APP-728 read `lastError` only
+   * for a source in `error` or `needsReconnect`, and show it as connected.
+   */
+  'statisticStale',
 ] as const
 export type EnergySourceProblem = (typeof ENERGY_SOURCE_PROBLEMS)[number]
 

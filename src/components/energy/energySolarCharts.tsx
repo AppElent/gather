@@ -1,6 +1,9 @@
 import {
   type EnergyAssetTerms,
+  type EnergyPaybackDay,
+  energyMonthOf,
   energyMonthToday,
+  energyPaybackDayOf,
   energyPaybackMonths,
 } from '@gather/core/energy'
 import {
@@ -32,7 +35,7 @@ export type EnergyAssetRow = {
 
 const STRIP = {
   charging: 'bg-[var(--ink)]',
-  discharging: 'bg-[var(--home-text)]',
+  discharging: 'bg-[var(--energy-solar)]',
   idle: 'bg-[var(--surface-2)]',
   future: FUTURE_BAR,
   unknown: '',
@@ -201,7 +204,7 @@ export function SolarBars({
           <span
             key={bar.key}
             data-bar={bar.future ? 'future' : 'up'}
-            className={`min-w-0 flex-1 rounded-t-[3px] ${bar.future ? FUTURE_BAR : 'bg-[var(--home-text)]'}`}
+            className={`min-w-0 flex-1 rounded-t-[3px] ${bar.future ? FUTURE_BAR : 'bg-[var(--energy-solar)]'}`}
             style={{ height: bar.future ? 4 : scale(bar.height) }}
           />
         ))}
@@ -224,27 +227,35 @@ export function SolarBars({
 }
 
 /**
- * Every day since the first figures, one query per month, so the server never
- * reads a year of hours in one go. `null` while a month is still loading.
+ * Every day since the first figures: this month from the page's own
+ * `energySolar.month` (`solar`, up to `today`), each month before it from one
+ * `energySolar.paybackMonth`, so the server never reads a year of hours in one
+ * go. Those read no assets, so editing one leaves the past months be
+ * (APP-962). `null` while a month is still loading.
  */
 export function useEnergyPaybackDays(
   groupSlug: string,
   solar: EnergySolarMonth,
   today: string,
-): { days: EnergySolarMonth['days']; partial: boolean } | null {
-  const months = energyPaybackMonths(
+): { days: EnergyPaybackDay[]; partial: boolean } | null {
+  const all = energyPaybackMonths(
     solar.assets.map((each) => each.asset),
     solar.firstDay,
     today,
-  ).join(',')
+  )
+  const thisMonth = all.includes(energyMonthOf(today))
+  const months = all.filter((month) => month !== energyMonthOf(today)).join(',')
   const queries = useMemo(() => {
     const entries: Record<
       string,
-      { query: typeof api.energySolar.month; args: Record<string, string> }
+      {
+        query: typeof api.energySolar.paybackMonth
+        args: Record<string, string>
+      }
     > = {}
     for (const month of months ? months.split(',') : []) {
       entries[month] = {
-        query: api.energySolar.month,
+        query: api.energySolar.paybackMonth,
         args: { groupSlug, month, today: energyMonthToday(month, today) },
       }
     }
@@ -253,9 +264,12 @@ export function useEnergyPaybackDays(
   const results = Object.values(useQueries(queries))
   if (results.some((each) => each === undefined)) return null
   return {
-    days: results.flatMap((each) =>
-      each instanceof Error || !each ? [] : (each as EnergySolarMonth).days,
-    ),
+    days: [
+      ...results.flatMap((each) =>
+        each instanceof Error || !each ? [] : (each as EnergyPaybackDay[]),
+      ),
+      ...(thisMonth ? solar.days.map(energyPaybackDayOf) : []),
+    ],
     partial: results.some((each) => each instanceof Error || each === null),
   }
 }

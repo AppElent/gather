@@ -132,6 +132,7 @@ function EditBabyForm({
 
       <BabyForm
         submitting={submitting}
+        ordersBar
         initial={{
           name: baby.name,
           birthDate: baby.birthDate,
@@ -141,6 +142,9 @@ function EditBabyForm({
           untrackedTypes: baby.untrackedTypes
             ? [...baby.untrackedTypes]
             : undefined,
+          // The phone's whole bar, shortcuts included, so the form can put
+          // them back where they were when it saves the event types' order.
+          barOrder: baby.barOrder ? [...baby.barOrder] : undefined,
         }}
         onSubmit={async (values) => {
           setSubmitting(true)

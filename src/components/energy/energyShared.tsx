@@ -29,9 +29,9 @@ import type { Crumb } from '../app/Breadcrumbs'
  * (`designs/energy/README.md` section 11).
  *
  * Colours are the web palette's own tokens: ink is `--ink`, last year is
- * `--muted`, the baseline is `--hair`, and solar takes
- * `--home-text`, Energy's group colour at the strength a graphic needs on
- * `surface` (3:1); `--home-fill` is too light for that in the light scheme.
+ * `--muted`, the baseline is `--hair`, and solar takes `--energy-solar`,
+ * Energy's group colour as the phone draws it: the Home text in light (the
+ * fill is too faint on `surface` there) and the Home fill in dark (APP-742).
  */
 
 /**
@@ -343,17 +343,24 @@ export function ValueRow({
   label,
   sub,
   value,
+  danger = false,
 }: {
   label: string
   sub?: string
   value: string
+  /** Says `sub` in `danger` words. */
+  danger?: boolean
 }) {
   return (
     <div className="flex min-h-14 items-center justify-between gap-3 px-4 py-2">
       <span className="grid min-w-0">
         <span className="text-base">{label}</span>
         {sub ? (
-          <span className="text-sm text-[var(--muted)]">{sub}</span>
+          <span
+            className={`text-sm ${danger ? 'font-semibold text-[var(--danger)]' : 'text-[var(--muted)]'}`}
+          >
+            {sub}
+          </span>
         ) : null}
       </span>
       <span className="shrink-0 text-base font-semibold tabular-nums">
@@ -396,7 +403,7 @@ function Legend({
 }) {
   const swatch = {
     ink: 'bg-[var(--ink)]',
-    solar: 'bg-[var(--home-text)]',
+    solar: 'bg-[var(--energy-solar)]',
     muted: 'bg-[var(--muted)]',
     future: FUTURE_BAR,
     outline: 'border-2 border-[var(--ink)]',
@@ -491,7 +498,7 @@ export function MirrorBars({
           {slots.map((slot) => (
             <span
               key={slot.key}
-              className="min-w-0 flex-1 rounded-b-[3px] bg-[var(--home-text)]"
+              className="min-w-0 flex-1 rounded-b-[3px] bg-[var(--energy-solar)]"
               style={{
                 height: slot.future
                   ? 0

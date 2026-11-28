@@ -21,6 +21,7 @@ Before the task, read the matching project doc:
 | Adding a Convex table, or changing what "Export your data" contains | [Data export](docs/contracts/data-export.md) |
 | Changing what a paired Apple Watch may call, its key, or the `/watch/v1` routes | [Watch API](docs/contracts/watch-api.md) |
 | Touching the share sheet, a Drop, or `expo-share-intent` | [Drop](docs/contracts/drop.md) |
+| Changing what completing a task with subtasks does, or when "Complete all" is asked | [Tasks](docs/contracts/tasks.md) |
 | Writing user-visible text, in either app | [Localization binding](CODING_STANDARDS.md#localization) |
 | Adding web navigation, breadcrumbs, or back links | [Navigation](docs/contracts/navigation.md) |
 | Writing, running, or retiring a migration, backfill, or compatibility shim | [Active migrations and their commands](docs/migrations/README.md), [one-shot code rule](CODING_STANDARDS.md#one-shot-code) |

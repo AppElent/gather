@@ -926,3 +926,135 @@ describe('deleteFinanceSettings', () => {
   })
 })
 
+describe('repairAdminlessGroups', () => {
+  const repair = internal.maintenance.repairAdminlessGroups
+
+  /**
+   * One Group per case, memberships inserted oldest first:
+   * - `stranded`: its admin's user record is gone, two live Members stay.
+   * - `leaving`: its admin is gone and its oldest Member is being deleted.
+   * - `kept`: a live admin and a Member, nothing to do.
+   * - `empty`: only a gone admin and a Member being deleted, nobody to promote.
+   */
+  async function withGroups() {
+    const t = testConvex()
+    const ids = await t.run(async (ctx) => {
+      const user = async (name: string, deletedAt?: number) =>
+        await ctx.db.insert('users', {
+          clerkId: `clerk_${name}`,
+          name,
+          email: `${name}@example.com`,
+          ...(deletedAt ? { deletedAt } : {}),
+        })
+      const group = async (slug: string) =>
+        await ctx.db.insert('groups', {
+          name: slug,
+          inviteCode: `${slug}-code`,
+          slug,
+        })
+      const join = async (
+        groupId: Id<'groups'>,
+        userId: Id<'users'>,
+        role: 'admin' | 'member',
+      ) => await ctx.db.insert('memberships', { groupId, userId, role })
+
+      const gone = await user('gone')
+      await ctx.db.delete(gone)
+      const dana = await user('dana')
+      const erin = await user('erin')
+      const frank = await user('frank', 1)
+      const gina = await user('gina')
+
+      const stranded = await group('stranded')
+      await join(stranded, gone, 'admin')
+      const danaInStranded = await join(stranded, dana, 'member')
+      const erinInStranded = await join(stranded, erin, 'member')
+
+      const leaving = await group('leaving')
+      await join(leaving, gone, 'admin')
+      await join(leaving, frank, 'member')
+      const ginaInLeaving = await join(leaving, gina, 'member')
+
+      const kept = await group('kept')
+      await join(kept, dana, 'admin')
+      const erinInKept = await join(kept, erin, 'member')
+
+      const empty = await group('empty')
+      await join(empty, gone, 'admin')
+      const frankInEmpty = await join(empty, frank, 'member')
+
+      return {
+        stranded,
+        leaving,
+        danaInStranded,
+        erinInStranded,
+        ginaInLeaving,
+        erinInKept,
+        frankInEmpty,
+      }
+    })
+    const role = async (membershipId: Id<'memberships'>) =>
+      (await t.run(async (ctx) => await ctx.db.get(membershipId)))?.role
+    return { t, ids, role }
+  }
+
+  test('a dry run lists each Group with live Members and no live admin, and changes nothing', async () => {
+    const { t, ids, role } = await withGroups()
+    const result = await t.mutation(repair, {})
+    expect(result).toMatchObject({
+      apply: false,
+      scanned: 4,
+      promoted: 0,
+      more: false,
+      adminless: [
+        { groupId: ids.stranded, membershipId: ids.danaInStranded },
+        { groupId: ids.leaving, membershipId: ids.ginaInLeaving },
+      ],
+    })
+    expect(await role(ids.danaInStranded)).toBe('member')
+    expect(await role(ids.ginaInLeaving)).toBe('member')
+  })
+
+  test('apply promotes the longest-standing live Member only, and a second pass finds none', async () => {
+    const { t, ids, role } = await withGroups()
+    const applied = await t.mutation(repair, { apply: true })
+    expect(applied).toMatchObject({ apply: true, promoted: 2, more: false })
+
+    expect(await role(ids.danaInStranded)).toBe('admin')
+    expect(await role(ids.erinInStranded)).toBe('member')
+    expect(await role(ids.ginaInLeaving)).toBe('admin')
+    expect(await role(ids.erinInKept)).toBe('member')
+    expect(await role(ids.frankInEmpty)).toBe('member')
+
+    expect(await t.mutation(repair, { apply: true })).toMatchObject({
+      adminless: [],
+      promoted: 0,
+    })
+  })
+
+  test('pages through the Groups with the cursor', async () => {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert('users', {
+        clerkId: 'clerk_solo',
+        name: 'Solo',
+        email: 'solo@example.com',
+      })
+      for (let i = 0; i < 101; i++) {
+        const groupId = await ctx.db.insert('groups', {
+          name: `g${i}`,
+          inviteCode: `g${i}-code`,
+          slug: `g${i}`,
+        })
+        await ctx.db.insert('memberships', { groupId, userId, role: 'member' })
+      }
+    })
+    const first = await t.mutation(repair, { apply: true })
+    expect(first).toMatchObject({ scanned: 100, promoted: 100, more: true })
+    const second = await t.mutation(repair, {
+      apply: true,
+      cursor: first.cursor,
+    })
+    expect(second).toMatchObject({ scanned: 1, promoted: 1, more: false })
+  })
+})

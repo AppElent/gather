@@ -96,6 +96,16 @@ export function useDebouncedText(
     setDraft(text)
   }, [])
 
+  /**
+   * Shows `text` the server refused before, kept on the phone (APP-970): as
+   * `keep` does, without having sent it here. Not sent until typed in or blurred.
+   */
+  const keepRefused = useCallback((text: string) => {
+    if (pending.current !== null) return
+    refused.current = text
+    setDraft(text)
+  }, [])
+
   /** Back to the saved text, unless typed in since. */
   const saved = useRef(value)
   saved.current = value
@@ -131,5 +141,16 @@ export function useDebouncedText(
     held.current = text
   }, [])
 
-  return { draft, change, flush, blur, keep, reset, discard, settle, hold }
+  return {
+    draft,
+    change,
+    flush,
+    blur,
+    keep,
+    keepRefused,
+    reset,
+    discard,
+    settle,
+    hold,
+  }
 }

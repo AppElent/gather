@@ -8,6 +8,7 @@ import {
   energyChannelRows,
   energyManualLine,
   energySourceLine,
+  energyStaleStatistics,
 } from '@gather/core/energy-present'
 import type { FunctionReturnType } from 'convex/server'
 import { Stack, useRouter } from 'expo-router'
@@ -94,7 +95,11 @@ function Sources({ list }: { list: SourceList }) {
   const words = t.energy
   const copy = words.sources
   const now = Date.now()
-  const rows = energyChannelRows(list.channels, words)
+  const rows = energyChannelRows(
+    list.channels,
+    words,
+    list.sources.flatMap(energyStaleStatistics),
+  )
   const label = new Map<string, string>(
     list.sources.map((each) => [each._id, each.label]),
   )
@@ -162,7 +167,14 @@ function Sources({ list }: { list: SourceList }) {
                 title={row.name}
                 // Under the name, not beside it, so neither is squeezed at a
                 // large text size.
-                subtitle={label.get(row.sourceId)}
+                subtitle={
+                  row.stale
+                    ? fmt(copy.channelStaleSub, {
+                        source: label.get(row.sourceId) ?? '',
+                      })
+                    : label.get(row.sourceId)
+                }
+                subtitleTone={row.stale ? 'danger' : 'muted'}
               />
             ))}
           </InsetList>

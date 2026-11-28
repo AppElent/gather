@@ -6,7 +6,7 @@
  * typed: no network and no AI, so it works offline. A chip's × dismisses that
  * recognition; its words stay in the title as plain text.
  */
-import { localIsoDate, todayIn } from '@gather/core/civil-date'
+import { localIsoDate } from '@gather/core/civil-date'
 import type { QuickAdd, QuickAddKind } from '@gather/core/task-quick-add'
 import { type ComponentRef, type Ref, useMemo, useState } from 'react'
 import {
@@ -18,7 +18,6 @@ import {
   View,
 } from 'react-native'
 
-import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { type ModuleGroup, TYPE, useTokens } from '../../theme/tokens'
@@ -26,6 +25,7 @@ import { useTaskPeople } from './assignee'
 import { parseOnly } from './composerDraft'
 import { TASK_ICONS } from './icons'
 import { quickAddChipLabel } from './quickAdd'
+import { useGroupToday } from './store'
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
@@ -45,9 +45,10 @@ export function useQuickAddLine(
   const [dismissed, setDismissed] = useState<readonly string[]>(
     initial?.dismissed ?? [],
   )
-  const { group } = useGroup()
+  // The hook re-renders this at the Group's midnight, so the chips read the
+  // new day on a field left open (APP-1001).
+  const today = useGroupToday()
   const at = new Date()
-  const today = todayIn(group.timeZone, at)
   const clockDay = localIsoDate(at)
   const now = `${pad(at.getHours())}:${pad(at.getMinutes())}`
   const parsed = useMemo(

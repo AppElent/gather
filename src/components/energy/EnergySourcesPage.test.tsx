@@ -68,6 +68,19 @@ describe('EnergySourcesPage', () => {
     expect(screen.getByText('Gas')).toBeInTheDocument()
   })
 
+  test('a sensor that stopped reporting is flagged while the source reads on', () => {
+    state.list = {
+      ...list,
+      sources: [{ ...source, lastError: 'statisticStale|sensor.p1_gas' }],
+      channels: [{ ...list.channels[0], statisticId: 'sensor.p1_gas' }],
+    }
+    renderInGroup(<EnergySourcesPage />, { locale: 'nl' })
+    expect(
+      screen.getByText(/meldt niets meer aan Home Assistant: sensor\.p1_gas.*10:15/),
+    ).toHaveClass('text-[var(--danger)]')
+    expect(screen.getByText('Meldt niets meer')).toHaveClass('text-[var(--danger)]')
+  })
+
   test('a Member who is not an admin cannot connect or edit', () => {
     state.list = { ...list, canManage: false, sources: [], channels: [] }
     renderInGroup(<EnergySourcesPage />, { locale: 'nl' })

@@ -483,6 +483,56 @@ test('a refusal that arrives after the note was reopened is shown there, and kep
   await settle()
 })
 
+// APP-969: once the text it was about is saved, nothing is refused any more.
+test('a late refusal\'s sentence goes when the reopened screen saves that text', async () => {
+  const answer = deferred()
+  state.editNote.mockReturnValueOnce(answer.promise)
+  const view = open({ title: 'T', body: 'b' })
+  const id = state.note.id as string
+  await type(view, 'note-body', 'c')
+  view.unmount()
+  const again = mount(<Note noteId={id} />)
+  answer.reject({ data: noteRefusal('too-long') })
+  await settle()
+  expect(find(again, 'note-problem')?.textContent).toBe(TOO_LONG)
+  // The reopened screen sends the same text, and this time it lands.
+  await blur(again, 'note-body')
+  expect(state.editNote).toHaveBeenLastCalledWith(id, { body: 'c' }, 1)
+  expect(find(again, 'note-problem')).toBeNull()
+  again.unmount()
+})
+
+// APP-970: the server's reason is kept with the text it refused.
+test('text the server refused comes back after a quit with why, and is not sent again until changed', async () => {
+  state.editNote.mockRejectedValue({ data: noteRefusal('too-long') })
+  const view = open({ title: 'T', body: 'b' })
+  const id = state.note.id as string
+  await type(view, 'note-body', 'c')
+  expect(find(view, 'note-problem')?.textContent).toBe(TOO_LONG)
+  const sends = state.editNote.mock.calls.length
+  // A quit: the screen is gone without a goodbye, and so is memory.
+  forgetHeldMemoryForTests()
+  const again = mount(<Note noteId={id} />)
+  await settle()
+  expect(find(again, 'note-body')?.value).toBe('c')
+  expect(find(again, 'note-problem')?.textContent).toBe(TOO_LONG)
+  expect(state.editNote).toHaveBeenCalledTimes(sends)
+  // Left unchanged: not sent, and still kept with its reason.
+  again.unmount()
+  await settle()
+  expect(state.editNote).toHaveBeenCalledTimes(sends)
+  forgetHeldMemoryForTests()
+  const third = mount(<Note noteId={id} />)
+  expect(find(third, 'note-problem')?.textContent).toBe(TOO_LONG)
+  // Changed, it is sent.
+  state.editNote.mockReset().mockResolvedValue(undefined)
+  await type(third, 'note-body', 'cd')
+  expect(state.editNote).toHaveBeenCalledWith(id, { body: 'cd' }, 1)
+  expect(find(third, 'note-problem')).toBeNull()
+  third.unmount()
+  view.unmount()
+})
+
 test('typing in a field the late text was meant for keeps the typing, and offers the text', async () => {
   const answer = deferred()
   state.editNote.mockReturnValueOnce(answer.promise)

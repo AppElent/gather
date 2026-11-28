@@ -754,6 +754,11 @@ export const finishSync = internalMutation({
       v.literal('syncFailed'),
     ),
     missing: v.array(v.string()),
+    /**
+     * Statistics whose sensor stopped reporting (APP-728). Said only while
+     * there is no problem, and the source stays `ok`.
+     */
+    stale: v.optional(v.array(v.string())),
     /** The import this run belongs to, and its next try. */
     importId: v.optional(v.id('_scheduled_functions')),
     retryId: v.optional(v.id('_scheduled_functions')),
@@ -810,7 +815,9 @@ export const finishSync = internalMutation({
       await ctx.db.patch(source._id, {
         status: 'ok',
         lastSyncedAt: Date.now(),
-        lastError: undefined,
+        lastError: args.stale?.length
+          ? energySourceProblemValue('statisticStale', args.stale)
+          : undefined,
       })
     } else {
       await ctx.db.patch(source._id, {

@@ -1030,6 +1030,7 @@ describe('the paged notes list', () => {
       _id: expect.any(String),
       title: 'Note 60',
       body: 'Body 60',
+      updatedAt: expect.any(Number),
     })
     expect(notes[49].title).toBe('Note 11')
   })

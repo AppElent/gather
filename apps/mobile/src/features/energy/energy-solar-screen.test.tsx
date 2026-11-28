@@ -216,18 +216,23 @@ test('without a charge level there is no charge level card', () => {
 })
 
 test('payback shows for an asset with a price, and opens its form', () => {
-  const october = {
-    ...solarMonth(),
-    days: solarMonth().days.map((day) => ({
-      ...day,
-      day: '2026-10-31',
-      solarEur: 100,
-    })),
-  }
-  energyState.queries['energySolar:month'] = (args: { month: string }) =>
+  // A past month comes from the lighter query, which reads no assets (APP-962).
+  energyState.queries['energySolar:month'] = solarMonth({
+    assets: [ROOF, BATTERY],
+    firstDay: '2026-10-31',
+  })
+  energyState.queries['energySolar:paybackMonth'] = (args: { month: string }) =>
     args.month === '2026-10'
-      ? october
-      : solarMonth({ assets: [ROOF, BATTERY], firstDay: '2026-10-31' })
+      ? [
+          {
+            day: '2026-10-31',
+            solarEur: 100,
+            batteryEur: 0,
+            solarMeasured: true,
+            batteryMeasured: true,
+          },
+        ]
+      : new Error(`no ${args.month} here`)
   const view = open()
   expect(byTestId('energy-asset-roof')?.textContent).toContain(
     '€101 of €5,200 paid back',

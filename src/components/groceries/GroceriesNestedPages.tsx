@@ -1,4 +1,3 @@
-import { todayIn } from '@gather/core/civil-date'
 import {
   groceryListsOf,
   onShoppingList,
@@ -11,6 +10,7 @@ import { useMemo } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { plural, useI18n } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
+import { useDayIn } from '../../lib/useDayIn'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { WashHeader } from '../app/WashHeader'
@@ -45,7 +45,7 @@ export function GroceriesRecentPage({ listId }: { listId?: string }) {
       ? { listId: activeList._id, groupSlug }
       : 'skip',
   )
-  const today = todayIn(timeZone)
+  const today = useDayIn(timeZone)
   const openTitles = useMemo(
     () =>
       (tasks ?? [])

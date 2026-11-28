@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the share sheet, a Drop, its destinations, host rules, or expo-share-intent.
-version: 1.8.1
+version: 1.8.2
 status: current
 ---
 
@@ -115,9 +115,14 @@ that already means making Group content visible to a second Group.
   own draft on every close, a share included.
 - **The commit clears the Drop.** A target that has not written by the time it
   navigates declares `keepsDrop` (today only `recipe-import`): its screen is
-  pushed over the chooser with the Drop still pending, so Back still has
-  somewhere else to put it, and that screen's own successful save clears the
-  Drop the way every other commit does. The Group a Drop is aimed at is held
+  pushed over the chooser with the Drop still pending, in its tab over the
+  tab's root. Back from it (header button, swipe, Android back) returns to the
+  chooser, so Back still has somewhere else to put the Drop; reselecting the
+  tab still pops to the tab's root (`useBackToChooser`, APP-972; checked on
+  iOS, not yet on Android). That screen's
+  own successful save clears the Drop the way every other commit does, and
+  goes down past the chooser first, so Back from what it made never finds the
+  form again. The Group a Drop is aimed at is held
   as a Group id, and stage two lists and writes into that same Group.
 - **A Drop is native surface.** `expo-share-intent` is a config plugin, so
   touching it moves the fingerprint and the change cannot ship over the air

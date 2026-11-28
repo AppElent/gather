@@ -13,7 +13,7 @@
  * 30th of a rule on the 31st) no longer shows.
  */
 import { MenuView } from '@expo/ui/community/menu'
-import { localMidnight, todayIn } from '@gather/core/civil-date'
+import { localMidnight } from '@gather/core/civil-date'
 import {
   AFTER_DONE_UNITS,
   firstScheduledDate,
@@ -33,13 +33,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { NativeSheet } from '../../components/NativeSheet'
 import { Segmented } from '../../components/Segmented'
 import { haptics } from '../../feedback/haptics'
-import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { useSheetDraft } from '../../ui/sheet-drafts'
 import { type Draft, draftRule, repeatDraft } from './repeatDraft'
-import { useTaskActions } from './store'
+import { useGroupToday, useTaskActions } from './store'
 import type { Task } from './types'
 
 export function RepeatSheet({
@@ -63,8 +62,7 @@ export function RepeatSheet({
   const { t, locale } = useI18n()
   const words = t.tasks.repeat
   const actions = useTaskActions()
-  const { group } = useGroup()
-  const today = todayIn(group.timeZone)
+  const today = useGroupToday()
   const anchor = task.dueDate ?? today
   // A share keeps the rule being made (APP-622); the composer's task has no
   // id, so it is kept per composer.

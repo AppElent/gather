@@ -372,6 +372,18 @@ export function energySourceProblemLine(
       })
 }
 
+/**
+ * The statistics of a source that still reads but whose sensors stopped
+ * reporting (APP-728): only Sources says so, per source and per channel.
+ */
+export function energyStaleStatistics(
+  source: Pick<EnergySourceState, 'status' | 'lastError'>,
+): string[] {
+  if (source.status !== 'ok') return []
+  const read = readEnergySourceProblem(source.lastError)
+  return read?.problem === 'statisticStale' ? read.statistics : []
+}
+
 /** A connected source's line under Sources, and whether it is a problem. */
 export function energySourceLine(
   source: EnergySourceState & { channelCount: number },
@@ -381,6 +393,22 @@ export function energySourceLine(
 ): { text: string; problem: boolean } {
   const problem = energySourceProblemLine(source, now, words, locale)
   if (problem) return { text: problem, problem: true }
+  const stale = energyStaleStatistics(source)
+  if (stale.length > 0) {
+    const text = fmt(words.sources.problems.statisticStale, {
+      statistics: stale.join(', '),
+    })
+    return {
+      text:
+        source.lastSyncedAt === undefined
+          ? text
+          : fmt(words.sources.problemLine, {
+              problem: text,
+              when: formatEnergyMoment(source.lastSyncedAt, now, locale),
+            }),
+      problem: true,
+    }
+  }
   const channels = plural(
     locale,
     source.channelCount,
@@ -506,10 +534,16 @@ export function energyChannelRows(
     sourceId: string
     kind: EnergyChannelKind
     tariff?: EnergyTariff
+    statisticId?: string
   }[],
   words: EnergyWords,
-): { key: string; name: string; sourceId: string }[] {
-  const rows: { key: string; name: string; sourceId: string }[] = []
+  /** Statistics whose sensor stopped reporting (`energyStaleStatistics`). */
+  stale: readonly string[] = [],
+): { key: string; name: string; sourceId: string; stale: boolean }[] {
+  const rows: { key: string; name: string; sourceId: string; stale: boolean }[] =
+    []
+  const isStale = (each: (typeof channels)[number]) =>
+    each.statisticId !== undefined && stale.includes(each.statisticId)
   const of = (sourceId: string, kind: EnergyChannelKind) =>
     channels.filter((each) => each.sourceId === sourceId && each.kind === kind)
   const sourceIds = [...new Set(channels.map((each) => each.sourceId))]
@@ -523,9 +557,11 @@ export function energyChannelRows(
         kind === 'batteryCharge' && of(sourceId, 'batteryDischarge').length > 0
       const split = new Set(own.map((each) => each.tariff)).size === 2
       const first = own[0] as (typeof own)[number]
+      const merged = both ? [...own, ...of(sourceId, 'batteryDischarge')] : own
       rows.push({
         key: `${sourceId}:${kind}`,
         sourceId,
+        stale: merged.some(isStale),
         name: both
           ? words.sources.battery
           : split

@@ -350,7 +350,10 @@ export const energy = {
       enelogicUnreachable:
         'Enelogic antwoordt niet. Gather probeert het over zes uur opnieuw.',
       enelogicMissing: 'Een meetpunt staat niet meer in Enelogic: {statistics}.',
+      statisticStale: 'Een sensor meldt niets meer aan Home Assistant: {statistics}.',
     },
+    channelStale: 'Meldt niets meer',
+    channelStaleSub: '{source} · meldt niets meer',
     homeProblem: '{source}: {line}',
     homeConnected: '{source} · bijgewerkt {when}',
     homeSyncing: '{source} · geschiedenis wordt opgehaald',

@@ -1,4 +1,10 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { renderInGroup, TEST_GROUP } from '../app/testing'
@@ -218,6 +224,39 @@ describe('adding', () => {
     )
   })
 
+  test('reads a repeat as the task field does, on its own chip (APP-993)', async () => {
+    renderInGroup(<GroceriesPage />)
+    type('2 pak koffie elke 2 weken')
+    const recognised = screen.getByTestId('grocery-recognised')
+    expect(within(recognised).getByText('Koffie')).toBeTruthy()
+    expect(within(recognised).getByTestId('grocery-repeat').textContent).toMatch(
+      /^Every 2 weeks/,
+    )
+    fireEvent.submit(input())
+    await waitFor(() => expect(callsOf('tasks:add')).toHaveLength(1))
+    const added = callsOf('tasks:add')[0]!
+    expect(added).toMatchObject({
+      title: 'Koffie',
+      quantity: 2,
+      unit: 'pak',
+      repeat: { mode: 'fixed', unit: 'week', every: 2 },
+    })
+    // On the list from today.
+    expect(added.dueDate).toBe(added.today)
+  })
+
+  test('a repeat chip’s × leaves its words in the name', async () => {
+    renderInGroup(<GroceriesPage />)
+    type('thee elke week')
+    fireEvent.click(screen.getByRole('button', { name: /^Remove Every week/ }))
+    expect(screen.queryByTestId('grocery-repeat')).toBeNull()
+    fireEvent.submit(input())
+    await waitFor(() =>
+      expect(callsOf('tasks:add')[0]).toMatchObject({ title: 'Thee elke week' }),
+    )
+    expect(callsOf('tasks:add')[0]!.repeat).toBeUndefined()
+  })
+
   test('a failed add puts the line back', async () => {
     state.fail.add('tasks:add')
     renderInGroup(<GroceriesPage />)
@@ -345,6 +384,32 @@ test('Recent puts an item back and marks what is already open', async () => {
     }),
   )
   expect(screen.queryByRole('button', { name: /melk/ })).toBeNull()
+})
+
+test('Recent left open moves its Today label on at the Group midnight (APP-1001)', () => {
+  vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+  // 23:59 in Amsterdam on Friday 27 November.
+  vi.setSystemTime(new Date('2026-11-27T22:59:00Z'))
+  try {
+    state.queries['tasks:recentGroceries'] = [
+      { _id: 't3', title: 'Brood', doneAt: Date.now(), category: 'bakery' },
+    ]
+    renderInGroup(
+      <RecentPanel
+        groupSlug="jansen-household"
+        timeZone="Europe/Amsterdam"
+        listId={'l1' as never}
+        openTitles={[]}
+        mode="page"
+      />,
+    )
+    expect(screen.getByText(/^Today · /)).toBeTruthy()
+    act(() => vi.advanceTimersByTime(90_000))
+    expect(screen.queryByText(/^Today · /)).toBeNull()
+    expect(screen.getByText('Friday, November 27')).toBeTruthy()
+  } finally {
+    vi.useRealTimers()
+  }
 })
 
 describe('settings', () => {

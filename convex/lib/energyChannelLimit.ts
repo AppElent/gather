@@ -39,10 +39,11 @@ const MONTH_MS = 31 * DAY_MS + HOUR_MS
  * or itself, never both. A realistic site, seven channels and one price feed,
  * scans about 9,000.
  *
- * Payback reads one `energySolar.month` per past month (APP-921). None of
- * them reads the Home Assistant source the hourly sync patches
- * (`siteChannels`) or a channel's newest hour (`measuredSpan`), so an hourly
- * sync leaves past months be.
+ * Payback reads one `energySolar.paybackMonth` per past month (APP-921,
+ * APP-962). None of them reads the Home Assistant source the hourly sync
+ * patches (`siteChannels`) or a channel's newest hour (`measuredSpan`), so an
+ * hourly sync leaves past months be, and none reads the assets, so editing
+ * one does too.
  */
 export const MAX_CHANNELS = 30
 

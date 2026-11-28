@@ -1,3 +1,4 @@
+import { todayIn } from '@gather/core/civil-date'
 import {
   addGroceryAmounts,
   capitalise,
@@ -11,11 +12,13 @@ import {
   groceryCompletions,
   groceryNames,
   parseGroceryLine,
+  readGroceryRepeat,
   typedSpan,
 } from '@gather/core/groceries'
 import { stockKey } from '@gather/core/grocery-list'
+import { describeRepeat } from '@gather/core/task-repeat'
 import { useMutation } from 'convex/react'
-import { BookOpen, ChevronDown, Clock, Plus } from 'lucide-react'
+import { BookOpen, ChevronDown, Clock, Plus, Repeat, X } from 'lucide-react'
 import {
   type FormEvent,
   type KeyboardEvent,
@@ -29,6 +32,7 @@ import type { Doc, Id } from '../../../convex/_generated/dataModel'
 import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useI18n } from '../../lib/i18n'
 import { buttonClass } from '../app/buttons'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { useMenu } from '../app/useMenu'
 import { fieldClass } from '../recipes/fields'
 import { useRecognisedAisle } from './useRecipeLines'
@@ -44,7 +48,9 @@ export interface GroceryAddFormProps {
  * Top-of-list inline grocery add form (APP-316, `designs/groceries/web.md`):
  * local amount/unit/aisle recognition chips, clickable aisle override menu,
  * history and dictionary autocomplete with keyboard navigation. A suggestion
- * for an item already open adds the typed amount to it.
+ * for an item already open adds the typed amount to it. A repeat is read as
+ * the task field reads it ("koffie elke week", APP-993): its chip's × leaves
+ * the words in the name.
  */
 export function GroceryAddForm({
   groupSlug,
@@ -58,7 +64,9 @@ export function GroceryAddForm({
   const updateTask = useMutation(api.tasks.update)
   const errorText = useErrorMessage()
 
+  const { timeZone } = useRequiredCurrentGroup()
   const [typed, setTyped] = useState('')
+  const [dismissed, setDismissed] = useState<readonly string[]>([])
   const [chosenAisle, setChosenAisle] = useState<GroceryAisle | undefined>()
   const aisleMenu = useMenu()
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -69,7 +77,16 @@ export function GroceryAddForm({
   const inputId = useId()
   const listboxId = useId()
 
-  const trimmed = typed.trim()
+  const today = todayIn(timeZone)
+  const read = useMemo(
+    () => readGroceryRepeat(typed, today, dismissed),
+    [typed, today, dismissed],
+  )
+  const repeatLabel = read.repeat
+    ? describeRepeat(read.repeat, messages.tasks.repeat.summary, locale)
+    : null
+  // The line without its repeat: the name, its amount and its aisle.
+  const trimmed = read.rest.replace(/\s+/g, ' ').trim()
   const fields = useMemo(
     () => (trimmed ? groceryAddFields(trimmed) : null),
     [trimmed],
@@ -101,7 +118,7 @@ export function GroceryAddForm({
       (task) => !task.done && stockKey(task.title) === key,
     )
 
-  const typedParsed = useMemo(() => parseGroceryLine(typed), [typed])
+  const typedParsed = useMemo(() => parseGroceryLine(trimmed), [trimmed])
   const typedAmount =
     typedParsed.quantity !== null || typedParsed.unit !== null
       ? {
@@ -114,6 +131,7 @@ export function GroceryAddForm({
 
   const clearInput = () => {
     setTyped('')
+    setDismissed([])
     setChosenAisle(undefined)
     aisleMenu.close(false)
     setListOpen(false)
@@ -129,6 +147,8 @@ export function GroceryAddForm({
   }) => {
     const line = typed
     const aisleChoice = chosenAisle
+    const keptDismissed = dismissed
+    const repeat = read.repeat
     setError(null)
     // Cleared at once, so the next line can be typed while this one saves.
     clearInput()
@@ -151,6 +171,8 @@ export function GroceryAddForm({
           title: item.title,
           ...(item.quantity !== undefined ? { quantity: item.quantity } : {}),
           ...(item.unit !== undefined ? { unit: item.unit } : {}),
+          // On the list today, back on its schedule.
+          ...(repeat ? { repeat, dueDate: today, today } : {}),
         })
       }
       // The item is on the list by now: a failed aisle choice alone must not
@@ -165,6 +187,7 @@ export function GroceryAddForm({
       // Back for another try, unless the next line is already being typed.
       setTyped((current) => current || line)
       setChosenAisle((current) => current ?? aisleChoice)
+      setDismissed((current) => (current.length > 0 ? current : keptDismissed))
     }
   }
 
@@ -274,6 +297,8 @@ export function GroceryAddForm({
           onBlur={() => setListOpen(false)}
           onChange={(event) => {
             setTyped(event.target.value)
+            // A cleared line starts over: a dismissal was about its words.
+            if (!event.target.value.trim()) setDismissed([])
             setChosenAisle(undefined)
             setActiveIndex(-1)
             setListOpen(true)
@@ -346,6 +371,29 @@ export function GroceryAddForm({
               </div>
             ) : null}
           </span>
+          {repeatLabel && read.part ? (
+            <span
+              data-testid="grocery-repeat"
+              className="inline-flex min-h-7 items-center gap-1 rounded-[var(--radius-pill)] bg-[var(--kitchen-wash)] pl-2.5 font-semibold text-[var(--kitchen-text)]"
+            >
+              <Repeat className="size-3.5" aria-hidden="true" />
+              {repeatLabel}
+              <button
+                type="button"
+                aria-label={fmt(messages.tasks.quickAdd.remove, {
+                  part: repeatLabel,
+                })}
+                onClick={() => {
+                  const key = read.part?.key
+                  if (key) setDismissed((current) => [...current, key])
+                  inputRef.current?.focus()
+                }}
+                className="grid size-7 pointer-coarse:size-[var(--size-control-min)] cursor-pointer place-items-center rounded-[var(--radius-pill)] border-0 bg-transparent text-[var(--kitchen-text)] hover:opacity-70"
+              >
+                <X className="size-3.5" aria-hidden="true" />
+              </button>
+            </span>
+          ) : null}
           <span className="text-[var(--muted)]">{g.web.enterAdds}</span>
         </div>
       ) : (

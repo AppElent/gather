@@ -214,6 +214,8 @@ vi.mock('./store', () => ({
   useTaskList: (id: string) => ({
     tasks: state.elsewhere[id]?.tasks ?? state.tasks,
     list: { sync: state.elsewhere[id]?.sync ?? 'live' },
+    // A Friday.
+    today: '2026-11-27',
   }),
   useTaskActions: () => ({
     addComposedGrocery: async (
@@ -362,6 +364,41 @@ test('the line shows its amount and aisle on the chips, and marks the amount', (
   expect(chip('amount')).toMatchObject({ label: '2 packs', set: true })
   expect(chip('aisle')).toMatchObject({ label: g.aisles.dairy, set: true })
   expect(title().dataset.marked?.trim()).toBe('2 pak')
+})
+
+test('the line reads a repeat, shown on its chip, and it goes with the item (APP-993)', async () => {
+  const { type, chip, title, enter, menu } = open()
+  expect(chip('repeat')).toBeUndefined()
+  type('2 pak koffie elke week')
+  expect(chip('repeat')).toMatchObject({ label: 'Every week, Fri', set: true })
+  expect(title().dataset.marked).toBe('2 pak|elke week')
+  await enter()
+  expect(state.adds[0]!.item).toMatchObject({
+    title: 'koffie',
+    quantity: 2,
+    unit: 'pak',
+    repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [5] },
+  })
+  // Removed, its words stay in the name.
+  type('thee elke maand')
+  await menu('repeat:remove')
+  expect(chip('repeat')).toBeUndefined()
+  await enter()
+  expect(state.adds[1]!.item.title).toBe('thee elke maand')
+  expect(state.adds[1]!.item.repeat).toBeUndefined()
+})
+
+test('a repeat tapped on the chip takes the typed one out of the line', async () => {
+  const { type, chip, title, enter, menu } = open()
+  type('koffie elke week')
+  await menu('repeat:month')
+  expect(title().value).toBe('koffie')
+  expect(chip('repeat')).toMatchObject({ label: 'Every month on day 27' })
+  await enter()
+  expect(state.adds[0]!.item).toMatchObject({
+    title: 'koffie',
+    repeat: { unit: 'month', monthDay: 27 },
+  })
 })
 
 test('a tapped amount and aisle win over the line, and go with the item', async () => {

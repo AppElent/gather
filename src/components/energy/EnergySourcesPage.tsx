@@ -2,6 +2,7 @@ import {
   energyChannelRows,
   energyManualLine,
   energySourceLine,
+  energyStaleStatistics,
 } from '@gather/core/energy-present'
 import { useQuery } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
@@ -55,7 +56,11 @@ function Sources({ list }: { list: SourceList }) {
   const copy = words.sources
   const now = Date.now()
   const label = new Map<string, string>(list.sources.map((each) => [each._id, each.label]))
-  const rows = energyChannelRows(list.channels, words)
+  const rows = energyChannelRows(
+    list.channels,
+    words,
+    list.sources.flatMap(energyStaleStatistics),
+  )
   const homeAssistant = list.sources.some(
     (each) => each.kind === 'homeAssistant',
   )
@@ -114,6 +119,8 @@ function Sources({ list }: { list: SourceList }) {
               <ValueRow
                 key={row.key}
                 label={row.name}
+                sub={row.stale ? copy.channelStale : undefined}
+                danger={row.stale}
                 value={label.get(row.sourceId) ?? ''}
               />
             ))}

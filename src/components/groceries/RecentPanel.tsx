@@ -1,4 +1,3 @@
-import { todayIn } from '@gather/core/civil-date'
 import {
   formatGroceryAmount,
   groceryKey,
@@ -12,6 +11,7 @@ import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useErrorMessage } from '../../lib/errorMessage'
 import { fmt, useI18n } from '../../lib/i18n'
+import { useDayIn } from '../../lib/useDayIn'
 import { buttonClass } from '../app/buttons'
 import { InsetList, SectionFooter, SectionLabel } from '../app/InsetList'
 
@@ -58,7 +58,7 @@ export function RecentPanel({
     () => recentDays(recent ?? [], timeZone),
     [recent, timeZone],
   )
-  const today = todayIn(timeZone)
+  const today = useDayIn(timeZone)
 
   const dayLabel = (isoDate: string) => {
     const day = new Date(`${isoDate}T12:00:00`)

@@ -120,6 +120,29 @@ test.each([
   view.unmount()
 })
 
+test('a sensor that stopped reporting is flagged on its source and its channel', () => {
+  energyState.queries['energySources:list'] = {
+    ...list,
+    sources: [{ ...list.sources[0], lastError: 'statisticStale|sensor.p1_gas' }],
+    channels: [
+      { ...list.channels[0], statisticId: 'sensor.t1' },
+      { ...list.channels[1], statisticId: 'sensor.t2' },
+      { ...list.channels[2], statisticId: 'sensor.p1_gas' },
+    ],
+  }
+  const view = mount(createElement(EnergySourcesScreen))
+  const line = byTestId('energy-source-row-homeAssistant')?.querySelector(
+    '[data-tone="danger"]',
+  )
+  expect(line?.textContent).toContain('sensor.p1_gas')
+  expect(line?.textContent).toContain('12:15')
+  const flagged = byTestId('energy-channels')?.querySelectorAll('[data-tone="danger"]')
+  expect([...(flagged ?? [])].map((each) => each.textContent)).toEqual([
+    'Home Assistant · stopped reporting',
+  ])
+  view.unmount()
+})
+
 test('a Member sees the sources but cannot connect one', () => {
   energyState.queries['energySources:list'] = {
     ...list,

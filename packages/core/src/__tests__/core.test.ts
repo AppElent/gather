@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { isAiLimitReached } from '../aiLimit'
 import {
+  arrangeBarEvents,
   BABY_BAR_SHORTCUTS,
   BABY_EVENT_TYPES,
   babyBarSlots,
@@ -214,5 +215,39 @@ describe('the daily AI cap on the wire', () => {
     expect(isAiLimitReached({ data: { kind: 'tastingAttribute' } })).toBe(false)
     expect(isAiLimitReached(null)).toBe(false)
     expect(isAiLimitReached(undefined)).toBe(false)
+  })
+})
+
+describe('saving an order from a screen without the shortcuts', () => {
+  test('each shortcut keeps its slot while the event types swap around it', () => {
+    expect(
+      arrangeBarEvents(
+        ['question', 'feeding', 'todo', 'diaper', 'sleep'],
+        ['sleep', 'diaper', 'feeding'],
+      ),
+    ).toEqual(['question', 'sleep', 'todo', 'diaper', 'feeding'])
+  })
+
+  test('a shortcut that was taken off is not put back', () => {
+    expect(
+      arrangeBarEvents(['feeding', 'diaper', 'todo'], ['diaper', 'feeding']),
+    ).toEqual(['diaper', 'feeding', 'todo'])
+  })
+
+  test('no stored arrangement writes both shortcuts last, as the phone reads it', () => {
+    expect(arrangeBarEvents(undefined, ['diaper', 'feeding'])).toEqual([
+      'diaper',
+      'feeding',
+      ...BABY_BAR_SHORTCUTS,
+    ])
+  })
+
+  test('a type just turned off falls out and one just turned on gets a slot', () => {
+    expect(
+      arrangeBarEvents(['todo', 'feeding', 'diaper', 'question'], [
+        'sleep',
+        'feeding',
+      ]),
+    ).toEqual(['todo', 'sleep', 'question', 'feeding'])
   })
 })

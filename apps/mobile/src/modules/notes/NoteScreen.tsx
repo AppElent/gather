@@ -109,6 +109,10 @@ export function Note({ noteId }: { noteId: string }) {
   const inFlight = useRef<HeldNote>({})
   /** Kept text not put back, because its field changed since. */
   const clash = useRef<HeldNote>({})
+  /** Held text the server refused, with why: kept with it (APP-970). */
+  const refusal = useRef<
+    Partial<Record<keyof NoteText, { text: string; sentence: string }>>
+  >({})
   const [clashed, setClashed] = useState<HeldNote>({})
   /** Sent, and not yet in `note`: the next save is compared with it too. */
   const sent = useRef<Partial<NoteText>>({})
@@ -125,6 +129,8 @@ export function Note({ noteId }: { noteId: string }) {
   /** The note loaded and its kept text was read: leaving may write it back. */
   const ready = useRef(false)
   const [refused, setRefused] = useState<string | null>(null)
+  /** The text a late refusal's sentence is about: saved, the sentence goes. */
+  const refusedFor = useRef<Partial<NoteText>>({})
   /** The saved version this screen's text is typed on (APP-347). */
   const baseRef = useRef<NoteBase | null>(null)
   /** Another Member's save this screen's text met, until the person chooses. */
@@ -147,8 +153,11 @@ export function Note({ noteId }: { noteId: string }) {
     const out: HeldNote = { ...clash.current, ...inFlight.current }
     for (const field of FIELDS) {
       const text = held.current[field]
-      if (text !== undefined)
-        out[field] = { text, over: heldOver.current[field] ?? [] }
+      if (text === undefined) continue
+      out[field] = { text, over: heldOver.current[field] ?? [] }
+      // Refused as it is now: the sentence goes with it. Changed since, not.
+      const why = refusal.current[field]
+      if (why?.text === text) out[field].refused = why.sentence
     }
     return out
   }
@@ -264,6 +273,7 @@ export function Note({ noteId }: { noteId: string }) {
           baseRef.current = { ...saved, ...patch, updatedAt: result.updatedAt }
         landed(patch)
         if (mounted.current) {
+          cleared(patch)
           if (holdsText(key)) keepHeld()
         } else
           for (const each of FIELDS) {
@@ -277,6 +287,14 @@ export function Note({ noteId }: { noteId: string }) {
       landed(patch)
       sent.current = {}
       const sentence = noteRefusalSentence(error, t.notes.refusals)
+      // Refused, the sentence is kept with the text, past a quit (APP-970).
+      // Failed without one, it is sent again on the next open.
+      for (const each of FIELDS) {
+        const text = patch[each]
+        if (text === undefined) continue
+        if (sentence === null) delete refusal.current[each]
+        else refusal.current[each] = { text, sentence }
+      }
       // Refused or failed, the text stays: on screen to send again on leaving,
       // and on this phone for the next open (APP-829).
       // Closed since: `announceHeld` writes it, into what a reopened screen
@@ -289,6 +307,7 @@ export function Note({ noteId }: { noteId: string }) {
       else {
         if (patch.title !== undefined) title.hold(patch.title)
         if (patch.body !== undefined) body.hold(patch.body)
+        refusedFor.current = {}
         setRefused(sentence ?? t.notes.notSaved)
       }
       if (sentence === null) reportError(error)
@@ -406,10 +425,26 @@ export function Note({ noteId }: { noteId: string }) {
   /** `patch` was answered: no longer in flight, unless sent again since. */
   function landed(patch: Partial<NoteText>) {
     const rest = { ...inFlight.current }
-    for (const each of FIELDS)
+    for (const each of FIELDS) {
       if (patch[each] !== undefined && rest[each]?.text === patch[each])
         delete rest[each]
+      // Answered anew: an older refusal of it no longer says why.
+      if (refusal.current[each]?.text === patch[each])
+        delete refusal.current[each]
+    }
     inFlight.current = rest
+  }
+
+  /** `patch` was saved: a late refusal of that text no longer holds (APP-969). */
+  function cleared(patch: Partial<NoteText>) {
+    const about = refusedFor.current
+    if (Object.keys(about).length === 0) return
+    const rest = { ...about }
+    for (const each of FIELDS)
+      if (patch[each] !== undefined && rest[each] === patch[each])
+        delete rest[each]
+    refusedFor.current = rest
+    if (Object.keys(rest).length === 0) setRefused(null)
   }
 
   const keep = useRef(keepHeld)
@@ -436,6 +471,8 @@ export function Note({ noteId }: { noteId: string }) {
     )
   const { change: changeTitle } = title
   const { change: changeBody } = body
+  const { keepRefused: keepRefusedTitle } = title
+  const { keepRefused: keepRefusedBody } = body
 
   /** Puts kept text back where its field is as it was left; the rest clashes. */
   const restore = useRef(
@@ -445,6 +482,7 @@ export function Note({ noteId }: { noteId: string }) {
     const now = latestNote.current
     if (!now) return
     const clashes: HeldNote = {}
+    let why: string | undefined
     for (const field of FIELDS) {
       const each = kept[field]
       // Saved already, or on screen already: nothing to put back or offer.
@@ -460,14 +498,29 @@ export function Note({ noteId }: { noteId: string }) {
         // in that pause takes it along, or keeps it on the phone (APP-968).
         held.current = { ...held.current, [field]: each.text }
         heldOver.current = { ...heldOver.current, [field]: each.over }
-        ;(field === 'title' ? changeTitle : changeBody)(each.text)
+        // Refused by the server: shown with why, and not sent again until
+        // changed, since it would be refused again (APP-970).
+        if (each.refused !== undefined) {
+          refusal.current[field] = { text: each.text, sentence: each.refused }
+          ;(field === 'title' ? keepRefusedTitle : keepRefusedBody)(each.text)
+          why ??= each.refused
+        } else (field === 'title' ? changeTitle : changeBody)(each.text)
       } else clashes[field] = each
     }
     if (Object.keys(clashes).length > 0) {
       clash.current = { ...clash.current, ...clashes }
       setClashed(clash.current)
     }
-    if (sentence) setRefused(sentence)
+    const shown = sentence ?? why
+    if (shown) {
+      const about: Partial<NoteText> = {}
+      for (const field of FIELDS) {
+        const each = kept[field]
+        if (each && each.text !== now[field]) about[field] = each.text
+      }
+      refusedFor.current = about
+      setRefused(shown)
+    }
   }
   useEffect(() => {
     if (!loaded) return
