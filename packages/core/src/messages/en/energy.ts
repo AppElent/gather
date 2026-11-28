@@ -205,6 +205,7 @@ export const energy = {
         'Not available yet for {count} days: they have no contract, or their prices have not come in.',
     },
     estimated: 'Estimated from meter readings, per day.',
+    fixedOnly: 'Fixed costs only, without usage.',
     vatNote: 'Amounts include VAT and energy tax.',
   },
   /** The contract and its tariffs (section 6). */

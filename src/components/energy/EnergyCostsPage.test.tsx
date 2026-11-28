@@ -229,7 +229,7 @@ describe('EnergyCostsPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  test('a month without usage lists only its fixed costs', () => {
+  test('a month without usage shows its fixed costs as the total (APP-741)', () => {
     const period = monthPeriod('2026-11', '2026-11-20', {}, {
       hasData: false,
       costStatus: 'noData',
@@ -242,14 +242,41 @@ describe('EnergyCostsPage', () => {
       fixedCents: 2260,
       creditCents: -3480,
     }
+    period.totals.daysWithData = 0
     state.months = { '2026-11': period }
     renderInGroup(<EnergyCostsPage />)
-    expect(screen.getByRole('region', { name: 'Total' })).not.toHaveTextContent('€')
+    const total = screen.getByRole('region', { name: 'Total' })
+    expect(total).toHaveTextContent('November 1 to November 20')
+    expect(within(total).getByText('-€12.20')).toBeInTheDocument()
+    expect(total).toHaveTextContent('Fixed costs only, without usage.')
+    expect(total).toHaveTextContent('No usage in November yet.')
+    expect(total).not.toHaveTextContent('Expected for all of')
     expect(screen.getByText('€22.60')).toBeInTheDocument()
     expect(screen.getAllByText('20 days')).toHaveLength(2)
     expect(
       screen.queryByText('Electricity from the grid'),
     ).not.toBeInTheDocument()
+  })
+
+  test('a month with only fixed costs gets its bar in the year chart (APP-741)', () => {
+    const october = monthPeriod('2026-10', '2026-11-20', {}, {
+      hasData: false,
+      costStatus: 'noData',
+      cost: cost(50, { importCents: 0, fixedCents: 50 }),
+    })
+    october.totals = {
+      ...october.totals,
+      daysWithData: 0,
+      costStatus: 'noData',
+      cost: cost(1550, { importCents: 0, fixedCents: 1550 }),
+      costWithoutNet: cost(1550, { importCents: 0, fixedCents: 1550 }),
+    }
+    state.months['2026-10'] = october
+    state.months['2025-10'] = monthPeriod('2025-10', '2025-10-31')
+    renderInGroup(<EnergyCostsPage />)
+    expect(
+      screen.getByText('October to October: €15.50, last year €93.00.'),
+    ).toBeInTheDocument()
   })
 
   test('a previous month with only fixed costs is not compared with', () => {

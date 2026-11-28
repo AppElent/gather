@@ -8,13 +8,15 @@
  * 2027. From 2027 the choice is gone and every cost is without.
  *
  * A month without costs says why in words (no usage, no contract, prices not
- * in): never a made-up figure.
+ * in): never a made-up figure. A month whose usage has no price still shows
+ * the fixed costs of its elapsed days, saying it holds only those (APP-741).
  */
 import { amsterdamIsoDate } from '@gather/core/civil-date'
 import {
   addEnergyMonths,
   energyCostDays,
   energyCostPeriod,
+  energyMonthCost,
   energyMonthOf,
   forecastMonthCents,
   netMeteringPossibleIn,
@@ -119,8 +121,12 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
       ),
     })
 
+    // A month without priced usage still shows its fixed costs (APP-741).
+    const figure = energyMonthCost({ costStatus: status, cost })
+
     const notes: string[] = []
     if (status !== 'ok' || !cost) {
+      if (figure?.fixedOnly) notes.push(words.costs.fixedOnly)
       notes.push(
         costStatusSentence(status === 'ok' ? 'noPrices' : status, month, words, locale),
       )
@@ -246,7 +252,7 @@ export function EnergyCostsScreen({ initialMonth }: { initialMonth?: string }) {
         <EnergyTotalCard
           testID="energy-costs-total"
           caption={caption}
-          value={status === 'ok' && cost ? euro(cost.totalCents) : null}
+          value={figure ? euro(figure.cents) : null}
           notes={notes}
         />
 

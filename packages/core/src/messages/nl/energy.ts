@@ -184,6 +184,7 @@ export const energy = {
         'Nog niet beschikbaar voor {count} dagen: daarvoor is er geen contract of zijn de prijzen nog niet binnen.',
     },
     estimated: 'Geschat uit meterstanden, per dag.',
+    fixedOnly: 'Alleen vaste kosten, zonder verbruik.',
     vatNote: 'Bedragen inclusief btw en energiebelasting.',
   },
   contract: {
