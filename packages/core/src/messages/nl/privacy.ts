@@ -2,7 +2,7 @@ import type { privacy as enPrivacy } from '../en/privacy'
 
 export const privacy = {
   title: 'Privacyverklaring',
-  updated: 'Laatst bijgewerkt: 25 november 2026',
+  updated: 'Laatst bijgewerkt: 27 november 2026',
   intro: {
     title: 'Wie we zijn',
     body: {
@@ -69,7 +69,9 @@ export const privacy = {
       convex:
         'Convex: database en bestandsopslag, gehost in de Europese Unie (Ierland).',
       cloudflare: 'Cloudflare: hosting van de webapp.',
-      expo: 'Expo: het bouwen van de mobiele app en het leveren van updates daarvoor.',
+      expo: 'Expo: het bouwen van de mobiele app, het leveren van updates daarvoor, en het doorgeven van pushmeldingen aan Apple. Een melding bevat de titel van de taak of afspraak, de naam van de Groep, het soort melding en, bij een taak die iemand je gaf, de naam van die persoon en de deadline. Hij staat op je vergrendelscherm, tenzij je dat in de instellingen van je telefoon uitzet.',
+      apple:
+        'Apple: de Apple Push Notification service bezorgt pushmeldingen op je iPhone. Gather bewaart een pushtoken voor elke telefoon waarop je meldingen toestaat, met de taal van die telefoon, en verwijdert het als je uitlogt of je account verwijdert.',
       anthropic:
         'Anthropic: hulp met AI bij recepten, in twee gevallen en alleen als jij erom vraagt. Als je een recept importeert vanaf een webadres en de pagina het recept niet in een standaardformaat beschrijft, wordt de tekst van die openbare pagina verstuurd om het recept te herkennen. Als je Gather de voedingswaarde van een recept laat schatten, worden de ingrediëntregels en het aantal porties verstuurd. In geen van beide gevallen gaan je naam of e-mailadres mee, en Anthropic gebruikt het niet om modellen te trainen. Iedereen kan per dag een beperkt aantal van deze AI-verzoeken doen; om die limiet te handhaven houden we bij hoeveel verzoeken je op elke dag hebt gedaan. Die telling wordt met je account verwijderd.',
       github:

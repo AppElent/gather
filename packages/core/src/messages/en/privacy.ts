@@ -14,7 +14,7 @@
  */
 export const privacy = {
   title: 'Privacy statement',
-  updated: 'Last updated: 25 November 2026',
+  updated: 'Last updated: 27 November 2026',
   intro: {
     title: 'Who we are',
     body: {
@@ -81,7 +81,9 @@ export const privacy = {
       convex:
         'Convex: database and file storage, hosted in the European Union (Ireland).',
       cloudflare: 'Cloudflare: hosting of the web app.',
-      expo: 'Expo: building the mobile app and delivering its updates.',
+      expo: 'Expo: building the mobile app, delivering its updates, and passing push notifications on to Apple. A notification contains the title of the task or event, the name of its Group, what kind of notification it is and, for a task someone gave you, that person’s name and the due date. It is shown on your lock screen unless you turn that off in your phone’s settings.',
+      apple:
+        'Apple: the Apple Push Notification service delivers push notifications to your iPhone. Gather stores a push token for each phone where you allow notifications, with the phone’s language, and deletes it when you sign out or delete your account.',
       anthropic:
         'Anthropic: AI help with recipes, in two cases and only when you ask for it. When you import a recipe from a web address and the page does not describe the recipe in a standard format, the text of that public page is sent to recognise the recipe. When you ask Gather to estimate a recipe’s nutrition, its ingredient lines and number of servings are sent. Neither is sent with your name or email address, and Anthropic does not use it to train models. Each person can make a limited number of these AI requests per day; to enforce that limit we keep a count of how many requests you made on each day, which is deleted with your account.',
       github:
