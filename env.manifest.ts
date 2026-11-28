@@ -403,6 +403,36 @@ export const ENTRIES = [
       },
     },
   },
+  // Enelogic (APP-497): one OAuth client per environment, since Enelogic takes
+  // one redirect URI per client. Staging has none of its own: it reads `prod`,
+  // whose client redirects to production only.
+  {
+    key: 'enelogicClientId',
+    infisicalKey: 'enelogic-client-id',
+    description:
+      'Enelogic OAuth client (app) ID. Public: it travels in the authorize URL.',
+    optional: true,
+    secret: false,
+    lands: {
+      'convex-functions': {
+        name: 'ENELOGIC_CLIENT_ID',
+        environments: ['local', 'preview', 'production'],
+      },
+    },
+  },
+  {
+    key: 'enelogicClientSecret',
+    infisicalKey: 'enelogic-client-secret',
+    description: 'Enelogic OAuth client (app) secret.',
+    optional: true,
+    secret: true,
+    lands: {
+      'convex-functions': {
+        name: 'ENELOGIC_CLIENT_SECRET',
+        environments: ['local', 'preview', 'production'],
+      },
+    },
+  },
 
   // ---------- In-app issue reporter ----------
   // A per-PR Worker starts empty, so preview.yml applies these after deploying

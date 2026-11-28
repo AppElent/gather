@@ -44,6 +44,11 @@ import { primarySiteOf } from './lib/energyUsage'
 import { requireGroupBySlug } from './lib/groupAccess'
 
 const HOUR_MS = 3_600_000
+/** The sources an admin connects, as opposed to typing readings. */
+const connectedKindValidator = v.union(
+  v.literal('homeAssistant'),
+  v.literal('enelogic'),
+)
 /** A brand, so the same in every language. */
 const HOME_ASSISTANT_LABEL = 'Home Assistant'
 /** Sources started per cron step, and the pause between two of them. */
@@ -184,7 +189,11 @@ export const list = query({
  * read stay; typed meters Home Assistant had replaced are asked for again.
  */
 export const disconnect = mutation({
-  args: { groupSlug: v.string() },
+  args: {
+    groupSlug: v.string(),
+    /** Home Assistant when left out, as before Enelogic (APP-497). */
+    kind: v.optional(connectedKindValidator),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     // Stays in the app (ADR-0046).
@@ -193,7 +202,11 @@ export const disconnect = mutation({
     if (role !== 'admin') throw new ConvexError(energyRefusal('adminOnly'))
     const site = await primarySiteOf(ctx, group._id)
     if (!site) throw new ConvexError(energyRefusal('notFound'))
-    const source = await homeAssistantSource(ctx, site._id)
+    const source = await sourceOfKind(
+      ctx,
+      site._id,
+      args.kind ?? 'homeAssistant',
+    )
     if (!source) throw new ConvexError(energyRefusal('notFound'))
     await cancelImports(ctx, source._id)
     await ctx.db.patch(source._id, {
@@ -206,12 +219,16 @@ export const disconnect = mutation({
   },
 })
 
-async function homeAssistantSource(ctx: QueryCtx, siteId: Id<'energySites'>) {
-  const sources = await ctx.db
+/** A site's one source of a kind, or null. */
+export async function sourceOfKind(
+  ctx: QueryCtx,
+  siteId: Id<'energySites'>,
+  kind: Doc<'energySources'>['kind'],
+) {
+  return await ctx.db
     .query('energySources')
-    .withIndex('by_site', (q) => q.eq('siteId', siteId))
-    .collect()
-  return sources.find((each) => each.kind === 'homeAssistant') ?? null
+    .withIndex('by_site_kind', (q) => q.eq('siteId', siteId).eq('kind', kind))
+    .first()
 }
 
 /**
@@ -266,15 +283,21 @@ const channelChoiceValidator = v.object({
  * hands them the stored connection and what the site already measures.
  */
 export const connectContext = internalQuery({
-  args: { groupSlug: v.string() },
+  args: {
+    groupSlug: v.string(),
+    /** Home Assistant when left out (APP-497 added Enelogic). */
+    kind: v.optional(connectedKindValidator),
+  },
   handler: async (ctx, args) => {
     const { group, role } = await requireGroupBySlug(ctx, args.groupSlug)
     if (role !== 'admin') throw new ConvexError(energyRefusal('adminOnly'))
     const site = await primarySiteOf(ctx, group._id)
     if (!site) throw new ConvexError(energyRefusal('notFound'))
     const { sources, channels } = await siteRows(ctx, site._id)
-    const source = sources.find((each) => each.kind === 'homeAssistant')
+    const kind = args.kind ?? 'homeAssistant'
+    const source = sources.find((each) => each.kind === kind)
     return {
+      sourceId: source?._id ?? null,
       baseUrl: source?.baseUrl ?? null,
       secret: source?.secret ?? null,
       own: channels
@@ -315,7 +338,7 @@ export const saveConnection = internalMutation({
     if (!site) throw new ConvexError(energyRefusal('notFound'))
     checkChoices(args.channels)
 
-    const existing = await homeAssistantSource(ctx, site._id)
+    const existing = await sourceOfKind(ctx, site._id, 'homeAssistant')
     const unchanged =
       Boolean(existing?.secret) && existing?.baseUrl === args.baseUrl
     if (args.storedToken && !(unchanged && existing?.secret === args.secret)) {
@@ -348,74 +371,12 @@ export const saveConnection = internalMutation({
     if (!sourceId) return null
     const source = sourceId
 
-    const left = await ctx.db
-      .query('energyChannels')
-      .withIndex('by_source', (q) => q.eq('sourceId', source))
-      .collect()
-    // The one in use before a retired one, the newest first.
-    left.sort(
-      (a, b) =>
-        Number(a.retiredAt !== undefined) - Number(b.retiredAt !== undefined) ||
-        b._creationTime - a._creationTime,
-    )
-    const take = (match: (channel: Doc<'energyChannels'>) => boolean) => {
-      const at = left.findIndex(match)
-      return at < 0 ? undefined : left.splice(at, 1)[0]
-    }
-    const open: typeof args.channels = []
-    const carryOn = (
-      channel: Doc<'energyChannels'>,
-      statisticId: string,
-    ) =>
-      ctx.db.patch(channel._id, {
-        externalRef: statisticId,
-        retiredAt: undefined,
-      })
-    for (const choice of args.channels) {
-      const same = take(
-        (each) =>
-          each.kind === choice.kind &&
-          each.tariff === choice.tariff &&
-          each.externalRef === choice.statisticId,
-      )
-      if (same) await carryOn(same, choice.statisticId)
-      else open.push(choice)
-    }
-    for (const choice of open) {
-      const kin = take(
-        (each) => each.kind === choice.kind && each.tariff === choice.tariff,
-      )
-      if (kin) {
-        await carryOn(kin, choice.statisticId)
-      } else {
-        await ctx.db.insert('energyChannels', {
-          groupId: group._id,
-          siteId: site._id,
-          sourceId: source,
-          kind: choice.kind,
-          tariff: choice.tariff,
-          unit: energyChannelUnit(choice.kind),
-          externalRef: choice.statisticId,
-        })
-      }
-    }
-    for (const channel of left) {
-      if (channel.retiredAt === undefined) {
-        await ctx.db.patch(channel._id, { retiredAt: Date.now() })
-      }
-    }
-    // Usage reads a month of hours, of retired channels too.
-    const channels = await ctx.db
-      .query('energyChannels')
-      .withIndex('by_source', (q) => q.eq('sourceId', source))
-      .collect()
-    if (
-      (await mostChannelsInAMonth(ctx, channels, Date.now())) > MAX_CHANNELS
-    ) {
-      throw new ConvexError(energyRefusal('tooManyChannels'))
-    }
-    await reconcileManualChannels(ctx, site._id)
-    await linkChannelsToAssets(ctx, site._id)
+    await applyChannels(ctx, {
+      groupId: group._id,
+      siteId: site._id,
+      sourceId: source,
+      channels: args.channels,
+    })
     await ctx.scheduler.runAfter(
       0,
       internal.energyHomeAssistant.syncSource,
@@ -435,7 +396,97 @@ export const saveConnection = internalMutation({
   },
 })
 
-function checkChoices(
+type ChannelChoice = {
+  kind: Doc<'energyChannels'>['kind']
+  tariff?: 't1' | 't2'
+  statisticId: string
+}
+
+/**
+ * Give a connected source exactly these channels. A channel switched off is
+ * retired with its history; switched on again, or given another sensor, the
+ * same channel carries on, so its hours never exist twice.
+ */
+export async function applyChannels(
+  ctx: MutationCtx,
+  args: {
+    groupId: Id<'groups'>
+    siteId: Id<'energySites'>
+    sourceId: Id<'energySources'>
+    channels: readonly ChannelChoice[]
+  },
+) {
+  const left = await ctx.db
+    .query('energyChannels')
+    .withIndex('by_source', (q) => q.eq('sourceId', args.sourceId))
+    .collect()
+  // The one in use before a retired one, the newest first.
+  left.sort(
+    (a, b) =>
+      Number(a.retiredAt !== undefined) - Number(b.retiredAt !== undefined) ||
+      b._creationTime - a._creationTime,
+  )
+  const take = (match: (channel: Doc<'energyChannels'>) => boolean) => {
+    const at = left.findIndex(match)
+    return at < 0 ? undefined : left.splice(at, 1)[0]
+  }
+  const open: ChannelChoice[] = []
+  const carryOn = (
+    channel: Doc<'energyChannels'>,
+    statisticId: string,
+  ) =>
+    ctx.db.patch(channel._id, {
+      externalRef: statisticId,
+      retiredAt: undefined,
+    })
+  for (const choice of args.channels) {
+    const same = take(
+      (each) =>
+        each.kind === choice.kind &&
+        each.tariff === choice.tariff &&
+        each.externalRef === choice.statisticId,
+    )
+    if (same) await carryOn(same, choice.statisticId)
+    else open.push(choice)
+  }
+  for (const choice of open) {
+    const kin = take(
+      (each) => each.kind === choice.kind && each.tariff === choice.tariff,
+    )
+    if (kin) {
+      await carryOn(kin, choice.statisticId)
+    } else {
+      await ctx.db.insert('energyChannels', {
+        groupId: args.groupId,
+        siteId: args.siteId,
+        sourceId: args.sourceId,
+        kind: choice.kind,
+        tariff: choice.tariff,
+        unit: energyChannelUnit(choice.kind),
+        externalRef: choice.statisticId,
+      })
+    }
+  }
+  for (const channel of left) {
+    if (channel.retiredAt === undefined) {
+      await ctx.db.patch(channel._id, { retiredAt: Date.now() })
+    }
+  }
+  // Usage reads a month of hours, of retired channels too.
+  const channels = await ctx.db
+    .query('energyChannels')
+    .withIndex('by_source', (q) => q.eq('sourceId', args.sourceId))
+    .collect()
+  if (
+    (await mostChannelsInAMonth(ctx, channels, Date.now())) > MAX_CHANNELS
+  ) {
+    throw new ConvexError(energyRefusal('tooManyChannels'))
+  }
+  await reconcileManualChannels(ctx, args.siteId)
+  await linkChannelsToAssets(ctx, args.siteId)
+}
+
+export function checkChoices(
   channels: readonly {
     kind: Doc<'energyChannels'>['kind']
     tariff?: 't1' | 't2'
@@ -583,7 +634,8 @@ export const beginSync = internalMutation({
 export const storeIntervals = internalMutation({
   args: {
     sourceId: v.id('energySources'),
-    baseUrl: v.string(),
+    /** Home Assistant's; Enelogic has none (APP-497). */
+    baseUrl: v.optional(v.string()),
     importId: v.optional(v.id('_scheduled_functions')),
     batches: v.array(
       v.object({
@@ -978,7 +1030,8 @@ const SYNCED_STATUSES = ['ok', 'error', 'syncing'] as const
 
 /**
  * Start a sync of every connected Home Assistant, a page at a time: hourly of
- * new hours, or daily (`lookback`) of corrections to stored ones.
+ * new hours, or daily (`lookback`) of corrections to stored ones. With `kind`
+ * Enelogic, of every connected Enelogic account instead (`crons.ts`).
  */
 export const startSyncs = internalMutation({
   args: {
@@ -987,23 +1040,28 @@ export const startSyncs = internalMutation({
     ),
     cursor: v.optional(v.string()),
     lookback: v.optional(v.boolean()),
+    /** Home Assistant when left out; Enelogic has no lookback (APP-497). */
+    kind: v.optional(connectedKindValidator),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const status = args.status ?? SYNCED_STATUSES[0]
+    const kind = args.kind ?? 'homeAssistant'
     const page = await ctx.db
       .query('energySources')
       .withIndex('by_kind_status', (q) =>
-        q.eq('kind', 'homeAssistant').eq('status', status),
+        q.eq('kind', kind).eq('status', status),
       )
       .paginate({ numItems: SOURCES_PER_STEP, cursor: args.cursor ?? null })
     for (const [index, source] of page.page.entries()) {
       if (!source.secret) continue
       await ctx.scheduler.runAfter(
         index * SYNC_STAGGER_MS,
-        args.lookback
-          ? internal.energyHomeAssistant.lookbackSource
-          : internal.energyHomeAssistant.syncSource,
+        kind === 'enelogic'
+          ? internal.energyEnelogic.syncSource
+          : args.lookback
+            ? internal.energyHomeAssistant.lookbackSource
+            : internal.energyHomeAssistant.syncSource,
         { sourceId: source._id },
       )
     }
@@ -1018,6 +1076,7 @@ export const startSyncs = internalMutation({
           status: next,
           ...(page.isDone ? {} : { cursor: page.continueCursor }),
           ...(args.lookback ? { lookback: true } : {}),
+          ...(args.kind ? { kind: args.kind } : {}),
         },
       )
     }

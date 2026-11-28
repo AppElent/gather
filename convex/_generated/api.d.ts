@@ -21,6 +21,7 @@ import type * as dataExport from "../dataExport.js";
 import type * as energy from "../energy.js";
 import type * as energyAssets from "../energyAssets.js";
 import type * as energyContracts from "../energyContracts.js";
+import type * as energyEnelogic from "../energyEnelogic.js";
 import type * as energyHomeAssistant from "../energyHomeAssistant.js";
 import type * as energyPriceFetch from "../energyPriceFetch.js";
 import type * as energyPrices from "../energyPrices.js";
@@ -165,6 +166,7 @@ declare const fullApi: ApiFromModules<{
   energy: typeof energy;
   energyAssets: typeof energyAssets;
   energyContracts: typeof energyContracts;
+  energyEnelogic: typeof energyEnelogic;
   energyHomeAssistant: typeof energyHomeAssistant;
   energyPriceFetch: typeof energyPriceFetch;
   energyPrices: typeof energyPrices;

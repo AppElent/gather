@@ -187,6 +187,13 @@ export const ENERGY_REFUSAL_CODES = [
   'tooManyAssets',
   // APP-714: deleting a typed reading.
   'readingNotFound',
+  // APP-497: Enelogic.
+  'enelogicNotConfigured',
+  'enelogicRefused',
+  'enelogicUnreachable',
+  'enelogicRevoked',
+  'enelogicNotConnected',
+  'registerNotFound',
 ] as const
 export type EnergyRefusalCode = (typeof ENERGY_REFUSAL_CODES)[number]
 

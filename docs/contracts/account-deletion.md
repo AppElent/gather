@@ -39,6 +39,10 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   deletion stands. A token another connection still holds (a provider can
   issue the same one twice) is left alone. The token stays in the scheduled
   job's arguments until Convex prunes completed jobs.
+- **An Enelogic refresh token is forgotten, not revoked** (APP-497): Enelogic
+  documents no revoke endpoint, so disconnecting or deleting the Group drops
+  the source's `secret` and Enelogic keeps the grant until it expires or the
+  household removes Gather in their Enelogic account.
 - The files of the deleted rows travel along and are released after the last
   page, ten per step, when no row of the Group can keep one. A step that failed
   for good is run again by hand with its own arguments, which hold their ids.

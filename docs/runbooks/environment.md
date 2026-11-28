@@ -69,10 +69,15 @@ the manifest and `.env.example`, not here.
 - **Staging and production share Infisical `prod`.** Staging web reads the
   production values (the backend URL above all, [ADR-0039](../adr/0039-staging-is-a-frontend-on-the-production-backend.md)).
   A value that must differ for staging gets its own Infisical key.
-- **OAuth providers** (Notion, Todoist) register the redirect URI
+- **OAuth providers** (Notion, Todoist, and Enelogic as an Energy source,
+  APP-497) register the redirect URI
   `<app-origin>/integrations/callback` (`http://localhost:3000/integrations/callback`
   in dev). Without their client id/secret, connecting fails with a clear
-  "not configured" error and local task lists still work.
+  "not configured" error and local task lists still work. Enelogic takes one
+  redirect URI per client, so each environment has its own client
+  (`ENELOGIC_CLIENT_ID`, `ENELOGIC_CLIENT_SECRET`); staging has none and
+  cannot connect Enelogic. Its free plan allows 500 API calls a month, so
+  accounts are read every six hours, one call per measuring point.
 - `ANTHROPIC_API_KEY` is optional: without it, recipe import works only for
   pages with JSON-LD, and Plan mijn week (APP-319) always makes its rules-only
   "Eenvoudig voorstel", which costs no slimme actie.

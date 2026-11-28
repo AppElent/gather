@@ -30,6 +30,7 @@ type Failure =
 function OAuthCallback() {
   const { code, state, error } = Route.useSearch()
   const completeOAuth = useAction(api.integrations.completeOAuth)
+  const completeEnelogic = useAction(api.energyEnelogic.completeOAuth)
   const navigate = useNavigate()
   const [failure, setFailure] = useState<Failure | null>(null)
   const { oauthCallback } = useMessages().shell
@@ -56,15 +57,16 @@ function OAuthCallback() {
       setFailure({ kind: 'noGroup' })
       return
     }
-    completeOAuth({
-      provider: consumed.provider,
-      groupSlug: consumed.groupSlug,
-      code,
-      redirectUri: oauthRedirectUri(),
-    })
+    const { provider, groupSlug } = consumed
+    const redirectUri = oauthRedirectUri()
+    // Enelogic is an Energy source, not an integration (APP-497).
+    ;(provider === 'enelogic'
+      ? completeEnelogic({ groupSlug, code, redirectUri })
+      : completeOAuth({ provider, groupSlug, code, redirectUri })
+    )
       .then(() => navigate({ to: consumed.returnTo as '/settings' }))
       .catch((e) => setFailure({ kind: 'error', message: errorText(e, '') }))
-  }, [code, state, error, completeOAuth, navigate])
+  }, [code, state, error, completeOAuth, completeEnelogic, navigate])
 
   return (
     <div className="mx-auto max-w-md">

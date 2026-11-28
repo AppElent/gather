@@ -355,6 +355,8 @@ export const energy = {
     addHomeAssistantSub: 'Per hour, also HomeWizard and Zonneplan from Home Assistant',
     addManualSub: 'Type it yourself',
     enelogic: 'Enelogic',
+    addEnelogicSub: 'Per hour from your smart meter, through your Enelogic account',
+    adminsConnectEnelogic: 'Only admins of the Group can connect Enelogic.',
     homeWizard: 'HomeWizard directly',
     soon: 'Coming soon',
     homeWizardSoon: 'Coming soon. Through Home Assistant it already works.',
@@ -368,6 +370,11 @@ export const energy = {
       statisticMissing: 'A sensor no longer exists in Home Assistant: {statistics}.',
       disconnected: 'Disconnected.',
       syncFailed: 'Updating went wrong. Gather tries again every hour.',
+      enelogicRevoked:
+        'Enelogic no longer gives Gather access. Sign in at Enelogic again.',
+      enelogicUnreachable:
+        'Enelogic does not answer. Gather tries again in six hours.',
+      enelogicMissing: 'A measuring point is no longer in Enelogic: {statistics}.',
       statisticStale: 'A sensor stopped reporting to Home Assistant: {statistics}.',
     },
     /** Under a channel whose sensor stopped reporting (APP-728). */
@@ -424,6 +431,41 @@ export const energy = {
     footer:
       "Only admins of the Group see this. The token stays on Gather's server. Gather reads statistics only and controls nothing.",
     adminsOnly: 'Only admins of the Group can connect Home Assistant.',
+  },
+  /**
+   * Connecting Enelogic (APP-497), in the Home Assistant screen's steps. The
+   * channel rows share `connect`'s words.
+   */
+  enelogic: {
+    title: 'Enelogic',
+    summary: 'Connect Enelogic',
+    summarySub: 'Read only, never controls anything',
+    stepAccount: '1 · Account',
+    signIn: 'Sign in at Enelogic',
+    signingIn: 'Opening Enelogic…',
+    signInAgain: 'Sign in at Enelogic again',
+    accountHint:
+      'Gather opens Enelogic. Sign in there and allow Gather to read your measuring points; Enelogic then sends you back here.',
+    accountConnected: 'Gather may read your Enelogic account.',
+    read: 'Read measuring points',
+    reading: 'Reading…',
+    found: {
+      one: 'Your measuring points have 1 channel.',
+      other: 'Your measuring points have {count} channels.',
+    },
+    foundNone: 'Your Enelogic account has no measuring points with readings yet.',
+    stepChannels: '2 · What Gather reads',
+    channelsHint:
+      'Taken from your measuring point read most recently. Pick another register for a channel when needed.',
+    footer:
+      "Only admins of the Group see this. Gather's access to Enelogic stays on its server. Gather reads Enelogic every six hours and controls nothing.",
+    disconnect: 'Disconnect Enelogic',
+    disconnectTitle: 'Disconnect Enelogic?',
+    disconnectBody:
+      'Gather forgets its access and stops reading. What it already read stays.',
+    adminsOnly: 'Only admins of the Group can connect Enelogic.',
+    /** The phone's row: connecting happens on the web. */
+    onTheWeb: 'Connect it in Gather on the web, under Energy › Sources.',
   },
   /** Prices per hour, and where they come from (APP-493). */
   prices: {
@@ -666,5 +708,13 @@ export const energy = {
     assetInFuture: 'Choose today or an earlier day.',
     tooManyAssets: 'There are already 20 panels and batteries. Remove one first.',
     readingNotFound: 'That reading is not there any more.',
+    enelogicNotConfigured: 'Enelogic is not set up on this server yet.',
+    enelogicRefused: 'Enelogic did not accept the sign-in. Try again.',
+    enelogicUnreachable: 'Enelogic does not answer. Try again later.',
+    enelogicRevoked:
+      'Enelogic no longer gives Gather access. Sign in at Enelogic again.',
+    enelogicNotConnected: 'Sign in at Enelogic first.',
+    registerNotFound:
+      'A picked register is not in your Enelogic account. Read the measuring points again.',
   } satisfies Record<EnergyRefusalCode, string>,
 }

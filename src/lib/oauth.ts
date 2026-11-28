@@ -21,6 +21,17 @@ import { useAction } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { hrefTo } from './links'
 
+/**
+ * What a round trip connects: an integration provider, or Enelogic as an
+ * Energy source (APP-497), which comes back through the same callback.
+ */
+export type OAuthTarget = ExternalProviderId | 'enelogic'
+
+const OAUTH_TARGETS: readonly OAuthTarget[] = [
+  ...EXTERNAL_PROVIDER_IDS,
+  'enelogic',
+]
+
 export const PROVIDER_LABELS: Record<ExternalProviderId, string> = {
   notion: 'Notion',
   todoist: 'Todoist',
@@ -58,7 +69,7 @@ export function oauthRedirectUri(): string {
  * where to return afterwards.
  */
 export function newOAuthState(
-  provider: ExternalProviderId,
+  provider: OAuthTarget,
   groupSlug: string,
   returnTo: string,
 ): string {
@@ -78,7 +89,7 @@ export function newOAuthState(
  * is a failure the callback shows, not something to paper over.
  */
 export function consumeOAuthState(state: string | undefined): {
-  provider: ExternalProviderId
+  provider: OAuthTarget
   groupSlug: string | null
   returnTo: string
 } | null {
@@ -89,9 +100,7 @@ export function consumeOAuthState(state: string | undefined): {
   sessionStorage.removeItem(RETURN_KEY)
   sessionStorage.removeItem(GROUP_KEY)
   if (!state || !stored || state !== stored) return null
-  const provider = EXTERNAL_PROVIDER_IDS.find(
-    (id) => id === state.split('.')[0],
-  )
+  const provider = OAUTH_TARGETS.find((id) => id === state.split('.')[0])
   if (!provider) return null
   return { provider, groupSlug, returnTo }
 }

@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { openWebPage } from '../../feedback/openWebPage'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
 import { moduleHref } from '../../modules/moduleDestination'
@@ -29,6 +30,9 @@ import { SectionLabel } from '../../ui/section-label'
 import { WashHeader } from '../../ui/wash-header'
 
 type SourceList = NonNullable<FunctionReturnType<typeof api.energySources.list>>
+
+/** Connecting Enelogic signs in there, which happens on the web (APP-497). */
+export const ENELOGIC_WEB_URL = 'https://gather.appelent.nl/energy/enelogic'
 
 export function EnergySourcesScreen() {
   const tokens = useTokens('home')
@@ -102,6 +106,9 @@ function Sources({ list }: { list: SourceList }) {
   const homeAssistant = list.sources.some(
     (each) => each.kind === 'homeAssistant',
   )
+  const enelogic = list.sources.some((each) => each.kind === 'enelogic')
+  const openEnelogic = () =>
+    void openWebPage(ENELOGIC_WEB_URL, t.errors.openPageFailed)
   const open = (path: '/all/energy/readings' | '/all/energy/connect') =>
     router.push(moduleHref(path))
 
@@ -122,9 +129,14 @@ function Sources({ list }: { list: SourceList }) {
                 : energySourceLine(source, now, words, locale)
               const path = manual
                 ? ('/all/energy/readings' as const)
-                : list.canManage
+                : list.canManage && source.kind === 'homeAssistant'
                   ? ('/all/energy/connect' as const)
                   : null
+              const press = path
+                ? () => open(path)
+                : list.canManage && source.kind === 'enelogic'
+                  ? openEnelogic
+                  : undefined
               return (
                 <InsetRow
                   key={source._id}
@@ -132,8 +144,8 @@ function Sources({ list }: { list: SourceList }) {
                   title={source.label}
                   subtitle={line.text}
                   subtitleTone={line.problem ? 'danger' : 'muted'}
-                  chevron={path !== null}
-                  onPress={path ? () => open(path) : undefined}
+                  chevron={press !== undefined}
+                  onPress={press}
                 />
               )
             })}
@@ -197,7 +209,20 @@ function Sources({ list }: { list: SourceList }) {
             chevron
             onPress={() => open('/all/energy/readings')}
           />
-          <InsetRow key="enelogic" title={copy.enelogic} subtitle={copy.soon} />
+          {enelogic ? null : (
+            <InsetRow
+              key="enelogic"
+              testID="energy-add-enelogic"
+              title={copy.enelogic}
+              subtitle={
+                list.canManage
+                  ? words.enelogic.onTheWeb
+                  : copy.adminsConnectEnelogic
+              }
+              chevron={list.canManage}
+              onPress={list.canManage ? openEnelogic : undefined}
+            />
+          )}
           <InsetRow
             key="homeWizard"
             title={copy.homeWizard}

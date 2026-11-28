@@ -39,6 +39,7 @@ export function primaryEnergySite<
   )[0]
 }
 
+export * from './energyEnelogic'
 export * from './energyHomeAssistant'
 export * from './energyPrices'
 export * from './energySolar'

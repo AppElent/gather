@@ -85,6 +85,23 @@ describe('EnergySourcesPage', () => {
     state.list = { ...list, canManage: false, sources: [], channels: [] }
     renderInGroup(<EnergySourcesPage />, { locale: 'nl' })
     expect(hrefs()).not.toContain('/energy/connect')
-    expect(screen.getByText(/Alleen beheerders/)).toBeInTheDocument()
+    expect(hrefs()).not.toContain('/energy/enelogic')
+    expect(screen.getAllByText(/Alleen beheerders/)).toHaveLength(2)
+  })
+
+  test('an admin adds Enelogic from its own page', () => {
+    state.list = list
+    renderInGroup(<EnergySourcesPage />)
+    expect(hrefs().filter((href) => href === '/energy/enelogic')).toHaveLength(1)
+  })
+
+  test('a connected Enelogic opens its own page, and is not offered again', () => {
+    state.list = {
+      ...list,
+      sources: [{ ...source, _id: 'en', kind: 'enelogic', label: 'Enelogic' }],
+    }
+    renderInGroup(<EnergySourcesPage />)
+    expect(hrefs().filter((href) => href === '/energy/enelogic')).toHaveLength(1)
+    expect(screen.queryByText(/through your Enelogic account/)).toBeNull()
   })
 })
