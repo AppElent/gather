@@ -10,7 +10,7 @@ import { act, createElement } from 'react'
 import { afterEach, describe, expect, test } from 'vitest'
 
 import { mount } from '../../../testing/dom'
-import { slotKey, useProposalBar } from './proposal-bar'
+import { slotKey, toastClearance, useProposalBar } from './proposal-bar'
 
 type Draft = { date: string; slot: 'dinner'; source: 'ai' | 'rules' | 'fallback' }
 type Bar = ReturnType<typeof useProposalBar>
@@ -135,5 +135,17 @@ describe('useProposalBar', () => {
     frames.length = 0
     view.rerender(render(NEXT_WEEK, []))
     expect(frames.every((frame) => !frame.showBar)).toBe(true)
+  })
+})
+
+// APP-1002: on an iPhone SE the "nothing fits" toast covered the bar's buttons.
+describe('toastClearance', () => {
+  test('lifts the toast over the whole bar and its gap while the bar shows', () => {
+    expect(toastClearance(true, 112, 12)).toBe(124)
+  })
+
+  test('leaves the toast at the bottom without the bar, or before it is measured', () => {
+    expect(toastClearance(false, 112, 12)).toBe(0)
+    expect(toastClearance(true, 0, 12)).toBe(0)
   })
 })

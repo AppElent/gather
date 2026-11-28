@@ -160,6 +160,7 @@ export function ProposalBar({
   onAcceptAll,
   onGroceries,
   onDone,
+  onHeight,
   busy,
 }: {
   pending: number
@@ -168,6 +169,8 @@ export function ProposalBar({
   onAcceptAll: () => void
   onGroceries: () => void
   onDone: () => void
+  /** The bar's laid-out height, so the screen's toast can stay above it. */
+  onHeight?: (height: number) => void
   busy: boolean
 }) {
   const { t, locale } = useI18n()
@@ -176,6 +179,7 @@ export function ProposalBar({
   return (
     <View
       testID="proposal-bar"
+      onLayout={(event) => onHeight?.(event.nativeEvent.layout.height)}
       style={[
         styles.bar,
         { bottom, backgroundColor: tokens.surface, shadowColor: tokens.ink },
