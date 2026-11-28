@@ -8,7 +8,7 @@ status: current
 # Tasks
 
 Completing a task that still has open subtasks, on the web and the phone. The
-question and its words come from the [tasks design](../../designs/tasks/)
+question comes from the [tasks design](../../designs/tasks/)
 §4 (APP-304); the web gained "Only this" in APP-820, and APP-940 settled the
 repeating case below.
 
@@ -29,9 +29,8 @@ repeating case below.
   Todoist, so it offers both answers.
 - **"Complete all" is not drawn as destructive.** It can be undone, so it uses
   the primary button on the web and the default alert button on the phone; red
-  (`buttonClass.secondaryDanger`) is kept for actions that lose data
-  ([general design](../standards/general-design.md)); the design gives
-  `danger` only to Delete task.
+  (`buttonClass.secondaryDanger`) is for destructive actions, and the tasks
+  design gives `danger` only to Delete task.
 
 ## Out of scope
 
